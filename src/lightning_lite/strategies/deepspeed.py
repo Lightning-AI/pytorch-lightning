@@ -34,7 +34,7 @@ from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if _DEEPSPEED_AVAILABLE:
@@ -89,7 +89,7 @@ class DeepSpeedStrategy(DDPStrategy):
         contiguous_memory_optimization: bool = False,
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
@@ -230,9 +230,10 @@ class DeepSpeedStrategy(DDPStrategy):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
         )
+        self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
 
         self.config = self._load_config(config)
         if self.config is None:
@@ -299,7 +300,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return self._deepspeed_engine
 
     def setup_module_and_optimizers(
-        self, model: Module, optimizers: List[Optimizer]
+        self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
@@ -315,9 +316,16 @@ class DeepSpeedStrategy(DDPStrategy):
                 f" Got {len(optimizers)} optimizers instead."
             )
 
-        self._deepspeed_engine, optimizer = self._setup_module_and_optimizer(model, optimizers[0])
+        self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
+
+    def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+        self._deepspeed_engine, _ = self._initialize_engine(module)
+        return self._deepspeed_engine
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextlib.contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
@@ -328,9 +336,9 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision == PrecisionType.HALF:
+            if self.precision.precision == PrecisionType.HALF:
                 dtype = torch.float16
-            elif self.precision_plugin.precision == PrecisionType.BFLOAT:
+            elif self.precision.precision == PrecisionType.BFLOAT:
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -395,11 +403,10 @@ class DeepSpeedStrategy(DDPStrategy):
             offload_optimizer_device="nvme",
         )
 
-    def _setup_module_and_optimizer(
+    def _initialize_engine(
         self,
         model: Module,
-        optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        optimizer: Optional[Optimizer] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -412,7 +419,6 @@ class DeepSpeedStrategy(DDPStrategy):
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
@@ -476,8 +482,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == PrecisionType.HALF:
-            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
+        if self.precision.precision == PrecisionType.HALF:
+            if "fp16" not in self.config and self.precision.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -488,10 +494,10 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+            elif "amp" not in self.config and self.precision.amp_type == AMPType.APEX:
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
-                self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
-        elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+                self.config["amp"] = {"enabled": True, "opt_level": self.precision.amp_level}
+        elif "bf16" not in self.config and self.precision.precision == PrecisionType.BFLOAT:
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

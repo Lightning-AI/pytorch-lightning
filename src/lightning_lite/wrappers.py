@@ -71,7 +71,7 @@ class _LiteOptimizer:
 
 class _LiteModule(_DeviceDtypeModuleMixin):
     def __init__(
-        self, forward_module: nn.Module, precision_plugin: Precision, original_module: Optional[nn.Module] = None
+        self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
@@ -80,7 +80,7 @@ class _LiteModule(_DeviceDtypeModuleMixin):
 
         Args:
             forward_module: The module to wrap the ``forward`` method on.
-            precision_plugin: Reference to the precision plugin for handling precision context
+            precision: Reference to the precision plugin for handling precision context
             original_module: The original, unmodified module as passed into the
                 :meth:`pytorch_lightning.lite.lite.LightningLite.setup` method. This is needed when attribute lookup
                 on this wrapper should pass through to the original module.
@@ -88,7 +88,7 @@ class _LiteModule(_DeviceDtypeModuleMixin):
         super().__init__()
         self._forward_module = forward_module
         self._original_module = original_module or forward_module
-        self._precision_plugin = precision_plugin
+        self._precision = precision
 
     @property
     def module(self) -> nn.Module:
@@ -97,9 +97,9 @@ class _LiteModule(_DeviceDtypeModuleMixin):
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
         method."""
-        args, kwargs = apply_to_collection([args, kwargs], function=self._precision_plugin.convert_input, dtype=Tensor)
+        args, kwargs = apply_to_collection([args, kwargs], function=self._precision.convert_input, dtype=Tensor)
 
-        with self._precision_plugin.forward_context():
+        with self._precision.forward_context():
             output = self._forward_module(*args, **kwargs)
 
         output = apply_to_collection(

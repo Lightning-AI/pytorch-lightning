@@ -1,3 +1,4 @@
+:orphan:
 
 **************************
 What are Lightning Drives?

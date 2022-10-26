@@ -26,9 +26,8 @@ from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
 from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.optimizer import optimizers_to_device
-from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH, ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin

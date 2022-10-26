@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
@@ -26,10 +26,17 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 
+from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_lite.plugins import Precision
-from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
+from lightning_lite.strategies import (
+    DDPShardedStrategy,
+    DDPSpawnShardedStrategy,
+    DeepSpeedStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+    XLAStrategy,
+)
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
@@ -43,6 +50,8 @@ from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+
+from lightning_lite.strategies.fsdp import FSDPStrategy
 
 
 class LightningLite(ABC):
@@ -87,7 +96,7 @@ class LightningLite(ABC):
         )
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
-        self._precision_plugin: Precision = self._strategy.precision_plugin
+        self._precision: Precision = self._strategy.precision
         self._models_setup: int = 0
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
@@ -148,29 +157,87 @@ class LightningLite(ABC):
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
-            The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
+            The tuple containing wrapped model and the optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
         original_model = model
 
-        model = self._precision_plugin.convert_module(model)
+        model = self._precision.convert_module(model)
 
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
-        model, optimizers = self._strategy.setup_module_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
+        if optimizers:
+            model, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
+                model, list(optimizers)
+            )
+        else:
+            model = self._strategy.setup_module(model)
+
+        model = _LiteModule(model, self._precision, original_module=original_model)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         model.to(self.device if move_to_device else next(model.parameters()).device)
 
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+
         self._models_setup += 1
+
         if optimizers:
-            # join both types in a list for API convenience
-            return [model] + optimizers  # type: ignore
+            # join both types in a tuple for API convenience
+            return model, *optimizers
         return model
+
+    def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
+        """Set up a model for accelerated training or inference.
+
+        This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
+        strategies like `FSDP` that require setting up the module before the optimizer can be created and set up.
+        See also :meth:`setup_optimizers`.
+
+        Args:
+            model: A model to set up
+            move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
+                and alternatively use :meth:`to_device` manually.
+
+        Returns:
+            The wrapped model.
+        """
+        self._validate_setup_model(model)
+        original_model = model
+
+        model = self._precision.convert_module(model)
+
+        if move_to_device:
+            model = self._move_model_to_device(model=model, optimizers=[])
+
+        # Let strategy wrap and connect the model alone
+        model = self._strategy.setup_module(model)
+        model = _LiteModule(model, self._precision, original_module=original_model)
+
+        # Update the _DeviceDtypeModuleMixin's device parameter
+        model.to(self.device if move_to_device else next(model.parameters()).device)
+
+        self._models_setup += 1
+        return model
+
+    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_LiteOptimizer, Tuple[_LiteOptimizer, ...]]:
+        """Set up one or more optimizers for accelerated training.
+
+        Some strategies do not allow setting up model and optimizer independently. For them, you should call
+        ``.setup(model, optimizer, ...)`` instead to jointly set them up.
+
+        Args:
+            *optimizers: One or more optmizers to set up.
+
+        Returns:
+            The wrapped model.
+        """
+        self._validate_setup_optimizers(optimizers)
+        optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
+        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
@@ -257,7 +324,7 @@ class LightningLite(ABC):
                 # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
-        self._precision_plugin.backward(tensor, module, *args, **kwargs)
+        self._precision.backward(tensor, module, *args, **kwargs)
 
     @contextmanager
     def autocast(self) -> Generator[None, None, None]:
@@ -266,7 +333,7 @@ class LightningLite(ABC):
         Use this only if the `forward` method of your model does not cover all operations you wish to run with the
         chosen precision setting.
         """
-        with self._precision_plugin.forward_context():
+        with self._precision.forward_context():
             yield
 
     @overload
@@ -344,6 +411,52 @@ class LightningLite(ABC):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
+
+    @contextmanager
+    def no_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
+        """Skip gradient synchronization during backward to avoid redundant communication overhead.
+
+        Use this context manager when performing gradient accumulation to speed up training with multiple devices.
+
+        Example::
+
+            # Accumulate gradient 8 batches at a time
+            with self.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+                output = model(input)
+                loss = ...
+                self.backward(loss)
+                ...
+
+        For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
+        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
+
+        Args:
+            module: The module for which to control the gradient synchronization.
+            enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
+                skip.
+        """
+
+        if not isinstance(module, _LiteModule):
+            raise TypeError(
+                "You need to set up the model first before you can call `self.no_backward_sync()`:"
+                " `model = self.setup(model, ...)`"
+            )
+        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+            context = nullcontext()
+        elif self._strategy._backward_sync_control is None:
+            rank_zero_warn(
+                f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
+                f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
+                category=PossibleUserWarning,
+            )
+            context = nullcontext()
+        else:
+            context = self._strategy._backward_sync_control.no_backward_sync(  # type: ignore[assignment]
+                module._forward_module
+            )
+
+        with context:
+            yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save checkpoint contents to a file.
@@ -435,18 +548,51 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
-    @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(self, model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
+        if isinstance(self._strategy, FSDPStrategy):
+            raise RuntimeError(
+                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
+                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
+
+    def _validate_setup_model(self, model: nn.Module) -> None:
+        if isinstance(model, _LiteModule):
+            raise ValueError("A model should be passed only once to the `setup_model` method.")
+
+        if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
+            raise RuntimeError(
+                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
+                " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
+                " `ddp`."
+            )
+
+    def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
+        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy)):
+            raise RuntimeError(
+                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
+                " through `.setup(model, optimizer, ...)`."
+            )
+
+        if not optimizers:
+            raise ValueError("`setup_optimizers` requires at least one optimizer as input.")
+
+        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+            raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
+
     @staticmethod
     def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
+        if not dataloaders:
+            raise ValueError("`setup_dataloaders` requires at least one dataloader as input.")
+
         if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
-            raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method")
+            raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method.")
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")

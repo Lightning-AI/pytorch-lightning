@@ -14,20 +14,11 @@
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 @pytest.mark.parametrize(
@@ -40,8 +31,6 @@ else:
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
-    tutils.set_random_main_port()
-    seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
@@ -58,7 +47,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
-    torch_test_assert_close(old_weights, new_weights)
+    torch.testing.assert_close(old_weights, new_weights)
 
 
 def test_model_parallel_setup_called(tmpdir):
@@ -77,12 +66,3 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
-
-
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
-def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
-
-    trainer = Trainer(strategy=strategy)
-    assert isinstance(trainer.strategy, strategy_cls)

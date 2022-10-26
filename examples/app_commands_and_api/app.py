@@ -7,6 +7,7 @@ from lightning_app.core.app import LightningApp
 
 class ChildFlow(LightningFlow):
     def nested_command(self, name: str):
+        """A nested command."""
         print(f"Hello {name}")
 
     def configure_commands(self):
@@ -24,6 +25,7 @@ class FlowCommands(LightningFlow):
             print(self.names)
 
     def command_without_client(self, name: str):
+        """A command without a client."""
         self.names.append(name)
 
     def command_with_client(self, config: CustomConfig):

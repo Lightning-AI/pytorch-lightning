@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union, Tuple
 
 import torch
 from torch import Tensor
@@ -84,7 +84,7 @@ class FSDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         cpu_offload: Optional["CPUOffload"] = None,
@@ -100,7 +100,7 @@ class FSDPStrategy(ParallelStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
         )
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
@@ -144,9 +144,8 @@ class FSDPStrategy(ParallelStrategy):
     def mixed_precision_config(self) -> Optional["MixedPrecision"]:
         if self.mixed_precision:
             return self.mixed_precision
-        plugin = self.precision_plugin
-        if isinstance(plugin, FSDPPrecision):
-            return plugin.mixed_precision_config
+        if isinstance(self.precision, FSDPPrecision):
+            return self.precision.mixed_precision_config
 
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
@@ -156,6 +155,15 @@ class FSDPStrategy(ParallelStrategy):
     def setup_environment(self) -> None:
         self._setup_distributed()
         super().setup_environment()
+
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer]
+    ) -> Tuple[Module, List[Optimizer]]:
+        raise NotImplementedError(
+            f"The `{type(self).__name__}` does not support the joint setup of module and optimizer(s)."
+            " Please do it in this order: Create the model, call `setup_module`, create the optimizer,"
+            " call `setup_optimizer`."
+        )
 
     def setup_module(self, module: Module) -> "FullyShardedDataParallel":
         """Wraps the model into a

@@ -27,11 +27,11 @@ def test_deepspeed_precision_choice(precision, tmpdir):
     DeepSpeed handles precision via custom DeepSpeedPrecision.
     """
     connector = _Connector(
-        accelerator="gpu",
+        accelerator="auto",
         strategy="deepspeed",
         precision=precision,
     )
 
     assert isinstance(connector.strategy, DeepSpeedStrategy)
-    assert isinstance(connector.strategy.precision_plugin, DeepSpeedPrecision)
-    assert connector.strategy.precision_plugin.precision == precision
+    assert isinstance(connector.strategy.precision, DeepSpeedPrecision)
+    assert connector.strategy.precision.precision == precision
