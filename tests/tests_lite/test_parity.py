@@ -34,7 +34,7 @@ from lightning_lite.lite import LightningLite
 from lightning_lite.plugins.environments.lightning import find_free_network_port
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.cloud_io import atomic_save
+from lightning_lite.utilities.cloud_io import _atomic_save
 
 
 class BoringModel(nn.Module):
@@ -89,7 +89,7 @@ class LiteRunner(LightningLite):
 
         if isinstance(self._strategy, DDPSpawnStrategy) and tmpdir and self.global_rank == 0:
             checkpoint_path = os.path.join(tmpdir, "model.pt")
-            atomic_save(model.state_dict(), checkpoint_path)
+            _atomic_save(model.state_dict(), checkpoint_path)
             return checkpoint_path
 
 
@@ -159,7 +159,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         main(to_device, model, train_dataloader, num_epochs=num_epochs)
 
     if rank == 0:
-        atomic_save(model.state_dict(), os.path.join(tmpdir, "model_spawn.pt"))
+        _atomic_save(model.state_dict(), os.path.join(tmpdir, "model_spawn.pt"))
 
 
 @pytest.mark.skipif(True, reason="Skipping as it takes 80 seconds.")
