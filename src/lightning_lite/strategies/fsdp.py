@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.distributed import default_pg_timeout
 from torch.nn import Module
+from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
@@ -175,6 +176,16 @@ class FSDPStrategy(ParallelStrategy):
             device_id=self.root_device.index,
             **self._ddp_kwargs,
         )
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        from torch.distributed.fsdp import FlatParameter
+
+        if len(optimizer.param_groups) > 1:
+            raise ValueError("Optimizers used with FSDP do not support multiple param groups.")
+
+        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0].values()):
+            return optimizer
+        raise ValueError("The optimizer does not seem to reference any flat FSDP parameters.")
 
     def module_to_device(self, module: Module) -> None:
         pass
