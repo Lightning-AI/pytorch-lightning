@@ -13,11 +13,9 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
-import torch.distributed
-from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -29,9 +27,11 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import (
+    distributed_available,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+)
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
@@ -111,24 +111,6 @@ class DDPStrategy(ParallelStrategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> Tensor:
-        """Reduces a tensor from several distributed processes to one aggregated tensor.
-
-        Args:
-            tensor: the tensor to sync and reduce
-            group: the process group to gather results from. Defaults to all processes (world)
-            reduce_op: the reduction operation. Defaults to 'mean'/'avg'.
-                Can also be a string 'sum' to calculate the sum during reduction.
-
-        Return:
-            reduced value, except when the input was not a tensor the output remains is unchanged
-        """
-        if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
-        return tensor
-
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         if not distributed_available():
             return
@@ -141,7 +123,7 @@ class DDPStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     @classmethod

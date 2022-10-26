@@ -12,15 +12,9 @@ from lightning_lite.plugins.environments.cluster_environment import ClusterEnvir
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.types import ReduceOp
 
-if torch.distributed.is_available():
-    from torch.distributed import group
-else:
-
-    class group:  # type: ignore
-        WORLD = None
-
-
 log = logging.getLogger(__name__)
+
+# FIXME: clean up this file
 
 
 def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
@@ -37,9 +31,6 @@ def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tens
         gathered_result: List with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
     """
-    if group is None:
-        group = torch.distributed.group.WORLD
-
     # Convert tensors to contiguous format
     result = result.contiguous()
 
@@ -88,25 +79,6 @@ def distributed_available() -> bool:
     return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
 
 
-def sync_ddp_if_available(
-    result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
-) -> Tensor:
-    """Function to reduce a tensor across worker processes during distributed training.
-
-    Args:
-        result: The value to sync and reduce (typically tensor or number)
-        group: The process group to gather results from. Defaults to all processes (world)
-        reduce_op: The reduction operation. Defaults to sum.
-            Can also be a string of 'avg', 'mean' to calculate the mean during reduction.
-
-    Return:
-        reduced value
-    """
-    if distributed_available():
-        return sync_ddp(result, group=group, reduce_op=reduce_op)
-    return result
-
-
 def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Function to reduce the tensors from several DDP processes to one main process.
 
@@ -120,9 +92,6 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         reduced value
     """
     divide_by_world_size = False
-
-    if group is None:
-        group = torch.distributed.group.WORLD
 
     op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
@@ -161,7 +130,7 @@ class AllGatherGrad(torch.autograd.Function):
     def forward(  # type: ignore[override]
         ctx: Any,
         tensor: Tensor,
-        group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
+        group: Optional["torch.distributed.ProcessGroup"] = None,
     ) -> Tensor:
         ctx.group = group
 
@@ -194,7 +163,6 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    group = group if group is not None else torch.distributed.group.WORLD
     if distributed_available():
         if sync_grads:
             return AllGatherGrad.apply(tensor, group)

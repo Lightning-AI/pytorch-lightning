@@ -15,6 +15,7 @@
 from typing import Any, Callable, Dict, Optional
 
 import torch
+from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning_lite.utilities.distributed import all_gather_ddp_if_available as new_all_gather_ddp_if_available
@@ -25,7 +26,6 @@ from lightning_lite.utilities.distributed import (
 )
 from lightning_lite.utilities.distributed import init_dist_connection as new_init_dist_connection
 from lightning_lite.utilities.distributed import sync_ddp as new_sync_ddp
-from lightning_lite.utilities.distributed import sync_ddp_if_available as new_sync_ddp_if_available
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
 
 
@@ -201,12 +201,19 @@ def sync_ddp(*args: Any, **kwargs: Any) -> Any:
     return new_sync_ddp(*args, **kwargs)
 
 
+def _sync_ddp_if_available(result: Tensor, *args: Any, **kwargs: Any) -> Any:
+    # this can be removed when Collective is integrated into PL's strategies
+    if new_distributed_available():
+        return new_sync_ddp(result, *args, **kwargs)
+    return result
+
+
 def sync_ddp_if_available(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.distributed.sync_ddp_if_available` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_lite.utilities.distributed.sync_ddp_if_available` instead."
+        " be removed in v1.10.0. Please use `strategy.reduce()` instead."
     )
-    return new_sync_ddp_if_available(*args, **kwargs)
+    return sync_ddp_if_available(*args, **kwargs)
 
 
 def tpu_distributed() -> bool:

@@ -21,7 +21,6 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import group as _group
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
@@ -135,7 +134,7 @@ class HPUParallelStrategy(DDPStrategy):
         if self.global_rank != src:
             obj = [None]
 
-        broadcast_object_list(obj, src, group=_group.WORLD)
+        broadcast_object_list(obj, src)
         return obj[0]
 
     def on_after_backward(self) -> None:

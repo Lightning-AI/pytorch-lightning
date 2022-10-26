@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from lightning_lite.plugins.collectives.collective import Collective
+from lightning_lite.plugins.collectives.deepspeed import DeepSpeedCollective
+from lightning_lite.plugins.collectives.single_device import SingleDeviceCollective
+from lightning_lite.plugins.collectives.torch_collective import TorchCollective
+from lightning_lite.plugins.collectives.xla import XLACollective
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
@@ -23,6 +28,11 @@ from lightning_lite.plugins.precision.tpu import TPUPrecision
 from lightning_lite.plugins.precision.tpu_bf16 import TPUBf16Precision
 
 __all__ = [
+    "Collective",
+    "DeepSpeedCollective",
+    "SingleDeviceCollective",
+    "TorchCollective",
+    "XLACollective",
     "ClusterEnvironment",
     "CheckpointIO",
     "TorchCheckpointIO",

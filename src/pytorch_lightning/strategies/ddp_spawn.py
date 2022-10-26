@@ -26,9 +26,11 @@ from typing_extensions import Literal
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
+from lightning_lite.utilities.distributed import (
+    distributed_available,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+)
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -39,7 +41,7 @@ from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+from pytorch_lightning.utilities.distributed import _sync_ddp_if_available, register_ddp_comm_hook
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
@@ -234,7 +236,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     def model_to_device(self) -> None:
@@ -267,7 +269,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

@@ -20,9 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
+from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device, init_dist_connection
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ProcessGroup, ReduceOp
@@ -33,6 +31,7 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _Subprocess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.distributed import _sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -55,8 +54,6 @@ else:
     BackwardPrefetch = None  # type: ignore[misc,assignment]
     CPUOffload = None  # type: ignore[misc,assignment]
 
-if _distributed_available:
-    from torch.distributed.distributed_c10d import _get_default_group
 
 log = logging.getLogger(__name__)
 
@@ -148,9 +145,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @property
     def process_group(self) -> Optional[ProcessGroup]:
-        if self._process_group is None:
-            # The strategy should have already initilized process group in setup_environment()
-            self._process_group = _get_default_group()
         return self._process_group
 
     @property
@@ -281,7 +275,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     def reduce(
@@ -302,7 +296,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

@@ -32,9 +32,11 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
+from lightning_lite.utilities.distributed import (
+    distributed_available,
+    get_default_process_group_backend_for_device,
+    init_dist_connection,
+)
 from lightning_lite.utilities.optimizer import optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ReduceOp
@@ -47,7 +49,7 @@ from pytorch_lightning.strategies.launchers.subprocess_script import _Subprocess
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+from pytorch_lightning.utilities.distributed import _sync_ddp_if_available, register_ddp_comm_hook
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
@@ -308,7 +310,7 @@ class DDPStrategy(ParallelStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]  # type: ignore[list-item]
-        torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
+        torch.distributed.broadcast_object_list(obj, src)
         return obj[0]
 
     def pre_backward(self, closure_loss: Tensor) -> None:
@@ -339,7 +341,7 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
