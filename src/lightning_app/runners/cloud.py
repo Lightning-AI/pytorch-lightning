@@ -40,7 +40,7 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
-from utilities.exceptions import LightningSourceDirectorySizeException
+from lightning_app.utilities.exceptions import LightningSourceDirectorySizeException
 
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
