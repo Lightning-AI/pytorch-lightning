@@ -288,14 +288,19 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
     left_collective.create_group(ranks=[0, 1])
     right_collective.create_group(ranks=[1, 2])
 
+    print("print1", strategy.global_rank)
+
     tensor = torch.tensor(strategy.global_rank, device=device)
     if strategy.global_rank in (0, 1):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
+    print("print2", strategy.global_rank)
     right_collective.barrier()  # avoids deadlock for global rank 1
     if strategy.global_rank in (1, 2):
         tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
+
+    print("print3", strategy.global_rank)
 
 
 @skip_distributed_unavailable
