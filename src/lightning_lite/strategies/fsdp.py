@@ -191,7 +191,7 @@ class FSDPStrategy(ParallelStrategy):
         if len(optimizer.param_groups) > 1:
             raise ValueError("Optimizers used with FSDP do not support multiple param groups.")
 
-        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0].values()):
+        if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
             return optimizer
         raise ValueError("The optimizer does not seem to reference any flat FSDP parameters.")
 
