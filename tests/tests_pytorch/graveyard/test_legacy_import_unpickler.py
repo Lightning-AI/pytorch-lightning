@@ -16,7 +16,7 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    not package_available("lightning.pytorch"), reason="This test is only relevant for the standalone package"
+    package_available("lightning.pytorch"), reason="This test is only relevant for the standalone package"
 )
 def test_imports_standalone(pl_version: str):
     assert any(
@@ -40,7 +40,8 @@ def test_imports_standalone(pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    package_available("lightning.pytorch") in sys.modules, reason="This test is only relevant for the unified package"
+    not package_available("lightning.pytorch") in sys.modules,
+    reason="This test is only relevant for the unified package",
 )
 def test_imports_unified(pl_version: str):
     assert any(
