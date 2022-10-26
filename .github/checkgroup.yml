@@ -233,6 +233,7 @@ subprojects:
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
+      - "examples/app_*"  # some tests_app tests call examples files
       - ".github/workflows/ci-app-tests.yml"
       - "setup.py"
       - ".actions/**"
