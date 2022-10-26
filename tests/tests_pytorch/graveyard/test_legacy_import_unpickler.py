@@ -27,7 +27,7 @@ def test_imports_standalone(pl_version: str):
     assert path_ckpts, f'No checkpoints found in folder "{path_legacy}"'
     path_ckpt = path_ckpts[-1]
 
-    with no_warning_call():
+    with no_warning_call(match="Redirecting import of*"):
         torch.load(path_ckpt)
 
     assert any(
