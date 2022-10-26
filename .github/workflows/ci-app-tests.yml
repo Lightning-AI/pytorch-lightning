@@ -10,6 +10,7 @@ on:
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
+      - "tests/tests_app_examples/**"
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"

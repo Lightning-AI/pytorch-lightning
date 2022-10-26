@@ -673,7 +673,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     warning_ctx = pytest.warns if distributed_env and is_tensor else no_warning_call
 
     with mock.patch(
-        "pytorch_lightning.trainer.connectors.logger_connector.result.distributed_available",
+        "pytorch_lightning.trainer.connectors.logger_connector.result._distributed_available",
         return_value=distributed_env,
     ):
         with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
