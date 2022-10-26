@@ -448,6 +448,7 @@ class CloudRuntime(Runtime):
             # remove the entry for the first frame
             del listing[1]
             from lightning_app.testing.helpers import EmptyFlow
+
             # Create a mocking app.
             app = LightningApp(EmptyFlow())
 
