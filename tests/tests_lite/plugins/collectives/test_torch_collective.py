@@ -294,7 +294,7 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
         assert tensor == 1
     right_collective.barrier()  # avoids deadlock for global rank 1
     if strategy.global_rank in (1, 2):
-        tensor = right_collective.all_reduce(tensor, device=device)
+        tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
 
 
