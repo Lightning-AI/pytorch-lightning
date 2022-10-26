@@ -119,7 +119,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: switch PyTorch URL
+    - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
@@ -168,7 +168,7 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
-    - name: switch coverage scope
+    - name: Switch coverage scope
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
 
     - name: Testing PyTorch
