@@ -27,8 +27,8 @@ local tputests = base.BaseTest {
       conda activate lightning
 
       echo "--- Fetch the SHA's changes ---"
-      git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git /home/runner/work/lightning
-      cd home/runner/work/lightning
+      git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
+      cd lightning
       git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
       git -c advice.detachedHead=false checkout {SHA}
 

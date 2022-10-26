@@ -341,25 +341,24 @@ class RichProgressBar(ProgressBarBase):
         if self.main_progress_bar_id is not None and self._leave:
             self._stop_progress()
             self._init_progress(trainer)
-        if self.main_progress_bar_id is None:
-            self.main_progress_bar_id = self._add_task(total_batches, train_description)
-        elif self.progress is not None:
-            assert self.main_progress_bar_id is not None
-            self.progress.reset(
-                self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
-            )
+        if self.progress is not None:
+            if self.main_progress_bar_id is None:
+                self.main_progress_bar_id = self._add_task(total_batches, train_description)
+            else:
+                self.progress.reset(
+                    self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
+                )
 
         self.refresh()
 
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx):
+        if not self.has_dataloader_changed(dataloader_idx) or self.progress is None:
             return
 
         if trainer.sanity_checking:
             if self.val_sanity_progress_bar_id is not None:
-                assert self.progress is not None
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
             self.val_sanity_progress_bar_id = self._add_task(
@@ -367,7 +366,6 @@ class RichProgressBar(ProgressBarBase):
             )
         else:
             if self.val_progress_bar_id is not None:
-                assert self.progress is not None
                 self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
 
             # TODO: remove old tasks when new onces are created
@@ -378,10 +376,8 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
-        if self.progress is not None:
-            return self.progress.add_task(
-                f"[{self.theme.description}]{description}", total=total_batches, visible=visible
-            )
+        assert self.progress is not None
+        return self.progress.add_task(f"[{self.theme.description}]{description}", total=total_batches, visible=visible)
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:

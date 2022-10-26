@@ -1,6 +1,6 @@
 import multiprocessing
 import pickle
-import queue
+import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
+    HTTP_QUEUE_TOKEN,
     HTTP_QUEUE_URL,
     LIGHTNING_DIR,
     QUEUE_DEBUG_ENABLED,
@@ -92,8 +93,9 @@ class QueuingSystem(Enum):
         queue_name = f"{queue_id}_{API_STATE_PUBLISH_QUEUE_CONSTANT}" if queue_id else API_STATE_PUBLISH_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
+    # TODO: This is hack, so we can remove this queue entirely when fully optimized.
     def get_api_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{API_DELTA_QUEUE_CONSTANT}" if queue_id else API_DELTA_QUEUE_CONSTANT
+        queue_name = f"{queue_id}_{DELTA_QUEUE_CONSTANT}" if queue_id else DELTA_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
     def get_orchestrator_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
@@ -317,14 +319,14 @@ class HTTPQueue(BaseQueue):
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
-        self.app_id, self.name = self._split_app_id_and_queue_name(name)
-        self._original_name = name  # keeping the name for debugging
+        self.app_id, self._name_suffix = self._split_app_id_and_queue_name(name)
+        self.name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
-        self.client = HTTPClient(base_url=HTTP_QUEUE_URL, log_callback=debug_log_callback)
+        self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
 
     def get(self, timeout: int = None) -> Any:
         if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
         # it's a blocking call, we need to loop and call the backend to mimic this behavior
         if timeout is None:
@@ -348,37 +350,32 @@ class HTTPQueue(BaseQueue):
                 time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
     def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self.name}", query_params={"action": "pop"})
+        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
         if resp.status_code == 204:
             raise queue.Empty
         return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
         if not self.app_id:
-            raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self._original_name}")
+            raise ValueError(f"The Lightning App ID couldn't be extracted from the queue name: {self.name}")
 
         value = pickle.dumps(item)
         queue_len = self.length()
         if queue_len >= WARNING_QUEUE_SIZE:
             warnings.warn(
-                f"The Queue {self.name} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
+                f"The Queue {self._name_suffix} length is larger than the recommended length of {WARNING_QUEUE_SIZE}. "
                 f"Found {queue_len}. This might cause your application to crash, please investigate this."
             )
-        resp = self.client.post(f"v1/{self.app_id}/{self.name}", data=value, query_params={"action": "push"})
+        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", data=value, query_params={"action": "push"})
         if resp.status_code != 201:
-            raise RuntimeError(f"Failed to push to queue: {self.name}")
+            raise RuntimeError(f"Failed to push to queue: {self._name_suffix}")
 
     def length(self):
         if not self.app_id:
-            raise ValueError(f"App ID couldn't be extracted from the queue name: {self._original_name}")
+            raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
-        val = self.client.get(f"/v1/{self.app_id}/{self.name}/length")
+        val = self.client.get(f"/v1/{self.app_id}/{self._name_suffix}/length")
         return int(val.text)
-
-    @property
-    def is_running(self) -> bool:
-        resp = self.client.get("/healthz")
-        return resp.status_code == 200
 
     @staticmethod
     def _split_app_id_and_queue_name(queue_name):

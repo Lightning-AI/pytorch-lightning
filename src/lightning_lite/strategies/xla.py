@@ -23,17 +23,16 @@ from torch.utils.data import DataLoader
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.plugins.environments import XLAEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.xla_plugin import XLACheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.apply_func import apply_to_collection
 from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
-from lightning_lite.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH, ReduceOp
 
 if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
@@ -48,17 +47,18 @@ class XLAStrategy(DDPSpawnStrategy):
         accelerator: Optional[Accelerator] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]
+        self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
 
     @property

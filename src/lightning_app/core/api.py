@@ -7,6 +7,7 @@ from copy import deepcopy
 from multiprocessing import Queue
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
+from time import sleep
 from typing import Dict, List, Mapping, Optional
 
 import uvicorn
@@ -69,11 +70,12 @@ logger = Logger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
         self._exit_event = Event()
+        self.refresh_interval = refresh_interval
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
@@ -81,6 +83,8 @@ class UIRefresher(Thread):
         try:
             while not self._exit_event.is_set():
                 self.run_once()
+                # Note: Sleep to reduce queue calls.
+                sleep(self.refresh_interval)
         except Exception as e:
             logger.error(traceback.print_exc())
             raise e
@@ -94,11 +98,12 @@ class UIRefresher(Thread):
             pass
 
         try:
-            response = self.api_response_queue.get(timeout=0)
+            responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
-                responses_store[response["id"]] = response["response"]
+                for response in responses:
+                    responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
@@ -268,6 +273,8 @@ async def healthz(response: Response):
     # check the queue status only if running in cloud
     if is_running_in_cloud():
         queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
+        # app checking the status of the Queue server
         if not queue_obj.is_running:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return {"status": "failure", "reason": "Redis is not available"}
@@ -346,6 +353,7 @@ def start_server(
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
+    root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
     apis: Optional[List[HttpMethod]] = None,
@@ -369,7 +377,10 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
+        if host == "0.0.0.0":
+            logger.info("Your app has started.")
+        else:
+            logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
         if has_started_queue:
             LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
@@ -382,6 +393,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=root_path)
 
     return refresher

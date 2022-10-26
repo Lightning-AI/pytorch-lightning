@@ -25,13 +25,8 @@ def pytest_sessionstart(*_):
     entering the run test loop."""
     for name, url in GITHUB_APP_URLS.items():
         if not os.path.exists(os.path.join(_PROJECT_ROOT, "examples", name)):
-            Popen(
-                ["git", "clone", url, name],
-                cwd=os.path.join(
-                    _PROJECT_ROOT,
-                    "examples",
-                ),
-            ).wait(timeout=90)
+            path_examples = os.path.join(_PROJECT_ROOT, "examples")
+            Popen(["git", "clone", url, name], cwd=path_examples).wait(timeout=90)
         else:
             Popen(["git", "pull", "main"], cwd=os.path.join(_PROJECT_ROOT, "examples", name)).wait(timeout=90)
 
@@ -75,7 +70,8 @@ def clear_app_state_state_variables():
     lightning_app.utilities.state._STATE = None
     lightning_app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
-    cloud_compute._CLOUD_COMPUTE_STORE.clear()
+    if hasattr(cloud_compute, "_CLOUD_COMPUTE_STORE"):
+        cloud_compute._CLOUD_COMPUTE_STORE.clear()
 
 
 @pytest.fixture

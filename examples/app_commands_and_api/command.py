@@ -10,6 +10,9 @@ class CustomConfig(BaseModel):
 
 
 class CustomCommand(ClientCommand):
+
+    description = "A command with a client."
+
     def run(self):
         parser = ArgumentParser()
         parser.add_argument("--name", type=str)

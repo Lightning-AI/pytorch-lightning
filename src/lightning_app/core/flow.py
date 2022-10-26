@@ -79,7 +79,7 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow
+            >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
             ...     def __init__(self):
             ...         super().__init__()
@@ -763,3 +763,15 @@ class LightningFlow:
                 child.set_state(state)
             elif strict:
                 raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
+
+
+class _RootFlow(LightningFlow):
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        self.work.run()
+
+    def configure_layout(self):
+        return [{"name": "Main", "content": self.work}]

@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
+    dict(torch="1.13.0", torchvision="0.14.0"),  # RC
     dict(torch="1.12.1", torchvision="0.13.1"),  # stable
     dict(torch="1.12.0", torchvision="0.13.0"),
     dict(torch="1.11.0", torchvision="0.12.0"),
@@ -81,6 +82,7 @@ if __name__ == "__main__":
         requirements_path, torch_version = sys.argv[1:]
     else:
         requirements_path, torch_version = sys.argv[1], None
+    print(f"requirements_path='{requirements_path}' with torch_version='{torch_version}'")
 
     with open(requirements_path) as fp:
         requirements = fp.read()

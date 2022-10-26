@@ -197,7 +197,7 @@ class FitLoop(Loop[None]):
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
-    def on_run_start(self) -> None:  # type: ignore[override]
+    def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
         # update the current_epoch in-case of checkpoint reload
         if not self._iteration_based_training():
@@ -218,9 +218,8 @@ class FitLoop(Loop[None]):
         self.trainer._call_lightning_module_hook("on_train_start")
         self.trainer._call_strategy_hook("on_train_start")
 
-    def on_advance_start(self) -> None:  # type: ignore[override]
-        """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
-        ``on_train_epoch_start``"""
+    def on_advance_start(self) -> None:
+        """Prepares the dataloader for training and calls the hook ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
 
         # reset train dataloader
@@ -246,15 +245,12 @@ class FitLoop(Loop[None]):
 
         self.trainer._logger_connector.on_epoch_start()
 
-        self.trainer._call_callback_hooks("on_epoch_start")
-        self.trainer._call_lightning_module_hook("on_epoch_start")
-
         self.trainer._call_callback_hooks("on_train_epoch_start")
         self.trainer._call_lightning_module_hook("on_train_epoch_start")
 
         self.epoch_progress.increment_started()
 
-    def advance(self) -> None:  # type: ignore[override]
+    def advance(self) -> None:
         """Runs one whole epoch."""
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
@@ -298,9 +294,6 @@ class FitLoop(Loop[None]):
         # call train epoch end hooks
         self.trainer._call_callback_hooks("on_train_epoch_end")
         self.trainer._call_lightning_module_hook("on_train_epoch_end")
-
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
 
         self.trainer._logger_connector.on_epoch_end()
 

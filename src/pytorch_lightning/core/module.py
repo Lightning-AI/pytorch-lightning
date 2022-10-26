@@ -88,6 +88,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
+            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -598,7 +599,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.

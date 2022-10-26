@@ -38,6 +38,7 @@ from lightning_cloud.openapi import (
     V1QueueServerType,
     V1SourceType,
     V1UserRequestedComputeConfig,
+    V1UserRequestedFlowComputeConfig,
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
@@ -54,7 +55,7 @@ from lightning_app.core.constants import (
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
-from lightning_app.storage import Drive
+from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -140,7 +141,6 @@ class CloudRuntime(Runtime):
                     name=work.cloud_compute.name,
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
-                    preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
 
@@ -150,9 +150,6 @@ class CloudRuntime(Runtime):
                 ]:
                     if drive.protocol == "lit://":
                         drive_type = V1DriveType.NO_MOUNT_S3
-                        source_type = V1SourceType.S3
-                    elif drive.protocol == "s3://":
-                        drive_type = V1DriveType.INDEXED_S3
                         source_type = V1SourceType.S3
                     else:
                         raise RuntimeError(
@@ -177,6 +174,19 @@ class CloudRuntime(Runtime):
                         ),
                     )
 
+                # TODO: Move this to the CloudCompute class and update backend
+                if work.cloud_compute.mounts is not None:
+                    mounts = work.cloud_compute.mounts
+                    if isinstance(mounts, Mount):
+                        mounts = [mounts]
+                    for mount in mounts:
+                        drive_specs.append(
+                            _create_mount_drive_spec(
+                                work_name=work.name,
+                                mount=mount,
+                            )
+                        )
+
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
@@ -200,6 +210,11 @@ class CloudRuntime(Runtime):
             flow_servers=frontend_specs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name=self.app.flow_cloud_compute.name,
+                shm_size=self.app.flow_cloud_compute.shm_size,
+                preemptible=False,
+            ),
         )
 
         # if requirements file at the root of the repository is present,
@@ -220,10 +235,10 @@ class CloudRuntime(Runtime):
             )
             if list_apps_resp.lightningapps:
                 # There can be only one app with unique project_id<>name pair
-                lightning_app = list_apps_resp.lightningapps[0]
+                lit_app = list_apps_resp.lightningapps[0]
             else:
                 app_body = Body7(name=app_config.name, can_download_source_code=True)
-                lightning_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
+                lit_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project_id=project.project_id, body=app_body
                 )
 
@@ -236,6 +251,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
             if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
@@ -256,19 +272,6 @@ class CloudRuntime(Runtime):
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
-            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project_id=project.project_id, app_id=lightning_app.id, body=release_body
-            )
-
-            if cluster_id is not None:
-                logger.info(f"running app on {lightning_app_release.cluster_id}")
-
-            if lightning_app_release.source_upload_url == "":
-                raise RuntimeError("The source upload url is empty.")
-
-            repo.package()
-            repo.upload(url=lightning_app_release.source_upload_url)
-
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
             # and open the admin ui to add credits and running the app.
@@ -281,11 +284,26 @@ class CloudRuntime(Runtime):
 
             # right now we only allow a single instance of the app
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id, app_id=lightning_app.id
+                project_id=project.project_id, app_id=lit_app.id
             )
-            queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
+
+            queue_server_type = V1QueueServerType.UNSPECIFIED
+            if CLOUD_QUEUE_TYPE == "http":
+                queue_server_type = V1QueueServerType.HTTP
+            elif CLOUD_QUEUE_TYPE == "redis":
+                queue_server_type = V1QueueServerType.REDIS
+
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
+
+                # TODO: support multiple instances / 1 instance per cluster
+                if existing_instance.spec.cluster_id != cluster_id:
+                    raise ValueError(
+                        f"Can not start app '{name}' on cluster '{cluster_id}' "
+                        f"since this app already exists on '{existing_instance.spec.cluster_id}'. "
+                        "To run it on another cluster, give it a new name with the --name option."
+                    )
+
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                     # TODO(yurij): Implement release switching in the UI and remove this
                     # We can only switch release of the stopped instance
@@ -305,6 +323,21 @@ class CloudRuntime(Runtime):
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
 
+            # create / upload the new app release / instace
+            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
+                project_id=project.project_id, app_id=lit_app.id, body=release_body
+            )
+
+            if cluster_id is not None:
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
+
+            if lightning_app_release.source_upload_url == "":
+                raise RuntimeError("The source upload url is empty.")
+
+            repo.package()
+            repo.upload(url=lightning_app_release.source_upload_url)
+
+            if find_instances_resp.lightningapps:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
                         project_id=project.project_id,
@@ -328,12 +361,12 @@ class CloudRuntime(Runtime):
                 lightning_app_instance = (
                     self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
                         project_id=project.project_id,
-                        app_id=lightning_app.id,
+                        app_id=lit_app.id,
                         id=lightning_app_release.id,
                         body=Body9(
                             cluster_id=cluster_id,
                             desired_state=app_release_desired_state,
-                            name=lightning_app.name,
+                            name=lit_app.name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
                         ),
@@ -437,3 +470,28 @@ class CloudRuntime(Runtime):
         except Exception:
             _prettifiy_exception(filepath)
         return app
+
+def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
+    if mount.protocol == "s3://":
+        drive_type = V1DriveType.INDEXED_S3
+        source_type = V1SourceType.S3
+    else:
+        raise RuntimeError(
+            f"unknown mount protocol `{mount.protocol}`. Please verify this "
+            f"drive type has been configured for use in the cloud dispatcher."
+        )
+
+    return V1LightningworkDrives(
+        drive=V1Drive(
+            metadata=V1Metadata(
+                name=work_name,
+            ),
+            spec=V1DriveSpec(
+                drive_type=drive_type,
+                source_type=source_type,
+                source=mount.source,
+            ),
+            status=V1DriveStatus(),
+        ),
+        mount_location=str(mount.mount_path),
+    )
