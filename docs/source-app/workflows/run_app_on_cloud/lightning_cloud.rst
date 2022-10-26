@@ -62,3 +62,4 @@ You can configure the hardware your app is running on by setting a :class:`~ligh
 
 Learn more with the :ref:`cloud_compute` guide.
 
+

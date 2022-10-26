@@ -35,7 +35,7 @@ You can run Lightning Apps for free on the Public Lightning cloud with a single 
    :tag: basic
 
 .. displayitem::
-   :header: Choose Hardware
+   :header: Choose Compute
    :description: Configure you app cloud resources
    :col_css: col-md-4
    :button_link: ../../core_api/lightning_work/compute.html
@@ -47,6 +47,14 @@ You can run Lightning Apps for free on the Public Lightning cloud with a single 
    :description: Manage your environment variables in the cloud
    :col_css: col-md-4
    :button_link: ../../glossary/environment_variables.html
+   :height: 150
+   :tag: Basic
+
+.. displayitem::
+   :header: Add encrypted secrets
+   :description: Add encrypted environment variables to your app
+   :col_css: col-md-4
+   :button_link: ../../glossary/secrets.html
    :height: 150
    :tag: Basic
 
@@ -67,7 +75,7 @@ You can run Lightning Apps for free on the Public Lightning cloud with a single 
    :tag: Intermediate
 
 .. displayitem::
-   :header: Share Files Between Works
+   :header: Share and save files
    :description: Learn more about data transfering
    :col_css: col-md-4
    :button_link: ../../glossary/storage/storage.html

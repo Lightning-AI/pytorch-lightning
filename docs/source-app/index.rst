@@ -241,7 +241,7 @@ Keep Learning
 
    Run an App localy <workflows/local.rst>
    Run an App on the cloud <workflows/run_app_on_cloud/index>
-   Run Apps on your cloud account (BYOC) <workflows/byoc/index>
+   Run Apps on your cloud (BYOC) <workflows/byoc/index>
    Save and share files <glossary/storage/storage.rst>
    Cloud billing <cloud/billing.rst>
 ..

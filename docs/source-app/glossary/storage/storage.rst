@@ -49,6 +49,26 @@ Lightning storage provides two solutions :class:`~lightning_app.storage.drive.Dr
         </div>
     </div>
 
+----
+
+****************
+Increase storage
+****************
+
+Lightning gives users 10GB of 
+
+Need more than free 10GB of Storage?
+
+You can increase your storage qouta in lightning.ai by following these steps:
+
+1.
+
+2.
+
+3.
+
+The up-to-date prices can be found `here <https://lightning.ai/pages/pricing>`_.
+
 
 ----
 

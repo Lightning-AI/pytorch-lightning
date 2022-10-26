@@ -48,7 +48,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/lit/docs.txt
-	cd docs/source-lit && $(MAKE) html
+	cd docs/source-app && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

@@ -58,22 +58,14 @@ Here is the full list of supported machine names:
      - 4 (V100 16 GB)
      - 244 GB
 
-The up-to-date prices for these instances can be found `here <https://lightning.ai/pages/pricing>`_.
+To start running a Lightning app on the cloud, you will need to verify your account has sufficient credits. Read :ref:`credits` to learn more. The up-to-date prices for these instances can be found `here <https://lightning.ai/pages/pricing>`_.
 
-----
 
-**********************
-Stop my work when idle
-**********************
+.. note::
 
-By providing **idle_timeout=X Seconds**, the work is automatically stopped **X seconds** after doing nothing.
-
-.. code-block:: python
-
-    import lightning as L
-
-    # Run on a single CPU and turn down immediately when idle.
-    MyCustomWork(cloud_compute=L.CloudCompute("gpu", idle_timeout=0))
+    When running a Lighting App on your local machine, any :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute`
+    configuration (including a :class:`~lightning_app.storage.mount.Mount`) is ignored at runtime. If you need access to
+    these files on your local disk, you should download a copy of them to your machine.
 
 ----
 
