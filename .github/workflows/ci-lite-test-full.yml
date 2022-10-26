@@ -57,7 +57,7 @@ jobs:
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", requires: "latest"}
           - {os: "ubuntu-22.04", pkg-name: "lightning", python-version: "3.10", release: "pre"}
 
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
     - uses: actions/checkout@v3
@@ -103,7 +103,7 @@ jobs:
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -e . -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e . "pytest-timeout" -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests
@@ -123,7 +123,7 @@ jobs:
     - name: Testing Lite
       working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=30 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
