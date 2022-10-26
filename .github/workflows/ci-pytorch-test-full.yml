@@ -11,6 +11,7 @@ on:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
+      - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-pytorch-test-full.yml"
       - "requirements/lite/**"
@@ -42,7 +43,7 @@ jobs:
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
-          - {os: "windows.2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
           # only run PyTorch latest with Python latest
@@ -105,6 +106,7 @@ jobs:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+        pip install pytest-timeout
         pip list
 
     - name: DocTests PL
@@ -174,7 +176,7 @@ jobs:
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=120 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
