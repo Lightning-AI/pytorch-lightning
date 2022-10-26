@@ -276,7 +276,7 @@ def test_proxy_timeout():
     assert app.root.work._calls[call_hash]["statuses"][2]["stage"] == "stopped"
 
 
-@mock.patch("lightning_app.utilities.proxies.Copier")
+@mock.patch("lightning_app.utilities.proxies._Copier")
 def test_path_argument_to_transfer(*_):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""
@@ -362,7 +362,7 @@ def test_path_argument_to_transfer(*_):
         ("origin", True, True),
     ],
 )
-@mock.patch("lightning_app.utilities.proxies.Copier")
+@mock.patch("lightning_app.utilities.proxies._Copier")
 def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""

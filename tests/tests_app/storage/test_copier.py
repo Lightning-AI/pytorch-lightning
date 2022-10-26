@@ -22,7 +22,7 @@ class MockPatch:
         return Path._handle_exists_request(work, request)
 
 
-@mock.patch("lightning_app.storage.copier.filesystem")
+@mock.patch("lightning_app.storage.copier._filesystem")
 def test_copier_copies_all_files(fs_mock, tmpdir):
     """Test that the Copier calls the copy with the information provided in the request."""
     copy_request_queue = _MockQueue()
@@ -46,7 +46,7 @@ def test_copier_handles_exception(monkeypatch):
     fs = mock.Mock()
     fs.exists.return_value = False
     fs.put = mock.Mock(side_effect=OSError("Something went wrong"))
-    monkeypatch.setattr(lightning_app.storage.copier, "filesystem", mock.Mock(return_value=fs))
+    monkeypatch.setattr(lightning_app.storage.copier, "_filesystem", mock.Mock(return_value=fs))
 
     work = mock.Mock()
     work.name = MockPatch()
@@ -129,6 +129,6 @@ def test_copy_files_with_exception(tmpdir):
     pathlib.Path(src, "file.txt").touch()
     dst = pathlib.Path(tmpdir, "dest")
 
-    with mock.patch("lightning_app.storage.copier.filesystem", fs_mock):
+    with mock.patch("lightning_app.storage.copier._filesystem", fs_mock):
         with pytest.raises(ValueError, match="error from thread"):
             _copy_files(src, dst)
