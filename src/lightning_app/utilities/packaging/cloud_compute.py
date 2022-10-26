@@ -84,6 +84,9 @@ class CloudCompute:
         if self._internal_id is None:
             self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
 
+        # Internal arguments for now.
+        self.preemptible = False
+
     def to_dict(self) -> dict:
         _verify_mount_root_dirs_are_unique(self.mounts)
         return {"type": __CLOUD_COMPUTE_IDENTIFIER__, **asdict(self)}
