@@ -6,6 +6,12 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - ".actions/**"
+      - ".github/workflows/ci-pkg-install.yml"
+      - "setup.py"
+      - "src/**"
+      - "requirements/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -17,7 +23,17 @@ defaults:
 
 jobs:
 
+  init-temp:
+    runs-on: ubuntu-20.04
+    steps:
+    - run: mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ci-packages-${{ github.sha }}
+        path: pypi
+
   install-pkg:
+    needs: init-temp
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -45,6 +61,40 @@ jobs:
           nb-dirs: ${{ env.NB_DIRS }}
 
       - uses: ./.github/actions/pkg-install
+
+  install-meta-src:
+    needs: install-pkg
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      # max-parallel: 1
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2022]
+        pkg: ["", "lightning"]
+        python-version: [3.8]  # , 3.9
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - run: mkdir -p pypi
+      - uses: actions/download-artifact@v3
+        if: matrix.pkg != ''
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -lh pypi/
+
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
+          pip-flags: "-U --pre --find-links ../pypi/"
 
       - name: Run CLI
         if: ${{ matrix.pkg == '' }}

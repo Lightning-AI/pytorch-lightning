@@ -1,7 +1,6 @@
 import contextlib
 import datetime
 import os
-import sys
 from functools import partial
 from unittest import mock
 
@@ -272,7 +271,6 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
+@pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
 def test_two_groups():
-    if sys.platform == "win32" and (sys.version_info.major, sys.version_info.minor) == (3, 10):
-        pytest.skip("Unresolved hang")
     collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)

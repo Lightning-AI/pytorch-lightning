@@ -20,7 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
@@ -87,7 +87,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.root_device)
