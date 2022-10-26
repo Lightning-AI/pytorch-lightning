@@ -55,9 +55,9 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
           - {os: "windows-2022", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
           # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
 
     timeout-minutes: 15
 
