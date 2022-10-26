@@ -52,7 +52,7 @@ def test_fsdp_setup_optimizer_validation():
     module = nn.Linear(2, 2)
     strategy = FSDPStrategy(parallel_devices=[torch.device("cpu")])
 
-    bad_optimizer = Adam([{'params': [module.weight]}, {'params': [module.bias], 'lr': 1e-3}])
+    bad_optimizer = Adam([{"params": [module.weight]}, {"params": [module.bias], "lr": 1e-3}])
     with pytest.raises(ValueError, match="does not support multiple param groups"):
         strategy.setup_optimizer(bad_optimizer)
 
