@@ -120,5 +120,5 @@ To connect to a LightningWork component use:
 
    $ lightning ssh --app-id <your-app-id> --component-name flow
 
-The component name is the variable name of your LightningWork instances in python.
+The component name is the variable name of your LightningWork instances in Python.
 If you want to access your flow, use "flow" as component name.
