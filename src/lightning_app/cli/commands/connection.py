@@ -80,10 +80,11 @@ def connect(app_name_or_id: str, yes: bool = False):
                 )
                 repr_command_name = command_name.replace("_", " ")
                 click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
-                click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
             else:
                 with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                     f.write(command_name)
+
+        click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
@@ -129,17 +130,20 @@ def connect(app_name_or_id: str, yes: bool = False):
                         retriever.app_id,
                         target_file=target_file,
                     )
-                    click.echo(f"Storing `{command_name}` under {target_file}")
-                    click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
+                    pretty_command_name = command_name.replace("_", " ")
+                    click.echo(f"Storing `{pretty_command_name}` under {target_file}")
                 else:
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
+
+            click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
 
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")
             click.echo("You can now run the following commands:")
             for command in retriever.api_commands:
-                click.echo(f"    lightning {command}")
+                pretty_command_name = command.replace("_", " ")
+                click.echo(f"    lightning {pretty_command_name}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
