@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
+import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -58,7 +59,6 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
-from lightning_app.utilities.exceptions import LightningSourceDirectorySizeException
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
@@ -399,19 +399,22 @@ class CloudRuntime(Runtime):
         )
 
     @staticmethod
-    def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir, force_upload: bool) -> None:
+    def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir, force_upload: bool = False) -> None:
         """This method is used to inform the users if their folder files are large and how to filter them."""
         lightning_tar = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
         app_folder_size = sum(Path(p).stat().st_size for p in repo.files if p not in lightning_tar)
         app_folder_size_in_mb = round(app_folder_size / (1000 * 1000), 5)
+        logger.debug(f"App folder size: {app_folder_size_in_mb} MB")
         if not force_upload and (app_folder_size_in_mb > CLOUD_UPLOAD_FAIL_SIZE):
-            raise LightningSourceDirectorySizeException(
+            error_msg = (
                 f"The size of the folder you are trying to run from is > {CLOUD_UPLOAD_FAIL_SIZE} MB"
                 f" ({app_folder_size_in_mb} MB). This usually means you have leftover artifacts or datasets"
                 f"in your folder. You can either remove them or add them to `.lightningignore` file. But if this"
                 f"is not by mistake, you can use `--force` flat to force the upload. However, this may take a long time"
                 f" and may even fail, depends on your connection speed and reliability."
             )
+            logger.warn(error_msg)
+            click.confirm("Do you want to continue?", abort=True)
         if not force_upload and (app_folder_size_in_mb > CLOUD_UPLOAD_WARNING_SIZE):
             path_sizes = [(p, Path(p).stat().st_size / (1000 * 1000)) for p in repo.files]
             largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]

@@ -3,9 +3,7 @@ import threading
 import time
 
 import requests
-from requests.adapters import HTTPAdapter
 from rich.progress import BarColumn, Progress, TextColumn
-from urllib3.util.retry import Retry
 
 
 class UploadThread(threading.Thread):
