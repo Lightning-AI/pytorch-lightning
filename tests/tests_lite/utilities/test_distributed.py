@@ -8,7 +8,7 @@ from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAcce
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_lite.utilities.distributed import gather_all_tensors
+from lightning_lite.utilities.distributed import _gather_all_tensors
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
@@ -38,7 +38,7 @@ def _test_all_gather_uneven_tensors(strategy):
     world_size = strategy.num_processes
 
     tensor = torch.ones(rank, device=device)
-    result = gather_all_tensors(tensor)
+    result = _gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
         assert len(result[idx]) == idx
@@ -51,7 +51,7 @@ def _test_all_gather_uneven_tensors_multidim(strategy):
     world_size = strategy.num_processes
 
     tensor = torch.ones(rank + 1, 2 - rank, device=device)
-    result = gather_all_tensors(tensor)
+    result = _gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
         val = result[idx]
