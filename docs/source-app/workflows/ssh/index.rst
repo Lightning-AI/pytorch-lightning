@@ -14,7 +14,7 @@ You can inspect the entire file system and monitor the runtime environment.
 ----
 
 **********************************************************
-Add SSH key to lightning
+Add SSH key to Lightning
 **********************************************************
 
 Before you can SSH to cloud machines, you will need to generate a new private SSH key, add it to the SSH agent, and add the public SSH key to your account on Lightning.
