@@ -49,20 +49,20 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
+    rev: v2.38.2
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
         name: Upgrade code
 
-  - repo: https://github.com/myint/docformatter
-    rev: v1.4
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.5.0
     hooks:
       - id: docformatter
         args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
 
   - repo: https://github.com/asottile/yesqa
-    rev: v1.3.0
+    rev: v1.4.0
     hooks:
       - id: yesqa
         name: Unused noqa
@@ -74,7 +74,7 @@ repos:
         name: Format imports
 
   - repo: https://github.com/psf/black
-    rev: 22.6.0
+    rev: 22.8.0
     hooks:
       - id: black
         name: Format code
@@ -89,7 +89,7 @@ repos:
         exclude: docs/source-app
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.14
+    rev: 0.7.16
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -104,7 +104,7 @@ repos:
             )$
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 5.0.4
     hooks:
       - id: flake8
         name: Check PEP8
