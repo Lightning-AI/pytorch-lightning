@@ -2,7 +2,7 @@ import os
 
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.testing.testing import application_testing, LightningTestApp
+from lightning_app.testing.testing import _application_testing, LightningTestApp
 
 
 class LightningTestMultiNodeApp(LightningTestApp):
@@ -24,6 +24,6 @@ def test_multi_node_example():
         "--open-ui",
         "False",
     ]
-    result = application_testing(LightningTestMultiNodeApp, command_line)
+    result = _application_testing(LightningTestMultiNodeApp, command_line)
     assert result.exit_code == 0
     os.chdir(cwd)

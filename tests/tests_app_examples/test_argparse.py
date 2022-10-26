@@ -2,7 +2,7 @@ import os
 import sys
 
 from lightning_app import _PACKAGE_ROOT
-from lightning_app.testing.testing import application_testing
+from lightning_app.testing.testing import _application_testing
 from lightning_app.utilities.load_app import _patch_sys_argv
 
 
@@ -15,7 +15,7 @@ def test_app_argparse_example():
         "--use_gpu",
         "--without-server",
     ]
-    result = application_testing(command_line=command_line)
+    result = _application_testing(command_line=command_line)
     assert result.exit_code == 0, result.__dict__
     assert sys.argv == original_argv
 

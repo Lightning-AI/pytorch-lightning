@@ -22,7 +22,7 @@ from lightning_app import LightningApp, LightningFlow
 from lightning_app.cli.lightning_cli import run_app
 from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
-from lightning_app.testing.config import Config
+from lightning_app.testing.config import _Config
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
@@ -42,7 +42,7 @@ def _on_error_callback(ws_app, *_):
     ws_app.close()
 
 
-def print_logs(app_id: str):
+def _print_logs(app_id: str):
     client = LightningClient()
     project = _get_project(client)
 
@@ -129,7 +129,7 @@ class LightningTestApp(LightningApp):
 
 
 @requires("click")
-def application_testing(
+def _application_testing(
     lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock
@@ -145,7 +145,7 @@ def application_testing(
         return result
 
 
-class SingleWorkFlow(LightningFlow):
+class _SingleWorkFlow(LightningFlow):
     def __init__(self, work, args, kwargs):
         super().__init__()
         self.work = work
@@ -161,7 +161,7 @@ class SingleWorkFlow(LightningFlow):
 def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
     """This function is used to run a work a single time with multiprocessing runtime."""
     MultiProcessRuntime(
-        LightningApp(SingleWorkFlow(work, args, kwargs), debug=True),
+        LightningApp(_SingleWorkFlow(work, args, kwargs), debug=True),
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.
@@ -174,7 +174,7 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
         work.run = work.run.work_run
 
 
-def browser_context_args(browser_context_args: Dict) -> Dict:
+def _browser_context_args(browser_context_args: Dict) -> Dict:
     return {
         **browser_context_args,
         "viewport": {
@@ -186,7 +186,7 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
 
 
 @contextmanager
-def run_cli(args) -> Generator:
+def _run_cli(args) -> Generator:
     """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
     cmd = [
         sys.executable,
@@ -238,10 +238,10 @@ def run_app_in_cloud(
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
-    url = Config.url
+    url = _Config.url
     if url.endswith("/"):
         url = url[:-1]
-    payload = {"apiKey": Config.api_key, "username": Config.username}
+    payload = {"apiKey": _Config.api_key, "username": _Config.username}
     res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
     if "token" not in res.json():
         raise Exception("You haven't properly setup your environment variables.")
@@ -300,14 +300,14 @@ def run_app_in_cloud(
             http_credentials=HttpCredentials(
                 {"username": os.getenv("LAI_USER", "").strip(), "password": os.getenv("LAI_PASS", "")}
             ),
-            record_video_dir=os.path.join(Config.video_location, TEST_APP_NAME),
-            record_har_path=Config.har_location,
+            record_video_dir=os.path.join(_Config.video_location, TEST_APP_NAME),
+            record_har_path=_Config.har_location,
         )
         admin_page = context.new_page()
         print(f"The Lightning App Token is: {token}")
-        print(f"The Lightning App user key is: {Config.key}")
-        print(f"The Lightning App user id is: {Config.id}")
-        admin_page.goto(Config.url)
+        print(f"The Lightning App user key is: {_Config.key}")
+        print(f"The Lightning App user id is: {_Config.id}")
+        admin_page.goto(_Config.url)
         admin_page.evaluate(
             """data => {
             window.localStorage.setItem('gridUserId', data[0]);
@@ -315,7 +315,7 @@ def run_app_in_cloud(
             window.localStorage.setItem('gridUserToken', data[2]);
         }
         """,
-            [Config.id, Config.key, token],
+            [_Config.id, _Config.key, token],
         )
         if LIGHTNING_CLOUD_PROJECT_ID:
             admin_page.evaluate(
@@ -325,7 +325,7 @@ def run_app_in_cloud(
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
+        admin_page.goto(f"{_Config.url}/{_Config.username}/apps", timeout=60 * 1000)
 
         # Closing the Complete your profile dialog
         try:
@@ -385,7 +385,7 @@ def run_app_in_cloud(
         app_id = lit_apps[0].id
 
         if debug:
-            process = Process(target=print_logs, kwargs={"app_id": app_id})
+            process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
         while True:

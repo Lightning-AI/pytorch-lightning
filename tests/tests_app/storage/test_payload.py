@@ -10,7 +10,7 @@ import pytest
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.storage.payload import Payload
-from lightning_app.storage.requests import GetRequest
+from lightning_app.storage.requests import _GetRequest
 
 
 def test_payload_copy():
@@ -82,7 +82,7 @@ class WorkRun(LightningWork):
         assert not source_path.exists()
         response = self.var_a._handle_get_request(
             self,
-            GetRequest(
+            _GetRequest(
                 name="var_a",
                 hash=self.var_a.hash,
                 source="root.a",

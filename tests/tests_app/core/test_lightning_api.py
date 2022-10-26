@@ -29,7 +29,7 @@ from lightning_app.core.api import (
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import MockQueue
+from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -178,8 +178,8 @@ def test_update_publish_state_and_maybe_refresh_ui():
     """
 
     app = AppStageTestingApp(FlowA(), debug=True)
-    publish_state_queue = MockQueue("publish_state_queue")
-    api_response_queue = MockQueue("api_response_queue")
+    publish_state_queue = _MockQueue("publish_state_queue")
+    api_response_queue = _MockQueue("api_response_queue")
 
     publish_state_queue.put(app.state_with_changes)
 
@@ -200,16 +200,16 @@ async def test_start_server(x_lightning_type):
     - push a delta when making a POST request to /api/v1/state
     """
 
-    class InfiniteQueue(MockQueue):
+    class InfiniteQueue(_MockQueue):
         def get(self, timeout: int = 0):
             return self._queue[0]
 
     app = AppStageTestingApp(FlowA(), debug=True)
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
-    change_state_queue = MockQueue("change_state_queue")
-    has_started_queue = MockQueue("has_started_queue")
-    api_response_queue = MockQueue("api_response_queue")
+    change_state_queue = _MockQueue("change_state_queue")
+    has_started_queue = _MockQueue("has_started_queue")
+    api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
     publish_state_queue.put(state)
     spec = extract_metadata_from_app(app)
@@ -380,10 +380,10 @@ def test_start_server_started():
 @mock.patch("lightning_app.core.api.UIRefresher")
 @pytest.mark.parametrize("host", ["http://0.0.0.1", "0.0.0.1"])
 def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatch, host):
-    api_publish_state_queue = MockQueue()
-    api_delta_queue = MockQueue()
-    has_started_queue = MockQueue()
-    api_response_queue = MockQueue()
+    api_publish_state_queue = _MockQueue()
+    api_delta_queue = _MockQueue()
+    has_started_queue = _MockQueue()
+    api_response_queue = _MockQueue()
     kwargs = dict(
         host=host,
         port=1111,

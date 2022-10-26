@@ -7,7 +7,7 @@ import pytest
 import lightning_app
 from lightning_app import LightningFlow
 from lightning_app.frontend.web import _healthz, StaticWebFrontend
-from lightning_app.storage.path import storage_root_dir
+from lightning_app.storage.path import _storage_root_dir
 
 
 def test_stop_server_not_running():
@@ -30,7 +30,7 @@ def test_start_stop_server_through_frontend(process_mock):
     frontend = StaticWebFrontend(serve_dir=".")
     frontend.flow = MockFlow()
     frontend.start_server("localhost", 5000)
-    log_file_root = storage_root_dir()
+    log_file_root = _storage_root_dir()
     process_mock.assert_called_once_with(
         target=lightning_app.frontend.web.start_server,
         kwargs={
