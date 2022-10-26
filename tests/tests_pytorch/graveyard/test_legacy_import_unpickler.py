@@ -40,7 +40,7 @@ def test_imports_standalone(pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    not package_available("lightning.pytorch") in sys.modules,
+    not package_available("lightning.pytorch"),
     reason="This test is only relevant for the unified package",
 )
 def test_imports_unified(pl_version: str):
