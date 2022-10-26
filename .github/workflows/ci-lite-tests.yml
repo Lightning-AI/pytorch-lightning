@@ -59,7 +59,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8"}
 
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v3
