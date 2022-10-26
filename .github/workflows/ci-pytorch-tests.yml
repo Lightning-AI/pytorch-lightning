@@ -142,7 +142,7 @@ jobs:
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
           grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-          pip install --no-cache-dir -r requirements/pytorch/horovod.txt --use-pep517
+          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
         fi
         horovodrun --check-build
         python -c "import horovod.torch"
