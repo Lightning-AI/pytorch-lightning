@@ -16,7 +16,10 @@
 from unittest import mock
 
 import pytest
+import torch
+import torch.nn as nn
 from tests_lite.helpers.runif import RunIf
+from torch.optim import Adam
 
 from lightning_lite.strategies import FSDPStrategy
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12

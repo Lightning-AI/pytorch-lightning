@@ -16,8 +16,10 @@ import tempfile
 import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
+from torch import nn
 from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.distributed.fsdp.wrap import wrap
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from lightning_lite import LightningLite
@@ -116,4 +118,24 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
     strategy = FSDPStrategy() if manual_wrapping else FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
     lite = FSDPLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.manual_wrapping = manual_wrapping
+    lite.run()
+
+
+class SetupOptimizerLite(LightningLite):
+
+    def run(self):
+        module = nn.Linear(2, 2)
+        bad_optimizer = Adam(module.parameters())
+        wrapped_module = self.setup_model(module)
+        good_optimizer = Adam(wrapped_module.parameters())
+
+        with pytest.raises(ValueError, match="sdf"):
+            self.setup_optimizers(bad_optimizer)
+
+        assert self.setup_optimizers(good_optimizer) == good_optimizer
+
+
+@RunIf(standalone=True, min_cuda_gpus=2)
+def test_fsdp_setup_optimizer():
+    lite = SetupOptimizerLite(accelerator="cuda", strategy="fsdp", devices=2)
     lite.run()
