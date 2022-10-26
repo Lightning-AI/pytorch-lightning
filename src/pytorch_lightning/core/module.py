@@ -36,7 +36,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -450,8 +450,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
+            sync_dist=sync_dist and _distributed_available(),
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,

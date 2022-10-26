@@ -28,7 +28,7 @@ from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.optimizer import optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device
 from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -273,7 +273,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
+            _optimizer_to_device(optimizer, self.root_device)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.

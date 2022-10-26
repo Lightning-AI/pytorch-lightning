@@ -33,14 +33,13 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
         "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
-        "loggers": setup_tools.load_requirements(file_name="loggers.txt", **common_args),
         "extra": setup_tools.load_requirements(file_name="extra.txt", **common_args),
         "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+    extras["dev"] = extras["extra"] + extras["test"]
     extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
     return extras
 

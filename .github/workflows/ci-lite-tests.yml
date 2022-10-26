@@ -1,4 +1,4 @@
-name: Test Lite full
+name: Test Lite
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -12,7 +12,7 @@ on:
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-lite-test-full.yml"
+      - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
 
 concurrency:
@@ -34,20 +34,20 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2022, macOS-11]
-        pkg-name: ["LAI", "lite"]  # the "LAI" is for installing monolithic package
-        python-version: ["3.7", "3.10"]
+        pkg-name: ["lite"]  # TODO: add "LAI" # "LAI" installs the monolithic package
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         requires: ["oldest", "latest"]
         release: ["stable"]
         exclude:
-          # There's no distribution of the oldest PyTorch 1.9 for Python 3.10.
+          # note: there's no distribution of Torch==1.9 for Python>=3.9
           # TODO: Remove the exclusion when dropping PyTorch 1.9 support.
           - {python-version: "3.9", requires: "oldest"}
           - {python-version: "3.10", requires: "oldest"}
         include:
-          - {os: ubuntu-22.04, pkg-name: "LAI", python-version: "3.10", release: "pre"}
+          #- {os: ubuntu-22.04, pkg-name: "LAI", python-version: "3.10", release: "pre"}
           - {os: ubuntu-22.04, pkg-name: "lite", python-version: "3.10", release: "pre"}
 
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
     - uses: actions/checkout@v3
@@ -83,7 +83,6 @@ jobs:
         pip list
 
     - name: DocTests Lite
-      # todo: run docstest laos on mono-package
       if: ${{ matrix.pkg-name != 'LAI' }}
       working-directory: src
       run: python -m pytest lightning_lite
@@ -105,6 +104,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install pytest-timeout
         pip list
 
     - name: Adjust tests
@@ -124,7 +124,7 @@ jobs:
     - name: Testing Lite
       working-directory: tests/tests_lite
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=30 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()

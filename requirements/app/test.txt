@@ -1,10 +1,9 @@
-coverage>=6.4, <=6.4.2
-codecov>=2.1, <=2.1.12
-pytest>=7.0, <=7.1.2
-pytest-timeout <=2.1.0
-pytest-cov <=3.0.0
-playwright==1.22.0
-# pytest-flake8
+coverage==6.4.2
+codecov==2.1.12
+pytest==7.1.3
+pytest-timeout==2.1.0
+pytest-cov==3.0.0
+playwright==1.27.1
 httpx
 trio<0.22.0
 pympler
@@ -12,6 +11,3 @@ psutil
 setuptools<=59.5.0
 sqlmodel
 requests-mock
-
-# TODO: as the package is assumed to be independent we shall be using already released versions
-pytorch-lightning @ https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip
