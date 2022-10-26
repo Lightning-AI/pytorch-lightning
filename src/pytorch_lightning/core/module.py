@@ -623,8 +623,6 @@ class LightningModule(
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
 
-        Note: When ``accumulate_grad_batches`` > 1, the loss returned from the training step will be automatically
-        normalized internally (by dividing by ``accumulate_grad_batches``).
 
         Example::
 
@@ -664,6 +662,10 @@ class LightningModule(
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
+
+        Note:
+            When ``accumulate_grad_batches`` > 1, the loss returned from the training step will be automatically
+            normalized internally by dividing by ``accumulate_grad_batches``.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
