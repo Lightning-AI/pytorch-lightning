@@ -186,14 +186,27 @@ class FSDPStrategy(ParallelStrategy):
         )
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Set up an optimizer for a model wrapped with FSDP.
+
+        This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is
+        verify that the optimizer was created after the model was wrapped with `:meth:setup_module` with a reference
+        to the flattened parameters.
+        """
         from torch.distributed.fsdp import FlatParameter
 
-        if len(optimizer.param_groups) > 1:
-            raise ValueError("Optimizers used with FSDP do not support multiple param groups.")
+        num_groups = len(optimizer.param_groups)
+        if num_groups > 1:
+            raise ValueError(
+                "An optimizer used with an FSDP model does not support multiple param groups."
+                f" Found {num_groups} parameter groups."
+            )
 
         if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
             return optimizer
-        raise ValueError("The optimizer does not seem to reference any flat FSDP parameters.")
+        raise ValueError(
+            "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
+            " after setting up the model."
+        )
 
     def module_to_device(self, module: Module) -> None:
         pass
