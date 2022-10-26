@@ -40,7 +40,6 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
-from lightning_app.utilities.exceptions import LightningSourceDirectorySizeException
 
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
@@ -59,6 +58,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.exceptions import LightningSourceDirectorySizeException
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
