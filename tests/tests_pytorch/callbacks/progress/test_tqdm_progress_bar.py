@@ -141,7 +141,11 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     # check the sanity dataloaders
     num_sanity_val_steps = 4
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0,
+        num_sanity_val_steps=num_sanity_val_steps,
+        callbacks=TQDMProgressBar(),
     )
     pbar = trainer.progress_bar_callback
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
@@ -155,7 +159,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
     # fit
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=TQDMProgressBar())
     pbar = trainer.progress_bar_callback
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
@@ -206,7 +210,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=TQDMProgressBar())
 
     trainer.fit(model)
 
@@ -326,16 +330,13 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
 
 def test_tqdm_progress_bar_default_value(tmpdir):
     """Test that a value of None defaults to refresh rate 1."""
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 1
 
 
 @mock.patch.dict(os.environ, {"COLAB_GPU": "1"})
 def test_tqdm_progress_bar_value_on_colab(tmpdir):
     """Test that Trainer will override the default in Google COLAB."""
-    trainer = Trainer(default_root_dir=tmpdir)
-    assert trainer.progress_bar_callback.refresh_rate == 20
-
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar())
     assert trainer.progress_bar_callback.refresh_rate == 20
 
@@ -411,7 +412,12 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        enable_checkpointing=False,
+        callbacks=TQDMProgressBar(),
     )
     trainer.fit(TestModel())
 
@@ -614,6 +620,7 @@ def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
         strategy="ddp",
         enable_progress_bar=True,
         enable_model_summary=False,
+        callbacks=TQDMProgressBar(),
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 

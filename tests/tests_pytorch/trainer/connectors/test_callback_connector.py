@@ -26,13 +26,17 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     ModelSummary,
     ProgressBarBase,
-    TQDMProgressBar, RichProgressBar,
+    RichProgressBar,
+    TQDMProgressBar,
 )
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0, \
-    _RICH_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _PYTHON_GREATER_EQUAL_3_8_0,
+    _PYTHON_GREATER_EQUAL_3_10_0,
+    _RICH_AVAILABLE,
+)
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):

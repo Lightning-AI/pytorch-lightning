@@ -33,8 +33,11 @@ from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0, \
-    _RICH_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _PYTHON_GREATER_EQUAL_3_8_0,
+    _PYTHON_GREATER_EQUAL_3_10_0,
+    _RICH_AVAILABLE,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 _log = logging.getLogger(__name__)
