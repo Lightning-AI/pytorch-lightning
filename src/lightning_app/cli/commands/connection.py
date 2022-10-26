@@ -207,7 +207,7 @@ def _resolve_command_path(command: str) -> str:
     return os.path.join(_get_commands_folder(), f"{command}.py")
 
 
-def _list_app_commands() -> List[str]:
+def _list_app_commands(echo: bool = True) -> List[str]:
     metadata = _get_commands_metadata()
     metadata = {key.replace("_", " "): value for key, value in metadata.items()}
 
@@ -216,15 +216,16 @@ def _list_app_commands() -> List[str]:
         click.echo("The current Lightning App doesn't have commands.")
         return []
 
-    click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
-    click.echo("")
-    click.echo("  --help     Show this message and exit.")
-    click.echo("")
-    click.echo("Lightning App Commands")
-    max_length = max(len(n) for n in command_names)
-    for command_name in command_names:
-        padding = (max_length + 1 - len(command_name)) * " "
-        click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
+    if echo:
+        click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
+        click.echo("")
+        click.echo("  --help     Show this message and exit.")
+        click.echo("")
+        click.echo("Lightning App Commands")
+        max_length = max(len(n) for n in command_names)
+        for command_name in command_names:
+            padding = (max_length + 1 - len(command_name)) * " "
+            click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
     return command_names
 
 
