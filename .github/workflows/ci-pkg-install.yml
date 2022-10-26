@@ -36,8 +36,6 @@ jobs:
     needs: init-temp
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
-      max-parallel: 1
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
         pkg: ["app", "lite", "pytorch"]
