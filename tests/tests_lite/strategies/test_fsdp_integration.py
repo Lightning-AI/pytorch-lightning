@@ -131,7 +131,8 @@ class SetupOptimizerLite(LightningLite):
         with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
             self.setup_optimizers(bad_optimizer)
 
-        assert self.setup_optimizers(good_optimizer) == good_optimizer
+        lite_optimizer = self.setup_optimizers(good_optimizer)
+        assert lite_optimizer.optimizer == good_optimizer
 
 
 @RunIf(standalone=True, min_cuda_gpus=2)
