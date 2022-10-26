@@ -15,6 +15,7 @@ import tempfile
 
 import pytest
 import torch
+from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.distributed.fsdp.wrap import wrap
@@ -23,7 +24,6 @@ from torch.utils.data import DataLoader
 from lightning_lite import LightningLite
 from lightning_lite.plugins import FSDPPrecision
 from lightning_lite.strategies import FSDPStrategy
-from tests_lite.helpers.models import RandomDataset
 
 
 class FSDPLite(LightningLite):

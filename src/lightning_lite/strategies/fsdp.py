@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, TYPE_CHECKING, Union, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -188,9 +188,9 @@ class FSDPStrategy(ParallelStrategy):
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Set up an optimizer for a model wrapped with FSDP.
 
-        This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is
-        verify that the optimizer was created after the model was wrapped with `:meth:setup_module` with a reference
-        to the flattened parameters.
+        This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
+        that the optimizer was created after the model was wrapped with `:meth:setup_module` with a reference to the
+        flattened parameters.
         """
         from torch.distributed.fsdp import FlatParameter
 

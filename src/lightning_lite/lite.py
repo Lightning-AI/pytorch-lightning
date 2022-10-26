@@ -37,6 +37,7 @@ from lightning_lite.strategies import (
     Strategy,
     XLAStrategy,
 )
+from lightning_lite.strategies.fsdp import FSDPStrategy
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
@@ -50,8 +51,6 @@ from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-
-from lightning_lite.strategies.fsdp import FSDPStrategy
 
 
 class LightningLite(ABC):
