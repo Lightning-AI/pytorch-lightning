@@ -82,10 +82,13 @@ def main(args: Namespace) -> None:
             continue
         copyfile(file, backup_file)
 
-    log.info("Upgrading checkpionts ...")
-    for file in tqdm(files):
+    log.info("Upgrading checkpoints ...")
+    progress = tqdm if len(files) > 1 else lambda x: x
+    for file in progress(files):
         with pl_legacy_patch():
             upgrade_checkpoint(file)
+
+    log.info("Done.")
 
 
 if __name__ == "__main__":
