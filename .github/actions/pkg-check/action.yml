@@ -15,7 +15,7 @@ runs:
   steps:
 
   - name: install dev. env
-    run: pip install "twine==4.0.1" setuptools wheel flake8
+    run: pip install "twine==4.0.1" setuptools wheel flake8 --use-pep517
     shell: bash
 
   - name: Source check

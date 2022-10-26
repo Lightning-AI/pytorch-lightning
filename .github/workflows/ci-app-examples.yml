@@ -47,7 +47,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+        run: pip install -q -r .actions/requirements.txt --use-pep517
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
@@ -72,7 +72,7 @@ jobs:
           PACKAGE_NAME: pytorch
         run: |
           pip --version
-          pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --use-pep517
           pip list
 
       - name: Setup Node.js

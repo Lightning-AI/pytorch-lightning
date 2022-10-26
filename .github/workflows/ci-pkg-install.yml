@@ -51,7 +51,7 @@ jobs:
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          grep 'pytest=' ../requirements/pytorch/test.txt | xargs -0 pip install
+          grep 'pytest=' ../requirements/pytorch/test.txt | xargs -0 pip install --use-pep517
           python -m pytest setup_tools.py
 
       - uses: actions/download-artifact@v3
@@ -128,7 +128,7 @@ jobs:
       - name: Dowload package
         # todo: download also lite after it is fist published
         run: |
-          pip install -q -r .actions/requirements.txt
+          pip install -q -r .actions/requirements.txt --use-pep517
           for pkg in 'app' 'pytorch' ; do
             python .actions/assistant.py download_package --package "$pkg" --folder pypi
           done
@@ -145,7 +145,7 @@ jobs:
 
       - name: Miror source
         run: |
-          pip install -q -r .actions/requirements.txt
+          pip install -q -r .actions/requirements.txt --use-pep517
           python .actions/assistant.py mirror_pkg2source --pypi_folder pypi --src_folder src
           ls -R src/
 

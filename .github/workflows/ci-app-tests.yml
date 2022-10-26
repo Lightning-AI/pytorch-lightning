@@ -48,7 +48,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: basic setup
-        run: pip install -q -r .actions/requirements.txt
+        run: pip install -q -r .actions/requirements.txt --use-pep517
 
       - name: Set min. dependencies
         if: ${{ matrix.requires == 'oldest' }}
@@ -61,7 +61,7 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+          pip install -e . pytest --upgrade --find-links ${TORCH_URL} --use-pep517
           pip list
 
       - name: DocTests App
@@ -86,7 +86,7 @@ jobs:
         env:  # TODO: drop this when we will be using regular releases for testing
             PACKAGE_NAME: pytorch
         run: |
-          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
+          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL} --use-pep517
           pip list
 
       - name: Setup Node.js

@@ -60,7 +60,7 @@ jobs:
     - name: basic setup
       run: |
         pip --version
-        pip install -q -r .actions/requirements.txt
+        pip install -q -r .actions/requirements.txt --use-pep517
 
     - name: Setup Windows
       if: runner.os == 'windows'
@@ -79,7 +79,7 @@ jobs:
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
+        pip install -e . pytest --upgrade --find-links ${TORCH_URL} --use-pep517
         pip list
 
     - name: DocTests Lite
@@ -103,8 +103,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
-        pip install pytest-timeout
+        pip install -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL} --use-pep517
+        pip install pytest-timeout --use-pep517
         pip list
 
     - name: Adjust tests

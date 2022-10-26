@@ -35,15 +35,15 @@ jobs:
       env:  # TODO: drop this when we will be using regular releases for testing
         PACKAGE_NAME: pytorch
       run: |
-        pip install mypy==0.982
-        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install mypy==0.982 --use-pep517
+        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --use-pep517
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
         pip install \
           -r requirements/pytorch/devel.txt \
           -r requirements/app/devel.txt \
           -r requirements/lite/devel.txt \
-          --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --use-pep517
         pip list
 
     - name: Check typing
