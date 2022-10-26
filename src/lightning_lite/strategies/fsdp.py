@@ -194,7 +194,7 @@ class FSDPStrategy(ParallelStrategy):
         """Set up an optimizer for a model wrapped with FSDP.
 
         This setup method doesn't modify the optimizer or wrap the optimizer. The only thing it currently does is verify
-        that the optimizer was created after the model was wrapped with `:meth:setup_module` with a reference to the
+        that the optimizer was created after the model was wrapped with :meth:`setup_module` with a reference to the
         flattened parameters.
         """
         from torch.distributed.fsdp import FlatParameter
