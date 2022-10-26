@@ -20,7 +20,9 @@ def _is_attribute(member, module):
 def _find_exports(module):
     members = inspect.getmembers(module)
     attributes = {member[0] for member in members if _is_attribute(member[1], module)}
-    submodules = []
+    public_attributes = list(filter(lambda attribute: not attribute.startswith("_"), attributes))
+    exports = {attribute: module.__name__ for attribute in public_attributes}
+
     if module.__file__ is not None and "__init__.py" in module.__file__:
         root = os.path.dirname(module.__file__)
         submodule_paths = os.listdir(root)
@@ -30,11 +32,10 @@ def _find_exports(module):
             for path in submodule_paths
             if os.path.isdir(os.path.join(root, path)) or path.endswith(".py")
         ]
-    public_attributes = list(filter(lambda attribute: not attribute.startswith("_"), attributes))
-    exports = {attribute: module.__name__ for attribute in public_attributes}
-    for submodule in submodules:
-        deeper_exports = _find_exports(importlib.import_module(f".{submodule}", module.__name__))
-        exports = {**deeper_exports, **exports}
+        for submodule in submodules:
+            deeper_exports = _find_exports(importlib.import_module(f".{submodule}", module.__name__))
+            exports = {**deeper_exports, **exports}
+
     return exports or {}
 
 
@@ -47,6 +48,12 @@ def test_import_depth(
         "lightning_app.utilities",
     ]
 ):
+    """This test ensures that any public exports (functions, classes, etc.) can be imported by users with at most a
+    depth of two. This guarantees that everything user-facing can be imported with (at most) ``lightning.app.*.*``.
+
+    Args:
+        ignore: Sub-module paths to ignore (usually sub-modules that are not intended to be user-facing).
+    """
     exports = _find_exports(lightning_app)
     depths = {export: len(path.split(".")) for export, path in exports.items()}
     deep_exports = [export for export, depth in depths.items() if depth > 2]
