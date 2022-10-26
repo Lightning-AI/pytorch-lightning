@@ -112,6 +112,7 @@ jobs:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         pip install -e . "pytest-timeout" -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip list
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name == 'lightning' }}
