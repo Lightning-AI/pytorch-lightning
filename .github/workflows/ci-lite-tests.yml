@@ -1,4 +1,4 @@
-name: Test Lite full
+name: Test Lite
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -12,7 +12,7 @@ on:
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-lite-test-full.yml"
+      - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
 
 concurrency:
