@@ -39,6 +39,7 @@ class FSDPLite(LightningLite):
 
         # get parameters on the wrapped model
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        print([type(p) for p in optimizer.param_groups[0].values()])
 
         # optimizer nees to be set up independently
         optimizer = self.setup_optimizers(optimizer)
