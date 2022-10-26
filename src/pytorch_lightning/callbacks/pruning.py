@@ -279,8 +279,7 @@ class ModelPruning(Callback):
         dst.data = src.data.to(dst.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
-        r"""
-        Lottery ticket hypothesis algorithm (see page 2 of the paper):
+        r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
 
             1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
             2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.

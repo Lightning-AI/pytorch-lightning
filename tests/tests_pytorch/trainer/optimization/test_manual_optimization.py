@@ -760,7 +760,6 @@ class TesManualOptimizationDDPModel(BoringModel):
 
 
 def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
-
     seed_everything(42)
 
     model = model_cls()

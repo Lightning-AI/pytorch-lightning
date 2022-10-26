@@ -29,7 +29,6 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
 
 def run(hparams):
-
     torch.manual_seed(hparams.seed)
 
     use_cuda = torch.cuda.is_available()

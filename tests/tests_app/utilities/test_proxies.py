@@ -633,7 +633,6 @@ class FlowState(LightningFlow):
 
 
 def test_state_observer():
-
     app = LightningApp(FlowState())
     MultiProcessRuntime(app, start_server=False).dispatch()
 

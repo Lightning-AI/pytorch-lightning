@@ -35,8 +35,7 @@ log = logging.getLogger(__name__)
 
 
 class ModelSummary(Callback):
-    r"""
-    Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`.
+    r"""Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`.
 
     Args:
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the

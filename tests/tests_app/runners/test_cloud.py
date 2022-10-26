@@ -968,7 +968,6 @@ def test_get_project(monkeypatch):
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
 @mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
-
     monkeypatch.setattr(cloud, "logger", logging.getLogger())
 
     app = MagicMock()

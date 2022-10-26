@@ -7,7 +7,6 @@ from lightning_app.cli.lightning_cli import run_app
 
 
 def test_pickle_or_not_example():
-
     runner = CliRunner()
     result = runner.invoke(
         run_app,

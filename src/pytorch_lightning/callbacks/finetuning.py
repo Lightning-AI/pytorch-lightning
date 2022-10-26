@@ -37,8 +37,7 @@ def multiplicative(epoch: int) -> float:
 
 
 class BaseFinetuning(Callback):
-    r"""
-    This class implements the base logic for writing your own Finetuning Callback.
+    r"""This class implements the base logic for writing your own Finetuning Callback.
 
     Override ``freeze_before_training`` and ``finetune_function`` methods with your own logic.
 
@@ -325,7 +324,6 @@ class BackboneFinetuning(BaseFinetuning):
         >>> multiplicative = lambda epoch: 1.5
         >>> backbone_finetuning = BackboneFinetuning(200, multiplicative)
         >>> trainer = Trainer(callbacks=[backbone_finetuning])
-
     """
 
     def __init__(

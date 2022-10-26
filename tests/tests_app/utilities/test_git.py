@@ -11,7 +11,6 @@ from lightning_app.utilities.git import (
 
 
 def test_execute_git_command():
-
     res = execute_git_command(["pull"])
     assert res
 

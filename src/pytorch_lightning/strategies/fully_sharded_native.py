@@ -100,7 +100,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             or BF16 if ``precision=bf16`` unless a config is passed in.
             This is only available in PyTorch 1.12 and later.
         \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
-
     """
 
     strategy_name = "fsdp_native"

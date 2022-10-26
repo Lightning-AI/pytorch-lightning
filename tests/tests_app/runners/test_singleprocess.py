@@ -13,6 +13,5 @@ def on_before_run():
 
 
 def test_single_process_runtime(tmpdir):
-
     app = LightningApp(Flow())
     SingleProcessRuntime(app, start_server=False).dispatch(on_before_run=on_before_run)

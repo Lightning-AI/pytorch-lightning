@@ -36,8 +36,7 @@ log = logging.getLogger(__name__)
 
 
 class EarlyStopping(Callback):
-    r"""
-    Monitor a metric and stop training when it stops improving.
+    r"""Monitor a metric and stop training when it stops improving.
 
     Args:
         monitor: quantity to be monitored.

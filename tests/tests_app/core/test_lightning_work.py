@@ -299,7 +299,6 @@ def test_lightning_work_calls():
 
 
 def test_work_cloud_build_config_provided():
-
     assert isinstance(LightningWork.cloud_build_config, property)
     assert LightningWork.cloud_build_config.fset is not None
 
@@ -316,7 +315,6 @@ def test_work_cloud_build_config_provided():
 
 
 def test_work_local_build_config_provided():
-
     assert isinstance(LightningWork.local_build_config, property)
     assert LightningWork.local_build_config.fset is not None
 

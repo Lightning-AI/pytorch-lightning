@@ -871,7 +871,6 @@ def test_no_datamodule_for_hparams(tmpdir):
 
 
 def test_colliding_hparams(tmpdir):
-
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
 

@@ -20,7 +20,6 @@ from lightning_utilities.core.imports import module_available
 
 
 def requires(module_paths: Union[str, List]):
-
     if not isinstance(module_paths, list):
         module_paths = [module_paths]
 

@@ -44,9 +44,7 @@ class StochasticWeightAveraging(Callback):
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
-        r"""
-
-        Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
+        r"""Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
@@ -94,7 +92,6 @@ class StochasticWeightAveraging(Callback):
             device: if provided, the averaged model will be stored on the ``device``.
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
-
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."

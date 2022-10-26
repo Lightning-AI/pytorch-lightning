@@ -132,7 +132,6 @@ def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, A
 
         >>> from pytorch_lightning import Trainer
         >>> args = get_init_arguments_and_types(Trainer)
-
     """
     cls_default_params = inspect.signature(cls).parameters
     name_type_default = []

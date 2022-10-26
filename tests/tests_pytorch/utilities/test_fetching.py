@@ -219,7 +219,6 @@ class RecommenderModel(BoringModel):
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize("accelerator", [pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))])
 def test_trainer_num_prefetch_batches(tmpdir, accelerator):
-
     model = RecommenderModel()
 
     class AssertFetcher(Callback):
@@ -464,7 +463,6 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
 
 
 def test_transfer_hooks_with_unpacking(tmpdir):
-
     """This test asserts the `transfer_batch` hooks are called only once per batch."""
 
     class RandomDictDataset(RandomDataset):

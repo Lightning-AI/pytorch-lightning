@@ -575,7 +575,6 @@ def test_accelerator_ipu():
 
 @RunIf(ipu=True)
 def test_accelerator_ipu_with_devices():
-
     trainer = Trainer(accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)

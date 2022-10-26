@@ -35,8 +35,7 @@ log = logging.getLogger(__name__)
 
 
 class ExperimentWriter:
-    r"""
-    Experiment writer for CSVLogger.
+    r"""Experiment writer for CSVLogger.
 
     Currently supports to log hyperparameters and metrics in YAML and CSV
     format, respectively.
@@ -101,8 +100,7 @@ class ExperimentWriter:
 
 
 class CSVLogger(Logger):
-    r"""
-    Log to local file system in yaml and CSV format.
+    r"""Log to local file system in yaml and CSV format.
 
     Logs are saved to ``os.path.join(save_dir, name, version)``.
 

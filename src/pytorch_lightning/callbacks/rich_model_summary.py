@@ -23,9 +23,8 @@ if _RICH_AVAILABLE:
 
 
 class RichModelSummary(ModelSummary):
-    r"""
-    Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`
-    with `rich text formatting <https://github.com/Textualize/rich>`_.
+    r"""Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule` with `rich
+    text formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 

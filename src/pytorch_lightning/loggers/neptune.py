@@ -48,8 +48,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
 class NeptuneLogger(Logger):
-    r"""
-    Log using `Neptune <https://neptune.ai>`_.
+    r"""Log using `Neptune <https://neptune.ai>`_.
 
     Install it with pip:
 
@@ -364,8 +363,7 @@ class NeptuneLogger(Logger):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:  # skipcq: PYL-W0221
-        r"""
-        Log hyper-parameters to the run.
+        r"""Log hyper-parameters to the run.
 
         Hyperparams will be logged under the "<prefix>/hyperparams" namespace.
 

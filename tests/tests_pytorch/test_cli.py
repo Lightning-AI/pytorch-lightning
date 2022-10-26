@@ -133,7 +133,6 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
 
 
 def test_lightning_cli_args_callbacks(tmpdir):
-
     callbacks = [
         dict(
             class_path="pytorch_lightning.callbacks.LearningRateMonitor",
@@ -203,7 +202,6 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
 
 
 def test_lightning_cli_args(tmpdir):
-
     cli_args = [
         "fit",
         f"--data.data_dir={tmpdir}",
@@ -254,7 +252,6 @@ def test_lightning_env_parse(tmpdir):
 
 
 def test_lightning_cli_save_config_cases(tmpdir):
-
     config_path = tmpdir / "config.yaml"
     cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.fast_dev_run=1"]
 
@@ -330,7 +327,6 @@ def any_model_any_data_cli():
 
 
 def test_lightning_cli_help():
-
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
@@ -875,7 +871,6 @@ def test_lightning_cli_datamodule_short_arguments():
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_callbacks_append(use_class_path_callbacks):
-
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",

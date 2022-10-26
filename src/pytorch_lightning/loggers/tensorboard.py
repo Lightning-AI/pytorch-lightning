@@ -42,8 +42,7 @@ if _OMEGACONF_AVAILABLE:
 
 
 class TensorBoardLogger(Logger):
-    r"""
-    Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
+    r"""Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
@@ -80,7 +79,6 @@ class TensorBoardLogger(Logger):
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
-
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
     LOGGER_JOIN_CHAR = "-"

@@ -196,7 +196,6 @@ def test_version_arg_component(tmpdir, monkeypatch):
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 @mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
 def test_version_arg_app(tmpdir):
-
     # Version does not exist
     app_name = "lightning/invideo"
     version_arg = "NOT-EXIST"
@@ -216,7 +215,6 @@ def test_version_arg_app(tmpdir):
 @mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
 @mock.patch("lightning_app.cli.cmd_install._show_install_app_prompt")
 def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
-
     app_name = "lightning/invideo"
     runner = CliRunner()
     with mock.patch("lightning_app.cli.cmd_install.requests.get") as get_api_mock:
@@ -245,7 +243,6 @@ def test_install_resolve_latest_version(mock_show_install_app_prompt, tmpdir):
 
 
 def test_proper_url_parsing():
-
     name = "lightning/invideo"
 
     # make sure org/app-name name is correct
@@ -272,7 +269,6 @@ def test_proper_url_parsing():
 
 @RunIf(skip_windows=True)
 def test_install_app_shows_error(tmpdir):
-
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 

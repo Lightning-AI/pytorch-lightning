@@ -28,8 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class GradientAccumulationScheduler(Callback):
-    r"""
-    Change gradient accumulation factor according to scheduling.
+    r"""Change gradient accumulation factor according to scheduling.
 
     Args:
         scheduling: scheduling in format {epoch: accumulation_factor}

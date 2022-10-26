@@ -39,7 +39,6 @@ class ParameterSharingModule(BoringModel):
     [(BoringModel, []), (ParameterSharingModule, [["layer_1.weight", "layer_3.weight"]])],
 )
 def test_find_shared_parameters(model, expected_shared_params):
-
     assert expected_shared_params == find_shared_parameters(model())
 
 

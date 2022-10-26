@@ -68,9 +68,10 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.1
-        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
+    """..
+
+    deprecated:: v1.7.1
+    ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
     """
 
     def __init__(

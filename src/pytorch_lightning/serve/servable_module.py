@@ -71,8 +71,7 @@ class ServableModule(torch.nn.Module):
         ...
 
     def serve_step(self, *args: torch.Tensor, **kwargs: torch.Tensor) -> Dict[str, torch.Tensor]:
-        r"""
-        Returns the predictions of your model as a dictionary.
+        r"""Returns the predictions of your model as a dictionary.
 
         .. code-block:: python
 

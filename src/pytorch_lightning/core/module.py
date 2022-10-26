@@ -297,8 +297,7 @@ class LightningModule(
         return batch
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        r"""
-        Prints only from process 0. Use this in any distributed mode to log only once.
+        r"""Prints only from process 0. Use this in any distributed mode to log only once.
 
         Args:
             *args: The thing to print. The same as for Python's built-in print function.
@@ -308,7 +307,6 @@ class LightningModule(
 
             def forward(self, x):
                 self.print(x, 'in forward')
-
         """
         if self.trainer.is_global_zero:
             progress_bar = self.trainer.progress_bar_callback
@@ -567,10 +565,9 @@ class LightningModule(
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        r"""Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather``
+        operation accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor
+        from several distributed processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -587,8 +584,7 @@ class LightningModule(
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        r"""
-        Same as :meth:`torch.nn.Module.forward`.
+        r"""Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -600,9 +596,8 @@ class LightningModule(
         return super().forward(*args, **kwargs)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
-        r"""
-        Here you compute and return the training loss and some additional metrics for e.g.
-        the progress bar or logger.
+        r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
+        logger.
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
@@ -758,9 +753,8 @@ class LightningModule(
         """
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        r"""
-        Operates on a single batch of data from the validation set.
-        In this step you'd might generate examples or calculate anything of interest like accuracy.
+        r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
+        or calculate anything of interest like accuracy.
 
         .. code-block:: python
 
@@ -944,10 +938,8 @@ class LightningModule(
         """
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        r"""
-        Operates on a single batch of data from the test set.
-        In this step you'd normally generate examples or calculate anything of interest
-        such as accuracy.
+        r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
+        calculate anything of interest such as accuracy.
 
         .. code-block:: python
 
@@ -1185,9 +1177,8 @@ class LightningModule(
         return []
 
     def configure_optimizers(self) -> Any:
-        r"""
-        Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
+        r"""Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need
+        one. But in the case of GANs or similar you might have multiple.
 
         Return:
             Any of these 6 options.
@@ -1583,9 +1574,8 @@ class LightningModule(
         using_native_amp: bool = False,
         using_lbfgs: bool = False,
     ) -> None:
-        r"""
-        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
-        each optimizer.
+        r"""Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer`
+        calls each optimizer.
 
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
         This method (and ``zero_grad()``) won't be called during the accumulation phase when
@@ -1652,7 +1642,6 @@ class LightningModule(
                     lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
                         pg["lr"] = lr_scale * self.learning_rate
-
         """
         optimizer.step(closure=optimizer_closure)
 
@@ -1680,10 +1669,8 @@ class LightningModule(
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Any, split_size: int) -> List[Any]:
-        r"""
-        When using truncated backpropagation through time, each batch must be split along the
-        time dimension. Lightning handles this by default, but for custom behavior override
-        this function.
+        r"""When using truncated backpropagation through time, each batch must be split along the time dimension.
+        Lightning handles this by default, but for custom behavior override this function.
 
         Args:
             batch: Current batch
@@ -1728,7 +1715,7 @@ class LightningModule(
                 split_x: Union[Tensor, List[Tensor]]
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.Sequence):
+                elif isinstance(x, collections.abc.Sequence):
                     split_x = [x[batch_idx][t : t + split_size] for batch_idx in range(len(x))]
 
                 batch_split.append(split_x)
@@ -1738,14 +1725,12 @@ class LightningModule(
         return splits
 
     def freeze(self) -> None:
-        r"""
-        Freeze all params for inference.
+        r"""Freeze all params for inference.
 
         Example::
 
             model = MyLightningModule(...)
             model.freeze()
-
         """
         for param in self.parameters():
             param.requires_grad = False

@@ -326,8 +326,7 @@ class LightningLite(ABC):
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Gather tensors or collections of tensors from multiple processes.
+        r"""Gather tensors or collections of tensors from multiple processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.

@@ -24,7 +24,7 @@ def assert_opt_parameters_on_device(opt, device: str):
         # Not sure there are any global tensors in the state dict
         if isinstance(param, torch.Tensor):
             assert param.data.device.type == device
-        elif isinstance(param, collections.Mapping):
+        elif isinstance(param, collections.abc.Mapping):
             for subparam in param.values():
                 if isinstance(subparam, torch.Tensor):
                     assert param.data.device.type == device

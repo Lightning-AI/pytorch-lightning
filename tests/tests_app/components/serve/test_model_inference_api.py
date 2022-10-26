@@ -34,7 +34,6 @@ def target_fn(port, workers):
 @pytest.mark.skipif(not (_is_torch_available() and _is_numpy_available()), reason="Missing torch and numpy")
 @pytest.mark.parametrize("workers", [0])
 def test_model_inference_api(workers):
-
     port = find_free_network_port()
     process = mp.Process(target=target_fn, args=(port, workers))
     process.start()
@@ -65,7 +64,6 @@ class EmptyServer(serve.ModelInferenceAPI):
 
 
 def test_model_inference_api_mock(monkeypatch):
-
     monkeypatch.setattr(serve, "uvicorn", MagicMock())
     comp = EmptyServer()
     comp.run()

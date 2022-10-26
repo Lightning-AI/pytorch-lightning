@@ -20,7 +20,6 @@ from lightning_app.utilities.commands import base
 
 
 def test_connect_disconnect_local(monkeypatch):
-
     disconnect()
 
     with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
@@ -80,7 +79,6 @@ def test_connect_disconnect_local(monkeypatch):
 
 
 def test_connect_disconnect_cloud(monkeypatch):
-
     disconnect()
 
     target_file = _resolve_command_path("command_with_client")

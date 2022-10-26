@@ -107,7 +107,6 @@ def test_redis_queue_read_timeout(redis_mock):
     [(QueuingSystem.SINGLEPROCESS, queue), (QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
-
     queue_mocked = mock.MagicMock()
     monkeypatch.setattr(queue_process_mock, "Queue", queue_mocked)
     my_queue = queue_type.get_readiness_queue()

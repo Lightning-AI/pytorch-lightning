@@ -263,7 +263,6 @@ def advanced_profiler(tmpdir):
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_advanced_profiler_durations(advanced_profiler, action: str, expected: list):
-
     for duration in expected:
         with advanced_profiler.profile(action):
             time.sleep(duration)
@@ -490,7 +489,6 @@ def test_pytorch_profiler_nested_emit_nvtx():
 
 
 def test_register_record_function(tmpdir):
-
     use_cuda = torch.cuda.is_available()
     pytorch_profiler = PyTorchProfiler(
         export_to_chrome=False,
