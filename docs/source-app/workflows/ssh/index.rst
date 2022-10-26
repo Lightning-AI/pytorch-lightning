@@ -40,32 +40,7 @@ At the prompt, type a secure passphrase.
    > Enter same passphrase again: [Type passphrase again]
 
 
-Step 2: add the key to the ssh-agent
-====================================
-
-Next, start your ssh-agent in the background:
-
-.. code:: bash
-
-   # add the key to the ssh-agent (to avoid having to explicitly state key on each connection)
-   # to start the agent, run the following
-   $ eval "$(ssh-agent -s)"
-   > Agent pid 12345
-
-Add your generated ssh key:
-
-.. code:: bash
-
-   $ ssh-add ~/.ssh/id_ed25519
-
-Lastly, verify your ssh-key is properly loaded:
-
-.. code:: bash
-
-   $ ssh-add -L
-   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAn8mYRnRG1banQcfXPCUC6R8FvQS+YgfIsl70/dD3Te your_email@example.com
-
-Step 3: Add your key to Lightning
+Step 2: Add your key to Lightning
 =================================
 
 You can add SSH keys using Lightning.ai UI, or via this CLI command:
@@ -94,20 +69,45 @@ Ensure you have a running Lightning application in the cloud:
 
    $ lightning run app app.py --cloud --name my-app
 
-You can SSH any app you are running on the cloud.
+
+Next, start your ssh-agent in the background:
+
+.. code:: bash
+
+   # add the key to the ssh-agent (to avoid having to explicitly state key on each connection)
+   # to start the agent, run the following
+   $ eval "$(ssh-agent -s)"
+   > Agent pid 12345
+
+Add your generated ssh key:
+
+.. code:: bash
+
+   $ ssh-add ~/.ssh/id_ed25519
+
+Verify your ssh-key is properly loaded:
+
+.. code:: bash
+
+   $ ssh-add -L
+   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAn8mYRnRG1banQcfXPCUC6R8FvQS+YgfIsl70/dD3Te your_email@example.com
+
+
+You can now SSH any app you are running on the cloud.
 
 To view all apps you can simple use this following:
 
 .. code:: bash
 
-   $ lightning ssh
+   $ lightning list apps
 
+Or, to select an app via a prompt:
 
 .. code:: bash
 
    $ lightning ssh
 
-To connect to an app flow use:
+To connect to a specific app flow use:
 
 .. code:: bash
 
@@ -118,7 +118,7 @@ To connect to a LightningWork component use:
 
 .. code:: bash
 
-   $ lightning ssh --app-id <your-app-id> --component-name flow
+   $ lightning ssh --app-id <your-app-id> --component-name <work-name>
 
 The component name is the variable name of your LightningWork instances in Python.
 If you want to access your flow, use "flow" as component name.
