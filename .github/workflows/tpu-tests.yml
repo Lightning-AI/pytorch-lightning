@@ -1,4 +1,4 @@
-name: Test PyTorch on TPU
+name: Test PyTorch - TPU
 
 on:
   push:

@@ -275,7 +275,7 @@ def _clean_lightning_connection():
     for ppid in os.listdir(_LIGHTNING_CONNECTION):
         try:
             psutil.Process(int(ppid))
-        except psutil.NoSuchProcess:
+        except (psutil.NoSuchProcess, ValueError):
             connection = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
             if os.path.exists(connection):
                 shutil.rmtree(connection)
