@@ -6,12 +6,12 @@ import pytest
 import torch
 
 import pytorch_lightning  # noqa: F401
-from tests_pytorch.helpers.utils import no_warning_call
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     CHECKPOINT_EXTENSION,
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
     LEGACY_CHECKPOINTS_PATH,
 )
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
