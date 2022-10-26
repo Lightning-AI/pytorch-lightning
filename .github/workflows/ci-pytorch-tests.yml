@@ -122,6 +122,16 @@ jobs:
       working-directory: src
       run: python -m pytest pytorch_lightning
 
+    - name: Clear PL Package
+      if: ${{ matrix.pkg-name != 'pytorch' }}
+      run: |
+          rm -rf src/pytorch_lightning
+
+    - name: Clear Lightning Package
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      run: |
+          rm -rf src/lightning
+
     - name: Get pip cache dir
       id: pip-cache
       run: echo "::set-output name=dir::$(pip cache dir)"
