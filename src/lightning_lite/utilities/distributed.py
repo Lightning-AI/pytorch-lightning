@@ -159,27 +159,6 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     return result
 
 
-def _all_gather_ddp_if_available(
-    tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
-) -> Tensor:
-    """Function to gather a tensor from several distributed processes.
-
-    Args:
-        tensor: Tensor of shape (batch, ...)
-        group: The process group to gather results from. Defaults to all processes (world)
-        sync_grads: Flag that allows users to synchronize gradients for all_gather op
-
-    Return:
-        A tensor of shape (world_size, batch, ...)
-    """
-    if not _distributed_available():
-        return tensor
-    tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
-    with nullcontext() if sync_grads else torch.no_grad():
-        gathered_tensors = _functional_all_gather(tensor, group)
-    return torch.stack(gathered_tensors)
-
-
 class _AllGather(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore[override]
@@ -209,6 +188,27 @@ def _functional_all_gather(tensor: Any, group: Any) -> Any:
         import torch.distributed.nn
 
         return torch.distributed.nn.functional.all_gather(tensor, group)
+
+
+def _all_gather_ddp_if_available(
+    tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
+) -> Tensor:
+    """Function to gather a tensor from several distributed processes.
+
+    Args:
+        tensor: Tensor of shape (batch, ...)
+        group: The process group to gather results from. Defaults to all processes (world)
+        sync_grads: Flag that allows users to synchronize gradients for all_gather op
+
+    Return:
+        A tensor of shape (world_size, batch, ...)
+    """
+    if not _distributed_available():
+        return tensor
+    tensor = tensor.contiguous()  # https://github.com/pytorch/pytorch/issues/73515
+    with nullcontext() if sync_grads else torch.no_grad():
+        gathered_tensors = _functional_all_gather(tensor, group)
+    return torch.stack(gathered_tensors)
 
 
 def _init_dist_connection(
