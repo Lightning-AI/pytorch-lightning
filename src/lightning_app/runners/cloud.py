@@ -471,6 +471,7 @@ class CloudRuntime(Runtime):
             _prettifiy_exception(filepath)
         return app
 
+
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
     if mount.protocol == "s3://":
         drive_type = V1DriveType.INDEXED_S3
