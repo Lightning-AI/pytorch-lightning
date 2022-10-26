@@ -6,7 +6,7 @@ import pytest
 
 import lightning_app
 from lightning_app import LightningFlow
-from lightning_app.frontend.web import healthz, StaticWebFrontend
+from lightning_app.frontend.web import _healthz, StaticWebFrontend
 from lightning_app.storage.path import storage_root_dir
 
 
@@ -64,7 +64,7 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_p
     FastAPIMock.mount.assert_called_once_with(root_path or "/test-flow", ANY, name="static")
     FastAPIMock.get.assert_called_once_with("/test-flow/healthz", status_code=200)
 
-    FastAPIGetDecoratorMock.assert_called_once_with(healthz)
+    FastAPIGetDecoratorMock.assert_called_once_with(_healthz)
 
     # path has default value "/"
     FastAPIMock.mount = MagicMock()
@@ -73,7 +73,7 @@ def test_start_server_through_function(uvicorn_mock, tmpdir, monkeypatch, root_p
 
 
 def test_healthz():
-    assert healthz() == {"status": "ok"}
+    assert _healthz() == {"status": "ok"}
 
 
 @mock.patch("lightning_app.frontend.web.uvicorn")
