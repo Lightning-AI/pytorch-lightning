@@ -623,7 +623,6 @@ class LightningModule(
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
 
-
         Example::
 
             def training_step(self, batch, batch_idx):
