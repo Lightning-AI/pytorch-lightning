@@ -52,7 +52,7 @@ class CheckpointConnector:
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `Trainer.fit(ckpt_path=)` directly instead."
+                " will be removed in v2.0. Please pass `Trainer.fit(ckpt_path=)` directly instead."
             )
         self._loaded_checkpoint: Dict[str, Any] = {}
 
