@@ -4,7 +4,6 @@ import click
 import rich
 from rich.color import ANSI_COLOR_NAMES
 
-
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
@@ -12,6 +11,7 @@ from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
+
 
 @click.argument("app_name", required=False)
 @click.argument("components", nargs=-1, required=False)

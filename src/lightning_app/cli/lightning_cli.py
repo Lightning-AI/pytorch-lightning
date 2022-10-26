@@ -59,7 +59,9 @@ def main() -> None:
         if app_name:
             # 3: Handle development use case.
             is_local_app = app_name == "localhost"
-            if sys.argv[1:3] == ["run", "app"] or (sys.argv[1:3] == ["show", "logs"] and "show logs" not in _list_app_commands(False)):
+            if sys.argv[1:3] == ["run", "app"] or (
+                sys.argv[1:3] == ["show", "logs"] and "show logs" not in _list_app_commands(False)
+            ):
                 _main()
             else:
                 if is_local_app:
