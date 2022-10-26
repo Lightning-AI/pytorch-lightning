@@ -109,7 +109,7 @@ class LightningModule(
         self.precision: Union[int, str] = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
