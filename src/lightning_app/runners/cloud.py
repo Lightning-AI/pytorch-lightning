@@ -40,7 +40,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning_app.core import constants
+from lightning_app.core.constants import ENABLE_APP_CHECKPOINT
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
@@ -104,7 +104,7 @@ class CloudRuntime(Runtime):
             # Override the name if provided by the CLI
             app_config.name = name
 
-        if constants.ENABLE_APP_CHECKPOINT and self.checkpoint:
+        if ENABLE_APP_CHECKPOINT and self.checkpoint:
             app_config.checkpoint = self.checkpoint
         else:
             app_config.checkpoint = None

@@ -1,3 +1,4 @@
+import os
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -84,8 +85,8 @@ def test_multiprocess_runtime_sets_context():
     MultiProcessRuntime(LightningApp(ContxtFlow())).dispatch()
 
 
-@mock.patch("lightning_app.runners.multiprocess.constants", MagicMock(ENABLE_APP_CHECKPOINT=True))
-def test_dispatch_loads_app_from_checkpoint():
+@mock.patch("lightning_app.runners.multiprocess.ENABLE_APP_CHECKPOINT", True)
+def test_multiprocess_dispatch_loads_app_from_checkpoint():
 
     app = LightningApp(EmptyFlow())
     mp_runtime = MultiProcessRuntime(app, checkpoint="test_checkpoint")
