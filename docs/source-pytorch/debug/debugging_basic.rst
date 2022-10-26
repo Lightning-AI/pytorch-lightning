@@ -36,7 +36,7 @@ A breakpoint stops your code execution so you can inspect variables, etc... and 
         import pdb
 
         pdb.set_trace()
-        y = x ** 2
+        y = x**2
 
 In this example, the code will stop before executing the ``y = x**2`` line.
 

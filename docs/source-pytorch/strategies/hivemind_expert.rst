@@ -48,7 +48,7 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
 
     # compresses values above threshold with 8bit Quantization, lower with Float16
     compression = SizeAdaptiveCompression(
-        threshold=2 ** 16 + 1, less=Float16Compression(), greater_equal=Uniform8BitQuantization()
+        threshold=2**16 + 1, less=Float16Compression(), greater_equal=Uniform8BitQuantization()
     )
     trainer = pl.Trainer(
         strategy=HivemindStrategy(
