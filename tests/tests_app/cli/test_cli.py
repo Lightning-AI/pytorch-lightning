@@ -12,7 +12,7 @@ from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.exception_handlers import ApiExceptionHandler
+from lightning_app.utilities.exceptions import _ApiExceptionHandler
 
 
 @pytest.mark.parametrize(
@@ -191,4 +191,4 @@ def test_lightning_cli_version():
 
 
 def test_main_catches_api_exceptions():
-    assert isinstance(_main, ApiExceptionHandler)
+    assert isinstance(_main, _ApiExceptionHandler)

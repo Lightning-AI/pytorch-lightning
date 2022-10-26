@@ -7,12 +7,12 @@ from lightning_cloud.openapi.rest import ApiException
 from pytest import fixture
 from urllib3 import HTTPResponse
 
-from lightning_app.utilities.exception_handlers import ApiExceptionHandler
+from lightning_app.utilities.exceptions import _ApiExceptionHandler
 
 
 @fixture
 def mock_api_handled_group():
-    @group(cls=ApiExceptionHandler)
+    @group(cls=_ApiExceptionHandler)
     def g():
         pass
 
@@ -33,7 +33,7 @@ def api_error_msg():
     return "This is an internal error message"
 
 
-class TestApiExceptionHandler:
+class Test_ApiExceptionHandler:
     def test_4xx_exceptions_caught_in_subcommands(self, mock_api_handled_group, mock_subcommand, api_error_msg):
         mock_subcommand.invoke = MagicMock(
             side_effect=ApiException(
