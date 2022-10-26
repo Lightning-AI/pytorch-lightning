@@ -21,7 +21,7 @@ import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
 from lightning_lite.plugins.environments import TorchElasticEnvironment
-from lightning_lite.utilities.device_parser import parse_gpu_ids
+from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -107,10 +107,10 @@ def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
         trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu
-    if parse_gpu_ids(gpus, include_cuda=True) is not None:
+    if _parse_gpu_ids(gpus, include_cuda=True) is not None:
         assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == parse_gpu_ids(gpus, include_cuda=True)
+        assert trainer.device_ids == _parse_gpu_ids(gpus, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)
