@@ -5,7 +5,7 @@ from typing import Tuple
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.testing.testing import _application_testing, LightningTestApp, run_app_in_cloud, wait_for
+from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
 from lightning_app.utilities.enum import AppStage
 
 
@@ -26,7 +26,7 @@ def test_v0_app_example():
         "--open-ui",
         "False",
     ]
-    result = _application_testing(LightningAppTestInt, command_line)
+    result = application_testing(LightningAppTestInt, command_line)
     assert result.exit_code == 0
 
 

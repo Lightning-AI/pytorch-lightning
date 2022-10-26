@@ -129,7 +129,7 @@ class LightningTestApp(LightningApp):
 
 
 @requires("click")
-def _application_testing(
+def application_testing(
     lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock

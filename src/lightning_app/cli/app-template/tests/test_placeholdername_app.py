@@ -10,7 +10,7 @@ import io
 import os
 from contextlib import redirect_stdout
 
-from lightning_app.testing.testing import _application_testing, LightningTestApp
+from lightning_app.testing.testing import application_testing, LightningTestApp
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -36,7 +36,7 @@ def test_templatename_app():
         "--open-ui",
         "False",
     ]
-    result = _application_testing(LightningAppTestInt, command_line)
+    result = application_testing(LightningAppTestInt, command_line)
     assert result.exit_code == 0
 
     # reset dir

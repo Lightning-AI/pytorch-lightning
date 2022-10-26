@@ -1,5 +1,6 @@
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.testing.testing import (
+    application_testing,
     delete_cloud_lightning_apps,
     LightningTestApp,
     run_app_in_cloud,
@@ -8,6 +9,7 @@ from lightning_app.testing.testing import (
 )
 
 __all__ = [
+    "application_testing",
     "run_work_isolated",
     "LightningTestApp",
     "delete_cloud_lightning_apps",
