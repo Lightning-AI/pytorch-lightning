@@ -203,6 +203,7 @@ class FSDPStrategy(ParallelStrategy):
 
         if any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"]):
             return optimizer
+
         raise ValueError(
             "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the optimizer"
             " after setting up the model."
