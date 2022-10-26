@@ -141,7 +141,7 @@ Here is the full API of methods available in the Callback base class.
 .. note::
 
     Outputs: Hooks that occur on batch end (e.g. ``on_train_batch_end``) will receive any values returned from that step (such as the loss) in the form of a dictionary named ``outputs``.
-    For ``on_train_batch_end``, in the case ``accumulate_grad_batches`` > 1, ``outputs["loss"]`` is normalized by Lightning and will be the same as the value returned from the training/validation/predict step divided by ``accumulate_grad_batches``.
+    ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the loss returned from ``training_step``.
 
 The :class:`~pytorch_lightning.callbacks.Callback` class is the base for all the callbacks in Lightning just like the :class:`~pytorch_lightning.core.module.LightningModule` is the base for all models.
 It defines a public interface that each callback implementation must follow, the key ones are:
