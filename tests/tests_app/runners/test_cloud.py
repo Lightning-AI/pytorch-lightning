@@ -34,13 +34,13 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork, _PROJECT_ROOT
+from lightning_app import _PROJECT_ROOT, LightningApp, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.storage import Drive, Mount
+from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.testing.helpers import EmptyFlow
 
 
 class MyWork(LightningWork):
