@@ -54,7 +54,7 @@ subprojects:
 
   - id: "pytorch_lightning: CPU"
     paths:
-      - ".github/workflows/ci-pytorch-test-full.yml"
+      - ".github/workflows/ci-pytorch-tests.yml"
     checks:
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
@@ -74,7 +74,7 @@ subprojects:
 
   - id: "pytorch_lightning: Slow"
     paths:
-      - ".github/workflows/ci-pytorch-test-slow.yml"
+      - ".github/workflows/ci-pytorch-tests-slow.yml"
     checks:
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
