@@ -615,13 +615,16 @@ class LightningModule(
         Return:
             Any of.
 
-            - :class:`~torch.Tensor` - The loss tensor
+            - :class:`~torch.Tensor` - The loss tensor.
             - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
             - ``None`` - Training will skip to the next batch. This is only for automatic optimization.
                 This is not supported for multi-GPU, TPU, IPU, or DeepSpeed.
 
         In this step you'd normally do the forward pass and calculate the loss for a batch.
         You can also do fancier things like multiple forward passes or something model specific.
+
+        Note: When ``accumulate_grad_batches`` > 1, the loss returned from the training step will be automatically
+        normalized internally (by dividing by ``accumulate_grad_batches``).
 
         Example::
 
