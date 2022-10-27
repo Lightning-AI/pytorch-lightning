@@ -38,7 +38,7 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     _show_logs(app_name, components, follow)
 
 
-def _show_logs(app_name: str, components: List[str], follow: bool):
+def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
 
     client = LightningClient()
     project = _get_project(client)
