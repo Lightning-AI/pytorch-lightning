@@ -49,6 +49,14 @@ Web UIs for non Javascript Developers
    :height: 150
    :tag: basic
 
+.. displayitem::
+   :header: JustPy
+   :description: Learn how to add a web UI built in Python with JustPy.
+   :col_css: col-md-4
+   :button_link: justpy/index.html
+   :height: 150
+   :tag: basic
+
 .. raw:: html
 
         </div>
