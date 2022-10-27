@@ -59,13 +59,6 @@ repos:
     rev: v1.5.0
     hooks:
       - id: docformatter
-        args: [--wrap-summaries=115, --wrap-descriptions=120]  # for dumping the error
-        verbose: true
-
-  - repo: https://github.com/PyCQA/docformatter
-    rev: v1.5.0
-    hooks:
-      - id: docformatter
         args: [--in-place, --wrap-summaries=115, --wrap-descriptions=120]
         verbose: true
 
