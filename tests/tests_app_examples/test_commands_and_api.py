@@ -48,4 +48,5 @@ def test_commands_and_api_example_cloud() -> None:
 
         # 7: Send a request to the Rest API directly.
         resp = requests.get(base_url + "/pure_function")
-        assert resp.status_code == 200, resp.json()
+        assert resp.status_code == 200
+        assert resp.json() == "Hello World !"

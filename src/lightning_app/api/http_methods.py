@@ -47,27 +47,20 @@ class HttpMethod:
         # 1: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
 
+        # 2: Create a proxy function with the signature of the wrapped method.
+        fn = deepcopy(_signature_proxy_function)
+        fn.__annotations__ = self.method_annotations
+        fn.__name__ = self.method_name
+        setattr(fn, "__signature__", self.method_signature)
+
+        # Note: Handle requests differently if attached to a flow.
         if not self.attached_to_flow:
-            fn = deepcopy(_signature_proxy_function)
-            fn.__annotations__ = self.method_annotations
-            fn.__name__ = self.method_name
-            setattr(fn, "__signature__", self.method_signature)
-
-            request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
-
             # 3: Define the request handler.
             @wraps(_signature_proxy_function)
-            async def handle_request_method(*args, **kwargs):
+            async def _handle_request(*args, **kwargs):
                 return self.method(*args, **kwargs)
 
-            route(self.route, **self.kwargs)(handle_request_method)
         else:
-            # 1: Create a proxy function with the signature of the wrapped method.
-            fn = deepcopy(_signature_proxy_function)
-            fn.__annotations__ = self.method_annotations
-            fn.__name__ = self.method_name
-            setattr(fn, "__signature__", self.method_signature)
-
             request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
 
             # 3: Define the request handler.
@@ -103,8 +96,8 @@ class HttpMethod:
 
                 return response.content
 
-            # 4: Register the user provided route to the Rest API.
-            route(self.route, **self.kwargs)(_handle_request)
+        # 4: Register the user provided route to the Rest API.
+        route(self.route, **self.kwargs)(_handle_request)
 
 
 class Post(HttpMethod):
