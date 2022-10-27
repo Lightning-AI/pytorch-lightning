@@ -7,17 +7,71 @@
 Welcome to ⚡ Lightning
 ######################
 
-.. twocolumns::
-   :left:
-      .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
-         :alt: Animation showing how to convert a standard training loop to a Lightning loop
-   :right:
-      The `open-source Lightning framework <https://github.com/Lightning-AI/lightning>`_ gives ML Researchers and Data Scientists, the fastest & most flexible
-      way to iterate on ML research ideas and deliver scalable ML systems with the performance enterprises requires at the same time.
+|
+
+Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
+
+|
+
+.. raw:: html
+
+   <div class="display-card-container">
+      <div class="row" style="display:flex; align-items: center; justify-content: space-between">
+
+.. displayitem::
+   :header: Internal ML system (no UI)
+   :description: An internal ML system for fraud detection.
+   :col_css: col-md-3
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 280
+   :tag: Enterprise
+
+.. displayitem::
+   :header: External SaaS product 
+   :description: Build and monetize external products 
+   :col_css: col-md-3
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 280
+   :tag: Startup
+
+.. displayitem::
+   :header: Demo software products
+   :description: Share reproducible software products for clients that scale instead of jupyter notebooks that don't.
+   :col_css: col-md-3
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :button_link: https://lightning.ai/muse
+   :height: 280
+   :tag: Research
+
+.. raw:: html
+
+      </div>
+   </div>
 
 .. join_slack::
    :align: center
-   :margin: 0
+
+----
+
+.. lit_tabs::
+   :titles: Run any python code;;;
+   :descriptions: Run python on the cloud or locally; Train on 100s of GPUs on ANY framework like PTL ⚡; Deploy models with any server like FastAPI; Execute any script like R, Python, C++, Matlab
+   :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
+   :highlights: 6, 11; 7, 11; 6-8; 7, 8
+   :tab_rows: 5
+   :height: 250px
+
+|
+
+Run on cloud machines in your own AWS account, fully-managed `Lightning cloud <https://lightning.ai/>`_ or your own hardare:
+
+.. lit_tabs::
+   :titles: Fully-managed; Your AWS VPC; Run on your own hardware
+   :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
+   :tab_rows: 5
+   :height: 150px
 
 ----
 
@@ -26,7 +80,7 @@ Install Lightning
 *****************
 Use Python 3.8.x or later. We also recommend you install in a virtual environment (`learn how <install_beginner.rst>`_).
 
-.. code-block:: bash
+.. code:: bash
 
    python -m pip install -U lightning
 

@@ -139,6 +139,7 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "_templates",
     "code_samples/convert_pl_to_app/requirements.txt",
 ]
 
@@ -151,7 +152,7 @@ pygments_style = None
 # a list of builtin themes.
 #
 html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+html_theme_path = ["/Users/williamfalcon/Developer/lightning_theme"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

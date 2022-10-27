@@ -262,9 +262,9 @@ Lightning organizes Python code. Drop ⚡ *any* ⚡ piece of code into the Light
         <div class="row">
         <div class="col-md-5">
 
-Deploy this example:
-
-.. join_slack::
+.. cta_button::
+   :margin: 0
+   :target: https://lightning.ai/
 
 [video showing this]
 
@@ -303,13 +303,13 @@ Deploy this example:
 
 Run on cloud machine in your own AWS account or fully-managed `Lightning cloud <https://lightning.ai/>`_:
 
-.. code:: python
+.. code:: bash
 
    lightning run app app.py --cloud
 
 Run on your own hardware:
 
-.. code:: python 
+.. code:: bash
    
    lightning run app app.py
 
@@ -325,6 +325,11 @@ Lightning decouples your code from the accelerators and cloud. To change the acc
     <div class="display-card-container">
         <div class="row">
         <div class="col-md-5">
+
+.. cta_button::
+   :align: left
+   :margin: 0
+   :target: https://lightning.ai/
 
 [VIDEO SHOWING CODE]
 
