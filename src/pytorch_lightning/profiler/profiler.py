@@ -18,6 +18,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 class Profiler(NewProfiler):
     """If you wish to write a custom profiler, you should inherit from this class.
 
+    Note that this is deprecated.
+
     .. deprecated:: v1.6
         `pytorch_lightning.profiler.Profiler` is deprecated in v1.7 and will be removed in v1.9.
         Use the equivalent `pytorch_lightning.profilers.Profiler` class instead.
