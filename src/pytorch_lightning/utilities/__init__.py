@@ -26,7 +26,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _IS_INTERACTIVE,
     _IS_WINDOWS,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
