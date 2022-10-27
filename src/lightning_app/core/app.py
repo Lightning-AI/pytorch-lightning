@@ -103,7 +103,7 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
-        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
+        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute(name="flow-lite")
 
         # queues definition.
         self.delta_queue: Optional[BaseQueue] = None
