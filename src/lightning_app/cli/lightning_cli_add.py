@@ -23,7 +23,7 @@ def cli_add() -> None:
     help="public key or path to public key file",
     required=True,
 )
-def add_ssh_key(key_name: str, comment: str, public_key: Union[str, "os.PathLike[str]"] = None) -> None:
+def add_ssh_key(public_key: Union[str, "os.PathLike[str]"], key_name: str = None, comment: str = None) -> None:
     """Add a new Lightning AI ssh-key to your account."""
     ssh_key_manager = _SSHKeyManager()
 
