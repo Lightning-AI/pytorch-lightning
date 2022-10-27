@@ -10,7 +10,7 @@ import torch
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning_lite.plugins.collectives import TorchCollective
+from lightning_lite.plugins.collectives import torch_collective, TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
@@ -212,6 +212,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
                 main_address=strategy.cluster_environment.main_address,
                 backend=strategy._get_process_group_backend(),
                 rank=strategy.global_rank,
+                timeout=torch_collective.default_pg_timeout,
             )
 
         fn_params = inspect.signature(fn).parameters
