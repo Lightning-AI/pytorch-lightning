@@ -70,11 +70,14 @@ class TestAppCreationClient:
 
     # TODO: remove this test once there is support for multiple instances
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    @pytest.mark.parametrize('original_cluster,new_cluster,want_error', [
-        ('cluster-001', 'cluster-001', False),
-        ('cluster-001', None, False), # e.g. --cloud w/o --cluster-id
-        ('cluster-001', 'cluster-002', True),
-    ])
+    @pytest.mark.parametrize(
+        "original_cluster,new_cluster,want_error",
+        [
+            ("cluster-001", "cluster-001", False),
+            ("cluster-001", None, False),  # e.g. --cloud w/o --cluster-id
+            ("cluster-001", "cluster-002", True),
+        ],
+    )
     def test_new_instance_on_different_cluster_fails(self, monkeypatch, original_cluster, new_cluster, want_error):
         app_name = "test-app-name"
 
