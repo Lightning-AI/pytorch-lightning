@@ -298,7 +298,10 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
     if strategy.global_rank in (0, 1):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
-    right_collective.barrier()  # avoids deadlock for global rank 1
+
+    # barrier changed to debug hang
+    torch.distributed.barrier()  # avoids deadlock for global rank 1
+
     if strategy.global_rank in (1, 2):
         tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
