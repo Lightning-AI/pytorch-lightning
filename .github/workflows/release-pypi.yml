@@ -116,41 +116,12 @@ jobs:
         pkg-pattern: "*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
-  create-legacy-ckpt:
-    # Todo: skip if pytorch was not released
-    runs-on: ubuntu-20.04
+  legacy-checkpoints:
     needs: publish-packages
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-1
-
-    - name: Pull files from S3
-      working-directory: ./tests/legacy
-      run: |
-        pip install awscli --quiet
-        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ checkpoints/ #  --acl public-read
-        ls -l checkpoints/
-
-    - name: Generate checkpoint
-      working-directory: ./tests/legacy
-      run: |
-        pip install pytorch-lightning -U
-        pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
-        # generate checkpoint to this version
-        bash generate_checkpoints.sh $pl_ver
-
-    - name: Push files to S3
-      working-directory: ./tests/legacy
-      run: |
-        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        zip -r checkpoints.zip checkpoints
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+    uses: ./.github/workflows/legacy-checkpoints.yml
+    with:
+      push_to_s3: true
+      create_pr: true
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

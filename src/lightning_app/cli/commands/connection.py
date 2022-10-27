@@ -80,10 +80,11 @@ def connect(app_name_or_id: str, yes: bool = False):
                 )
                 repr_command_name = command_name.replace("_", " ")
                 click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
-                click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
             else:
                 with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                     f.write(command_name)
+
+        click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
@@ -129,17 +130,20 @@ def connect(app_name_or_id: str, yes: bool = False):
                         retriever.app_id,
                         target_file=target_file,
                     )
-                    click.echo(f"Storing `{command_name}` under {target_file}")
-                    click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
+                    pretty_command_name = command_name.replace("_", " ")
+                    click.echo(f"Storing `{pretty_command_name}` under {target_file}")
                 else:
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
+
+            click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
 
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")
             click.echo("You can now run the following commands:")
             for command in retriever.api_commands:
-                click.echo(f"    lightning {command}")
+                pretty_command_name = command.replace("_", " ")
+                click.echo(f"    lightning {pretty_command_name}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
@@ -207,7 +211,7 @@ def _resolve_command_path(command: str) -> str:
     return os.path.join(_get_commands_folder(), f"{command}.py")
 
 
-def _list_app_commands() -> List[str]:
+def _list_app_commands(echo: bool = True) -> List[str]:
     metadata = _get_commands_metadata()
     metadata = {key.replace("_", " "): value for key, value in metadata.items()}
 
@@ -216,15 +220,16 @@ def _list_app_commands() -> List[str]:
         click.echo("The current Lightning App doesn't have commands.")
         return []
 
-    click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
-    click.echo("")
-    click.echo("  --help     Show this message and exit.")
-    click.echo("")
-    click.echo("Lightning App Commands")
-    max_length = max(len(n) for n in command_names)
-    for command_name in command_names:
-        padding = (max_length + 1 - len(command_name)) * " "
-        click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
+    if echo:
+        click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
+        click.echo("")
+        click.echo("  --help     Show this message and exit.")
+        click.echo("")
+        click.echo("Lightning App Commands")
+        max_length = max(len(n) for n in command_names)
+        for command_name in command_names:
+            padding = (max_length + 1 - len(command_name)) * " "
+            click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
     return command_names
 
 
@@ -275,7 +280,7 @@ def _clean_lightning_connection():
     for ppid in os.listdir(_LIGHTNING_CONNECTION):
         try:
             psutil.Process(int(ppid))
-        except psutil.NoSuchProcess:
+        except (psutil.NoSuchProcess, ValueError):
             connection = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
             if os.path.exists(connection):
                 shutil.rmtree(connection)
