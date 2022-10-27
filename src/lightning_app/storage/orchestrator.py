@@ -19,7 +19,7 @@ _PathResponse = Union[_ExistsResponse, _GetResponse]
 _logger = Logger(__name__)
 
 
-class _StorageOrchestrator(Thread):
+class StorageOrchestrator(Thread):
     """The StorageOrchestrator processes file transfer requests from Work that need file(s) from other Work.
 
     Args:
