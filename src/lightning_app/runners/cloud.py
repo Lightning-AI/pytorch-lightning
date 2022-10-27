@@ -293,6 +293,10 @@ class CloudRuntime(Runtime):
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
+                # if --cloud w/o --cluster-id, launch to same cluster as previous release
+                if cluster_id is None:
+                    cluster_id = existing_instance.spec.cluster_id
+
                 # TODO: support multiple instances / 1 instance per cluster
                 if existing_instance.spec.cluster_id != cluster_id:
                     raise ValueError(

@@ -70,10 +70,13 @@ class TestAppCreationClient:
 
     # TODO: remove this test once there is support for multiple instances
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_new_instance_on_different_cluster_fails(self, monkeypatch):
+    @pytest.mark.parametrize('original_cluster,new_cluster,want_error', [
+        ('cluster-001', 'cluster-001', False),
+        ('cluster-001', None, False), # e.g. --cloud w/o --cluster-id
+        ('cluster-001', 'cluster-002', True),
+    ])
+    def test_new_instance_on_different_cluster_fails(self, monkeypatch, original_cluster, new_cluster, want_error):
         app_name = "test-app-name"
-        original_cluster = "cluster-001"
-        new_cluster = "cluster-002"
 
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -105,22 +108,26 @@ class TestAppCreationClient:
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
         monkeypatch.setattr(cloud, "Path", Path)
 
-        # This is the main assertion:
-        # we have an existing instance on `cluster-001`
-        # but we want to run this app on `cluster-002`
-        with pytest.raises(ValueError) as exc:
+        if want_error:
+            # we have an existing instance on `cluster-001`
+            # but we want to run this app on `cluster-002`
+            with pytest.raises(ValueError) as exc:
+                cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
+
+            assert exc.match(
+                f"Can not start app '{app_name}' on cluster '{new_cluster}' "
+                f"since this app already exists on '{original_cluster}'. "
+                "To run it on another cluster, give it a new name with the --name option."
+            )
+            cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_not_called()
+        else:
             cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
-        assert exc.match(
-            f"Can not start app '{app_name}' on cluster '{new_cluster}' "
-            f"since this app already exists on '{original_cluster}'. "
-            "To run it on another cluster, give it a new name with the --name option."
-        )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_not_called()
-        cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
-            project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id=new_cluster, project_id="default-project-id"),
-        )
+        if new_cluster is not None:
+            cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
+                project_id="default-project-id",
+                body=V1ProjectClusterBinding(cluster_id=new_cluster, project_id="default-project-id"),
+            )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_custom_flow_compute_config(self, monkeypatch):
