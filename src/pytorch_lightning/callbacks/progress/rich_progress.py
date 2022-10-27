@@ -26,7 +26,7 @@ _RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
-    from rich.console import RenderableType
+    from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar
     from rich.style import Style
@@ -252,6 +252,7 @@ class RichProgressBar(ProgressBarBase):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
+        self._console: Optional[Console] = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
@@ -569,6 +570,13 @@ class RichProgressBar(ProgressBarBase):
             CustomTimeColumn(style=self.theme.time),
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
+
+    def __getstate__(self) -> Dict:
+        state = self.__dict__.copy()
+        # both the console and progress object can hold thread lock objects that are not pickleable
+        state["progress"] = None
+        state["_console"] = None
+        return state
 
 
 def _detect_light_colab_theme() -> bool:

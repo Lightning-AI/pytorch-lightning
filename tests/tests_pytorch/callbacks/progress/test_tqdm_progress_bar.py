@@ -545,11 +545,21 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
 
 def test_tqdm_progress_bar_can_be_pickled():
     bar = TQDMProgressBar()
-    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    trainer = Trainer(
+        callbacks=[bar],
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        logger=False,
+        enable_model_summary=False,
+    )
     model = BoringModel()
-
     pickle.dumps(bar)
     trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.validate(model)
     pickle.dumps(bar)
     trainer.test(model)
     pickle.dumps(bar)
