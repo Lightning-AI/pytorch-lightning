@@ -29,7 +29,8 @@ from lightning_lite.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
-from lightning_lite.utilities.device_parser import determine_root_gpu_device
+from lightning_lite.utilities.device_parser import _determine_root_gpu_device
+from lightning_lite.utilities.imports import _IS_INTERACTIVE
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -83,7 +84,6 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -594,7 +594,7 @@ class AcceleratorConnector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = determine_root_gpu_device(self._parallel_devices)
+                device = _determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
@@ -796,8 +796,6 @@ class AcceleratorConnector:
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
-
-        from pytorch_lightning.utilities import _IS_INTERACTIVE
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
