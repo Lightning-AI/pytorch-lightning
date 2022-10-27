@@ -9,3 +9,5 @@
 
 # extended list of dependencies for UI
 -r ./ui.txt
+
+-r ./examples.txt
