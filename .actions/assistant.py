@@ -11,11 +11,8 @@ from pathlib import Path
 from pprint import pprint
 from types import ModuleType
 from typing import List, Optional, Sequence
-from urllib import request
-from urllib.request import Request, urlopen
 
 import pkg_resources
-from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -41,18 +38,20 @@ PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 def pypi_versions(package_name: str, drop_pre: bool = True) -> List[str]:
     """Return a list of released versions of a provided pypi name.
 
-    >>> _ = pypi_versions("lightning_app", drop_pre=False)
+    >>> pypi_versions("lightning_app", drop_pre=False)  # doctest: +ELLIPSIS
+    ['0.5.1', '0.5.2', ...]
     """
+    from urllib.request import Request, urlopen
+
     # https://stackoverflow.com/a/27239645/4521646
     url = f"https://pypi.org/pypi/{package_name}/json"
     data = json.load(urlopen(Request(url)))
-    versions = list(data["releases"].keys())
+    versions = list(data["releases"])
     # todo: drop this line after cleaning Pypi history from invalid versions
     versions = list(filter(lambda v: v.count(".") == 2, versions))
     if drop_pre:
         versions = list(filter(lambda v: all(c not in v for c in ["rc", "dev"]), versions))
-    versions.sort(key=version_parse)
-    return versions
+    return sorted(versions, key=LooseVersion)
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -151,6 +150,9 @@ class AssistantCLI:
     @staticmethod
     def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
         """Download specific or latest package from PyPI where the name is `lightning.<name>`."""
+        from urllib import request
+        from urllib.request import Request, urlopen
+
         url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
         data = json.load(urlopen(Request(url)))
         if not version:
