@@ -29,7 +29,7 @@ from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
-from lightning_app.utilities.exceptions import LogLinesLimitExceeded
+from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
@@ -79,7 +79,7 @@ def main() -> None:
             _main()
 
 
-@click.group()
+@click.group(cls=_ApiExceptionHandler)
 @click.version_option(ver)
 def _main() -> None:
     pass
