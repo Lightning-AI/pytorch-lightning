@@ -22,7 +22,6 @@ from lightning_app.api.http_methods import Post
 from lightning_app.core import api
 from lightning_app.core.api import (
     fastapi_service,
-    get_component_by_name,
     global_app_state_store,
     register_global_routes,
     start_server,
@@ -227,11 +226,6 @@ async def test_start_server(x_lightning_type, monkeypatch):
 
     app = AppStageTestingApp(FlowA(), debug=True)
     app._update_layout()
-    layout = deepcopy(app.state["vars"]["_layout"])
-    for la in layout:
-        if la["content"].startswith("root."):
-            la["content"] = get_component_by_name(la["content"], app.state)
-
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
     change_state_queue = MockQueue("change_state_queue")
