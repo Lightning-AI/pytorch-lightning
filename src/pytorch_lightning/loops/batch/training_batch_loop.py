@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from torch import Tensor
+from typing_extensions import OrderedDict
 
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
