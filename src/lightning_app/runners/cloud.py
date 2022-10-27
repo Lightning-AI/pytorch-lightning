@@ -36,6 +36,7 @@ from lightning_cloud.openapi import (
     V1QueueServerType,
     V1SourceType,
     V1UserRequestedComputeConfig,
+    V1UserRequestedFlowComputeConfig,
     V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
@@ -212,6 +213,11 @@ class CloudRuntime(Runtime):
             flow_servers=frontend_specs,
             desired_state=V1LightningappInstanceState.RUNNING,
             env=v1_env_vars,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name=self.app.flow_cloud_compute.name,
+                shm_size=self.app.flow_cloud_compute.shm_size,
+                preemptible=False,
+            ),
         )
 
         # if requirements file at the root of the repository is present,
@@ -248,6 +254,7 @@ class CloudRuntime(Runtime):
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
             if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
@@ -268,19 +275,6 @@ class CloudRuntime(Runtime):
             if cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
-            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project_id=project.project_id, app_id=lit_app.id, body=release_body
-            )
-
-            if cluster_id is not None:
-                logger.info(f"running app on {lightning_app_release.cluster_id}")
-
-            if lightning_app_release.source_upload_url == "":
-                raise RuntimeError("The source upload url is empty.")
-
-            repo.package()
-            repo.upload(url=lightning_app_release.source_upload_url)
-
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
             # and open the admin ui to add credits and running the app.
@@ -295,9 +289,24 @@ class CloudRuntime(Runtime):
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id, app_id=lit_app.id
             )
-            queue_server_type = V1QueueServerType.REDIS if CLOUD_QUEUE_TYPE == "redis" else V1QueueServerType.HTTP
+
+            queue_server_type = V1QueueServerType.UNSPECIFIED
+            if CLOUD_QUEUE_TYPE == "http":
+                queue_server_type = V1QueueServerType.HTTP
+            elif CLOUD_QUEUE_TYPE == "redis":
+                queue_server_type = V1QueueServerType.REDIS
+
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
+
+                # TODO: support multiple instances / 1 instance per cluster
+                if existing_instance.spec.cluster_id != cluster_id:
+                    raise ValueError(
+                        f"Can not start app '{name}' on cluster '{cluster_id}' "
+                        f"since this app already exists on '{existing_instance.spec.cluster_id}'. "
+                        "To run it on another cluster, give it a new name with the --name option."
+                    )
+
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                     # TODO(yurij): Implement release switching in the UI and remove this
                     # We can only switch release of the stopped instance
@@ -317,6 +326,21 @@ class CloudRuntime(Runtime):
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
 
+            # create / upload the new app release / instace
+            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
+                project_id=project.project_id, app_id=lit_app.id, body=release_body
+            )
+
+            if cluster_id is not None:
+                logger.info(f"running app on {lightning_app_release.cluster_id}")
+
+            if lightning_app_release.source_upload_url == "":
+                raise RuntimeError("The source upload url is empty.")
+
+            repo.package()
+            repo.upload(url=lightning_app_release.source_upload_url)
+
+            if find_instances_resp.lightningapps:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
                         project_id=project.project_id,
