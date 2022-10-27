@@ -27,7 +27,7 @@ def test_add_ssh_key(api: mock.MagicMock):
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.utilities.network.LightningClient.s_sh_public_key_service_list_ssh_public_keys")
-def test_list_clusters(api: mock.MagicMock):
+def test_list_ssh_keys(api: mock.MagicMock):
     ssh_key_manager = _SSHKeyManager()
     ssh_key_manager.list()
 
@@ -36,7 +36,7 @@ def test_list_clusters(api: mock.MagicMock):
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.utilities.network.LightningClient.s_sh_public_key_service_delete_ssh_public_key")
-def test_delete_cluster(api: mock.MagicMock):
+def test_delete_ssh_key(api: mock.MagicMock):
     ssh_key_manager = _SSHKeyManager()
     ssh_key_manager.remove_key(key_id="45AB3098-7ABB-46CA-AA04-5D390F8D6A81")
 
