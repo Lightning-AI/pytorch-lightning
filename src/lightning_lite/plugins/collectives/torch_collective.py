@@ -142,16 +142,17 @@ class TorchCollective(Collective):
         print(f"Before super teardown: {dist.distributed_c10d._pg_map.keys()}")
         print(f"Self group: {self.group}")
         print(f"World group: {dist.GroupMember.WORLD}")
+        is_member = self._group is not None and self._group != dist.GroupMember.NON_GROUP_MEMBER
         super().teardown()  # will destroy its own group
         print(f"After super teardown: {dist.distributed_c10d._pg_map.keys()}")
         # try to destroy the default group only if the class is managing it
-        if TorchCollective.manages_default_group:
+        if is_member and TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
             if default_group is not None:  # not destroyed already
-                group_map = dist.distributed_c10d._pg_group_ranks
+                group_map = dist.distributed_c10d._pg_map
                 if len(group_map) == 1 and default_group in group_map:  # only the default group is left
                     print("destroying default group")
-                    self.destroy_group(default_group)
+                    self.destroy_group(None)
                     TorchCollective.manages_default_group = False
         return self
 
