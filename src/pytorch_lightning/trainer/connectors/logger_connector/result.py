@@ -24,7 +24,7 @@ from typing_extensions import TypedDict
 
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -526,7 +526,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and distributed_available() and result_metric.is_tensor:
+                if not should and _distributed_available() and result_metric.is_tensor:
                     # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
                     # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
                     # run, and on other ranks, they are 0. So we need to make sure they are synced in further training
