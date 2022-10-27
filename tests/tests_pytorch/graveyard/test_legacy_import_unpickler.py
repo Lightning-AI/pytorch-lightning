@@ -6,6 +6,9 @@ import pytest
 import torch
 from lightning_utilities.core.imports import package_available
 
+from packaging.version import Version
+
+
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     CHECKPOINT_EXTENSION,
     LEGACY_BACK_COMPATIBLE_PL_VERSIONS,
@@ -40,7 +43,7 @@ def test_imports_standalone(pl_version: str):
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 @pytest.mark.skipif(
-    package_available("pytorch_" + "lightning"),
+    not package_available("lightning.pytorch"),
     reason="This test is only relevant for the unified package",
 )
 def test_imports_unified(pl_version: str):
@@ -56,7 +59,12 @@ def test_imports_unified(pl_version: str):
     assert path_ckpts, f'No checkpoints found in folder "{path_legacy}"'
     path_ckpt = path_ckpts[-1]
 
-    with pytest.warns(match="Redirecting imports of"):
+    # only below version 1.5.0 we pickled stuff in checkpoints
+    if Version(pl_version) < Version("1.5.0"):
+        context = pytest.warns(UserWarning, match="Redirecting import of")
+    else:
+        context = no_warning_call(match="Redirecting import of*")
+    with context:
         torch.load(path_ckpt)
 
     assert any(

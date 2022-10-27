@@ -19,7 +19,12 @@ import sys
 from lightning_utilities.core.imports import compare_version
 
 _IS_WINDOWS = platform.system() == "Windows"
-_IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
+
+# There are two types of interactive mode we detect
+# 1. The interactive Python shell: https://stackoverflow.com/a/64523765
+# 2. The inspection mode via `python -i`: https://stackoverflow.com/a/6879085/1162383
+_IS_INTERACTIVE = hasattr(sys, "ps1") or bool(sys.flags.interactive)
+
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _TORCH_GREATER_EQUAL_1_9_1 = compare_version("torch", operator.ge, "1.9.1")

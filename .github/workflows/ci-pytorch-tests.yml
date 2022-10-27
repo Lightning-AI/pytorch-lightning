@@ -96,6 +96,7 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
+
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
