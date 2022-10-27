@@ -139,9 +139,11 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
-        print(dist.distributed_c10d._pg_map)
+        print(f"Before super teardown: {dist.distributed_c10d._pg_map.keys()}")
+        print(f"Self group: {self.group}")
+        print(f"World group: {dist.GroupMember.WORLD}")
         super().teardown()  # will destroy its own group
-        print(dist.distributed_c10d._pg_map)
+        print(f"After super teardown: {dist.distributed_c10d._pg_map.keys()}")
         # try to destroy the default group only if the class is managing it
         if TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
