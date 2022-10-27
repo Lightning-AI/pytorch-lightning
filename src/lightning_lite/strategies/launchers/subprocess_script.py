@@ -17,7 +17,6 @@ import sys
 from time import sleep
 from typing import Any, Callable, Sequence
 
-import __main__
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
@@ -141,6 +140,8 @@ class _SubprocessScriptLauncher(_Launcher):
 
 
 def _basic_subprocess_cmd() -> Sequence[str]:
+    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
+
     if __main__.__spec__ is None:  # pragma: no-cover
         return [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:]
     else:
@@ -148,6 +149,7 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 
 
 def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
+    import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
     from hydra.core.hydra_config import HydraConfig
     from hydra.utils import to_absolute_path
 
