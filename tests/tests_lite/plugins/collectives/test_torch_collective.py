@@ -221,9 +221,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
         fn(*args, **kwargs)
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for i, c in enumerate(collectives):
-            print(f"teardown collective {i} by rank {strategy.global_rank} start")
             c.teardown()
-            print(f"teardown collective {i} by rank {strategy.global_rank} finished")
 
         if autosetup_strategy:
             torch.distributed.destroy_process_group()
