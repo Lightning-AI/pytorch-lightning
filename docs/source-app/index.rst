@@ -57,7 +57,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
 
 .. lit_tabs::
    :titles: Run any python code;;;
-   :descriptions: Run python on the cloud or locally; Train on 100s of GPUs on ANY framework like PTL ⚡; Deploy models with any server like FastAPI; Execute any script like R, Python, C++, Matlab
+   :descriptions: Run python on the cloud or locally; Example: Train PTL ⚡ models on cloud GPUs; Example: Serve models with FastAPI; Example: Run R, Python, C++, Matlab scripts
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
    :tab_rows: 5
@@ -68,7 +68,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
 Run on cloud machines in your own AWS account, fully-managed `Lightning cloud <https://lightning.ai/>`_ or your own hardare:
 
 .. lit_tabs::
-   :titles: Fully-managed; Your AWS VPC; Run on your own hardware
+   :titles: Fully-managed; Your AWS account; Your own hardware
    :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
    :tab_rows: 5
    :height: 150px
