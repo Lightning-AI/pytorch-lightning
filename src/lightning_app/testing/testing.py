@@ -27,8 +27,10 @@ from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
@@ -134,7 +136,9 @@ def application_testing(
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning.LightningApp", lightning_app_cls):
+    with mock.patch("lightning.LightningApp", lightning_app_cls), mock.patch(
+        "lightning_app.LightningApp", lightning_app_cls
+    ):
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
@@ -222,6 +226,10 @@ def run_app_in_cloud(
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
 
+    is_editable_mode = get_dist_path_if_editable_install("lightning")
+    if not is_editable_mode and PR_NUMBER is not None:
+        raise Exception("Lightning requires to be installed in editable mode in the CI.")
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
     os.environ["TEST_APP_NAME"] = TEST_APP_NAME
 
@@ -253,29 +261,35 @@ def run_app_in_cloud(
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
-        process = Popen(
-            (
-                [
-                    sys.executable,
-                    "-m",
-                    "lightning",
-                    "run",
-                    "app",
-                    app_name,
-                    "--cloud",
-                    "--name",
-                    name,
-                    "--open-ui",
-                    "false",
-                ]
-                + extra_args
-            ),
-            cwd=tmpdir,
-            env=env_copy,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        process.wait()
+        stdout_path = get_logfile(f"run_app_in_cloud_{name}")
+        with open(stdout_path, "w") as stdout:
+            cmd = [
+                sys.executable,
+                "-m",
+                "lightning",
+                "run",
+                "app",
+                app_name,
+                "--cloud",
+                "--name",
+                name,
+                "--open-ui",
+                "false",
+            ]
+            process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
+            process.wait()
+
+        if is_editable_mode:
+            # Added to ensure the current code is properly uploaded.
+            # Otherwise, it could result in un-tested PRs.
+            pkg_found = False
+            with open(stdout_path) as fo:
+                for line in fo.readlines():
+                    if "Packaged Lightning with your application" in line:
+                        pkg_found = True
+                    print(line)  # TODO: use logging
+            assert pkg_found
+        os.remove(stdout_path)
 
     # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
