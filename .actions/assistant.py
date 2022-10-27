@@ -10,7 +10,7 @@ from itertools import chain
 from pathlib import Path
 from pprint import pprint
 from types import ModuleType
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 import pkg_resources
 
@@ -69,6 +69,29 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
                 all_files.append(os.path.join(root, fname))
 
     return all_files
+
+
+def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[str]:
+    """Replace imports of standalone package to lightning.
+
+    >>> lns = [
+    ...     "lightning_app",
+    ...     "delete_cloud_lightning_apps",
+    ...     "from lightning_app import",
+    ...     "lightning_apps = []",
+    ...     "lightning_app is ours",
+    ...     "def _lightning_app():",
+    ...     ":class:`~lightning_app.core.flow.LightningFlow`"
+    ... ]
+    >>> _replace_imports(lns, [("lightning_app", "lightning.app")])  # doctest: +NORMALIZE_WHITESPACE
+    ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
+    'lightning.app is ours', 'def _lightning_app():', ':class:`~lightning.app.core.flow.LightningFlow`']
+    """
+    out = lines[:]
+    for source_import, target_import in mapping:
+        for i, ln in enumerate(lines):
+            out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+    return out
 
 
 class AssistantCLI:
@@ -214,9 +237,7 @@ class AssistantCLI:
                 with open(fp, encoding="utf-8") as fo:
                     py = fo.readlines()
 
-                for source_import, target_import in zip(source_imports, target_imports):
-                    for i, ln in enumerate(py):
-                        py[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+                py = _replace_imports(py, list(zip(source_imports, target_imports)))
 
                 if target_dir:
                     fp_new = fp.replace(source_dir, target_dir)
