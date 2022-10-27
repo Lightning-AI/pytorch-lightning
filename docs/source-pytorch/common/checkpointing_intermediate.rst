@@ -2,9 +2,9 @@
 
 .. _checkpointing_intermediate:
 
-############################
-Checkpointing (intermediate)
-############################
+###############################################
+Customize checkpointing behavior (intermediate)
+###############################################
 **Audience:** Users looking to customize the checkpointing behavior
 
 ----
