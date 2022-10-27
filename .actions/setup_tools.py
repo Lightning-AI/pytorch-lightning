@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import glob
-import logging
 import os
 import pathlib
 import re
@@ -23,9 +22,9 @@ import urllib.request
 from datetime import datetime
 from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
-from itertools import chain, groupby
+from itertools import chain
 from types import ModuleType
-from typing import List, Sequence
+from typing import Dict, List, Sequence
 
 from pkg_resources import parse_requirements
 
@@ -114,16 +113,15 @@ def load_requirements(
     """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req, unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['pytorch_lightning...', 'lightning_app...']
+    >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['sphinx>=4.0, <6.0  # strict', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
-    reqs = []
-    for ln in lines:
-        reqs.append(_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze))
-    # filter empty lines
-    return [str(req) for req in reqs if req]
+    reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
+    # filter empty lines and containing @ which means redirect to some git/http
+    reqs = [str(req) for req in reqs if req and not any(c in req for c in ["@", "http:", "https:"])]
+    return reqs
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
@@ -166,221 +164,6 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def replace_block_with_imports(lines: List[str], import_path: str, kword: str = "class") -> List[str]:
-    """Parse a file and replace implementtaions bodies of function or class.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "logger.py")
-    >>> import_path = ".".join(["pytorch_lightning", "loggers", "logger"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = replace_block_with_imports(lines, import_path, "class")
-    >>> lines = replace_block_with_imports(lines, import_path, "def")
-    """
-    body, tracking, skip_offset = [], False, 0
-    for i, ln in enumerate(lines):
-        # support for defining a class with this condition
-        conditional_class_definitions = ("if TYPE_CHECKING", "if typing.TYPE_CHECKING", "if torch.", "if _TORCH_")
-        if (
-            any(ln.startswith(pattern) for pattern in conditional_class_definitions)
-            # avoid bug in CI for the <1.7 meta code
-            and "pytorch_lightning.utilities.meta" not in import_path
-        ):
-            # dedent the next line
-            lines[i + 1] = lines[i + 1].lstrip()
-            continue
-
-        offset = len(ln) - len(ln.lstrip())
-        # in case of mating the class args are multi-line
-        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
-            tracking = False
-        if ln.lstrip().startswith(f"{kword} ") and not tracking:
-            name = ln.replace(f"{kword} ", "").strip()
-            idxs = [name.index(c) for c in ":(" if c in name]
-            name = name[: min(idxs)]
-            # skip private, TODO: consider skip even protected
-            if not name.startswith("__"):
-                body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
-            tracking, skip_offset = True, offset
-            continue
-        if not tracking:
-            body.append(ln)
-    return body
-
-
-def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
-    """Parse a file and replace variable filling with import.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "imports.py")
-    >>> import_path = ".".join(["pytorch_lightning", "utilities", "imports"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = replace_vars_with_imports(lines, import_path)
-    """
-    copied = []
-    body, tracking, skip_offset = [], False, 0
-    for ln in lines:
-        offset = len(ln) - len(ln.lstrip())
-        # in case of mating the class args are multi-line
-        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
-            tracking = False
-        var = re.match(r"^([\w_\d]+)[: [\w\., \[\]]*]? = ", ln.lstrip())
-        if var:
-            name = var.groups()[0]
-            # skip private or apply white-list for allowed vars
-            if name not in copied and (not name.startswith("__") or name in ("__all__",)):
-                body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
-                copied.append(name)
-            tracking, skip_offset = True, offset
-            continue
-        if not tracking:
-            body.append(ln)
-    return body
-
-
-def prune_imports_callables(lines: List[str]) -> List[str]:
-    """Prune imports and calling functions from a file, even multi-line.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
-    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = prune_imports_callables(lines)
-    """
-    body, tracking, skip_offset = [], False, 0
-    for ln in lines:
-        if ln.lstrip().startswith("import "):
-            continue
-        offset = len(ln) - len(ln.lstrip())
-        # in case of mating the class args are multi-line
-        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
-            tracking = False
-        # catching callable
-        call = re.match(r"^[\w_\d\.]+\(", ln.lstrip())
-        if (ln.lstrip().startswith("from ") and " import " in ln) or call:
-            tracking, skip_offset = True, offset
-            continue
-        if not tracking:
-            body.append(ln)
-    return body
-
-
-def prune_func_calls(lines: List[str]) -> List[str]:
-    """Prune calling functions from a file, even multi-line.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "__init__.py")
-    >>> import_path = ".".join(["pytorch_lightning", "loggers"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = prune_func_calls(lines)
-    """
-    body, tracking, score = [], False, 0
-    for ln in lines:
-        # catching callable
-        calling = re.match(r"^@?[\w_\d\.]+ *\(", ln.lstrip())
-        if calling and " import " not in ln:
-            tracking = True
-            score = 0
-        if tracking:
-            score += ln.count("(") - ln.count(")")
-            if score == 0:
-                tracking = False
-        else:
-            body.append(ln)
-    return body
-
-
-def prune_empty_statements(lines: List[str]) -> List[str]:
-    """Prune emprty if/else and try/except.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
-    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = prune_imports_callables(lines)
-    >>> lines = prune_empty_statements(lines)
-    """
-    kwords_pairs = ("with", "if ", "elif ", "else", "try", "except")
-    body, tracking, skip_offset, last_count = [], False, 0, 0
-    # todo: consider some more complex logic as for example only some leaves of if/else tree are empty
-    for i, ln in enumerate(lines):
-        offset = len(ln) - len(ln.lstrip())
-        # skipp all decorators
-        if ln.lstrip().startswith("@"):
-            # consider also multi-line decorators
-            if "(" in ln and ")" not in ln:
-                tracking, skip_offset = True, offset
-            continue
-        # in case of mating the class args are multi-line
-        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
-            tracking = False
-        starts = [k for k in kwords_pairs if ln.lstrip().startswith(k)]
-        if starts:
-            start, count = starts[0], -1
-            # look forward if this statement has a body
-            for ln_ in lines[i:]:
-                offset_ = len(ln_) - len(ln_.lstrip())
-                if count == -1 and ln_.rstrip().endswith(":"):
-                    count = 0
-                elif ln_ and offset_ <= offset:
-                    break
-                # skipp all til end of statement
-                elif ln_.lstrip():
-                    # count non-zero body lines
-                    count += 1
-            # cache the last key body as the supplement canot be without
-            if start in ("if", "elif", "try"):
-                last_count = count
-            if count <= 0 or (start in ("else", "except") and last_count <= 0):
-                tracking, skip_offset = True, offset
-        if not tracking:
-            body.append(ln)
-    return body
-
-
-def prune_comments_docstrings(lines: List[str]) -> List[str]:
-    """Prune all doctsrings with triple " notation.
-
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "csv_logs.py")
-    >>> import_path = ".".join(["pytorch_lightning", "loggers", "csv_logs"])
-    >>> with open(py_file, encoding="utf-8") as fp:
-    ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = prune_comments_docstrings(lines)
-    """
-    body, tracking = [], False
-    for ln in lines:
-        if "#" in ln and "noqa:" not in ln:
-            ln = ln[: ln.index("#")]
-        if not tracking and any(ln.lstrip().startswith(s) for s in ['"""', 'r"""']):
-            # oneliners skip directly
-            if len(ln.strip()) >= 6 and ln.rstrip().endswith('"""'):
-                continue
-            tracking = True
-        elif ln.rstrip().endswith('"""'):
-            tracking = False
-            continue
-        if not tracking:
-            body.append(ln.rstrip())
-    return body
-
-
-def wrap_try_except(body: List[str], pkg: str, ver: str) -> List[str]:
-    """Wrap the file with try/except for better traceability of import misalignment."""
-    not_empty = sum(1 for ln in body if ln)
-    if not_empty == 0:
-        return body
-    body = ["try:"] + [f"    {ln}" if ln else "" for ln in body]
-    body += [
-        "",
-        "except ImportError as err:",
-        "",
-        "    from os import linesep",
-        f"    from {pkg} import __version__",
-        f"    msg = f'Your `lightning` package was built for `{pkg}=={ver}`," + " but you are running {__version__}'",
-        "    raise type(err)(str(err) + linesep + msg)",
-    ]
-    return body
-
-
 def parse_version_from_file(pkg_root: str) -> str:
     """Loading the package version from file."""
     file_ver = os.path.join(pkg_root, "__version__.py")
@@ -394,74 +177,64 @@ def parse_version_from_file(pkg_root: str) -> str:
     return ver
 
 
-def prune_duplicate_lines(body):
-    body_ = []
-    # drop duplicated lines
-    for ln in body:
-        if ln.lstrip() not in body_ or ln.lstrip() in (")", ""):
-            body_.append(ln)
-    return body_
+def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[str]:
+    """Replace imports of standalone package to lightning.
 
-
-def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
-    """Parse the real python package and for each module create a mirroe version with repalcing all function and
-    class implementations by cross-imports to the true package.
-
-    As validation run in termnal: `flake8 src/lightning/ --ignore E402,F401,E501`
-
-    >>> create_meta_package(os.path.join(_PROJECT_ROOT, "src"))
+    >>> lns = ["lightning_app",
+    ...        "delete_cloud_lightning_apps",
+    ...        "from lightning_app import",
+    ...        "lightning_apps = []",
+    ...        "lightning_app is ours",
+    ...        "def _lightning_app():",
+    ...        ":class:`~lightning_app.core.flow.LightningFlow`"]
+    >>> from pprint import pprint
+    >>> pprint(_replace_imports_in_file(lns, {"app": "lightning_app"}))
+    ['lightning.app',
+     'delete_cloud_lightning_apps',
+     'from lightning.app import',
+     'lightning_apps = []',
+     'lightning.app is ours',
+     'def _lightning_app():',
+     ':class:`~lightning.app.core.flow.LightningFlow`']
     """
+    for n2, n1 in pkg_lut.items():
+        for i, ln in enumerate(lines):
+            lines[i] = re.sub(rf"([^_]|^){n1}([^_\w]|$)", rf"\1lightning.{n2}\2", ln)
+    return lines
+
+
+# TODO: unify usage with assistant function, such that import this function in there
+def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
+    """Recursively replace imports in given folder."""
     package_dir = os.path.join(src_folder, pkg_name)
-    pkg_ver = parse_version_from_file(package_dir)
-    # shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
-    py_files = glob.glob(os.path.join(src_folder, pkg_name, "**", "*.py"), recursive=True)
-    for py_file in py_files:
-        local_path = py_file.replace(package_dir + os.path.sep, "")
-        fname = os.path.basename(py_file)
-        if "-" in local_path:
-            continue
-        with open(py_file, encoding="utf-8") as fp:
-            lines = [ln.rstrip() for ln in fp.readlines()]
-        import_path = pkg_name + "." + local_path.replace(".py", "").replace(os.path.sep, ".")
-        import_path = import_path.replace(".__init__", "")
-
-        if fname in ("__about__.py", "__version__.py"):
-            body = lines
-        else:
-            if fname.startswith("_") and fname not in ("__init__.py", "__main__.py"):
-                logging.warning(f"unsupported file: {local_path}")
-                continue
-            # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = prune_comments_docstrings([ln.rstrip() for ln in lines])
-            if fname not in ("__init__.py", "__main__.py"):
-                body = prune_imports_callables(body)
-            for key_word in ("class", "def", "async def"):
-                body = replace_block_with_imports(body, import_path, key_word)
-            # TODO: fix reimporting which is artefact after replacing var assignment with import;
-            #  after fixing , update CI by remove F811 from CI/check pkg
-            body = replace_vars_with_imports(body, import_path)
-            if fname not in ("__main__.py",):
-                body = prune_func_calls(body)
-            body_len = -1
-            # in case of several in-depth statements
-            while body_len != len(body):
-                body_len = len(body)
-                body = prune_duplicate_lines(body)
-                body = prune_empty_statements(body)
-            # add try/catch wrapper for whole body,
-            #  so when import fails it tells you what is the package version this meta package was generated for...
-            body = wrap_try_except(body, pkg_name, pkg_ver)
-
-        # todo: apply pre-commit formatting
-        # clean to many empty lines
-        body = [ln for ln, _group in groupby(body)]
-        # drop duplicated lines
-        body = prune_duplicate_lines(body)
-        # compose the target file name
+    all_files = glob.glob(os.path.join(package_dir, "**", "*.*"), recursive=True)
+    for fname in all_files:
+        local_path = fname.replace(package_dir + os.path.sep, "")
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
+        if not fname.endswith(".py"):
+            if not fname.endswith(".pyc"):
+                os.makedirs(os.path.dirname(new_file), exist_ok=True)
+                shutil.copy2(fname, new_file)
+            continue
+
+        with open(fname, encoding="utf-8") as fo:
+            py = fo.readlines()
+        py = _replace_imports_in_file(py, pkg_lut)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
-        with open(new_file, "w", encoding="utf-8") as fp:
-            fp.writelines([ln + os.linesep for ln in body])
+        with open(new_file, "w", encoding="utf-8") as fo:
+            fo.writelines(py)
+
+
+def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
+    """Recursively replace imports in given folder.
+
+    >>> create_mirror_package(
+    ...     os.path.join(_PROJECT_ROOT, "src"),
+    ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
+    ... )
+    """
+    for lit_name, pkg_name in lit_pkg_mapping.items():
+        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
 
 
 def set_version_today(fpath: str) -> None:
@@ -478,12 +251,12 @@ def set_version_today(fpath: str) -> None:
         fp.writelines(lines)
 
 
-def _download_frontend(root: str = _PROJECT_ROOT):
+def _download_frontend(pkg_path: str):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
 
     try:
-        frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
+        frontend_dir = pathlib.Path(pkg_path, "ui")
         download_dir = tempfile.mkdtemp()
 
         shutil.rmtree(frontend_dir, ignore_errors=True)

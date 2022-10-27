@@ -1,15 +1,17 @@
+import multiprocessing
 import pickle
 import queue
 import time
 from unittest import mock
 
 import pytest
+import redis
 import requests_mock
 
 from lightning_app import LightningFlow
 from lightning_app.core import queues
 from lightning_app.core.constants import HTTP_QUEUE_URL
-from lightning_app.core.queues import QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
+from lightning_app.core.queues import BaseQueue, QueuingSystem, READINESS_QUEUE_CONSTANT, RedisQueue
 from lightning_app.utilities.imports import _is_redis_available
 from lightning_app.utilities.redis import check_if_redis_running
 
@@ -24,14 +26,14 @@ def test_queue_api(queue_type, monkeypatch):
 
     blpop_out = (b"entry-id", pickle.dumps("test_entry"))
 
-    monkeypatch.setattr(queues.redis.Redis, "blpop", lambda *args, **kwargs: blpop_out)
-    monkeypatch.setattr(queues.redis.Redis, "rpush", lambda *args, **kwargs: None)
-    monkeypatch.setattr(queues.redis.Redis, "set", lambda *args, **kwargs: None)
-    monkeypatch.setattr(queues.redis.Redis, "get", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "blpop", lambda *args, **kwargs: blpop_out)
+    monkeypatch.setattr(redis.Redis, "rpush", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "set", lambda *args, **kwargs: None)
+    monkeypatch.setattr(redis.Redis, "get", lambda *args, **kwargs: None)
 
     test_queue = queue_type.get_readiness_queue()
     assert test_queue.name == READINESS_QUEUE_CONSTANT
-    assert isinstance(test_queue, queues.BaseQueue)
+    assert isinstance(test_queue, BaseQueue)
     test_queue.put("test_entry")
     assert test_queue.get() == "test_entry"
 
@@ -102,7 +104,7 @@ def test_redis_queue_read_timeout(redis_mock):
 
 @pytest.mark.parametrize(
     "queue_type, queue_process_mock",
-    [(QueuingSystem.SINGLEPROCESS, queues.queue), (QueuingSystem.MULTIPROCESS, queues.multiprocessing)],
+    [(QueuingSystem.SINGLEPROCESS, queue), (QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
 

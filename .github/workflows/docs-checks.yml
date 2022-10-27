@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   make-doctest:
     runs-on: ubuntu-20.04
@@ -37,26 +41,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-test-pip-
 
-      - name: Install dependencies
+      - name: Install package
         env:
           FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
           # python -m pip install --upgrade --user pip
-          pip install -r requirements/${{ matrix.pkg }}/docs.txt -r requirements/${{ matrix.pkg }}/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip install -e .
+          pip install -e . \
+            -r requirements/${{ matrix.pkg }}/docs.txt \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
-        shell: bash
+
+      - name: Install dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: pytorch
+        run: |
+          pip install -r requirements/${{ matrix.pkg }}/devel.txt \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip list
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
         working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
-          # ToDo: proper parametrize
-          # First run the same pipeline as Read-The-Docs
           make doctest
           make coverage
 
@@ -99,8 +111,6 @@ jobs:
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
-          # ToDo: rather use python cmd
-          # First run the same pipeline as Read-The-Docs
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs

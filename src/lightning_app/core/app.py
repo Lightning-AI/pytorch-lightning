@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+import lightning_app
 from lightning_app import _console
 from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
 from lightning_app.core.constants import (
@@ -50,6 +51,7 @@ class LightningApp:
     def __init__(
         self,
         root: Union["LightningFlow", "LightningWork"],
+        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         debug: bool = False,
         info: frontend.AppInfo = None,
         root_path: str = "",
@@ -67,6 +69,7 @@ class LightningApp:
         Arguments:
             root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
                  components, running infinitely. It must define a `run()` method that the app can call.
+            flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
             debug: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
@@ -79,7 +82,7 @@ class LightningApp:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow, LightningApp
+            >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
@@ -100,6 +103,7 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
+        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute()
 
         # queues definition.
         self.delta_queue: Optional[BaseQueue] = None

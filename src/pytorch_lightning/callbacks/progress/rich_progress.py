@@ -26,7 +26,7 @@ _RICH_AVAILABLE: bool = RequirementCache("rich>=10.2.2")
 
 if _RICH_AVAILABLE:
     from rich import get_console, reconfigure
-    from rich.console import RenderableType
+    from rich.console import Console, RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar
     from rich.style import Style
@@ -252,6 +252,7 @@ class RichProgressBar(ProgressBarBase):
         super().__init__()
         self._refresh_rate: int = refresh_rate
         self._leave: bool = leave
+        self._console: Optional[Console] = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
         self.progress: Optional[Progress] = None
@@ -341,25 +342,24 @@ class RichProgressBar(ProgressBarBase):
         if self.main_progress_bar_id is not None and self._leave:
             self._stop_progress()
             self._init_progress(trainer)
-        if self.main_progress_bar_id is None:
-            self.main_progress_bar_id = self._add_task(total_batches, train_description)
-        elif self.progress is not None:
-            assert self.main_progress_bar_id is not None
-            self.progress.reset(
-                self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
-            )
+        if self.progress is not None:
+            if self.main_progress_bar_id is None:
+                self.main_progress_bar_id = self._add_task(total_batches, train_description)
+            else:
+                self.progress.reset(
+                    self.main_progress_bar_id, total=total_batches, description=train_description, visible=True
+                )
 
         self.refresh()
 
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx):
+        if not self.has_dataloader_changed(dataloader_idx) or self.progress is None:
             return
 
         if trainer.sanity_checking:
             if self.val_sanity_progress_bar_id is not None:
-                assert self.progress is not None
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
             self.val_sanity_progress_bar_id = self._add_task(
@@ -367,7 +367,6 @@ class RichProgressBar(ProgressBarBase):
             )
         else:
             if self.val_progress_bar_id is not None:
-                assert self.progress is not None
                 self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
 
             # TODO: remove old tasks when new onces are created
@@ -378,10 +377,8 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def _add_task(self, total_batches: Union[int, float], description: str, visible: bool = True) -> "TaskID":
-        if self.progress is not None:
-            return self.progress.add_task(
-                f"[{self.theme.description}]{description}", total=total_batches, visible=visible
-            )
+        assert self.progress is not None
+        return self.progress.add_task(f"[{self.theme.description}]{description}", total=total_batches, visible=visible)
 
     def _update(self, progress_bar_id: Optional["TaskID"], current: int, visible: bool = True) -> None:
         if self.progress is not None and self.is_enabled:
@@ -566,6 +563,13 @@ class RichProgressBar(ProgressBarBase):
             CustomTimeColumn(style=self.theme.time),
             ProcessingSpeedColumn(style=self.theme.processing_speed),
         ]
+
+    def __getstate__(self) -> Dict:
+        state = self.__dict__.copy()
+        # both the console and progress object can hold thread lock objects that are not pickleable
+        state["progress"] = None
+        state["_console"] = None
+        return state
 
 
 def _detect_light_colab_theme() -> bool:
