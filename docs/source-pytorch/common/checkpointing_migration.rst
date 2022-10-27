@@ -37,9 +37,15 @@ Upgrade checkpoint files permanently
 ************************************
 
 When Lightning loads a checkpoint, it applies the version migration on-the-fly as explained above, but it does not modify your checkpoint files.
-You can upgrade checkpoint files permanently with the following command:
+You can upgrade checkpoint files permanently with the following command
 
-.. code-block:: python
+.. code-block::
 
-    python -m lightning.pytorch.utilities.upgrade_checkpoint --file model.ckpt
+    python -m lightning.pytorch.utilities.upgrade_checkpoint path/to/model.ckpt
 
+
+or a folder with multiple files:
+
+.. code-block::
+
+    python -m lightning.pytorch.utilities.upgrade_checkpoint /path/to/checkpoints/folder
