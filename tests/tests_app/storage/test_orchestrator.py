@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from lightning_app.storage.orchestrator import _StorageOrchestrator
+from lightning_app.storage.orchestrator import StorageOrchestrator
 from lightning_app.storage.requests import _GetRequest, _GetResponse
 from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
@@ -17,7 +17,7 @@ def test_orchestrator():
     work.status.stage = WorkStageStatus.RUNNING
     app.get_component_by_name = MagicMock(return_value=work)
 
-    orchestrator = _StorageOrchestrator(
+    orchestrator = StorageOrchestrator(
         app,
         request_queues=request_queues,
         response_queues=response_queues,

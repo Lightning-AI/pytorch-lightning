@@ -7,7 +7,7 @@ from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
-from lightning_app.storage.orchestrator import _StorageOrchestrator
+from lightning_app.storage.orchestrator import StorageOrchestrator
 from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.commands.base import _commands_to_api, _prepare_commands
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
@@ -49,7 +49,7 @@ class MultiProcessRuntime(Runtime):
 
             _set_flow_context()
 
-            storage_orchestrator = _StorageOrchestrator(
+            storage_orchestrator = StorageOrchestrator(
                 self.app,
                 self.app.request_queues,
                 self.app.response_queues,
