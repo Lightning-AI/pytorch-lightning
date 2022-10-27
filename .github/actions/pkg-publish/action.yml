@@ -28,14 +28,13 @@ runs:
   #    repository_url: https://test.pypi.org/legacy/
   #    verbose: true
 
-# FIXME
-#  - name: Publish distribution 📦 to PyPI
-#    uses: pypa/gh-action-pypi-publish@v1.5.1
-#    with:
-#      user: __token__
-#      password: ${{ inputs.pypi-token }}
-#      packages_dir: pypi/
-#      verbose: true
+  - name: Publish distribution 📦 to PyPI
+    uses: pypa/gh-action-pypi-publish@v1.5.1
+    with:
+      user: __token__
+      password: ${{ inputs.pypi-token }}
+      packages_dir: pypi/
+      verbose: true
 
   - name: filter packages
     run: rm pypi/*
