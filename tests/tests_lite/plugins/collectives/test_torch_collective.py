@@ -219,7 +219,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
             kwargs["device"] = devices[strategy.global_rank]
 
         fn(*args, **kwargs)
-        torch.distributed.barrier()
+        # torch.distributed.barrier()
 
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for c in collectives:
