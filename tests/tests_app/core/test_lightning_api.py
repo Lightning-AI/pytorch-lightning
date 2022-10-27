@@ -16,11 +16,13 @@ from fastapi import HTTPException
 from httpx import AsyncClient
 from pydantic import BaseModel
 
+import lightning_app
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.api.http_methods import Post
 from lightning_app.core import api
 from lightning_app.core.api import (
     fastapi_service,
+    get_component_by_name,
     global_app_state_store,
     register_global_routes,
     start_server,
@@ -114,15 +116,34 @@ def test_app_state_api_with_flows(runtime_cls, tmpdir):
     assert app.root.var_a == -1
 
 
+class NestedFlow(LightningFlow):
+    def run(self):
+        pass
+
+    def configure_layout(self):
+        return {"name": "main", "content": "https://te"}
+
+
 class FlowA(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
+        self.flow = NestedFlow()
+        self.dict = lightning_app.structures.Dict(**{"0": NestedFlow()})
+        self.list = lightning_app.structures.List(*[NestedFlow()])
 
     def run(self):
         self.counter += 1
         if self.counter >= 3:
             self._exit()
+
+    def configure_layout(self):
+        return [
+            {"name": "main_1", "content": "https://te"},
+            {"name": "main_2", "content": self.flow},
+            {"name": "main_3", "content": self.dict["0"]},
+            {"name": "main_4", "content": self.list[0]},
+        ]
 
 
 class AppStageTestingApp(LightningApp):
@@ -205,6 +226,12 @@ async def test_start_server(x_lightning_type):
             return self._queue[0]
 
     app = AppStageTestingApp(FlowA(), debug=True)
+    app._update_layout()
+    layout = deepcopy(app.state["vars"]["_layout"])
+    for la in layout:
+        if la["content"].startswith("root."):
+            la["content"] = get_component_by_name(la["content"], app.state)
+
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
     change_state_queue = MockQueue("change_state_queue")
@@ -260,6 +287,14 @@ async def test_start_server(x_lightning_type):
             "values_changed": {"root['app_state']['stage']": {"new_value": "running"}}
         }
         assert response.status_code == 200
+
+        response = await client.get("/api/v1/layout")
+        assert response.json() == [
+            {"name": "main_1", "content": "https://te", "target": "https://te"},
+            {"name": "main_2", "content": "https://te"},
+            {"name": "main_3", "content": "https://te"},
+            {"name": "main_4", "content": "https://te"},
+        ]
 
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {

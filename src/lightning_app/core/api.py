@@ -190,7 +190,14 @@ if ENABLE_PULLING_STATE_ENDPOINT:
 def get_component_by_name(component_name: str, state):
     child = state
     for child_name in component_name.split(".")[1:]:
-        child = child["flows"][child_name]
+        try:
+            child = child["flows"][child_name]
+        except KeyError:
+            child = child["structures"][child_name]
+
+    if isinstance(child["vars"]["_layout"], list):
+        assert len(child["vars"]["_layout"]) == 1
+        return child["vars"]["_layout"][0]["target"]
     return child["vars"]["_layout"]["target"]
 
 
