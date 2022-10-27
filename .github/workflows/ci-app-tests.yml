@@ -43,7 +43,7 @@ jobs:
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v3
@@ -71,7 +71,7 @@ jobs:
           key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
-      - name: switch PyTorch URL
+      - name: Switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
       - name: Install package
@@ -106,7 +106,7 @@ jobs:
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app" --target_import="lightning_app"
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning" --target_import="lightning_app"
 
-      - name: switch coverage scope
+      - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
       - name: Tests

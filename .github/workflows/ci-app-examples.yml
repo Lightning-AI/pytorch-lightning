@@ -42,7 +42,7 @@ jobs:
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
@@ -103,7 +103,7 @@ jobs:
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app" --target_import="lightning_app"
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning" --target_import="lightning_app"
 
-      - name: switch coverage scope
+      - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
       - name: Tests
