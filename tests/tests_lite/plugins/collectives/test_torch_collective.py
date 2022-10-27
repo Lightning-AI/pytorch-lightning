@@ -220,7 +220,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
 
         fn(*args, **kwargs)
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
-        for i, c in enumerate(collectives):
+        for c in collectives:
             c.teardown()
 
         if autosetup_strategy:
