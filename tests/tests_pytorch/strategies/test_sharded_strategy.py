@@ -38,8 +38,8 @@ class CheckModelRestore(ModelWithAdamOptimizer):
         )
 
         for optimizer, state in zip(self.trainer.optimizers, self.old_optimizer_states):
-            optimizer.consolidate_state_dict()
-            self._is_equal(optimizer.state_dict(), state)
+            optimizer_state = self.trainer.strategy.optimizer_state(optimizer)
+            self._is_equal(optimizer_state, state)
 
     def _is_equal(self, a, b):
         if isinstance(a, torch.Tensor):
