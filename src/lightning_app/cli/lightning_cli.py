@@ -1,14 +1,13 @@
 import os
 import sys
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, Tuple, Union
 
 import arrow
 import click
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance
 from requests.exceptions import ConnectionError
-from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
@@ -28,13 +27,11 @@ from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
-from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.exceptions import LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
+from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -96,8 +93,7 @@ def show() -> None:
 
 _main.command()(connect)
 _main.command()(disconnect)
-
-show.command(logs)
+show.command()(logs)
 
 
 @show.group()
