@@ -148,7 +148,7 @@ class TorchCollective(Collective):
         if TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
             if default_group is not None:  # not destroyed already
-                group_map = dist.distributed_c10d._pg_map
+                group_map = dist.distributed_c10d._pg_group_ranks
                 if len(group_map) == 1 and default_group in group_map:  # only the default group is left
                     print("destroying default group")
                     self.destroy_group(default_group)
