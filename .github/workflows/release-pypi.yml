@@ -2,8 +2,9 @@ name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
-  push:
-    branches: [master, "release/*"]
+  push: {}
+# FIXME
+#    branches: [master, "release/*"]
   release:
     types: [published]
 
@@ -81,7 +82,8 @@ jobs:
   publish-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    # FIXME
+#    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
@@ -91,10 +93,11 @@ jobs:
     - run: ls -lh dist/
     - run: mkdir pypi/
 
-    - name: Delay releasing
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10m
+    # FIXME
+#    - name: Delay releasing
+#      uses: juliangruber/sleep-action@v1
+#      with:
+#        time: 10m
 
     - uses: ./.github/actions/pkg-publish
       with:
