@@ -51,7 +51,7 @@ class LightningEnvironment(ClusterEnvironment):
 
     @property
     def main_address(self) -> str:
-        return os.environ.get("MASTER_ADDR", "localhost")
+        return os.environ.get("MASTER_ADDR", "127.0.0.1")
 
     @property
     def main_port(self) -> int:
