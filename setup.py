@@ -25,12 +25,13 @@ There are considered three main scenarios for installing this project:
     In case you want to install just one package you need to export env. variable before calling `pip`
 
      - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
+     - for `lightning-lite` use `export PACKAGE_NAME=lite ; pip install .`
      - for `lightning-app` use `export PACKAGE_NAME=app ; pip install .`
 
 3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
    In case you want to build just a particular package you would use exporting env. variable as above:
-   `export PACKAGE_NAME=pytorch|app ; python setup.py sdist bdist_wheel`
+   `export PACKAGE_NAME=pytorch|app|lite ; python setup.py sdist bdist_wheel`
 
 4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
     a) determine which packages shall be released based on version increment in `__version__.py` and eventually
@@ -94,17 +95,10 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
-    if _PACKAGE_NAME == "lightning":  # install just the meta package
-        _SETUP_TOOLS._relax_require_versions(_PATH_SRC, _PATH_REQUIRE)
-    elif _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
+    if _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
 
-    if _PACKAGE_NAME not in _PACKAGE_MAPPING:
-        _SETUP_TOOLS.set_version_today(os.path.join(_PATH_SRC, "lightning", "__version__.py"))
-
-    for lit_name, pkg_name in _PACKAGE_MAPPING.items():
-        # fixme: if we run creation of meta pkg against stable we shall pull the source
-        _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
+    _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), _PACKAGE_MAPPING)
 
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
