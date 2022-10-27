@@ -12,6 +12,6 @@ def cli_remove() -> None:
 @cli_remove.command("ssh-key")
 @click.argument("key_id")
 def remove_ssh_key(key_id: str) -> None:
-    """Remove a Lightning AI ssh-key from your account."""
+    """Remove a ssh-key from your Lightning AI account."""
     ssh_key_manager = SSHKeyManager()
     ssh_key_manager.remove_key(key_id=key_id)
