@@ -5,7 +5,7 @@ from typing import Union
 import click
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning_app.cli.cmd_ssh_keys import SSHKeyManager
+from lightning_app.cli.cmd_ssh_keys import _SSHKeyManager
 
 
 @click.group("add")
@@ -25,7 +25,7 @@ def cli_add() -> None:
 )
 def add_ssh_key(key_name: str, comment: str, public_key: Union[str, "os.PathLike[str]"] = None) -> None:
     """Add a new Lightning AI ssh-key to your account."""
-    ssh_key_manager = SSHKeyManager()
+    ssh_key_manager = _SSHKeyManager()
 
     new_public_key = Path(str(public_key)).read_text() if os.path.isfile(str(public_key)) else public_key
     try:

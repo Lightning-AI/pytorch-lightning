@@ -11,7 +11,7 @@ from lightning_app.cli.core import Formatable
 from lightning_app.utilities.network import LightningClient
 
 
-class SSHKeyList(Formatable):
+class _SSHKeyList(Formatable):
     def __init__(self, ssh_keys: List[V1SSHPublicKey]):
         self.ssh_keys = ssh_keys
 
@@ -29,15 +29,15 @@ class SSHKeyList(Formatable):
         return table
 
 
-class SSHKeyManager:
-    """SSHKeyManager implements API calls specific to Lightning AI SSH-Keys."""
+class _SSHKeyManager:
+    """_SSHKeyManager implements API calls specific to Lightning AI SSH-Keys."""
 
     def __init__(self) -> None:
         self.api_client = LightningClient()
 
-    def get_ssh_keys(self) -> SSHKeyList:
+    def get_ssh_keys(self) -> _SSHKeyList:
         resp = self.api_client.s_sh_public_key_service_list_ssh_public_keys()
-        return SSHKeyList(resp.ssh_keys)
+        return _SSHKeyList(resp.ssh_keys)
 
     def list(self) -> None:
         ssh_keys = self.get_ssh_keys()
