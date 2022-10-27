@@ -15,7 +15,7 @@ from packaging.version import Version
 
 from lightning_app import _logger, _PROJECT_ROOT, _root_logger
 from lightning_app.__version__ import version
-from lightning_app.core.constants import PACKAGE_LIGHTNING
+from lightning_app.core.constants import FRONTEND_DIR, PACKAGE_LIGHTNING
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.git import check_github_repository, get_dir_name
 
@@ -30,7 +30,7 @@ def download_frontend(root: str = _PROJECT_ROOT):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
     build_dir = "build"
-    frontend_dir = pathlib.Path(root, "src", "lightning_app", "ui")
+    frontend_dir = pathlib.Path(FRONTEND_DIR)
     download_dir = tempfile.mkdtemp()
 
     shutil.rmtree(frontend_dir, ignore_errors=True)
