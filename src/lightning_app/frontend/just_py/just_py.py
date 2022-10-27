@@ -80,7 +80,7 @@ class JustPyFrontend(Frontend):
         self.render_fn = render_fn
         self._process: Optional[Popen] = None
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         env = os.environ.copy()
         env["LIGHTNING_FLOW_NAME"] = self.flow.name  # type: ignore
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
