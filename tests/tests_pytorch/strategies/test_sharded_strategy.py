@@ -43,7 +43,7 @@ class CheckModelRestore(ModelWithAdamOptimizer):
 
     def _is_equal(self, a, b):
         if isinstance(a, torch.Tensor):
-            return torch.all(torch.eq(a, b))
+            return torch.allclose(a, b)
 
         if isinstance(a, Mapping):
             return all(self._is_equal(a.get(k, None), b.get(k, None)) for k in b.keys())
