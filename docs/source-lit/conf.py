@@ -398,20 +398,20 @@ import lightning as L
 from typing import Optional
 
 import torch
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
-from pytorch_lightning.utilities import (
+from lightning.pytorch import LightningDataModule, LightningModule, Trainer, seed_everything
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
+from lightning.pytorch.utilities import (
     _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
 )
-from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
-from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
-from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
-from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
+from lightning.pytorch.loggers.neptune import _NEPTUNE_AVAILABLE
+from lightning.pytorch.loggers.comet import _COMET_AVAILABLE
+from lightning.pytorch.loggers.mlflow import _MLFLOW_AVAILABLE
+from lightning.pytorch.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
