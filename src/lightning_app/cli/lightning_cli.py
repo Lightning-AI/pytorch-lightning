@@ -19,9 +19,8 @@ from lightning_app.cli.commands.connection import (
     connect,
     disconnect,
 )
-
-from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.commands.logs import logs
+from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
