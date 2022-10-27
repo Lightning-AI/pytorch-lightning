@@ -93,8 +93,8 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 if __name__ == "__main__":
-    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
-    _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(".actions", "assistant.py"))
+    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
+    _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     if _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
