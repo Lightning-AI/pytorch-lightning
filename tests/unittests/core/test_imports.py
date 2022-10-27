@@ -1,6 +1,15 @@
 import operator
+import re
+from importlib.metadata import PackageNotFoundError
 
-from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+import pytest
+
+from lightning_utilities.core.imports import (
+    compare_version,
+    get_dependency_min_version_spec,
+    module_available,
+    RequirementCache,
+)
 
 
 def test_module_exists():
@@ -38,3 +47,14 @@ def test_requirement_cache():
     assert RequirementCache(f"pytest>={pytest.__version__}")
     assert not RequirementCache(f"pytest<{pytest.__version__}")
     assert "pip install -U '-'" in str(RequirementCache("-"))
+
+
+def test_get_dependency_min_version_spec():
+    attrs_min_version_spec = get_dependency_min_version_spec("pytest", "attrs")
+    assert re.match(r"^>=[\d.]+$", attrs_min_version_spec)
+
+    with pytest.raises(ValueError, match="'invalid' not found in package 'pytest'"):
+        get_dependency_min_version_spec("pytest", "invalid")
+
+    with pytest.raises(PackageNotFoundError, match="invalid"):
+        get_dependency_min_version_spec("invalid", "invalid")
