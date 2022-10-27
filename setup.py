@@ -94,11 +94,13 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # engineer specific practices
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+    _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(".actions", "assistant.py"))
 
     if _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
 
-    _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), _PACKAGE_MAPPING)
+    for pkg_name, lit_name in _PACKAGE_MAPPING:
+        _ASSISTANT.AssistantCLI.copy_replace_imports(_PATH_SRC, pkg_name, lit_name)
 
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
