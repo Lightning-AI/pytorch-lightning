@@ -278,6 +278,30 @@ class RichProgressBar(ProgressBarBase):
     @property
     def is_disabled(self) -> bool:
         return not self.is_enabled
+    
+    @property
+    def val_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.val_progress_bar_id is not None
+        return self.progress.tasks[self.val_progress_bar_id]
+
+    @property
+    def val_sanity_check_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.val_sanity_progress_bar_id is not None
+        return self.progress.tasks[self.val_sanity_progress_bar_id]
+
+    @property
+    def main_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.main_progress_bar_id is not None
+        return self.progress.tasks[self.main_progress_bar_id]
+
+    @property
+    def test_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.test_progress_bar_id is not None
+        return self.progress.tasks[self.test_progress_bar_id]
 
     def _update_for_light_colab_theme(self) -> None:
         if _detect_light_colab_theme():
@@ -535,30 +559,6 @@ class RichProgressBar(ProgressBarBase):
 
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         self._stop_progress()
-
-    @property
-    def val_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.val_progress_bar_id is not None
-        return self.progress.tasks[self.val_progress_bar_id]
-
-    @property
-    def val_sanity_check_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.val_sanity_progress_bar_id is not None
-        return self.progress.tasks[self.val_sanity_progress_bar_id]
-
-    @property
-    def main_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.main_progress_bar_id is not None
-        return self.progress.tasks[self.main_progress_bar_id]
-
-    @property
-    def test_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.test_progress_bar_id is not None
-        return self.progress.tasks[self.test_progress_bar_id]
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:
         return [
