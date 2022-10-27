@@ -116,11 +116,12 @@ jobs:
         pkg-pattern: "*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
-  create-legacy-ckpt:
+  legacy-checkpoints:
     needs: publish-packages
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
       push_to_s3: true
       create_pr: true
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}
