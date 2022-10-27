@@ -139,7 +139,9 @@ class TorchCollective(Collective):
         return self
 
     def teardown(self) -> Self:  # type: ignore[valid-type]
+        print(dist.distributed_c10d._pg_map)
         super().teardown()  # will destroy its own group
+        print(dist.distributed_c10d._pg_map)
         # try to destroy the default group only if the class is managing it
         if TorchCollective.manages_default_group:
             default_group = dist.GroupMember.WORLD
