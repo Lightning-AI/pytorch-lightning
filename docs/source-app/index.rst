@@ -11,18 +11,23 @@ Welcome to ⚡ Lightning
 
 Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
 
+.. app_card::
+   :title: abc
+
+asdf asdf
+
 |
 
 .. raw:: html
 
    <div class="display-card-container">
-      <div class="row" style="display:flex; align-items: center; justify-content: space-between">
+      <div class="row" style="display:flex; align-items: center; justify-content: space-evenly">
 
 .. displayitem::
    :header: Internal ML system (no UI)
    :description: An internal ML system for fraud detection.
    :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/muse_thumbnail.png
    :button_link: https://lightning.ai/muse
    :height: 280
    :tag: Enterprise
@@ -31,7 +36,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
    :header: External SaaS product 
    :description: Build and monetize external products 
    :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/yolo.png
    :button_link: https://lightning.ai/muse
    :height: 280
    :tag: Startup
@@ -40,7 +45,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
    :header: Demo software products
    :description: Share reproducible software products for clients that scale instead of jupyter notebooks that don't.
    :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/training-studio-logo.png
    :button_link: https://lightning.ai/muse
    :height: 280
    :tag: Research
@@ -61,17 +66,19 @@ Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
    :tab_rows: 5
-   :height: 250px
+   :height: 255px
 
 |
 
-Run on cloud machines in your own AWS account, fully-managed `Lightning cloud <https://lightning.ai/>`_ or your own hardare:
+|
+
 
 .. lit_tabs::
-   :titles: Fully-managed; Your AWS account; Your own hardware
+   :titles: Run anywhere;;;
+   :descriptions: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
    :tab_rows: 5
-   :height: 150px
+   :height: 195px
 
 ----
 
