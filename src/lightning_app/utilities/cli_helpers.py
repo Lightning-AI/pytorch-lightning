@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import sys
 from typing import Dict, Optional
 
 import arrow
@@ -111,7 +112,8 @@ class _LightningAppOpenAPIRetriever:
                 with open(cache_openapi) as f:
                     self.openapi = json.load(f)
                 self.api_commands = _extract_command_from_openapi(self.openapi)
-        else:
+
+        if not self.api_commands:
             self._collect_open_api_json()
             if self.openapi:
                 self.api_commands = _extract_command_from_openapi(self.openapi)
@@ -152,12 +154,14 @@ class _LightningAppOpenAPIRetriever:
         app_names = [lightningapp.name for lightningapp in list_apps.lightningapps]
 
         if not self.app_id_or_name_or_url:
-            raise Exception(f"Provide an application name, id or url with --app_id=X. Found {app_names}")
+            print(f"ERROR: Provide an application name, id or url with --app_id=X. Found {app_names}")
+            sys.exit(0)
 
         for app in list_apps.lightningapps:
             if app.id == self.app_id_or_name_or_url or app.name == self.app_id_or_name_or_url:
                 if app.status.url == "":
-                    raise Exception("The application is starting. Try in a few moments.")
+                    print("The application is starting. Try in a few moments.")
+                    sys.exit(0)
                 return app
 
     def _collect_open_api_json(self):
@@ -168,7 +172,8 @@ class _LightningAppOpenAPIRetriever:
             assert self.url
             resp = requests.get(self.url + "/openapi.json")
             if resp.status_code != 200:
-                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
+                print(f"ERROR: The server didn't process the request properly. Found {resp.json()}")
+                sys.exit(0)
             self.openapi = resp.json()
             return
 
