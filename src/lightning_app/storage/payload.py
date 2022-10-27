@@ -168,6 +168,9 @@ class BasePayload(ABC):
         _logger.debug(f"Attempting to copy {str(response.path)} -> {str(local_path)}")
         fs.get(str(response.path), str(local_path), recursive=False)
 
+        # Ensure the file is properly written
+        sleep(0.5)
+
         self._value = self.load(local_path)
         return self._value
 
