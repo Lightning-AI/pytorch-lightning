@@ -98,7 +98,8 @@ jobs:
           pip-flags: "--pre --find-links ../pypi/"
 
       - name: Run CLI
-        if: ${{ matrix.pkg == '' || matrix.pkg == 'app' }}
+        # todo: add testing for `lightning_app`
+        if: ${{ matrix.pkg == '' }}
         run: python -m lightning --version
 
       - name: DocTest package
