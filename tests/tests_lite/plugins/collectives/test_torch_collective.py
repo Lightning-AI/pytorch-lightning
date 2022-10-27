@@ -219,7 +219,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
             kwargs["device"] = devices[strategy.global_rank]
 
         fn(*args, **kwargs)
-        # torch.distributed.barrier()
+        torch.distributed.barrier()
 
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for c in collectives:
@@ -299,8 +299,8 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
 
-    # barrier changed to debug hang
-    torch.distributed.barrier()  # avoids deadlock for global rank 1
+    right_collective.barrier()  # avoids deadlock for global rank 1
+    # torch.distributed.barrier()
 
     if strategy.global_rank in (1, 2):
         tensor = right_collective.all_reduce(tensor)
