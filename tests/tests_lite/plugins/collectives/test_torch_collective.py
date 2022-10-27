@@ -226,6 +226,8 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
         if autosetup_strategy:
             torch.distributed.destroy_process_group()
 
+    return 0
+
 
 def _test_distributed_collectives_fn(strategy, collective, device):
     collective.create_group()
