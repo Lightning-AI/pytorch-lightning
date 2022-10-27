@@ -255,9 +255,9 @@ class RichProgressBar(ProgressBarBase):
         self._console: Optional[Console] = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
-        self.progress: Optional[Progress] = None
-        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
+        self.progress: Optional[CustomProgress] = None
         self.main_progress_bar_id: Optional["TaskID"]
+        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
         self.val_progress_bar_id: Optional["TaskID"]
         self.test_progress_bar_id: Optional["TaskID"]
         self.predict_progress_bar_id: Optional["TaskID"]
@@ -336,6 +336,8 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self.is_disabled:
+            return
         total_batches = self.total_batches_current_epoch
         train_description = self._get_train_description(trainer.current_epoch)
 
@@ -355,8 +357,10 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx) or self.progress is None:
+        if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
+
+        assert self.progress is not None
 
         if trainer.sanity_checking:
             if self.val_sanity_progress_bar_id is not None:
@@ -397,7 +401,7 @@ class RichProgressBar(ProgressBarBase):
         return current % self.refresh_rate == 0 or current == total
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
+        if self.is_enabled and self.val_progress_bar_id is not None and trainer.state.fn == "fit":
             assert self.progress is not None
             self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
             self.refresh()
@@ -416,7 +420,7 @@ class RichProgressBar(ProgressBarBase):
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx):
+        if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
 
         if self.test_progress_bar_id is not None:
@@ -428,7 +432,7 @@ class RichProgressBar(ProgressBarBase):
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if not self.has_dataloader_changed(dataloader_idx):
+        if self.is_disabled or not self.has_dataloader_changed(dataloader_idx):
             return
 
         if self.predict_progress_bar_id is not None:
@@ -458,8 +462,9 @@ class RichProgressBar(ProgressBarBase):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
+        if self.is_disabled:
+            return
         if trainer.sanity_checking:
-            assert self.val_sanity_progress_bar_id is not None
             self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
@@ -477,6 +482,8 @@ class RichProgressBar(ProgressBarBase):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
+        if self.is_disabled:
+            return
         assert self.test_progress_bar_id is not None
         self._update(self.test_progress_bar_id, self.test_batch_idx)
         self.refresh()
@@ -490,6 +497,8 @@ class RichProgressBar(ProgressBarBase):
         batch_idx: int,
         dataloader_idx: int,
     ) -> None:
+        if self.is_disabled:
+            return
         assert self.predict_progress_bar_id is not None
         self._update(self.predict_progress_bar_id, self.predict_batch_idx)
         self.refresh()
