@@ -13,7 +13,8 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing_extensions import OrderedDict
 
 import torch
 from lightning_utilities.core.rank_zero import WarningCache
