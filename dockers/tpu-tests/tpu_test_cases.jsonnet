@@ -35,7 +35,7 @@ local tputests = base.BaseTest {
         git -c advice.detachedHead=false checkout {SHA}
       fi
 
-      echo "--- Install PL ---"
+      echo "--- Install packages ---"
       PACKAGE_NAME=lite pip install -e .[dev]
       PACKAGE_NAME=pytorch pip install -e .[dev]
       pip list
