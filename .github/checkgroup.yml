@@ -136,7 +136,6 @@ subprojects:
       - "build-pl (3.9, 1.10, 11.3.1)"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.6.1)"
-      - "build-pl (3.9, 1.9, 11.1.1)"
       - "build-xla (3.7, 1.12)"
 
   # SECTION: lightning_lite
