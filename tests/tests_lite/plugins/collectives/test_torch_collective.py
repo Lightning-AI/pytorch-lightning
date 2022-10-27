@@ -315,3 +315,4 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_two_groups(device_type, autosetup_strategy):
     collective_launch(_test_two_groups, device_type, 3, autosetup_strategy, num_groups=2)
+    assert False
