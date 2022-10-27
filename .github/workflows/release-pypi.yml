@@ -119,7 +119,7 @@ jobs:
         pkg-pattern: "*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
-  create-legacy-ckpt:
+  legacy-checkpoints:
     needs: publish-packages
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
