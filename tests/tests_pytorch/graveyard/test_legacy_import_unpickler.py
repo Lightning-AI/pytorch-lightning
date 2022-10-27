@@ -5,9 +5,7 @@ import sys
 import pytest
 import torch
 from lightning_utilities.core.imports import package_available
-
 from packaging.version import Version
-
 
 from tests_pytorch.checkpointing.test_legacy_checkpoints import (
     CHECKPOINT_EXTENSION,
