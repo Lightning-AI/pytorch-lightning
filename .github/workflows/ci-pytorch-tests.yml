@@ -82,7 +82,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 180
 
     steps:
     - uses: actions/checkout@v3
@@ -185,6 +185,15 @@ jobs:
 
     - name: Switch coverage scope
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
+
+    - name: Setup upterm session
+      if: ${{ matrix.requires == 'oldest' }} && ${{ matrix.pkg-name == 'lightning' }}
+      uses: lhotari/action-upterm@v1
+      with:
+        ## limits ssh access and adds the ssh public key for the user which triggered the workflow
+        limit-access-to-actor: true
+        ## limits ssh access and adds the ssh public keys of the listed GitHub users
+        limit-access-to-users: justusschock
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
