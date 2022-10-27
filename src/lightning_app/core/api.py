@@ -8,7 +8,7 @@ from multiprocessing import Queue
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from time import sleep
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Union
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
@@ -167,24 +167,27 @@ if _is_starsessions_available():
 # Before the above happens, we need to refactor App so that it doesn't
 # rely on timeouts, but on sequences of updates (and alignments between
 # ranks)
-if ENABLE_PULLING_STATE_ENDPOINT:
+@fastapi_service.get("/api/v1/state", response_class=JSONResponse)
+async def get_state(
+    response: Response,
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
+) -> Mapping:
+    if x_lightning_session_uuid is None:
+        raise Exception("Missing X-Lightning-Session-UUID header")
+    if x_lightning_session_id is None:
+        raise Exception("Missing X-Lightning-Session-ID header")
 
-    @fastapi_service.get("/api/v1/state", response_class=JSONResponse)
-    async def get_state(
-        x_lightning_type: Optional[str] = Header(None),
-        x_lightning_session_uuid: Optional[str] = Header(None),
-        x_lightning_session_id: Optional[str] = Header(None),
-    ) -> Mapping:
-        if x_lightning_session_uuid is None:
-            raise Exception("Missing X-Lightning-Session-UUID header")
-        if x_lightning_session_id is None:
-            raise Exception("Missing X-Lightning-Session-ID header")
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
 
-        with lock:
-            x_lightning_session_uuid = TEST_SESSION_UUID
-            state = global_app_state_store.get_app_state(x_lightning_session_uuid)
-            global_app_state_store.set_served_state(x_lightning_session_uuid, state)
-            return state
+    with lock:
+        x_lightning_session_uuid = TEST_SESSION_UUID
+        state = global_app_state_store.get_app_state(x_lightning_session_uuid)
+        global_app_state_store.set_served_state(x_lightning_session_uuid, state)
+        return state
 
 
 def get_component_by_name(component_name: str, state):
@@ -214,74 +217,84 @@ async def get_layout() -> Mapping:
         return layout
 
 
-if ENABLE_PULLING_STATE_ENDPOINT:
+@fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
+async def get_spec(
+    response: Response,
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
+) -> Union[List, Dict]:
+    if x_lightning_session_uuid is None:
+        raise Exception("Missing X-Lightning-Session-UUID header")
+    if x_lightning_session_id is None:
+        raise Exception("Missing X-Lightning-Session-ID header")
 
-    @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
-    async def get_spec(
-        x_lightning_session_uuid: Optional[str] = Header(None),
-        x_lightning_session_id: Optional[str] = Header(None),
-    ) -> List:
-        if x_lightning_session_uuid is None:
-            raise Exception("Missing X-Lightning-Session-UUID header")
-        if x_lightning_session_id is None:
-            raise Exception("Missing X-Lightning-Session-ID header")
-        global app_spec
-        return app_spec or []
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
 
-
-if ENABLE_PUSHING_STATE_ENDPOINT:
-
-    @fastapi_service.post("/api/v1/delta")
-    async def post_delta(
-        request: Request,
-        x_lightning_type: Optional[str] = Header(None),
-        x_lightning_session_uuid: Optional[str] = Header(None),
-        x_lightning_session_id: Optional[str] = Header(None),
-    ) -> None:
-        """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
-        update the state."""
-
-        if x_lightning_session_uuid is None:
-            raise Exception("Missing X-Lightning-Session-UUID header")
-        if x_lightning_session_id is None:
-            raise Exception("Missing X-Lightning-Session-ID header")
-
-        body: Dict = await request.json()
-        api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
+    global app_spec
+    return app_spec or []
 
 
-if ENABLE_PUSHING_STATE_ENDPOINT:
+@fastapi_service.post("/api/v1/delta")
+async def post_delta(
+    request: Request,
+    response: Response,
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
+) -> Optional[Dict]:
+    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
+    update the state."""
 
-    @fastapi_service.post("/api/v1/state")
-    async def post_state(
-        request: Request,
-        x_lightning_type: Optional[str] = Header(None),
-        x_lightning_session_uuid: Optional[str] = Header(None),
-        x_lightning_session_id: Optional[str] = Header(None),
-    ) -> None:
-        if x_lightning_session_uuid is None:
-            raise Exception("Missing X-Lightning-Session-UUID header")
-        if x_lightning_session_id is None:
-            raise Exception("Missing X-Lightning-Session-ID header")
-        # This needs to be sent so that it can be set as last state
-        # in app (see sequencing above)
-        # Actually: we need to make sure last_state is actually
-        # the latest state seen by the UI, that is, the last state
-        # ui to the UI from the API, not the last state
-        # obtained by the app.
-        body: Dict = await request.json()
-        x_lightning_session_uuid = TEST_SESSION_UUID
+    if x_lightning_session_uuid is None:
+        raise Exception("Missing X-Lightning-Session-UUID header")
+    if x_lightning_session_id is None:
+        raise Exception("Missing X-Lightning-Session-ID header")
 
-        if "stage" in body:
-            last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
-            state = deepcopy(last_state)
-            state["app_state"]["stage"] = body["stage"]
-            deep_diff = DeepDiff(last_state, state, verbose_level=2)
-        else:
-            state = body["state"]
-            last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
-            deep_diff = DeepDiff(last_state, state, verbose_level=2)
-        api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
+    body: Dict = await request.json()
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
+
+
+@fastapi_service.post("/api/v1/state")
+async def post_state(
+    request: Request,
+    response: Response,
+    x_lightning_type: Optional[str] = Header(None),
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
+) -> Optional[Dict]:
+    if x_lightning_session_uuid is None:
+        raise Exception("Missing X-Lightning-Session-UUID header")
+    if x_lightning_session_id is None:
+        raise Exception("Missing X-Lightning-Session-ID header")
+    # This needs to be sent so that it can be set as last state
+    # in app (see sequencing above)
+    # Actually: we need to make sure last_state is actually
+    # the latest state seen by the UI, that is, the last state
+    # ui to the UI from the API, not the last state
+    # obtained by the app.
+    body: Dict = await request.json()
+    x_lightning_session_uuid = TEST_SESSION_UUID
+
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
+    if "stage" in body:
+        last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
+        state = deepcopy(last_state)
+        state["app_state"]["stage"] = body["stage"]
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
+    else:
+        state = body["state"]
+        last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
+        deep_diff = DeepDiff(last_state, state, verbose_level=2)
+    api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")

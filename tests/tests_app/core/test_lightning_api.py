@@ -214,7 +214,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
 @pytest.mark.parametrize("x_lightning_type", ["DEFAULT", "STREAMLIT"])
 @pytest.mark.anyio
-async def test_start_server(x_lightning_type):
+async def test_start_server(x_lightning_type, monkeypatch):
     """This test relies on FastAPI TestClient and validates that the REST API properly provides:
 
     - the state on GET /api/v1/state
@@ -315,6 +315,33 @@ async def test_start_server(x_lightning_type):
             "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
         }
         assert response.status_code == 200
+
+        monkeypatch.setattr(api, "ENABLE_PULLING_STATE_ENDPOINT", False)
+
+        response = await client.get("/api/v1/state", headers=headers)
+        assert response.status_code == 405
+
+        response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
+        assert response.status_code == 200
+
+        monkeypatch.setattr(api, "ENABLE_PUSHING_STATE_ENDPOINT", False)
+
+        response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
+        assert response.status_code == 405
+
+        response = await client.post(
+            "/api/v1/delta",
+            json={
+                "delta": {
+                    "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
+                }
+            },
+            headers=headers,
+        )
+        assert change_state_queue._queue[2].to_dict() == {
+            "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
+        }
+        assert response.status_code == 405
 
         # used to clean the app_state_store to following test.
         global_app_state_store.remove("1234")
