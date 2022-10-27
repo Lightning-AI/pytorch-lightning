@@ -48,7 +48,6 @@ report=''
 rm -f standalone_test_output.txt  # in case it exists, remove it
 function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
-  echo "CAT!"
     cat standalone_test_output.txt
     # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
     if grep --quiet --ignore-case --extended-regexp 'error|exception|traceback' standalone_test_output.txt; then
