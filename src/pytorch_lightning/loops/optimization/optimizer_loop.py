@@ -14,12 +14,12 @@
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from typing_extensions import OrderedDict
 
 import torch
 from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
+from typing_extensions import OrderedDict
 
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer

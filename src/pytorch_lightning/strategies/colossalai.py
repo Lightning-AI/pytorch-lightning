@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Callable, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
-from typing_extensions import OrderedDict
+
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
+from typing_extensions import OrderedDict
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import _patch_cuda_is_available
