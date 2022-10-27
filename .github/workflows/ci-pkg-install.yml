@@ -24,6 +24,16 @@ defaults:
 jobs:
 
   init-pypi:
+    runs-on: ubuntu-20.04
+    steps:
+    - run: mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ci-packages-${{ github.sha }}
+        path: pypi
+
+  build-pypi:
+    needs: init-pypi
     # This serves to create packages for potential internal dependencies
     runs-on: ubuntu-20.04
     strategy:
@@ -40,7 +50,6 @@ jobs:
         with:
           name: ci-packages-${{ github.sha }}
           path: pypi
-      - run: mkdir -p pypi && touch pypi/.placeholder
       - name: Build package
         env:
           PACKAGE_NAME: ${{ matrix.pkg }}
@@ -53,7 +62,7 @@ jobs:
           path: pypi
 
   install-pkg:
-    needs: init-pypi
+    needs: build-pypi
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
