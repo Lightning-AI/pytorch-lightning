@@ -105,7 +105,7 @@ jobs:
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
       if: inputs.push_to_s3
 
-  enable-ckpt-test:
+  adding-ckpt-test:
     runs-on: ubuntu-20.04
     if: inputs.create_pr
     needs: create-legacy-ckpts
@@ -120,7 +120,7 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
       with:
-        title: Enable testing with legacy checkpiont created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
+        title: Adding test for legacy checkpiont created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
         labels: |
           tests
