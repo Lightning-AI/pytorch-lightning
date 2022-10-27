@@ -226,7 +226,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
         if autosetup_strategy:
             torch.distributed.destroy_process_group()
 
-    return 0
+    print(f"done launch from global rank {strategy.global_rank}")
 
 
 def _test_distributed_collectives_fn(strategy, collective, device):
