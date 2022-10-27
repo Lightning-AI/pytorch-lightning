@@ -111,7 +111,7 @@ def _pydantic_column_type(pydantic_type: Any) -> Any:
     return PydanticJSONType
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=128)  # compatibility for py3.7
 def _get_primary_key(model_type: Type["SQLModel"]) -> str:
     primary_keys = sqlalchemy_inspect(model_type).primary_key
 
