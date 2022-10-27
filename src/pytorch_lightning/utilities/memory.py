@@ -97,10 +97,11 @@ def garbage_collection_cuda() -> None:
 
 
 def get_gpu_memory_map() -> Dict[str, float]:
-    r""".. deprecated:: v1.5 This function was deprecated in v1.5 in favor of
-    `pytorch_lightning.accelerators.cuda._get_nvidia_gpu_stats` and will be removed in v1.7.
+    r"""Get the current gpu usage.
 
-    Get the current gpu usage.
+    .. deprecated:: v1.5
+        This function was deprecated in v1.5 in favor of
+        `pytorch_lightning.accelerators.cuda._get_nvidia_gpu_stats` and will be removed in v1.7.
 
     Return:
         A dictionary in which the keys are device ids as integers and
