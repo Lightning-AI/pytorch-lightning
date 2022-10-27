@@ -209,7 +209,7 @@ def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy,
             strategy._set_world_ranks()
             collectives[0].setup(  # only one needs to setup
                 world_size=strategy.num_processes,
-                main_address="localhost",
+                main_address=strategy.cluster_environment.main_address,
                 backend=strategy._get_process_group_backend(),
                 rank=strategy.global_rank,
             )
@@ -292,19 +292,14 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
     left_collective.create_group(ranks=[0, 1])
     right_collective.create_group(ranks=[1, 2])
 
-    print("print1", strategy.global_rank)
-
     tensor = torch.tensor(strategy.global_rank, device=device)
     if strategy.global_rank in (0, 1):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
-    print("print2", strategy.global_rank)
     right_collective.barrier()  # avoids deadlock for global rank 1
     if strategy.global_rank in (1, 2):
         tensor = right_collective.all_reduce(tensor)
         assert tensor == 3
-
-    print("print3", strategy.global_rank)
 
 
 @skip_distributed_unavailable
@@ -320,3 +315,4 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_two_groups(device_type, autosetup_strategy):
     collective_launch(_test_two_groups, device_type, 3, autosetup_strategy, num_groups=2)
+    assert False
