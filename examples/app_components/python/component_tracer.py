@@ -1,5 +1,5 @@
-from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage.path import Path
+from lightning.app.components import TracerPythonScript
+from lightning.app.storage import Path
 from lightning.app.utilities.tracer import Tracer
 from pytorch_lightning import Trainer
 
