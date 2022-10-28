@@ -29,6 +29,6 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
     return _compare_version(new_package, op, version, use_base_version)
 
 
-torchmetrics.utilities.imports._compare_version = compare_version
-torchmetrics.metric._compare_version = compare_version
+torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore
+torchmetrics.metric._compare_version = compare_version  # type: ignore
 pickle.Unpickler = RedirectingUnpickler  # type: ignore
