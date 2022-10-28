@@ -74,7 +74,8 @@ jobs:
 
       - name: Install dependencies
         env:  # TODO: drop this when we will be using regular releases for testing
-          PACKAGE_NAME: pytorch
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+          FREEZE_REQUIREMENTS: 1
         run: |
           pip --version
           pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
@@ -87,11 +88,6 @@ jobs:
 
       - name: Install Yarn
         run: npm install -g yarn
-
-      - name: Install Lightning as top-level
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: pip install -e .
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}
