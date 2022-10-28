@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
+import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -107,6 +108,26 @@ class CloudRuntime(Runtime):
         if cluster_id:
             # Override the cluster ID if provided by the CLI
             app_config.cluster_id = cluster_id
+
+        try:
+            list_clusters_resp = self.backend.client.cluster_service_list_clusters()
+            cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
+            if app_config.cluster_id and app_config.cluster_id not in cluster_ids:
+                if cluster_id:
+                    msg = f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
+                else:
+                    msg = (
+                        f"Your app last ran on cluster {app_config.cluster_id}, but that cluster doesn't exist anymore."
+                    )
+                click.confirm(
+                    f"{msg} Do you want to run on Lightning Cloud instead?",
+                    abort=True,
+                    default=True,
+                )
+                app_config.cluster_id = None
+        except ApiException as e:
+            logger.error(e.body)
+            sys.exit(1)
 
         print(f"The name of the app is: {app_config.name}")
 
@@ -363,7 +384,7 @@ class CloudRuntime(Runtime):
                         app_id=lit_app.id,
                         id=lightning_app_release.id,
                         body=Body9(
-                            cluster_id=cluster_id,
+                            cluster_id=app_config.cluster_id,
                             desired_state=app_release_desired_state,
                             name=lit_app.name,
                             env=v1_env_vars,

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
+    Externalv1Cluster,
     Gridv1ImageSpec,
     IdGetBody,
     V1BuildSpec,
@@ -19,6 +20,7 @@ from lightning_cloud.openapi import (
     V1LightningappRelease,
     V1LightningworkDrives,
     V1LightningworkSpec,
+    V1ListClustersResponse,
     V1ListLightningappInstancesResponse,
     V1ListMembershipsResponse,
     V1Membership,
@@ -83,6 +85,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id=new_cluster
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [Externalv1Cluster(id=original_cluster), Externalv1Cluster(id=new_cluster)]
+        )
 
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -145,6 +150,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -187,7 +193,10 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
+            cluster_id="test1234"
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [Externalv1Cluster(id="test1234")]
         )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -236,6 +245,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -294,6 +304,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -347,8 +358,10 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        lightning_app_release = V1LightningappRelease(cluster_id="test")
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = lightning_app_release
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance.return_value = MagicMock()
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
@@ -444,6 +457,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -463,7 +477,7 @@ class TestAppCreationClient:
 
         # calling with no env variable set
         body = IdGetBody(
-            cluster_id=None,
+            cluster_id="test",
             desired_state=V1LightningappInstanceState.STOPPED,
             env=[],
             name=mock.ANY,
@@ -479,7 +493,7 @@ class TestAppCreationClient:
         cloud_runtime.backend.client.reset_mock()
         cloud_runtime.dispatch()
         body = IdGetBody(
-            cluster_id=None,
+            cluster_id="test",
             desired_state=V1LightningappInstanceState.STOPPED,
             env=[],
             name=mock.ANY,
@@ -509,6 +523,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         lightning_app_instance = MagicMock()
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
@@ -641,6 +656,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         lightning_app_instance = MagicMock()
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
@@ -838,6 +854,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id="test"
         )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         lightning_app_instance = MagicMock()
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
