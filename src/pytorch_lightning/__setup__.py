@@ -63,6 +63,10 @@ def _adjust_manifest(**__: Any) -> None:
 def _setup_args(**__: Any) -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+    if os.path.isdir(os.path.join(_SOURCE_ROOT, "lightning_lite")):
+        _setup_tools.set_actual_version_from_src(
+            os.path.join(_PATH_REQUIREMENTS, "base.txt"), _SOURCE_ROOT, "lightning-lite"
+        )
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
     _long_description = _setup_tools.load_readme_description(

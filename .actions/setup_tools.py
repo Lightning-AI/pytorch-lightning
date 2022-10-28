@@ -28,7 +28,7 @@ from typing import Dict, List
 from pkg_resources import parse_requirements
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
 
 # TODO: remove this once lightning-ui package is ready as a dependency
 _LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
@@ -272,3 +272,20 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     requires = list(chain(*requires))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
+
+
+def set_actual_version_from_src(req_path: str, src_root: str, pkg_name: str) -> None:
+    """
+    >>> set_actual_version_from_src("../requirements/pytorch/base.txt", "../src", "lightning-lite")
+    """
+    with open(req_path, encoding="utf-8") as fo:
+        reqs = parse_requirements(fo.readlines())
+    ver = parse_version_from_file(os.path.join(src_root, pkg_name.replace("-", "_")))
+    lines = []
+    for i, req in enumerate(reqs):
+        if req.name == pkg_name:
+            req = f"{pkg_name}=={ver}"
+        lines.append(f"{req}{os.linesep}")
+
+    with open(req_path, "w", encoding="utf-8") as fw:
+        fw.writelines(lines)
