@@ -301,11 +301,8 @@ class CloudRuntime(Runtime):
 
                 # TODO: support multiple instances / 1 instance per cluster
                 if existing_instance.spec.cluster_id != app_config.cluster_id:
-                    cluster_pretty = (
-                        f"cluster '{app_config.cluster_id}'" if app_config.cluster_id else "the default cluster"
-                    )
                     raise ValueError(
-                        f"Can not start app '{app_config.name}' on {cluster_pretty} "
+                        f"Cannot start app '{app_config.name}' on cluster '{app_config.cluster_id}' "
                         f"since this app already exists on cluster '{existing_instance.spec.cluster_id}'. "
                         "To run it on another cluster, give it a new name with the --name option."
                     )

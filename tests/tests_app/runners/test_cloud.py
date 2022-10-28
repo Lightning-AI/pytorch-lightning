@@ -112,7 +112,7 @@ class TestAppCreationClient:
             cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
         assert exc.match(
-            f"Can not start app '{app_name}' on cluster '{new_cluster}' "
+            f"Cannot start app '{app_name}' on cluster '{new_cluster}' "
             f"since this app already exists on '{original_cluster}'. "
             "To run it on another cluster, give it a new name with the --name option."
         )
