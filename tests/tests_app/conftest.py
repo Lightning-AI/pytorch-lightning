@@ -1,5 +1,6 @@
 import os
 import shutil
+import threading
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
@@ -45,6 +46,11 @@ def pytest_sessionfinish(session, exitstatus):
         if cmd_lines and "resource_tracker" in cmd_lines[-1]:
             continue
         child.kill()
+
+    main_thread = threading.current_thread()
+    for t in threading.enumerate():
+        if t is not main_thread:
+            t.join()
 
 
 @pytest.fixture(scope="function", autouse=True)
