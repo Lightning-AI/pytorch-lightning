@@ -280,10 +280,10 @@ class RichProgressBar(ProgressBarBase):
         return not self.is_enabled
 
     @property
-    def val_progress_bar(self) -> Task:
+    def main_progress_bar(self) -> Task:
         assert self.progress is not None
-        assert self.val_progress_bar_id is not None
-        return self.progress.tasks[self.val_progress_bar_id]
+        assert self.main_progress_bar_id is not None
+        return self.progress.tasks[self.main_progress_bar_id]
 
     @property
     def val_sanity_check_bar(self) -> Task:
@@ -292,10 +292,10 @@ class RichProgressBar(ProgressBarBase):
         return self.progress.tasks[self.val_sanity_progress_bar_id]
 
     @property
-    def main_progress_bar(self) -> Task:
+    def val_progress_bar(self) -> Task:
         assert self.progress is not None
-        assert self.main_progress_bar_id is not None
-        return self.progress.tasks[self.main_progress_bar_id]
+        assert self.val_progress_bar_id is not None
+        return self.progress.tasks[self.val_progress_bar_id]
 
     @property
     def test_progress_bar(self) -> Task:
