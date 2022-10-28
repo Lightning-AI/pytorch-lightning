@@ -71,8 +71,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
     ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``
 
-    .. deprecated:: v1.7.1
-        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
+    .. deprecated:: v1.7.1     ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
     """
 
     def __init__(

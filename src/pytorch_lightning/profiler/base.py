@@ -54,9 +54,8 @@ class AbstractProfiler(ABC):
 class BaseProfiler(Profiler):
     """If you wish to write a custom profiler, you should inherit from this class.
 
-    .. deprecated:: v1.6
-        `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead.
+    .. deprecated:: v1.6     `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.     Please use
+    `Profiler` instead.
     """
 
     def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
