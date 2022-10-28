@@ -95,7 +95,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
 
     # remove version restrictions unless they are strict
     if unfreeze and "<" in req and not is_strict:
-        req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
         req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
