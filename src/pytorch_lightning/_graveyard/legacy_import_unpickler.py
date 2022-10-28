@@ -6,7 +6,7 @@ import torchmetrics
 from lightning_utilities.core.imports import compare_version as _compare_version
 
 
-def _patch_pl_to_mirror_if_necessary(module: str):
+def _patch_pl_to_mirror_if_necessary(module: str) -> str:
     pl = "pytorch_" + "lightning"  # avoids replacement during mirror package generation
     if module.startswith(pl):
         # for the standalone package this won't do anything,
