@@ -4,7 +4,7 @@ import os
 import pydoc
 import subprocess
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Type
 
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
@@ -23,11 +23,11 @@ class ServeStreamlit(LightningWork, abc.ABC):
         self._process = None
 
     @property
-    def model(self):
+    def model(self) -> Any:
         return getattr(self, "_model", None)
 
     @abc.abstractmethod
-    def render(self):
+    def render(self) -> None:
         """Override with your streamlit render function."""
 
     def build_model(self) -> Any:
@@ -37,7 +37,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
         """
         return None
 
-    def run(self):
+    def run(self) -> None:
         env = os.environ.copy()
         env["LIGHTNING_COMPONENT_NAME"] = self.name
         env["LIGHTNING_WORK"] = self.__class__.__name__
@@ -59,7 +59,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
             env=env,
         )
 
-    def on_exit(self):
+    def on_exit(self) -> None:
         if self._process is not None:
             self._process.kill()
 
@@ -73,7 +73,7 @@ class _PatchedWork:
         work_class: The work class to emulate
     """
 
-    def __init__(self, state, work_class):
+    def __init__(self, state: AppState, work_class: Type):
         super().__init__()
         self._state = state
         self._work_class = work_class
@@ -119,7 +119,7 @@ def _get_work_class() -> Callable:
     return getattr(module, work_name)
 
 
-def _build_model(work):
+def _build_model(work: ServeStreamlit) -> None:
     import streamlit as st
 
     # Build the model (once per session, equivalent to gradio when enable_queue is Flase)
@@ -130,7 +130,7 @@ def _build_model(work):
     work._model = st.session_state["_model"]
 
 
-def _main():
+def _main() -> None:
     # Get the AppState
     app_state = AppState(plugin=StreamLitStatePlugin())
     work_state = _reduce_to_component_scope(app_state, os.environ["LIGHTNING_COMPONENT_NAME"])
