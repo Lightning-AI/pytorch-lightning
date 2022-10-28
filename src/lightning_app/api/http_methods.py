@@ -19,7 +19,7 @@ def _signature_proxy_function():
     pass
 
 
-class HttpMethod:
+class _HttpMethod:
     def __init__(self, route: str, method: Callable, method_name: Optional[str] = None, timeout: int = 30, **kwargs):
         """This class is used to inject user defined methods within the App Rest API.
 
@@ -102,33 +102,33 @@ class HttpMethod:
         route(self.route, **self.kwargs)(_handle_request)
 
 
-class Post(HttpMethod):
+class Post(_HttpMethod):
     pass
 
 
-class Get(HttpMethod):
-
-    pass
-
-
-class Put(HttpMethod):
+class Get(_HttpMethod):
 
     pass
 
 
-class Delete(HttpMethod):
+class Put(_HttpMethod):
+
     pass
 
 
-def _add_tags_to_api(apis: List[HttpMethod], tags: List[str]) -> None:
+class Delete(_HttpMethod):
+    pass
+
+
+def _add_tags_to_api(apis: List[_HttpMethod], tags: List[str]) -> None:
     for api in apis:
         if not api.kwargs.get("tag"):
             api.kwargs["tags"] = tags
 
 
-def _validate_api(apis: List[HttpMethod]) -> None:
+def _validate_api(apis: List[_HttpMethod]) -> None:
     for api in apis:
-        if not isinstance(api, HttpMethod):
+        if not isinstance(api, _HttpMethod):
             raise Exception(f"The provided api should be either [{Delete}, {Get}, {Post}, {Put}]")
         if api.route.startswith("/command"):
             raise Exception("The route `/command` is reserved for commands. Please, use something else.")
