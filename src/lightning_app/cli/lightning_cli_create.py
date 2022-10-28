@@ -25,6 +25,7 @@ def create() -> None:
     required=False,
     default="us-east-1",
     help="AWS region that is used to host the associated resources.",
+    hidden=True,
 )
 @click.option(
     "--instance-types",
