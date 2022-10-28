@@ -16,6 +16,7 @@ from lightning_cloud.openapi import (
     V1DriveStatus,
     V1DriveType,
     V1LightningappInstanceState,
+    V1LightningappRelease,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1ListLightningappInstancesResponse,
@@ -131,6 +132,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -171,6 +175,9 @@ class TestAppCreationClient:
         )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
         )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -216,6 +223,9 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
         monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
@@ -257,6 +267,7 @@ class TestAppCreationClient:
                 path="requirements.txt",
             ),
         )
+        body.cluster_id = "test"
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
         )
@@ -269,6 +280,9 @@ class TestAppCreationClient:
         )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
         )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -312,22 +326,20 @@ class TestAppCreationClient:
     def test_call_with_work_app(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
-            lightningapps[0].spec.cluster_id = None
+            lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
-        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
-            return_value=lightning_app_instance
-        )
+        lightning_app_release = V1LightningappRelease(cluster_id="test")
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = lightning_app_release
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance.return_value = MagicMock()
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -365,6 +377,7 @@ class TestAppCreationClient:
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -386,6 +399,7 @@ class TestAppCreationClient:
                                 name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id="test",
                         ),
                     )
                 ],
@@ -416,6 +430,9 @@ class TestAppCreationClient:
         )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
         )
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -468,19 +485,21 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
-            lightningapps[0].spec.cluster_id = None
+            lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
         lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
         )
@@ -534,6 +553,7 @@ class TestAppCreationClient:
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -570,6 +590,7 @@ class TestAppCreationClient:
                                 name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id="test",
                         ),
                     )
                 ],
@@ -596,19 +617,21 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
-            lightningapps[0].spec.cluster_id = None
+            lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
         lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
         )
@@ -695,6 +718,7 @@ class TestAppCreationClient:
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -716,6 +740,7 @@ class TestAppCreationClient:
                                 name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id="test",
                         ),
                     )
                 ],
@@ -729,6 +754,7 @@ class TestAppCreationClient:
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
                 image_spec=Gridv1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
@@ -750,6 +776,7 @@ class TestAppCreationClient:
                                 name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id="test",
                         ),
                     )
                 ],
@@ -787,19 +814,21 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
-            lightningapps[0].spec.cluster_id = None
+            lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
         lightning_app_instance = MagicMock()
-        mock_client.lightningapp_v2_service_create_lightningapp_release = MagicMock(return_value=lightning_app_instance)
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
             return_value=lightning_app_instance
         )
@@ -865,6 +894,7 @@ class TestAppCreationClient:
                     )
                 ),
                 user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
                 works=[
                     V1Work(
                         name="test-work",
@@ -910,6 +940,7 @@ class TestAppCreationClient:
                                 name="default", count=1, disk_size=0, shm_size=0
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id="test",
                         ),
                     )
                 ],
