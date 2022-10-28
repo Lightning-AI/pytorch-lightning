@@ -62,10 +62,11 @@ jobs:
         PACKAGE_NAME: "lite"
       run: |
         pip install -e . --upgrade --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        git reset
 
     - name: Install package & dependencies
       env:
-        PACKAGE_NAME: pytorch
+        PACKAGE_NAME: "pytorch"
         FREEZE_REQUIREMENTS: 1
       run: |
         # adjust versions according installed Torch version

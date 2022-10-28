@@ -275,9 +275,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
 
 
 def set_actual_version_from_src(req_path: str, src_root: str, pkg_name: str) -> None:
-    """
-    >>> set_actual_version_from_src("../requirements/pytorch/base.txt", "../src", "lightning-lite")
-    """
+    """Setting actual version from source code for a given package."""
     with open(req_path, encoding="utf-8") as fo:
         lines = fo.readlines()
     ver = parse_version_from_file(os.path.join(src_root, pkg_name.replace("-", "_")))
