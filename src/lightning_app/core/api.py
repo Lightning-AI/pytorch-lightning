@@ -28,6 +28,7 @@ from lightning_app.core.constants import (
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     ENABLE_STATE_WEBSOCKET,
+    ENABLE_UPLOAD_ENDPOINT,
     FRONTEND_DIR,
 )
 from lightning_app.core.queues import QueuingSystem
@@ -190,7 +191,7 @@ async def get_state(
         return state
 
 
-def get_component_by_name(component_name: str, state):
+def _get_component_by_name(component_name: str, state):
     child = state
     for child_name in component_name.split(".")[1:]:
         try:
@@ -213,7 +214,7 @@ async def get_layout() -> Mapping:
         layout = deepcopy(state["vars"]["_layout"])
         for la in layout:
             if la["content"].startswith("root."):
-                la["content"] = get_component_by_name(la["content"], state)
+                la["content"] = _get_component_by_name(la["content"], state)
         return layout
 
 
@@ -298,7 +299,11 @@ async def post_state(
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
-async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+async def upload_file(response: Response, filename: str, uploaded_file: UploadFile = File(...)):
+    if not ENABLE_UPLOAD_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     with TemporaryDirectory() as tmp:
         drive = Drive(
             "lit://uploaded_files",
