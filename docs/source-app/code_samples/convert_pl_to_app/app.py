@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
+from lightning.app.components import TracerPythonScript
 
 
 class RootFlow(L.LightningFlow):

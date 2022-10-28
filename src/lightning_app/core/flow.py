@@ -276,7 +276,11 @@ class LightningFlow:
     @property
     def flows(self):
         """Return its children LightningFlow."""
-        return {el: getattr(self, el) for el in sorted(self._flows)}
+        flows = {el: getattr(self, el) for el in sorted(self._flows)}
+        for struct_name in sorted(self._structures):
+            for flow in getattr(self, struct_name).flows:
+                flows[flow.name] = flow
+        return flows
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
