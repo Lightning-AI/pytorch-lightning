@@ -278,7 +278,7 @@ class RichProgressBar(ProgressBarBase):
     @property
     def is_disabled(self) -> bool:
         return not self.is_enabled
-    
+
     @property
     def val_progress_bar(self) -> Task:
         assert self.progress is not None
