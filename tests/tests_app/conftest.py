@@ -50,7 +50,7 @@ def pytest_sessionfinish(session, exitstatus):
     main_thread = threading.current_thread()
     for t in threading.enumerate():
         if t is not main_thread:
-            t.join()
+            t.join(0)
 
 
 @pytest.fixture(scope="function", autouse=True)
