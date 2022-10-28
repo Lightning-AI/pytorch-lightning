@@ -512,6 +512,7 @@ class RichProgressBar(ProgressBarBase):
 
     def _reset_progress_bar_ids(self) -> None:
         self.main_progress_bar_id = None
+        self.val_sanity_progress_bar_id = None
         self.val_progress_bar_id = None
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None

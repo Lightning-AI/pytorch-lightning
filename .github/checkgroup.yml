@@ -267,7 +267,7 @@ subprojects:
       - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
       - "app-pytest (windows-2022, app, 3.8, latest)"
       - "app-pytest (windows-2022, app, 3.8, oldest)"
-      - "app-pytest (windows-2022, lightning, 3.9, latest)"
+      - "app-pytest (windows-2022, lightning, 3.8, latest)"
 
   - id: "lightning_app: Examples"
     paths:
