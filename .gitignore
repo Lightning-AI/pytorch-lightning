@@ -176,3 +176,4 @@ test.png
 saved_models
 data/
 .shared
+.lightning
