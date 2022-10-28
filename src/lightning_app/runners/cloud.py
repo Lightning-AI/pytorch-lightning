@@ -109,26 +109,6 @@ class CloudRuntime(Runtime):
             # Override the cluster ID if provided by the CLI
             app_config.cluster_id = cluster_id
 
-        try:
-            list_clusters_resp = self.backend.client.cluster_service_list_clusters()
-            cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
-            if app_config.cluster_id and app_config.cluster_id not in cluster_ids:
-                if cluster_id:
-                    msg = f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
-                else:
-                    msg = (
-                        f"Your app last ran on cluster {app_config.cluster_id}, but that cluster doesn't exist anymore."
-                    )
-                click.confirm(
-                    f"{msg} Do you want to run on Lightning Cloud instead?",
-                    abort=True,
-                    default=True,
-                )
-                app_config.cluster_id = None
-        except ApiException as e:
-            logger.error(e.body)
-            sys.exit(1)
-
         print(f"The name of the app is: {app_config.name}")
 
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in self.env_vars.items()]
@@ -210,7 +190,6 @@ class CloudRuntime(Runtime):
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
-                    cluster_id=app_config.cluster_id,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
@@ -262,21 +241,9 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id, body=app_body
                 )
 
-            release_body = Body8(
-                app_entrypoint_file=app_spec.app_entrypoint_file,
-                enable_app_server=app_spec.enable_app_server,
-                flow_servers=app_spec.flow_servers,
-                image_spec=app_spec.image_spec,
-                cluster_id=app_config.cluster_id,
-                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
-                local_source=True,
-                dependency_cache_key=app_spec.dependency_cache_key,
-                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
-            )
-
+            network_configs: Optional[List[V1NetworkConfig]] = None
             if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
-                network_configs: List[V1NetworkConfig] = []
-
+                network_configs = []
                 initial_port = 8080 + 1 + len(frontend_specs)
                 for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
                     network_configs.append(
@@ -286,11 +253,6 @@ class CloudRuntime(Runtime):
                         )
                     )
                     initial_port += 1
-
-                release_body.network_config = network_configs
-
-            if app_config.cluster_id is not None:
-                self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -338,6 +300,44 @@ class CloudRuntime(Runtime):
                         time.sleep(1)
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
+
+            if app_config.cluster_id is not None:
+                # Verify that the cluster exists
+                list_clusters_resp = self.backend.client.cluster_service_list_clusters()
+                cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
+                if app_config.cluster_id not in cluster_ids:
+                    if cluster_id:
+                        msg = f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
+                    else:
+                        msg = (
+                            f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
+                            "doesn't exist anymore."
+                        )
+                    click.confirm(
+                        f"{msg} Do you want to run on Lightning Cloud instead?",
+                        abort=True,
+                        default=True,
+                    )
+                    app_config.cluster_id = None
+
+            if app_config.cluster_id is not None:
+                self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
+
+            for work_req in work_reqs:
+                work_req.spec.cluster_id = app_config.cluster_id
+
+            release_body = Body8(
+                app_entrypoint_file=app_spec.app_entrypoint_file,
+                enable_app_server=app_spec.enable_app_server,
+                flow_servers=app_spec.flow_servers,
+                image_spec=app_spec.image_spec,
+                cluster_id=app_config.cluster_id,
+                network_config=network_configs,
+                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
+                local_source=True,
+                dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
+            )
 
             # create / upload the new app release / instace
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
