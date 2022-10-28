@@ -52,6 +52,8 @@ def pytest_sessionfinish(session, exitstatus):
         if t is not main_thread:
             t.join(0)
 
+    os._exit(0)
+
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
