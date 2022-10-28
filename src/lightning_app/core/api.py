@@ -8,7 +8,7 @@ from multiprocessing import Queue
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from time import sleep
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Union
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
@@ -23,7 +23,14 @@ from websockets.exceptions import ConnectionClosed
 
 from lightning_app.api.http_methods import _HttpMethod
 from lightning_app.api.request_types import _DeltaRequest
-from lightning_app.core.constants import CLOUD_QUEUE_TYPE, ENABLE_STATE_WEBSOCKET, FRONTEND_DIR
+from lightning_app.core.constants import (
+    CLOUD_QUEUE_TYPE,
+    ENABLE_PULLING_STATE_ENDPOINT,
+    ENABLE_PUSHING_STATE_ENDPOINT,
+    ENABLE_STATE_WEBSOCKET,
+    ENABLE_UPLOAD_ENDPOINT,
+    FRONTEND_DIR,
+)
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
@@ -163,6 +170,7 @@ if _is_starsessions_available():
 # ranks)
 @fastapi_service.get("/api/v1/state", response_class=JSONResponse)
 async def get_state(
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
@@ -172,6 +180,10 @@ async def get_state(
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
 
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     with lock:
         x_lightning_session_uuid = TEST_SESSION_UUID
         state = global_app_state_store.get_app_state(x_lightning_session_uuid)
@@ -179,15 +191,48 @@ async def get_state(
         return state
 
 
+def _get_component_by_name(component_name: str, state):
+    child = state
+    for child_name in component_name.split(".")[1:]:
+        try:
+            child = child["flows"][child_name]
+        except KeyError:
+            child = child["structures"][child_name]
+
+    if isinstance(child["vars"]["_layout"], list):
+        assert len(child["vars"]["_layout"]) == 1
+        return child["vars"]["_layout"][0]["target"]
+    return child["vars"]["_layout"]["target"]
+
+
+@fastapi_service.get("/api/v1/layout", response_class=JSONResponse)
+async def get_layout() -> Mapping:
+    with lock:
+        x_lightning_session_uuid = TEST_SESSION_UUID
+        state = global_app_state_store.get_app_state(x_lightning_session_uuid)
+        global_app_state_store.set_served_state(x_lightning_session_uuid, state)
+        layout = deepcopy(state["vars"]["_layout"])
+        for la in layout:
+            if la["content"].startswith("root."):
+                la["content"] = _get_component_by_name(la["content"], state)
+        return layout
+
+
 @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
 async def get_spec(
+    response: Response,
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> List:
+) -> Union[List, Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
+
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     global app_spec
     return app_spec or []
 
@@ -195,10 +240,11 @@ async def get_spec(
 @fastapi_service.post("/api/v1/delta")
 async def post_delta(
     request: Request,
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> None:
+) -> Optional[Dict]:
     """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
     update the state."""
 
@@ -207,6 +253,10 @@ async def post_delta(
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
 
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     body: Dict = await request.json()
     api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
 
@@ -214,10 +264,11 @@ async def post_delta(
 @fastapi_service.post("/api/v1/state")
 async def post_state(
     request: Request,
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> None:
+) -> Optional[Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
@@ -230,6 +281,10 @@ async def post_state(
     # obtained by the app.
     body: Dict = await request.json()
     x_lightning_session_uuid = TEST_SESSION_UUID
+
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
 
     if "stage" in body:
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
@@ -244,7 +299,11 @@ async def post_state(
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
-async def upload_file(filename: str, uploaded_file: UploadFile = File(...)):
+async def upload_file(response: Response, filename: str, uploaded_file: UploadFile = File(...)):
+    if not ENABLE_UPLOAD_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     with TemporaryDirectory() as tmp:
         drive = Drive(
             "lit://uploaded_files",
