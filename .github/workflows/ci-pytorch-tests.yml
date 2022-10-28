@@ -1,4 +1,4 @@
-name: Test PyTorch full
+name: Test PyTorch
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -11,8 +11,9 @@ on:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
+      - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch-test-full.yml"
+      - ".github/workflows/ci-pytorch-tests.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - ".actions/**"
@@ -41,18 +42,26 @@ jobs:
           # note: there's no distribution of Torch==1.9 for Python>=3.9 or torch==1.10 for Python>=3.10
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.10"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.9"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
           # only run PyTorch latest with Python latest
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           # "oldest" versions tests, only on minimum Python
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           # release-candidate tests, mixed Python versions
           - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
@@ -87,6 +96,7 @@ jobs:
       if: ${{ matrix.requires == 'oldest' }}
       run: |
         python .actions/assistant.py replace_oldest_ver
+
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
@@ -96,21 +106,6 @@ jobs:
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         cat requirements/pytorch/base.txt
-
-    - name: switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-
-    - name: Install package
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-      run: |
-        pip install -e . pytest --upgrade --find-links ${TORCH_URL}
-        pip list
-
-    - name: DocTests PL
-      if: ${{ matrix.pkg-name != 'LAI' }}
-      working-directory: src
-      run: python -m pytest pytorch_lightning
 
     - name: Get pip cache dir
       id: pip-cache
@@ -124,9 +119,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Install dependencies
+    - name: Switch PyTorch URL
+      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+    - name: Install package & dependencies
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e . "pytest-timeout" -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Reinstall Horovod if necessary
@@ -158,8 +158,8 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
 
     - name: Adjust tests
-      if: ${{ matrix.pkg-name == 'LAI' }}
-      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning" --target_import="lightning.pytorch"
+      if: ${{ matrix.pkg-name == 'lightning' }}
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
@@ -168,13 +168,13 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
-    - name: switch coverage scope
-      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'LAI' else 'pytorch_lightning'))" >> $GITHUB_ENV
+    - name: Switch coverage scope
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=120 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()
