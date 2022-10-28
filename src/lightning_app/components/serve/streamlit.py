@@ -79,23 +79,19 @@ class _PatchedWork:
         self._work_class = work_class
 
     def __getattr__(self, name: str) -> Any:
-        if name in ["_state", "_work_class"]:
-            return object.__getattr__(self, name)
-
         try:
             return getattr(self._state, name)
         except AttributeError:
             # The name isn't in the state, so check if it's a callable or a property
             attribute = inspect.getattr_static(self._work_class, name)
             if callable(attribute):
-                if not isinstance(attribute, staticmethod):
-                    attribute = attribute.__get__(self, self._work_class)
+                attribute = attribute.__get__(self, self._work_class)
                 return attribute
-            elif isinstance(attribute, property):
+            elif isinstance(attribute, (staticmethod, property)):
                 return attribute.__get__(self, self._work_class)
 
             # Look for the name in the instance (e.g. for private variables)
-            return object.__getattr__(self, name)
+            return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name in ["_state", "_work_class"]:
@@ -123,9 +119,18 @@ def _get_work_class() -> Callable:
     return getattr(module, work_name)
 
 
-def _main():
+def _build_model(work):
     import streamlit as st
 
+    # Build the model (once per session, equivalent to gradio when enable_queue is Flase)
+    if "_model" not in st.session_state:
+        with st.spinner("Building model..."):
+            st.session_state["_model"] = work.build_model()
+
+    work._model = st.session_state["_model"]
+
+
+def _main():
     # Get the AppState
     app_state = AppState(plugin=StreamLitStatePlugin())
     work_state = _reduce_to_component_scope(app_state, os.environ["LIGHTNING_COMPONENT_NAME"])
@@ -134,12 +139,8 @@ def _main():
     work_class = _get_work_class()
     patched_work = _PatchedWork(work_state, work_class)
 
-    # Build the model (once per session, equivalent to gradio when enable_queue is Flase)
-    if "_model" not in st.session_state:
-        with st.spinner("Building model..."):
-            st.session_state["_model"] = patched_work.build_model()
-
-    patched_work._model = st.session_state["_model"]
+    # Build and attach the model
+    _build_model(patched_work)
 
     # Render
     patched_work.render()
