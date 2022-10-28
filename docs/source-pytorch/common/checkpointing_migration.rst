@@ -42,4 +42,3 @@ You can upgrade checkpoint files permanently with the following command:
 .. code-block:: python
 
     python -m lightning.pytorch.utilities.upgrade_checkpoint --file model.ckpt
-
