@@ -40,7 +40,7 @@ class StaticWebFrontend(Frontend):
     def start_server(self, host: str, port: int, root_path: str = "") -> None:
         log_file = str(get_logfile())
         self._process = mp.Process(
-            target=start_server,
+            target=_start_server,
             kwargs=dict(
                 host=host,
                 port=port,
@@ -58,12 +58,12 @@ class StaticWebFrontend(Frontend):
         self._process.kill()
 
 
-def healthz():
+def _healthz():
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
     return {"status": "ok"}
 
 
-def start_server(
+def _start_server(
     serve_dir: str, host: str = "localhost", port: int = -1, path: str = "/", log_file: str = "", root_path: str = ""
 ) -> None:
     if port == -1:
@@ -79,7 +79,7 @@ def start_server(
     )
     # trailing / is required for urljoin to properly join the path. In case of
     # multiple trailing /, urljoin removes them
-    fastapi_service.get(urljoin(f"{path}/", "healthz"), status_code=200)(healthz)
+    fastapi_service.get(urljoin(f"{path}/", "healthz"), status_code=200)(_healthz)
     fastapi_service.mount(urljoin(path, root_path), StaticFiles(directory=serve_dir, html=True), name="static")
 
     log_config = _get_log_config(log_file) if log_file else uvicorn.config.LOGGING_CONFIG
@@ -123,4 +123,4 @@ if __name__ == "__main__":  # pragma: no-cover
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=int, default=-1)
     args = parser.parse_args()
-    start_server(serve_dir=args.serve_dir, host=args.host, port=args.port, root_path=args.root_path)
+    _start_server(serve_dir=args.serve_dir, host=args.host, port=args.port, root_path=args.root_path)

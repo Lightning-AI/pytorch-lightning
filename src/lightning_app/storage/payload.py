@@ -6,8 +6,8 @@ from time import sleep
 from typing import Any, Optional, TYPE_CHECKING, Union
 
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.path import filesystem, Path, shared_storage_path
-from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.storage.path import _filesystem, _shared_storage_path, Path
+from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from lightning_app.core.work import LightningWork
 
 
-class BasePayload(ABC):
+class _BasePayload(ABC):
     def __init__(self, value: Any) -> None:
         self._value = value
         # the attribute name given to the payload
@@ -124,11 +124,11 @@ class BasePayload(ABC):
             )
 
         # 1. Send message to orchestrator through queue that with a request for a path existence check
-        request = ExistsRequest(source=self.origin_name, name=self._name, path=str(self._path), hash=self.hash)
+        request = _ExistsRequest(source=self.origin_name, name=self._name, path=str(self._path), hash=self.hash)
         self._request_queue.put(request)
 
         # 2. Wait for the response to come back
-        response: ExistsResponse = self._response_queue.get()  # blocking
+        response: _ExistsResponse = self._response_queue.get()  # blocking
         return response.exists
 
     def get(self) -> Any:
@@ -149,14 +149,14 @@ class BasePayload(ABC):
         # 1. Send message to orchestrator through queue with details of the transfer
         # the source is the name of the work that owns the file that we request
         # the destination is determined by the queue, since each work has a dedicated send and recv queue
-        request = GetRequest(source=self.origin_name, name=self._name, path=str(self._path), hash=self.hash)
+        request = _GetRequest(source=self.origin_name, name=self._name, path=str(self._path), hash=self.hash)
         self._request_queue.put(request)
 
         # 2. Wait for the transfer to finish
-        response: GetResponse = self._response_queue.get()  # blocking
+        response: _GetResponse = self._response_queue.get()  # blocking
         self._validate_get_response(response)
 
-        fs = filesystem()
+        fs = _filesystem()
 
         # 3. Wait until the file appears in shared storage
         while not fs.exists(response.path):
@@ -174,7 +174,7 @@ class BasePayload(ABC):
         self._value = self.load(local_path)
         return self._value
 
-    def _validate_get_response(self, response: "GetResponse") -> None:
+    def _validate_get_response(self, response: "_GetResponse") -> None:
         if response.source != self._origin or response.hash != self.hash:
             raise RuntimeError(
                 f"Tried to get the file {self} but received a response for a request it did not send. The response"
@@ -197,7 +197,7 @@ class BasePayload(ABC):
         )
 
     @classmethod
-    def from_dict(cls, content: dict) -> "BasePayload":
+    def from_dict(cls, content: dict) -> "_BasePayload":
         """Instantiate a Payload from a dictionary."""
         payload = cls(None)
         payload._name = content["name"]
@@ -207,8 +207,8 @@ class BasePayload(ABC):
         return payload
 
     @staticmethod
-    def _handle_exists_request(work: "LightningWork", request: ExistsRequest) -> ExistsResponse:
-        return ExistsResponse(
+    def _handle_exists_request(work: "LightningWork", request: _ExistsRequest) -> _ExistsResponse:
+        return _ExistsResponse(
             source=request.source,
             path=request.path,
             name=request.name,
@@ -218,12 +218,12 @@ class BasePayload(ABC):
         )
 
     @staticmethod
-    def _handle_get_request(work: "LightningWork", request: GetRequest) -> GetResponse:
-        from lightning_app.storage.copier import copy_files
+    def _handle_get_request(work: "LightningWork", request: _GetRequest) -> _GetResponse:
+        from lightning_app.storage.copier import _copy_files
 
         source_path = pathlib.Path(request.path)
-        destination_path = shared_storage_path() / request.hash
-        response = GetResponse(
+        destination_path = _shared_storage_path() / request.hash
+        response = _GetResponse(
             source=request.source,
             name=request.name,
             path=str(destination_path),
@@ -234,14 +234,14 @@ class BasePayload(ABC):
         try:
             payload = getattr(work, request.name)
             payload.save(payload.value, source_path)
-            copy_files(source_path, destination_path)
+            _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
         except Exception as e:
             response.exception = e
         return response
 
 
-class Payload(BasePayload):
+class Payload(_BasePayload):
 
     """The Payload object enables to transfer python objects from one work to another in a similar fashion as
     :class:`~lightning_app.storage.path.Path`."""
