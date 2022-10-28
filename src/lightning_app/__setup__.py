@@ -70,7 +70,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _setup_tools._download_frontend(_PROJECT_ROOT)
+    _setup_tools._download_frontend(_PACKAGE_ROOT)
 
     return dict(
         name="lightning-app",
