@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 
-from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
+from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
@@ -63,7 +63,7 @@ class HttpMethod:
                 return self.method(*args, **kwargs)
 
         else:
-            request_cls = CommandRequest if self.route.startswith("/command/") else APIRequest
+            request_cls = _CommandRequest if self.route.startswith("/command/") else _APIRequest
 
             # 3: Define the request handler.
             @wraps(_signature_proxy_function)
@@ -91,7 +91,7 @@ class HttpMethod:
 
                     return responses_store.pop(request_id)
 
-                response: RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
+                response: _RequestResponse = await asyncio.create_task(fn(*args, **kwargs))
 
                 if response.status_code != 200:
                     raise HTTPException(response.status_code, detail=response.content)
