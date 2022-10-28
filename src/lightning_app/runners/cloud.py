@@ -104,7 +104,9 @@ class CloudRuntime(Runtime):
             # Override the name if provided by the CLI
             app_config.name = name
 
-        app_config.save_to_dir(root)
+        if cluster_id:
+            # Override the cluster ID if provided by the CLI
+            app_config.cluster_id = cluster_id
 
         print(f"The name of the app is: {app_config.name}")
 
@@ -187,7 +189,7 @@ class CloudRuntime(Runtime):
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
-                    cluster_id=cluster_id,
+                    cluster_id=app_config.cluster_id,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
@@ -244,7 +246,7 @@ class CloudRuntime(Runtime):
                 enable_app_server=app_spec.enable_app_server,
                 flow_servers=app_spec.flow_servers,
                 image_spec=app_spec.image_spec,
-                cluster_id=cluster_id,
+                cluster_id=app_config.cluster_id,
                 works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
@@ -266,8 +268,8 @@ class CloudRuntime(Runtime):
 
                 release_body.network_config = network_configs
 
-            if cluster_id is not None:
-                self._ensure_cluster_project_binding(project.project_id, cluster_id)
+            if app_config.cluster_id is not None:
+                self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -293,11 +295,18 @@ class CloudRuntime(Runtime):
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
+                if not app_config.cluster_id:
+                    # Re-run the app on the same cluster
+                    app_config.cluster_id = existing_instance.spec.cluster_id
+
                 # TODO: support multiple instances / 1 instance per cluster
-                if existing_instance.spec.cluster_id != cluster_id:
+                if existing_instance.spec.cluster_id != app_config.cluster_id:
+                    cluster_pretty = (
+                        f"cluster '{app_config.cluster_id}'" if app_config.cluster_id else "the default cluster"
+                    )
                     raise ValueError(
-                        f"Can not start app '{name}' on cluster '{cluster_id}' "
-                        f"since this app already exists on '{existing_instance.spec.cluster_id}'. "
+                        f"Can not start app '{app_config.name}' on {cluster_pretty} "
+                        f"since this app already exists on cluster '{existing_instance.spec.cluster_id}'. "
                         "To run it on another cluster, give it a new name with the --name option."
                     )
 
@@ -325,8 +334,11 @@ class CloudRuntime(Runtime):
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
 
-            if cluster_id is not None:
-                logger.info(f"running app on {lightning_app_release.cluster_id}")
+            app_config.cluster_id = lightning_app_release.cluster_id
+            logger.info(f"Running app on {lightning_app_release.cluster_id}")
+
+            # Save the config for re-runs
+            app_config.save_to_dir(root)
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
