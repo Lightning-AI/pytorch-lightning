@@ -50,6 +50,8 @@ from lightning_app.core.constants import (
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
+    ENABLE_PULLING_STATE_ENDPOINT,
+    ENABLE_PUSHING_STATE_ENDPOINT,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -125,6 +127,12 @@ class CloudRuntime(Runtime):
 
         if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
+
+        if not ENABLE_PULLING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PULLING_STATE_ENDPOINT", value="0"))
+
+        if not ENABLE_PUSHING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
