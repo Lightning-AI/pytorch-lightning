@@ -96,6 +96,7 @@ class CloudRuntime(Runtime):
         app_config = AppConfig.load_from_file(config_file) if config_file else AppConfig()
         root = config_file.parent if config_file else Path(self.entrypoint_file).absolute().parent
         cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
+        self.app._update_index_file()
         repo = LocalSourceCodeDir(path=root)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
