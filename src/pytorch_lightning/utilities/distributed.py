@@ -12,9 +12,10 @@
 # limitations under the License.
 """Utilities that can be used with distributed training."""
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
+from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning_lite.utilities.distributed import _all_gather_ddp_if_available as new_all_gather_ddp_if_available
@@ -174,6 +175,40 @@ def gather_all_tensors(*args: Any, **kwargs: Any) -> Any:
         " be removed in v1.10.0. This function is internal but you can copy over its implementation."
     )
     return new_gather_all_tensors(*args, **kwargs)
+
+
+class AllGatherGrad(torch.autograd.Function):
+    """Gathers tensors from the whole group and stacks them.
+
+    This implementation is copied from PyTorch.
+
+    .. deprecated:: v1.8.0
+        This function has been deprecated in v1.8.0 in favor of :func:`torch.distributed.nn.functional.all_gather` and
+        will be removed in v1.10.0.
+    """
+
+    @staticmethod
+    def forward(  # type: ignore[override]
+        ctx: Any,
+        tensor: Tensor,
+        group: Optional["torch.distributed.ProcessGroup"] = None,
+    ) -> Tensor:
+        rank_zero_deprecation(
+            "`AllGatherGrad` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+            " Use `torch.distributed.nn.functional.all_gather` instead.",
+            stacklevel=6,
+        )
+        ctx.group = group
+        gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
+        torch.distributed.all_gather(gathered_tensor, tensor, group=group)
+        gathered_tensor = torch.stack(gathered_tensor, dim=0)
+        return gathered_tensor
+
+    @staticmethod
+    def backward(ctx: Any, *grad_output: Tensor) -> Tuple[Tensor, None]:
+        grad_output = torch.cat(grad_output)
+        torch.distributed.all_reduce(grad_output, op=torch.distributed.ReduceOp.SUM, async_op=False, group=ctx.group)
+        return grad_output[torch.distributed.get_rank()], None
 
 
 def get_default_process_group_backend_for_device(*args: Any, **kwargs: Any) -> Any:
