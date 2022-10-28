@@ -58,6 +58,8 @@ class HttpMethod:
             # 3: Define the request handler.
             @wraps(_signature_proxy_function)
             async def _handle_request(*args, **kwargs):
+                if inspect.iscoroutinefunction(self.method):
+                    return await self.method(*args, **kwargs)
                 return self.method(*args, **kwargs)
 
         else:

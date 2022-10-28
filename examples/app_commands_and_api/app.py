@@ -5,7 +5,7 @@ from lightning_app.api import Get, Post
 from lightning_app.core.app import LightningApp
 
 
-def handler():
+async def handler():
     print("Has been called")
     return "Hello World !"
 

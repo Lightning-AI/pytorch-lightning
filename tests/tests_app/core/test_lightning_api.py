@@ -415,6 +415,11 @@ class OutputRequestModel(BaseModel):
     counter: int
 
 
+async def handler():
+    print("Has been called")
+    return "Hello World !"
+
+
 class FlowAPI(LightningFlow):
     def __init__(self):
         super().__init__()
@@ -431,7 +436,7 @@ class FlowAPI(LightningFlow):
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
-        return [Post("/api/v1/request", self.request)]
+        return [Post("/api/v1/request", self.request), Post("/api/v1/handler", handler)]
 
 
 def target():
@@ -481,6 +486,9 @@ def test_configure_api():
     assert response_time < 10
     assert len(results) == N
     assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
+
+    response = requests.post(f"http://localhost:{APP_SERVER_PORT}/api/v1/handler")
+    assert response.status_code == 200
 
     # Stop the Application
     try:
