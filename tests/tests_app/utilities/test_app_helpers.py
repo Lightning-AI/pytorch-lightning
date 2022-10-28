@@ -53,7 +53,7 @@ def test_simple_app_store():
     assert isinstance(store, StateStore)
 
 
-@mock.patch("lightning_app.utilities.app_helpers.APP_STATE_MAX_SIZE_BYTES", 120)
+@mock.patch("lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES", 120)
 def test_simple_app_store_warning():
     store = InMemoryStateStore()
     user_id = "1234"

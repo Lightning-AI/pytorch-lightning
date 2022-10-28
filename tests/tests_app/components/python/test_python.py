@@ -7,7 +7,7 @@ from tests_app import _PROJECT_ROOT
 from lightning_app.components.python import PopenPythonScript, TracerPythonScript
 from lightning_app.components.python.tracer import Code
 from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import run_work_isolated
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import CacheCallsKeys
@@ -46,7 +46,7 @@ def test_simple_popen_python_script_with_kwargs():
     assert python_script.has_succeeded
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_popen_python_script_failure():
     python_script = PopenPythonScript(
         COMPONENTS_SCRIPTS_FOLDER + "c.py",
