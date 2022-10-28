@@ -52,8 +52,6 @@ def pytest_sessionfinish(session, exitstatus):
         if t is not main_thread:
             t.join(0)
 
-    Popen(f"sudo py-spy top --pid {os.getpid()}", shell=True)
-
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
