@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from typing_extensions import TypedDict
 
-from lightning_app import LightningWork
+from lightning_app.core.work import LightningWork
 from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger

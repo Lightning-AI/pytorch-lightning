@@ -49,7 +49,7 @@ Finally, route the Component's UI through the root Component's **configure_layou
 
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.app.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 
     class LitApp(L.LightningFlow):
