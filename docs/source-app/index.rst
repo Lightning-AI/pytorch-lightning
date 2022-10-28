@@ -92,6 +92,15 @@ Get Started
    :deploy: https://lightning.ai
    :target: https://apple.com
 
+.. app_card::
+   :title: Deploy a Diffusion Model
+   :width: 260
+   :image: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/muse_thumbnail.png
+   :app_id: HvUwbEG90E
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
 .. raw:: html
 
       </div>
