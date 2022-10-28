@@ -446,11 +446,10 @@ def test_rich_progress_bar_can_be_pickled():
 
 @RunIf(rich=True)
 def test_rich_progress_bar_disabled(tmpdir):
+    """Test that in a disabled bar there are no updates and no internal progress objects."""
     bar = RichProgressBar()
     bar.disable()
     assert bar.is_disabled
-
-    # bar.progress = Mock()
 
     model = BoringModel()
     trainer = Trainer(
