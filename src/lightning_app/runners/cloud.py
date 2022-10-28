@@ -299,14 +299,6 @@ class CloudRuntime(Runtime):
                     # Re-run the app on the same cluster
                     app_config.cluster_id = existing_instance.spec.cluster_id
 
-                # TODO: support multiple instances / 1 instance per cluster
-                if existing_instance.spec.cluster_id != app_config.cluster_id:
-                    raise ValueError(
-                        f"Cannot start app '{app_config.name}' on cluster '{app_config.cluster_id}' "
-                        f"since this app already exists on cluster '{existing_instance.spec.cluster_id}'. "
-                        "To run it on another cluster, give it a new name with the --name option."
-                    )
-
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                     # TODO(yurij): Implement release switching in the UI and remove this
                     # We can only switch release of the stopped instance
