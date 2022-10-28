@@ -82,7 +82,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@http" in req:
+    if not req or req.startswith("http") or "@" in req:
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -279,13 +279,14 @@ def set_actual_version_from_src(req_path: str, src_root: str, pkg_name: str) -> 
     >>> set_actual_version_from_src("../requirements/pytorch/base.txt", "../src", "lightning-lite")
     """
     with open(req_path, encoding="utf-8") as fo:
-        reqs = parse_requirements(fo.readlines())
+        lines = fo.readlines()
     ver = parse_version_from_file(os.path.join(src_root, pkg_name.replace("-", "_")))
-    lines = []
-    for i, req in enumerate(reqs):
-        if req.name == pkg_name:
-            req = f"{pkg_name}=={ver}"
-        lines.append(f"{req}{os.linesep}")
+    for i, ln in enumerate(lines):
+        reqs = list(parse_requirements([ln]))
+        if not reqs:
+            continue
+        if reqs[0].name == pkg_name:
+            lines[i] = f"{pkg_name}=={ver}{os.linesep}"
 
     with open(req_path, "w", encoding="utf-8") as fw:
         fw.writelines(lines)
