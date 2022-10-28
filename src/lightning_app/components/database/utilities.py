@@ -22,7 +22,7 @@ T = TypeVar("T")
 
 
 # Taken from https://github.com/tiangolo/sqlmodel/issues/63#issuecomment-1081555082
-def pydantic_column_type(pydantic_type: Any) -> Any:
+def _pydantic_column_type(pydantic_type: Any) -> Any:
     """This function enables to support JSON types with SQLModel.
 
     Example::
@@ -112,7 +112,7 @@ def pydantic_column_type(pydantic_type: Any) -> Any:
 
 
 @functools.lru_cache(maxsize=128)  # compatibility for py3.7
-def get_primary_key(model_type: Type["SQLModel"]) -> str:
+def _get_primary_key(model_type: Type["SQLModel"]) -> str:
     primary_keys = sqlalchemy_inspect(model_type).primary_key
 
     if len(primary_keys) != 1:
@@ -198,7 +198,7 @@ class _Update:
 
         with Session(engine) as session:
             update_data = self.models[data["cls_name"]].parse_raw(data["data"])
-            primary_key = get_primary_key(update_data.__class__)
+            primary_key = _get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
             results = session.exec(statement)
@@ -225,7 +225,7 @@ class _Delete:
 
         with Session(engine) as session:
             update_data = self.models[data["cls_name"]].parse_raw(data["data"])
-            primary_key = get_primary_key(update_data.__class__)
+            primary_key = _get_primary_key(update_data.__class__)
             identifier = getattr(update_data.__class__, primary_key, None)
             statement = select(update_data.__class__).where(identifier == getattr(update_data, primary_key))
             results = session.exec(statement)
