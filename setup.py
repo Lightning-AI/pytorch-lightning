@@ -68,16 +68,6 @@ if not os.path.isfile(_PATH_SETUP):
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
-# Hardcode the env variable from time of package creation, otherwise it fails during installation
-with open(__file__) as fp:
-    lines = fp.readlines()
-for i, ln in enumerate(lines):
-    if ln.startswith("_PACKAGE_NAME = "):
-        lines[i] = f'_PACKAGE_NAME = "{_PACKAGE_NAME}"{os.linesep}'
-with open(__file__, "w") as fp:
-    fp.writelines(lines)
-
-
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
     assert spec, f"Failed to load module {name} from {location}"
@@ -96,6 +86,7 @@ if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
+    print(f"Installing the {_PACKAGE_NAME} package")  # requires `-v` to appear
     if _PACKAGE_NAME == "lightning":
         # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
