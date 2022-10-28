@@ -7,78 +7,95 @@
 Welcome to ⚡ Lightning
 ######################
 
-|
-
-Build models and full stack AI apps ⚡ *Lightning fast*. Examples:
-
-.. app_card::
-   :title: abc
-
-asdf asdf
-
-|
-
-.. raw:: html
-
-   <div class="display-card-container">
-      <div class="row" style="display:flex; align-items: center; justify-content: space-evenly">
-
-.. displayitem::
-   :header: Internal ML system (no UI)
-   :description: An internal ML system for fraud detection.
-   :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/muse_thumbnail.png
-   :button_link: https://lightning.ai/muse
-   :height: 280
-   :tag: Enterprise
-
-.. displayitem::
-   :header: External SaaS product 
-   :description: Build and monetize external products 
-   :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/yolo.png
-   :button_link: https://lightning.ai/muse
-   :height: 280
-   :tag: Startup
-
-.. displayitem::
-   :header: Demo software products
-   :description: Share reproducible software products for clients that scale instead of jupyter notebooks that don't.
-   :col_css: col-md-3
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/training-studio-logo.png
-   :button_link: https://lightning.ai/muse
-   :height: 280
-   :tag: Research
-
-.. raw:: html
-
-      </div>
-   </div>
+Build models and full stack AI apps ⚡ *Lightning fast*
 
 .. join_slack::
-   :align: center
+   :align: left
 
-----
+*****************************
+Build encapsulated components
+*****************************
 
 .. lit_tabs::
-   :titles: Run any python code;;;
-   :descriptions: Run python on the cloud or locally; Example: Train PTL ⚡ models on cloud GPUs; Example: Serve models with FastAPI; Example: Run R, Python, C++, Matlab scripts
+   :descriptions: Encapsulate any python code; Example: Train PTL ⚡ models on cloud GPUs; Example: Serve models with FastAPI; Example: Run R, Python, C++, Matlab scripts
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
    :tab_rows: 5
    :height: 255px
 
-|
+----
 
-|
-
+******************************************
+Compose components into full stack AI apps
+******************************************
 
 .. lit_tabs::
-   :titles: Run anywhere;;;
+   :descriptions: Compose modules into apps; Run on your hardware; Run on the cloud; Run distributed
+   :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
+   :highlights: 6, 11; 7, 11; 6-8; 7, 8
+   :tab_rows: 5
+   :height: 255px
+
+----
+
+*****************************
+On the cloud or your hardware
+*****************************
+
+.. lit_tabs::
    :descriptions: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
    :tab_rows: 5
    :height: 195px
+
+----
+
+
+***********
+Get Started
+***********
+
+.. raw:: html
+
+   <div class="display-card-container">
+      <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
+
+.. app_card::
+   :title: Train a model
+   :width: 260
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
+.. app_card::
+   :title: Deploy a model
+   :width: 260
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
+.. app_card::
+   :title: Build a full stack AI app
+   :width: 260
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
+.. app_card::
+   :title: Build a hosted ML platform
+   :width: 260
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
+.. raw:: html
+
+      </div>
+   </div>
 
 ----
 
@@ -96,42 +113,13 @@ For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <i
 
 ----
 
-***********
-Get Started
-***********
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Lightning in 15 minutes
-   :description: Learn the key ideas of building with Lightning.
-   :col_css: col-md-12
-   :button_link: levels/basic/lightning_in_15_minutes.html
-   :height: 160
-   :tag: All users
-
-.. raw:: html
-
-        </div>
-    </div>
-
-.. End of callout item section
-
-
-----
-
 ***********************
 Current Lightning Users
 ***********************
 
 .. raw:: html
 
-   <div class="display-card-container">
+   <div class="display-card-container" style="padding: 0 10px 0 10px">
       <div class="row">
 
 .. displayitem::
