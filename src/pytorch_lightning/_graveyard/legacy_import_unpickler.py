@@ -29,6 +29,9 @@ def compare_version(package: str, op: Callable, version: str, use_base_version: 
     return _compare_version(new_package, op, version, use_base_version)
 
 
+# patching is necessary, since up to v.0.7.3 torchmetrics has a hardcoded reference to pytorch_lightning,
+# which has to be redirected to the unified package:
+# https://github.com/Lightning-AI/metrics/blob/v0.7.3/torchmetrics/metric.py#L96
 try:
     if hasattr(torchmetrics.utilities.imports, "_compare_version"):
         torchmetrics.utilities.imports._compare_version = compare_version  # type: ignore
