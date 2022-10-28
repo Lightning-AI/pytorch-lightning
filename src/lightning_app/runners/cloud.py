@@ -331,14 +331,15 @@ class CloudRuntime(Runtime):
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
 
-            app_config.cluster_id = lightning_app_release.cluster_id
-            logger.info(f"Running app on {lightning_app_release.cluster_id}")
+            if lightning_app_release.source_upload_url == "":
+                raise RuntimeError("The source upload url is empty.")
+
+            if getattr(lightning_app_release, "cluster_id", None):
+                app_config.cluster_id = lightning_app_release.cluster_id
+                logger.info(f"Running app on {lightning_app_release.cluster_id}")
 
             # Save the config for re-runs
             app_config.save_to_dir(root)
-
-            if lightning_app_release.source_upload_url == "":
-                raise RuntimeError("The source upload url is empty.")
 
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
