@@ -55,11 +55,11 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # anything", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # my name", unfreeze="all")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0  # strict'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
     'arrow>=1.2.0, <=1.2.2  # strict'
