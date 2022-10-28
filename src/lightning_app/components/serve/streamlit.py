@@ -6,7 +6,7 @@ import subprocess
 import sys
 from typing import Any, Callable
 
-from lightning_app import LightningWork
+from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
 from lightning_app.utilities.state import AppState
 
