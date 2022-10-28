@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 
 import lightning as L
-from lightning.app.components.serve import ServeGradio
+from lightning.app.components import ServeGradio
 
 
 # Credit to @akhaliq for his inspiring work.
