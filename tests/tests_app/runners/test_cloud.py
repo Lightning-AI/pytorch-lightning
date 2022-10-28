@@ -113,7 +113,7 @@ class TestAppCreationClient:
 
         assert exc.match(
             f"Cannot start app '{app_name}' on cluster '{new_cluster}' "
-            f"since this app already exists on '{original_cluster}'. "
+            f"since this app already exists on cluster '{original_cluster}'. "
             "To run it on another cluster, give it a new name with the --name option."
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_not_called()
