@@ -5,8 +5,8 @@ from threading import Thread
 from typing import Dict, Optional, TYPE_CHECKING, Union
 
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.path import filesystem, path_to_work_artifact
-from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.storage.path import _filesystem, _path_to_work_artifact
+from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import WorkStageStatus
 
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from lightning_app import LightningApp
 
 
-_PathRequest = Union[GetRequest, ExistsRequest]
-_PathResponse = Union[ExistsResponse, GetResponse]
+_PathRequest = Union[_GetRequest, _ExistsRequest]
+_PathResponse = Union[_ExistsResponse, _GetResponse]
 _logger = Logger(__name__)
 
 
@@ -52,7 +52,7 @@ class StorageOrchestrator(Thread):
         self._validate_queues()
         self._exit_event = threading.Event()
         self._sleep_time = 2
-        self.fs = filesystem()
+        self.fs = _filesystem()
 
     def _validate_queues(self):
         assert (
@@ -87,7 +87,7 @@ class StorageOrchestrator(Thread):
             else:
                 request.destination = work_name
                 source_work = self.app.get_component_by_name(request.source)
-                maybe_artifact_path = str(path_to_work_artifact(request.path, source_work))
+                maybe_artifact_path = str(_path_to_work_artifact(request.path, source_work))
 
                 if self.fs.exists(maybe_artifact_path):
                     # First check if the shared filesystem has the requested file stored as an artifact
@@ -95,16 +95,16 @@ class StorageOrchestrator(Thread):
                     # NOTE: This is NOT the right thing to do, because the Work could still be running and producing
                     # a newer version of the requested file, but we can't rely on the Work status to be accurate
                     # (at the moment)
-                    if isinstance(request, GetRequest):
-                        response = GetResponse(
+                    if isinstance(request, _GetRequest):
+                        response = _GetResponse(
                             source=request.source,
                             name=request.name,
                             path=maybe_artifact_path,
                             hash=request.hash,
                             destination=request.destination,
                         )
-                    if isinstance(request, ExistsRequest):
-                        response = ExistsResponse(
+                    if isinstance(request, _ExistsRequest):
+                        response = _ExistsResponse(
                             source=request.source,
                             path=maybe_artifact_path,
                             name=request.name,
@@ -129,16 +129,16 @@ class StorageOrchestrator(Thread):
                     # Store a destination to source mapping.
                     self.waiting_for_response[work_name] = request.source
                 else:
-                    if isinstance(request, GetRequest):
-                        response = GetResponse(
+                    if isinstance(request, _GetRequest):
+                        response = _GetResponse(
                             source=request.source,
                             path=request.path,
                             name=request.name,
                             hash=request.hash,
                             destination=request.destination,
                         )
-                    if isinstance(request, ExistsRequest):
-                        response = ExistsResponse(
+                    if isinstance(request, _ExistsRequest):
+                        response = _ExistsResponse(
                             source=request.source,
                             path=request.path,
                             hash=request.hash,
