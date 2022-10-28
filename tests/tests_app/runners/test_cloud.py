@@ -65,21 +65,21 @@ class WorkWithTwoDrives(LightningWork):
         pass
 
 
-def get_cloud_runtime_request_body(**kwargs) -> 'Body8':
+def get_cloud_runtime_request_body(**kwargs) -> "Body8":
     default_request_body = dict(
-            app_entrypoint_file=mock.ANY,
-            enable_app_server=True,
-            flow_servers=[],
-            image_spec=None,
-            works=[],
-            local_source=True,
-            dependency_cache_key=mock.ANY,
-            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
-                name="flow-lite",
-                preemptible=False,
-                shm_size=0,
-            ),
-        )
+        app_entrypoint_file=mock.ANY,
+        enable_app_server=True,
+        flow_servers=[],
+        image_spec=None,
+        works=[],
+        local_source=True,
+        dependency_cache_key=mock.ANY,
+        user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+            name="flow-lite",
+            preemptible=False,
+            shm_size=0,
+        ),
+    )
 
     if kwargs.get("user_requested_flow_compute_config") is not None:
         default_request_body["user_requested_flow_compute_config"] = kwargs["user_requested_flow_compute_config"]
@@ -144,13 +144,7 @@ class TestAppCreationClient:
             body=V1ProjectClusterBinding(cluster_id=new_cluster, project_id="default-project-id"),
         )
 
-    @pytest.mark.parametrize(
-    'flow_cloud_compute',
-    [
-        None,
-        CloudCompute(name="t2.medium")
-    ]
-    )
+    @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     def test_run_with_default_flow_compute_config(self, monkeypatch, flow_cloud_compute):
         mock_client = mock.MagicMock()
