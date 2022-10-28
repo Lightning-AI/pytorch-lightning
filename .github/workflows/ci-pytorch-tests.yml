@@ -131,7 +131,7 @@ jobs:
         PACKAGE_NAME: "lite"
       run: |
         pip install -e . --upgrade --find-links ${TORCH_URL}
-        git reset --hard
+        git checkout -- setup.py MANIFEST.in
 
     - name: Install package & dependencies
       env:
