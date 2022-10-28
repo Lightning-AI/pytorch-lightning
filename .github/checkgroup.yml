@@ -251,14 +251,34 @@ subprojects:
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "tests/tests_app_examples/**"
-      # the examples are used in the app CI
-      - "examples/app_*"
+      - "examples/app_*"  # some tests_app tests call examples files
+      - ".github/workflows/ci-app-tests.yml"
+      - "setup.py"
       - ".actions/**"
     checks:
       - "App.cloud-e2e"
       - "make-doctest (app)"
       - "make-html (app)"
+      - "app-pytest (macOS-11, app, 3.8, latest)"
+      - "app-pytest (macOS-11, app, 3.8, oldest)"
+      - "app-pytest (macOS-11, lightning, 3.9, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
+      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
+      - "app-pytest (windows-2022, app, 3.8, latest)"
+      - "app-pytest (windows-2022, app, 3.8, oldest)"
+      - "app-pytest (windows-2022, lightning, 3.8, latest)"
+
+  - id: "lightning_app: Examples"
+    paths:
+      - "requirements/app/**"
+      - "src/lightning_app/**"
+      - "tests/tests_app_examples/**"
+      - "examples/app_*"
+      - ".github/workflows/ci-app-examples.yml"
+      - "setup.py"
+      - ".actions/**"
+    checks:
       - "app-examples (macOS-11, app, 3.9, latest)"
       - "app-examples (macOS-11, app, 3.9, oldest)"
       - "app-examples (macOS-11, lightning, 3.9, latest)"
@@ -268,15 +288,6 @@ subprojects:
       - "app-examples (windows-2022, app, 3.9, latest)"
       - "app-examples (windows-2022, app, 3.9, oldest)"
       - "app-examples (windows-2022, lightning, 3.9, latest)"
-      - "app-pytest (macOS-11, app, 3.8, latest)"
-      - "app-pytest (macOS-11, app, 3.8, oldest)"
-      - "app-pytest (macOS-11, lightning, 3.9, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
-      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
-      - "app-pytest (windows-2022, app, 3.8, latest)"
-      - "app-pytest (windows-2022, app, 3.8, oldest)"
-      - "app-pytest (windows-2022, lightning, 3.9, latest)"
 
   - id: "lightning_app: Azure"
     paths:
