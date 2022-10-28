@@ -219,7 +219,6 @@ class AssistantCLI:
         source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
     ) -> None:
         """Recursively replace imports in given folder."""
-
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
         assert len(source_imports) == len(target_imports), (
@@ -239,11 +238,8 @@ class AssistantCLI:
 
                 py = _replace_imports(py, list(zip(source_imports, target_imports)))
 
-                if target_dir:
-                    fp_new = fp.replace(source_dir, target_dir)
-                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                else:
-                    fp_new = fp
+                fp_new = fp.replace(source_dir, target_dir)
+                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
 
                 with open(fp_new, "w", encoding="utf-8") as fo:
                     fo.writelines(py)
