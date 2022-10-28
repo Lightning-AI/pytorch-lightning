@@ -688,6 +688,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
