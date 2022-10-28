@@ -65,6 +65,28 @@ class WorkWithTwoDrives(LightningWork):
         pass
 
 
+def get_cloud_runtime_request_body(**kwargs) -> 'Body8':
+    default_request_body = dict(
+            app_entrypoint_file=mock.ANY,
+            enable_app_server=True,
+            flow_servers=[],
+            image_spec=None,
+            works=[],
+            local_source=True,
+            dependency_cache_key=mock.ANY,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name="flow-lite",
+                preemptible=False,
+                shm_size=0,
+            ),
+        )
+
+    if "user_requested_flow_compute_config" in kwargs:
+        default_request_body["user_requested_flow_compute_config"] = kwargs["user_requested_flow_compute_config"]
+
+    return Body8(**default_request_body)
+
+
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
@@ -137,7 +159,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
 
         dummy_flow = mock.MagicMock()
-        dummy_flow.run = lambda *args, **kwargs: None
+        monkeypatch.setattr(dummy_flow, "run", lambda *args, **kwargs: None)
         app = LightningApp(dummy_flow)
 
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
@@ -146,20 +168,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
         monkeypatch.setattr(cloud, "Path", Path)
         cloud_runtime.dispatch()
-        body = Body8(
-            app_entrypoint_file=mock.ANY,
-            enable_app_server=True,
-            flow_servers=[],
-            image_spec=None,
-            works=[],
-            local_source=True,
-            dependency_cache_key=mock.ANY,
-            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
-                name="flow-lite",
-                preemptible=False,
-                shm_size=0,
-            ),
-        )
+        body = get_cloud_runtime_request_body()
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
         )
@@ -187,14 +196,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
         monkeypatch.setattr(cloud, "Path", Path)
         cloud_runtime.dispatch()
-        body = Body8(
-            app_entrypoint_file=mock.ANY,
-            enable_app_server=True,
-            flow_servers=[],
-            image_spec=None,
-            works=[],
-            local_source=True,
-            dependency_cache_key=mock.ANY,
+        body = get_cloud_runtime_request_body(
             user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
                 name="t2.medium",
                 preemptible=False,
