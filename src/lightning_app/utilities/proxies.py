@@ -387,6 +387,7 @@ class WorkRunner:
 
         # 6. Create the state observer thread.
         self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+        self.state_observer.setDaemon(True)
 
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
