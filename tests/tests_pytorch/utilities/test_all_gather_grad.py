@@ -15,7 +15,7 @@
 import numpy as np
 import torch
 
-from lightning_lite.utilities.distributed import AllGatherGrad
+from lightning_lite.utilities.distributed import _AllGather
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -30,8 +30,8 @@ def all_gather_ddp_spawn_fn(strategy):
     tensor1 = torch.ones(8, requires_grad=True)
     tensor2 = torch.ones((8, 16, 32), requires_grad=True)
 
-    tensor1_gathered = AllGatherGrad.apply(tensor1)
-    tensor2_gathered = AllGatherGrad.apply(tensor2)
+    tensor1_gathered = _AllGather.apply(tensor1)
+    tensor2_gathered = _AllGather.apply(tensor2)
 
     tensor1_gathered = tensor1_gathered * rank
     tensor2_gathered = tensor2_gathered * rank
