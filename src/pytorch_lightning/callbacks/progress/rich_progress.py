@@ -547,7 +547,6 @@ class RichProgressBar(ProgressBarBase):
         self.main_progress_bar_id = None
         self.val_sanity_progress_bar_id = None
         self.val_progress_bar_id = None
-        self.val_sanity_progress_bar_id = None
         self.test_progress_bar_id = None
         self.predict_progress_bar_id = None
 
