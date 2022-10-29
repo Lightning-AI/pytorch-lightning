@@ -12,29 +12,35 @@ Build models and full stack AI apps ⚡ *Lightning fast*
 .. join_slack::
    :align: left
 
-*****************************
-Build encapsulated components
-*****************************
+**********************************************************
+Build modular components that run locally and on the cloud
+**********************************************************
+A Component runs arbitrary, self-contained Python code, manages its own infrastructure and provices a standard to connect to other components.
 
 .. lit_tabs::
-   :descriptions: Encapsulate any python code; Example: Train PTL ⚡ models on cloud GPUs; Example: Serve models with FastAPI; Example: Run R, Python, C++, Matlab scripts
+   :titles: ; Example; Example; Example;
+   :descriptions: Define a self-contained component; ⚡ Train models on cloud GPUs; Serve models; Run R, Python, C++, Matlab scripts
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
-   :tab_rows: 5
-   :height: 255px
+   :images: <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 440px; height: auto; padding: 10px"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto">
+   :side_image_width: 58%
+   :tab_rows: 4
+   :height: 315px
 
 ----
 
 ******************************************
 Compose components into full stack AI apps
 ******************************************
+Something about this
 
 .. lit_tabs::
-   :descriptions: Compose modules into apps; Run on your hardware; Run on the cloud; Run distributed
+   :titles: ; Example; Example; Example;
+   :descriptions: Compose modules into an app; Traditional sequential workflow; Human in the loop; Example: Something else 
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
-   :tab_rows: 5
-   :height: 255px
+   :tab_rows: 4
+   :height: 315px
 
 ----
 
@@ -45,15 +51,15 @@ On the cloud or your hardware
 .. lit_tabs::
    :descriptions: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
-   :tab_rows: 5
+   :tab_rows: 4
    :height: 195px
 
 ----
 
-
 ***********
 Get Started
 ***********
+Pick a tutorial to build your first Lightning App.
 
 .. raw:: html
 
@@ -61,8 +67,17 @@ Get Started
       <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
 
 .. app_card::
+   :title: Hello world
+   :description: Something supereererererererererer long asdf asf asdfasdf a 
+   :width: 280
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+
+.. app_card::
    :title: Train a model
-   :width: 260
+   :width: 280
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
@@ -70,7 +85,7 @@ Get Started
 
 .. app_card::
    :title: Deploy a model
-   :width: 260
+   :width: 280
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
@@ -78,15 +93,15 @@ Get Started
 
 .. app_card::
    :title: Build a full stack AI app
-   :width: 260
+   :width: 280
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
 
 .. app_card::
-   :title: Build a hosted ML platform
-   :width: 260
+   :title: Build a cloud ML platform
+   :width: 280
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai

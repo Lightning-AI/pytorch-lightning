@@ -99,6 +99,12 @@ extensions = [
 # todo: remove this after finishing fusion
 suppress_warnings = ["autosectionlabel.*"]
 
+copybutton_prompt_text = ">>> "
+copybutton_prompt_text1 = "... "
+copybutton_exclude = '.linenos'
+
+copybutton_only_copy_prompt_lines = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

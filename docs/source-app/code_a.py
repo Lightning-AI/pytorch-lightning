@@ -7,6 +7,7 @@ class LitWorker(L.LightningWork):
 
 
 
-# run on 1 cloud GPU
-compute = L.CloudCompute("gpu")
-app = L.LightningApp(LitWorker(cloud_compute=compute))
+# run on a cloud machine
+compute = L.CloudCompute("cpu")
+worker = LitWorker(cloud_compute=compute)
+app = L.LightningApp(worker)
