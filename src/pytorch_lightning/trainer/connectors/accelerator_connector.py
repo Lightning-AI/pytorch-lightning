@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
+from lightning_lite.accelerators.cuda import _pick_multiple_gpus
 from lightning_lite.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
@@ -78,7 +79,6 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from lightning_lite.accelerators.cuda import _pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,

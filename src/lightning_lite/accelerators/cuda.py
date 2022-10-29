@@ -181,7 +181,6 @@ def _device_count_nvml() -> int:
         return -1
 
 
-
 def _pick_multiple_gpus(nb: int) -> List[int]:
     """
     Raises:

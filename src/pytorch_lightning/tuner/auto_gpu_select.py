@@ -12,5 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.accelerators.cuda import _pick_single_gpu, _pick_multiple_gpus
-
+from lightning_lite.accelerators.cuda import _pick_multiple_gpus, _pick_single_gpu
