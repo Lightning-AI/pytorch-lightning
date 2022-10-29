@@ -12,20 +12,23 @@ Build models and full stack AI apps ⚡ *Lightning fast*
 .. join_slack::
    :align: left
 
-**********************************************************
-Build modular components that run locally and on the cloud
-**********************************************************
-A Component runs arbitrary, self-contained Python code, manages its own infrastructure and provices a standard to connect to other components.
+********************************
+Run any Python code on the cloud
+********************************
+Lightning makes it painless to build full stack AI apps for the cloud. Implement Lightning components that encapsulate 
+each part of your application to make it modular, interoperable and maintainable. 
+Each Lightning component manages its own infrastructure, cost management, networking and more, so you can focus on the application logic.
 
 .. lit_tabs::
    :titles: ; Example; Example; Example;
-   :descriptions: Define a self-contained component; ⚡ Train models on cloud GPUs; Serve models; Run R, Python, C++, Matlab scripts
+   :descriptions: Add your code to a Lightning component; Train models on cloud GPUs; Serve models; Run R, Python, C++, Matlab scripts
    :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
-   :images: <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 440px; height: auto; padding: 10px"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto">
+   :images: <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: auto; height: 95%; padding: 10px"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto">
    :side_image_width: 58%
+   :app_id: abc123
    :tab_rows: 4
-   :height: 315px
+   :height: 385px
 
 ----
 
