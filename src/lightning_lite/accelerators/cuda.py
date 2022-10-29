@@ -179,3 +179,53 @@ def _device_count_nvml() -> int:
         return -1
     except AttributeError:
         return -1
+
+
+
+def _pick_multiple_gpus(nb: int) -> List[int]:
+    """
+    Raises:
+        ValueError: When the requested number is higher than the number of GPUs available on the machine.
+    """
+    if nb == 0:
+        return []
+
+    num_gpus = num_cuda_devices()
+    if nb > num_gpus:
+        raise ValueError(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
+    nb = num_gpus if nb == -1 else nb
+
+    picked: List[int] = []
+    for _ in range(nb):
+        picked.append(_pick_single_gpu(exclude_gpus=picked))
+
+    return picked
+
+
+def _pick_single_gpu(exclude_gpus: List[int]) -> int:
+    """
+    Raises:
+        RuntimeError:
+            If you try to allocate a GPU, when no GPUs are available.
+    """
+    previously_used_gpus = []
+    unused_gpus = []
+    for i in range(num_cuda_devices()):
+        if i in exclude_gpus:
+            continue
+
+        if torch.cuda.memory_reserved(f"cuda:{i}") > 0:
+            previously_used_gpus.append(i)
+        else:
+            unused_gpus.append(i)
+
+    # Prioritize previously used GPUs
+    for i in previously_used_gpus + unused_gpus:
+        # Try to allocate on device:
+        device = torch.device(f"cuda:{i}")
+        try:
+            torch.ones(1).to(device)
+        except RuntimeError:
+            continue
+        return i
+    raise RuntimeError("No GPUs available.")

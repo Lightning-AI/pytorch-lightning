@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.tuner.auto_gpu_select import _pick_multiple_gpus
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -27,16 +27,16 @@ from tests_pytorch.helpers.runif import RunIf
     [(0, []), (-1, list(range(torch.cuda.device_count()))), (1, [0])],
 )
 def test_pick_multiple_gpus(nb, expected_gpu_idxs):
-    assert expected_gpu_idxs == pick_multiple_gpus(nb)
+    assert expected_gpu_idxs == _pick_multiple_gpus(nb)
 
 
 def test_pick_multiple_gpus_more_than_available(cuda_count_1):
     with pytest.raises(ValueError, match="You requested 3 GPUs but your machine only has 1 GPUs"):
-        pick_multiple_gpus(3)
+        _pick_multiple_gpus(3)
 
 
 @RunIf(mps=False)
-@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.pick_multiple_gpus", return_value=[1])
+@mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._pick_multiple_gpus", return_value=[1])
 def test_auto_select_gpus(_, cuda_count_2):
     trainer = Trainer(accelerator="gpu", devices=1)
     assert trainer.num_devices == 1

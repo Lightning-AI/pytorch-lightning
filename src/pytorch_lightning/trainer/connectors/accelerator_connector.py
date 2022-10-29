@@ -78,7 +78,7 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from lightning_lite.accelerators.cuda import _pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
@@ -552,7 +552,7 @@ class AcceleratorConnector:
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
         if isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
-            self._devices_flag = pick_multiple_gpus(self._gpus)
+            self._devices_flag = _pick_multiple_gpus(self._gpus)
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
