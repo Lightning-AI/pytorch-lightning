@@ -85,9 +85,10 @@ Get Started
    :target: https://apple.com
 
 .. app_card::
-   :title: Build a hosted ML platform
+   :title: Build a Video Search app
    :width: 260
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :image: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/app-metadata/video_search.jpg
+   :app_id: 7pmQNIDxAE
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
