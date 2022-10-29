@@ -19,10 +19,10 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.types import _DEVICE
+from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 
 
 class SingleDeviceStrategy(Strategy):
@@ -66,6 +66,7 @@ class SingleDeviceStrategy(Strategy):
         return self._root_device
 
     def model_to_device(self) -> None:
+        assert self.model is not None, "self.model must be set before self.model.to()"
         self.model.to(self.root_device)
 
     def setup(self, trainer: pl.Trainer) -> None:
@@ -76,10 +77,10 @@ class SingleDeviceStrategy(Strategy):
     def is_global_zero(self) -> bool:
         return True
 
-    def barrier(self, *args, **kwargs) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     @classmethod

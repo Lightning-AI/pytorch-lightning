@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from typing import Dict, Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -96,8 +97,8 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     assert cpu_stats_mock.call_count == expected
 
 
-@pytest.mark.skipif(True, reason="TODO (@kaushikb11): fix this test, timeout")
 @RunIf(tpu=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
 
@@ -106,24 +107,23 @@ def test_device_stats_monitor_tpu(tmpdir):
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+        def log_metrics(self, metrics, step=None) -> None:
             fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
             for f in fields:
                 assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
+        max_epochs=2,
+        limit_train_batches=5,
         accelerator="tpu",
-        devices=1,
+        devices=8,
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
     )
-
     trainer.fit(model)
 
 
@@ -146,7 +146,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         trainer.fit(model)
 
 
-def test_prefix_metric_keys(tmpdir):
+def test_prefix_metric_keys():
     """Test that metric key names are converted correctly."""
     metrics = {"1": 1.0, "2": 2.0, "3": 3.0}
     prefix = "foo"

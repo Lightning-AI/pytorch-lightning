@@ -23,9 +23,9 @@ from torch.nn import functional as F
 from torchmetrics import Accuracy
 
 from pytorch_lightning import cli_lightning_logo, LightningModule
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.boring_classes import Net
 from pytorch_lightning.demos.mnist_datamodule import MNIST
-from pytorch_lightning.utilities.cli import LightningCLI
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

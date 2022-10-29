@@ -13,15 +13,15 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Sized, Tuple
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch.utils.data.dataloader import DataLoader
 
+from lightning_lite.utilities.data import has_len
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,
     _patch_dataloader_get_iterators,
@@ -30,7 +30,6 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
-from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -144,23 +143,18 @@ class AbstractDataFetcher(ABC):
                 dataloader_iter.state.update(iter_name, state)
 
     @property
-    def loaders(self) -> List[DataLoader]:
+    def loaders(self) -> Any:
         if isinstance(self.dataloader, CombinedLoader):
-            loaders = self.dataloader.loaders
-        else:
-            loaders = [self.dataloader]
-        return loaders
+            return self.dataloader.loaders
+        return self.dataloader
 
     @property
-    def loader_iters(self) -> List[Iterator]:
+    def loader_iters(self) -> Any:
         if self.dataloader_iter is None:
             raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
-
         if isinstance(self.dataloader, CombinedLoader):
-            loader_iters = self.dataloader_iter.loader_iters
-        else:
-            loader_iters = [self.dataloader_iter]
-        return loader_iters
+            return self.dataloader_iter.loader_iters
+        return self.dataloader_iter
 
     @property
     def state(self) -> List[MergedIteratorState]:
@@ -224,7 +218,9 @@ class DataFetcher(AbstractDataFetcher):
         self._has_len = False
 
     def setup(  # type: ignore[override]
-        self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
+        self,
+        dataloader: Iterable,
+        batch_to_device: Optional[Callable[[Any], Any]] = None,
     ) -> None:
         super().setup(dataloader)
         self._has_len = has_len(dataloader)
@@ -280,7 +276,11 @@ class DataFetcher(AbstractDataFetcher):
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
-        batch = next(iterator)
+        try:
+            batch = next(iterator)
+        except StopIteration as e:
+            self._stop_profiler()
+            raise e
         self.fetched += 1
         if not self.prefetch_batches and self._has_len:
             # when we don't prefetch but the dataloader is sized, we use the length for `done`

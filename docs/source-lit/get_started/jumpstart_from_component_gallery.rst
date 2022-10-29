@@ -1,0 +1,1 @@
+../../source-app/get_started/jumpstart_from_component_gallery.rst

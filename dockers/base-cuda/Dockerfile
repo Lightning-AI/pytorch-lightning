@@ -18,7 +18,7 @@ ARG CUDA_VERSION=11.3.1
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.9
+ARG PYTORCH_VERSION=1.12
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -37,7 +37,11 @@ RUN \
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
-    apt-get install -y --no-install-recommends \
+    NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
+    CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
+    MAX_ALLOWED_NCCL=2.11.4 && \
+    TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
+    apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
         pkg-config \
         cmake \
@@ -50,20 +54,19 @@ RUN \
         libopenmpi-dev \
         openmpi-bin \
         ssh \
-    && \
-
-# Install python
+        ninja-build \
+        libnccl2=$TO_INSTALL_NCCL \
+        libnccl-dev=$TO_INSTALL_NCCL && \
+    # Install python
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get install -y \
         python${PYTHON_VERSION} \
         python${PYTHON_VERSION}-distutils \
         python${PYTHON_VERSION}-dev \
     && \
-
     update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
-
-# Cleaning
+    # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /root/.cache && \
@@ -78,28 +81,18 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
-
     pip install -q fire && \
     # Disable cache \
-    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
     python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
-    # Install all requirements \
-    pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm assistant.py
 
-RUN \
-    apt-get purge -y cmake && \
-    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-    tar -zxvf cmake-3.20.2.tar.gz && \
-    cd cmake-3.20.2 && \
-    ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-    make && \
-    make install && \
-    cmake  --version
+    # Install base requirements \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    rm assistant.py
 
 ENV \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
@@ -117,7 +110,7 @@ RUN \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
-    pip install --no-cache-dir -r ./requirements/pytorch/strategies.txt && \
+    pip install --no-cache-dir horovod && \
     horovodrun --check-build
 
 RUN \
@@ -140,9 +133,32 @@ RUN \
 RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
-    python -c "import bagua_core; bagua_core.install_deps()" && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
+    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
     python -c "import bagua; print(bagua.__version__)"
+
+RUN \
+    # install ColossalAI
+    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
+    if [[ "$SHOULD_INSTALL_COLOSSAL" = "1" ]]; then \
+        PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
+        CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
+        CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
+        pip install "colossalai==0.1.10+torch${PYTORCH_VERSION_COLOSSALAI}cu${CUDA_VERSION_COLOSSALAI}" --find-links https://release.colossalai.org ; \
+        python -c "import colossalai; print(colossalai.__version__)" ; \
+    fi
+
+RUN \
+    # install rest of strategies
+    # remove colossalai from requirements since they are installed separately
+    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
+    if [[ "$SHOULD_INSTALL_COLOSSAL" = "0" ]]; then \
+        python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    fi && \
+    echo "$SHOULD_INSTALL_COLOSSAL" && \
+    cat requirements/pytorch/strategies.txt && \
+    pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
 COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py

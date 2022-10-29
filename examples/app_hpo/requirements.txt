@@ -1,0 +1,3 @@
+optuna
+lightning-flash[image,serve] == 0.7.0
+hiplot

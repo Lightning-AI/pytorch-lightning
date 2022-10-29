@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 from pathlib import Path
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -21,7 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -42,14 +44,6 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
-    def add_to_queue(self, queue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(queue)
-
-    def get_from_queue(self, queue) -> None:
-        self.test_val = queue.get()
-        return super().get_from_queue(queue)
-
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
@@ -65,37 +59,19 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2)
-def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
-    with Lightning Module (deprecated way)."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=2, strategy="ddp_spawn")
-
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
-    assert trainer.strategy.root_device == torch.device("cuda:0")
-
-    val: float = 1.0
-    val_name: str = "val_acc"
-    model = BoringCallbackDDPSpawnModel(val_name, val)
-    dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
-    assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert model.test_val == "test_val"
-
-
-class CustomSpawnLauncher(_SpawnLauncher):
+class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
     def add_to_queue(self, trainer, queue) -> None:
-        queue.put("new_test_val")
+        queue.put("test_val")
         return super().add_to_queue(trainer, queue)
 
     def get_from_queue(self, trainer: Trainer, queue) -> None:
-        trainer.strategy.new_test_val = queue.get()
+        trainer.strategy.test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self):
-        self._launcher = CustomSpawnLauncher(self)
+        self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
@@ -113,7 +89,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     dm = BoringDataModule()
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert ddp_spawn_strategy.new_test_val == "new_test_val"
+    assert ddp_spawn_strategy.test_val == "test_val"
 
 
 class BoringModelDDP(BoringModel):
@@ -176,3 +152,49 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
     assert not temp_file.exists()
+
+
+@mock.patch("torch.distributed.init_process_group")
+def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
+    test_timedelta = timedelta(seconds=30)
+    model = BoringModel()
+    ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=ddp_spawn_strategy,
+    )
+    # test wrap the model if fitting
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+
+    process_group_backend = trainer.strategy._get_process_group_backend()
+    global_rank = trainer.strategy.cluster_environment.global_rank()
+    world_size = trainer.strategy.cluster_environment.world_size()
+    mock_init_process_group.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_spawn", {}),
+        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
+        ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            {"find_unused_parameters": False},
+            marks=RunIf(skip_windows=True),
+        ),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

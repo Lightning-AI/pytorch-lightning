@@ -55,7 +55,7 @@ Notice a few things.
 
         # or to init a new tensor
         new_x = torch.Tensor(2, 3)
-        new_x = new_x.type_as(x)
+        new_x = new_x.to(x)
 
 5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
@@ -281,7 +281,7 @@ Training with DataParallel
 ==========================
 
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP, or DDP2).
+need to aggregate them on the main GPU for processing (DP).
 
 In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.training_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.
@@ -419,8 +419,8 @@ override the :meth:`~pytorch_lightning.core.module.LightningModule.validation_ep
 Validating with DataParallel
 ============================
 
-When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP, or DDP2).
+When validating using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
+need to aggregate them on the main GPU for processing (DP).
 
 In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.
@@ -1345,18 +1345,6 @@ load_from_checkpoint
 .. automethod:: pytorch_lightning.core.module.LightningModule.load_from_checkpoint
     :noindex:
 
-on_hpc_save
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_save
-    :noindex:
-
-on_hpc_load
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_load
-    :noindex:
-
 on_train_start
 ~~~~~~~~~~~~~~
 
@@ -1501,12 +1489,6 @@ on_validation_epoch_end
 .. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_epoch_end
     :noindex:
 
-on_post_move_to_device
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_post_move_to_device
-    :noindex:
-
 configure_sharded_model
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1625,16 +1607,4 @@ on_after_batch_transfer
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.on_after_batch_transfer
-    :noindex:
-
-add_to_queue
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.add_to_queue
-    :noindex:
-
-get_from_queue
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.get_from_queue
     :noindex:

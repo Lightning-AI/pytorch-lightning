@@ -23,9 +23,11 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
+from lightning_utilities.core.rank_zero import rank_prefixed_message
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.rank_zero import _get_rank
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -129,13 +131,13 @@ class EarlyStopping(Callback):
     def state_key(self) -> str:
         return self._generate_state_key(monitor=self.monitor, mode=self.mode)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         if self._check_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._check_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
-    def _validate_condition_metric(self, logs: Dict[str, float]) -> bool:
+    def _validate_condition_metric(self, logs: Dict[str, Tensor]) -> bool:
         monitor_val = logs.get(self.monitor)
 
         error_msg = (
@@ -259,14 +261,11 @@ class EarlyStopping(Callback):
 
     @staticmethod
     def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
-        if trainer:
-            # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
-            if log_rank_zero_only and trainer.global_rank != 0:
-                return
-            # if world size is more than one then specify the rank of the process being logged
-            if trainer.world_size > 1:
-                log.info(f"[rank: {trainer.global_rank}] {message}")
-                return
-
-        # if above conditions don't meet and we have to log
-        log.info(message)
+        rank = _get_rank(
+            strategy=(trainer.strategy if trainer is not None else None),  # type: ignore[arg-type]
+        )
+        if trainer is not None and trainer.world_size <= 1:
+            rank = None
+        message = rank_prefixed_message(message, rank)
+        if rank is None or not log_rank_zero_only or rank == 0:
+            log.info(message)

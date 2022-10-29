@@ -1,8 +1,10 @@
 import inspect
+import warnings
 from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.cloud import is_running_in_cloud
 
 
 def _add_comment_to_literal_code(method, contains, comment):
@@ -79,13 +81,21 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                 f" For the value, choose either a reference to a child flow or a URla."
             )
         if isinstance(entry["content"], str):  # assume this is a URL
-            # The URL isn't fully defined yet. Looks something like ``self.work.url + /something``.
-            if entry["content"].startswith("/"):
+            url = entry["content"]
+            if url.startswith("/"):
+                # The URL isn't fully defined yet. Looks something like ``self.work.url + /something``.
                 entry["target"] = ""
             else:
-                entry["target"] = entry["content"]
+                entry["target"] = url
+            if url.startswith("http://") and is_running_in_cloud():
+                warnings.warn(
+                    f"You configured an http link {url[:32]}... but it won't be accessible in the cloud."
+                    f" Consider replacing 'http' with 'https' in the link above."
+                )
+
         elif isinstance(entry["content"], lightning_app.LightningFlow):
             entry["content"] = entry["content"].name
+
         elif isinstance(entry["content"], lightning_app.LightningWork):
             if entry["content"].url and not entry["content"].url.startswith("/"):
                 entry["content"] = entry["content"].url

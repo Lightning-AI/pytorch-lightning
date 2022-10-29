@@ -1,11 +1,11 @@
 import inspect
-import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, TYPE_CHECKING, Union
 
 from core.state import ProgressBarState, TrainerState
 
 import pytorch_lightning as pl
 from lightning_app.storage import Path
+from lightning_app.utilities.app_helpers import Logger
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks.progress.base import get_standard_metrics
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -14,7 +14,8 @@ from pytorch_lightning.utilities.parsing import collect_init_args
 if TYPE_CHECKING:
     from core.components.script_runner import ScriptRunner
 
-_log = logging.getLogger(__name__)
+
+_log = Logger(__name__)
 
 
 class PLAppProgressTracker(Callback):
@@ -31,7 +32,7 @@ class PLAppProgressTracker(Callback):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        stage: Optional[str] = None,
+        stage: str,
     ) -> None:
         self.is_enabled = trainer.is_global_zero
 
@@ -261,7 +262,7 @@ class PLAppSummary(Callback):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        stage: Optional[str] = None,
+        stage: str,
     ) -> None:
         self.work.model_hparams = self._sanitize_model_init_args(dict(**pl_module.hparams))
 
@@ -284,7 +285,7 @@ class PLAppArtifactsTracker(Callback):
         self,
         trainer: "pl.Trainer",
         pl_module: "pl.LightningModule",
-        stage: Optional[str] = None,
+        stage: str,
     ) -> None:
         log_dir = self._get_logdir(trainer)
         self.work.log_dir = Path(log_dir) if log_dir is not None else None

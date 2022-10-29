@@ -1,16 +1,16 @@
 import fnmatch
-import logging
 import os
 from pathlib import Path
 from shutil import copy2, copystat, Error
 from typing import Callable, List, Set, Union
 
 from lightning_app.core.constants import DOT_IGNORE_FILENAME
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
-def copytree(
+def _copytree(
     src: Union[Path, str],
     dst: Union[Path, str],
     ignore_functions: List[Callable] = None,
@@ -59,7 +59,7 @@ def copytree(
     src = Path(src)
     dst = Path(dst)
     if src.joinpath(DOT_IGNORE_FILENAME).exists():
-        ignore_fn = get_ignore_function(src)
+        ignore_fn = _get_ignore_function(src)
         # creating new list so we won't modify the original
         ignore_functions = [*ignore_functions, ignore_fn]
 
@@ -77,7 +77,7 @@ def copytree(
         dstpath = dst / srcentry.name
         try:
             if srcentry.is_dir():
-                _files = copytree(
+                _files = _copytree(
                     src=srcentry,
                     dst=dstpath,
                     ignore_functions=ignore_functions,
@@ -108,7 +108,7 @@ def copytree(
     return files_copied
 
 
-def get_ignore_function(src: Path) -> Callable:
+def _get_ignore_function(src: Path) -> Callable:
     patterns = _read_lightningignore(src / DOT_IGNORE_FILENAME)
 
     def filter_ignored(current_dir: Path, entries: List[Path]) -> List[Path]:
@@ -159,7 +159,7 @@ def _ignore_filename_spell_check(src: Path):
     possible_spelling_mistakes.extend([p.lstrip(".") for p in possible_spelling_mistakes])
     for path in src.iterdir():
         if path.is_file() and path.name in possible_spelling_mistakes:
-            logger.warning(
+            logger.warn(
                 f"Lightning uses `{DOT_IGNORE_FILENAME}` as the ignore file but found {path.name} at "
                 f"{path.parent} instead. If this was a mistake, please rename the file."
             )

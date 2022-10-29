@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.callbacks.checkpoint import Checkpoint
 from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.callbacks.lambda_function import LambdaCallback
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.model_summary import ModelSummary
@@ -31,16 +34,19 @@ from pytorch_lightning.callbacks.timer import Timer
 __all__ = [
     "BackboneFinetuning",
     "BaseFinetuning",
+    "BasePredictionWriter",
+    "BatchSizeFinder",
     "Callback",
+    "Checkpoint",
     "DeviceStatsMonitor",
     "EarlyStopping",
     "GradientAccumulationScheduler",
     "LambdaCallback",
+    "LearningRateFinder",
     "LearningRateMonitor",
     "ModelCheckpoint",
     "ModelPruning",
     "ModelSummary",
-    "BasePredictionWriter",
     "ProgressBarBase",
     "QuantizationAwareTraining",
     "RichModelSummary",

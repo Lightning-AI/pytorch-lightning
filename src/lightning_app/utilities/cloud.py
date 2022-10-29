@@ -1,3 +1,4 @@
+import os
 import warnings
 
 from lightning_cloud.openapi import V1Membership
@@ -8,12 +9,12 @@ from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.network import LightningClient
 
 
-def _get_project(client: LightningClient) -> V1Membership:
+def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJECT_ID) -> V1Membership:
     """Get a project membership for the user from the backend."""
     projects = client.projects_service_list_memberships()
-    if LIGHTNING_CLOUD_PROJECT_ID is not None:
+    if project_id is not None:
         for membership in projects.memberships:
-            if membership.project_id == LIGHTNING_CLOUD_PROJECT_ID:
+            if membership.project_id == project_id:
                 break
         else:
             raise ValueError(
@@ -34,3 +35,8 @@ def _get_project(client: LightningClient) -> V1Membership:
 
 def _sigterm_flow_handler(*_, app: "lightning_app.LightningApp"):
     app.stage = AppStage.STOPPING
+
+
+def is_running_in_cloud() -> bool:
+    """Returns True if the Lightning App is running in the cloud."""
+    return "LIGHTNING_APP_STATE_URL" in os.environ

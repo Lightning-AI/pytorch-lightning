@@ -12,11 +12,10 @@ Weight Tying/Sharing is a technique where in the module weights are shared among
 This is a common method to reduce memory consumption and is utilized in many State of the Art
 architectures today.
 
-PyTorch XLA requires these weights to be tied/shared after moving the model
-to the TPU device. To support this requirement Lightning provides a model hook which is
-called after the model is moved to the device. Any weights that require to be tied should
-be done in the `on_post_move_to_device` model hook. This will ensure that the weights
-among the modules are shared and not copied.
+PyTorch XLA requires these weights to be tied/shared after moving the model to the XLA device.
+To support this requirement, Lightning automatically finds these weights and ties them after
+the modules are moved to the XLA device under the hood. It will ensure that the weights among
+the modules are shared but not copied independently.
 
 PyTorch Lightning has an inbuilt check which verifies that the model parameter lengths
 match once the model is moved to the device. If the lengths do not match Lightning
@@ -37,9 +36,8 @@ Example:
             self.layer_1 = nn.Linear(32, 10, bias=False)
             self.layer_2 = nn.Linear(10, 32, bias=False)
             self.layer_3 = nn.Linear(32, 10, bias=False)
-            # TPU shared weights are copied independently
-            # on the XLA device and this line won't have any effect.
-            # However, it works fine for CPU and GPU.
+            # Lightning automatically ties these weights after moving to the XLA device,
+            # so all you need is to write the following just like on other accelerators.
             self.layer_3.weight = self.layer_1.weight
 
         def forward(self, x):
@@ -47,10 +45,6 @@ Example:
             x = self.layer_2(x)
             x = self.layer_3(x)
             return x
-
-        def on_post_move_to_device(self):
-            # Weights shared after the model has been moved to TPU Device
-            self.layer_3.weight = self.layer_1.weight
 
 
     model = WeightSharingModule()

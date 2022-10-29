@@ -12,7 +12,7 @@ Checkpointing (intermediate)
 *****************************
 Modify checkpointing behavior
 *****************************
-For fine-grain control over checkpointing behavior, use the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` object
+For fine-grained control over checkpointing behavior, use the :class:`~pytorch_lightning.callbacks.ModelCheckpoint` object
 
 .. code-block:: python
 
@@ -45,10 +45,10 @@ To save checkpoints based on a (*when/which/what/where*) condition (for example 
 When
 ====
 
-- When using iterative training which doesn't have an epoch, you can checkpoint at every ``N`` training steps by specifying ``every_n_training_steps=N``.
-- You can also control the interval of epochs between checkpoints using ``every_n_epochs`` between checkpoints, to avoid slowdowns.
-- You can checkpoint at a regular time interval using ``train_time_interval`` argument independent of the steps or epochs.
-- In case you are monitoring a training metrics, we'd suggest using ``save_on_train_epoch_end=True`` to ensure the required metric is being accumulated correctly for creating a checkpoint.
+- When using iterative training which doesn't have an epoch, you can checkpoint at every ``N`` training steps by specifying ``every_n_train_steps=N``.
+- You can also control the interval of epochs between checkpoints using ``every_n_epochs``, to avoid slowdowns.
+- You can checkpoint at a regular time interval using the ``train_time_interval`` argument independent of the steps or epochs.
+- In case you are monitoring a training metric, we'd suggest using ``save_on_train_epoch_end=True`` to ensure the required metric is being accumulated correctly for creating a checkpoint.
 
 
 Which
@@ -120,7 +120,7 @@ What
 Where
 =====
 
-- It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.module.LightningModule.log`.
+- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.module.LightningModule.log`.
 
 |
 

@@ -1,6 +1,8 @@
-####################################
-Build a Directed Acyclic Graph (DAG)
-####################################
+######################################
+Develop a Directed Acyclic Graph (DAG)
+######################################
+
+.. _dag_example:
 
 **Audience:** Users coming from MLOps to Lightning Apps, looking for more flexibility.
 
@@ -10,10 +12,10 @@ Below is a pseudo-code using the lightning framework that uses a LightningFlow t
 
 .. code-block:: python
 
-    import lightning_app as la
+    import lightning as L
 
+    class DAGFlow(L.LightningFlow):
 
-    class DAGFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.processor = DataProcessorWork(...)
@@ -29,21 +31,19 @@ Below is a pseudo-code to run several works in parallel using a built-in :class:
 
 .. code-block:: python
 
-    import lightning_app as la
+    import lightning as L
 
+    class DAGFlow(L.LightningFlow):
 
-    class DAGFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             ...
-            self.train_works = lapp.structures.Dict(
-                **{
-                    "1": TrainingWork(..., parallel=True),
-                    "2": TrainingWork(..., parallel=True),
-                    "3": TrainingWork(..., parallel=True),
-                    # ...
-                }
-            )
+            self.train_works = L.structures.Dict(**{
+                "1": TrainingWork(..., parallel=True),
+                "2": TrainingWork(..., parallel=True),
+                "3": TrainingWork(..., parallel=True),
+                ...
+                })
             ...
 
         def run(self):
@@ -59,12 +59,11 @@ Below is a pseudo-code to run several works in parallel using a built-in :class:
 
             self.serve_work.run(...)
 
+----
 
 **********
-Next steps
+Next Steps
 **********
-
-Depending on your use case, you might want to check one of these out next.
 
 .. raw:: html
 

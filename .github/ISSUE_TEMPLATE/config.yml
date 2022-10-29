@@ -1,8 +1,14 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Ask a Question
+  - name: ❓ Ask a Question
     url: https://github.com/Lightning-AI/lightning/discussions/new
-    about: Ask and answer Lightning related questions
-  - name: 💬 Slack
+    about: Ask and answer Lightning related questions.
+  - name: 💬 Chat with us
     url: https://www.pytorchlightning.ai/community
-    about: Chat with our community
+    about: Live chat with experts, engineers, and users in our Slack community.
+  - name: 📖 Read the documentation
+    url: https://lightning.ai/lightning-docs/
+    about: Please consult the documentation before opening any issues!
+  - name: 🙋 Contact us about professional services
+    url: https://lightning.ai
+    about: Contact the Lightning.ai sales team for paid support.

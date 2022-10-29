@@ -15,9 +15,10 @@ import inspect
 import os
 import shutil
 import sys
-from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
+
+import lightning_app
 
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
@@ -25,26 +26,21 @@ sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
-# alternative https://stackoverflow.com/a/67692/4521646
-spec = spec_from_file_location("lightning_app/__about__.py", os.path.join(_PATH_ROOT, "lightning_app", "__about__.py"))
-about = module_from_spec(spec)
-spec.loader.exec_module(about)
-
 # -- Project information -----------------------------------------------------
 
 # this name shall match the project name in Github as it is used for linking to code
 project = "lightning"
-copyright = about.__copyright__
-author = about.__author__
+copyright = lightning_app.__copyright__
+author = lightning_app.__author__
 
 # The short X.Y version
-version = about.__version__
+version = lightning_app.__version__
 # The full version, including alpha/beta/rc tags
-release = about.__version__
+release = lightning_app.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
-github_user = "PyTorchLightning"
+github_user = "Lightning-AI"
 github_repo = project
 
 # -- Project documents -------------------------------------------------------
@@ -142,6 +138,7 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "code_samples/convert_pl_to_app/requirements.txt",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -160,8 +157,9 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": about.__homepage__,
-    "canonical_url": about.__homepage__,
+    "pytorch_project": lightning_app.__homepage__,
+    "analytics_id": "G-D3Q2ESCTZR",
+    "canonical_url": lightning_app.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -227,7 +225,7 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        about.__docs__,
+        lightning_app.__docs__,
         "Miscellaneous",
     ),
 ]
@@ -281,6 +279,15 @@ for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, "notebooks", "*.ipynb")):
     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
     shutil.copy(path_ipynb, path_ipynb2)
 
+# copy all examples to local folder
+path_examples = os.path.join(_PATH_HERE, "..", "examples")
+if not os.path.isdir(path_examples):
+    os.mkdir(path_examples)
+for path_app_example in glob.glob(os.path.join(_PATH_ROOT, "examples", "app_*")):
+    path_app_example2 = os.path.join(path_examples, os.path.basename(path_app_example))
+    if not os.path.isdir(path_app_example2):
+        shutil.copytree(path_app_example, path_app_example2, dirs_exist_ok=True)
+
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
@@ -314,7 +321,7 @@ autodoc_mock_imports = MOCK_PACKAGES
 def linkcode_resolve(domain, info):
     def find_source():
         # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+        # https://github.com/numpy/numpy/blob/master/doc/source-app/conf.py#L286
         obj = sys.modules[info["module"]]
         for part in info["fullname"].split("."):
             obj = getattr(obj, part)
@@ -381,6 +388,6 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import lightning_app
+import lightning as L
 """
 coverage_skip_undoc_in_source = True

@@ -13,15 +13,17 @@
 # limitations under the License.
 from typing import Any, Callable, Union
 
-from torch.nn import Module
+from lightning_utilities.core.rank_zero import WarningCache
+from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 
@@ -35,7 +37,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: int) -> None:
-        supported_precision_values = (16, 32)
+        supported_precision_values = (PrecisionType.HALF, PrecisionType.FLOAT)
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
@@ -44,17 +46,23 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         super().__init__()
         self.precision = precision
 
-    def backward(self, model: "pl.LightningModule", *args: Any, **kwargs: Any) -> None:
+    def backward(  # type: ignore[override]
+        self,
+        tensor: Tensor,
+        model: "pl.LightningModule",
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         if is_overridden("backward", model):
             warning_cache.warn(
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since IPUs handle"
                 " the backward logic internally."
             )
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
-        model: Union["pl.LightningModule", Module],
-        optimizer: Optimizer,
+        optimizer: Optimizable,
+        model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
@@ -68,7 +76,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+        if model.automatic_optimization and skipped_backward:
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."

@@ -15,7 +15,6 @@ import inspect
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
-from deprecate import void
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
@@ -61,10 +60,6 @@ class Loop(ABC, Generic[T]):
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
-        if not isinstance(trainer, pl.Trainer):
-            raise MisconfigurationException(
-                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
-            )
         self._trainer = trainer
         for v in self.__dict__.values():
             if isinstance(v, Loop):
@@ -116,7 +111,7 @@ class Loop(ABC, Generic[T]):
     def replace(self, **loops: Union["Loop", Type["Loop"]]) -> None:
         """Optionally replace one or multiple of this loop's sub-loops.
 
-        This methods takes care of instantiating the class (if necessary) with all existing arguments, connecting all
+        This method takes care of instantiating the class (if necessary) with all existing arguments, connecting all
         sub-loops of the old loop to the new instance, setting the ``Trainer`` reference, and connecting the new loop to
         the parent.
 
@@ -229,14 +224,12 @@ class Loop(ABC, Generic[T]):
 
         Accepts all arguments passed to :attr:`run`.
         """
-        void(*args, **kwargs)
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         """Hook to be called each time before :attr:`advance` is called.
 
         Accepts all arguments passed to :attr`run`.
         """
-        void(*args, **kwargs)
 
     @abstractmethod
     def advance(self, *args: Any, **kwargs: Any) -> None:
@@ -318,6 +311,7 @@ class Loop(ABC, Generic[T]):
         self.restarting = True
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
+        trainer = self._trainer
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
@@ -326,11 +320,7 @@ class Loop(ABC, Generic[T]):
 
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-            elif (
-                isinstance(v, _ResultCollection)
-                and self.trainer is not None
-                and self.trainer.lightning_module is not None
-            ):
+            elif isinstance(v, _ResultCollection) and trainer is not None and trainer.lightning_module is not None:
                 metric_attributes = {
                     name: module
                     for name, module in self.trainer.lightning_module.named_modules()

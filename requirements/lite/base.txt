@@ -1,0 +1,9 @@
+# NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
+#  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
+
+numpy>=1.17.2, <1.23.1
+torch>=1.9.*, <1.13.0
+fsspec[http]>2021.06.0, <2022.6.0
+packaging>=17.0, <=21.3
+typing-extensions>=4.0.0, <4.3.1
+lightning-utilities==0.3.*

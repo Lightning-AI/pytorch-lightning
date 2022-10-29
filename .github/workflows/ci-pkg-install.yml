@@ -1,0 +1,63 @@
+name: Package
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    paths:
+      - ".actions/**"
+      - ".github/workflows/ci-pkg-install.yml"
+      - "setup.py"
+      - "src/**"
+      - "requirements/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  install-pkg:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macOS-12, windows-2022]
+        pkg: ["app", "lite", "pytorch", ""]
+        python-version: ["3.7" , "3.10"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: DocTests actions
+        working-directory: .actions/
+        run: |
+          pip install pytest -q
+          python -m pytest setup_tools.py
+
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: ${{ matrix.pkg }}
+          nb-dirs: ${{ env.NB_DIRS }}
+
+      - uses: ./.github/actions/pkg-install
+
+      - name: Run CLI
+        # todo: add testing for `lightning_app`
+        if: ${{ matrix.pkg == '' }}
+        run: python -m lightning --version
+
+      - name: DocTest package
+        run: |
+          pip list
+          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg}}', 'lightning'))")
+          python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"

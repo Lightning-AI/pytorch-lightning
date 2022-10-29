@@ -16,16 +16,18 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from argparse import _ArgumentGroup, ArgumentParser
+from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
+
+from lightning_lite.utilities.types import _LRScheduler, ProcessGroup, ReduceLROnPlateau
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
@@ -34,8 +36,6 @@ STEP_OUTPUT = Union[Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
-_PARAMETERS = Iterator[torch.nn.Parameter]
-_PATH = Union[str, Path]
 TRAIN_DATALOADERS = Union[
     DataLoader,
     Sequence[DataLoader],
@@ -46,56 +46,67 @@ TRAIN_DATALOADERS = Union[
     Dict[str, Sequence[DataLoader]],
 ]
 EVAL_DATALOADERS = Union[DataLoader, Sequence[DataLoader]]
-_DEVICE = Union[torch.device, str, int]
+_ADD_ARGPARSE_RETURN = Union[_ArgumentGroup, ArgumentParser]
 
 
 @runtime_checkable
-class _Stateful(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
+class TrainingStep(Protocol):
+    """This class is used to detect if an object implements the `training_step` hook using `isinstance(model,
+    TrainingStep)`."""
 
-    def state_dict(self) -> Dict[str, Any]:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         ...
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+
+@runtime_checkable
+class ValidationStep(Protocol):
+    """This class is used to detect if an object implements the `validation_step` hook using `isinstance(model,
+    ValidationStep)`."""
+
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
 
 
-# Inferred from `torch.optim.lr_scheduler.pyi`
+@runtime_checkable
+class TestStep(Protocol):
+    """This class is used to detect if an object implements the `test_step` hook using `isinstance(model,
+    TestStep)`."""
+
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+        ...
+
+
+@runtime_checkable
+class PredictStep(Protocol):
+    """This class is used to detect if an object implements the `predict_step` hook using `isinstance(model,
+    PredictStep)`."""
+
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+        ...
+
+
+# Inferred from `torch.nn.parallel.distributed.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class _LRScheduler(_Stateful, Protocol):
-    optimizer: Optimizer
-
-    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    def step(self, epoch: Optional[int] = None) -> None:
-        ...
-
-
-# Inferred from `torch.optim.lr_scheduler.pyi`
-# Missing attributes were added to improve typing
-@runtime_checkable
-class ReduceLROnPlateau(_Stateful, Protocol):
-    in_cooldown: bool
-    optimizer: Optimizer
-
+class DistributedDataParallel(Protocol):
     def __init__(
         self,
-        optimizer: Optimizer,
-        mode: str = ...,
-        factor: float = ...,
-        patience: int = ...,
-        verbose: bool = ...,
-        threshold: float = ...,
-        threshold_mode: str = ...,
-        cooldown: int = ...,
-        min_lr: float = ...,
-        eps: float = ...,
+        module: torch.nn.Module,
+        device_ids: Optional[List[Union[int, torch.device]]] = None,
+        output_device: Optional[Union[int, torch.device]] = None,
+        dim: int = 0,
+        broadcast_buffers: bool = True,
+        process_group: Optional[ProcessGroup] = None,
+        bucket_cap_mb: int = 25,
+        find_unused_parameters: bool = False,
+        check_reduction: bool = False,
+        gradient_as_bucket_view: bool = False,
+        static_graph: bool = False,
     ) -> None:
         ...
 
-    def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
+    @contextmanager
+    def no_sync(self) -> Generator:
         ...
 
 
@@ -103,6 +114,7 @@ class ReduceLROnPlateau(_Stateful, Protocol):
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+LRSchedulerPLType = Union[_LRScheduler, ReduceLROnPlateau]
 
 
 @dataclass

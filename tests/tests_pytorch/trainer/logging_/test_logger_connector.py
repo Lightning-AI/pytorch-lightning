@@ -37,23 +37,12 @@ def test_fx_validator():
         "on_before_backward",
         "on_after_backward",
         "on_before_optimizer_step",
-        "on_batch_end",
-        "on_batch_start",
-        "on_before_accelerator_backend_setup",
         "on_before_zero_grad",
-        "on_epoch_end",
-        "on_epoch_start",
         "on_fit_end",
-        "on_configure_sharded_model",
         "on_fit_start",
-        "on_init_end",
-        "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
-        "on_pretrain_routine_end",
-        "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
         "state_dict",
@@ -87,18 +76,11 @@ def test_fx_validator():
     }
 
     not_supported = {
-        "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
-        "on_configure_sharded_model",
-        "on_init_end",
-        "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",
-        "on_pretrain_routine_end",
-        "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
         "on_predict_batch_end",
@@ -166,10 +148,6 @@ class HookedCallback(Callback):
                 return
 
             lightning_module = trainer.lightning_module or model
-            if lightning_module is None:
-                # `on_init_{start,end}` do not have the `LightningModule` available
-                assert hook in ("on_init_start", "on_init_end")
-                return
 
             if hook in not_supported:
                 with pytest.raises(MisconfigurationException, match=not_supported[hook]):
@@ -185,17 +163,7 @@ class HookedModel(BoringModel):
     def __init__(self, not_supported):
         super().__init__()
         pl_module_hooks = get_members(LightningModule)
-        pl_module_hooks.difference_update(
-            {
-                "log",
-                "log_dict",
-                # the following are problematic as they do have `self._current_fx_name` defined some times but
-                # not others depending on where they were called. So we cannot reliably `self.log` in them
-                "on_before_batch_transfer",
-                "transfer_batch_to_device",
-                "on_after_batch_transfer",
-            }
-        )
+        pl_module_hooks.difference_update({"log", "log_dict"})
         # remove `nn.Module` hooks
         module_hooks = get_members(torch.nn.Module)
         pl_module_hooks.difference_update(module_hooks)
@@ -219,16 +187,15 @@ def test_fx_validator_integration(tmpdir):
     """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors."""
     not_supported = {
         None: "`self.trainer` reference is not registered",
-        "on_before_accelerator_backend_setup": "You can't",
         "setup": "You can't",
         "configure_sharded_model": "You can't",
-        "on_configure_sharded_model": "You can't",
         "configure_optimizers": "You can't",
         "on_fit_start": "You can't",
-        "on_pretrain_routine_start": "You can't",
-        "on_pretrain_routine_end": "You can't",
         "train_dataloader": "You can't",
         "val_dataloader": "You can't",
+        "on_before_batch_transfer": "You can't",
+        "transfer_batch_to_device": "You can't",
+        "on_after_batch_transfer": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
         "on_fit_end": "You can't",
@@ -259,21 +226,18 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="is deprecated in"):
-        trainer.fit(model)
+    trainer.fit(model)
 
     not_supported.update(
         {
             # `lightning_module` ref is now present from the `fit` call
-            "on_before_accelerator_backend_setup": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
             "on_test_model_train": "You can't",
             "on_test_end": "You can't",
         }
     )
-    with pytest.deprecated_call(match="is deprecated in"):
-        trainer.test(model, verbose=False)
+    trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
@@ -289,8 +253,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.deprecated_call(match="is deprecated in"):
-        trainer.predict(model)
+    trainer.predict(model)
 
 
 @RunIf(min_cuda_gpus=2)

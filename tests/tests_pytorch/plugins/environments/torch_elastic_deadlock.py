@@ -7,7 +7,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 
-if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1" and os.getenv("PL_RECONCILE_PROCESS", "0") == "1":
+if all(os.getenv(key, "0") == "1" for key in ("PL_RUN_CUDA_TESTS", "PL_RUN_STANDALONE_TESTS", "PL_RECONCILE_PROCESS")):
 
     class CustomException(Exception):
         pass

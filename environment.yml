@@ -33,7 +33,7 @@ dependencies:
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
-    - fsspec[http]>=2021.05.0, !=2021.06.0
+    - fsspec[http]>=2021.06.1
     #- tensorboard>=2.2.0  # not needed, already included in pytorch
 
     # Optional
@@ -41,14 +41,12 @@ dependencies:
     - scikit-learn>=0.20.0
     - matplotlib>=3.1.1
     - omegaconf>=2.0.5
-    - torchtext>=0.10.*
 
     # Examples
     - torchvision>=0.10.*
 
     - pip:
-        - test-tube>=0.7.5
         - mlflow>=1.0.0
         - comet_ml>=3.1.12
-        - wandb>=0.8.21
+        - wandb>=0.10.22
         - neptune-client>=0.10.0

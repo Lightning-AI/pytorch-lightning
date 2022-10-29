@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -23,7 +24,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -78,7 +79,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(loggers=[logger])
+    trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
 
@@ -92,6 +93,12 @@ def test_property_loggers(tmpdir):
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
+
+    logger0 = TensorBoardLogger(tmpdir)
+    logger1 = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=[logger0, logger1])
+    model.trainer = trainer
+    assert model.loggers == [logger0, logger1]
 
 
 def test_1_optimizer_toggle_model():
@@ -276,11 +283,17 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_device_placement(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator,device",
+    [
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
+def test_device_placement(tmpdir, accelerator, device):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -289,8 +302,8 @@ def test_device_placement(tmpdir):
             assert p.device == device
 
     assert_device(torch.device("cpu"))
-    model.to(torch.device("cuda:0"))
-    assert_device(torch.device("cuda:0"))
+    model.to(torch.device(device))
+    assert_device(torch.device(device))
     trainer.test(model)
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
@@ -320,7 +333,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 else "sharded_tensor"
+    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
@@ -410,3 +423,20 @@ def test_proper_refcount():
     lightning_module = LightningModule()
 
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
+
+
+def test_trainer_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._trainer is None
+    with pytest.raises(RuntimeError, match="attached to a `Trainer"):
+        _ = ensemble.trainer
+
+    trainer = Mock()
+    ensemble.trainer = trainer
+    # references match
+    assert ensemble.trainer is inner.trainer
+    # and the trainer was weakly referenced
+    assert inner.trainer is weakref.proxy(trainer)

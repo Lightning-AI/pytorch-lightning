@@ -14,11 +14,8 @@
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.utilities.seed import seed_everything
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
@@ -30,11 +27,10 @@ from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
         pytest.param(dict(accelerator="gpu", devices=1), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(dict(strategy="dp", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
         pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
+        pytest.param(dict(accelerator="mps", devices=1), marks=RunIf(mps=True)),
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
-    tutils.set_random_main_port()
-    seed_everything(1)
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
     trainer = Trainer(
@@ -51,7 +47,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
-    torch.testing.assert_allclose(old_weights, new_weights)
+    torch.testing.assert_close(old_weights, new_weights)
 
 
 def test_model_parallel_setup_called(tmpdir):
@@ -70,12 +66,3 @@ def test_model_parallel_setup_called(tmpdir):
     trainer.fit(model)
 
     assert model.configure_sharded_model_called
-
-
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
-def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
-
-    trainer = Trainer(strategy=strategy)
-    assert isinstance(trainer.strategy, strategy_cls)

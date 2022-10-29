@@ -24,7 +24,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
     if nb == 0:
         return []
 
-    num_gpus = torch.cuda.device_count()
+    num_gpus = num_cuda_devices()
     if nb > num_gpus:
         raise ValueError(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
     nb = num_gpus if nb == -1 else nb
@@ -44,7 +44,7 @@ def pick_single_gpu(exclude_gpus: List[int]) -> int:
     """
     previously_used_gpus = []
     unused_gpus = []
-    for i in range(torch.cuda.device_count()):
+    for i in range(num_cuda_devices()):
         if i in exclude_gpus:
             continue
 

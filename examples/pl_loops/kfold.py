@@ -81,9 +81,9 @@ class MNISTKFoldDataModule(BaseKFoldDataModule):
 
     def prepare_data(self) -> None:
         # download the data.
-        MNIST(DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
+        MNIST(DATASETS_PATH, download=True, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         # load the data
         dataset = MNIST(DATASETS_PATH, transform=T.Compose([T.ToTensor(), T.Normalize(mean=(0.5,), std=(0.5,))]))
         self.train_dataset, self.test_dataset = random_split(dataset, [50000, 10000])
@@ -197,7 +197,13 @@ class KFoldLoop(Loop):
         self.fit_loop.run()
 
         self._reset_testing()  # requires to reset the tracking stage.
+
+        # the test loop normally expects the model to be the pure LightningModule, but since we are running the
+        # test loop during fitting, we need to temporarily unpack the wrapped module
+        wrapped_model = self.trainer.strategy.model
+        self.trainer.strategy.model = self.trainer.strategy.lightning_module
         self.trainer.test_loop.run()
+        self.trainer.strategy.model = wrapped_model
         self.current_fold += 1  # increment fold tracking number.
 
     def on_advance_end(self) -> None:
@@ -246,7 +252,7 @@ class KFoldLoop(Loop):
 
 
 class LitImageClassifier(LightningModule):
-    def __init__(self, model, lr=1.0, gamma=0.7, batch_size=32):
+    def __init__(self, model=None, lr=1.0, gamma=0.7, batch_size=32):
         super().__init__()
         self.save_hyperparameters(ignore="model")
         self.model = model or Net()
@@ -301,7 +307,7 @@ if __name__ == "__main__":
         limit_test_batches=2,
         num_sanity_val_steps=0,
         devices=2,
-        accelerator="auto",
+        accelerator="cpu",
         strategy="ddp",
     )
     internal_fit_loop = trainer.fit_loop

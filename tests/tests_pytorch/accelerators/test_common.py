@@ -11,23 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
+from typing import Any, Dict
+
+import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.strategies import DDPStrategy
-
-
-@mock.patch("torch.cuda.device_count", return_value=2)
-def test_auto_device_count(device_count_mock):
-    assert CPUAccelerator.auto_device_count() == 1
-    assert GPUAccelerator.auto_device_count() == 2
-    assert TPUAccelerator.auto_device_count() == 8
-    assert IPUAccelerator.auto_device_count() == 4
 
 
 def test_pluggable_accelerator():
     class TestAccelerator(Accelerator):
+        def setup_device(self, device: torch.device) -> None:
+            pass
+
+        def get_device_stats(self, device: torch.device) -> Dict[str, Any]:
+            pass
+
+        def teardown(self) -> None:
+            pass
+
         @staticmethod
         def parse_devices(devices):
             return devices

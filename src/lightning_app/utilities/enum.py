@@ -59,9 +59,22 @@ class WorkStatus:
 
 
 def make_status(stage: str, message: Optional[str] = None, reason: Optional[str] = None):
-    return {
+    status = {
         "stage": stage,
-        "message": message,
-        "reason": reason,
         "timestamp": datetime.now(tz=timezone.utc).timestamp(),
     }
+    if message:
+        status["message"] = message
+    if reason:
+        status["reason"] = reason
+    return status
+
+
+class CacheCallsKeys:
+    LATEST_CALL_HASH = "latest_call_hash"
+
+
+class OpenAPITags:
+    APP_CLIENT_COMMAND = "app_client_command"
+    APP_COMMAND = "app_command"
+    APP_API = "app_api"

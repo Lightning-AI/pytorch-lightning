@@ -15,19 +15,14 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-import pytest
-
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_loops_state_dict():
     trainer = Trainer()
 
     fit_loop = FitLoop()
-    with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
-        fit_loop.trainer = object()
 
     fit_loop.trainer = trainer
     state_dict = fit_loop.state_dict()
@@ -47,7 +42,7 @@ def test_loops_state_dict_structure():
     expected = {
         "fit_loop": {
             "state_dict": {},
-            "epoch_loop.state_dict": {},
+            "epoch_loop.state_dict": {"_batches_that_stepped": 0},
             "epoch_loop.batch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},

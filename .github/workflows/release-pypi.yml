@@ -1,145 +1,127 @@
 name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   release:
     types: [published]
 
+# there are several consecutive actions:
+# 1) determine which packages have been change at the time this event is processed
+# 2) build related packages - app/pytorch or download latest from pypi
+# 3) create the meta package - lightning
+# 4) publish all new creations tada
 
 jobs:
-  # based on https://github.com/pypa/gh-action-pypi-publish
-  build-package:
+  # run job which determine changed versions
+  init:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+    - run: |
+        mkdir dist && touch dist/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+
+  # based on https://github.com/pypa/gh-action-pypi-publish
+  build-packages:
+    needs: init
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      # run sequential
+      max-parallel: 1
+      matrix:
+        pkg-name: ["", "app", "lite", "pytorch"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
     - name: Install dependencies
-      run: >-
-        python -m pip install --user --upgrade setuptools wheel
+      run: pip install -U setuptools wheel
 
     - name: Build packages
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
-        name: pypi-packages-${{ github.sha }}
+        name: dist-packages-${{ github.sha }}
         path: dist
 
-  upload-package:
+  upload-packages:
     runs-on: ubuntu-20.04
-    needs: build-package
+    needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/download-artifact@v2
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
       with:
-        name: pypi-packages-${{ github.sha }}
+        name: dist-packages-${{ github.sha }}
         path: dist
     - run: ls -lh dist/
-
     - name: Upload to release
       uses: AButler/upload-release-assets@v2.0
       with:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-package:
+  publish-packages:
     runs-on: ubuntu-20.04
-    needs: build-package
+    needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/download-artifact@v2
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
       with:
-        name: pypi-packages-${{ github.sha }}
+        name: dist-packages-${{ github.sha }}
         path: dist
     - run: ls -lh dist/
+    - run: mkdir pypi/
 
     - name: Delay releasing
       uses: juliangruber/sleep-action@v1
       with:
         time: 10m
 
-    # We do this, since failures on test.pypi aren't that bad
-    - name: Publish to Test PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.1
+    - uses: ./.github/actions/pkg-publish
       with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
-        verbose: true
+        pkg-pattern: "*app*"
+        pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
 
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.1
+    - uses: ./.github/actions/pkg-publish
       with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+        pkg-pattern: "*lite*"
+        pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
 
-  create-legacy-ckpt:
-    runs-on: ubuntu-20.04
-    needs: [build-package, publish-package]
-    steps:
-    - uses: actions/checkout@v2
-
-    - uses: actions/setup-python@v2
+    - uses: ./.github/actions/pkg-publish
       with:
-        python-version: 3.9
+        pkg-pattern: "*pytorch*"
+        pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
 
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-      shell: bash
-
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
-      uses: actions/cache@v2
+    - uses: ./.github/actions/pkg-publish
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/pytorch/base.txt') }}
-        restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
+        pkg-pattern: "*"
+        pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-        pip install awscli
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
-        aws-region: us-east-1
-
-    - uses: actions/download-artifact@v2
-      with:
-        name: pypi-packages-${{ github.sha }}
-        path: dist
-
-    - name: Pull files from S3
-      working-directory: ./tests/legacy
-      run: |
-        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ checkpoints/ #  --acl public-read
-        ls -l legacy/checkpoints/
-
-    - name: Generate checkpoint
-      run: |
-        ls -lh dist/
-        pip install dist/*.whl
-
-        pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
-        # generate checkpoint to this version
-        bash legacy/generate_checkpoints.sh $pl_ver
-
-    - name: Push files to S3
-      working-directory: ./tests/legacy
-      run: |
-        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        zip -r checkpoints.zip checkpoints
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+  legacy-checkpoints:
+    needs: publish-packages
+    uses: ./.github/workflows/legacy-checkpoints.yml
+    with:
+      push_to_s3: true
+      create_pr: true
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

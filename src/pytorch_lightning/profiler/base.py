@@ -15,7 +15,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pytorch_lightning.profiler.profiler import Profiler
+from pytorch_lightning.profilers.base import PassThroughProfiler as NewPassThroughProfiler
+from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
@@ -57,21 +58,17 @@ class BaseProfiler(Profiler):
         Please use `Profiler` instead.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
             "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler` instead."
         )
         super().__init__(*args, **kwargs)
 
 
-class PassThroughProfiler(Profiler):
-    """This class should be used when you don't want the (small) overhead of profiling.
-
-    The Trainer uses this class by default.
-    """
-
-    def start(self, action_name: str) -> None:
-        pass
-
-    def stop(self, action_name: str) -> None:
-        pass
+class PassThroughProfiler(NewPassThroughProfiler):
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        rank_zero_deprecation(
+            "`pytorch_lightning.profiler.PassThroughProfiler` is deprecated in v1.7 and will be removed in v1.9."
+            " Use the equivalent `pytorch_lightning.profilers.PassThroughProfiler` class instead."
+        )
+        super().__init__(*args, **kwargs)

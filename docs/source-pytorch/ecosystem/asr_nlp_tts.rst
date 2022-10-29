@@ -48,7 +48,7 @@ so that each can be configured from .yaml or the Hydra CLI.
 
 .. note:: Every NeMo model has an example configuration file and a corresponding script that contains all configurations needed for training.
 
-The end result of using NeMo, Pytorch Lightning, and Hydra is that
+The end result of using NeMo, PyTorch Lightning, and Hydra is that
 NeMo models all have the same look and feel. This makes it easy to do Conversational AI research
 across multiple domains. NeMo models are also fully compatible with the PyTorch ecosystem.
 

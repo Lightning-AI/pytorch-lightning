@@ -21,11 +21,11 @@ import os
 from typing import Any
 
 import pytorch_lightning as pl
-from pytorch_lightning import Callback
-from pytorch_lightning.utilities.types import _PATH
+from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.callbacks import Checkpoint
 
 
-class _FaultToleranceCheckpoint(Callback):
+class _FaultToleranceCheckpoint(Checkpoint):
     """Used to save a fault-tolerance checkpoint on exception."""
 
     FILE_EXTENSION = ".ckpt"

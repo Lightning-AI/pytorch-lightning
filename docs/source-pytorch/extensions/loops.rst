@@ -150,12 +150,7 @@ Here is a simple example how to add a new hook:
 
     class CustomFitLoop(FitLoop):
         def advance(self):
-            # ... whatever code before
-
-            # pass anything you want to the hook
-            self.trainer.call_hook("my_new_hook", *args, **kwargs)
-
-            # ... whatever code after
+            """Put your custom logic here."""
 
 Now simply attach the correct loop in the trainer directly:
 
@@ -378,7 +373,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
 
 .. code-block:: bash
 
-    pip install lightning-flash baal
+    pip install lightning-flash[image] baal
 
 .. code-block:: python
 

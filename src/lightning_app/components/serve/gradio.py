@@ -3,7 +3,7 @@ from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
 
-from lightning_app import LightningWork
+from lightning_app.core.work import LightningWork
 from lightning_app.utilities.imports import _is_gradio_available, requires
 
 if _is_gradio_available():
@@ -18,7 +18,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     In the example below, the ``ServeGradio`` is subclassed to deploy ``AnimeGANv2``.
 
-    .. literalinclude:: ../../../../examples/components/serve/gradio/app.py
+    .. literalinclude:: ../../../examples/app_components/serve/gradio/app.py
         :language: python
 
     The result would be the following:

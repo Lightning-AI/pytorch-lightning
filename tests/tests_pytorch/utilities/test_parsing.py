@@ -16,6 +16,7 @@ import inspect
 import pytest
 from torch.jit import ScriptModule
 
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities.parsing import (
     AttributeDict,
     clean_namespace,
@@ -35,8 +36,8 @@ from pytorch_lightning.utilities.parsing import (
 unpicklable_function = lambda: None
 
 
-def model_cases():
-    class TestHparamsNamespace:
+def model_and_trainer_cases():
+    class TestHparamsNamespace(LightningModule):
         learning_rate = 1
 
         def __contains__(self, item):
@@ -44,57 +45,64 @@ def model_cases():
 
     TestHparamsDict = {"learning_rate": 2}
 
-    class TestModel1:  # test for namespace
+    class TestModel1(LightningModule):  # test for namespace
         learning_rate = 0
 
     model1 = TestModel1()
 
-    class TestModel2:  # test for hparams namespace
+    class TestModel2(LightningModule):  # test for hparams namespace
         hparams = TestHparamsNamespace()
 
     model2 = TestModel2()
 
-    class TestModel3:  # test for hparams dict
+    class TestModel3(LightningModule):  # test for hparams dict
         hparams = TestHparamsDict
 
     model3 = TestModel3()
 
-    class TestModel4:  # fail case
+    class TestModel4(LightningModule):  # fail case
         batch_size = 1
 
     model4 = TestModel4()
+    trainer1 = Trainer()
+    model4.trainer = trainer1
+    datamodule = LightningDataModule()
+    datamodule.batch_size = 8
+    trainer1.datamodule = datamodule
 
-    class DataModule:
-        batch_size = 8
+    model5 = LightningModule()
+    model5.trainer = trainer1
 
-    class Trainer:
-        datamodule = DataModule
-
-    class TestModel5:  # test for datamodule
-        trainer = Trainer
-
-    model5 = TestModel5()
-
-    class TestModel6:  # test for datamodule w/ hparams w/o attribute (should use datamodule)
-        trainer = Trainer
+    class TestModel6(LightningModule):  # test for datamodule w/ hparams w/o attribute (should use datamodule)
         hparams = TestHparamsDict
 
     model6 = TestModel6()
+    model6.trainer = trainer1
 
     TestHparamsDict2 = {"batch_size": 2}
 
-    class TestModel7:  # test for datamodule w/ hparams w/ attribute (should use datamodule)
-        trainer = Trainer
+    class TestModel7(LightningModule):  # test for datamodule w/ hparams w/ attribute (should use datamodule)
         hparams = TestHparamsDict2
 
     model7 = TestModel7()
+    model7.trainer = trainer1
 
-    return model1, model2, model3, model4, model5, model6, model7
+    class TestDataModule8(LightningDataModule):  # test for hparams dict
+        hparams = TestHparamsDict2
+
+    model8 = TestModel1()
+    trainer2 = Trainer()
+    model8.trainer = trainer2
+    datamodule = TestDataModule8()
+    trainer2.datamodule = datamodule
+
+    return (model1, model2, model3, model4, model5, model6, model7, model8), (trainer1, trainer2)
 
 
-def test_lightning_hasattr(tmpdir):
+def test_lightning_hasattr():
     """Test that the lightning_hasattr works in all cases."""
-    model1, model2, model3, model4, model5, model6, model7 = models = model_cases()
+    models, _ = model_and_trainer_cases()
+    model1, model2, model3, model4, model5, model6, model7, model8 = models
     assert lightning_hasattr(model1, "learning_rate"), "lightning_hasattr failed to find namespace variable"
     assert lightning_hasattr(model2, "learning_rate"), "lightning_hasattr failed to find hparams namespace variable"
     assert lightning_hasattr(model3, "learning_rate"), "lightning_hasattr failed to find hparams dict variable"
@@ -106,22 +114,24 @@ def test_lightning_hasattr(tmpdir):
     assert lightning_hasattr(
         model7, "batch_size"
     ), "lightning_hasattr failed to find batch_size in hparams w/ datamodule present"
+    assert lightning_hasattr(model8, "batch_size")
 
     for m in models:
         assert not lightning_hasattr(m, "this_attr_not_exist")
 
 
-def test_lightning_getattr(tmpdir):
+def test_lightning_getattr():
     """Test that the lightning_getattr works in all cases."""
-    models = model_cases()
+    models, _ = model_and_trainer_cases()
+    *__, model5, model6, model7, model8 = models
     for i, m in enumerate(models[:3]):
         value = lightning_getattr(m, "learning_rate")
         assert value == i, "attribute not correctly extracted"
 
-    model5, model6, model7 = models[4:]
     assert lightning_getattr(model5, "batch_size") == 8, "batch_size not correctly extracted"
     assert lightning_getattr(model6, "batch_size") == 8, "batch_size not correctly extracted"
     assert lightning_getattr(model7, "batch_size") == 8, "batch_size not correctly extracted"
+    assert lightning_getattr(model8, "batch_size") == 2, "batch_size not correctly extracted"
 
     for m in models:
         with pytest.raises(
@@ -133,18 +143,19 @@ def test_lightning_getattr(tmpdir):
 
 def test_lightning_setattr(tmpdir):
     """Test that the lightning_setattr works in all cases."""
-    models = model_cases()
+    models, _ = model_and_trainer_cases()
+    *__, model5, model6, model7, model8 = models
     for m in models[:3]:
         lightning_setattr(m, "learning_rate", 10)
         assert lightning_getattr(m, "learning_rate") == 10, "attribute not correctly set"
 
-    model5, model6, model7 = models[4:]
     lightning_setattr(model5, "batch_size", 128)
     lightning_setattr(model6, "batch_size", 128)
     lightning_setattr(model7, "batch_size", 128)
     assert lightning_getattr(model5, "batch_size") == 128, "batch_size not correctly set"
     assert lightning_getattr(model6, "batch_size") == 128, "batch_size not correctly set"
     assert lightning_getattr(model7, "batch_size") == 128, "batch_size not correctly set"
+    assert lightning_getattr(model8, "batch_size") == 128, "batch_size not correctly set"
 
     for m in models:
         with pytest.raises(

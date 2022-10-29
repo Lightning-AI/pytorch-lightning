@@ -47,6 +47,40 @@ It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` 
 
 ----
 
+Scale-out on Gaudis
+-------------------
+
+To train a Lightning model using multiple HPU nodes, set the ``num_nodes`` parameter with the available nodes in the ``Trainer`` class.
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="hpu", devices=8, strategy="hpu_parallel", num_nodes=2)
+
+In addition to this, the following environment variables need to be set to establish communication across nodes. Check out the documentation on :doc:`Cluster Environment <../clouds/cluster>` for more details.
+
+- *MASTER_PORT* - required; has to be a free port on machine with NODE_RANK 0
+- *MASTER_ADDR* - required (except for NODE_RANK 0); address of NODE_RANK 0 node
+- *WORLD_SIZE* - required; how many workers are in the cluster
+- *NODE_RANK* - required; id of the node in the cluster
+
+The trainer needs to be instantiated on every node participating in the training.
+
+On Node 1:
+
+.. code-block:: bash
+
+    MASTER_ADDR=<MASTER_ADDR> MASTER_PORT=<MASTER_PORT> NODE_RANK=0 WORLD_SIZE=16
+        python -m some_model_trainer.py (--arg1 ... train script args...)
+
+On Node 2:
+
+.. code-block:: bash
+
+    MASTER_ADDR=<MASTER_ADDR> MASTER_PORT=<MASTER_PORT> NODE_RANK=1 WORLD_SIZE=16
+        python -m some_model_trainer.py (--arg1 ... train script args...)
+
+----
+
 Select Gaudis automatically
 ---------------------------
 
@@ -69,7 +103,7 @@ AWS
 ^^^
 You can either use `Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`__ or `Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`__ to get access to HPUs.
 
-Check out the `Get Started Guide with AWS and Habana <https://docs.habana.ai/en/latest/AWS_EC2_Getting_Started/AWS_EC2_Getting_Started.html>`__.
+Check out the `PyTorch Model on AWS DL1 Instance Quick Start <https://docs.habana.ai/en/latest/AWS_EC2_DL1_and_PyTorch_Quick_Start/AWS_EC2_DL1_and_PyTorch_Quick_Start.html>`__.
 
 ----
 
@@ -79,5 +113,4 @@ Known limitations
 -----------------
 
 * `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__ is not supported.
-* :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is not supported.
 * :func:`torch.inference_mode` is not supported

@@ -3,7 +3,8 @@ from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
 import yaml
-from lightning_cloud.utils.name_generator import get_unique_name
+
+from lightning_app.utilities.name_generator import get_unique_name
 
 _APP_CONFIG_FILENAME = ".lightning"
 
@@ -17,6 +18,7 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
+    cluster_id: Optional[str] = field(default=None)
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""

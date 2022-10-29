@@ -130,7 +130,7 @@ Current Lightning Users
    :button_link: tutorials.html
 
 .. customcalloutitem::
-   :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
+   :description: Learn how to do everything from hyper-parameters sweeps to cloud training to Pruning and Quantization with Lightning.
    :header: Common Workflows
    :button_link: common_usecases.html
 
@@ -203,13 +203,14 @@ Current Lightning Users
    clouds/cluster
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
-   Training over the internet <strategies/collaborative_training>
+   Training over the internet <strategies/hivemind>
    advanced/model_parallel
    clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
+   Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
    model/own_your_loop
 
@@ -247,7 +248,7 @@ Current Lightning Users
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
    Model Parallel <advanced/model_parallel>
-   Collaborative Training <strategies/collaborative_training>
+   Collaborative Training <strategies/hivemind>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
@@ -286,6 +287,7 @@ Current Lightning Users
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
+   versioning
    generated/CHANGELOG.md
 
 .. raw:: html

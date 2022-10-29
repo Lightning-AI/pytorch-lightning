@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf
@@ -56,8 +58,14 @@ def test_get_model_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_get_model_gpu(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
+)
+def test_get_model_gpu(tmpdir, accelerator):
     """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 
     model = TrainerGetModel()
@@ -68,7 +76,7 @@ def test_get_model_gpu(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
         max_epochs=1,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
     )
     trainer.fit(model)

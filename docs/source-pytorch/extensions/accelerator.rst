@@ -4,7 +4,7 @@
 Accelerator
 ###########
 
-The Accelerator connects a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, ...).
+The Accelerator connects a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, MPS, ...).
 Currently there are accelerators for:
 
 - CPU
@@ -12,6 +12,7 @@ Currently there are accelerators for:
 - :doc:`TPU <../accelerators/tpu>`
 - :doc:`IPU <../accelerators/ipu>`
 - :doc:`HPU <../accelerators/hpu>`
+- :doc:`MPS <../accelerators/mps>`
 
 The Accelerator is part of the Strategy which manages communication across multiple devices (distributed communication).
 Whenever the Trainer, the loops or any other component in Lightning needs to talk to hardware, it calls into the Strategy and the Strategy calls into the Accelerator.
@@ -124,7 +125,8 @@ Accelerator API
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
+    MPSAccelerator
     TPUAccelerator

@@ -28,7 +28,7 @@ from torch.optim.optimizer import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 
@@ -94,7 +94,6 @@ class LearningRateMonitor(Callback):
         self.logging_interval = logging_interval
         self.log_momentum = log_momentum
         self.lrs: Dict[str, List[float]] = {}
-        self._lr_sch_names: List[str] = []
 
     def on_train_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
         """Called before training, determines unique names for all lr schedulers in the case of multiple of the
@@ -176,7 +175,7 @@ class LearningRateMonitor(Callback):
             scheduler_hparam_keys,
             optimizers_with_scheduler,
             optimizers_with_scheduler_types,
-        ) = self._find_names_from_schedulers(trainer.lr_scheduler_configs, add_lr_sch_names=False)
+        ) = self._find_names_from_schedulers(trainer.lr_scheduler_configs)
         self._remap_keys(scheduler_hparam_keys)
 
         for name, config in zip(scheduler_hparam_keys, trainer.lr_scheduler_configs):
@@ -189,7 +188,6 @@ class LearningRateMonitor(Callback):
             trainer.optimizers,
             seen_optimizers=optimizers_with_scheduler,
             seen_optimizer_types=optimizers_with_scheduler_types,
-            add_lr_sch_names=False,
         )
         self._remap_keys(optimizer_hparam_keys)
 
@@ -264,7 +262,8 @@ class LearningRateMonitor(Callback):
         return {n for n in names if names.count(n) > 1}
 
     def _find_names_from_schedulers(
-        self, lr_scheduler_configs: List[LRSchedulerConfig], add_lr_sch_names: bool = True
+        self,
+        lr_scheduler_configs: List[LRSchedulerConfig],
     ) -> Tuple[List[List[str]], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
@@ -279,7 +278,7 @@ class LearningRateMonitor(Callback):
                 name = "lr-" + sch.optimizer.__class__.__name__
 
             updated_names = self._check_duplicates_and_update_name(
-                sch.optimizer, name, seen_optimizers, seen_optimizer_types, config, add_lr_sch_names
+                sch.optimizer, name, seen_optimizers, seen_optimizer_types, config
             )
             names.append(updated_names)
 
@@ -290,7 +289,6 @@ class LearningRateMonitor(Callback):
         optimizers: List[Any],
         seen_optimizers: List[Optimizer],
         seen_optimizer_types: DefaultDict[Type[Optimizer], int],
-        add_lr_sch_names: bool = True,
     ) -> Tuple[List[List[str]], List[Optimizer]]:
         names = []
         optimizers_without_scheduler = []
@@ -303,7 +301,7 @@ class LearningRateMonitor(Callback):
 
             name = "lr-" + optimizer.__class__.__name__
             updated_names = self._check_duplicates_and_update_name(
-                optimizer, name, seen_optimizers, seen_optimizer_types, None, add_lr_sch_names
+                optimizer, name, seen_optimizers, seen_optimizer_types, None
             )
             names.append(updated_names)
             optimizers_without_scheduler.append(optimizer)
@@ -317,7 +315,6 @@ class LearningRateMonitor(Callback):
         seen_optimizers: List[Optimizer],
         seen_optimizer_types: DefaultDict[Type[Optimizer], int],
         lr_scheduler_config: Optional[LRSchedulerConfig],
-        add_lr_sch_names: bool = True,
     ) -> List[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
@@ -338,17 +335,4 @@ class LearningRateMonitor(Callback):
         name = self._add_prefix(name, optimizer_cls, seen_optimizer_types)
         name_list = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
 
-        if add_lr_sch_names:
-            self._lr_sch_names.append(name)
-
         return name_list
-
-    @property
-    def lr_sch_names(self) -> List[str]:
-        # TODO remove `lr_sch_names` and `add_lr_sch_names` argument in v1.7.0
-        rank_zero_deprecation(
-            "`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5 and will be removed in 1.7."
-            " Consider accessing them using `LearningRateMonitor.lrs.keys()` which will return"
-            " the names of all the optimizers, even those without a scheduler."
-        )
-        return self._lr_sch_names

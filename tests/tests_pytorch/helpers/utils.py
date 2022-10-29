@@ -14,17 +14,15 @@
 import functools
 import os
 import re
-import traceback
 from contextlib import contextmanager
 from typing import Optional, Type
 
 import pytest
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests_pytorch import _TEMP_PATH, RANDOM_PORTS
+from tests_pytorch import _TEMP_PATH
 
 
 def get_default_logger(save_dir, version=None):
@@ -53,7 +51,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=BoringModel):
+def load_model_from_checkpoint(root_weights_dir, module_class=BoringModel):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, "loading model failed"
     return trained_model
@@ -65,53 +63,13 @@ def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed(seed=0):
-    seed_everything(seed)
-
-
-def set_random_main_port():
-    reset_seed()
-    port = RANDOM_PORTS.pop()
-    os.environ["MASTER_PORT"] = str(port)
-
-
 def init_checkpoint_callback(logger):
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
 
 
-def pl_multi_process_test(func):
-    """Wrapper for running multi-processing tests_pytorch."""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-
-        from multiprocessing import Process, Queue
-
-        queue = Queue()
-
-        def inner_f(queue, **kwargs):
-            try:
-                func(**kwargs)
-                queue.put(1)
-            except Exception:
-                _trace = traceback.format_exc()
-                print(_trace)
-                # code 17 means RuntimeError: tensorflow/compiler/xla/xla_client/mesh_service.cc:364 :
-                # Failed to meet rendezvous 'torch_xla.core.xla_model.save': Socket closed (14)
-                if "terminated with exit code 17" in _trace:
-                    queue.put(1)
-                else:
-                    queue.put(-1)
-
-        proc = Process(target=inner_f, args=(queue,), kwargs=kwargs)
-        proc.start()
-        proc.join()
-
-        result = queue.get()
-        assert result == 1, "expected 1, but returned %s" % result
-
-    return wrapper
+def getattr_recursive(obj, attr):
+    return functools.reduce(getattr, [obj] + attr.split("."))
 
 
 @contextmanager

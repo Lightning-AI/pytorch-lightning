@@ -18,6 +18,7 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
+ARG PYTORCH_VERSION=1.9
 
 SHELL ["/bin/bash", "-c"]
 
@@ -56,13 +57,12 @@ ENV \
 
 COPY environment.yml environment.yml
 
-RUN conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} cudatoolkit=${CUDA_VERSION} -c pytorch && \
-    conda init bash && \
+RUN conda init bash && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
-    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '# - pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
+    python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'- pytorch[>=]+[\d\.]+', '- pytorch=${PYTORCH_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'horovod'])])" && \
     cat environment.yml && \
-    conda env update --file environment.yml && \
+    conda env create -f environment.yml && \
     conda clean -ya && \
     rm environment.yml
 
@@ -73,20 +73,18 @@ ENV \
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
     MKL_THREADING_LAYER=GNU
 
-COPY ./requirements/pytorch/extra.txt requirements-extra.txt
-COPY ./requirements/pytorch/test.txt requirements-test.txt
-COPY ./requirements/pytorch/adjust-versions.py adjust_versions.py
+COPY ./requirements/pytorch/* requirements/
 COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python adjust_versions.py requirements-extra.txt && \
     pip install -q fire && \
+    python requirements/adjust-versions.py requirements/extra.txt && \
     # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir && \
-    pip install -r requirements-test.txt --no-cache-dir && \
-    rm requirements*
+    pip install -r requirements/extra.txt --no-cache-dir && \
+    pip install -r requirements/test.txt --no-cache-dir && \
+    rm -rf requirements/
 
 RUN \
     # Show what we have

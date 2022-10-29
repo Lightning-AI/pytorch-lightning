@@ -128,6 +128,16 @@ To add the child modules to the summary add a :class:`~pytorch_lightning.callbac
 
     trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
 
+To print the model summary if ``.fit()`` is not called:
+
+.. code-block:: python
+
+    from pytorch_lightning.utilities.model_summary import ModelSummary
+
+    model = LitModel()
+    summary = ModelSummary(model, max_depth=-1)
+    print(summary)
+
 To turn off the autosummary use:
 
 .. code:: python

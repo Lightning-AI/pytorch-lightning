@@ -11,28 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
-from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -71,9 +73,9 @@ def _parse_loop_limits(
     min_steps: Optional[int],
     max_steps: int,
     min_epochs: Optional[int],
-    max_epochs: int,
-    max_time: Optional[Union[str, timedelta, Dict[str, int]]],
-) -> Tuple[Optional[int], int, int, int, Optional[Union[str, timedelta, Dict[str, int]]]]:
+    max_epochs: Optional[int],
+    trainer: "pl.Trainer",
+) -> Tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
 
@@ -82,13 +84,13 @@ def _parse_loop_limits(
         max_steps: Maximum number of steps.
         min_epochs: Minimum number of epochs.
         max_epochs: Maximum number of epochs.
-        max_time: Maximum time for the training.
+        trainer: Trainer instance.
 
     Returns:
         The parsed limits, with default values being set for the ones that the user did not specify.
     """
     if max_epochs is None:
-        if max_steps == -1 and max_time is None:
+        if max_steps == -1 and not any(isinstance(cb, Timer) for cb in trainer.callbacks):
             rank_zero_warn(
                 "`max_epochs` was not set. Setting it to 1000 epochs. To train without an epoch limit,"
                 " set `max_epochs=-1`.",
@@ -97,13 +99,16 @@ def _parse_loop_limits(
             max_epochs = 1000
         else:
             max_epochs = -1
+
     if min_epochs is None and min_steps is not None:
         # setting this allows FitLoop.done to re-evaluate should_stop when it gets triggered `on_fit_start`
         min_epochs = 1
+
     if min_epochs is None:
         # the default value is 0 so no training will be done when should_stop is triggered `on_fit_start`
         min_epochs = 0
-    return min_steps, max_steps, min_epochs, max_epochs, max_time
+
+    return min_epochs, max_epochs
 
 
 def _build_training_step_kwargs(
@@ -152,7 +157,7 @@ def _build_training_step_kwargs(
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
     """Blocks synchronization in :class:`~pytorch_lightning.strategies.parallel.ParallelStrategy`. This is useful
-    for example when when accumulating gradients to reduce communication when it is not needed.
+    for example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.
@@ -216,7 +221,15 @@ def _reset_progress(loop: Loop) -> None:
             _reset_progress(v)
 
 
-# TODO: remove in v1.8
-def _v1_8_output_format(fx: Callable) -> bool:
-    parameters = inspect.signature(fx).parameters
-    return "new_format" in parameters and parameters["new_format"].default is True
+def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int) -> None:
+    """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
+
+    Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
+    :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
+    of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
+    """
+
+    for sampler_name in ("sampler", "batch_sampler"):
+        sampler = getattr(dataloader, sampler_name, None)
+        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
+            sampler.set_epoch(epoch)

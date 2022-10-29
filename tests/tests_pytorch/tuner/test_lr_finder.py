@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from copy import deepcopy
 
@@ -18,11 +19,13 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import no_warning_call
+from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -83,16 +86,18 @@ def test_trainer_reset_correctly(tmpdir):
         "callbacks",
         "checkpoint_callback",
         "current_epoch",
-        "logger",
+        "loggers",
         "global_step",
         "max_steps",
+        "fit_loop.max_steps",
+        "strategy.setup_optimizers",
     ]
-    expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
         trainer.tuner.lr_find(model, num_training=5)
 
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
+    actual = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
     assert actual == expected
     assert model.trainer == trainer
 
@@ -351,7 +356,15 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     seed_everything(1)
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
     assert all(
@@ -359,3 +372,65 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
         for curr_lr_finder in all_res[1:]
         for k in all_res[0].keys()
     )
+
+
+@pytest.mark.parametrize(
+    "skip_begin,skip_end,losses,expected_error",
+    [
+        (0, 0, [], True),
+        (10, 1, [], True),
+        (0, 2, [0, 1, 2], True),
+        (0, 1, [0, 1, 2], False),
+        (1, 1, [0, 1, 2], True),
+        (1, 1, [0, 1, 2, 3], False),
+        (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+        (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+    ],
+)
+def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expected_error, caplog):
+    """Tests the error handling when not enough finite points are available to make a suggestion."""
+    caplog.clear()
+    lr_finder = _LRFinder(
+        mode="exponential",
+        lr_min=1e-8,
+        lr_max=1,
+        num_training=100,
+    )
+    lrs = list(torch.arange(len(losses)))
+    lr_finder.results = {
+        "lr": lrs,
+        "loss": losses,
+    }
+    with caplog.at_level(logging.ERROR, logger="root.tuner.lr_finder"):
+        lr = lr_finder.suggestion(skip_begin=skip_begin, skip_end=skip_end)
+
+        if expected_error:
+            assert lr is None
+            assert "Failed to compute suggestion for learning rate" in caplog.text
+        else:
+            assert lr is not None
+
+
+def test_lr_attribute_when_suggestion_invalid(tmpdir):
+    """Tests learning rate finder ends before `num_training` steps."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.123
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
+    assert lr_finder.suggestion() is None
+    assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
+
+
+def test_if_lr_finder_callback_already_configured():
+    """Test that an error is raised if `LearningRateFinder` is already configured inside `Tuner`"""
+    cb = LearningRateFinder()
+    trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+        trainer.tune(model)

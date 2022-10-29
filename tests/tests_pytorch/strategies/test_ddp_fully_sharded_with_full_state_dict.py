@@ -5,16 +5,16 @@ from unittest import mock
 import pytest
 import torch
 
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedStrategy
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
-if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
+if _FAIRSCALE_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel, wrap
 
 
@@ -29,10 +29,8 @@ def test_invalid_on_cpu(tmpdir):
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(fairscale_fully_sharded=True)
-def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
+@RunIf(fairscale=True)
+def test_fsdp_with_sharded_amp(cuda_count_1, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(
         default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", accelerator="gpu", devices=1, precision=16
@@ -41,7 +39,7 @@ def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
-class TestFSDPModel(BoringModel):
+class TestFSDPModelManualWrapped(BoringModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layer: Optional[torch.nn.Module] = None
@@ -69,16 +67,16 @@ class TestFSDPModel(BoringModel):
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
 
-    def on_train_start(self) -> None:
+    def on_train_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_test_start(self) -> None:
+    def on_test_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_validation_start(self) -> None:
+    def on_validation_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
-    def on_prediction_start(self) -> None:
+    def on_prediction_batch_end(self, *_, **__) -> None:
         self._assert_layer_fsdp_instance()
 
     def _assert_layer_fsdp_instance(self) -> None:
@@ -87,8 +85,8 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
 
         # Assert that the nested layers are set reshard_after_forward to True
-        assert self.layer.module[0].reshard_after_forward is True
-        assert self.layer.module[2].reshard_after_forward is True
+        assert self.layer.module[0].reshard_after_forward
+        assert self.layer.module[2].reshard_after_forward
 
         if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
             assert self.layer.mixed_precision
@@ -96,11 +94,40 @@ class TestFSDPModel(BoringModel):
             assert self.layer.module[2].mixed_precision
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+class TestFSDPModelAutoWrapped(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.layer = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.trainer.model.parameters(), lr=0.1)
+
+    def on_train_batch_end(self, *_, **__) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_test_batch_end(self, *_, **__) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_validation_batch_end(self, *_, **__) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def on_prediction_batch_end(self, *_, **__) -> None:
+        self._assert_layer_fsdp_instance()
+
+    def _assert_layer_fsdp_instance(self) -> None:
+        assert isinstance(self.trainer.model, FullyShardedDataParallel)
+        # `disable_reshard_on_root=True` (default) in FSDP which turns-off resharding
+        assert not self.trainer.model.reshard_after_forward
+
+        if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
+            assert self.trainer.model.mixed_precision
+
+
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
-    model = TestFSDPModel()
+    model = TestFSDPModelManualWrapped()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
@@ -114,19 +141,29 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
+@RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
+@pytest.mark.parametrize(
+    "model, strategy",
+    [
+        (TestFSDPModelManualWrapped(), DDPFullyShardedStrategy(min_num_params=2)),
+        (TestFSDPModelAutoWrapped(), "fsdp"),
+    ],
+)
+def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir, model, strategy):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
-    model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
         devices=2,
-        strategy="fsdp",
+        strategy=strategy,
         precision=16,
         max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
         callbacks=[ck],
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -134,7 +171,7 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     _run_multiple_stages(trainer, model)
 
 
-def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
+def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModelManualWrapped):
     # Use FullySharded to get the state dict for the sake of comparison
     model_state_dict = trainer.strategy.lightning_module_state_dict()
 
@@ -153,19 +190,36 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
     trainer.save_checkpoint(model_path, weights_only=True)
 
-    _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
+    _assert_save_equality(trainer, model_path, cls=model.__class__)
 
     # Test entry point
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
     trainer.test(model)  # model is wrapped, will not call configure_shared_model
 
-    # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
-    trainer.test(ckpt_path=model_path)
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+    trainer.test(model, ckpt_path=model_path)
+
+    # Predict entry point
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+    trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+    if model.__class__ is TestFSDPModelAutoWrapped:
+        model = TestFSDPModelAutoWrapped()
+    trainer.predict(model, ckpt_path=model_path)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fsdp_gradient_clipping_raises(tmpdir):
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
-    model = BoringModel()
+    model = TestFSDPModelManualWrapped()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="fsdp",
@@ -182,3 +236,21 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
     ):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+def test_fsdp_rewrap_limitation(tmpdir):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=1,
+        max_steps=1,
+        limit_val_batches=0,
+        limit_test_batches=1,
+        strategy="fsdp",
+    )
+    model = TestFSDPModelAutoWrapped()
+    trainer.fit(model)
+
+    with pytest.raises(MisconfigurationException, match="Using the same instance of model .* not supported"):
+        trainer.test(model)

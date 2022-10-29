@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import operator
 import os
 from argparse import Namespace
 from unittest import mock
@@ -25,19 +24,14 @@ import yaml
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.imports import _compare_version, _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 
 
-@pytest.mark.skipif(
-    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
-)
 def test_tensorboard_hparams_reload(tmpdir):
-    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
@@ -62,15 +56,6 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
-
-    # verify tb logs
-    event_acc = EventAccumulator(folder_path)
-    event_acc.Reload()
-
-    hparams_data = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-
-    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.plugin_name == "hparams"
-    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.content == hparams_data
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -290,7 +275,17 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 def test_tensorboard_finalize(summary_writer, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
     logger = TensorBoardLogger(save_dir=tmpdir)
+    assert logger._experiment is None
     logger.finalize("any")
+
+    # no log calls, no experiment created -> nothing to flush
+    summary_writer.assert_not_called()
+
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
+    logger.finalize("any")
+
+    # finalize flushes to experiment directory
     summary_writer().flush.assert_called()
     summary_writer().close.assert_called()
 

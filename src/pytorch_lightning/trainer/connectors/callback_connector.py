@@ -17,8 +17,10 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     Callback,
+    Checkpoint,
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
@@ -26,17 +28,19 @@ from pytorch_lightning.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 _log = logging.getLogger(__name__)
 
 
 class CallbackConnector:
-    def __init__(self, trainer):
+    def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
 
     def on_trainer_init(
@@ -45,20 +49,12 @@ class CallbackConnector:
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         default_root_dir: Optional[str],
-        weights_save_path: Optional[str],
         enable_model_summary: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
-    ):
+    ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
-        if weights_save_path:
-            rank_zero_deprecation(
-                "Setting `Trainer(weights_save_path=)` has been deprecated in v1.6 and will be"
-                " removed in v1.8. Please pass ``dirpath`` directly to the `ModelCheckpoint` callback"
-            )
-
-        self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
 
         # init callbacks
         if isinstance(callbacks, Callback):
@@ -94,16 +90,18 @@ class CallbackConnector:
     def _configure_accumulated_gradients(
         self, accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None
     ) -> None:
-        grad_accum_callback = [cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)]
+        grad_accum_callbacks: List[GradientAccumulationScheduler] = [
+            cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)
+        ]
 
-        if grad_accum_callback:
+        if grad_accum_callbacks:
             if accumulate_grad_batches is not None:
                 raise MisconfigurationException(
                     "You have set both `accumulate_grad_batches` and passed an instance of "
                     "`GradientAccumulationScheduler` inside callbacks. Either remove `accumulate_grad_batches` "
                     "from trainer or remove `GradientAccumulationScheduler` from callbacks list."
                 )
-            grad_accum_callback = grad_accum_callback[0]
+            grad_accum_callback = grad_accum_callbacks[0]
         else:
             if accumulate_grad_batches is None:
                 accumulate_grad_batches = 1
@@ -147,6 +145,7 @@ class CallbackConnector:
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
+        model_summary: ModelSummary
         if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary()
         else:
@@ -187,7 +186,7 @@ class CallbackConnector:
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
 
-    def _configure_fault_tolerance_callbacks(self):
+    def _configure_fault_tolerance_callbacks(self) -> None:
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
@@ -195,7 +194,7 @@ class CallbackConnector:
         # don't use `log_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
-    def _attach_model_logging_functions(self):
+    def _attach_model_logging_functions(self) -> None:
         lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
             callback.log = lightning_module.log
@@ -232,19 +231,30 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
-        checkpoint callbacks is preserved, as well as the order of all other callbacks.
+        """Moves all the tuner specific callbacks at the beginning of the list and all the `ModelCheckpoint`
+        callbacks to the end of the list. The sequential order within the group of checkpoint callbacks is
+        preserved, as well as the order of all other callbacks.
 
         Args:
             callbacks: A list of callbacks.
 
         Return:
-            A new list in which the last elements are ModelCheckpoints if there were any present in the
-            input.
+            A new list in which the first elements are tuner specific callbacks and last elements are ModelCheckpoints
+            if there were any present in the input.
         """
-        checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
-        return not_checkpoints + checkpoints
+        tuner_callbacks: List[Callback] = []
+        other_callbacks: List[Callback] = []
+        checkpoint_callbacks: List[Callback] = []
+
+        for cb in callbacks:
+            if isinstance(cb, (BatchSizeFinder, LearningRateFinder)):
+                tuner_callbacks.append(cb)
+            elif isinstance(cb, Checkpoint):
+                checkpoint_callbacks.append(cb)
+            else:
+                other_callbacks.append(cb)
+
+        return tuner_callbacks + other_callbacks + checkpoint_callbacks
 
 
 def _configure_external_callbacks() -> List[Callback]:
@@ -255,19 +265,24 @@ def _configure_external_callbacks() -> List[Callback]:
     Return:
         A list of all callbacks collected from external factories.
     """
+    group = "pytorch_lightning.callbacks_factory"
+
     if _PYTHON_GREATER_EQUAL_3_8_0:
         from importlib.metadata import entry_points
 
-        factories = entry_points().get("pytorch_lightning.callbacks_factory", ())
+        if _PYTHON_GREATER_EQUAL_3_10_0:
+            factories = entry_points(group=group)
+        else:
+            factories = entry_points().get(group, {})  # type: ignore[arg-type]
     else:
         from pkg_resources import iter_entry_points
 
-        factories = iter_entry_points("pytorch_lightning.callbacks_factory")
+        factories = iter_entry_points(group)  # type: ignore[assignment]
 
-    external_callbacks = []
+    external_callbacks: List[Callback] = []
     for factory in factories:
         callback_factory = factory.load()
-        callbacks_list: List[Callback] = callback_factory()
+        callbacks_list: Union[List[Callback], Callback] = callback_factory()
         callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
         _log.info(
             f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"

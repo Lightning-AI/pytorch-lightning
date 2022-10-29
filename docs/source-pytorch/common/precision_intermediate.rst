@@ -96,12 +96,16 @@ NVIDIA APEX
 
     Trainer(accelerator="gpu", devices=1, amp_backend="apex", precision=16)
 
-Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
+Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the precision plugin.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(accelerator="gpu", devices=1, amp_backend="apex", amp_level="O2", precision=16)
+    from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
+
+
+    apex_plugin = ApexMixedPrecisionPlugin(amp_level="O3")
+    Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
 
 ----
 
@@ -139,5 +143,13 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 8-bit Optimizer
 ***************
 
-It is possible to further reduce the precision using third-party libraries like `bitsandbytes <https://github.com/facebookresearch/bitsandbytes>`_. Although,
+It is possible to further reduce the precision using third-party libraries like `bitsandbytes <https://github.com/TimDettmers/bitsandbytes>`_. Although,
 Lightning doesn't support it out of the box yet but you can still use it by configuring it in your LightningModule and setting ``Trainer(precision=32)``.
+
+.. code-block:: python
+
+    import bitsandbytes as bnb
+
+    # in your LightningModule, return the 8-bit optimizer
+    def configure_optimizers(self):
+        return bnb.optim.Adam8bit(model.parameters(), lr=0.001, betas=(0.9, 0.995))

@@ -11,24 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 
 import torch
-import torch.multiprocessing as mp
+import torch.distributed
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
+from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
 
-def _test_collect_states(rank, world_size):
-    os.environ["MASTER_ADDR"] = "localhost"
-
-    torch.cuda.set_device(f"cuda:{rank}")
-
-    # initialize the process group
-    torch.distributed.init_process_group("nccl", rank=rank, world_size=world_size)
-
+def collect_states_fn(strategy):
+    rank = strategy.local_rank
     state = {"something": torch.tensor([rank])}
     collected_state = _collect_states_on_rank_zero(state)
     assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
@@ -40,5 +33,4 @@ def test_collect_states():
 
     This would be used to collect dataloader states as an example.
     """
-    tutils.set_random_main_port()
-    mp.spawn(_test_collect_states, args=(2,), nprocs=2)
+    spawn_launch(collect_states_fn, [torch.device("cuda:0"), torch.device("cuda:1")])

@@ -51,6 +51,7 @@ class Timer(Callback):
             If ``interval`` is not one of the supported choices.
 
     Example::
+
         from pytorch_lightning import Trainer
         from pytorch_lightning.callbacks import Timer
 
@@ -94,8 +95,8 @@ class Timer(Callback):
         self._duration = duration.total_seconds() if duration is not None else None
         self._interval = interval
         self._verbose = verbose
-        self._start_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
-        self._end_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage}
+        self._start_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage._without_tune()}
+        self._end_time: Dict[RunningStage, Optional[float]] = {stage: None for stage in RunningStage._without_tune()}
         self._offset = 0
 
     def start_time(self, stage: str = RunningStage.TRAINING) -> Optional[float]:
@@ -160,7 +161,7 @@ class Timer(Callback):
         self._check_time_remaining(trainer)
 
     def state_dict(self) -> Dict[str, Any]:
-        return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
+        return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in RunningStage._without_tune()}}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         time_elapsed = state_dict.get("time_elapsed", {})

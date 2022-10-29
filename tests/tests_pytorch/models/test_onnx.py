@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest.mock import patch
 
 import numpy as np
 import onnxruntime
@@ -19,9 +20,9 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
@@ -39,11 +40,13 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(min_cuda_gpus=1)
-def test_model_saves_on_gpu(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator", [pytest.param("mps", marks=RunIf(mps=True)), pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))]
+)
+def test_model_saves_on_gpu(tmpdir, accelerator):
     """Test that model saves on gpu."""
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
+    trainer = Trainer(accelerator=accelerator, devices=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -89,8 +92,6 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
 @RunIf(min_cuda_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
-    tutils.set_random_main_port()
-
     trainer_options = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -116,11 +117,18 @@ def test_verbose_param(tmpdir, capsys):
     """Test that output is present when verbose parameter is set."""
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
-
     file_path = os.path.join(tmpdir, "model.onnx")
-    model.to_onnx(file_path, verbose=True)
-    captured = capsys.readouterr()
-    assert "graph(%" in captured.out
+
+    if _TORCH_GREATER_EQUAL_1_12:
+        with patch("torch.onnx.log", autospec=True) as test:
+            model.to_onnx(file_path, verbose=True)
+        args, kwargs = test.call_args
+        prefix, graph = args
+        assert prefix == "Exported graph: "
+    else:
+        model.to_onnx(file_path, verbose=True)
+        captured = capsys.readouterr()
+        assert "graph(%" in captured.out
 
 
 def test_error_if_no_input(tmpdir):

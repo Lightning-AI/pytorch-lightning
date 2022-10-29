@@ -2,20 +2,21 @@
 
 from pathlib import Path
 
-import lightning_app as la
+import lightning as L
+from lightning_app import frontend
 
 
-class YourComponent(la.LightningFlow):
+class YourComponent(L.LightningFlow):
     def __init__(self):
         super().__init__()
         self.message_to_print = "Hello World!"
         self.should_print = False
 
     def configure_layout(self):
-        return la.frontend.StaticWebFrontend(Path(__file__).parent / "ui/dist")
+        return frontend.StaticWebFrontend(Path(__file__).parent / "ui/dist")
 
 
-class HelloLitReact(la.LightningFlow):
+class HelloLitReact(L.LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
@@ -30,4 +31,4 @@ class HelloLitReact(la.LightningFlow):
         return [{"name": "React UI", "content": self.react_ui}]
 
 
-app = la.LightningApp(HelloLitReact())
+app = L.LightningApp(HelloLitReact())
