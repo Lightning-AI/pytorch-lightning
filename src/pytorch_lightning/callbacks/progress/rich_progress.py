@@ -255,9 +255,9 @@ class RichProgressBar(ProgressBarBase):
         self._console: Optional[Console] = None
         self._console_kwargs = console_kwargs or {}
         self._enabled: bool = True
-        self.progress: Optional[Progress] = None
-        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
+        self.progress: Optional[CustomProgress] = None
         self.main_progress_bar_id: Optional["TaskID"]
+        self.val_sanity_progress_bar_id: Optional["TaskID"] = None
         self.val_progress_bar_id: Optional["TaskID"]
         self.test_progress_bar_id: Optional["TaskID"]
         self.predict_progress_bar_id: Optional["TaskID"]
@@ -278,6 +278,30 @@ class RichProgressBar(ProgressBarBase):
     @property
     def is_disabled(self) -> bool:
         return not self.is_enabled
+
+    @property
+    def main_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.main_progress_bar_id is not None
+        return self.progress.tasks[self.main_progress_bar_id]
+
+    @property
+    def val_sanity_check_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.val_sanity_progress_bar_id is not None
+        return self.progress.tasks[self.val_sanity_progress_bar_id]
+
+    @property
+    def val_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.val_progress_bar_id is not None
+        return self.progress.tasks[self.val_progress_bar_id]
+
+    @property
+    def test_progress_bar(self) -> Task:
+        assert self.progress is not None
+        assert self.test_progress_bar_id is not None
+        return self.progress.tasks[self.test_progress_bar_id]
 
     def _update_for_light_colab_theme(self) -> None:
         if _detect_light_colab_theme():
@@ -336,6 +360,8 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self.is_disabled:
+            return
         total_batches = self.total_batches_current_epoch
         train_description = self._get_train_description(trainer.current_epoch)
 
@@ -519,6 +545,7 @@ class RichProgressBar(ProgressBarBase):
 
     def _reset_progress_bar_ids(self) -> None:
         self.main_progress_bar_id = None
+        self.val_sanity_progress_bar_id = None
         self.val_progress_bar_id = None
         self.val_sanity_progress_bar_id = None
         self.test_progress_bar_id = None
@@ -534,30 +561,6 @@ class RichProgressBar(ProgressBarBase):
 
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         self._stop_progress()
-
-    @property
-    def val_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.val_progress_bar_id is not None
-        return self.progress.tasks[self.val_progress_bar_id]
-
-    @property
-    def val_sanity_check_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.val_sanity_progress_bar_id is not None
-        return self.progress.tasks[self.val_sanity_progress_bar_id]
-
-    @property
-    def main_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.main_progress_bar_id is not None
-        return self.progress.tasks[self.main_progress_bar_id]
-
-    @property
-    def test_progress_bar(self) -> Task:
-        assert self.progress is not None
-        assert self.test_progress_bar_id is not None
-        return self.progress.tasks[self.test_progress_bar_id]
 
     def configure_columns(self, trainer: "pl.Trainer") -> list:
         return [

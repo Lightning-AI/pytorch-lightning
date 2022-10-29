@@ -1,8 +1,7 @@
 import os
 import subprocess
 
-from lightning import LightningWork
-from lightning.app.utilities.packaging.build_config import BuildConfig
+from lightning import BuildConfig, LightningWork
 
 
 class Locust(LightningWork):
