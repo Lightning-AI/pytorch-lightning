@@ -130,7 +130,7 @@ class LightningClient(GridRestClient):
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get("retry", False):
-            return _MethodsRetryWrapperMeta("LightningClient", (GridRestClient, ), {})
+            return _MethodsRetryWrapperMeta("LightningClient", (GridRestClient,), {})
         return super().__new__(cls)
 
     def __init__(self, retry: bool = False) -> None:

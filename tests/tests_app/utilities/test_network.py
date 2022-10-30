@@ -1,4 +1,4 @@
-from lightning_app.utilities.network import find_free_network_port, LightningClient, _MethodsRetryWrapperMeta
+from lightning_app.utilities.network import _MethodsRetryWrapperMeta, find_free_network_port, LightningClient
 
 
 def test_port():
