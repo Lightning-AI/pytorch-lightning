@@ -12,12 +12,35 @@ Build models and full stack AI apps ⚡ *Lightning fast*
 .. join_slack::
    :align: left
 
+*******************************************************
+Build full stack AI apps from modular Python components
+*******************************************************
+
+.. raw:: html
+
+   <div class="row">
+      <div class='col-md-5' style="padding-top: 40px">
+      <p>
+         Lightning makes it painless to build full stack AI apps for the cloud. Implement Lightning components that encapsulate 
+         each part of your application to make it modular, interoperable and maintainable. 
+         Each Lightning component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
+      </p>
+      </div>
+      <div class='col-md-7'>
+
+.. raw:: html
+
+   <video style="height:auto; max-width: 100%; max-height: 450px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/hello_apps.m4v"></video>
+
+.. raw:: html
+
+      </div>
+   </div>
+
 ********************************
-Run any Python code on the cloud
+Define your Lightning Components
 ********************************
-Lightning makes it painless to build full stack AI apps for the cloud. Implement Lightning components that encapsulate 
-each part of your application to make it modular, interoperable and maintainable. 
-Each Lightning component manages its own infrastructure, cost management, networking and more, so you can focus on the application logic.
+Each Lightning component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
 
 .. lit_tabs::
    :titles: ; Example; Example; Example;
@@ -35,7 +58,9 @@ Each Lightning component manages its own infrastructure, cost management, networ
 ******************************************
 Compose components into full stack AI apps
 ******************************************
-Something about this
+Components "connect" into full stack AI apps which we call Lightning apps. 
+Lightning apps can be as simple as sequential ML workflows without GUIs, or as complex as
+a generative AI app managing its own full react UI with models deploying in real-time.
 
 .. lit_tabs::
    :titles: ; Example; Example; Example;
@@ -47,9 +72,10 @@ Something about this
 
 ----
 
-*****************************
-On the cloud or your hardware
-*****************************
+*********************************
+Run on the cloud or your hardware
+*********************************
+Lightning apps are portable! take them to the cloud or cluster of your choice.
 
 .. lit_tabs::
    :descriptions: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
