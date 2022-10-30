@@ -1,3 +1,4 @@
+import logging
 import socket
 import time
 from functools import wraps
@@ -118,14 +119,23 @@ class _MethodsRetryWrapperMeta(type):
         return new_class
 
 
-class LightningClient(GridRestClient, metaclass=_MethodsRetryWrapperMeta):
+class LightningClient(GridRestClient):
     """The LightningClient is a wrapper around the GridRestClient.
 
     It wraps all methods to monitor connection exceptions and employs a retry strategy.
+
+    Args:
+        retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __init__(self) -> None:
+    def __new__(cls, *args, **kwargs):
+        if kwargs.get("retry", False):
+            return _MethodsRetryWrapperMeta("LightningClient", (GridRestClient, ), {})
+        return super().__new__(cls)
+
+    def __init__(self, retry: bool = False) -> None:
         super().__init__(api_client=create_swagger_client())
+        self._retry = retry
 
 
 class CustomRetryAdapter(HTTPAdapter):
