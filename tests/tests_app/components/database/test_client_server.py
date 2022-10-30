@@ -9,7 +9,7 @@ import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.components.database import Database, DatabaseClient
-from lightning_app.components.database.utilities import _GeneralModel, pydantic_column_type
+from lightning_app.components.database.utilities import _GeneralModel, _pydantic_column_type
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.utilities.imports import _is_sqlmodel_available
 
@@ -26,7 +26,7 @@ if _is_sqlmodel_available():
 
         id: Optional[int] = Field(default=None, primary_key=True)
         name: str
-        secrets: List[Secret] = Field(..., sa_column=Column(pydantic_column_type(List[Secret])))
+        secrets: List[Secret] = Field(..., sa_column=Column(_pydantic_column_type(List[Secret])))
 
 
 class Work(LightningWork):

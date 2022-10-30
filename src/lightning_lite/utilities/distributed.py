@@ -156,7 +156,7 @@ def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[U
     return result
 
 
-class AllGatherGrad(torch.autograd.Function):
+class _AllGather(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore[override]
         ctx: Any,
@@ -197,9 +197,9 @@ def _all_gather_ddp_if_available(
     group = group if group is not None else torch.distributed.group.WORLD
     if _distributed_available():
         if sync_grads:
-            return AllGatherGrad.apply(tensor, group)
+            return _AllGather.apply(tensor, group)
         with torch.no_grad():
-            return AllGatherGrad.apply(tensor, group)
+            return _AllGather.apply(tensor, group)
     return tensor
 
 

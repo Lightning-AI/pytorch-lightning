@@ -226,7 +226,7 @@ def test_file_server():
     MultiProcessRuntime(app).dispatch()
 
 
-from lightning.app.testing.testing import run_app_in_cloud  # noqa: E402
+from lightning.app.testing import run_app_in_cloud  # noqa: E402
 
 
 def test_file_server_in_cloud():

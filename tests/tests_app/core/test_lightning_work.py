@@ -9,7 +9,7 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -161,14 +161,14 @@ def test_lightning_status(enable_exception, raise_exception):
     work = Work(raise_exception, enable_exception=enable_exception)
     work._name = "root.w"
     assert work.status.stage == WorkStageStatus.NOT_STARTED
-    caller_queue = MockQueue("caller_queue")
-    delta_queue = MockQueue("delta_queue")
-    readiness_queue = MockQueue("readiness_queue")
-    error_queue = MockQueue("error_queue")
-    request_queue = MockQueue("request_queue")
-    response_queue = MockQueue("response_queue")
-    copy_request_queue = MockQueue("copy_request_queue")
-    copy_response_queue = MockQueue("copy_response_queue")
+    caller_queue = _MockQueue("caller_queue")
+    delta_queue = _MockQueue("delta_queue")
+    readiness_queue = _MockQueue("readiness_queue")
+    error_queue = _MockQueue("error_queue")
+    request_queue = _MockQueue("request_queue")
+    response_queue = _MockQueue("response_queue")
+    copy_request_queue = _MockQueue("copy_request_queue")
+    copy_response_queue = _MockQueue("copy_response_queue")
     call_hash = "fe3fa0f"
     work._calls[call_hash] = {
         "args": (),
