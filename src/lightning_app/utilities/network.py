@@ -1,4 +1,3 @@
-import logging
 import socket
 import time
 from functools import wraps
