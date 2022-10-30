@@ -14,8 +14,10 @@
 import os
 from unittest import mock
 
+import fsspec.registry
 import pytest
 import torch
+from fsspec.implementations.arrow import ArrowFSWrapper
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -88,6 +90,38 @@ def test_hpc_max_ckpt_version(tmpdir):
     """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer.fit(model)
+    trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
+    trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
+    trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
+    trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
+
+    assert trainer._checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
+    assert trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
+    assert (
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        is None
+    )
+
+
+def test_max_ckpt_version_for_fsspec(tmpdir):
+    """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
+
+    class MockFileSystem(ArrowFSWrapper):
+        """A wrapper on top of the pyarrow.fs.HadoopFileSystem to connect it's interface with fsspec."""
+
+        protocol = "mock"
+
+        def __init__(self, **kwargs):
+            from pyarrow.fs import FileSystem
+
+            fs = FileSystem.from_uri("mock://")
+            super().__init__(fs=fs, **kwargs)
+
+    fsspec.registry.register_implementation("mock", MockFileSystem)
+
+    model = BoringModel()
+    trainer = Trainer(default_root_dir="mock://" + tmpdir, max_steps=1)
     trainer.fit(model)
     trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")

@@ -19,9 +19,9 @@ from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
+from fsspec.core import url_to_fs
 from torch import Tensor
 from torchmetrics import Metric
-from fsspec.core import uri_to_fs
 
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.slurm import SLURMEnvironment
@@ -575,7 +575,7 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs, uri = uri_to_fs(dir_path)
+        fs, uri = url_to_fs(dir_path)
         if not fs.exists(dir_path):
             return None
 
