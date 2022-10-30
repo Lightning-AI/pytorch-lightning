@@ -74,7 +74,6 @@ def _retry_wrapper(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapped(*args: Any, **kwargs: Any) -> Any:
-        assert False
         consecutive_errors = 0
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
