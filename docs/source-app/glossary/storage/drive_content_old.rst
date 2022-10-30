@@ -111,9 +111,8 @@ Here is an illustrated code example on how to create drives within works.
 
 .. code-block:: python
 
-    from lightning_app import LightningFlow, LightningWork
-    from lightning_app.core.app import LightningApp
-    from lightning_app.storage.drive import Drive
+    from lightning_app import LightningFlow, LightningWork, LightningApp
+    from lightning_app.storage import Drive
 
 
     class Work_A(LightningWork):

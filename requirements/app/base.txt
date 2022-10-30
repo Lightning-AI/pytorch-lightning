@@ -1,4 +1,5 @@
-lightning-cloud>=0.5.10
+lightning-cloud>=0.5.11
+packaging
 typing-extensions>=4.0.0, <4.3.1
 deepdiff>=5.7.0, <=5.8.1
 starsessions>=1.2.1, <2.0 # strict
