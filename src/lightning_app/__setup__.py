@@ -21,9 +21,9 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
-    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+def _prepare_extras() -> Dict[str, Any]:
+    path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
+    setup_tools = _load_py_module("setup_tools", path_setup_tools)
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
@@ -31,9 +31,9 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": _setup_tools.load_requirements(file_name="cloud.txt", **common_args),
-        "ui": _setup_tools.load_requirements(file_name="ui.txt", **common_args),
-        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
+        "cloud": setup_tools.load_requirements(file_name="cloud.txt", **common_args),
+        "ui": setup_tools.load_requirements(file_name="ui.txt", **common_args),
+        "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
     extras["all"] = extras["cloud"] + extras["ui"]
@@ -70,7 +70,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _setup_tools._download_frontend(_PROJECT_ROOT)
+    _setup_tools._download_frontend(_PACKAGE_ROOT)
 
     return dict(
         name="lightning-app",

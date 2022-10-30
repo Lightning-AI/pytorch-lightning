@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=22.06
+ARG PYTORCH_VERSION=22.09
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
@@ -50,9 +50,6 @@ RUN \
 
 RUN pip install jupyterlab[all] -U
 
-RUN pip install lightning-grid -U && \
-    pip install "py>=1.10" "protobuf>=3.15.6" --upgrade-strategy only-if-needed
-
 ENV PYTHONPATH="/workspace"
 
 RUN \
@@ -63,6 +60,6 @@ RUN \
     pip --version && \
     pip list | grep torch && \
     python -c "import torch; assert torch.__version__.startswith('$TORCH_VERSION'), torch.__version__" && \
-    python -c "import pytorch_lightning as pl; print(pl.__version__)"
+    python -c "import lightning as L; print(L.__version__)"
 
 CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

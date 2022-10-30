@@ -1,15 +1,28 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
-from lightning_utilities.core.imports import package_available
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -19,7 +32,7 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-_BAGUA_AVAILABLE = package_available("bagua")
+_BAGUA_AVAILABLE = module_available("bagua.torch_api")
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
@@ -169,7 +182,7 @@ class BaguaStrategy(DDPStrategy):
             # set up optimizers after the module has been moved to the device
             # but before the module has been wrapped
             self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+            _optimizers_to_device(self.optimizers, self.root_device)
 
             # skip wrapping the model if we are not fitting as no gradients need to be exchanged
             self._configure_bagua_model(trainer)

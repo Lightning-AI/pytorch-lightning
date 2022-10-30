@@ -4,11 +4,11 @@ from typing import Any, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.utils.data import Dataset, DistributedSampler, Sampler
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.imports import _HPU_AVAILABLE
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.types import ReduceOp
 
@@ -23,7 +23,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-def gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
+def _gather_all_tensors(result: Tensor, group: Optional[Any] = None) -> List[Tensor]:
     """Function to gather all tensors from several DDP processes onto a list that is broadcasted to all processes.
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
@@ -82,13 +82,13 @@ def _simple_gather_all_tensors(result: Tensor, group: Any, world_size: int) -> L
     return gathered_result
 
 
-def distributed_available() -> bool:
-    from lightning_lite.accelerators.tpu import tpu_distributed
+def _distributed_available() -> bool:
+    from lightning_lite.accelerators.tpu import _tpu_distributed
 
-    return torch.distributed.is_available() and torch.distributed.is_initialized() or tpu_distributed()
+    return torch.distributed.is_available() and torch.distributed.is_initialized() or _tpu_distributed()
 
 
-def sync_ddp_if_available(
+def _sync_ddp_if_available(
     result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> Tensor:
     """Function to reduce a tensor across worker processes during distributed training.
@@ -102,12 +102,12 @@ def sync_ddp_if_available(
     Return:
         reduced value
     """
-    if distributed_available():
-        return sync_ddp(result, group=group, reduce_op=reduce_op)
+    if _distributed_available():
+        return _sync_ddp(result, group=group, reduce_op=reduce_op)
     return result
 
 
-def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
+def _sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
     """Function to reduce the tensors from several DDP processes to one main process.
 
     Args:
@@ -135,12 +135,16 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
         op = reduce_op
 
     # WA for HPU. HPU doesn't support Long types, forcefully set it to float
-    if _HPU_AVAILABLE:
-        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
-        if is_hpu_backend:
-            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                rank_zero_info("Long tensor unsupported on HPU, casting to float")
-                result = result.float()
+    if module_available("habana_frameworks.torch.utils.library_loader"):
+        from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+
+        if (
+            is_habana_avaialble()
+            and os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+            and result.type() in ("torch.LongTensor", "torch.hpu.LongTensor")
+        ):
+            rank_zero_info("Long tensor unsupported on HPU, casting to float")
+            result = result.float()
 
     # Sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -152,7 +156,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
     return result
 
 
-class AllGatherGrad(torch.autograd.Function):
+class _AllGather(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore[override]
         ctx: Any,
@@ -177,7 +181,7 @@ class AllGatherGrad(torch.autograd.Function):
         return grad_output[torch.distributed.get_rank()], None
 
 
-def all_gather_ddp_if_available(
+def _all_gather_ddp_if_available(
     tensor: Tensor, group: Optional["torch.distributed.ProcessGroup"] = None, sync_grads: bool = False
 ) -> Tensor:
     """Function to gather a tensor from several distributed processes.
@@ -191,15 +195,15 @@ def all_gather_ddp_if_available(
         A tensor of shape (world_size, batch, ...)
     """
     group = group if group is not None else torch.distributed.group.WORLD
-    if distributed_available():
+    if _distributed_available():
         if sync_grads:
-            return AllGatherGrad.apply(tensor, group)
+            return _AllGather.apply(tensor, group)
         with torch.no_grad():
-            return AllGatherGrad.apply(tensor, group)
+            return _AllGather.apply(tensor, group)
     return tensor
 
 
-def init_dist_connection(
+def _init_dist_connection(
     cluster_environment: ClusterEnvironment,
     torch_distributed_backend: str,
     global_rank: Optional[int] = None,
@@ -241,7 +245,7 @@ def init_dist_connection(
     )
 
 
-def get_default_process_group_backend_for_device(device: torch.device) -> str:
+def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
 
 

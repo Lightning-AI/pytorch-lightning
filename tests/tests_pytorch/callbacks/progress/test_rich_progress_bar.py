@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
 from collections import defaultdict
 from unittest import mock
 from unittest.mock import DEFAULT, Mock
@@ -172,7 +173,7 @@ def test_rich_progress_bar_configure_columns():
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 5)]))
+@pytest.mark.parametrize(("leave", "reset_call_count"), ([(True, 0), (False, 3)]))
 def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     # Calling `reset` means continuing on the same progress bar.
     model = BoringModel()
@@ -185,8 +186,12 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
             limit_train_batches=1,
-            max_epochs=6,
+            limit_val_batches=0,
+            max_epochs=4,
             callbacks=progress_bar,
+            logger=False,
+            enable_checkpointing=False,
+            enable_model_summary=False,
         )
         trainer.fit(model)
     assert mock_progress_reset.call_count == reset_call_count
@@ -412,3 +417,96 @@ def test_rich_progress_bar_padding():
     train_description = progress_bar._get_train_description(current_epoch=0)
     assert "Epoch 0/0" in train_description
     assert len(progress_bar.validation_description) == len(train_description)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_can_be_pickled():
+    bar = RichProgressBar()
+    trainer = Trainer(
+        callbacks=[bar],
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        logger=False,
+        enable_model_summary=False,
+    )
+    model = BoringModel()
+    pickle.dumps(bar)
+    trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.validate(model)
+    pickle.dumps(bar)
+    trainer.test(model)
+    pickle.dumps(bar)
+    trainer.predict(model)
+    pickle.dumps(bar)
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_reset_bars():
+    """Test that the progress bar resets all internal bars when a new trainer stage begins."""
+    bar = RichProgressBar()
+    assert bar.is_enabled
+    assert bar.progress is None
+    assert bar._progress_stopped is False
+
+    def _set_fake_bar_ids():
+        bar.main_progress_bar_id = 0
+        bar.val_sanity_progress_bar_id = 1
+        bar.val_progress_bar_id = 2
+        bar.test_progress_bar_id = 3
+        bar.predict_progress_bar_id = 4
+
+    for stage in ("train", "sanity_check", "validation", "test", "predict"):
+        hook_name = f"on_{stage}_start"
+        hook = getattr(bar, hook_name)
+
+        _set_fake_bar_ids()  # pretend that bars are initialized from a previous run
+        hook(Mock(), Mock())
+        bar.teardown(Mock(), Mock(), Mock())
+
+        # assert all bars are reset
+        assert bar.main_progress_bar_id is None
+        assert bar.val_sanity_progress_bar_id is None
+        assert bar.val_progress_bar_id is None
+        assert bar.test_progress_bar_id is None
+        assert bar.predict_progress_bar_id is None
+
+        # the progress object remains in case we need it for the next stage
+        assert bar.progress is not None
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_disabled(tmpdir):
+    """Test that in a disabled bar there are no updates and no internal progress objects."""
+    bar = RichProgressBar()
+    bar.disable()
+    assert bar.is_disabled
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        callbacks=[bar],
+    )
+
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.CustomProgress") as mocked:
+        trainer.fit(model)
+        trainer.validate(model)
+        trainer.test(model)
+        trainer.predict(model)
+
+    mocked.assert_not_called()
+    assert bar.main_progress_bar_id is None
+    assert bar.val_sanity_progress_bar_id is None
+    assert bar.val_progress_bar_id is None
+    assert bar.test_progress_bar_id is None
+    assert bar.predict_progress_bar_id is None
