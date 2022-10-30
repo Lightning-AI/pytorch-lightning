@@ -73,11 +73,12 @@ def _retry_wrapper(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapped(self, *args: Any, **kwargs: Any) -> Any:
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        assert False
         consecutive_errors = 0
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
-                return self.func(*args, **kwargs)
+                return func(*args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
@@ -104,20 +105,6 @@ def _retry_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-class _MethodsRetryWrapperMeta(type):
-    """This wrapper metaclass iterates through all methods of the type and all bases of it to wrap them into the
-    :func:`_retry_wrapper`. It applies to all bound callables except the ``__init__`` method.
-    """
-
-    def __new__(mcs, name, bases, dct):
-        new_class = super().__new__(mcs, name, bases, dct)
-        for base in new_class.__mro__[1:-1]:
-            for key, value in base.__dict__.items():
-                if callable(value) and value.__name__ != "__init__":
-                    setattr(new_class, key, _retry_wrapper(value))
-        return new_class
-
-
 class LightningClient(GridRestClient):
     """The LightningClient is a wrapper around the GridRestClient.
 
@@ -127,9 +114,11 @@ class LightningClient(GridRestClient):
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
         if kwargs.get("retry", False):
-            return _MethodsRetryWrapperMeta("LightningClient", (GridRestClient,), {})
+            for name, attribute in GridRestClient.__dict__.items():
+                if callable(attribute) and attribute.__name__ != "__init__":
+                    setattr(cls, name, _retry_wrapper(attribute))
         return super().__new__(cls)
 
     def __init__(self, retry: bool = False) -> None:
