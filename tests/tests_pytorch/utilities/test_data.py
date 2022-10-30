@@ -4,6 +4,7 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
+import numpy as np
 
 from lightning_lite.utilities.data import _replace_dunder_methods
 from pytorch_lightning import Trainer
@@ -280,3 +281,19 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
     assert dl_kwargs["batch_size"] is dataloader.batch_size
     assert dl_kwargs["dataset"] is dataloader.dataset
     assert dl_kwargs["collate_fn"] is dataloader.collate_fn
+
+
+def test_dataloader_kwargs_replacement_with_array_default_comparison():
+    """Test that the comparison of attributes and default argument values works with arrays (truth value ambiguous).
+    Regression test for issue #15408."""
+    dataset = RandomDataset(5, 100)
+
+    class ArrayAttributeDataloader(DataLoader):
+        def __init__(self, indices=None, **kwargs):
+            super().__init__(dataset)
+            self.indices = np.random.rand(2, 2)  # an attribute we can't compare with ==
+
+    # The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+    dataloader = ArrayAttributeDataloader(dataset)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
+    assert dl_kwargs["indices"] is dataloader.indices
