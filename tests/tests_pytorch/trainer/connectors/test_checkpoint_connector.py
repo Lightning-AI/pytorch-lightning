@@ -104,18 +104,18 @@ def test_hpc_max_ckpt_version(tmpdir):
     )
 
 
-def test_max_ckpt_version_for_fsspec(tmpdir):
-    """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
+def test_ckpt_for_fsspec(tmpdir):
+    """Test that the CheckpointConnector is able to write to fsspec file systems."""
 
     class MockFileSystem(ArrowFSWrapper):
-        """A wrapper on top of the pyarrow.fs.HadoopFileSystem to connect it's interface with fsspec."""
+        """A wrapper on pyarrow's mock filesystem for testing."""
 
         protocol = "mock"
 
         def __init__(self, **kwargs):
             from pyarrow.fs import FileSystem
 
-            fs = FileSystem.from_uri("mock://")
+            fs = FileSystem.from_uri("mock://") # Get mock file system
             super().__init__(fs=fs, **kwargs)
 
     fsspec.registry.register_implementation("mock", MockFileSystem)
