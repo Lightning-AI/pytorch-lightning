@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional
 import torch
 from torch import Tensor
 from torchmetrics import Metric
+from fsspec.core import uri_to_fs
 
 import pytorch_lightning as pl
 from lightning_lite.plugins.environments.slurm import SLURMEnvironment
@@ -574,12 +575,12 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs = get_filesystem(dir_path)
+        fs, uri = uri_to_fs(dir_path)
         if not fs.exists(dir_path):
             return None
 
         # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [os.path.basename(f["name"]) for f in fs.listdir(uri)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return None
