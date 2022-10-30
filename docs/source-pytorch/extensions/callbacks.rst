@@ -202,11 +202,6 @@ on_train_batch_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_train_batch_end
     :noindex:
 
-.. note::
-
-    ``outputs["loss"]`` here will be the normalized value w.r.t ``accumulate_grad_batches`` of the loss returned from ``training_step``.
-
-
 on_train_epoch_start
 ^^^^^^^^^^^^^^^^^^^^
 
