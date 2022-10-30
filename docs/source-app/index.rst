@@ -21,7 +21,8 @@ Build full stack AI apps from modular Python components
    <div class="row">
       <div class='col-md-5' style="padding-top: 40px">
       <p>
-         Lightning makes it painless to build full stack AI apps for the cloud. Implement Lightning components that encapsulate 
+         Lightning makes it painless to build full stack AI apps for the cloud. 
+         Implement Lightning components that encapsulate 
          each part of your application to make it modular, interoperable and maintainable. 
          Each Lightning component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
       </p>
@@ -30,17 +31,18 @@ Build full stack AI apps from modular Python components
 
 .. raw:: html
 
-   <video style="height:auto; max-width: 100%; max-height: 450px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/hello_apps.m4v"></video>
+   <video style="height:auto; max-width: 100%; max-height: 400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/hello_apps.m4v"></video>
 
 .. raw:: html
 
       </div>
    </div>
 
-********************************
-Define your Lightning Components
-********************************
-Each Lightning component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
+****************************
+Define a Lightning component
+****************************
+A Lightning component organizes arbitrary Python code to make it modular, interoperable and maintainable.
+The component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
 
 .. lit_tabs::
    :titles: ; Example; Example; Example;
@@ -60,7 +62,7 @@ Compose components into full stack AI apps
 ******************************************
 Components "connect" into full stack AI apps which we call Lightning apps. 
 Lightning apps can be as simple as sequential ML workflows without GUIs, or as complex as
-a generative AI app managing its own full react UI with models deploying in real-time.
+a generative AI app managing its own full react UI with models deployed and load-balanced in real-time.
 
 .. lit_tabs::
    :titles: ; Example; Example; Example;
@@ -238,11 +240,28 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
-   :caption: Learn Lightning
+   :caption: Learn Lightning in steps
 
    Basic <levels/basic/index>
    Intermediate <levels/intermediate/index>
    Advanced <levels/advanced/index>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Core API Reference
+
+   LightningApp <core_api/lightning_app/index>
+   LightningFlow <core_api/lightning_flow>
+   LightningWork <core_api/lightning_work/index>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Addons API Reference
+
+   api_reference/components
+   api_reference/frontend
+   api_reference/runners
+   api_reference/storage
 
 .. toctree::
    :maxdepth: 1
@@ -291,23 +310,6 @@ Current Lightning Users
    [Docs under construction] Run components on different hardware  <workflows/run_components_on_different_hardware>
    [Docs under construction] Schedule app runs  <workflows/schedule_apps>
    [Docs under construction] Test an app  <workflows/test_an_app>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Core API Reference
-
-   LightningApp <core_api/lightning_app/index>
-   LightningFlow <core_api/lightning_flow>
-   LightningWork <core_api/lightning_work/index>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Addons API Reference
-
-   api_reference/components
-   api_reference/frontend
-   api_reference/runners
-   api_reference/storage
 
 .. toctree::
    :maxdepth: 1
