@@ -509,8 +509,11 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset():
 
 
 def test_dataloader_kwargs_replacement_with_array_default_comparison():
-    """Test that the comparison of attributes and default argument values works with arrays (truth value ambiguous).
-    Regression test for issue #15408."""
+    """Test that the comparison of attributes and default argument values works with arrays (truth value
+    ambiguous).
+
+    Regression test for issue #15408.
+    """
     dataset = RandomDataset(5, 100)
 
     class ArrayAttributeDataloader(DataLoader):
