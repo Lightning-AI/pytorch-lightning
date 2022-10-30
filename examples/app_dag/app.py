@@ -7,7 +7,7 @@ from sklearn import datasets
 from sklearn.metrics import mean_squared_error
 
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
+from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
 
