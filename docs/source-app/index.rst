@@ -55,6 +55,12 @@ The component manages its own infrastructure, cloud costs, networking and more, 
    :tab_rows: 4
    :height: 385px
 
+
+.. raw:: html
+
+   <p>Explore our ecosystem of <a href='https://lightning.ai/components' target="_blank">community-built components</a>!</p>
+
+
 ----
 
 ******************************************
@@ -71,6 +77,11 @@ a generative AI app managing its own full react UI with models deployed and load
    :highlights: 6, 11; 7, 11; 6-8; 7, 8
    :tab_rows: 4
    :height: 315px
+
+
+.. raw:: html
+
+   <p>Explore our ecosystem of <a href='https://lightning.ai/apps' target="_blank"> community-built app templates</a>!</p>
 
 ----
 
