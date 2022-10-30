@@ -176,9 +176,6 @@ class BaseFinetuning(Callback):
 
         Args:
             module: A given module
-
-        Returns:
-            None
         """
         if isinstance(module, _BatchNorm):
             module.track_running_stats = False
