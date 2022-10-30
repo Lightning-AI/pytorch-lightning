@@ -74,11 +74,11 @@ def _retry_wrapper(func: Callable) -> Callable:
     """
 
     @wraps(func)
-    def wrapped(*args: Any, **kwargs: Any) -> Any:
+    def wrapped(self, *args: Any, **kwargs: Any) -> Any:
         consecutive_errors = 0
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
-                return func(*args, **kwargs)
+                return self.func(*args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
