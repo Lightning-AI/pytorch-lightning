@@ -116,9 +116,10 @@ class LightningClient(GridRestClient):
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
         if kwargs.get("retry", False):
-            for name, attribute in GridRestClient.__dict__.items():
-                if callable(attribute) and attribute.__name__ != "__init__":
-                    setattr(cls, name, _retry_wrapper(attribute))
+            for base_class in GridRestClient.__mro__:
+                for name, attribute in base_class.__dict__.items():
+                    if callable(attribute) and attribute.__name__ != "__init__":
+                        setattr(cls, name, _retry_wrapper(attribute))
         return super().__new__(cls)
 
     def __init__(self, retry: bool = False) -> None:
