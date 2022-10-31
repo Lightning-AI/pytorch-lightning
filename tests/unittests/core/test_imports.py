@@ -1,6 +1,5 @@
 import operator
 import re
-from importlib.metadata import PackageNotFoundError
 
 import pytest
 
@@ -10,6 +9,12 @@ from lightning_utilities.core.imports import (
     module_available,
     RequirementCache,
 )
+
+try:
+    from importlib.metadata import PackageNotFoundError
+except ImportError:
+    # Python < 3.8
+    from importlib_metadata import PackageNotFoundError
 
 
 def test_module_exists():

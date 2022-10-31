@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import glob
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
@@ -19,8 +19,21 @@ def _load_py_module(fname, pkg="lightning_utilities"):
 
 
 about = _load_py_module("__about__.py")
-with open(os.path.join(_PATH_REQUIRE, "cli.txt")) as fp:
-    requirements_cli = list(map(str, parse_requirements(fp.readline())))
+
+# load basic requirements
+with open(os.path.join(_PATH_REQUIRE, "base.txt")) as fp:
+    requirements = list(map(str, parse_requirements(fp.readline())))
+
+# make extras as automated loading
+requirements_extra = {}
+for fpath in glob.glob(os.path.join(_PATH_REQUIRE, "*.txt")):
+    if os.path.basename(fpath) == "base.txt":
+        continue
+    name, _ = os.path.splitext(os.path.basename(fpath))
+    with open(fpath) as fp:
+        requirements_extra[name] = list(map(str, parse_requirements(fp.readline())))
+
+# loading readme as description
 with open(os.path.join(_PATH_ROOT, "README.md")) as fp:
     readme = fp.read()
 
@@ -42,10 +55,8 @@ setup(
     keywords=["Utilities", "DevOps", "CI/CD"],
     python_requires=">=3.7",
     setup_requires=[],
-    install_requires=[],
-    extras_require={
-        "cli": requirements_cli,
-    },
+    install_requires=requirements,
+    extras_require=requirements_extra,
     project_urls={
         "Bug Tracker": "https://github.com/Lightning-AI/utilities/issues",
         "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",  # TODO: Update domain

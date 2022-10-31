@@ -1,5 +1,5 @@
-coverage>=5.0
+coverage==6.5.0
 codecov>=2.1
-pytest>=6.0
-pytest-cov
-pytest-timeout
+pytest==7.2.0
+pytest-cov==4.0.0
+pytest-timeout==2.1.0

@@ -4,13 +4,18 @@
 import importlib
 import operator
 from functools import lru_cache
-from importlib import metadata
 from importlib.util import find_spec
 from typing import Callable
 
 import pkg_resources
 from packaging.requirements import Requirement
 from packaging.version import Version
+
+try:
+    from importlib import metadata
+except ImportError:
+    # Python < 3.8
+    import importlib_metadata as metadata  # type: ignore
 
 
 @lru_cache()
