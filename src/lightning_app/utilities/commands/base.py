@@ -15,7 +15,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
-from lightning_app.api.request_types import APIRequest, CommandRequest, RequestResponse
+from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
 from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
@@ -168,12 +168,12 @@ def _validate_client_command(command: ClientCommand):
 
 
 def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
-    from lightning_app.storage.path import _is_s3fs_available, filesystem, shared_storage_path
+    from lightning_app.storage.path import _filesystem, _is_s3fs_available, _shared_storage_path
 
     command_name = command_name.replace(" ", "_")
     filepath = f"commands/{command_name}.py"
-    remote_url = str(shared_storage_path() / "artifacts" / filepath)
-    fs = filesystem()
+    remote_url = str(_shared_storage_path() / "artifacts" / filepath)
+    fs = _filesystem()
 
     if _is_s3fs_available():
         from s3fs import S3FileSystem
@@ -182,7 +182,7 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
             return
 
         source_file = str(inspect.getfile(command.__class__))
-        remote_url = str(shared_storage_path() / "artifacts" / filepath)
+        remote_url = str(_shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)
         return filepath
 
@@ -203,21 +203,21 @@ def _prepare_commands(app) -> List:
     return commands
 
 
-def _process_api_request(app, request: APIRequest):
+def _process_api_request(app, request: _APIRequest):
     flow = app.get_component_by_name(request.name)
     method = getattr(flow, request.method_name)
     try:
-        response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+        response = _RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
     except HTTPException as e:
         logger.error(repr(e))
-        response = RequestResponse(status_code=e.status_code, content=e.detail)
+        response = _RequestResponse(status_code=e.status_code, content=e.detail)
     except Exception:
         logger.error(traceback.print_exc())
-        response = RequestResponse(status_code=500)
+        response = _RequestResponse(status_code=500)
     return {"response": response, "id": request.id}
 
 
-def _process_command_requests(app, request: CommandRequest):
+def _process_command_requests(app, request: _CommandRequest):
     for command in app.commands:
         for command_name, method in command.items():
             command_name = command_name.replace(" ", "_")
@@ -225,21 +225,21 @@ def _process_command_requests(app, request: CommandRequest):
                 # 2.1: Evaluate the method associated to a specific command.
                 # Validation is done on the CLI side.
                 try:
-                    response = RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
+                    response = _RequestResponse(content=method(*request.args, **request.kwargs), status_code=200)
                 except HTTPException as e:
                     logger.error(repr(e))
-                    response = RequestResponse(status_code=e.status_code, content=e.detail)
+                    response = _RequestResponse(status_code=e.status_code, content=e.detail)
                 except Exception:
                     logger.error(traceback.print_exc())
-                    response = RequestResponse(status_code=500)
+                    response = _RequestResponse(status_code=500)
                 return {"response": response, "id": request.id}
 
 
-def _process_requests(app, requests: List[Union[APIRequest, CommandRequest]]) -> None:
+def _process_requests(app, requests: List[Union[_APIRequest, _CommandRequest]]) -> None:
     """Convert user commands to API endpoint."""
     responses = []
     for request in requests:
-        if isinstance(request, APIRequest):
+        if isinstance(request, _APIRequest):
             response = _process_api_request(app, request)
         else:
             response = _process_command_requests(app, request)

@@ -13,7 +13,7 @@ from lightning_app.cli.commands.app_commands import _run_app_command
 from lightning_app.cli.commands.connection import connect, disconnect
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.commands.base import _download_command, _validate_client_command, ClientCommand
 from lightning_app.utilities.state import AppState
 
@@ -89,7 +89,7 @@ def run_failure_2(name: CustomModel):
     pass
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_validate_client_command():
     with pytest.raises(Exception, match="The provided annotation for the argument name"):
         _validate_client_command(ClientCommand(run_failure_0))

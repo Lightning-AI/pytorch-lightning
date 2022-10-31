@@ -7,11 +7,11 @@ from unittest.mock import MagicMock
 import lightning_app
 from lightning_app.frontend import JustPyFrontend
 from lightning_app.frontend.just_py import just_py
-from lightning_app.frontend.just_py.just_py_base import main, webpage
+from lightning_app.frontend.just_py.just_py_base import _main, _webpage
 
 
 def render_fn(get_state: Callable) -> Callable:
-    return webpage
+    return _webpage
 
 
 def test_justpy_frontend(monkeypatch):
@@ -38,10 +38,10 @@ def test_justpy_frontend(monkeypatch):
 
     monkeypatch.setattr(os, "environ", env)
 
-    main()
+    _main()
 
     assert justpy.app._mock_mock_calls[0].args[0] == "/c"
-    assert justpy.app._mock_mock_calls[0].args[1] == webpage
+    assert justpy.app._mock_mock_calls[0].args[1] == _webpage
 
-    assert justpy.justpy._mock_mock_calls[0].args[0] == webpage
+    assert justpy.justpy._mock_mock_calls[0].args[0] == _webpage
     assert justpy.justpy._mock_mock_calls[0].kwargs == {"host": "a", "port": 90}
