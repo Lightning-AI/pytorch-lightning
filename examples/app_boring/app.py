@@ -34,14 +34,13 @@ class DestinationFileAndServeWork(TracerPythonScript):
 class BoringApp(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        self.source_work = SourceFileWork(start_before_setup=True)
+        self.source_work = SourceFileWork()
         self.dest_work = DestinationFileAndServeWork(
             script_path=os.path.join(os.path.dirname(__file__), "scripts/serve.py"),
             port=1111,
             parallel=False,  # runs until killed.
             cloud_compute=L.CloudCompute(),
             raise_exception=True,
-            start_before_setup=True,
         )
 
     def run(self):

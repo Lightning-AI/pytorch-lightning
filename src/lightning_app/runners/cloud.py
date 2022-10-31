@@ -202,9 +202,7 @@ class CloudRuntime(Runtime):
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
-                    desired_stage=V1LightningworkState.RUNNING
-                    if work.start_before_setup
-                    else V1LightningworkState.NOT_STARTED,
+                    desired_stage=V1LightningworkState.RUNNING if work._start else V1LightningworkState.NOT_STARTED,
                 )
                 work_reqs.append(V1Work(name=work.name, spec=spec))
 

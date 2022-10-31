@@ -119,7 +119,7 @@ class LightningApp:
         self.caller_queues: Optional[Dict[str, BaseQueue]] = None
         self.work_queues: Optional[Dict[str, BaseQueue]] = None
         self.commands: Optional[List] = None
-        self.has_setup = False
+        self.has_called_setup = False
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
@@ -407,15 +407,14 @@ class LightningApp:
 
         try:
             self.check_error_queue()
-            if not self.has_setup:
-                self._on_before_setup()
+            if not self.has_called_setup:
                 # TODO: Add support for multiple setup stage.
-                self.has_setup = self.root.setup(stage=None)
+                self.has_called_setup = self.root.setup(stage=None)
 
             # Execute the flow only if:
             # - There are state changes
             # - It is the first execution of the flow
-            if self._has_updated and self.has_setup:
+            if self._has_updated and self.has_called_setup:
                 self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
@@ -603,11 +602,3 @@ class LightningApp:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
-
-    def _on_before_setup(self):
-        for w in self.works:
-            if w._start_before_setup:
-                parallel = w.parallel
-                w._parallel = True
-                w.start()
-                w._parallel = parallel

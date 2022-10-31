@@ -1,6 +1,6 @@
 import os
 
-import lightning as L
+import lightning.app as L
 from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Path
 from lightning.app.structures import Dict
@@ -48,7 +48,6 @@ class BoringApp(L.LightningFlow):
                 parallel=False,  # runs until killed.
                 cloud_compute=L.CloudCompute(),
                 raise_exception=True,
-                start_before_setup=True,
             )
 
             self.dict["dst_w"].start()

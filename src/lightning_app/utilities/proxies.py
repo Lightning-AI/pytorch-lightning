@@ -7,11 +7,10 @@ import time
 import traceback
 import warnings
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
-from uuid import uuid4
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -43,8 +42,10 @@ _state_observer_lock = threading.Lock()
 
 
 @dataclass
-class Start:
-    has: str = str(uuid4().hex)
+class Action:
+    method: str = "run"
+    args: Tuple = field(default_factory=lambda: ())
+    kwargs: Dict = field(default_factory=lambda: {})
 
 
 def unwrap(fn):
@@ -372,8 +373,12 @@ class WorkRunner:
         called: Dict[str, Any] = self.caller_queue.get()
         logger.debug(f"Work {self.work_name} {called}")
 
-        if len(called["args"]) == 1 and isinstance(called["args"][0], Start):
-            return
+        if len(called["args"]) == 1 and isinstance(called["args"][0], Action):
+            action = called["args"][0]
+            if action.method == "start":
+                return
+            else:
+                raise Exception("Only the `start` action is supported right now !")
 
         # 2. Extract the info from the caller queue data and process the input arguments. Arguments can contain
         # Lightning Path objects; if they don't have a consumer, the current Work will become one.

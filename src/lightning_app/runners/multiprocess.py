@@ -99,6 +99,9 @@ class MultiProcessRuntime(Runtime):
             # Connect the runtime to the application.
             self.app.connect(self)
 
+            # Start the process before setup gets called.
+            self._on_before_setup()
+
             # Once the bootstrapping is done, running the rank 0
             # app with all the components inactive
             self.app._run()
@@ -107,3 +110,11 @@ class MultiProcessRuntime(Runtime):
             raise
         finally:
             self.terminate()
+
+    def _on_before_setup(self):
+        for w in self.app.works:
+            if w._start:
+                parallel = w.parallel
+                w._parallel = True
+                w.start()
+                w._parallel = parallel
