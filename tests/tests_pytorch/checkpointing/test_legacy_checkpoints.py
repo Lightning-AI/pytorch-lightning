@@ -45,7 +45,7 @@ def test_load_legacy_checkpoints(tmpdir, pl_version: str):
 
         model = ClassificationModel.load_from_checkpoint(path_ckpt, num_features=24)
         trainer = Trainer(default_root_dir=str(tmpdir))
-        dm = ClassifDataModule(num_features=24, length=6000, batch_size=128)
+        dm = ClassifDataModule(num_features=24, length=6000, batch_size=128, n_clusters_per_class=2, n_informative=8)
         res = trainer.test(model, datamodule=dm)
         assert res[0]["test_loss"] <= 0.7
         assert res[0]["test_acc"] >= 0.85
@@ -95,7 +95,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
         assert path_ckpts, f'No checkpoints found in folder "{PATH_LEGACY}"'
         path_ckpt = path_ckpts[-1]
 
-        dm = ClassifDataModule(num_features=24, length=6000, batch_size=128)
+        dm = ClassifDataModule(num_features=24, length=6000, batch_size=128, n_clusters_per_class=2, n_informative=8)
         model = ClassificationModel(num_features=24)
         stop = LimitNbEpochs(1)
 

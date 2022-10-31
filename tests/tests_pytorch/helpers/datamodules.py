@@ -100,7 +100,9 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-    def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
+    def __init__(
+        self, num_features=32, length=800, num_classes=3, batch_size=10, n_clusters_per_class=1, n_informative=2
+    ):
         if not _SKLEARN_AVAILABLE:
             raise ImportError(str(_SKLEARN_AVAILABLE))
 
@@ -110,8 +112,8 @@ class ClassifDataModule(SklearnDataModule):
             n_samples=length,
             n_features=num_features,
             n_classes=num_classes,
-            n_clusters_per_class=2,
-            n_informative=int(num_features / num_classes),
+            n_clusters_per_class=n_clusters_per_class,
+            n_informative=n_informative,
             random_state=42,
         )
         super().__init__(data, x_type=torch.float32, y_type=torch.long, batch_size=batch_size)

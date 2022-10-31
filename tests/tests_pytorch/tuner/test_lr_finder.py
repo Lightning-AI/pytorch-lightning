@@ -203,7 +203,7 @@ def test_datamodule_parameter(tmpdir):
     seed_everything(1)
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = ClassificationModel(lr=1e-3)
 
     before_lr = model.lr
     # logger file to get meta
