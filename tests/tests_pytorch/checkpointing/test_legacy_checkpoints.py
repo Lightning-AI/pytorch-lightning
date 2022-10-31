@@ -64,6 +64,7 @@ class LimitNbEpochs(Callback):
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
+@RunIf(sklearn=True)
 def test_legacy_ckpt_threading(tmpdir, pl_version: str):
     def load_model():
         import torch
@@ -86,6 +87,7 @@ def test_legacy_ckpt_threading(tmpdir, pl_version: str):
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
+@RunIf(sklearn=True)
 def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
     PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
     with patch("sys.path", [PATH_LEGACY] + sys.path):
