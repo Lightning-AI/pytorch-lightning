@@ -10,7 +10,7 @@ import pytest
 
 from lightning_app import LightningFlow
 from lightning_app.frontend.panel import panel_serve_render_fn, PanelFrontend
-from lightning_app.frontend.panel.panel_frontend import has_panel_autoreload
+from lightning_app.frontend.panel.panel_frontend import _has_panel_autoreload
 from lightning_app.utilities.state import AppState
 
 
@@ -161,4 +161,4 @@ def test_open_close_log_files():
 def test_has_panel_autoreload(value, expected):
     """We can get and set autoreload using the environment variable PANEL_AUTORELOAD."""
     with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
-        assert has_panel_autoreload() == expected
+        assert _has_panel_autoreload() == expected

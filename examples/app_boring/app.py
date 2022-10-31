@@ -1,8 +1,8 @@
 import os
 
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage.path import Path
+from lightning.app.components import TracerPythonScript
+from lightning.app.storage import Path
 
 FILE_CONTENT = """
 Hello there!
