@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Tuple, Union
@@ -362,7 +363,9 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
     if app_id is None:
         apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
         if len(apps) == 0:
-            raise click.ClickException("no running apps available.")
+            raise click.ClickException(
+                "no running apps available. Start a Lightning App in the cloud to use this feature."
+            )
 
         available_apps = [
             inquirer.List(
@@ -401,13 +404,19 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
 
     if component_id is None:
         raise click.ClickException(
-            f"unable to find app component with name {component_name}. Available components are {available_component_names}"
+            f"unable to find app component with name {component_name}. "
+            + f"Available components are {available_component_names}"
         )
 
     app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
     ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
 
-    os.execv("/usr/bin/ssh", ["-tt", f"{component_id}@{ssh_endpoint}"])
+    ssh_path = shutil.which("ssh")
+    if ssh_path is None:
+        raise click.ClickException(
+            "unable to find ssh binary. You must install the ssh binary to use this functionality"
+        )
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
 
 
 @_main.group()
