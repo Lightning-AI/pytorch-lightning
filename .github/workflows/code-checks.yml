@@ -10,42 +10,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
-env:
-  FREEZE_REQUIREMENTS: "1"
-
 defaults:
   run:
     shell: bash
 
 jobs:
 
-  build-pypi:
-    # This serves to create packages for potential internal dependencies
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - name: Build package
-        env:
-          PACKAGE_NAME: "lite"
-        run: python setup.py sdist
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: dist
-
   mypy:
-    needs: build-pypi
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
-      with:
-        name: ci-packages-${{ github.sha }}
-        path: pypi
-
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10.6'
@@ -61,19 +35,16 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Install dependencies
-      env:  # TODO: drop this when we will be using regular releases for testing
-        PACKAGE_NAME: pytorch
       run: |
-        pip install mypy==0.982
+        pip install mypy==0.982  # TODO: pull this verion deom requirements/test.txt
         pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
         pip install \
-          -r requirements/pytorch/devel.txt \
-          -r requirements/app/devel.txt \
-          -r requirements/lite/devel.txt \
-          --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
-          --find-links pypi
+          -r requirements/pytorch/extra.txt \
+          -r requirements/app/cloud.txt \
+          -r requirements/app/ui.txt \
+          --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Check typing
