@@ -154,8 +154,14 @@ class LightningFlow:
                 _set_child_name(self, value, name)
                 if name in self._state:
                     self._state.remove(name)
+                app = _LightningAppRef().get_current()
+                if app.has_setup and value.start_before_setup:
+                    raise Exception(
+                        f"{value} received the ``start_before_setup=True`` argument but setup already happened."
+                        "HINT: Remove the ``start_before_setup`` argument as this isn't supported for dynamic works."
+                    )
                 if self._backend:
-                    self._backend._wrap_run_method(_LightningAppRef().get_current(), value)
+                    self._backend._wrap_run_method(app, value)
                 value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
@@ -357,7 +363,10 @@ class LightningFlow:
         """Override to add your own setup logic."""
         for w in self.works():
             if w._start_before_setup:
+                parallel = w.parallel
+                w._parallel = True
                 w.start()
+                w._parallel = parallel
         return True
 
     @staticmethod

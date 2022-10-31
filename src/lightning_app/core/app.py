@@ -407,6 +407,9 @@ class LightningApp:
 
         try:
             self.check_error_queue()
+            if not self.has_setup:
+                self.has_setup = self.root.setup("")
+
             # Execute the flow only if:
             # - There are state changes
             # - It is the first execution of the flow
@@ -462,9 +465,6 @@ class LightningApp:
         self._reset_run_time_monitor()
 
         while not done:
-
-            if not self.has_setup:
-                self.has_setup = self.root.setup("")
 
             done = self.run_once()
 

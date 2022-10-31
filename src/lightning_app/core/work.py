@@ -578,11 +578,6 @@ class LightningWork:
 
     def start(self):
         """Starts LightingWork component via L.CloudCompute."""
-        if not self._backend:
-            raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
-                "Make sure to assign the Work to a flow instance."
-            )
         if self.status.stage != WorkStageStatus.NOT_STARTED:
             raise Exception("A work can be started only once.")
 

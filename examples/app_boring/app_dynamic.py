@@ -1,9 +1,9 @@
 import os
 
-import lightning as L
-from lightning.app.components import TracerPythonScript
-from lightning.app.storage import Path
-from lightning.app.structures import Dict
+import lightning_app as L
+from lightning_app.components import TracerPythonScript
+from lightning_app.storage import Path
+from lightning_app.structures import Dict
 
 FILE_CONTENT = """
 Hello there!
@@ -42,19 +42,20 @@ class BoringApp(L.LightningFlow):
         if "src_w" not in self.dict:
             self.dict["src_w"] = SourceFileWork()
 
+            self.dict["dst_w"] = DestinationFileAndServeWork(
+                script_path=os.path.join(os.path.dirname(__file__), "scripts/serve.py"),
+                port=1111,
+                parallel=False,  # runs until killed.
+                cloud_compute=L.CloudCompute(),
+                raise_exception=True,
+                start_before_setup=True,
+            )
+
+            self.dict["dst_w"].start()
+
         self.dict["src_w"].run()
 
         if self.dict["src_w"].has_succeeded:
-
-            # create dynamically the dst_w at runtime
-            if "dst_w" not in self.dict:
-                self.dict["dst_w"] = DestinationFileAndServeWork(
-                    script_path=os.path.join(os.path.dirname(__file__), "scripts/serve.py"),
-                    port=1111,
-                    parallel=False,  # runs until killed.
-                    cloud_compute=L.CloudCompute(),
-                    raise_exception=True,
-                )
 
             # the flow passes the file from one work to another.
             self.dict["dst_w"].run(self.dict["src_w"].boring_path)
@@ -64,4 +65,4 @@ class BoringApp(L.LightningFlow):
         return {"name": "Boring Tab", "content": self.dict["dst_w"].url + "/file" if "dst_w" in self.dict else ""}
 
 
-app = L.LightningApp(BoringApp(), debug=True)
+app = L.LightningApp(BoringApp())

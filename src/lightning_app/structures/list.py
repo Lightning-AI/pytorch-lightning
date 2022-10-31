@@ -61,6 +61,14 @@ class List(t.List[T]):
     def append(self, v):
         from lightning_app import LightningFlow, LightningWork
 
+        if isinstance(v, LightningWork):
+            app = _LightningAppRef().get_current()
+            if app.has_setup and v.start_before_setup:
+                raise Exception(
+                    f"The work {v} has provided the ``start_before_setup=True`` argument but setup already happened."
+                    "HINT: Remove the ``start_before_setup`` argument as this isn't supported for dynamic works."
+                )
+
         if self._backend:
             if isinstance(v, LightningFlow):
                 LightningFlow._attach_backend(v, self._backend)
