@@ -67,7 +67,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v3

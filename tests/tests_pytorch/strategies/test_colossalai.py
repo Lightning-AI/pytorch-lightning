@@ -20,7 +20,7 @@ from torch import nn, Tensor
 from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
@@ -269,6 +269,8 @@ def test_multi_gpu_checkpointing(tmpdir):
 
 @RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
 def test_multi_gpu_model_colossalai_fit_test(tmpdir):
+    seed_everything(7)
+
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
     trainer = Trainer(
@@ -280,10 +282,13 @@ def test_multi_gpu_model_colossalai_fit_test(tmpdir):
         max_epochs=1,
     )
     trainer.fit(model, datamodule=dm)
-    out_metrics = trainer.callback_metrics
-    assert out_metrics["train_acc"] > 0.7
-    assert out_metrics["val_acc"] > 0.7
+
+    if trainer.is_global_zero:
+        out_metrics = trainer.callback_metrics
+        assert out_metrics["train_acc"].item() > 0.7
+        assert out_metrics["val_acc"].item() > 0.7
 
     result = trainer.test(model, datamodule=dm)
-    for out in result:
-        assert out["test_acc"] > 0.7
+    if trainer.is_global_zero:
+        for out in result:
+            assert out["test_acc"] > 0.7
