@@ -17,9 +17,7 @@ logger = Logger(__name__)
 
 
 def _prettifiy_exception(filepath: str):
-    """Pretty print the exception that occurred when loading the app.
-
-    """
+    """Pretty print the exception that occurred when loading the app."""
     # we want to format the exception as if no frame was on top.
     exp, val, tb = sys.exc_info()
     listing = traceback.format_exception(exp, val, tb)
