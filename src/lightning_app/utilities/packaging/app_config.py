@@ -19,6 +19,7 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
+    cluster_id: Optional[str] = field(default=None)
     checkpoint: Optional[str] = None  # TODO: might be moved to appspec.
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:

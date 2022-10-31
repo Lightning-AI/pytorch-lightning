@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.core.datamodule import LightningDataModule
 from tests_pytorch.helpers.datasets import MNIST, SklearnDataset, TrialMNIST
 
-_SKLEARN_AVAILABLE = RequirementCache("sklearn")
+_SKLEARN_AVAILABLE = RequirementCache("scikit-learn")
 
 
 class MNISTDataModule(LightningDataModule):
@@ -54,7 +54,7 @@ class MNISTDataModule(LightningDataModule):
 class SklearnDataModule(LightningDataModule):
     def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 10):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip("`sklearn` is not available.")
+            pytest.skip(str(_SKLEARN_AVAILABLE))
         super().__init__()
         self.batch_size = batch_size
         self._x, self._y = sklearn_dataset
@@ -100,7 +100,7 @@ class SklearnDataModule(LightningDataModule):
 class ClassifDataModule(SklearnDataModule):
     def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip("`sklearn` is not available.")
+            pytest.skip(str(_SKLEARN_AVAILABLE))
         from sklearn.datasets import make_classification
 
         data = make_classification(
@@ -112,7 +112,7 @@ class ClassifDataModule(SklearnDataModule):
 class RegressDataModule(SklearnDataModule):
     def __init__(self, num_features=16, length=800, batch_size=10):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip("`sklearn` is not available.")
+            pytest.skip(str(_SKLEARN_AVAILABLE))
         from sklearn.datasets import make_regression
 
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)

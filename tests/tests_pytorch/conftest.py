@@ -191,11 +191,23 @@ def caplog(caplog):
     """
     import logging
 
-    lightning_logger = logging.getLogger("pytorch_lightning")
-    propagate = lightning_logger.propagate
-    lightning_logger.propagate = True
+    root_logger = logging.getLogger()
+    root_propagate = root_logger.propagate
+    root_logger.propagate = True
+
+    propagation_dict = {
+        name: logging.getLogger(name).propagate
+        for name in logging.root.manager.loggerDict
+        if name.startswith("pytorch_lightning")
+    }
+    for name in propagation_dict.keys():
+        logging.getLogger(name).propagate = True
+
     yield caplog
-    lightning_logger.propagate = propagate
+
+    root_logger.propagate = root_propagate
+    for name, propagate in propagation_dict.items():
+        logging.getLogger(name).propagate = propagate
 
 
 @pytest.fixture

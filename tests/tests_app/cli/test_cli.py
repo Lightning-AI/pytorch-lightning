@@ -12,6 +12,7 @@ from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.exceptions import _ApiExceptionHandler
 
 
 @pytest.mark.parametrize(
@@ -59,6 +60,8 @@ def test_main_lightning_cli_no_arguments():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
 
 
 def test_main_lightning_cli_help():
@@ -71,6 +74,8 @@ def test_main_lightning_cli_help():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -187,3 +192,7 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
 def test_lightning_cli_version():
     res = os.popen("python -m lightning --version").read()
     assert __version__ in res
+
+
+def test_main_catches_api_exceptions():
+    assert isinstance(_main, _ApiExceptionHandler)
