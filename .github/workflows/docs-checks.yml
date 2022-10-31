@@ -58,9 +58,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-test-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-test-pip-
+            ${{ runner.os }}-docs-test-${{ matrix.pkg }}-
 
       - name: Install dependencies
         run: |
@@ -127,9 +127,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-make-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-make-pip-
+            ${{ runner.os }}-docs-make-${{ matrix.pkg }}-
 
       - name: Install package & dependencies
         env:
