@@ -322,3 +322,13 @@ def test_tuning_trainer_property():
         match="Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0."
     ):
         trainer.tuning = True
+
+
+@RunIf(skip_windows=True)
+def test_v1_8_0_deprecated_all_gather_grad():
+    tensor1 = torch.ones(1, requires_grad=True)
+    with mock.patch("torch.distributed.all_gather"), mock.patch("torch.distributed.get_world_size", return_value=1):
+        from pytorch_lightning.utilities import AllGatherGrad
+
+        with pytest.deprecated_call(match="`AllGatherGrad` has been deprecated in v1.8"):
+            AllGatherGrad.apply(tensor1)

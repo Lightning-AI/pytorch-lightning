@@ -3,7 +3,7 @@ from typing import Optional
 
 
 @dataclass
-class GetRequest:
+class _GetRequest:
     source: str
     name: str
     path: str
@@ -12,7 +12,7 @@ class GetRequest:
 
 
 @dataclass
-class GetResponse:
+class _GetResponse:
     source: str
     name: str
     path: str
@@ -23,7 +23,7 @@ class GetResponse:
 
 
 @dataclass
-class ExistsRequest:
+class _ExistsRequest:
     source: str
     name: str
     path: str
@@ -32,7 +32,7 @@ class ExistsRequest:
 
 
 @dataclass
-class ExistsResponse:
+class _ExistsResponse:
     source: str
     name: str
     path: str
