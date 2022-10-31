@@ -113,13 +113,13 @@ To connect to a specific app flow use:
 .. code:: bash
 
    $ lightning list apps
-   $ lightning ssh --app-id <your-app-id> # taken from previous app listing
+   $ lightning ssh --app-name <your-app-name> # taken from previous app listing
 
 To connect to a LightningWork component use:
 
 .. code:: bash
 
-   $ lightning ssh --app-id <your-app-id> --component-name <work-name>
+   $ lightning ssh --app-name <your-app-name> --component-name <work-name>
 
 The component name is the variable name of your LightningWork instances in Python.
 If you want to access your flow, use "flow" as component name.
