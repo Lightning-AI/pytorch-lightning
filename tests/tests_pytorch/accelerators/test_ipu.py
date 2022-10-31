@@ -150,6 +150,7 @@ def test_inference_only(tmpdir, devices):
 
 
 @RunIf(ipu=True, sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy())
 def test_optimization(tmpdir):
     seed_everything(42)
 
