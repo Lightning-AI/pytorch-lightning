@@ -325,7 +325,7 @@ def test_trainer_config_device_ids(devices, expected_device_ids):
     assert trainer.num_devices == len(expected_device_ids)
 
 
-@RunIf(tpu=True, standalone=True)
+@RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_all_gather(tmpdir):
     nb_devices = 8
