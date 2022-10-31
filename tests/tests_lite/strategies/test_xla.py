@@ -120,8 +120,8 @@ def tpu_all_gather_fn(strategy):
     tensor = torch.tensor(1, device=strategy.root_device)
     result = strategy.all_gather(tensor, sync_grads=False)
     assert result.sum() == 8
-    
-    tensor = torch.tensor(1.0, device=strategy.root_device , requires_grad=True)
+
+    tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
     result = strategy.all_gather(tensor, sync_grads=False)
     result.sum().backward()
     assert torch.equal(tensor.grad, torch.tensor(1.0))
