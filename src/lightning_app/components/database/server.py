@@ -1,6 +1,8 @@
 import asyncio
 import os
 import sys
+import threading
+import time
 from typing import List, Optional, Type, Union
 
 import uvicorn
@@ -38,6 +40,7 @@ class Database(LightningWork):
         self,
         models: Union[Type["SQLModel"], List[Type["SQLModel"]]],
         db_filename: str = "database.db",
+        store_interval: int = 10,
         debug: bool = False,
     ) -> None:
         """The Database Component enables to interact with an SQLite database to store some structured information
@@ -133,8 +136,13 @@ class Database(LightningWork):
         super().__init__(parallel=True, cloud_build_config=BuildConfig(["sqlmodel"]))
         self.db_filename = db_filename
         self.debug = debug
+        self.store_interval = store_interval
         self._models = models if isinstance(models, list) else [models]
         self.drive = None
+        self._store_lock = threading.Lock()
+        self._store_thread = threading.Thread(target=self.periodic_store_database,
+                                              args=(store_interval,),
+                                              daemon=True)
 
     def run(self, token: Optional[str] = None) -> None:
         """
@@ -157,6 +165,8 @@ class Database(LightningWork):
 
         sys.modules["uvicorn.main"].Server = _DatabaseUvicornServer
 
+        self._store_thread.start()
+
         run(app, host=self.host, port=self.port, log_level="error")
 
     def alive(self) -> bool:
@@ -172,6 +182,15 @@ class Database(LightningWork):
             return f"http://{self.internal_ip}:{self.port}"
         return self.internal_ip
 
-    def on_exit(self):
-        self.drive.put(self.db_filename)
+    def periodic_store_database(self, store_interval):
+        while True:
+            self.store_database()
+            time.sleep(store_interval)
+
+    def store_database(self):
+        with self._store_lock:
+            self.drive.put(self.db_filename)
         print("Stored the database to the Drive.")
+
+    def on_exit(self):
+        self.store_database()

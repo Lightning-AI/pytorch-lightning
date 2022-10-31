@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+import time
 from time import sleep
 from typing import List, Optional
 from uuid import uuid4
@@ -157,6 +158,43 @@ def test_work_database_restart():
     MultiProcessRuntime(app).dispatch()
 
     # Note: Waiting for SIGTERM signal to be handled
+    sleep(2)
+
+    os.remove(id)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
+@pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
+def test_work_database_periodic_store():
+
+    id = str(uuid4()).split("-")[0]
+
+    class Flow(LightningFlow):
+        def __init__(self):
+            super().__init__()
+            self.db = Database(db_filename=id, models=[TestConfig], store_interval=1)
+            self._client = None
+            self._start_time = None
+
+        def run(self):
+            self.db.run()
+
+            if not self.db.alive():
+                return
+            elif not self._client:
+                self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
+
+            if self._start_time is None:
+                self._client.insert(TestConfig(name="echo", secrets=[Secret(name="example", value="secret")]))
+                self._start_time = time.time()
+            elif time.time() - self._start_time > 2:
+                assert os.path.exists(id)
+                assert len(self._client.select_all()) == 1
+                self._exit()
+
+    app = LightningApp(Flow())
+    MultiProcessRuntime(app).dispatch()
+
     sleep(2)
 
     os.remove(id)
