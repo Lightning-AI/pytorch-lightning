@@ -11,50 +11,30 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  FREEZE_REQUIREMENTS: "1"
+
 defaults:
   run:
     shell: bash
 
 jobs:
-
-  init-pypi:
-    runs-on: ubuntu-20.04
-    steps:
-    - run: mkdir pypi && touch pypi/.placeholder
-    - uses: actions/upload-artifact@v3
-      with:
-        name: ci-packages-${{ github.sha }}
-        path: pypi
-
   build-pypi:
-    needs: init-pypi
     # This serves to create packages for potential internal dependencies
     runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: true
-      max-parallel: 1
-      matrix:
-        pkg: ["lite", "pytorch"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
       - name: Build package
         env:
-          FREEZE_REQUIREMENTS: "1"
-          PACKAGE_NAME: ${{ matrix.pkg }}
-        run: |
-          python setup.py sdist
-          cp dist/* pypi/
+          PACKAGE_NAME: "lite"
+        run: python setup.py sdist
       - uses: actions/upload-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
-          path: pypi
+          path: dist
 
   make-doctest:
     runs-on: ubuntu-20.04
@@ -84,7 +64,6 @@ jobs:
 
       - name: Install package
         env:
-          FREEZE_REQUIREMENTS: 1
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
@@ -93,9 +72,16 @@ jobs:
           # python -m pip install --upgrade --user pip
           pip install -e . \
             -r requirements/${{ matrix.pkg }}/docs.txt \
-            -r requirements/${{ matrix.pkg }}/devel.txt \
             --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
             --find-links pypi
+          pip list
+
+      - name: Install dependencies
+        env:
+          PACKAGE_NAME: pytorch
+        run: |
+          pip install -r requirements/${{ matrix.pkg }}/devel.txt \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
 
       - name: Test Documentation
@@ -132,8 +118,6 @@ jobs:
             ${{ runner.os }}-docs-make-pip-
 
       - name: Install dependencies
-        env:
-          FREEZE_REQUIREMENTS: 1
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures

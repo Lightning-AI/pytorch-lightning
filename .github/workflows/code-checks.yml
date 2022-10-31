@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  FREEZE_REQUIREMENTS: "1"
+
 defaults:
   run:
     shell: bash
@@ -24,17 +27,14 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
-      - run: mkdir -p pypi
       - name: Build package
         env:
           PACKAGE_NAME: "lite"
-        run: |
-          python setup.py sdist
-          cp dist/* pypi/
+        run: python setup.py sdist
       - uses: actions/upload-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
-          path: pypi
+          path: dist
 
   mypy:
     needs: build-pypi
