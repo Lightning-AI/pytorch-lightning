@@ -419,6 +419,7 @@ def test_rich_progress_bar_padding():
     assert len(progress_bar.validation_description) == len(train_description)
 
 
+@RunIf(rich=True)
 def test_rich_progress_bar_can_be_pickled():
     bar = RichProgressBar()
     trainer = Trainer(
@@ -475,3 +476,37 @@ def test_rich_progress_bar_reset_bars():
 
         # the progress object remains in case we need it for the next stage
         assert bar.progress is not None
+
+
+@RunIf(rich=True)
+def test_rich_progress_bar_disabled(tmpdir):
+    """Test that in a disabled bar there are no updates and no internal progress objects."""
+    bar = RichProgressBar()
+    bar.disable()
+    assert bar.is_disabled
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        limit_predict_batches=2,
+        max_epochs=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        callbacks=[bar],
+    )
+
+    with mock.patch("pytorch_lightning.callbacks.progress.rich_progress.CustomProgress") as mocked:
+        trainer.fit(model)
+        trainer.validate(model)
+        trainer.test(model)
+        trainer.predict(model)
+
+    mocked.assert_not_called()
+    assert bar.main_progress_bar_id is None
+    assert bar.val_sanity_progress_bar_id is None
+    assert bar.val_progress_bar_id is None
+    assert bar.test_progress_bar_id is None
+    assert bar.predict_progress_bar_id is None
