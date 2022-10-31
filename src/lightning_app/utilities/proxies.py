@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from functools import partial
 from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
+from uuid import uuid4
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -39,6 +40,11 @@ from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
+
+
+@dataclass
+class Start:
+    has: str = str(uuid4().hex)
 
 
 def unwrap(fn):
@@ -367,6 +373,9 @@ class WorkRunner:
         # 1. Wait for the caller queue data.
         called: Dict[str, Any] = self.caller_queue.get()
         logger.debug(f"Work {self.work_name} {called}")
+
+        if isinstance(called, Start):
+            return
 
         # 2. Extract the info from the caller queue data and process the input arguments. Arguments can contain
         # Lightning Path objects; if they don't have a consumer, the current Work will become one.

@@ -353,6 +353,13 @@ class LightningFlow:
             print(end_msg)
         raise ExitAppException
 
+    def setup(self, stage: Optional[str] = None) -> bool:
+        """Override to add your own setup logic."""
+        for w in self.works():
+            if w._start_before_setup:
+                w.start()
+        return True
+
     @staticmethod
     def _is_state_attribute(name: str) -> bool:
         """Every public attribute is part of the state by default and all protected (prefixed by '_') or private

@@ -119,6 +119,7 @@ class LightningApp:
         self.caller_queues: Optional[Dict[str, BaseQueue]] = None
         self.work_queues: Optional[Dict[str, BaseQueue]] = None
         self.commands: Optional[List] = None
+        self.has_setup = False
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
@@ -409,7 +410,7 @@ class LightningApp:
             # Execute the flow only if:
             # - There are state changes
             # - It is the first execution of the flow
-            if self._has_updated:
+            if self._has_updated and self.has_setup:
                 self.root.run()
         except CacheMissException:
             self._on_cache_miss_exception()
@@ -461,6 +462,10 @@ class LightningApp:
         self._reset_run_time_monitor()
 
         while not done:
+
+            if not self.has_setup:
+                self.has_setup = self.root.setup("")
+
             done = self.run_once()
 
             self._update_run_time_monitor()

@@ -30,7 +30,7 @@ from lightning_app.utilities.packaging.cloud_compute import (
     _maybe_create_cloud_compute,
     CloudCompute,
 )
-from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
+from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, Start, unwrap
 
 
 class LightningWork:
@@ -56,6 +56,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
+        start_before_setup: bool = False,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -78,6 +79,8 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
+            start_before_setup: Wether the work should be started before the event loop is triggered.
+                This won't apply to dynamic works.
 
         **Learn More About Lightning Work Inner Workings**
 
@@ -139,6 +142,7 @@ class LightningWork:
         self._request_queue: Optional[BaseQueue] = None
         self._response_queue: Optional[BaseQueue] = None
         self._restarting = False
+        self._start_before_setup = start_before_setup
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
@@ -206,6 +210,11 @@ class LightningWork:
         When parallel is False, the flow waits for the work to finish.
         """
         return self._parallel
+
+    @property
+    def start_before_setup(self) -> bool:
+        """Whether to start this work before setup is called."""
+        return self._start_before_setup
 
     @property
     def local_build_config(self) -> BuildConfig:
@@ -566,6 +575,19 @@ class LightningWork:
     def on_exit(self):
         """Override this hook to add your logic when the work is exiting."""
         pass
+
+    def start(self):
+        """Starts LightingWork component via L.CloudCompute."""
+        if not self._backend:
+            raise Exception(
+                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
+                "Make sure to assign the Work to a flow instance."
+            )
+        if self.status.stage != WorkStageStatus.NOT_STARTED:
+            raise Exception("A work can be started only once.")
+
+        # This enables to start the run method with a phony input and exit.
+        self.run(Start())
 
     def stop(self):
         """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
