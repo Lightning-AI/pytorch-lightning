@@ -410,8 +410,8 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
 
     if component_id is None:
         raise click.ClickException(
-            f"unable to find app component with name {component_name}. "
-            + f"Available components are {available_component_names}"
+            f"Unable to find an app component with name {component_name}. "
+            f"Available components are: {', '.join(available_component_names)}"
         )
 
     app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
