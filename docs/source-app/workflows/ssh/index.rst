@@ -5,7 +5,7 @@ Debug cloud apps via SSH
 
 **Audience:** Users that want to debug their cloud apps on their own machine.
 
-SSH allows you to access all your Lightning components in real time.
+SSH allows you to access Lightning components running on Lightning cloud in real-time using your own local machine.
 This can be useful if you execute your app in a different environment than you develop it.
 This is often the case with applications that rely on GPUs.
 
