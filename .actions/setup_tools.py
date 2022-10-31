@@ -156,7 +156,9 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
     ls_ver = glob.glob(os.path.join(src_folder, "*", "__version__.py"))
     ver_template = os.path.join(src_folder, ver_file)
     for fpath in ls_ver:
-        os.remove(fpath)
+        fpath = os.path.join(os.path.dirname(fpath), ver_file)
+        if os.path.isfile(fpath):
+            os.remove(fpath)
         shutil.copy(ver_template, fpath)
 
 
