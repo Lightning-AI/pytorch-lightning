@@ -102,6 +102,7 @@ jobs:
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
         grep '<?xml version="1.0" ?>' /tmp/full_output.txt  # sanity check
         csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'
+        cat xx00  # test logs
         mv xx01 coverage.xml
         exit $status_code
       shell: bash
