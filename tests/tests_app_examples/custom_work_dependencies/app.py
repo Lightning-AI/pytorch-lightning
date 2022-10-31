@@ -26,7 +26,7 @@ class WorkWithCustomBaseImage(LightningWork):
         # by just adding an empty file at /content/.e2e_test
         image_tag = os.getenv("LIGHTNING_E2E_TEST_IMAGE_VERSION")
         print(f"Image tag: {image_tag}")
-        image_tag = os.getenv("LIGHTNING_E2E_TEST_IMAGE_VERSION", "v1.12")
+        image_tag = os.getenv("LIGHTNING_E2E_TEST_IMAGE_VERSION", "v0.0.1")
         custom_image = f"ghcr.io/gridai/image-for-testing-custom-images-in-e2e:{image_tag}"
         build_config = BuildConfig(image=custom_image)
         super().__init__(parallel=True, **kwargs, cloud_compute=cloud_compute, cloud_build_config=build_config)
