@@ -1,13 +1,13 @@
-coverage>=6.4.2
-codecov>=2.1.12
-pytest>=7.1.3
-pytest-timeout>=2.1.0
-pytest-cov>=3.0.0
+coverage==6.4.2
+codecov==2.1.12
+pytest==7.1.3
+pytest-timeout==2.1.0
+pytest-cov==3.0.0
 playwright==1.27.1
-httpx>=0.21.0
-trio>=0.19.0, <0.22.0
-pympler>=1.0.0
-psutil>=5.9.0
+httpx
+trio<0.22.0
+pympler
+psutil
 setuptools<=59.5.0
-sqlmodel>=0.0.8
-requests-mock>1.9.0, <=1.10.0
+sqlmodel
+requests-mock
