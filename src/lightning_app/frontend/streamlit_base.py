@@ -18,7 +18,7 @@ def _get_render_fn_from_environment() -> Callable:
     return getattr(module, render_fn_name)
 
 
-def main():
+def _main():
     """Run the render_fn with the current flow_state."""
     app_state = AppState(plugin=StreamLitStatePlugin())
 
@@ -32,4 +32,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

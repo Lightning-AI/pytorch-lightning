@@ -45,3 +45,8 @@ def test_commands_and_api_example_cloud() -> None:
                 if "['this', 'is', 'awesome']" in log:
                     has_logs = True
             sleep(1)
+
+        # 7: Send a request to the Rest API directly.
+        resp = requests.get(base_url + "/pure_function")
+        assert resp.status_code == 200
+        assert resp.json() == "Hello World !"
