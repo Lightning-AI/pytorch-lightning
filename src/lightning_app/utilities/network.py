@@ -80,6 +80,7 @@ def _retry_wrapper(func: Callable) -> Callable:
                 return func(*args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
+                print(e)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
                     consecutive_errors += 1
                     backoff_time = _get_next_backoff_time(consecutive_errors)

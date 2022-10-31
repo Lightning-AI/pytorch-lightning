@@ -16,6 +16,7 @@ from lightning_cloud.openapi import (
     Body8,
     Body9,
     Gridv1ImageSpec,
+    SpecLightningappInstanceIdWorksBody,
     V1BuildSpec,
     V1DependencyFileInfo,
     V1Drive,
@@ -354,7 +355,7 @@ class CloudRuntime(Runtime):
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
-            # create / upload the new app release / instace
+            # create / upload the new app release / instance
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
@@ -407,6 +408,23 @@ class CloudRuntime(Runtime):
                         ),
                     )
                 )
+
+            find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id, app_id=lit_app.id
+            )
+
+            existing_instance = find_instances_resp.lightningapps[-1]
+
+            for work in work_reqs:
+                if work.spec.desired_state == V1LightningworkState.RUNNING:
+                    self.backend.client.lightningwork_service_create_lightningwork(
+                        project_id=project.project_id,
+                        spec_lightningapp_instance_id=existing_instance.id,
+                        body=SpecLightningappInstanceIdWorksBody(
+                            name=work.name,
+                            spec=work.spec,
+                        ),
+                    )
 
         except ApiException as e:
             logger.error(e.body)
