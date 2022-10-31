@@ -19,8 +19,6 @@ logger = Logger(__name__)
 def _prettifiy_exception(filepath: str):
     """Pretty print the exception that occurred when loading the app.
 
-    :param filepath:
-    :return:
     """
     # we want to format the exception as if no frame was on top.
     exp, val, tb = sys.exc_info()
@@ -37,8 +35,9 @@ def _prettifiy_exception(filepath: str):
 def load_app_from_file(filepath: str, raise_exception: bool = False) -> "LightningApp":
     """Load a LightningApp from a file.
 
-    :param filepath:  The path to the file containing the LightningApp.
-    :param raise_exception: If True, raise an exception if the app cannot be loaded.
+    Arguments:
+        filepath:  The path to the file containing the LightningApp.
+        raise_exception: If True, raise an exception if the app cannot be loaded.
     """
 
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
