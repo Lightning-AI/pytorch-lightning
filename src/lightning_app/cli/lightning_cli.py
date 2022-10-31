@@ -420,7 +420,7 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
     ssh_path = shutil.which("ssh")
     if ssh_path is None:
         raise click.ClickException(
-            "unable to find ssh binary. You must install the ssh binary to use this functionality"
+            "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
     os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
 
