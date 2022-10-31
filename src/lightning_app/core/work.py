@@ -616,4 +616,4 @@ def _default_start() -> bool:
     app = _LightningAppRef().get_current()
     if app:
         return not app.has_called_setup
-    return False
+    return True

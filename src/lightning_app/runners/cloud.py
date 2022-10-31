@@ -151,6 +151,7 @@ class CloudRuntime(Runtime):
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
                     shm_size=work.cloud_compute.shm_size,
+                    # id=work.cloud_compute.id,
                 )
 
                 drive_specs: List[V1LightningworkDrives] = []
@@ -197,12 +198,16 @@ class CloudRuntime(Runtime):
                         )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+                desired_state = V1LightningworkState.NOT_STARTED
+                # TODO: Add work.cloud_compute.id != "default"
+                if work._start:
+                    desired_state = V1LightningworkState.RUNNING
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
-                    desired_state=V1LightningworkState.RUNNING if work._start else V1LightningworkState.NOT_STARTED,
+                    desired_state=desired_state,
                 )
                 work_reqs.append(V1Work(name=work.name, spec=spec))
 
@@ -402,6 +407,7 @@ class CloudRuntime(Runtime):
                         ),
                     )
                 )
+
         except ApiException as e:
             logger.error(e.body)
             sys.exit(1)
