@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Union, Iterable
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch import Tensor
