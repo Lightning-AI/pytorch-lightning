@@ -408,7 +408,9 @@ class LightningApp:
         try:
             self.check_error_queue()
             if not self.has_setup:
-                self.has_setup = self.root.setup("")
+                self._on_before_setup()
+                # TODO: Add support for multiple setup stage.
+                self.has_setup = self.root.setup(stage=None)
 
             # Execute the flow only if:
             # - There are state changes
@@ -601,3 +603,11 @@ class LightningApp:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
+
+    def _on_before_setup(self):
+        for w in self.works:
+            if w._start_before_setup:
+                parallel = w.parallel
+                w._parallel = True
+                w.start()
+                w._parallel = parallel

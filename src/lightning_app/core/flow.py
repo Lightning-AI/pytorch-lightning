@@ -359,14 +359,14 @@ class LightningFlow:
             print(end_msg)
         raise ExitAppException
 
-    def setup(self, stage: Optional[str] = None) -> bool:
-        """Override to add your own setup logic."""
-        for w in self.works():
-            if w._start_before_setup:
-                parallel = w.parallel
-                w._parallel = True
-                w.start()
-                w._parallel = parallel
+    def setup(self, *args, stage: Optional[str] = None, **kwargs) -> bool:
+        """Override to add your own setup logic. Return True to indicate your App is ready, otherwise, return
+        False.
+
+        Arguments:
+            stage: The current stage. Currently `None`.
+                In the future, this might be ``starting`, ``restarting` or `upgrading`.
+        """
         return True
 
     @staticmethod
