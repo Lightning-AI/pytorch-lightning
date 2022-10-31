@@ -48,7 +48,7 @@ def create_neptune_mock():
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(init=MagicMock(side_effect=create_run_mock))
+    return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
 
 class Run:
