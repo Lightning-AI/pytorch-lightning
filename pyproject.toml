@@ -70,6 +70,7 @@ module = [
     "lightning_app.components.python.tracer",
     "lightning_app.components.serve.gradio",
     "lightning_app.components.serve.serve",
+    "lightning_app.components.serve.streamlit",
     "lightning_app.components.serve.types.image",
     "lightning_app.components.serve.types.type",
     "lightning_app.components.training",

@@ -9,5 +9,5 @@ fsspec[http]>2021.06.0, <2022.8.0
 tensorboard>=2.9.1, <2.11.0
 torchmetrics>=0.7.0, <0.10.1  # needed for using fixed compare_version
 packaging>=17.0, <=21.3
-typing-extensions>=4.0.0, <4.3.1
+typing-extensions>=4.0.0, <=4.4.0
 lightning-utilities==0.3.*
