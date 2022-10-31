@@ -17,7 +17,6 @@ from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
-from lightning_app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 
 logger = Logger(__name__)
 
@@ -235,8 +234,7 @@ def _is_valid_release(release):
 
 @functools.lru_cache(maxsize=1)
 def _is_old_version() -> bool:
-    if get_dist_path_if_editable_install(__package_name__):
-        # Always return False in editable mode
+    if packaging.version.parse(__version__).is_prerelease:
         return False
     try:
         response = requests.get(f"https://pypi.org/pypi/{__package_name__}/json")
