@@ -343,8 +343,8 @@ _main.add_command(create)
 
 @_main.command("ssh")
 @click.option(
-    "--app-id",
-    "app_id",
+    "--app-name",
+    "app_name",
     type=str,
     default=None,
     required=False,
@@ -356,27 +356,29 @@ _main.add_command(create)
     default=None,
     help="Specify which component to SSH into",
 )
-def ssh(app_id: str = None, component_name: str = None) -> None:
+def ssh(app_name: str = None, component_name: str = None) -> None:
     """SSH into a Lightning App."""
 
     app_manager = _AppManager()
-    if app_id is None:
-        apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
-        if len(apps) == 0:
-            raise click.ClickException(
-                "no running apps available. Start a Lightning App in the cloud to use this feature."
-            )
+    apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
+    if len(apps) == 0:
+        raise click.ClickException("no running apps available. Start a Lightning App in the cloud to use this feature.")
 
+    available_app_names = [app.name for app in apps]
+    if app_name is None:
         available_apps = [
             inquirer.List(
                 "app_name",
                 message="What app to SSH into?",
-                choices=[app.name for app in apps],
+                choices=available_app_names,
             ),
         ]
         app_name = inquirer.prompt(available_apps)["app_name"]
-        app_id = [app.id for app in apps if app.name == app_name][0]
-
+    app_id = next((app.id for app in apps if app.name == app_name), None)
+    if app_id is None:
+        raise click.ClickException(
+            f"unable to find running app with name {app_name}. " + f"Available running apps are {available_app_names}"
+        )
     try:
         instance = app_manager.get_app(app_id=app_id)
     except ApiException:
