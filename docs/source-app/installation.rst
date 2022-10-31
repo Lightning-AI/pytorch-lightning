@@ -33,6 +33,6 @@ Install with pip
 
     If you encounter issues during installation use the following to help troubleshoot:
 
-	.. code:: bash
+    .. code:: bash
 
         pip list | grep lightning
