@@ -78,6 +78,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
     [(RunningStage.VALIDATING, "val"), (RunningStage.TESTING, "test"), (RunningStage.PREDICTING, "predict")],
 )
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
+@RunIf(sklearn=True)
 def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     model = ClassificationModel()
     dm = ClassifDataModule()
@@ -99,6 +100,7 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
 
 
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
+@RunIf(sklearn=True)
 def test_overfit_batch_limits_train(overfit_batches):
     model = ClassificationModel()
     dm = ClassifDataModule()

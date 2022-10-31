@@ -149,7 +149,7 @@ def test_inference_only(tmpdir, devices):
     trainer.predict(model)
 
 
-@RunIf(ipu=True)
+@RunIf(ipu=True, sklearn=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
