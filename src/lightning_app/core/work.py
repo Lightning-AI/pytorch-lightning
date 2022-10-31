@@ -56,7 +56,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
-        start_before_setup: bool = False,
+        start_before_setup: Optional[bool] = None,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -79,8 +79,9 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
-            start_before_setup: Wether the work should be started before the event loop is triggered.
-                This won't apply to dynamic works.
+            start_before_setup: Whether the work should be started before the event loop is triggered.
+                The default value is `True` before setup and `False` after
+                Additionally, a ValueError is raised if ``start_before_setup=True`` is passed to a dynamic work.
 
         **Learn More About Lightning Work Inner Workings**
 
@@ -142,7 +143,7 @@ class LightningWork:
         self._request_queue: Optional[BaseQueue] = None
         self._response_queue: Optional[BaseQueue] = None
         self._restarting = False
-        self._start_before_setup = start_before_setup
+        self._start_before_setup = start_before_setup or _default_start_before_setup()
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
@@ -612,3 +613,11 @@ class LightningWork:
         if internal_id not in _CLOUD_COMPUTE_STORE:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
+
+
+def _default_start_before_setup() -> bool:
+    from lightning_app.utilities.app_helpers import _LightningAppRef
+
+    app = _LightningAppRef().get_current()
+
+    return not app.has_setup

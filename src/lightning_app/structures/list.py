@@ -64,8 +64,8 @@ class List(t.List[T]):
         if isinstance(v, LightningWork):
             app = _LightningAppRef().get_current()
             if app.has_setup and v.start_before_setup:
-                raise Exception(
-                    f"The work {v} has provided the ``start_before_setup=True`` argument but setup already happened."
+                raise ValueError(
+                    f"{v} has provided the ``start_before_setup=True`` argument but setup already happened."
                     "HINT: Remove the ``start_before_setup`` argument as this isn't supported for dynamic works."
                 )
 

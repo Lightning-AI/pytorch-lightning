@@ -156,7 +156,7 @@ class LightningFlow:
                     self._state.remove(name)
                 app = _LightningAppRef().get_current()
                 if app.has_setup and value.start_before_setup:
-                    raise Exception(
+                    raise ValueError(
                         f"{value} received the ``start_before_setup=True`` argument but setup already happened."
                         "HINT: Remove the ``start_before_setup`` argument as this isn't supported for dynamic works."
                     )
