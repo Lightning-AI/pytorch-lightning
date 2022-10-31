@@ -395,7 +395,7 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
     if component_name == "flow":
         component_id = f"lightningapp-{app_id}"
     elif component_name is not None:
-        work_id = next(iter([work.id for work in components if work.name == component_name]), None)
+        work_id = next((work.id for work in components if work.name == component_name), None)
         if work_id is not None:
             component_id = f"lightningwork-{work_id}"
 
