@@ -154,8 +154,10 @@ class LightningFlow:
                 _set_child_name(self, value, name)
                 if name in self._state:
                     self._state.remove(name)
+
                 app = _LightningAppRef().get_current()
-                if app.has_called_setup and value.start:
+
+                if app and app.has_called_setup and value._start:
                     raise ValueError(
                         f"{value} received the ``start=True`` argument but setup already happened."
                         "HINT: Remove the ``start`` argument as this isn't supported for dynamic works."

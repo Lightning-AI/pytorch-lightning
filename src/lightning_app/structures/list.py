@@ -63,7 +63,7 @@ class List(t.List[T]):
 
         if isinstance(v, LightningWork):
             app = _LightningAppRef().get_current()
-            if app.has_called_setup and v.start:
+            if app and app.has_called_setup and v._start:
                 raise ValueError(
                     f"{v} has provided the ``start=True`` argument but setup already happened."
                     "HINT: Remove the ``start`` argument as this isn't supported for dynamic works."
