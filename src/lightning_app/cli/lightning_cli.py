@@ -366,7 +366,7 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
     app_manager = _AppManager()
     apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
     if len(apps) == 0:
-        raise click.ClickException("no running apps available. Start a Lightning App in the cloud to use this feature.")
+        raise click.ClickException("No running apps available. Start a Lightning App in the cloud to use this feature.")
 
     available_app_names = [app.name for app in apps]
     if app_name is None:
