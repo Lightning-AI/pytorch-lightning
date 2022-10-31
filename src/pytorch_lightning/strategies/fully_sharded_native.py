@@ -13,13 +13,15 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union, Iterable
 
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.strategies.fsdp import _optimizer_has_flat_params
 from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
@@ -254,6 +256,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.barrier()
 
         self.setup_optimizers(trainer)
+        _validate_optimizers(self.optimizers)
         optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
@@ -374,3 +377,13 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 cpu_offload=CPUOffload(offload_params=True),
             )
             cls._registered_strategies.append("fsdp_native_full_shard_offload")
+
+
+def _validate_optimizers(optimizers: Iterable[Optimizer]) -> None:
+    for optimizer in optimizers:
+        if not _optimizer_has_flat_params(optimizer):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
