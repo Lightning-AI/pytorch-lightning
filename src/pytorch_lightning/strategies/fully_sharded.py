@@ -20,8 +20,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.strategies.fsdp import _optimizer_has_flat_params
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase

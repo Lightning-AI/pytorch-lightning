@@ -13,14 +13,15 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Union
 
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fsdp import _optimizer_has_flat_params
+from lightning_lite.strategies.fsdp_native import _optimizer_has_flat_params
 from lightning_lite.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -33,7 +34,6 @@ from lightning_lite.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies.fully_sharded import _validate_optimizers
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
@@ -380,3 +380,13 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 cpu_offload=CPUOffload(offload_params=True),
             )
             cls._registered_strategies.append("fsdp_native_full_shard_offload")
+
+
+def _validate_optimizers(optimizers: Iterable[Optimizer]) -> None:
+    for optimizer in optimizers:
+        if not _optimizer_has_flat_params(optimizer):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
