@@ -1,9 +1,9 @@
 import os
 
-import lightning_app as L
-from lightning_app.components import TracerPythonScript
-from lightning_app.storage import Path
-from lightning_app.structures import Dict
+import lightning as L
+from lightning.app.components import TracerPythonScript
+from lightning.app.storage import Path
+from lightning.app.structures import Dict
 
 FILE_CONTENT = """
 Hello there!
