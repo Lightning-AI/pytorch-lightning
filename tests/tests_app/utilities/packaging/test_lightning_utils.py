@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from lightning_utilities.core.imports import module_available
 
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
@@ -50,7 +50,7 @@ def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_edit
 
 
 @pytest.mark.skip(reason="TODO: Find a way to check for the latest version")
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_verify_lightning_version(monkeypatch):
     monkeypatch.setattr(lightning_utils, "__version__", "0.0.1")
     monkeypatch.setattr(lightning_utils, "_fetch_latest_version", lambda _: "0.0.2")

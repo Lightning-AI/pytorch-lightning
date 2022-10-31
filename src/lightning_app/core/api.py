@@ -21,8 +21,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
-from lightning_app.api.http_methods import HttpMethod
-from lightning_app.api.request_types import DeltaRequest
+from lightning_app.api.http_methods import _HttpMethod
+from lightning_app.api.request_types import _DeltaRequest
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
     ENABLE_PULLING_STATE_ENDPOINT,
@@ -258,7 +258,7 @@ async def post_delta(
         return {"status": "failure", "reason": "This endpoint is disabled."}
 
     body: Dict = await request.json()
-    api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
+    api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
 
 
 @fastapi_service.post("/api/v1/state")
@@ -295,7 +295,7 @@ async def post_state(
         state = body["state"]
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
-    api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
+    api_app_delta_queue.put(_DeltaRequest(delta=Delta(deep_diff)))
 
 
 @fastapi_service.put("/api/v1/upload_file/{filename}")
@@ -415,7 +415,7 @@ def start_server(
     root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
-    apis: Optional[List[HttpMethod]] = None,
+    apis: Optional[List[_HttpMethod]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
     global api_app_delta_queue
