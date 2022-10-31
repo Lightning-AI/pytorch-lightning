@@ -27,7 +27,7 @@ Install with pip
 
     .. code:: bash
 
-        python -m pip install -U lightning
+        pip install -U lightning
 
 .. note::
 
@@ -35,4 +35,4 @@ Install with pip
 
 	.. code:: bash
 
-            pip list | grep lightning
+        pip list | grep lightning
