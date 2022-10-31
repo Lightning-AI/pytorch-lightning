@@ -19,7 +19,8 @@ from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Unio
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
+from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.core.hooks import DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
 from pytorch_lightning.utilities.argparse import (
@@ -28,10 +29,10 @@ from pytorch_lightning.utilities.argparse import (
     get_init_arguments_and_types,
     parse_argparser,
 )
-from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, _PATH, EVAL_DATALOADERS, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import _ADD_ARGPARSE_RETURN, EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
-class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
+class LightningDataModule(DataHooks, HyperparametersMixin):
     """A DataModule standardizes the training, val, test splits, data preparation and transforms. The main
     advantage is consistent data splits, data preparation and transforms across models.
 

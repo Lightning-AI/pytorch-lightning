@@ -13,20 +13,21 @@
 # limitations under the License.
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
-from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _APEX_AVAILABLE, _RequirementAvailable
+from pytorch_lightning.utilities.imports import _APEX_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.warnings import WarningCache
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -72,11 +73,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self.amp_type = amp_type
         self.amp_level = amp_level
 
-    def backward(
+    def backward(  # type: ignore[override]
         self,
+        tensor: Tensor,
         model: "pl.LightningModule",
-        closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
+        optimizer: Optional[Steppable],
         optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
@@ -84,8 +85,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         r"""Performs back-propagation using DeepSpeed's engine.
 
         Args:
+            tensor: the loss tensor
             model: the model to be optimized
-            closure_loss: the loss tensor
             optimizer: ignored for DeepSpeed
             optimizer_idx: ignored for DeepSpeed
             \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
@@ -97,19 +98,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
-        deepspeed_engine.backward(closure_loss, *args, **kwargs)
+        deepspeed_engine.backward(tensor, *args, **kwargs)
 
-    def _run_backward(
-        self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any
-    ) -> None:
-        if model is None:
-            raise ValueError("Please provide the model as input to `backward`.")
-        model.backward(tensor, *args, **kwargs)
-
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
-        model: Optional[Union["pl.LightningModule", Module]],
-        optimizer: Optimizer,
+        optimizer: Steppable,
+        model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
@@ -122,16 +116,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if isinstance(model, pl.LightningModule) and model.automatic_optimization and skipped_backward:
+        if model.automatic_optimization and skipped_backward:
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        deepspeed_engine: "deepspeed.DeepSpeedEngine"
-        if isinstance(model, pl.LightningModule):
-            deepspeed_engine = model.trainer.model
-        else:
-            deepspeed_engine = model
+        deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         return deepspeed_engine.step(**kwargs)
 
     def clip_gradients(

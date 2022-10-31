@@ -16,20 +16,22 @@ from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from lightning_lite.utilities import move_data_to_device
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_lite.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
@@ -200,7 +202,7 @@ class _Metadata:
         return meta
 
 
-class _ResultMetric(Metric, DeviceDtypeModuleMixin):
+class _ResultMetric(Metric, _DeviceDtypeModuleMixin):
     """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
@@ -223,7 +225,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
-    def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
+    def update(self, value: _IN_METRIC, batch_size: int) -> None:
         if self.is_tensor:
             value = cast(Tensor, value)
             if not torch.is_floating_point(value):
@@ -524,7 +526,7 @@ class _ResultCollection(dict):
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
-                if not should and distributed_available() and result_metric.is_tensor:
+                if not should and _distributed_available() and result_metric.is_tensor:
                     # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
                     # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
                     # run, and on other ranks, they are 0. So we need to make sure they are synced in further training

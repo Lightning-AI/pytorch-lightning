@@ -6,11 +6,13 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
+from lightning_app import __version__
 from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
 from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.exceptions import _ApiExceptionHandler
 
 
 @pytest.mark.parametrize(
@@ -48,6 +50,20 @@ def test_commands(command):
     assert result.exit_code == 0
 
 
+def test_main_lightning_cli_no_arguments():
+    """Validate the Lightning CLI without args."""
+    res = os.popen("python -m lightning").read()
+    assert "login   " in res
+    assert "logout  " in res
+    assert "run     " in res
+    assert "list    " in res
+    assert "delete  " in res
+    assert "create  " in res
+    assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
+
+
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
     res = os.popen("python -m lightning --help").read()
@@ -58,6 +74,8 @@ def test_main_lightning_cli_help():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -171,4 +189,10 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
         unlink.assert_not_called()
 
 
-# TODO: test for the other commands
+def test_lightning_cli_version():
+    res = os.popen("python -m lightning --version").read()
+    assert __version__ in res
+
+
+def test_main_catches_api_exceptions():
+    assert isinstance(_main, _ApiExceptionHandler)

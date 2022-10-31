@@ -1,12 +1,14 @@
-import logging
 import os
 import re
 import shutil
+from typing import List, Tuple
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
-def app(app_name):
+def app(app_name: str) -> None:
 
     if app_name is None:
         app_name = _capture_valid_app_component_name(resource_type="app")
@@ -27,7 +29,7 @@ def app(app_name):
     logger.info(m)
 
 
-def _make_resource(resource_dir, resource_name):
+def _make_resource(resource_dir: str, resource_name: str) -> Tuple[str, str]:
     path = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(path, resource_dir)
     name_for_files = re.sub("-", "_", resource_name)
@@ -53,14 +55,14 @@ def _make_resource(resource_dir, resource_name):
             file.write(content)
 
     # rename files
-    for file in files:
-        new_file = re.sub("placeholdername", name_for_files, file)
-        os.rename(file, new_file)
+    for file_name in files:
+        new_file = re.sub("placeholdername", name_for_files, file_name)
+        os.rename(file_name, new_file)
 
     return new_resource_name, name_for_files
 
 
-def _ls_recursively(dir_name):
+def _ls_recursively(dir_name: str) -> List[str]:
     fname = []
     for root, d_names, f_names in os.walk(dir_name):
         for f in f_names:
@@ -70,7 +72,7 @@ def _ls_recursively(dir_name):
     return fname
 
 
-def _capture_valid_app_component_name(value=None, resource_type="app"):
+def _capture_valid_app_component_name(value: str = None, resource_type: str = "app") -> str:
     prompt = f"""
     ⚡ Creating Lightning {resource_type} ⚡
     """
@@ -105,7 +107,7 @@ def _capture_valid_app_component_name(value=None, resource_type="app"):
     return value
 
 
-def component(component_name):
+def component(component_name: str) -> None:
     if component_name is None:
         component_name = _capture_valid_app_component_name(resource_type="component")
 
@@ -124,7 +126,7 @@ def component(component_name):
     ⚡ Use the component inside an app: ⚡
 
     from {name_for_files} import TemplateComponent
-    import lightning.app as la
+    import lightning_app as la
 
     class LitApp(la.LightningFlow):
         def __init__(self) -> None:

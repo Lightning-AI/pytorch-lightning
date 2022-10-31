@@ -1,4 +1,3 @@
-import logging
 import os
 import pathlib
 import signal
@@ -14,14 +13,14 @@ from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
+from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
-from lightning_app.storage.copier import Copier, copy_files
+from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.storage.path import path_to_work_artifact
+from lightning_app.storage.path import _path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -36,8 +35,9 @@ if TYPE_CHECKING:
     from lightning_app import LightningWork
     from lightning_app.core.queues import BaseQueue
 
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
 
 
@@ -98,7 +98,7 @@ class ProxyWorkRun:
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
-        call_hash = self.work._call_hash(self.work_run, args, kwargs)
+        call_hash = self.work._call_hash(self.work_run, *self._convert_hashable(args, kwargs))
         entered = call_hash in self.work._calls
         returned = entered and "ret" in self.work._calls[call_hash]
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
@@ -175,6 +175,27 @@ class ProxyWorkRun:
             return obj.to_dict()
 
         return apply_to_collection((args, kwargs), dtype=(Path, Drive), function=sanitize)
+
+    @staticmethod
+    def _convert_hashable(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
+        the LightningWork.
+
+        Currently, this method only applies sanitization to Hashable Objects.
+
+        Args:
+            args: The tuple of positional arguments passed to the run method.
+            kwargs: The dictionary of named arguments passed to the run method.
+
+        Returns:
+            The positional and keyword arguments in the same order they were passed in.
+        """
+        from lightning_app.utilities.types import Hashable
+
+        def sanitize(obj: Hashable) -> Union[Path, Dict]:
+            return obj.to_dict()
+
+        return apply_to_collection((args, kwargs), dtype=Hashable, function=sanitize)
 
 
 class WorkStateObserver(Thread):
@@ -288,7 +309,7 @@ class WorkRunner:
 
     def __post_init__(self):
         self.parallel = self.work.parallel
-        self.copier: Optional[Copier] = None
+        self.copier: Optional[_Copier] = None
         self.state_observer: Optional[WorkStateObserver] = None
 
     def __call__(self):
@@ -330,7 +351,7 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        self.copier = Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
         self.copier.setDaemon(True)
         self.copier.start()
 
@@ -404,8 +425,29 @@ class WorkRunner:
         except BaseException as e:
             # 10.2 Send failed delta to the flow.
             reference_state = deepcopy(self.work.state)
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            user_exception = False
+            used_runpy = False
+            trace = []
+            for p in listing:
+                if "runpy.py" in p:
+                    trace = []
+                    used_runpy = True
+                if user_exception:
+                    trace.append(p)
+                if "ret = work_run(*args, **kwargs)" in p:
+                    user_exception = True
+
+            if used_runpy:
+                trace = trace[1:]
+
             self.work._calls[call_hash]["statuses"].append(
-                make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
+                make_status(
+                    WorkStageStatus.FAILED,
+                    message=str("\n".join(trace)),
+                    reason=WorkFailureReasons.USER_EXCEPTION,
+                )
             )
             self.delta_queue.put(
                 ComponentDelta(
@@ -451,6 +493,7 @@ class WorkRunner:
         logger.info(f"Received SIGTERM signal. Gracefully terminating {self.work.name.replace('root.', '')}...")
         persist_artifacts(work=self.work)
         with _state_observer_lock:
+            self.work.on_exit()
             self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
@@ -551,8 +594,8 @@ def persist_artifacts(work: "LightningWork") -> None:
         if not artifact_path.exists():
             missing_artifacts.add(str(artifact_path))
             continue
-        destination_path = path_to_work_artifact(artifact_path, work)
-        copy_files(artifact_path, destination_path)
+        destination_path = _path_to_work_artifact(artifact_path, work)
+        _copy_files(artifact_path, destination_path)
         destination_paths.append(destination_path)
 
     if missing_artifacts:

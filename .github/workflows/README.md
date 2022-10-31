@@ -4,22 +4,24 @@
 
 ## Unit and Integration Testing
 
-| workflow name              | workflow file                               | action                                                                                                                                                                      | accelerator\* | (Python, PyTorch)                                 | OS                  |
-| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------- | ------------------- |
-| Test PyTorch full          | .github/workflows/ci-pytorch-test-full.yml  | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           | (3.7, 1.9), (3.7, 1.12), (3.9, 1.9), (3.9, 1.12)  | linux, mac, windows |
-| Test PyTorch with Conda    | .github/workflows/ci-pytorch-test-conda.yml | Same as ci-pytorch-test-full.yml but with dependencies installed with conda.                                                                                                | CPU           | (3.8, 1.9), (3.8, 1.10), (3.8, 1.11), (3.9, 1.12) | linux               |
-| Test slow                  | .github/workflows/ci-pytorch-test-slow.yml  | Run only slow tests. Slow tests usually need to spawn threads and cannot be speed up or simplified.                                                                         | CPU           | (3.7, 1.11)                                       | linux, mac, windows |
-| pytorch-lightning (IPUs)   | .azure-pipelines/ipu-tests.yml              | Run only IPU-specific tests.                                                                                                                                                | IPU           | (3.8, 1.9)                                        | linux               |
-| pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml              | Run only HPU-specific tests.                                                                                                                                                | HPU           | (3.8, 1.10)                                       | linux               |
-| pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests.yml              | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           | (3.9, 1.12)                                       | linux               |
-| PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml          | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           | (3.9, 1.12)                                       | linux               |
-| test-on-tpus               | .circleci/config.yml                        | Run only TPU-specific tests.                                                                                                                                                | TPU           | (3.7, 1.12)                                       | linux               |
+| workflow name              | workflow file                               | action                                                                                                                                                                      | accelerator\* |
+| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Test PyTorch full          | .github/workflows/ci-pytorch-tests.yml      | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
+| Test PyTorch slow          | .github/workflows/ci-pytorch-tests-slow.yml | Run only slow tests. Slow tests usually need to spawn threads and cannot be speed up or simplified.                                                                         | CPU           |
+| pytorch-lightning (IPUs)   | .azure-pipelines/ipu-tests.yml              | Run only IPU-specific tests.                                                                                                                                                | IPU           |
+| pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml              | Run only HPU-specific tests.                                                                                                                                                | HPU           |
+| pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests-pytorch.yml      | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
+| PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml          | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
+| test-on-tpus               | .github/workflows/tpu-tests.yml             | Run only TPU-specific tests.                                                                                                                                                | TPU           |
 
 - \*Accelerators used in CI
+
   - GPU: 2 x NVIDIA Tesla V100
   - TPU: Google GKE TPUv3
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
   - HPU: [Intel Habana Gaudi SYS-420GH-TNGR](https://www.supermicro.com/en/products/system/AI/4U/SYS-420GH-TNGR) which has 8 Gaudi accelerators
+
+- To check which versions of Python or PyTorch are used for testing in our CI, see the corresponding workflow files or checkgroup cofig file at [`.github/checkgroup.yml`](../checkgroup.yml).
 
 ## Documentation
 
@@ -59,5 +61,5 @@
 | .github/mergify.yml                                                | Label PRs as conflicts or ready, and request reviews if needed.                                                                                                                                                           |
 | .github/stale.yml                                                  | Close inactive issues/PRs sometimes after adding the "won't fix" label to them.                                                                                                                                           |
 | .github/workflows/probot-auto-cc.yml, .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                                                                                            |
+| .github/workflows/probot-check-group.yml, .github/checkgroup.yml   | Checks whether the relevant jobs were successfully run based on the changed files in the PR                                                                                                                               |
 | .pre-commit-config.yaml                                            | pre-commit.ci runs a set of linters and formatters, such as black, flake8 and isort. When formatting is applied, the bot pushes a commit with its change. This configuration is also used for running pre-commit locally. |
-| .github/workflows/ci-pr-gatekeeper.yml                             | Prevent PRs from merging into master without any Grid.ai employees’ approval.                                                                                                                                             |

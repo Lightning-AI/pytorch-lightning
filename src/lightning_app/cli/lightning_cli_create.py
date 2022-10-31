@@ -1,10 +1,12 @@
+from typing import Any
+
 import click
 
 from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
 
 
 @click.group("create")
-def create():
+def create() -> None:
     """Create Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
@@ -23,6 +25,7 @@ def create():
     required=False,
     default="us-east-1",
     help="AWS region that is used to host the associated resources.",
+    hidden=True,
 )
 @click.option(
     "--instance-types",
@@ -67,8 +70,8 @@ def create_cluster(
     edit_before_creation: bool,
     enable_performance: bool,
     wait: bool,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
     if provider.lower() != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")

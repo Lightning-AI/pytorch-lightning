@@ -82,12 +82,12 @@ You can use this single react app for the FULL Lightning app, or you can specify
 
     class ComponentA(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_1/dist")
+            return L.app.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_1/dist")
 
 
     class ComponentB(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_2/dist")
+            return L.app.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_2/dist")
 
 
     class HelloLitReact(L.LightningFlow):

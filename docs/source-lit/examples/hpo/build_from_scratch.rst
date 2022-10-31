@@ -1,1 +1,0 @@
-../../../source-app/examples/hpo/build_from_scratch.rst

@@ -25,20 +25,18 @@ runs:
     run: echo "PKG_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
     shell: bash
 
-  - name: Install | Uninstall package - archive
+  - name: Install package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-      pip uninstall -y ${PKG_NAME}
     shell: bash
 
-  - name: Install | Uninstall package - wheel
+  - name: Install package - wheel
     working-directory: ./dist
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-      pip uninstall -y ${PKG_NAME}
     shell: bash

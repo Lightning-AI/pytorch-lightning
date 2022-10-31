@@ -333,10 +333,7 @@ PACKAGE_MAPPING = {
     "Pillow": "PIL",
     "opencv-python": "cv2",
     "PyYAML": "yaml",
-    "comet-ml": "comet_ml",
-    "neptune-client": "neptune",
     "hydra-core": "hydra",
-    "pyDeprecate": "deprecate",
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
@@ -344,7 +341,6 @@ if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
-    MOCK_PACKAGES += package_list_from_file(_path_require("loggers.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
@@ -392,14 +388,15 @@ from torch import nn
 from torch.utils.data import IterableDataset, DataLoader, Dataset
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
-    _XLA_AVAILABLE,
-    _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
-    _module_available,
 )
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
+from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True

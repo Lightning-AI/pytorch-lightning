@@ -1,47 +1,63 @@
 from queue import Empty
+from re import escape
 from unittest.mock import Mock
 
 import pytest
 
 from lightning_app import LightningApp
 from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork, LightningWorkException
+from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
+from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.exceptions import LightningWorkException
+from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
-def test_simple_lightning_work():
-    class Work_A(LightningWork):
+def test_lightning_work_run_method_required():
+    """Test that a helpful exception is raised when the user did not implement the `LightningWork.run()` method."""
+
+    with pytest.raises(TypeError, match=escape("The work `LightningWork` is missing the `run()` method")):
+        LightningWork()
+
+    class WorkWithoutRun(LightningWork):
         def __init__(self):
             super().__init__()
             self.started = False
 
-    with pytest.raises(TypeError, match="Work_A"):
-        Work_A()
+    with pytest.raises(TypeError, match=escape("The work `WorkWithoutRun` is missing the `run()` method")):
+        WorkWithoutRun()
 
-    class Work_B(Work_A):
+    class WorkWithRun(WorkWithoutRun):
         def run(self, *args, **kwargs):
             self.started = True
 
-    work_b = Work_B()
-    work_b.run()
-    assert work_b.started
+    work = WorkWithRun()
+    work.run()
+    assert work.started
 
-    class Work_C(LightningWork):
+
+def test_lightning_work_no_children_allowed():
+    """Test that a LightningWork can't have any children (work or flow)."""
+
+    class ChildWork(EmptyWork):
+        pass
+
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
-            self.work_b = Work_B()
+            self.work_b = ChildWork()
 
         def run(self, *args, **kwargs):
             pass
 
     with pytest.raises(LightningWorkException, match="isn't allowed to take any children such as"):
-        Work_C()
+        ParentWork()
 
-    class Work_C(LightningWork):
+    class ParentWork(LightningWork):
         def __init__(self):
             super().__init__()
             self.flow = LightningFlow()
@@ -50,7 +66,7 @@ def test_simple_lightning_work():
             pass
 
     with pytest.raises(LightningWorkException, match="LightningFlow"):
-        Work_C()
+        ParentWork()
 
 
 def test_forgot_to_call_init():
@@ -145,14 +161,14 @@ def test_lightning_status(enable_exception, raise_exception):
     work = Work(raise_exception, enable_exception=enable_exception)
     work._name = "root.w"
     assert work.status.stage == WorkStageStatus.NOT_STARTED
-    caller_queue = MockQueue("caller_queue")
-    delta_queue = MockQueue("delta_queue")
-    readiness_queue = MockQueue("readiness_queue")
-    error_queue = MockQueue("error_queue")
-    request_queue = MockQueue("request_queue")
-    response_queue = MockQueue("response_queue")
-    copy_request_queue = MockQueue("copy_request_queue")
-    copy_response_queue = MockQueue("copy_response_queue")
+    caller_queue = _MockQueue("caller_queue")
+    delta_queue = _MockQueue("delta_queue")
+    readiness_queue = _MockQueue("readiness_queue")
+    error_queue = _MockQueue("error_queue")
+    request_queue = _MockQueue("request_queue")
+    response_queue = _MockQueue("response_queue")
+    copy_request_queue = _MockQueue("copy_request_queue")
+    copy_response_queue = _MockQueue("copy_response_queue")
     call_hash = "fe3fa0f"
     work._calls[call_hash] = {
         "args": (),
@@ -280,3 +296,54 @@ def test_lightning_work_calls():
     w.run(1, [2], (3, 4), {"1": "3"})
     assert len(w._calls) == 2
     assert w._calls["0d824f7"] == {"ret": None}
+
+
+def test_work_cloud_build_config_provided():
+
+    assert isinstance(LightningWork.cloud_build_config, property)
+    assert LightningWork.cloud_build_config.fset is not None
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    w.run()
+
+
+def test_work_local_build_config_provided():
+
+    assert isinstance(LightningWork.local_build_config, property)
+    assert LightningWork.local_build_config.fset is not None
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.local_build_config = BuildConfig(image="ghcr.io/gridai/base-images:v1.8-cpu")
+
+        def run(self, *args, **kwargs):
+            pass
+
+    w = Work()
+    w.run()
+
+
+class WorkCounter(LightningWork):
+    def run(self):
+        pass
+
+
+class LightningTestAppWithWork(LightningTestApp):
+    def on_before_run_once(self):
+        if self.root.work.has_succeeded:
+            return True
+        return super().on_before_run_once()
+
+
+def test_lightning_app_with_work():
+    app = LightningTestAppWithWork(WorkCounter())
+    MultiProcessRuntime(app, start_server=False).dispatch()

@@ -11,23 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 from torch import Tensor
-from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
+from lightning_lite.utilities.types import _PARAMETERS, Optimizable
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PARAMETERS
 
 if _APEX_AVAILABLE:
     from apex import amp
 
 
-class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
+class ApexMixedPrecisionPlugin(PrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
     backend = AMPType.APEX
@@ -55,31 +54,32 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             self._connected = True
         return super().dispatch(trainer)
 
-    def backward(
+    def backward(  # type: ignore[override]
         self,
+        tensor: Tensor,
         model: "pl.LightningModule",
-        closure_loss: Tensor,
-        optimizer: Optional[Optimizer],
-        optimizer_idx: Optional[int],
+        optimizer: Optional[Optimizable],
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Run before precision plugin executes backward.
+        r"""Run before precision plugin executes backward.
 
         Args:
+            tensor: the loss value obtained from the closure
             model: the model to be optimized
-            closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
-            optimizer_idx: the index of the current optimizer. ``None`` if using manual optimization
+            \*args: Positional arguments intended for the actual function that performs the backward, like
+                :meth:`~torch.Tensor.backward`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         opt = optimizer or model.trainer.optimizers
-        with amp.scale_loss(closure_loss, opt) as closure_loss:
-            super().backward(model, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
+        with amp.scale_loss(tensor, opt) as tensor:
+            super().backward(tensor, model, optimizer, *args, **kwargs)
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
-        model: Optional[Union["pl.LightningModule", Module]],
-        optimizer: Optimizer,
+        optimizer: Optimizable,
+        model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
@@ -97,7 +97,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
+        if not model.automatic_optimization or not skipped_backward:
             return optimizer.step(**kwargs)
         return closure_result
 

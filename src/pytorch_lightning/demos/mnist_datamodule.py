@@ -195,7 +195,7 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)

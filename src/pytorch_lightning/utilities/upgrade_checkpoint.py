@@ -17,9 +17,9 @@ from shutil import copyfile
 
 import torch
 
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.utilities.migration import pl_legacy_patch
-from pytorch_lightning.utilities.types import _PATH
 
 KEYS_MAPPING = {
     "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),

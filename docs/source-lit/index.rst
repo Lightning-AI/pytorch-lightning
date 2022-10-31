@@ -49,7 +49,6 @@ Welcome to ⚡ Lightning Apps
    Develop a DAG <examples/dag/dag>
    Develop a File Server <examples/file_server/file_server>
    Develop a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
-   Develop a HPO Sweeper <examples/hpo/hpo>
    Develop a Model Server <examples/model_server_app/model_server_app>
 
 ..
@@ -65,6 +64,7 @@ Welcome to ⚡ Lightning Apps
    Access the App State <workflows/access_app_state/access_app_state>
    Add a web user interface (UI) <workflows/add_web_ui/index>
    Add a web link  <workflows/add_web_link>
+   Add encrypted secrets <glossary/secrets>
    Arrange app tabs <workflows/arrange_tabs/index>
    Develop a Lightning App <workflows/build_lightning_app/index>
    Develop a Lightning Component <workflows/build_lightning_component/index>
@@ -76,6 +76,7 @@ Welcome to ⚡ Lightning Apps
    Run an App on the cloud <workflows/run_app_on_cloud/index>
    Run Apps on your cloud account (BYOC) <workflows/byoc/index>
    Run work in parallel <workflows/run_work_in_parallel>
+   Save files <glossary/storage/drive.rst>
    Share an app  <workflows/share_app>
    Share files between components <workflows/share_files_between_components>
 
@@ -113,6 +114,7 @@ Welcome to ⚡ Lightning Apps
    DAG <glossary/dag>
    Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
+   Encrypted Secrets <glossary/secrets>
    Frontend <workflows/add_web_ui/glossary_front_end.rst>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>

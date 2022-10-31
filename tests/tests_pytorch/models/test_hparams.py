@@ -24,6 +24,7 @@ import cloudpickle
 import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
+from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -34,7 +35,6 @@ from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_t
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -666,7 +666,7 @@ def test_model_with_fsspec_as_parameter(tmpdir):
     trainer.test()
 
 
-@pytest.mark.skipif(_RequirementAvailable("hydra-core<1.1"), reason="Requires Hydra's Compose API")
+@pytest.mark.skipif(RequirementCache("hydra-core<1.1"), reason="Requires Hydra's Compose API")
 def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
     """This test relies on configuration saved under tests/models/conf/config.yaml."""
     from hydra import compose, initialize
@@ -860,7 +860,7 @@ def test_no_datamodule_for_hparams(tmpdir):
     model = SaveHparamsModel({"arg1": 5, "arg2": "abc"})
     org_model_hparams = copy.deepcopy(model.hparams_initial)
     data = DataModuleWithoutHparams()
-    data.setup()
+    data.setup("fit")
 
     mock_logger = _get_mock_logger(tmpdir)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=mock_logger)

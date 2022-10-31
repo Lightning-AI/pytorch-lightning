@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.profilers.profiler import Profiler as NewProfiler
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class Profiler(NewProfiler):

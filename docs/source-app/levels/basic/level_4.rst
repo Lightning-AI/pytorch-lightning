@@ -35,7 +35,7 @@ If you need inspiration, here are some components you might want to use to exten
 .. displayitem::
    :header: Slack Messenger
    :description: Send a Slack notification when anything happens in your Lightning App.
-   :button_link: https://lightning.ai/components/LJFITYeNBZ-Slack%20Messenger
+   :button_link: https://lightning.ai/component/LJFITYeNBZ-Slack%20Messenger
    :col_css: col-md-4
    :height: 200
    :tag: monitoring
@@ -43,7 +43,7 @@ If you need inspiration, here are some components you might want to use to exten
 .. displayitem::
    :header: Lightning Serve
    :description: Make your model serving infrastructure resilient with over 7+ strategies such as canary, recreate, ramped and more.
-   :button_link: https://lightning.ai/components/BA2slXIke9-Lightning%20Serve
+   :button_link: https://lightning.ai/component/BA2slXIke9-Lightning%20Serve
    :col_css: col-md-4
    :height: 200
    :tag: production
@@ -51,7 +51,7 @@ If you need inspiration, here are some components you might want to use to exten
 .. displayitem::
    :header: Lightning HPO
    :description: Add a hyperparameter sweep to your Lightning App.
-   :button_link: https://lightning.ai/components/BA2slXI093-Lightning%20HPO
+   :button_link: https://lightning.ai/component/BA2slXI093-Lightning%20HPO
    :col_css: col-md-4
    :height: 200
    :tag: research
@@ -59,7 +59,7 @@ If you need inspiration, here are some components you might want to use to exten
 .. displayitem::
    :header: Jupyter Notebook
    :description: Add a Jupyter Notebook to your Lightning App.
-   :button_link: https://lightning.ai/components/cRH1UHnvBx-Jupyter%20Notebook
+   :button_link: https://lightning.ai/component/cRH1UHnvBx-Jupyter%20Notebook
    :col_css: col-md-4
    :height: 200
    :tag: data science
@@ -67,7 +67,7 @@ If you need inspiration, here are some components you might want to use to exten
 .. displayitem::
    :header: Google BigQuery
    :description: Connect a big BigQuery dataset to your Lightning App.
-   :button_link: https://lightning.ai/components/Mtt4fnRlUE-Google%20BigQuery
+   :button_link: https://lightning.ai/component/Mtt4fnRlUE-Google%20BigQuery
    :col_css: col-md-4
    :height: 200
    :tag: production

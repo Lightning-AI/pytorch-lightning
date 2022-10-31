@@ -11,7 +11,7 @@ from lightning_app.utilities.enum import AppStage
 
 class LightningAppTestInt(LightningTestApp):
     def run_once(self) -> Tuple[bool, float]:
-        if self.root.counter > 1:
+        if self.root.counter == 1:
             print("V0 App End")
             self.stage = AppStage.STOPPING
             return True, 0.0
@@ -39,6 +39,7 @@ def run_v0_app(fetch_logs, view_page):
         locator = view_page.frame_locator("iframe").locator("div")
         locator.wait_for(timeout=3 * 1000)
         assert text_content in " ".join(locator.all_text_contents())
+        print(f"Validated {button_name}")
         return True
 
     wait_for(view_page, check_content, "TAB_1", "Hello from component A")

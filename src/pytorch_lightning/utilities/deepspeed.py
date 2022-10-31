@@ -19,8 +19,8 @@ import os
 
 import torch
 
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.utilities.types import _PATH
 
 if _DEEPSPEED_AVAILABLE:
     from deepspeed.utils.zero_to_fp32 import (

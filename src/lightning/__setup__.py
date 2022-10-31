@@ -30,21 +30,16 @@ def _adjust_manifest(**kwargs: Any) -> None:
     assert os.path.isfile(manifest_path)
     with open(manifest_path) as fp:
         lines = [ln.rstrip() for ln in fp.readlines()]
-    if kwargs["pkg_name"] == "lightning":
-        lines += [
-            "recursive-include src/lightning *.md",
-            "include requirements/base.txt",
-            # fixme: this is strange, this shall work with setup find package - include
-            "prune src/lightning_app",
-            "prune src/pytorch_lightning",
-        ]
-    else:
-        lines += [
-            "recursive-include src *.md",
-            "recursive-include requirements *.txt",
-            "recursive-include src/lightning_app/ui *",
-            "recursive-include src/lightning_app/cli/*-template *",  # Add templates as build-in
-        ]
+    lines += [
+        "recursive-include src/lightning *.md",
+        "recursive-include requirements *.txt",
+        "recursive-include src/lightning/app/ui *",
+        "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in
+        # fixme: this is strange, this shall work with setup find package - include
+        "prune src/lightning_app",
+        "prune src/lightning_lite",
+        "prune src/pytorch_lightning",
+    ]
     with open(manifest_path, "w") as fp:
         fp.writelines([ln + os.linesep for ln in lines])
 
@@ -55,12 +50,12 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     _long_description = _SETUP_TOOLS.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    _include_pkgs = ["lightning", "lightning.*"] if kwargs["pkg_name"] == "lightning" else ["*"]
+    _include_pkgs = ["lightning", "lightning.*"]
 
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _SETUP_TOOLS._download_frontend(_PROJECT_ROOT)
+    _SETUP_TOOLS._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
 
     return dict(
         name="lightning",
@@ -81,11 +76,11 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         python_requires=">=3.7",  # todo: take the lowes based on all packages
         entry_points={
             "console_scripts": [
-                "lightning = lightning_app.cli.lightning_cli:main",
+                "lightning = lightning.app.cli.lightning_cli:main",
             ],
         },
         setup_requires=[],
-        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze=True),
+        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

@@ -1,5 +1,4 @@
 import hashlib
-import logging
 import os
 import pathlib
 import shutil
@@ -11,9 +10,9 @@ from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.component import _is_flow_context
 from lightning_app.utilities.imports import _is_s3fs_available
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
 
 num_workers = 8
 
-_logger = logging.getLogger(__name__)
+_logger = Logger(__name__)
 
 
 class Path(PathlibPath):
@@ -52,7 +51,7 @@ class Path(PathlibPath):
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)
             parts[0] = parts[0][len("lit://") :]
-            args = (storage_root_dir(), *parts)
+            args = (_storage_root_dir(), *parts)
 
         if LooseVersion(python_version()) < "3.10":
             __unused.setdefault("init", True)
@@ -160,11 +159,11 @@ class Path(PathlibPath):
             )
 
         # 1. Send message to orchestrator through queue that with a request for a path existence check
-        request = ExistsRequest(source=self.origin_name, path=str(self), name=self._name, hash=self.hash)
+        request = _ExistsRequest(source=self.origin_name, path=str(self), name=self._name, hash=self.hash)
         self._request_queue.put(request)
 
         # 2. Wait for the response to come back
-        response: ExistsResponse = self._response_queue.get()  # blocking
+        response: _ExistsResponse = self._response_queue.get()  # blocking
         return response.exists
 
     def get(self, overwrite: bool = False) -> None:
@@ -190,14 +189,14 @@ class Path(PathlibPath):
         # 1. Send message to orchestrator through queue with details of the transfer
         # the source is the name of the work that owns the file that we request
         # the destination is determined by the queue, since each work has a dedicated send and recv queue
-        request = GetRequest(source=self.origin_name, path=str(self), hash=self.hash, name=self._name)
+        request = _GetRequest(source=self.origin_name, path=str(self), hash=self.hash, name=self._name)
         self._request_queue.put(request)
 
         # 2. Wait for the transfer to finish
-        response: GetResponse = self._response_queue.get()  # blocking
+        response: _GetResponse = self._response_queue.get()  # blocking
         self._validate_get_response(response)
 
-        fs = filesystem()
+        fs = _filesystem()
 
         # 3. Wait until the file appears in shared storage
         while not fs.exists(response.path):
@@ -238,7 +237,7 @@ class Path(PathlibPath):
         path._metadata = content["metadata"]
         return path
 
-    def _validate_get_response(self, response: "GetResponse") -> None:
+    def _validate_get_response(self, response: "_GetResponse") -> None:
         if response.source != self._origin or response.hash != self.hash:
             raise RuntimeError(
                 f"Tried to get the file {self} but received a response for a request it did not send. The response"
@@ -251,7 +250,7 @@ class Path(PathlibPath):
                 f" from Work {response.source} to {response.destination}. See the full stacktrace above."
             ) from response.exception
 
-    def _attach_work(self, work: "lightning_app.LightningWork") -> None:
+    def _attach_work(self, work: "LightningWork") -> None:
         """Attach a LightningWork to this Path.
 
         The first work to be attached becomes the `origin`, i.e., the Work that is meant to expose the file to other
@@ -323,8 +322,8 @@ class Path(PathlibPath):
         return self.to_dict()
 
     @staticmethod
-    def _handle_exists_request(work: "lightning_app.LightningWork", request: ExistsRequest) -> ExistsResponse:
-        return ExistsResponse(
+    def _handle_exists_request(work: "LightningWork", request: _ExistsRequest) -> _ExistsResponse:
+        return _ExistsResponse(
             source=request.source,
             name=request.name,
             hash=request.hash,
@@ -334,12 +333,12 @@ class Path(PathlibPath):
         )
 
     @staticmethod
-    def _handle_get_request(work: "lightning_app.LightningWork", request: GetRequest) -> GetResponse:
-        from lightning_app.storage.copier import copy_files
+    def _handle_get_request(work: "LightningWork", request: _GetRequest) -> _GetResponse:
+        from lightning_app.storage.copier import _copy_files
 
         source_path = pathlib.Path(request.path)
-        destination_path = shared_storage_path() / request.hash
-        response = GetResponse(
+        destination_path = _shared_storage_path() / request.hash
+        response = _GetResponse(
             source=request.source,
             path=str(destination_path),
             hash=request.hash,
@@ -348,16 +347,16 @@ class Path(PathlibPath):
         )
 
         try:
-            copy_files(source_path, destination_path)
+            _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
         except Exception as e:
             response.exception = e
         return response
 
 
-def is_lit_path(path: Union[str, Path]) -> bool:
+def _is_lit_path(path: Union[str, Path]) -> bool:
     path = Path(path)
-    return path == storage_root_dir() or storage_root_dir() in path.parents
+    return path == _storage_root_dir() or _storage_root_dir() in path.parents
 
 
 def _shared_local_mount_path() -> pathlib.Path:
@@ -372,19 +371,25 @@ def _shared_local_mount_path() -> pathlib.Path:
     return path.absolute()
 
 
-def storage_root_dir() -> pathlib.Path:
+def _storage_root_dir() -> pathlib.Path:
     path = pathlib.Path(os.environ.get("STORAGE_ROOT_DIR", "./.storage")).absolute()
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def shared_storage_path() -> pathlib.Path:
+def _shared_storage_path() -> pathlib.Path:
     """Returns the shared path through which the Copier threads move files from one Work filesystem to another.
 
     The shared path gets set by the environment. Locally, it is pointing to a directory determined by the
     ``SHARED_MOUNT_DIRECTORY`` environment variable. In the cloud, the shared path will point to a S3 bucket. All Works
     have access to this shared dropbox.
     """
+    storage_path = os.getenv("LIGHTNING_STORAGE_PATH", "")
+    if storage_path != "":
+        return pathlib.Path(storage_path)
+
+    # TODO[dmitsf]: this logic is still needed for compatibility reasons.
+    # We should remove it after some time.
     bucket_name = os.getenv("LIGHTNING_BUCKET_NAME", "")
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", "")
 
@@ -394,15 +399,15 @@ def shared_storage_path() -> pathlib.Path:
     return _shared_local_mount_path()
 
 
-def artifacts_path(work: "LightningWork") -> pathlib.Path:
-    return shared_storage_path() / "artifacts" / work.name
+def _artifacts_path(work: "LightningWork") -> pathlib.Path:
+    return _shared_storage_path() / "artifacts" / work.name
 
 
-def path_to_work_artifact(path: Union[Path, pathlib.Path, str], work: "LightningWork") -> pathlib.Path:
-    return artifacts_path(work) / pathlib.Path(*pathlib.Path(path).absolute().parts[1:])
+def _path_to_work_artifact(path: Union[Path, pathlib.Path, str], work: "LightningWork") -> pathlib.Path:
+    return _artifacts_path(work) / pathlib.Path(*pathlib.Path(path).absolute().parts[1:])
 
 
-def filesystem() -> AbstractFileSystem:
+def _filesystem() -> AbstractFileSystem:
     fs = LocalFileSystem()
 
     endpoint_url = os.getenv("LIGHTNING_BUCKET_ENDPOINT_URL", "")
@@ -423,7 +428,7 @@ def filesystem() -> AbstractFileSystem:
         if app_id == "":
             raise RuntimeError("missing LIGHTNING_CLOUD_APP_ID")
 
-        if not fs.exists(shared_storage_path()):
-            raise RuntimeError(f"shared filesystem {shared_storage_path()} does not exist")
+        if not fs.exists(_shared_storage_path()):
+            raise RuntimeError(f"shared filesystem {_shared_storage_path()} does not exist")
 
     return fs

@@ -31,7 +31,8 @@ Any server that listens on a port, can be enabled via a work. For example, here'
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
+            # Data must be passed as bytes to the `self.wfile.write` call
+            html = b"<h1 style='color: blue'> Hello lit world </div>"
             self.wfile.write(html)
 
 
@@ -52,7 +53,8 @@ To enable the server inside the component, start the server in the run method an
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
+            # Data must be passed as bytes to the `self.wfile.write` call
+            html = b"<h1 style='color: blue'> Hello lit world </div>"
             self.wfile.write(html)
 
 
@@ -81,7 +83,8 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
+            # Data must be passed as bytes to the `self.wfile.write` call
+            html = b"<h1 style='color: blue'> Hello lit world </div>"
             self.wfile.write(html)
 
 

@@ -1,17 +1,18 @@
 import asyncio
-import logging
 import os
 import queue
 import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
-from typing import Dict, List, Mapping, Optional
+from time import sleep
+from typing import Dict, List, Mapping, Optional, Union
 
 import uvicorn
 from deepdiff import DeepDiff, Delta
-from fastapi import FastAPI, HTTPException, Request, Response, status, WebSocket
+from fastapi import FastAPI, File, HTTPException, Request, Response, status, UploadFile, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.params import Header
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -20,13 +21,23 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from websockets.exceptions import ConnectionClosed
 
-from lightning_app.api.http_methods import HttpMethod
-from lightning_app.api.request_types import DeltaRequest
-from lightning_app.core.constants import FRONTEND_DIR
-from lightning_app.core.queues import RedisQueue
-from lightning_app.utilities.app_helpers import InMemoryStateStore, StateStore
-from lightning_app.utilities.enum import OpenAPITags
-from lightning_app.utilities.imports import _is_redis_available, _is_starsessions_available
+from lightning_app.api.http_methods import _HttpMethod
+from lightning_app.api.request_types import _DeltaRequest
+from lightning_app.core.constants import (
+    CLOUD_QUEUE_TYPE,
+    ENABLE_PULLING_STATE_ENDPOINT,
+    ENABLE_PUSHING_STATE_ENDPOINT,
+    ENABLE_STATE_WEBSOCKET,
+    ENABLE_UPLOAD_ENDPOINT,
+    FRONTEND_DIR,
+)
+from lightning_app.core.queues import QueuingSystem
+from lightning_app.storage import Drive
+from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.cloud import is_running_in_cloud
+from lightning_app.utilities.component import _context
+from lightning_app.utilities.enum import ComponentContext, OpenAPITags
+from lightning_app.utilities.imports import _is_starsessions_available
 
 if _is_starsessions_available():
     from starsessions import SessionMiddleware
@@ -58,7 +69,7 @@ app_spec: Optional[List] = None
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 # This can be replaced with a consumer that publishes states in a kv-store
@@ -66,11 +77,12 @@ logger = logging.getLogger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
         self._exit_event = Event()
+        self.refresh_interval = refresh_interval
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
@@ -78,6 +90,8 @@ class UIRefresher(Thread):
         try:
             while not self._exit_event.is_set():
                 self.run_once()
+                # Note: Sleep to reduce queue calls.
+                sleep(self.refresh_interval)
         except Exception as e:
             logger.error(traceback.print_exc())
             raise e
@@ -91,11 +105,12 @@ class UIRefresher(Thread):
             pass
 
         try:
-            response = self.api_response_queue.get(timeout=0)
+            responses = self.api_response_queue.get(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
-                responses_store[response["id"]] = response["response"]
+                for response in responses:
+                    responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
@@ -155,6 +170,7 @@ if _is_starsessions_available():
 # ranks)
 @fastapi_service.get("/api/v1/state", response_class=JSONResponse)
 async def get_state(
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
@@ -164,6 +180,10 @@ async def get_state(
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
 
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     with lock:
         x_lightning_session_uuid = TEST_SESSION_UUID
         state = global_app_state_store.get_app_state(x_lightning_session_uuid)
@@ -171,15 +191,48 @@ async def get_state(
         return state
 
 
+def _get_component_by_name(component_name: str, state):
+    child = state
+    for child_name in component_name.split(".")[1:]:
+        try:
+            child = child["flows"][child_name]
+        except KeyError:
+            child = child["structures"][child_name]
+
+    if isinstance(child["vars"]["_layout"], list):
+        assert len(child["vars"]["_layout"]) == 1
+        return child["vars"]["_layout"][0]["target"]
+    return child["vars"]["_layout"]["target"]
+
+
+@fastapi_service.get("/api/v1/layout", response_class=JSONResponse)
+async def get_layout() -> Mapping:
+    with lock:
+        x_lightning_session_uuid = TEST_SESSION_UUID
+        state = global_app_state_store.get_app_state(x_lightning_session_uuid)
+        global_app_state_store.set_served_state(x_lightning_session_uuid, state)
+        layout = deepcopy(state["vars"]["_layout"])
+        for la in layout:
+            if la["content"].startswith("root."):
+                la["content"] = _get_component_by_name(la["content"], state)
+        return layout
+
+
 @fastapi_service.get("/api/v1/spec", response_class=JSONResponse)
 async def get_spec(
+    response: Response,
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> List:
+) -> Union[List, Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
+
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     global app_spec
     return app_spec or []
 
@@ -187,10 +240,11 @@ async def get_spec(
 @fastapi_service.post("/api/v1/delta")
 async def post_delta(
     request: Request,
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> None:
+) -> Optional[Dict]:
     """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
     update the state."""
 
@@ -199,17 +253,22 @@ async def post_delta(
     if x_lightning_session_id is None:
         raise Exception("Missing X-Lightning-Session-ID header")
 
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     body: Dict = await request.json()
-    api_app_delta_queue.put(DeltaRequest(delta=Delta(body["delta"])))
+    api_app_delta_queue.put(_DeltaRequest(delta=Delta(body["delta"])))
 
 
 @fastapi_service.post("/api/v1/state")
 async def post_state(
     request: Request,
+    response: Response,
     x_lightning_type: Optional[str] = Header(None),
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
-) -> None:
+) -> Optional[Dict]:
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
     if x_lightning_session_id is None:
@@ -223,6 +282,10 @@ async def post_state(
     body: Dict = await request.json()
     x_lightning_session_uuid = TEST_SESSION_UUID
 
+    if not ENABLE_PUSHING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
     if "stage" in body:
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         state = deepcopy(last_state)
@@ -232,22 +295,48 @@ async def post_state(
         state = body["state"]
         last_state = global_app_state_store.get_served_state(x_lightning_session_uuid)
         deep_diff = DeepDiff(last_state, state, verbose_level=2)
-    api_app_delta_queue.put(DeltaRequest(delta=Delta(deep_diff)))
+    api_app_delta_queue.put(_DeltaRequest(delta=Delta(deep_diff)))
+
+
+@fastapi_service.put("/api/v1/upload_file/{filename}")
+async def upload_file(response: Response, filename: str, uploaded_file: UploadFile = File(...)):
+    if not ENABLE_UPLOAD_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
+    with TemporaryDirectory() as tmp:
+        drive = Drive(
+            "lit://uploaded_files",
+            component_name="file_server",
+            allow_duplicates=True,
+            root_folder=tmp,
+        )
+        tmp_file = os.path.join(tmp, filename)
+
+        with open(tmp_file, "wb") as f:
+            done = False
+            while not done:
+                # Note: The 8192 number doesn't have a strong reason.
+                content = await uploaded_file.read(8192)
+                f.write(content)
+                done = content == b""
+
+        with _context(ComponentContext.WORK):
+            drive.put(filename)
+    return f"Successfully uploaded '{filename}' to the Drive"
 
 
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
-    Redis to be installed for it to work.
-
-    # TODO - Once the state store abstraction is in, check that too
-    """
-    if not _is_redis_available():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
-    if not RedisQueue(name="ping", default_timeout=1).ping():
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return {"status": "failure", "reason": "Redis is not available"}
+    """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
+    # check the queue status only if running in cloud
+    if is_running_in_cloud():
+        queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
+        # app checking the status of the Queue server
+        if not queue_obj.is_running:
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return {"status": "failure", "reason": "Redis is not available"}
     x_lightning_session_uuid = TEST_SESSION_UUID
     state = global_app_state_store.get_app_state(x_lightning_session_uuid)
     global_app_state_store.set_served_state(x_lightning_session_uuid, state)
@@ -262,6 +351,9 @@ async def healthz(response: Response):
 @fastapi_service.websocket("/api/v1/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    if not ENABLE_STATE_WEBSOCKET:
+        await websocket.close()
+        return
     try:
         counter = global_app_state_store.counter
         while True:
@@ -320,9 +412,10 @@ def start_server(
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
+    root_path: str = "",
     uvicorn_run: bool = True,
     spec: Optional[List] = None,
-    apis: Optional[List[HttpMethod]] = None,
+    apis: Optional[List[_HttpMethod]] = None,
     app_state_store: Optional[StateStore] = None,
 ):
     global api_app_delta_queue
@@ -343,7 +436,10 @@ def start_server(
 
     if uvicorn_run:
         host = host.split("//")[-1] if "//" in host else host
-        logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
+        if host == "0.0.0.0":
+            logger.info("Your app has started.")
+        else:
+            logger.info(f"Your app has started. View it in your browser: http://{host}:{port}/view")
         if has_started_queue:
             LightningUvicornServer.has_started_queue = has_started_queue
             # uvicorn is doing some uglyness by replacing uvicorn.main by click command.
@@ -356,6 +452,6 @@ def start_server(
 
         register_global_routes()
 
-        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error")
+        uvicorn.run(app=fastapi_service, host=host, port=port, log_level="error", root_path=root_path)
 
     return refresher

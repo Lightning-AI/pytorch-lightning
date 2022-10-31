@@ -1,7 +1,7 @@
 import pathlib
 
 from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork
-from lightning_app.storage.path import artifacts_path, filesystem
+from lightning_app.storage.path import _artifacts_path, _filesystem
 from lightning_app.utilities.enum import WorkStageStatus, WorkStopReasons
 
 
@@ -49,10 +49,10 @@ class RootFlow(LightningFlow):
             assert stopped_status_sigterm.stage == WorkStageStatus.STOPPED
             assert stopped_status_sigterm.reason == WorkStopReasons.SIGTERM_SIGNAL_HANDLER
             # Note: Account for the controlplane, k8s, SIGTERM handler delays.
-            assert (stopped_status_pending.timestamp - succeeded_status.timestamp) < 10
+            assert (stopped_status_pending.timestamp - succeeded_status.timestamp) < 20
             assert (stopped_status_sigterm.timestamp - stopped_status_pending.timestamp) < 120
-            fs = filesystem()
-            destination_path = artifacts_path(self.work) / pathlib.Path(*self.work.path.resolve().parts[1:])
+            fs = _filesystem()
+            destination_path = _artifacts_path(self.work) / pathlib.Path(*self.work.path.resolve().parts[1:])
             assert fs.exists(destination_path)
             self.dest_work.run(self.work.path)
             self.make_check = False
@@ -68,4 +68,4 @@ class RootFlow(LightningFlow):
             self._exit()
 
 
-app = LightningApp(RootFlow())
+app = LightningApp(RootFlow(), debug=True)

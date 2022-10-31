@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from lightning_utilities.core.imports import RequirementCache
 from torch import nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import _is_deferred
 from tests_pytorch.helpers.runif import RunIf
 
-_TORCHDISTX_AVAILABLE = _RequirementAvailable("torchdistx")
+_TORCHDISTX_AVAILABLE = RequirementCache("torchdistx")
 
 
 class SimpleBoringModel(LightningModule):

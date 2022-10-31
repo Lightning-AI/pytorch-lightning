@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest.mock import Mock
+from unittest import mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -53,7 +54,8 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
     assert not connector._loaded_checkpoint
 
 
-def test_hpc_restore_attempt(tmpdir):
+@mock.patch("lightning_lite.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
+def test_hpc_restore_attempt(_, tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
@@ -75,12 +77,11 @@ def test_hpc_restore_attempt(tmpdir):
         assert param.abs().sum() > 0
         torch.nn.init.constant_(param, 0)
 
-    # case 2: explicit resume path provided, restore hpc anyway
+    # case 2: explicit resume path provided, file not found
     trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
-    trainer.fit(model, ckpt_path="not existing")
 
-    for param in model.parameters():
-        assert param.abs().sum() > 0
+    with pytest.raises(FileNotFoundError, match="Checkpoint at not existing not found. Aborting training."):
+        trainer.fit(model, ckpt_path="not existing")
 
 
 def test_hpc_max_ckpt_version(tmpdir):
@@ -122,22 +123,22 @@ def test_loops_restore(tmpdir):
     trainer = Trainer(**trainer_args)
     trainer.strategy.connect(model)
 
-    for fn in TrainerFn:
-        if fn != TrainerFn.TUNING:
-            trainer_fn = getattr(trainer, f"{fn}_loop")
-            trainer_fn.load_state_dict = Mock()
+    trainer_fns = [fn for fn in TrainerFn._without_tune()]
 
-    for fn in TrainerFn:
-        if fn != TrainerFn.TUNING:
-            trainer.state.fn = fn
-            trainer._checkpoint_connector.resume_start(ckpt_path)
-            trainer._checkpoint_connector.restore_loops()
+    for fn in trainer_fns:
+        trainer_fn = getattr(trainer, f"{fn}_loop")
+        trainer_fn.load_state_dict = mock.Mock()
 
-            trainer_loop = getattr(trainer, f"{fn}_loop")
-            trainer_loop.load_state_dict.assert_called()
-            trainer_loop.load_state_dict.reset_mock()
+    for fn in trainer_fns:
+        trainer.state.fn = fn
+        trainer._checkpoint_connector.resume_start(ckpt_path)
+        trainer._checkpoint_connector.restore_loops()
 
-        for fn2 in TrainerFn:
-            if fn2 not in (fn, TrainerFn.TUNING):
+        trainer_loop = getattr(trainer, f"{fn}_loop")
+        trainer_loop.load_state_dict.assert_called()
+        trainer_loop.load_state_dict.reset_mock()
+
+        for fn2 in trainer_fns:
+            if fn2 != fn:
                 trainer_loop2 = getattr(trainer, f"{fn2}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()

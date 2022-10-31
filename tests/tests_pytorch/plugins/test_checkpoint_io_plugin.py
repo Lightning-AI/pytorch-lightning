@@ -18,14 +18,13 @@ from unittest.mock import MagicMock, Mock
 
 import torch
 
+from lightning_lite.plugins import CheckpointIO, TorchCheckpointIO
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from pytorch_lightning.utilities.types import _PATH
 
 
 class CustomCheckpointIO(CheckpointIO):

@@ -20,14 +20,14 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.distributed import _distributed_available
+from lightning_lite.utilities.distributed import group as dist_group
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.utilities.distributed import distributed_available
-from pytorch_lightning.utilities.distributed import group as dist_group
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -43,7 +43,7 @@ class HorovodStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -134,7 +134,7 @@ class HorovodStrategy(ParallelStrategy):
             self._exit_stack.enter_context(optimizer.skip_synchronize())
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if distributed_available():
+        if _distributed_available():
             self.join()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:

@@ -53,19 +53,26 @@ First **create a file named app.py** with the app content (in the same folder as
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
+
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return frontend.StaticWebFrontend(serve_dir='.')
+
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
 
+        def run(self):
+            self.hello_component.run()
+
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.hello_component}
             return tab1
+
 
     app = L.LightningApp(LitApp())
 
@@ -100,19 +107,23 @@ Enable an HTML UI for the component
 Give the component an HTML UI, by returning a ``StaticWebFrontend`` object from the ``configure_layout`` method:
 
 .. code:: bash
-    :emphasize-lines: 5,6
+    :emphasize-lines: 6,7
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return frontend.StaticWebFrontend(serve_dir='.')
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
+
+        def run(self):
+            self.hello_component.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.hello_component}
@@ -129,20 +140,24 @@ Route the UI in the root component
 The final step, is to tell the Root component in which tab to render this component's UI.
 In this case, we render the ``HelloComponent`` UI in the ``home`` tab of the application.
 
-.. code:: bash
-    :emphasize-lines: 14, 15
+.. code:: python
+    :emphasize-lines: 18, 19
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
 
     class HelloComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir='.')
+            return frontend.StaticWebFrontend(serve_dir='.')
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.hello_component = HelloComponent()
+
+        def run(self):
+            self.hello_component.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.hello_component}

@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 
 __all__ = [
-    "_Launcher",
     "_MultiProcessingLauncher",
     "_SubprocessScriptLauncher",
     "_XLALauncher",

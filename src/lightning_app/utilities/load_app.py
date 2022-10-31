@@ -1,5 +1,4 @@
 import inspect
-import logging
 import os
 import sys
 import traceback
@@ -12,7 +11,9 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import Logger
+
+logger = Logger(__name__)
 
 
 def load_app_from_file(filepath: str) -> "LightningApp":
