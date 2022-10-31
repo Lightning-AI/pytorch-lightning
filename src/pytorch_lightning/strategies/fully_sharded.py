@@ -13,13 +13,15 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional
 
 import torch
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fsdp import _optimizer_has_flat_params
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -186,6 +188,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         if not is_overridden("configure_sharded_model", self.lightning_module):
             self.model = self._setup_model(self.model)
         self.setup_optimizers(self.lightning_module.trainer)
+        _validate_optimizers(self.optimizers)
         _optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
 
@@ -288,3 +291,13 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+
+def _validate_optimizers(optimizers: Iterable[Optimizer]) -> None:
+    for optimizer in optimizers:
+        if not _optimizer_has_flat_params(optimizer):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
