@@ -472,7 +472,7 @@ class CloudRuntime(Runtime):
             app = load_app_from_file(filepath, raise_exception=True)
         except ModuleNotFoundError:
             # this is very generic exception.
-            logger.info("Could not load the app() locally. Starting the app directly on the cloud.")
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             # we want to format the exception as if no frame was on top.
             exp, val, tb = sys.exc_info()
             listing = traceback.format_exception(exp, val, tb)
