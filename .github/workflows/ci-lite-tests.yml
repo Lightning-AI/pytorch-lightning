@@ -69,6 +69,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Check /dev/shm size
+      run: |
+        df -h
+        df -h /dev/shm
+
     - name: basic setup
       run: |
         pip --version
