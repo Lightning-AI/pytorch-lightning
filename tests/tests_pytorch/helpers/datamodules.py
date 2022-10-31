@@ -107,7 +107,12 @@ class ClassifDataModule(SklearnDataModule):
         from sklearn.datasets import make_classification
 
         data = make_classification(
-            n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
+            n_samples=length,
+            n_features=num_features,
+            n_classes=num_classes,
+            n_clusters_per_class=2,
+            n_informative=int(num_features / num_classes),
+            random_state=42,
         )
         super().__init__(data, x_type=torch.float32, y_type=torch.long, batch_size=batch_size)
 

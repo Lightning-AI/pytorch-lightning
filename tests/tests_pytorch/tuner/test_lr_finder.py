@@ -14,6 +14,7 @@
 import logging
 import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -196,6 +197,7 @@ def test_call_to_trainer_method(tmpdir, opt):
 
 
 @RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_datamodule_parameter(tmpdir):
     """Test that the datamodule parameter works."""
     seed_everything(1)

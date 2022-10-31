@@ -77,7 +77,7 @@ def test_all_stages(tmpdir, hpus):
 
 
 @RunIf(hpu=True, sklearn=True)
-@mock.patch.dict(os.environ, os.environ.copy())
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
