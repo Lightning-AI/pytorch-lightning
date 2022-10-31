@@ -370,8 +370,8 @@ class EvaluationLoop(DataLoaderLoop):
 
                 try:
                     # some terminals do not support this character
-                    if sys.stdout.encoding is not None:
-                        "─".encode(sys.stdout.encoding)
+                    if sys.__stdout__.encoding is not None:
+                        "─".encode(sys.__stdout__.encoding)
                 except UnicodeEncodeError:
                     bar_character = "-"
                 else:
