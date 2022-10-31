@@ -483,6 +483,8 @@ class CloudRuntime(Runtime):
             # Create a mocking app.
             app = LightningApp(EmptyFlow())
 
+        except FileNotFoundError as e:
+            raise e
         except Exception:
             _prettifiy_exception(filepath)
         return app
