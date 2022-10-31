@@ -5,6 +5,7 @@ from typing import Any, Tuple, Union
 
 import arrow
 import click
+import inquirer
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
@@ -355,8 +356,7 @@ _main.add_command(create)
     help="Specify which component to SSH into",
 )
 def ssh(app_id: str = None, component_name: str = None) -> None:
-    """SSH into a Lighting App."""
-    import inquirer
+    """SSH into a Lightning App."""
 
     app_manager = _AppManager()
     if app_id is None:
@@ -380,12 +380,13 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
         raise click.ClickException("failed fetching app instance")
 
     components = app_manager.list_components(app_id=app_id)
+    available_component_names = [work.name for work in components] + ["flow"]
     if component_name is None:
         available_components = [
             inquirer.List(
                 "component_name",
                 message="Which component to SSH into?",
-                choices=[work.name for work in components] + ["flow"],
+                choices=available_component_names,
             )
         ]
         component_name = inquirer.prompt(available_components)["component_name"]
@@ -399,7 +400,9 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
             component_id = f"lightningwork-{work_id}"
 
     if component_id is None:
-        raise click.ClickException(f"unable to find app component with name {component_name}")
+        raise click.ClickException(
+            f"unable to find app component with name {component_name}. Available components are {available_component_names}"
+        )
 
     app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
     ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
