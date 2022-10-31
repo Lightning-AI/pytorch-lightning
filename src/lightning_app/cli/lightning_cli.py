@@ -405,7 +405,6 @@ def ssh(app_id: str = None, component_name: str = None) -> None:
     ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
 
     os.execv("/usr/bin/ssh", ["-tt", f"{component_id}@{ssh_endpoint}"])
-    pass
 
 
 @_main.group()
