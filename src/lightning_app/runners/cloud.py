@@ -470,7 +470,7 @@ class CloudRuntime(Runtime):
         """This is meant to use only locally for cloud runtime."""
         try:
             app = load_app_from_file(filepath, raise_exception=True)
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             # this is very generic exception.
             logger.info("Could not load the app() locally. Starting the app directly on the cloud.")
             # we want to format the exception as if no frame was on top.
