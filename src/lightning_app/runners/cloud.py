@@ -152,7 +152,8 @@ class CloudRuntime(Runtime):
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
                     shm_size=work.cloud_compute.shm_size,
-                    # id=work.cloud_compute.id,
+                    preemptible=work.cloud_compute.preemptible,
+                    id=work.cloud_compute.id,
                 )
 
                 drive_specs: List[V1LightningworkDrives] = []
@@ -200,9 +201,12 @@ class CloudRuntime(Runtime):
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 desired_state = V1LightningworkState.NOT_STARTED
-                # TODO: Add work.cloud_compute.id != "default"
                 if work._start:
-                    desired_state = V1LightningworkState.RUNNING
+                    if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+                        if work.cloud_compute.id != "default":
+                            desired_state = V1LightningworkState.RUNNING
+                    else:
+                        desired_state = V1LightningworkState.RUNNING
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     drives=drive_specs,
@@ -373,6 +377,9 @@ class CloudRuntime(Runtime):
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
 
+            # TODO: Remove this hack and move this to the platform.
+            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_APP_RELEASE_ID", value=lightning_app_release.id))
+
             if find_instances_resp.lightningapps:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
@@ -409,17 +416,12 @@ class CloudRuntime(Runtime):
                     )
                 )
 
-            find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id, app_id=lit_app.id
-            )
-
-            existing_instance = find_instances_resp.lightningapps[-1]
-
+            # TODO: Remove this hack and move this to the platform.
             for work in work_reqs:
                 if work.spec.desired_state == V1LightningworkState.RUNNING:
                     self.backend.client.lightningwork_service_create_lightningwork(
                         project_id=project.project_id,
-                        spec_lightningapp_instance_id=existing_instance.id,
+                        spec_lightningapp_instance_id=lightning_app_instance.id,
                         body=SpecLightningappInstanceIdWorksBody(
                             name=work.name,
                             spec=work.spec,
