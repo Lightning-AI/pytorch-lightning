@@ -21,16 +21,14 @@ def test_commands_and_api_example_cloud() -> None:
         # 1: Collect the app_id
         app_id = admin_page.url.split("/")[-1]
 
-        # 2: Connect to the App
-        Popen(f"python -m lightning connect {app_id} -y", shell=True).wait()
-
-        # 3: Send the first command with the client
-        cmd = "python -m lightning command with client --name=this"
-        Popen(cmd, shell=True).wait()
-
-        # 4: Send the second command without a client
-        cmd = "python -m lightning command without client --name=is"
-        Popen(cmd, shell=True).wait()
+        # 2: Connect to the App and send the first & second command with the client
+        # Requires to be run within the same process.
+        cmd_1 = f"python -m lightning connect {app_id} -y"
+        cmd_2 = "python -m lightning command with client --name=this"
+        cmd_3 = "python -m lightning command without client --name=is"
+        cmd_4 = "lightning disconnect"
+        process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4]), shell=True)
+        process.wait()
 
         # This prevents some flakyness in the CI. Couldn't reproduce it locally.
         sleep(5)
@@ -48,5 +46,7 @@ def test_commands_and_api_example_cloud() -> None:
                     has_logs = True
             sleep(1)
 
-        # 7: Disconnect from the App
-        Popen("lightning disconnect", shell=True).wait()
+        # 7: Send a request to the Rest API directly.
+        resp = requests.get(base_url + "/pure_function")
+        assert resp.status_code == 200
+        assert resp.json() == "Hello World !"

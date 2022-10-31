@@ -10,7 +10,7 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def copytree(
+def _copytree(
     src: Union[Path, str],
     dst: Union[Path, str],
     ignore_functions: List[Callable] = None,
@@ -59,7 +59,7 @@ def copytree(
     src = Path(src)
     dst = Path(dst)
     if src.joinpath(DOT_IGNORE_FILENAME).exists():
-        ignore_fn = get_ignore_function(src)
+        ignore_fn = _get_ignore_function(src)
         # creating new list so we won't modify the original
         ignore_functions = [*ignore_functions, ignore_fn]
 
@@ -77,7 +77,7 @@ def copytree(
         dstpath = dst / srcentry.name
         try:
             if srcentry.is_dir():
-                _files = copytree(
+                _files = _copytree(
                     src=srcentry,
                     dst=dstpath,
                     ignore_functions=ignore_functions,
@@ -108,7 +108,7 @@ def copytree(
     return files_copied
 
 
-def get_ignore_function(src: Path) -> Callable:
+def _get_ignore_function(src: Path) -> Callable:
     patterns = _read_lightningignore(src / DOT_IGNORE_FILENAME)
 
     def filter_ignored(current_dir: Path, entries: List[Path]) -> List[Path]:

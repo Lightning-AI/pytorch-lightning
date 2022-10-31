@@ -25,7 +25,7 @@ runs:
     run: echo "PKG_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
     shell: bash
 
-  - name: Install | Uninstall package - archive
+  - name: Install package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
@@ -33,7 +33,7 @@ runs:
       python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
     shell: bash
 
-  - name: Install | Uninstall package - wheel
+  - name: Install package - wheel
     working-directory: ./dist
     run: |
       pip install *.whl ${{ inputs.pip-flags }}

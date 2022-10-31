@@ -29,9 +29,14 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
 from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
+from lightning_lite.utilities.distributed import (
+    _distributed_available,
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
@@ -126,11 +131,11 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not distributed_available():
+        if not _distributed_available():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -164,10 +169,10 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
+        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:

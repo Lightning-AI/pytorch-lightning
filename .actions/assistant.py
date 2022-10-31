@@ -22,7 +22,6 @@ REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
         "requirements/pytorch/extra.txt",
-        "requirements/pytorch/loggers.txt",
         "requirements/pytorch/strategies.txt",
         "requirements/pytorch/examples.txt",
     ),
@@ -30,6 +29,10 @@ REQUIREMENT_FILES = {
         "requirements/app/base.txt",
         "requirements/app/ui.txt",
         "requirements/app/cloud.txt",
+    ),
+    "lite": (
+        "requirements/lite/base.txt",
+        "requirements/lite/strategies.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))

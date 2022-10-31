@@ -1,4 +1,4 @@
-name: Test PyTorch slow
+name: Test PyTorch - slow
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -8,7 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
-      - ".github/workflows/ci-pytorch-test-slow.yml"
+      - ".github/workflows/ci-pytorch-tests-slow.yml"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"

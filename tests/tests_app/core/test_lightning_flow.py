@@ -14,7 +14,7 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.storage.path import storage_root_dir
+from lightning_app.storage.path import _storage_root_dir
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
@@ -528,7 +528,7 @@ def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
     assert iterate_call["counter"] == 4
     assert not iterate_call["has_finished"]
 
-    checkpoint_dir = os.path.join(storage_root_dir(), "checkpoints")
+    checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     app = LightningApp(CFlow(run_once))
     app.load_state_dict_from_checkpoint_dir(checkpoint_dir)
     app.root.restarting = True
@@ -560,7 +560,7 @@ def test_lightning_flow_counter(runtime_cls, tmpdir):
     runtime_cls(app, start_server=False).dispatch()
     assert app.root.counter == 3
 
-    checkpoint_dir = os.path.join(storage_root_dir(), "checkpoints")
+    checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 4
     for checkpoint in checkpoints:
