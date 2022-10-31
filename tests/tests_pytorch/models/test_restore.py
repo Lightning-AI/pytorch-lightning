@@ -26,6 +26,7 @@ import torch.nn.functional as F
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+from lightning_lite import seed_everything
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -483,6 +484,8 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
 
 def test_running_test_pretrained_model_cpu(tmpdir):
     """Verify test() on pretrained model."""
+    seed_everything(1)
+
     dm = ClassifDataModule()
     model = ClassificationModel()
 

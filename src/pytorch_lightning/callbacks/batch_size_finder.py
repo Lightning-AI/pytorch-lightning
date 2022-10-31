@@ -150,7 +150,7 @@ class BatchSizeFinder(Callback):
 
         if not lightning_hasattr(pl_module, self._batch_arg_name):
             raise MisconfigurationException(
-                f"Field {self._batch_arg_name} not found in both `model` and `model.hparams`"
+                f"Field {self._batch_arg_name} not found in `model`, `datamodule`, nor their `hparams` attributes."
             )
 
         if (
