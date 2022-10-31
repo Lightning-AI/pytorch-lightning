@@ -44,7 +44,7 @@ At the prompt, type a secure passphrase.
 Step 2: Add your key to Lightning
 =================================
 
-You can add SSH keys using Lightning.ai UI, or via this CLI command:
+You can add SSH keys using Lightning.ai website (Lightning.ai > Profile > Keys) or via this CLI command:
 
 .. code:: bash
 
