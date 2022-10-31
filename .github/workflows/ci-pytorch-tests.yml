@@ -8,8 +8,6 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
