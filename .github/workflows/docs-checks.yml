@@ -16,20 +16,45 @@ defaults:
     shell: bash
 
 jobs:
+
+  build-pypi:
+    # This serves to create packages for potential internal dependencies
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Build package
+        env:
+          PACKAGE_NAME: "lite"
+        run: python setup.py sdist
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: dist
+
   make-doctest:
     runs-on: ubuntu-20.04
-    needs: make-html  # make it depending on build docs to reduce load
+    # make it depending on build docs to reduce load
+    needs: make-html
     strategy:
       fail-fast: false
       matrix:
         pkg: ["app", "pytorch"]  # TODO: , "lit"
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.9"
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -37,42 +62,28 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-test-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-test-pip-
+            ${{ runner.os }}-docs-test-${{ matrix.pkg }}-
 
-      - name: Install lite for PL
-        # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
-        # also installing from source not from on-the-fly created package tp prevent accidental interaction with cache
-        if: ${{ matrix.pkg == 'pytorch' }}
-        env:
-          PACKAGE_NAME: "lite"
-        run: |
-          pip install -e . --upgrade --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          git checkout -- setup.py MANIFEST.in
-
-      - name: Install package
-        env:
-          FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: ${{ matrix.pkg }}
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          # python -m pip install --upgrade --user pip
-          pip install -e . \
-            -r requirements/${{ matrix.pkg }}/docs.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
 
-      - name: Install dependencies
-        env:
-          FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: pytorch
+      - name: Install LAI package
+        # This is needed as App docs is heavily using/referring to lightning package
+        if: ${{ matrix.pkg == 'app' }}
         run: |
-          pip install -r requirements/${{ matrix.pkg }}/devel.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
+          pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
+          git checkout -- setup.py MANIFEST.in
+
+      - name: Install this package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg }}
+        run: |
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg }}/docs.txt --find-links pypi
 
       - name: Test Documentation
         env:
@@ -83,19 +94,25 @@ jobs:
           make coverage
 
   make-html:
+    needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         pkg: ["app", "pytorch", "lit"]
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-          # lfs: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.9"
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -103,18 +120,20 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-make-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-make-pip-
+            ${{ runner.os }}-docs-make-${{ matrix.pkg }}-
 
-      - name: Install dependencies
+      - name: Install package & dependencies
         env:
-          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
+            --find-links pypi
           pip list
         shell: bash
 
