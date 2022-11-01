@@ -219,75 +219,8 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
-   :caption: Examples
+   :caption: More
 
-   Develop a DAG <examples/dag/dag>
-   Develop a File Server <examples/file_server/file_server>
-   Develop a Github Repo Script Runner <examples/github_repo_runner/github_repo_runner>
-   Develop a Model Server <examples/model_server_app/model_server_app>
-
-..
-   [Docs under construction] Build a data exploring app  <examples/data_explore_app>
-   [Docs under construction] Build a ETL app  <examples/etl_app>
-   [Docs under construction] Build a model deployment app  <examples/model_deploy_app>
-   [Docs under construction] Build a research demo app  <examples/research_demo_app>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: How to...
-
-   Access the App State <workflows/access_app_state/access_app_state>
-   Add a web user interface (UI) <workflows/add_web_ui/index>
-   Add a web link  <workflows/add_web_link>
-   Add encrypted secrets <glossary/secrets>
-   Arrange app tabs <workflows/arrange_tabs/index>
-   Develop a Command Line Interface (CLI) <workflows/build_command_line_interface/index>
-   Develop a Lightning App <workflows/build_lightning_app/index>
-   Develop a Lightning Component <workflows/build_lightning_component/index>
-   Develop a REST API <workflows/build_rest_api/index>
-   Cache Work run calls  <workflows/run_work_once>
-   Customize your cloud compute <core_api/lightning_work/compute>
-   Extend an existing app <workflows/extend_app>
-   Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
-   Run a server within a Lightning App <workflows/add_server/index>
-   Run an App on the cloud <workflows/run_app_on_cloud/index>
-   Run Apps on your cloud account (BYOC) <workflows/byoc/index>
-   Run work in parallel <workflows/run_work_in_parallel>
-   Save files <glossary/storage/drive.rst>
-   Share an app  <workflows/share_app>
-   Share files between components <workflows/share_files_between_components>
-
-..
-   [Docs under construction] Add a Lightning component  <workflows/add_components/index>
-   [Docs under construction] Debug a distributed cloud app locally <workflows/debug_locally>
-   [Docs under construction] Enable fault tolerance  <workflows/enable_fault_tolerance>
-   [Docs under construction] Run components on different hardware  <workflows/run_components_on_different_hardware>
-   [Docs under construction] Schedule app runs  <workflows/schedule_apps>
-   [Docs under construction] Test an app  <workflows/test_an_app>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Glossary
-
-   Android Lightning App <glossary/ios_and_android>
-   App Components Tree <glossary/app_tree>
-   Build Configuration <glossary/build_config/build_config>
-   Command Line Interface (CLI) <glossary/command_lines/command_lines>
-   DAG <glossary/dag>
-   Event Loop <glossary/event_loop>
-   Environment Variables <glossary/environment_variables>
-   Encrypted Secrets <glossary/secrets>
-   Frontend <workflows/add_web_ui/glossary_front_end.rst>
-   iOS Lightning App <glossary/ios_and_android>
-   Lightning App <core_api/lightning_app/index.rst>
-   REST API <glossary/restful_api/restful_api>
-   Sharing Components <glossary/sharing_components>
-   Scheduling <glossary/scheduling.rst>
-   Storage <glossary/storage/storage.rst>
-   UI <workflows/add_web_ui/glossary_ui.rst>
-
-..
-   [Docs under construction] Debug an app <glossary/debug_app>
-   [Docs under construction] Distributed front-ends <glossary/distributed_fe>
-   [Docs under construction] Distributed hardware <glossary/distributed_hardware>
-   [Docs under construction] Fault tolerance <glossary/fault_tolerance>
+   Examples <examples/index>
+   How to... <workflows/index>
+   Glossary <glossary/index>
