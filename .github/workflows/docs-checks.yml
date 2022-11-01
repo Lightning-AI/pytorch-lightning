@@ -107,7 +107,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-make-pip-
 
-      - name: Install dependencies
+      - name: Install package & dependencies
         env:
           FREEZE_REQUIREMENTS: 1
         run: |
