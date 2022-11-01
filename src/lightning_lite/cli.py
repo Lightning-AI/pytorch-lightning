@@ -21,7 +21,7 @@ from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1
 
 # torchrun in PyTorch 1.13.0 has a bug on the Windows platform and is thus not importable:
 # https://github.com/pytorch/pytorch/issues/85427
-if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:
+if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
     import torch.distributed.run as torchrun
 else:
     torchrun = None
