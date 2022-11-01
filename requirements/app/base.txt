@@ -1,6 +1,6 @@
 lightning-cloud>=0.5.11
 packaging
-typing-extensions>=4.0.0, <4.3.1
+typing-extensions>=4.0.0, <=4.4.0
 deepdiff>=5.7.0, <=5.8.1
 starsessions>=1.2.1, <2.0 # strict
 fsspec>=2022.5.0, <=2022.7.1
