@@ -4,7 +4,7 @@ from datetime import datetime
 from time import sleep
 
 import lightning as L
-from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.frontend import StaticWebFrontend
 
 
 class Word(L.LightningFlow):

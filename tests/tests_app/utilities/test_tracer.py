@@ -3,11 +3,11 @@ import sys
 
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.tracer import Tracer
 
 
-@RunIf(pytorch_lightning=True)
+@_RunIf(pl=True)
 def test_tracer():
     from pytorch_lightning import Trainer
 

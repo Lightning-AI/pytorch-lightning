@@ -39,6 +39,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
 )
+from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
 
 _HOROVOD_NCCL_AVAILABLE = False
 if _HOROVOD_AVAILABLE:
@@ -90,6 +91,7 @@ class RunIf:
         colossalai: bool = False,
         psutil: bool = False,
         hivemind: bool = False,
+        sklearn: bool = False,
         **kwargs,
     ):
         """
@@ -121,6 +123,7 @@ class RunIf:
             bagua: Require that BaguaSys/bagua is installed.
             psutil: Require that psutil is installed.
             hivemind: Require that Hivemind is installed.
+            sklearn: Require that scikit-learn is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -256,6 +259,10 @@ class RunIf:
         if hivemind:
             conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Hivemind")
+
+        if sklearn:
+            conditions.append(not _SKLEARN_AVAILABLE)
+            reasons.append("scikit-learn")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

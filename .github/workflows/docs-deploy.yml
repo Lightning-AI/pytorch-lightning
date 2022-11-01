@@ -1,7 +1,7 @@
 name: "Deploy Docs"
 on:
   push:
-    branches: ["release/app"]
+    branches: ["release/stable"]
 
 jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
@@ -38,7 +38,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deploy-docs-pip-
 
-      - name: Install dependencies
+      - name: Install package & dependencies
         env:
           FREEZE_REQUIREMENTS: 1
         run: |

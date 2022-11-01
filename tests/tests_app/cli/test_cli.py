@@ -12,6 +12,7 @@ from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.exceptions import _ApiExceptionHandler
 
 
 @pytest.mark.parametrize(
@@ -59,6 +60,8 @@ def test_main_lightning_cli_no_arguments():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
 
 
 def test_main_lightning_cli_help():
@@ -71,6 +74,8 @@ def test_main_lightning_cli_help():
     assert "delete  " in res
     assert "create  " in res
     assert "show    " in res
+    assert "add     " in res
+    assert "remove  " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
@@ -94,17 +99,13 @@ def test_main_lightning_cli_help():
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
 @pytest.mark.parametrize(
-    "extra_arguments,expected_instance_types,expected_cost_savings_mode",
+    "extra_arguments,expected_cost_savings_mode",
     [
-        (["--instance-types", "t3.xlarge"], ["t3.xlarge"], True),
-        (["--instance-types", "t3.xlarge,t3.2xlarge"], ["t3.xlarge", "t3.2xlarge"], True),
-        ([], [], True),
-        (["--enable-performance"], [], False),
+        ([], True),
+        (["--enable-performance"], False),
     ],
 )
-def test_create_cluster(
-    create_command: mock.MagicMock, extra_arguments, expected_instance_types, expected_cost_savings_mode
-):
+def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expected_cost_savings_mode):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -125,7 +126,6 @@ def test_create_cluster(
         region="us-east-1",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         external_id="dummy",
-        instance_types=expected_instance_types,
         edit_before_creation=False,
         cost_savings=expected_cost_savings_mode,
         wait=False,
@@ -187,3 +187,7 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
 def test_lightning_cli_version():
     res = os.popen("python -m lightning --version").read()
     assert __version__ in res
+
+
+def test_main_catches_api_exceptions():
+    assert isinstance(_main, _ApiExceptionHandler)

@@ -1,17 +1,22 @@
+import asyncio
 import logging
 import multiprocessing as mp
 import os
+import sys
 from copy import deepcopy
 from multiprocessing import Process
-from time import sleep
+from time import sleep, time
 from unittest import mock
 
+import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
+from fastapi import HTTPException
 from httpx import AsyncClient
 from pydantic import BaseModel
 
+import lightning_app
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.api.http_methods import Post
 from lightning_app.core import api
@@ -25,7 +30,7 @@ from lightning_app.core.api import (
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import MockQueue
+from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -70,7 +75,7 @@ class _A(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_state_api(runtime_cls):
     """This test validates the AppState can properly broadcast changes from work within its own process."""
-    app = LightningApp(_A())
+    app = LightningApp(_A(), debug=True)
     runtime_cls(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
@@ -110,15 +115,34 @@ def test_app_state_api_with_flows(runtime_cls, tmpdir):
     assert app.root.var_a == -1
 
 
+class NestedFlow(LightningFlow):
+    def run(self):
+        pass
+
+    def configure_layout(self):
+        return {"name": "main", "content": "https://te"}
+
+
 class FlowA(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
+        self.flow = NestedFlow()
+        self.dict = lightning_app.structures.Dict(**{"0": NestedFlow()})
+        self.list = lightning_app.structures.List(*[NestedFlow()])
 
     def run(self):
         self.counter += 1
         if self.counter >= 3:
             self._exit()
+
+    def configure_layout(self):
+        return [
+            {"name": "main_1", "content": "https://te"},
+            {"name": "main_2", "content": self.flow},
+            {"name": "main_3", "content": self.dict["0"]},
+            {"name": "main_4", "content": self.list[0]},
+        ]
 
 
 class AppStageTestingApp(LightningApp):
@@ -174,8 +198,8 @@ def test_update_publish_state_and_maybe_refresh_ui():
     """
 
     app = AppStageTestingApp(FlowA(), debug=True)
-    publish_state_queue = MockQueue("publish_state_queue")
-    api_response_queue = MockQueue("api_response_queue")
+    publish_state_queue = _MockQueue("publish_state_queue")
+    api_response_queue = _MockQueue("api_response_queue")
 
     publish_state_queue.put(app.state_with_changes)
 
@@ -189,23 +213,24 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
 @pytest.mark.parametrize("x_lightning_type", ["DEFAULT", "STREAMLIT"])
 @pytest.mark.anyio
-async def test_start_server(x_lightning_type):
+async def test_start_server(x_lightning_type, monkeypatch):
     """This test relies on FastAPI TestClient and validates that the REST API properly provides:
 
     - the state on GET /api/v1/state
     - push a delta when making a POST request to /api/v1/state
     """
 
-    class InfiniteQueue(MockQueue):
+    class InfiniteQueue(_MockQueue):
         def get(self, timeout: int = 0):
             return self._queue[0]
 
     app = AppStageTestingApp(FlowA(), debug=True)
+    app._update_layout()
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
-    change_state_queue = MockQueue("change_state_queue")
-    has_started_queue = MockQueue("has_started_queue")
-    api_response_queue = MockQueue("api_response_queue")
+    change_state_queue = _MockQueue("change_state_queue")
+    has_started_queue = _MockQueue("has_started_queue")
+    api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
     publish_state_queue.put(state)
     spec = extract_metadata_from_app(app)
@@ -257,6 +282,14 @@ async def test_start_server(x_lightning_type):
         }
         assert response.status_code == 200
 
+        response = await client.get("/api/v1/layout")
+        assert response.json() == [
+            {"name": "main_1", "content": "https://te", "target": "https://te"},
+            {"name": "main_2", "content": "https://te"},
+            {"name": "main_3", "content": "https://te"},
+            {"name": "main_4", "content": "https://te"},
+        ]
+
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {
             "values_changed": {"root['vars']['counter']": {"new_value": 1}}
@@ -276,6 +309,33 @@ async def test_start_server(x_lightning_type):
             "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
         }
         assert response.status_code == 200
+
+        monkeypatch.setattr(api, "ENABLE_PULLING_STATE_ENDPOINT", False)
+
+        response = await client.get("/api/v1/state", headers=headers)
+        assert response.status_code == 405
+
+        response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
+        assert response.status_code == 200
+
+        monkeypatch.setattr(api, "ENABLE_PUSHING_STATE_ENDPOINT", False)
+
+        response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
+        assert response.status_code == 405
+
+        response = await client.post(
+            "/api/v1/delta",
+            json={
+                "delta": {
+                    "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
+                }
+            },
+            headers=headers,
+        )
+        assert change_state_queue._queue[2].to_dict() == {
+            "values_changed": {"root['flows']['video_search']['vars']['should_process']": {"new_value": True}}
+        }
+        assert response.status_code == 405
 
         # used to clean the app_state_store to following test.
         global_app_state_store.remove("1234")
@@ -326,6 +386,7 @@ async def test_health_endpoint_success():
 @pytest.mark.anyio
 async def test_health_endpoint_failure(monkeypatch):
     monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
+    monkeypatch.setattr(api, "CLOUD_QUEUE_TYPE", "redis")
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         # will respond 503 if redis is not running
         response = await client.get("/healthz")
@@ -375,10 +436,10 @@ def test_start_server_started():
 @mock.patch("lightning_app.core.api.UIRefresher")
 @pytest.mark.parametrize("host", ["http://0.0.0.1", "0.0.0.1"])
 def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatch, host):
-    api_publish_state_queue = MockQueue()
-    api_delta_queue = MockQueue()
-    has_started_queue = MockQueue()
-    api_response_queue = MockQueue()
+    api_publish_state_queue = _MockQueue()
+    api_delta_queue = _MockQueue()
+    has_started_queue = _MockQueue()
+    api_response_queue = _MockQueue()
     kwargs = dict(
         host=host,
         port=1111,
@@ -401,6 +462,7 @@ def test_start_server_info_message(ui_refresher, uvicorn_run, caplog, monkeypatc
 
 
 class InputRequestModel(BaseModel):
+    index: int
     name: str
 
 
@@ -409,22 +471,28 @@ class OutputRequestModel(BaseModel):
     counter: int
 
 
+async def handler():
+    print("Has been called")
+    return "Hello World !"
+
+
 class FlowAPI(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
 
     def run(self):
-        if self.counter == 2:
-            sleep(0.5)
+        if self.counter == 501:
             self._exit()
 
     def request(self, config: InputRequestModel) -> OutputRequestModel:
         self.counter += 1
+        if config.index % 5 == 0:
+            raise HTTPException(status_code=400, detail="HERE")
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
-        return [Post("/api/v1/request", self.request)]
+        return [Post("/api/v1/request", self.request), Post("/api/v1/handler", handler)]
 
 
 def target():
@@ -432,6 +500,13 @@ def target():
     MultiProcessRuntime(app).dispatch()
 
 
+async def async_request(url: str, data: InputRequestModel):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=data.dict()) as result:
+            return await result.json()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Issue with Windows")
 def test_configure_api():
     # Setup
     process = Process(target=target)
@@ -451,18 +526,34 @@ def test_configure_api():
     response = requests.put(f"http://localhost:{APP_SERVER_PORT}/api/v1/upload_file/test", files=files)
     assert response.json() == "Successfully uploaded 'test' to the Drive"
 
-    # Test Custom Request
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 1}
-    response = requests.post(
-        f"http://localhost:{APP_SERVER_PORT}/api/v1/request", data=InputRequestModel(name="hello").json()
-    )
-    assert response.json() == {"name": "hello", "counter": 2}
+    url = f"http://localhost:{APP_SERVER_PORT}/api/v1/request"
+
+    N = 500
+    coros = []
+    for index in range(N):
+        coros.append(async_request(url, InputRequestModel(index=index, name="hello")))
+
+    t0 = time()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    results = loop.run_until_complete(asyncio.gather(*coros))
+    response_time = time() - t0
+    print(f"RPS: {N/response_time}")
+    assert response_time < 10
+    assert len(results) == N
+    assert all(r.get("detail", None) == ("HERE" if i % 5 == 0 else None) for i, r in enumerate(results))
+
+    response = requests.post(f"http://localhost:{APP_SERVER_PORT}/api/v1/handler")
+    assert response.status_code == 200
+
+    # Stop the Application
+    try:
+        response = requests.post(url, json=InputRequestModel(index=0, name="hello").dict())
+    except Exception:
+        pass
 
     # Teardown
-    time_left = 15
+    time_left = 5
     while time_left > 0:
         if process.exitcode == 0:
             break
