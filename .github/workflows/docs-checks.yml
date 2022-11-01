@@ -82,7 +82,7 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
-          pip install -e . -U -r requirements/${{ matrix.pkg }}/docs.txt
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg }}/docs.txt
           git checkout -- setup.py MANIFEST.in
 
       - name: Install LAI package
