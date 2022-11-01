@@ -25,14 +25,7 @@ def create() -> None:
     required=False,
     default="us-east-1",
     help="AWS region that is used to host the associated resources.",
-)
-@click.option(
-    "--instance-types",
-    "instance_types",
-    type=str,
-    required=False,
-    default=None,
-    help="Instance types that you want to support, for computer jobs within the cluster.",
+    hidden=True,
 )
 @click.option(
     "--enable-performance",
@@ -65,7 +58,6 @@ def create_cluster(
     role_arn: str,
     external_id: str,
     provider: str,
-    instance_types: str,
     edit_before_creation: bool,
     enable_performance: bool,
     wait: bool,
@@ -81,7 +73,6 @@ def create_cluster(
         region=region,
         role_arn=role_arn,
         external_id=external_id,
-        instance_types=instance_types.split(",") if instance_types is not None else [],
         edit_before_creation=edit_before_creation,
         cost_savings=not enable_performance,
         wait=wait,

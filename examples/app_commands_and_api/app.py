@@ -1,8 +1,13 @@
 from command import CustomCommand, CustomConfig
 
 from lightning import LightningFlow
-from lightning_app.api import Post
+from lightning_app.api import Get, Post
 from lightning_app.core.app import LightningApp
+
+
+async def handler():
+    print("Has been called")
+    return "Hello World !"
 
 
 class ChildFlow(LightningFlow):
@@ -39,7 +44,10 @@ class FlowCommands(LightningFlow):
         return commands + self.child_flow.configure_commands()
 
     def configure_api(self):
-        return [Post("/user/command_without_client", self.command_without_client)]
+        return [
+            Post("/user/command_without_client", self.command_without_client),
+            Get("/pure_function", handler),
+        ]
 
 
 app = LightningApp(FlowCommands(), debug=True)

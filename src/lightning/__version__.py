@@ -1,1 +1,1 @@
-version = "YYYY.-M.-D"
+version = "1.8.0rc2"
