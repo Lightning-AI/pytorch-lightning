@@ -143,9 +143,9 @@ Lightning has a vibrant collection of community-built components you can use as 
 
 ----   
 
-*********************************
-Next: Connect multiple components
-*********************************
+************************
+Next: Connect components
+************************
 Now you can build components. To build powerful full stack AI apps you'll need to learn to connect them together.
 
 .. raw:: html
