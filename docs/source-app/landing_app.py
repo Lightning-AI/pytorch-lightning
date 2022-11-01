@@ -1,4 +1,3 @@
-# EXAMPLE COMPONENT: HELLO WORLD
 # app.py
 import lightning as L
 
@@ -7,8 +6,6 @@ class YourComponent(L.LightningWork):
       print('RUN ANY PYTHON CODE HERE')
 
 
-
 # run on a cloud machine ("cpu", "gpu", ...)
-compute = L.CloudCompute("cpu")
-component = YourComponent(cloud_compute=compute)
+component = YourComponent(cloud_compute=L.CloudCompute("cpu"))
 app = L.LightningApp(component)

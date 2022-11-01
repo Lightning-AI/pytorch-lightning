@@ -56,20 +56,40 @@ Build models and full stack AI apps like these, ⚡ *Lightning fast*:
 ************************
 Build modular components
 ************************
-Build modular, self-contained Lightning components that can do anything from 
-train models, and deploy models to run web user interfaces. A Lightning component 
-manages its own infrastructure, cloud costs, networking and more. Components
-can be connected to form a full stack AI app that we call a Lightning App.
 
-Image:
-[Component] -> many components working together -> end product
+.. raw:: html
+
+   <div class="row">
+      <div class='col-md-5' style="padding-top: 18px">
+         <p>
+            Build modular, self-contained Lightning components that can do anything from 
+            train models, and deploy models to run web user interfaces. A Lightning component 
+            manages its own infrastructure, cloud costs, networking and more. Connect components
+            to form a full stack AI app that we call a <i>Lightning App</i>.
+         </p>
+         <p>Image [] -> [] -> []</p>
+      </div>
+      <div class='col-md-7'>
 
 .. lit_tabs::
-   :code_files: code_a.py; 
-   :highlights: 6, 11
+   :code_files: landing_app.py; 
+   :highlights: 6
    :app_id: abc123
-   :height: 385px
+   :height: 250px
    :code_only: True
+
+.. lit_tabs::
+   :code_files: landing_app_run.bash 
+   :highlights: 6
+   :height: 150px
+   :code_only: True
+
+|
+
+.. raw:: html
+
+      </div>
+   </div>
 
 |
 
