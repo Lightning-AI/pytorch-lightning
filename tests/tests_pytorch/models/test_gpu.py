@@ -33,7 +33,7 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 PRETEND_N_OF_GPUS = 16
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
     trainer_options = dict(
