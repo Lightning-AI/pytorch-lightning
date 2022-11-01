@@ -64,6 +64,7 @@ class _RunIf:
         **kwargs,
     ):
         import pytest
+
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
