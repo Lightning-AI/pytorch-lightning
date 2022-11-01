@@ -13,11 +13,10 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, Iterable, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
@@ -218,11 +217,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
 
-        rank_zero_info(
-            "When using PyTorch FSDP auto-wrap, make sure to initalize your model using trainer else"
-            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
-        )
-
         return FullyShardedDataParallel(
             module=model,
             process_group=self.process_group,
@@ -259,10 +253,23 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.barrier()
 
         self.setup_optimizers(trainer)
-        _validate_optimizers(self.optimizers)
         _optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        error = False
+        try:
+            super().setup_optimizers(trainer)
+        except ValueError as e:
+            error = "optimizer got an empty parameter list" in str(e)
+
+        if error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
 
     def model_to_device(self) -> None:
         pass
@@ -380,13 +387,3 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 cpu_offload=CPUOffload(offload_params=True),
             )
             cls._registered_strategies.append("fsdp_native_full_shard_offload")
-
-
-def _validate_optimizers(optimizers: Iterable[Optimizer]) -> None:
-    for optimizer in optimizers:
-        if not _optimizer_has_flat_params(optimizer):
-            raise ValueError(
-                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
-                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
-                " `configure_optimizers()` hook."
-            )

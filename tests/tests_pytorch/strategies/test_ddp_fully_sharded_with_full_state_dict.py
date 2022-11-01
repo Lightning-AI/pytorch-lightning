@@ -258,13 +258,21 @@ def test_fsdp_rewrap_limitation(tmpdir):
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_invalid_parameters_in_optimizer(tmpdir):
-    class CustomModel(BoringModel):
+    trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=1)
+
+    class EmptyParametersModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
+
+    model = EmptyParametersModel()
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+        trainer.fit(model)
+
+    class NoFlatParametersModel(BoringModel):
         def configure_optimizers(self):
             layer = torch.nn.Linear(4, 5)
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
-    trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=1)
-    model = CustomModel()
-
+    model = NoFlatParametersModel()
     with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
         trainer.fit(model)

@@ -250,13 +250,21 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, stra
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 def test_invalid_parameters_in_optimizer(tmpdir):
-    class CustomModel(BoringModel):
+    trainer = Trainer(strategy="fsdp_native", accelerator="cuda", devices=1)
+
+    class EmptyParametersModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
+
+    model = EmptyParametersModel()
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+        trainer.fit(model)
+
+    class NoFlatParametersModel(BoringModel):
         def configure_optimizers(self):
             layer = torch.nn.Linear(4, 5)
             return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
-    trainer = Trainer(strategy="fsdp_native", accelerator="gpu", devices=1)
-    model = CustomModel()
-
+    model = NoFlatParametersModel()
     with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
         trainer.fit(model)
