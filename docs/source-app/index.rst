@@ -75,7 +75,7 @@ Image:
 
 .. raw:: html
 
-    <div class="display-card-container">
+    <div class="display-card-container" style="padding: 0 20px 0 20px">
         <div class="row">
 
 .. Add callout items below this line
