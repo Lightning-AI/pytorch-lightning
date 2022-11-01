@@ -394,6 +394,8 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
 @RunIf(min_cuda_gpus=2, sklearn=True)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
+    seed_everything(7)
+
     dm = ClassifDataModule()
     model = CustomClassificationModelDP(lr=0.1)
 
