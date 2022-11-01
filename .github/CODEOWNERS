@@ -14,6 +14,10 @@
 /dockers/       @borda @carmocca @akihironitta
 *.yml           @borda @carmocca @akihironitta
 
+src/version.info           @borda @carmocca @lantiga @williamfalcon
+src/*/__version__.py       @borda @carmocca @justusschock @otaj
+src/*/__setup__.py         @borda @carmocca @manskx @otaj
+
 # Docs
 /docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                               @edenlightning @williamfalcon @borda
