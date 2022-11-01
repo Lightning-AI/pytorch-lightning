@@ -303,12 +303,12 @@ class NeptuneLogger(Logger):
         # check if user passed the client `Run` object
         if run is not None and not isinstance(run, Run):
             raise ValueError("Run parameter expected to be of type `neptune.new.Run`.")
-        # check if user passed redundant neptune.init arguments when passed run
+        # check if user passed redundant neptune.init_run arguments when passed run
         any_neptune_init_arg_passed = any(arg is not None for arg in [api_key, project, name]) or neptune_run_kwargs
         if run is not None and any_neptune_init_arg_passed:
             raise ValueError(
                 "When an already initialized run object is provided"
-                " you can't provide other neptune.init() parameters.\n"
+                " you can't provide other neptune.init_run() parameters.\n"
             )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -319,7 +319,7 @@ class NeptuneLogger(Logger):
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__ = state
-        self._run_instance = neptune.init(**self._neptune_init_args)
+        self._run_instance = neptune.init_run(**self._neptune_init_args)
 
     @property
     @rank_zero_experiment
@@ -355,7 +355,7 @@ class NeptuneLogger(Logger):
     @rank_zero_experiment
     def run(self) -> Run:
         if not self._run_instance:
-            self._run_instance = neptune.init(**self._neptune_init_args)
+            self._run_instance = neptune.init_run(**self._neptune_init_args)
             self._retrieve_run_data()
             # make sure that we've log integration version for newly created
             self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
