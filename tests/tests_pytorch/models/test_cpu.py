@@ -126,7 +126,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, sklearn=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     trainer_options = dict(
