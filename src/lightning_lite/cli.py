@@ -24,7 +24,7 @@ from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1
 if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
     import torch.distributed.run as torchrun
 else:
-    torchrun = None
+    torchrun = None  # type: ignore[assignment]
 
 _log = logging.getLogger(__name__)
 
