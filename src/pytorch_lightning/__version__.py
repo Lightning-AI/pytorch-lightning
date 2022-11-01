@@ -4,6 +4,7 @@ import os
 
 _PATH_PKG = os.path.dirname(__file__)
 _PATH_VER = os.path.join(_PATH_PKG, "version.info")
+version: str
 
 if os.path.isfile(_PATH_VER):
     with open(_PATH_VER, encoding="utf-8") as fo:
@@ -12,6 +13,6 @@ else:
     try:
         import subprocess
 
-        version: str = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
+        version = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
     except Exception:
         version = ""
