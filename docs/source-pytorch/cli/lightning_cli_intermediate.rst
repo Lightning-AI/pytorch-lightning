@@ -13,9 +13,9 @@ Configure hyperparameters from the CLI (Intermediate)
 LightningCLI requirements
 *************************
 
-The :class:`~pytorch_lightning.cli.LightningCLI` class is designed to ease significantly the implementation of CLIs. To
-use this class, an additional Python requirement is necessary than what the minimal installation of
-``pytorch-lightning`` provides. To enable, either install all extras:
+The :class:`~pytorch_lightning.cli.LightningCLI` class is designed to significantly ease the implementation of CLIs. To
+use this class, an additional Python requirement is necessary than the minimal installation of
+Lightning provides. To enable, either install all extras:
 
 .. code:: bash
 
@@ -152,7 +152,6 @@ With the Lightning CLI enabled, you can now change the parameters without touchi
 .. tip::
 
     The options that become available in the CLI are the ``__init__`` parameters of the ``LightningModule`` and
-    ``LightningDataModule`` classes. Thus, to make hyperparameters configurable, just add them to the ``__init__`` of
-    your class. It is highly recommended that these parameters are described in the docstring so that the CLI shows them
-    in the help. Also, the parameters should have accurate type hints so that the CLI is able to fail early and give
+    ``LightningDataModule`` classes. Thus, to make hyperparameters configurable, just add them to your class's ``__init__``. It is highly recommended that these parameters are described in the docstring so that the CLI shows them
+    in the help. Also, the parameters should have accurate type hints so that the CLI can fail early and give
     understandable error messages when incorrect values are given.

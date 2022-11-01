@@ -10,11 +10,11 @@ Configure hyperparameters from the CLI (Advanced)
 As a project becomes more complex, the number of configurable options becomes very large, making it inconvenient to
 control through individual command line arguments. To address this, CLIs implemented using
 :class:`~pytorch_lightning.cli.LightningCLI` always support receiving input from configuration files. The default format
-used for config files is yaml.
+used for config files is YAML.
 
 .. tip::
 
-    If you are unfamiliar with yaml, it is recommended that you first read :ref:`what-is-a-yaml-config-file`.
+    If you are unfamiliar with YAML, it is recommended that you first read :ref:`what-is-a-yaml-config-file`.
 
 
 ----
@@ -40,7 +40,7 @@ Individual arguments can be given to override options in the config file:
 Automatic save of config
 ************************
 
-To ease experiment reporting and reproducibility, by default ``LightningCLI`` automatically saves the full yaml
+To ease experiment reporting and reproducibility, by default ``LightningCLI`` automatically saves the full YAML
 configuration in the log directory. After multiple fit runs with different hyperparameters, each one will have in its
 respective log directory a ``config.yaml`` file. These files can be used to trivially reproduce an experiment, e.g.:
 
@@ -49,7 +49,7 @@ respective log directory a ``config.yaml`` file. These files can be used to triv
     python main.py fit --config lightning_logs/version_7/config.yaml
 
 The automatic saving of the config is done by the special callback :class:`~pytorch_lightning.cli.SaveConfigCallback`.
-This callback is automatically added to the ``Trainer``. To disable the save of the config instantiate ``LightningCLI``
+This callback is automatically added to the ``Trainer``. To disable the save of the config, instantiate ``LightningCLI``
 with ``save_config_callback=None``.
 
 ----
@@ -57,8 +57,8 @@ with ``save_config_callback=None``.
 *********************************
 Prepare a config file for the CLI
 *********************************
-The ``--help`` option of the CLIs can be used learn which configuration options are available and how to use them.
-However, writing a config from scratch can be time consuming and error prone. To alleviate this, the CLIs have the
+The ``--help`` option of the CLIs can be used to learn which configuration options are available and how to use them.
+However, writing a config from scratch can be time-consuming and error-prone. To alleviate this, the CLIs have the
 ``--print_config`` argument, which prints to stdout the configuration without running the command.
 
 For a CLI implemented as ``LightningCLI(DemoModel, BoringDataModule)``, executing:
@@ -82,8 +82,8 @@ generates a config with all default values like the following:
       data_dir: ./
     ckpt_path: null
 
-Other command line arguments can be given and will be considered in the printed configuration. A use case for this is CLIs
-that accept multiple models. By default no model is selected, which means that the printed config will not include model
+Other command line arguments can be given and considered in the printed configuration. A use case for this is CLIs
+that accept multiple models. By default, no model is selected, meaning the printed config will not include model
 settings. To get a config with the default values of a particular model would be:
 
 .. code:: bash
@@ -122,7 +122,7 @@ which generates a config like:
 ********************
 Compose config files
 ********************
-Multiple config files can be provided and they will be parsed sequentially. Let's say we have two configs with common
+Multiple config files can be provided, and they will be parsed sequentially. Let's say we have two configs with common
 settings:
 
 .. code:: yaml

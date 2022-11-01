@@ -63,23 +63,22 @@ Customize the LightningCLI
 **************************
 
 The init parameters of the :class:`~pytorch_lightning.cli.LightningCLI` class can be used to customize some things,
-e.g.: the description of the tool, enabling parsing of environment variables, additional arguments to instantiate the
+e.g., the description of the tool, enabling parsing of environment variables, and additional arguments to instantiate the
 trainer and configuration parser.
 
-Nevertheless, the init arguments are not enough for many use cases. For this reason the class is designed so that it can
+Nevertheless, the init arguments are not enough for many use cases. For this reason, the class is designed so that it can
 be extended to customize different parts of the command line tool. The argument parser class used by
-:class:`~pytorch_lightning.cli.LightningCLI` is :class:`~pytorch_lightning.cli.LightningArgumentParser` which is an
+:class:`~pytorch_lightning.cli.LightningCLI` is :class:`~pytorch_lightning.cli.LightningArgumentParser`, which is an
 extension of python's argparse, thus adding arguments can be done using the :func:`add_argument` method. In contrast to
-argparse, it has additional methods to add arguments. For example :func:`add_class_arguments` adds all arguments from
-the init of a class. For more details see the `respective documentation
+argparse, it has additional methods to add arguments. For example :func:`add_class_arguments` add all arguments from
+the init of a class. For more details, see the `respective documentation
 <https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
 
 The :class:`~pytorch_lightning.cli.LightningCLI` class has the
-:meth:`~pytorch_lightning.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include more
-arguments. After parsing, the configuration is stored in the ``config`` attribute of the class instance. The
-:class:`~pytorch_lightning.cli.LightningCLI` class also has two methods that can be used to run code before and after
-the trainer runs: ``before_<subcommand>`` and ``after_<subcommand>``. A realistic example for these would be to send an
-email before and after the execution. The code for the ``fit`` subcommand would be something like:
+:meth:`~pytorch_lightning.cli.LightningCLI.add_arguments_to_parser` method can be implemented to include more
+arguments. After parsing, the configuration is stored in the ``config`` attribute of the class instance. The :class:`~pytorch_lightning.cli.LightningCLI` class also has two methods that can be used to run code before and after
+the trainer runs: ``before_<subcommand>`` and ``after_<subcommand>``. A realistic example of this would be to send an
+email before and after the execution. The code for the ``fit`` subcommand would be something like this:
 
 .. testcode::
 
@@ -97,7 +96,7 @@ email before and after the execution. The code for the ``fit`` subcommand would 
     cli = MyLightningCLI(MyModel)
 
 Note that the config object ``self.config`` is a namespace whose keys are global options or groups of options. It has
-the same structure as the yaml format described previously. This means for instance that the parameters used for
+the same structure as the YAML format described previously. This means that the parameters used for
 instantiating the trainer class can be found in ``self.config['fit']['trainer']``.
 
 .. tip::
@@ -110,7 +109,7 @@ instantiating the trainer class can be found in ``self.config['fit']['trainer']`
 **************************
 Configure forced callbacks
 **************************
-As explained previously, any Lightning callback can be added by passing it through command line or including it in the
+As explained previously, any Lightning callback can be added by passing it through the command line or including it in the
 config via ``class_path`` and ``init_args`` entries.
 
 However, certain callbacks **must** be coupled with a model so they are always present and configurable. This can be
@@ -143,9 +142,9 @@ To change the parameters for ``EarlyStopping`` in the config it would be:
 .. note::
 
     The example above overrides a default in ``add_arguments_to_parser``. This is included to show that defaults can be
-    changed if needed. However, note that overriding of defaults in the source code is not intended to be used to store
+    changed if needed. However, note that overriding defaults in the source code is not intended to be used to store
     the best hyperparameters for a task after experimentation. To guarantee reproducibility, the source code should be
-    stable. It is better practice to store the best hyperparameters for a task in a configuration file independent from
+    stable. It is better to practice storing the best hyperparameters for a task in a configuration file independent from
     the source code.
 
 ----
@@ -167,15 +166,15 @@ it is tempting to use an instance of a class as a default. For example:
             super().__init__()
             self.backbone = backbone
 
-Normally classes are mutable as in this case. The instance of ``MyModel`` would be created the moment that the module
+Normally classes are mutable, as in this case. The instance of ``MyModel`` would be created the moment that the module
 that defines ``MyMainModel`` is first imported. This means that the default of ``backbone`` will be initialized before
 the CLI class runs ``seed_everything``, making it non-reproducible. Furthermore, if ``MyMainModel`` is used more than
 once in the same Python process and the ``backbone`` parameter is not overridden, the same instance would be used in
-multiple places. Most likely this is not what the developer intended. Having an instance as default also makes it
-impossible to generate the complete config file, since for arbitrary classes, it is not known which arguments were used
-to instantiate it.
+multiple places. Most likely, this is not what the developer intended. Having an instance as default also makes it
+impossible to generate the complete config file since it is not known which arguments were used
+to instantiate it for arbitrary classes.
 
-A good solution to these problems is to not have a default or set the default to a special value (e.g. a string). Then
+An excellent solution to these problems is not to have a default or set the default to a unique value (e.g., a string). Then
 check this value and instantiate it in the ``__init__`` body. If a class parameter has no default and the CLI is
 subclassed, then a default can be set as follows:
 
@@ -212,9 +211,9 @@ A more compact version that avoids writing a dictionary would be:
 Argument linking
 ****************
 Another case in which it might be desired to extend :class:`~pytorch_lightning.cli.LightningCLI` is that the model and
-data module depend on a common parameter. For example in some cases both classes require to know the ``batch_size``. It
-is a burden and error prone giving the same value twice in a config file. To avoid this the parser can be configured so
-that a value is only given once and then propagated accordingly. With a tool implemented like shown below, the
+data module depends on a common parameter. For example, in some cases, both classes require to know the ``batch_size``. It
+is a burden and error-prone to give the same value twice in a config file. To avoid this, the parser can be configured so
+that a value is only given once and then propagated accordingly. With a tool implemented like the one shown below, the
 ``batch_size`` only has to be provided in the ``data`` section of the config.
 
 .. testcode::
@@ -257,8 +256,8 @@ Instantiation links are used to automatically determine the order of instantiati
 .. note::
 
     The linking of arguments is intended for things that are meant to be non-configurable. This improves the CLI user
-    experience since it avoids the need for providing more parameters. A related concept is variable interpolation which
-    keeps things being configurable.
+    experience since it avoids the need to provide more parameters. A related concept is a variable interpolation that
+    keeps things configurable.
 
 .. tip::
 

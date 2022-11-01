@@ -53,7 +53,7 @@ Instantiation only mode
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically call
-the trainer function associated to the subcommand provided so you don't have to do it. To avoid this, you can set the
+the trainer function associated with the subcommand provided, so you don't have to do it. To avoid this, you can set the
 following argument:
 
 .. testcode::
@@ -63,16 +63,16 @@ following argument:
     cli.trainer.fit(cli.model)
 
 In this mode, subcommands are **not** added to the parser. This can be useful to implement custom logic without having
-to subclass the CLI, but still using the CLI's instantiation and argument parsing capabilities.
+to subclass the CLI, but still, use the CLI's instantiation and argument parsing capabilities.
 
 
 Trainer Callbacks and arguments with class type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A very important argument of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class is the ``callbacks``. In
-contrast to simpler arguments which take numbers or strings, ``callbacks`` expects a list of instances of subclasses of
+contrast to simpler arguments that take numbers or strings, ``callbacks`` expects a list of instances of subclasses of
 :class:`~pytorch_lightning.callbacks.Callback`. To specify this kind of argument in a config file, each callback must be
-given as a dictionary including a ``class_path`` entry with an import path of the class, and optionally an ``init_args``
+given as a dictionary, including a ``class_path`` entry with an import path of the class and optionally an ``init_args``
 entry with arguments to use to instantiate. Therefore, a simple configuration file that defines two callbacks is the
 following:
 
@@ -121,7 +121,7 @@ callback appended. Here is an example:
 .. note::
 
     Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`) always have
-    the full ``class_path``, even when class name shorthand notation is used in command line or in input config files.
+    the full ``class_path``, even when class name shorthand notation is used in the command line or in input config files.
 
 
 Multiple models and/or datasets
@@ -156,16 +156,16 @@ A possible config file could be as follows:
             patience: 5
         ...
 
-Only model classes that are a subclass of ``MyModelBaseClass`` would be allowed, and similarly only subclasses of
+Only model classes that are a subclass of ``MyModelBaseClass`` would be allowed, and similarly, only subclasses of
 ``MyDataModuleBaseClass``. If as base classes :class:`~pytorch_lightning.core.module.LightningModule` and
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the CLI would allow any lightning module
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` is given, then the CLI would allow any lightning module
 and data module.
 
 .. tip::
 
-    Note that with the subclass modes the ``--help`` option does not show information for a specific subclass. To get
-    help for a subclass the options ``--model.help`` and ``--data.help`` can be used, followed by the desired class
-    path. Similarly ``--print_config`` does not include the settings for a particular subclass. To include them the
+    Note that with the subclass modes, the ``--help`` option does not show information for a specific subclass. To get
+    help for a subclass, the options ``--model.help`` and ``--data.help`` can be used, followed by the desired class
+    path. Similarly, ``--print_config`` does not include the settings for a particular subclass. To include them, the
     class path should be given before the ``--print_config`` option. Examples for both help and print config are:
 
     .. code-block:: bash
@@ -182,8 +182,8 @@ with ``LightningCLI`` is to implement a single module having as init parameters 
 `dependency injection <https://en.wikipedia.org/wiki/Dependency_injection>`__ which is a good approach to improve
 decoupling in your code base.
 
-Since the init parameters of the model have as type hint a class, in the configuration these would be specified with
-``class_path`` and ``init_args`` entries. For instance a model could be implemented as:
+Since the init parameters of the model have as a type hint a class, in the configuration, these would be specified with
+``class_path`` and ``init_args`` entries. For instance, a model could be implemented as:
 
 .. testcode::
 
@@ -219,8 +219,8 @@ It is also possible to combine ``subclass_mode_model=True`` and submodules, ther
 Optimizers
 ^^^^^^^^^^
 
-In some case it might be desired to fix the optimizer and/or learning scheduler scheduler instead of allowing multiple.
-For this you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet
+In some cases, fixing the optimizer and/or learning scheduler might be desired instead of allowing multiple.
+For this, you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet
 shows how to implement it:
 
 .. testcode::
@@ -230,8 +230,8 @@ shows how to implement it:
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-With this, in the config the ``optimizer`` and ``lr_scheduler`` groups would accept all of the options for the given
-classes, in this example ``Adam`` and ``ExponentialLR``. Therefore, the config file would be structured like:
+With this, in the config, the ``optimizer`` and ``lr_scheduler`` groups would accept all of the options for the given
+classes, in this example, ``Adam`` and ``ExponentialLR``. Therefore, the config file would be structured like:
 
 .. code-block:: yaml
 
@@ -244,7 +244,7 @@ classes, in this example ``Adam`` and ``ExponentialLR``. Therefore, the config f
     trainer:
       ...
 
-where the arguments can be passed directly through command line without specifying the class. For example:
+where the arguments can be passed directly through the command line without specifying the class. For example:
 
 .. code-block:: bash
 

@@ -131,7 +131,7 @@ Now you can choose between any dataset at runtime:
 .. tip::
 
     Instead of omitting the ``datamodule_class`` parameter, you can give a base class and ``subclass_mode_data=True``.
-    This will make the CLI only accept data modules which are a subclass of the given base class.
+    This will make the CLI only accept data modules that are a subclass of the given base class.
 
 ----
 
@@ -150,7 +150,7 @@ If the optimizer you want needs other arguments, add them via the CLI (no need t
 
     python main.py fit --optimizer SGD --optimizer.lr=0.01
 
-Furthermore, any custom subclass of ``torch.optim.Optimizer`` can be used as an optimizer:
+Furthermore, any custom subclass of :class:`torch.optim.Optimizer` can be used as an optimizer:
 
 .. code:: python
 
@@ -232,7 +232,7 @@ Now you can choose between any learning rate scheduler at runtime:
 ************************
 Classes from any package
 ************************
-In the previous sections custom classes to select were defined in the same python file where the ``LightningCLI`` class
+In the previous sections, custom classes to select were defined in the same python file where the ``LightningCLI`` class
 is run. To select classes from any package by using only the class name, import the respective package:
 
 .. code:: python
@@ -264,7 +264,7 @@ It is also possible to select subclasses that have not been imported by giving t
 Help for specific classes
 *************************
 When multiple models or datasets are accepted, the main help of the CLI does not include their specific parameters. To
-show this specific help there are additional help arguments that expect the class name or its import path. For example:
+show this specific help, additional help arguments expect the class name or its import path. For example:
 
 .. code:: bash
 

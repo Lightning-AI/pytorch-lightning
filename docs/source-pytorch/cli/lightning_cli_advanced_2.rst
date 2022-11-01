@@ -201,7 +201,7 @@ For more details about the interpolation support and its limitations, have a loo
 
 .. note::
 
-    There are many use cases in which variable interpolation is not the correct approach to use. When a parameter **must
-    always** be derived from other settings, then it shouldn't be up to the CLI user to do this in a config file. For
+    There are many use cases in which variable interpolation is not the correct approach. When a parameter **must
+    always** be derived from other settings, it shouldn't be up to the CLI user to do this in a config file. For
     example, if the data and model both require ``batch_size`` and must be the same value, then
     :ref:`cli_link_arguments` should be used instead of interpolation.
