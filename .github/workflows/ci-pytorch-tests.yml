@@ -67,7 +67,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v3
@@ -103,6 +103,7 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
+        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         cat requirements/pytorch/base.txt
@@ -121,6 +122,16 @@ jobs:
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+
+    - name: Install lite for PL
+      # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
+      # also installing from source not from on-the-fly created package tp prevent accidental interaction with cache
+      if: ${{ matrix.pkg-name != 'lightning' }}
+      env:
+        PACKAGE_NAME: "lite"
+      run: |
+        pip install -e . --upgrade --find-links ${TORCH_URL}
+        git checkout -- setup.py MANIFEST.in
 
     - name: Install package & dependencies
       env:
