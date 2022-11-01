@@ -56,7 +56,7 @@ def dispatch(
 
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
-    app = load_app_from_file(str(entrypoint_file))
+    app = runtime_cls.load_app_from_file(str(entrypoint_file))
 
     env_vars = {} if env_vars is None else env_vars
     secrets = {} if secrets is None else secrets
@@ -151,3 +151,8 @@ class Runtime:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if latest_call_hash in work._calls:
             work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+
+        return load_app_from_file(filepath)

@@ -5,7 +5,7 @@ import pytest
 
 import lightning_app as la
 from lightning_app.cli import cmd_init, cmd_react_ui_init
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 
 
 @pytest.mark.skipif(os.getenv("GITHUB_ACTIONS") is None, reason="not running in GH actions.")
@@ -29,7 +29,7 @@ def test_missing_yarn():
         cmd_react_ui_init._check_react_prerequisites()
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_copy_and_setup_react_ui(tmpdir):
     dest_dir = os.path.join(tmpdir, "react-ui")
     subprocess.Popen(["python", "-m", "lightning", "init", "react-ui", "--dest_dir", dest_dir]).wait()

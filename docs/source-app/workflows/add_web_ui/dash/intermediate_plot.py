@@ -5,8 +5,7 @@ import plotly.express as px
 from dash import Dash, dcc, html, Input, Output
 
 import lightning as L
-from lightning.app.storage.payload import Payload
-from lightning_app.core.work import LightningWork
+from lightning.app.storage import Payload
 
 
 class LitDash(L.LightningWork):
@@ -59,7 +58,7 @@ class LitDash(L.LightningWork):
         dash_app.run_server(host=self.host, port=self.port)
 
 
-class Processor(LightningWork):
+class Processor(L.LightningWork):
     def run(self, df: Payload, selected_year: Optional[str]):
         if selected_year:
             df = df.value
