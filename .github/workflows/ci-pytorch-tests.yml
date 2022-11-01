@@ -195,7 +195,7 @@ jobs:
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Adjust examples
-      if: ${{ matrix.pkg-name != 'lightning' }}
+      if: ${{ matrix.pkg-name == 'lightning' }}
       run: python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
 
     - name: Run Examples
