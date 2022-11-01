@@ -20,7 +20,7 @@ Build models and full stack AI apps like these, ⚡ *Lightning fast*:
       <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
 
 .. app_card::
-   :title: Diffusion model
+   :title: Train: LLM
    :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
@@ -29,25 +29,7 @@ Build models and full stack AI apps like these, ⚡ *Lightning fast*:
    :tags: Model
 
 .. app_card::
-   :title: Train a model
-   :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-   :tags: Model
-
-.. app_card::
-   :title: Deploy a model
-   :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-   :tags: Model
-
-.. app_card::
-   :title: Deploy a model
+   :title: Deploy: Difussion model
    :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
@@ -56,16 +38,7 @@ Build models and full stack AI apps like these, ⚡ *Lightning fast*:
    :tags: App
 
 .. app_card::
-   :title: Deploy a model
-   :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-   :tags: App
-
-.. app_card::
-   :title: Deploy a model
+   :title: Muse: A full stack AI app
    :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
