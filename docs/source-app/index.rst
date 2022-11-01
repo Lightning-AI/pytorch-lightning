@@ -10,7 +10,6 @@ Welcome to ⚡ Lightning
 .. join_slack::
    :align: left
 
-
 Build models and full stack AI apps like these, ⚡ *Lightning fast*:
 
 |
@@ -21,29 +20,58 @@ Build models and full stack AI apps like these, ⚡ *Lightning fast*:
       <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
 
 .. app_card::
-   :title: Hello world
-   :description: Something supereererererererererer long asdf asf asdfasdf a 
-   :width: 280
+   :title: Diffusion model
+   :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
+   :tags: Model
 
 .. app_card::
    :title: Train a model
-   :width: 280
+   :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
+   :tags: Model
 
 .. app_card::
    :title: Deploy a model
-   :width: 280
+   :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
+   :tags: Model
+
+.. app_card::
+   :title: Deploy a model
+   :width: 300
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: App
+
+.. app_card::
+   :title: Deploy a model
+   :width: 300
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: App
+
+.. app_card::
+   :title: Deploy a model
+   :width: 300
+   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: App
 
 .. raw:: html
 
@@ -101,7 +129,7 @@ Image:
    :caption: Home
 
    self
-   Install <installation>
+   Install <install/installation>
 
 .. toctree::
    :maxdepth: 1
