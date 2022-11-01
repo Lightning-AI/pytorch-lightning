@@ -63,7 +63,7 @@ Parameters
 ^^^^^^^^^^
 
 +------------------------+----------------------------------------------------------------------------------------------------+
-|Parameter               | Descritption                                                                                       |
+|Parameter               | Description                                                                                        |
 +========================+====================================================================================================+
 | provider               | The cloud provider where your cluster is located.                                                  |
 |                        |                                                                                                    |
@@ -78,10 +78,6 @@ Parameters
 +------------------------+----------------------------------------------------------------------------------------------------+
 | region                 | AWS region containing compute resources                                                            |
 +------------------------+----------------------------------------------------------------------------------------------------+
-| instance-types         | Instance types that you want to support, for computer jobs within the cluster.                     |
-|                        |                                                                                                    |
-|                        | For now, this is the AWS instance types supported by the cluster.                                  |
-+------------------------+----------------------------------------------------------------------------------------------------+
 | enable-performance     | Specifies if the cluster uses cost savings mode.                                                   |
 |                        |                                                                                                    |
 |                        | In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters  |
@@ -89,7 +85,7 @@ Parameters
 +------------------------+----------------------------------------------------------------------------------------------------+
 | edit-before-creation   | Enables interactive editing of requests before submitting it to Lightning AI.                      |
 +------------------------+----------------------------------------------------------------------------------------------------+
-| wait                   | Waits for the cluster to be in a RUNNING state. Only use this for debugging.                       |
+| no-wait                | Cluster creation will happen in the background.                                                    |
 +------------------------+----------------------------------------------------------------------------------------------------+
 
 ----

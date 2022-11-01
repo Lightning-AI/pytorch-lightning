@@ -130,7 +130,7 @@ def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expecte
         external_id="dummy",
         edit_before_creation=False,
         cost_savings=expected_cost_savings_mode,
-        wait=False,
+        wait=True,
     )
 
 
@@ -158,7 +158,7 @@ def test_delete_cluster(delete: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(delete_cluster, ["test-7"])
 
-    delete.assert_called_once_with(cluster_id="test-7", force=False, wait=False)
+    delete.assert_called_once_with(cluster_id="test-7", force=False, wait=True)
 
 
 @mock.patch("lightning_app.utilities.login.Auth._run_server")

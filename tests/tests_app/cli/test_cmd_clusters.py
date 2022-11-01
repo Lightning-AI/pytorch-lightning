@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import call, MagicMock
 
 import click
 import pytest
@@ -30,7 +30,7 @@ class FakeLightningClient:
     def cluster_service_list_clusters(self, phase_not_in=None):
         self.list_call_count = self.list_call_count + 1
         if self.consume:
-            return self.list_responses.pop()
+            return self.list_responses.pop(0)
         return self.list_responses[0]
 
 
@@ -113,8 +113,8 @@ class Test_wait_for_cluster_state:
                 for state in [previous_state, target_state]
             ]
         )
-        cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, check_timeout=0.1)
-        assert client.list_call_count == 1
+        cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, poll_duration=0.1)
+        assert client.list_call_count == 2
 
     @pytest.mark.parametrize("target_state", [V1ClusterState.RUNNING, V1ClusterState.DELETED])
     def test_times_out(self, target_state):
@@ -129,7 +129,115 @@ class Test_wait_for_cluster_state:
             consume=False,
         )
         with pytest.raises(click.ClickException) as e:
-            cmd_clusters._wait_for_cluster_state(
-                client, "test-cluster", target_state, max_wait_time=0.4, check_timeout=0.2
-            )
+            cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, timeout=0.4, poll_duration=0.2)
             assert "Max wait time elapsed" in str(e.value)
+
+    @mock.patch("click.echo")
+    def test_echo_state_change_on_desired_running(self, echo: MagicMock):
+        client = FakeLightningClient(
+            list_responses=[
+                V1ListClustersResponse(
+                    clusters=[
+                        Externalv1Cluster(
+                            id="test-cluster",
+                            status=V1ClusterStatus(
+                                phase=state,
+                                reason=reason,
+                            ),
+                        ),
+                    ]
+                )
+                for state, reason in [
+                    (V1ClusterState.QUEUED, ""),
+                    (V1ClusterState.PENDING, ""),
+                    (V1ClusterState.PENDING, ""),
+                    (V1ClusterState.PENDING, ""),
+                    (V1ClusterState.FAILED, "some error"),
+                    (V1ClusterState.PENDING, "retrying failure"),
+                    (V1ClusterState.RUNNING, ""),
+                ]
+            ],
+        )
+
+        cmd_clusters._wait_for_cluster_state(
+            client,
+            "test-cluster",
+            target_state=V1ClusterState.RUNNING,
+            timeout=0.6,
+            poll_duration=0.1,
+        )
+
+        assert client.list_call_count == 7
+        assert echo.call_count == 7
+        echo.assert_has_calls(
+            [
+                call("Cluster test-cluster is now queued"),
+                call("Cluster test-cluster is now pending"),
+                call("Cluster test-cluster is now pending"),
+                call("Cluster test-cluster is now pending"),
+                call(
+                    "\n".join(
+                        [
+                            "Cluster test-cluster is now failed with the following reason: some error",
+                            "We are automatically retrying cluster creation.",
+                            "In case you want to delete this cluster:",
+                            "1. Stop this command",
+                            "2. Run `lightning delete cluster test-cluster",
+                            "WARNING: Any non-deleted cluster can consume cloud resources and incur cost to you.",
+                        ]
+                    )
+                ),
+                call("Cluster test-cluster is now pending with the following reason: retrying failure"),
+                call(
+                    "\n".join(
+                        [
+                            "Cluster test-cluster is now running and ready to use.",
+                            "To launch an app on this cluster use "
+                            "`lightning run app app.py --cloud --cluster-id test-cluster`",
+                        ]
+                    )
+                ),
+            ]
+        )
+
+    @mock.patch("click.echo")
+    def test_echo_state_change_on_desired_deleted(self, echo: MagicMock):
+        client = FakeLightningClient(
+            list_responses=[
+                V1ListClustersResponse(
+                    clusters=[
+                        Externalv1Cluster(
+                            id="test-cluster",
+                            status=V1ClusterStatus(
+                                phase=state,
+                            ),
+                        ),
+                    ]
+                )
+                for state in [
+                    V1ClusterState.RUNNING,
+                    V1ClusterState.RUNNING,
+                    V1ClusterState.RUNNING,
+                    V1ClusterState.DELETED,
+                ]
+            ],
+        )
+
+        cmd_clusters._wait_for_cluster_state(
+            client,
+            "test-cluster",
+            target_state=V1ClusterState.DELETED,
+            timeout=0.4,
+            poll_duration=0.1,
+        )
+
+        assert client.list_call_count == 4
+        assert echo.call_count == 4
+        echo.assert_has_calls(
+            [
+                call("Cluster test-cluster is terminating"),
+                call("Cluster test-cluster is terminating"),
+                call("Cluster test-cluster is terminating"),
+                call("Cluster test-cluster has been deleted."),
+            ]
+        )

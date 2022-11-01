@@ -2,6 +2,7 @@ import json
 import re
 import time
 from datetime import datetime
+from enum import Enum
 from textwrap import dedent
 from typing import Any, List
 
@@ -27,6 +28,23 @@ from lightning_app.utilities.openapi import create_openapi_object, string2dict
 
 CLUSTER_STATE_CHECKING_TIMEOUT = 60
 MAX_CLUSTER_WAIT_TIME = 5400
+
+
+class ClusterState(Enum):
+    UNSPECIFIED = "unspecified"
+    QUEUED = "queued"
+    PENDING = "pending"
+    RUNNING = "running"
+    FAILED = "failed"
+    DELETED = "deleted"
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    @classmethod
+    def from_api(cls, status: V1ClusterState) -> "ClusterState":
+        parsed = str(status).lower().split("_", maxsplit=2)[-1]
+        return cls(parsed)
 
 
 class ClusterList(Formatable):
@@ -130,9 +148,6 @@ class AWSClusterManager:
                 click.echo("cluster unchanged")
 
         resp = self.api_client.cluster_service_create_cluster(body=new_body)
-        if wait:
-            _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
-
         click.echo(
             dedent(
                 f"""\
@@ -146,6 +161,13 @@ class AWSClusterManager:
                     """
             )
         )
+        if wait:
+            click.echo("Waiting for cluster to enter state running...")
+            click.echo(
+                "Canceling this operation will NOT stop the cluster from creating"
+                f"(use `lightning delete cluster {resp.id}`)"
+            )
+            _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -171,6 +193,8 @@ class AWSClusterManager:
         click.echo("Cluster deletion triggered successfully")
 
         if wait:
+            click.echo("Waiting for cluster to delete...")
+            click.echo("Canceling the operation will NOT stop the cluster from deleting")
             _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
 
 
@@ -183,6 +207,8 @@ def _wait_for_cluster_state(
 ) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
+    Messages will be displayed to the user as the cluster changes state.
+
     Args:
         api_client: LightningClient used for polling
         cluster_id: Specifies the cluster to wait for
@@ -192,6 +218,7 @@ def _wait_for_cluster_state(
     """
     start = time.time()
     elapsed = 0
+
     while elapsed < max_wait_time:
         cluster_resp = api_client.cluster_service_list_clusters()
         new_cluster = None
@@ -200,10 +227,14 @@ def _wait_for_cluster_state(
                 new_cluster = clust
                 break
         if new_cluster is not None:
+            echo_cluster_status_long(
+                cluster_id=cluster_id,
+                current_state=new_cluster.status.phase,
+                current_reason=new_cluster.status.reason,
+                desired_state=target_state,
+            )
             if new_cluster.status.phase == target_state:
                 break
-            elif new_cluster.status.phase == V1ClusterState.FAILED:
-                raise click.ClickException(f"Cluster {cluster_id} is in failed state.")
             time.sleep(check_timeout)
         elapsed = int(time.time() - start)
     else:
@@ -219,3 +250,49 @@ def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
             Provide a cluster name using valid characters and try again."""
         )
     return value
+
+
+def echo_cluster_status_long(
+    cluster_id: str,
+    current_state: V1ClusterState,
+    current_reason: str,
+    desired_state: V1ClusterState,
+) -> None:
+    """Echos a long-form status message to the user about the cluster state.
+
+    Args:
+        cluster_id: The name of the cluster
+        current_state: The cluster's current state
+        reason: The reason for the cluster's state
+    """
+
+    state_str = ClusterState.from_api(current_state)
+
+    message = f"Cluster {cluster_id} is now {state_str}" + (
+        f" with the following reason: {current_reason}" if current_reason else ""
+    )
+
+    if current_state == V1ClusterState.RUNNING and desired_state == V1ClusterState.RUNNING:
+        message = "\n".join(
+            [
+                f"Cluster {cluster_id} is now running and ready to use.",
+                f"To launch an app on this cluster use `lightning run app app.py --cloud --cluster-id {cluster_id}`",
+            ]
+        )
+    if current_state == V1ClusterState.RUNNING and desired_state == V1ClusterState.DELETED:
+        message = f"Cluster {cluster_id} is terminating"
+    if current_state == V1ClusterState.FAILED:
+        message = "\n".join(
+            [
+                message,
+                "We are automatically retrying cluster creation.",
+                "In case you want to delete this cluster:",
+                "1. Stop this command",
+                f"2. Run `lightning delete cluster {cluster_id}",
+                "WARNING: Any non-deleted cluster can consume cloud resources and incur cost to you.",
+            ]
+        )
+    if current_state == V1ClusterState.DELETED:
+        message = f"Cluster {cluster_id} has been deleted."
+
+    click.echo(message)

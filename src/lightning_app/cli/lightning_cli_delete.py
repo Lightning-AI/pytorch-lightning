@@ -24,15 +24,15 @@ def delete() -> None:
             WARNING: You should NOT use this under normal circumstances.""",
 )
 @click.option(
-    "--wait",
-    "wait",
+    "--no-wait",
+    "no_wait",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
+    help="This flag makes the CLI return immediately and lets the cluster deletion happen in the background",
 )
-def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> None:
+def delete_cluster(cluster: str, force: bool = False, no_wait: bool = False) -> None:
     """Delete a Lightning AI BYOC compute cluster and all associated cloud provider resources.
 
     Deleting a run also deletes all Runs and Experiments that were started on the cluster.
@@ -46,4 +46,4 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> Non
     All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
     """
     cluster_manager = AWSClusterManager()
-    cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
+    cluster_manager.delete(cluster_id=cluster, force=force, wait=not no_wait)
