@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
+import pandas as pd
 
 class SimpleWork(LightningWork):
     def __init__(self):
@@ -20,6 +21,7 @@ class SimpleWork(LightningWork):
         for i in range(1, 10):
             time.sleep(1)
             if i % 5 == 0:
+                print(f"pandas_installed_on_cloud: {pd.__version__}")
                 raise Exception(f"invalid_value_of_i_{i}")
             print(f"good_value_of_i_{i}")
 

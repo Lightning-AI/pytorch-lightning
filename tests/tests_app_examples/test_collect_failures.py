@@ -20,6 +20,7 @@ def test_collect_failures_example_cloud() -> None:
         "good_value_of_i_2",
         "good_value_of_i_3",
         "good_value_of_i_4",
+        "pandas_installed_on_cloud",
         "invalid_value_of_i_5",
     ]
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "tests/tests_app_examples/collect_failures")) as (
