@@ -23,7 +23,46 @@ defaults:
 
 jobs:
 
+  init-pypi:
+    runs-on: ubuntu-20.04
+    steps:
+    - run: mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ci-packages-${{ github.sha }}
+        path: pypi
+
+  build-pypi:
+    needs: init-pypi
+    # This serves to create packages for potential internal dependencies
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        pkg: ["lite"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - name: Build package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg }}
+        run: |
+          python setup.py sdist
+          cp dist/* pypi/
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+
   install-pkg:
+    needs: build-pypi
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -49,7 +88,14 @@ jobs:
           pkg-name: ${{ matrix.pkg }}
           nb-dirs: ${{ env.NB_DIRS }}
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
+      - run: ls -l pypi/
       - uses: ./.github/actions/pkg-install
+        with:
+          pip-flags: "--pre --find-links ../pypi/"
 
       - name: Run CLI
         # todo: add testing for `lightning_app`

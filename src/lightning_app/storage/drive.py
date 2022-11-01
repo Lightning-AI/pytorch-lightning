@@ -6,7 +6,7 @@ from copy import deepcopy
 from time import sleep, time
 from typing import Dict, List, Optional, Union
 
-from lightning_app.storage.path import filesystem, LocalFileSystem, shared_storage_path
+from lightning_app.storage.path import _filesystem, _shared_storage_path, LocalFileSystem
 from lightning_app.utilities.component import _is_flow_context
 
 
@@ -65,7 +65,7 @@ class Drive:
             raise Exception(f"The provided root_folder isn't a directory: {root_folder}")
         self.component_name = component_name
         self.allow_duplicates = allow_duplicates
-        self.fs = filesystem()
+        self.fs = _filesystem()
 
     @property
     def root(self) -> pathlib.Path:
@@ -76,7 +76,7 @@ class Drive:
 
     @property
     def drive_root(self) -> pathlib.Path:
-        drive_root = shared_storage_path() / "artifacts" / "drive" / self.id
+        drive_root = _shared_storage_path() / "artifacts" / "drive" / self.id
         return drive_root
 
     def put(self, path: str) -> None:
@@ -95,12 +95,12 @@ class Drive:
         if not self.allow_duplicates:
             self._check_for_allow_duplicates(path)
 
-        from lightning_app.storage.copier import copy_files
+        from lightning_app.storage.copier import _copy_files
 
         src = pathlib.Path(os.path.join(self.root_folder, path)).resolve()
         dst = self._to_shared_path(path, component_name=self.component_name)
 
-        copy_files(src, dst)
+        _copy_files(src, dst)
 
     def list(self, path: Optional[str] = ".", component_name: Optional[str] = None) -> List[str]:
         """This method enables to list files under the provided path from the Drive in a blocking fashion.
