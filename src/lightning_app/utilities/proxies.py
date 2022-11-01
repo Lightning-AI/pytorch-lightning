@@ -16,9 +16,9 @@ from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
-from lightning_app.storage.copier import Copier, copy_files
+from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.storage.path import path_to_work_artifact
+from lightning_app.storage.path import _path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.component import _set_work_context
@@ -309,7 +309,7 @@ class WorkRunner:
 
     def __post_init__(self):
         self.parallel = self.work.parallel
-        self.copier: Optional[Copier] = None
+        self.copier: Optional[_Copier] = None
         self.state_observer: Optional[WorkStateObserver] = None
 
     def __call__(self):
@@ -351,7 +351,7 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        self.copier = Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
         self.copier.setDaemon(True)
         self.copier.start()
 
@@ -594,8 +594,8 @@ def persist_artifacts(work: "LightningWork") -> None:
         if not artifact_path.exists():
             missing_artifacts.add(str(artifact_path))
             continue
-        destination_path = path_to_work_artifact(artifact_path, work)
-        copy_files(artifact_path, destination_path)
+        destination_path = _path_to_work_artifact(artifact_path, work)
+        _copy_files(artifact_path, destination_path)
         destination_paths.append(destination_path)
 
     if missing_artifacts:

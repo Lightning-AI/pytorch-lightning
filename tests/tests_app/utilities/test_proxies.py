@@ -14,9 +14,9 @@ from deepdiff import DeepDiff, Delta
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.storage.path import artifacts_path
-from lightning_app.storage.requests import GetRequest
-from lightning_app.testing.helpers import EmptyFlow, MockQueue
+from lightning_app.storage.path import _artifacts_path
+from lightning_app.storage.requests import _GetRequest
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import CacheCallsKeys, WorkFailureReasons, WorkStageStatus
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -50,7 +50,7 @@ def test_lightning_work_setattr():
     # prepare
     w._name = "root.b"
     # create queue
-    caller_queue = MockQueue("caller_queue")
+    caller_queue = _MockQueue("caller_queue")
 
     def proxy_setattr():
         w._setattr_replacement = LightningWorkSetAttrProxy(w._name, w, caller_queue, MagicMock())
@@ -87,7 +87,7 @@ def test_work_runner(parallel, cache_calls):
         def run(self):
             pass
 
-    class BlockingQueue(MockQueue):
+    class BlockingQueue(_MockQueue):
         """A Mock for the file copier queues that keeps blocking until we want to end the thread."""
 
         keep_blocking = True
@@ -96,16 +96,16 @@ def test_work_runner(parallel, cache_calls):
             while BlockingQueue.keep_blocking:
                 pass
             # A dummy request so the Copier gets something to process without an error
-            return GetRequest(source="src", name="dummy_path", path="test", hash="123", destination="dst")
+            return _GetRequest(source="src", name="dummy_path", path="test", hash="123", destination="dst")
 
     app = LightningApp(Flow())
     work = app.root.w
-    caller_queue = MockQueue("caller_queue")
-    delta_queue = MockQueue("delta_queue")
-    readiness_queue = MockQueue("readiness_queue")
-    error_queue = MockQueue("error_queue")
-    request_queue = MockQueue("request_queue")
-    response_queue = MockQueue("response_queue")
+    caller_queue = _MockQueue("caller_queue")
+    delta_queue = _MockQueue("delta_queue")
+    readiness_queue = _MockQueue("readiness_queue")
+    error_queue = _MockQueue("error_queue")
+    request_queue = _MockQueue("request_queue")
+    response_queue = _MockQueue("response_queue")
     copy_request_queue = BlockingQueue("copy_request_queue")
     copy_response_queue = BlockingQueue("copy_response_queue")
 
@@ -276,7 +276,7 @@ def test_proxy_timeout():
     assert app.root.work._calls[call_hash]["statuses"][2]["stage"] == "stopped"
 
 
-@mock.patch("lightning_app.utilities.proxies.Copier")
+@mock.patch("lightning_app.utilities.proxies._Copier")
 def test_path_argument_to_transfer(*_):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""
@@ -322,20 +322,20 @@ def test_path_argument_to_transfer(*_):
         },
     }
 
-    caller_queue = MockQueue()
+    caller_queue = _MockQueue()
     caller_queue.put(call)
 
     runner = WorkRunner(
         work=work,
         work_name="name",
         caller_queue=caller_queue,
-        delta_queue=MockQueue(),
-        readiness_queue=MockQueue(),
-        error_queue=MockQueue(),
-        request_queue=MockQueue(),
-        response_queue=MockQueue(),
-        copy_request_queue=MockQueue(),
-        copy_response_queue=MockQueue(),
+        delta_queue=_MockQueue(),
+        readiness_queue=_MockQueue(),
+        error_queue=_MockQueue(),
+        request_queue=_MockQueue(),
+        response_queue=_MockQueue(),
+        copy_request_queue=_MockQueue(),
+        copy_response_queue=_MockQueue(),
     )
 
     try:
@@ -362,7 +362,7 @@ def test_path_argument_to_transfer(*_):
         ("origin", True, True),
     ],
 )
-@mock.patch("lightning_app.utilities.proxies.Copier")
+@mock.patch("lightning_app.utilities.proxies._Copier")
 def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
     """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
     exist)."""
@@ -413,20 +413,20 @@ def test_path_attributes_to_transfer(_, origin, exists_remote, expected_get):
         },
     }
 
-    caller_queue = MockQueue()
+    caller_queue = _MockQueue()
     caller_queue.put(call)
 
     runner = WorkRunner(
         work=flow.work,
         work_name=flow.work.name,
         caller_queue=caller_queue,
-        delta_queue=MockQueue(),
-        readiness_queue=MockQueue(),
-        error_queue=MockQueue(),
-        request_queue=MockQueue(),
-        response_queue=MockQueue(),
-        copy_request_queue=MockQueue(),
-        copy_response_queue=MockQueue(),
+        delta_queue=_MockQueue(),
+        readiness_queue=_MockQueue(),
+        error_queue=_MockQueue(),
+        request_queue=_MockQueue(),
+        response_queue=_MockQueue(),
+        copy_request_queue=_MockQueue(),
+        copy_response_queue=_MockQueue(),
     )
 
     try:
@@ -457,7 +457,7 @@ def test_proxy_work_run_paths_replace_origin_lightning_work_by_their_name():
 
     app = LightningApp(Flow())
     work = app.root.w
-    caller_queue = MockQueue("caller_queue")
+    caller_queue = _MockQueue("caller_queue")
     app.root.w1.path = Path(__file__)
     assert app.root.w1.path._origin == app.root.w1
     ProxyWorkRun(work.run, work.name, work, caller_queue)(path=app.root.w1.path)
@@ -497,19 +497,19 @@ def test_persist_artifacts(tmp_path):
 
     rel_tmpdir_path = Path(*tmp_path.parts[1:])
 
-    assert not os.path.exists(artifacts_path(work) / rel_tmpdir_path / "file.txt")
-    assert not os.path.exists(artifacts_path(work) / rel_tmpdir_path / "folder")
-    assert not os.path.exists(artifacts_path(work) / rel_tmpdir_path / "not-exists")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "file.txt")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "folder")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "not-exists")
 
     work.run()
 
     with pytest.warns(UserWarning, match="1 artifacts could not be saved because they don't exist"):
         persist_artifacts(work)
 
-    assert os.path.exists(artifacts_path(work) / rel_tmpdir_path / "file.txt")
-    assert os.path.exists(artifacts_path(work) / rel_tmpdir_path / "folder")
-    assert not os.path.exists(artifacts_path(work) / rel_tmpdir_path / "not-exists")
-    assert not os.path.exists(artifacts_path(work) / rel_tmpdir_path / "external.txt")
+    assert os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "file.txt")
+    assert os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "folder")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "not-exists")
+    assert not os.path.exists(_artifacts_path(work) / rel_tmpdir_path / "external.txt")
 
 
 def test_work_state_observer():
@@ -531,7 +531,7 @@ def test_work_state_observer():
                 self.dict["counter"] += 1
 
     work = WorkWithoutSetattr()
-    delta_queue = MockQueue()
+    delta_queue = _MockQueue()
     observer = WorkStateObserver(work, delta_queue)
     setattr_proxy = LightningWorkSetAttrProxy(
         work=work,
@@ -652,7 +652,7 @@ def test_work_runner_sets_internal_ip(environment, expected_ip_addr):
     work_runner = WorkRunner(
         work,
         work.name,
-        caller_queue=MockQueue("caller_queue"),
+        caller_queue=_MockQueue("caller_queue"),
         delta_queue=Mock(),
         readiness_queue=Mock(),
         error_queue=Mock(),

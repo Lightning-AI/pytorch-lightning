@@ -16,7 +16,28 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def load_app_from_file(filepath: str) -> "LightningApp":
+def _prettifiy_exception(filepath: str):
+    """Pretty print the exception that occurred when loading the app."""
+    # we want to format the exception as if no frame was on top.
+    exp, val, tb = sys.exc_info()
+    listing = traceback.format_exception(exp, val, tb)
+    # remove the entry for the first frame
+    del listing[1]
+    listing = [
+        f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
+    ] + listing
+    logger.error("".join(listing))
+    sys.exit(1)
+
+
+def load_app_from_file(filepath: str, raise_exception: bool = False) -> "LightningApp":
+    """Load a LightningApp from a file.
+
+    Arguments:
+        filepath:  The path to the file containing the LightningApp.
+        raise_exception: If True, raise an exception if the app cannot be loaded.
+    """
+
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
 
     from lightning_app.core.app import LightningApp
@@ -30,17 +51,10 @@ def load_app_from_file(filepath: str) -> "LightningApp":
     try:
         with _patch_sys_argv():
             exec(code, module.__dict__)
-    except Exception:
-        # we want to format the exception as if no frame was on top.
-        exp, val, tb = sys.exc_info()
-        listing = traceback.format_exception(exp, val, tb)
-        # remove the entry for the first frame
-        del listing[1]
-        listing = [
-            f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
-        ] + listing
-        logger.error("".join(listing))
-        sys.exit(1)
+    except Exception as e:
+        if raise_exception:
+            raise e
+        _prettifiy_exception(filepath)
 
     apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
     if len(apps) > 1:
