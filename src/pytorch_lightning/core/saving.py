@@ -20,6 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
@@ -158,7 +159,9 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
-    checkpoint = _pl_migrate_checkpoint(checkpoint, checkpoint_path)
+    checkpoint = _pl_migrate_checkpoint(
+        checkpoint, checkpoint_path=(checkpoint_path if isinstance(checkpoint_path, (str, Path)) else None)
+    )
 
     if hparams_file is not None:
         extension = str(hparams_file).split(".")[-1]

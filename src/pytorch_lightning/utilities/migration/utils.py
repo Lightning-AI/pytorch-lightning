@@ -97,7 +97,7 @@ class pl_legacy_patch:
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
 
 
-def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH) -> _CHECKPOINT:
+def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_PATH] = None) -> _CHECKPOINT:
     """Applies Lightning version migrations to a checkpoint dictionary and prints infos for the user.
 
     This function is used by the Lightning Trainer when resuming from a checkpoint.
@@ -105,7 +105,7 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: _PATH) -> _
     old_version = _get_version(checkpoint)
     checkpoint, migrations = migrate_checkpoint(checkpoint)
     new_version = _get_version(checkpoint)
-    if not migrations:
+    if not migrations or checkpoint_path is None:
         # the checkpoint was already a new one, no migrations were needed
         return checkpoint
 
