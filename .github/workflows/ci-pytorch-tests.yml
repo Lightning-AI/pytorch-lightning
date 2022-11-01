@@ -40,36 +40,36 @@ jobs:
         include:
           # assign python and pytorch version combinations to operating systems (arbitrarily)
           # note: there's no distribution of Torch==1.9 for Python>=3.9 or torch==1.10 for Python>=3.10
-          - {slow: 0, os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {slow: 0, os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
           # only run PyTorch latest with Python latest
-          - {slow: 0, os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {slow: 0, os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {slow: 0, os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           # "oldest" versions tests, only on minimum Python
-          - {slow: 0, os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {slow: 0, os: "macOS-11", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
-          - {slow: 0, os: "windows-2022", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           # release-candidate tests, mixed Python versions
-          - {slow: 0, os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
-          - {slow: 0, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
-          - {slow: 0, os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
+          - {cat: "quick", os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
+          - {cat: "quick", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
+          - {cat: "quick", os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
           # run test under SLOW label
-          - {slow: 1, os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
-          - {slow: 1, os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
-          - {slow: 1, os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
+          - {cat: "long", os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
+          - {cat: "long", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
+          - {cat: "long", os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
 
     timeout-minutes: 60
 
@@ -189,7 +189,7 @@ jobs:
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       env:
-        PL_RUN_SLOW_TESTS: ${{ matrix.slow }}
+        PL_RUN_SLOW_TESTS: $(python -c "print(int(${{ matrix.slow }} == 'long'))")
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=120 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
@@ -219,6 +219,6 @@ jobs:
         fail_ci_if_error: false
 
     - name: Run Examples
-      if: ${{ matrix.slow == 0 }}
+      if: ${{ matrix.cat == 'quick' }}
       working-directory: ./examples
       run: python -m pytest test_pl_examples.py -v --durations=10
