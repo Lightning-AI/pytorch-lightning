@@ -40,7 +40,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 4: Debug a Lightning workflow
+   :header: Level 4: Debug a Lightning App
    :description: Learn to debug workflows.
    :button_link: debug_a_lightning_workflow.html
    :col_css: col-md-6
@@ -48,7 +48,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 5: Run a LightningWork in parallel
+   :header: Level 5: Run components in parallel
    :description: Learn when to run LightningWorks in parallel (asynchroneous).
    :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
@@ -56,7 +56,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Embed graphical UIs into work
+   :header: Level 6: Render a web UI with a component
    :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
    :button_link: embed_web_ui_into_lightningwork.html
    :col_css: col-md-6
@@ -64,7 +64,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 7: Communicate between LightningWorks
+   :header: Level 7: Communicate between components
    :description: Share variables and files between LightningWorks.
    :button_link: communicate_between_lightning_components.html
    :col_css: col-md-6
@@ -72,7 +72,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 8: Start dynamic works
+   :header: Level 8: Start dynamic components
    :description: Learn to start works dynamically
    :button_link: level_15.html
    :col_css: col-md-6
@@ -88,8 +88,8 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 10: Develop reactive workflows
-   :description: Learn to develop reactive workflows. Lightning shines with reactive workflows.
+   :header: Level 10: Develop reactive apps.
+   :description: Learn to develop reactive Lightning Apps. Lightning shines with reactive workflows.
    :button_link: level_14.html
    :col_css: col-md-6
    :height: 150

@@ -94,7 +94,7 @@ Learn to go from Lightning components to full stack AI apps step-by-step.
 
 .. displayitem::
    :header: Level 1: Build a Lightning component
-   :description: Build a Lightning component that wraps Python code and runs it on the cloud.
+   :description: Build a Lightning component that wraps Python code and runs on the cloud.
    :col_css: col-md-12
    :button_link: levels/basic/build_a_lightning_component.html
    :height: 160

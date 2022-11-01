@@ -4,8 +4,8 @@
    :maxdepth: 1
    :hidden:
 
-   lightning_in_15_minutes
-   build_a_machine_learning_workflow
+   build_a_lightning_component
+   connect_lightning_components
    train_pytorch_on_the_cloud
    deploy_ai_model_api
    run_jupyter_notebook_on_the_cloud
@@ -30,17 +30,17 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 1: Lightning in 15 minutes
-   :description: Learn to run python on the cloud by implementing a LightningWork component
-   :button_link: lightning_in_15_minutes.html
+   :header: Level 1: Build a Lightning Component
+   :description: Build a Lightning component that wraps Python code and runs on the cloud.
+   :button_link: build_a_lightning_component.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Level 2: Build a workflow (aka: Lightning App)
-   :description: Learn to run multiple python functions in a workflow (aka: a Lightning App).
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level 2: Connect Lightning components
+   :description: Connect Lightning components to build a workflow (aka: a Lightning App).
+   :button_link: connect_lightning_components.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
