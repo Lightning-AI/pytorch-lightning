@@ -17,6 +17,7 @@ from argparse import ArgumentParser, Namespace
 from typing import List, Tuple
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 # torchrun in PyTorch 1.13.0 has a bug on the Windows platform and is thus not importable:
@@ -117,9 +118,11 @@ def _set_env_variables(args: Namespace) -> None:
 
 def _get_num_processes(accelerator: str, devices: str) -> int:
     """Parse the `devices` argument to determine how many processes need to be launched on the current machine."""
-    if accelerator in ("cuda", "gpu"):
+    if accelerator == "gpu":
+        parsed_devices = _parse_gpu_ids(devices, include_cuda=True, include_mps=True)
+    elif accelerator == "cuda":
         parsed_devices = CUDAAccelerator.parse_devices(devices)
-    elif accelerator in ("mps", "gpu"):
+    elif accelerator == "mps":
         parsed_devices = MPSAccelerator.parse_devices(devices)
     elif accelerator == "tpu":
         raise ValueError("Launching processes for TPU through the CLI is not supported.")

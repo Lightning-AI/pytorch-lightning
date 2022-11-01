@@ -63,6 +63,16 @@ def test_cli_env_vars_devices_cuda(_, __, devices):
     assert os.environ["LT_DEVICES"] == devices
 
 
+@RunIf(mps=True)
+@pytest.mark.parametrize("accelerator", ["mps", "gpu"])
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@mock.patch("lightning_lite.cli.torchrun")
+def test_cli_env_vars_devices_mps(_, accelerator):
+    with mock.patch("sys.argv", ["cli.py", "script.py", "--accelerator", accelerator]):
+        cli_main()
+    assert os.environ["LT_DEVICES"] == "1"
+
+
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
