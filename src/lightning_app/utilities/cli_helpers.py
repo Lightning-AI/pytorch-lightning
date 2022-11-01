@@ -105,6 +105,7 @@ class _LightningAppOpenAPIRetriever:
         self.openapi = None
         self.api_commands = None
         self.app_id = None
+        self.app_name = None
         home = os.path.expanduser("~")
         if use_cache:
             cache_openapi = os.path.join(home, ".lightning", "lightning_connection", "commands", "openapi.json")
@@ -202,6 +203,7 @@ class _LightningAppOpenAPIRetriever:
                 self.url = app.status.url
                 self.openapi = resp.json()
                 self.app_id = app.id
+                self.app_name = app.name
 
 
 def _arrow_time_callback(
