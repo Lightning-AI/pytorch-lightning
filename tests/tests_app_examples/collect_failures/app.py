@@ -10,6 +10,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 import pandas as pd
 
+
 class SimpleWork(LightningWork):
     def __init__(self):
         super().__init__(cache_calls=False, parallel=True, raise_exception=False)
