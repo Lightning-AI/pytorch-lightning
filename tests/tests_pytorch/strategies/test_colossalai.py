@@ -239,7 +239,7 @@ class ModelParallelClassificationModel(LightningModule):
         return self.forward(x)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True, sklearn=True)
 def test_multi_gpu_checkpointing(tmpdir):
     dm = ClassifDataModule()
     model = ModelParallelClassificationModel()
@@ -267,7 +267,7 @@ def test_multi_gpu_checkpointing(tmpdir):
     assert saved_results == results
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True)
+@RunIf(min_cuda_gpus=2, standalone=True, colossalai=True, sklearn=True)
 def test_multi_gpu_model_colossalai_fit_test(tmpdir):
     seed_everything(7)
 
