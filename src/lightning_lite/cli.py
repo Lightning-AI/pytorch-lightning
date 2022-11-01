@@ -19,6 +19,13 @@ from typing import List, Tuple
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
+# torchrun in PyTorch 1.13.0 has a bug on the Windows platform and is thus not importable:
+# https://github.com/pytorch/pytorch/issues/85427
+if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:
+    import torch.distributed.run as torchrun
+else:
+    torchrun = None
+
 _log = logging.getLogger(__name__)
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
@@ -124,12 +131,8 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
 def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
 
-    # local import because torchrun in PyTorch 1.13.0 has a bug on the Windows platform:
-    # https://github.com/pytorch/pytorch/issues/85427
-    # TODO: avoid local import when 1.13.x fixes this
-    import torch.distributed.run as torchrun
-
     if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:
+        # TODO: remove once import issue is resolved: https://github.com/pytorch/pytorch/issues/85427
         _log.error(
             "On the Windows platform, this launcher is currently only supported on torch < 1.13 due to a bug"
             " upstream: https://github.com/pytorch/pytorch/issues/85427"
