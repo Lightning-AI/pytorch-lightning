@@ -1,3 +1,4 @@
+# A hello world component
 # app.py
 import lightning as L
 

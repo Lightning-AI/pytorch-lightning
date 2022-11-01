@@ -1,1 +1,0 @@
-lightning run app app.py --cloud your-aws-cluster

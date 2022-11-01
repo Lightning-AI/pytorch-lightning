@@ -1,9 +1,9 @@
-#########################
-Level 2: Build a workflow
-#########################
-**Audience:** Users who need to build a workflow (aka: A Lightning App).
+#####################################
+Level 2: Connect Lightning Components
+#####################################
+**Audience:** Users who want to build complex workflows easily by connecting Lightning components.
 
-**Prereqs:** You `read Lightning in 15 minutes <lightning_in_15_minutes.html>`_ and ran python code inside a LightningWork.
+**Prereqs:** You know how to `build a component <build_a_lightning_component.html>`_.
 
 .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/workflow_intro.gif
     :alt: Animation showing how to convert your PyTorch code to LightningLite.

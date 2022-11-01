@@ -12,96 +12,11 @@ Build models and full stack AI apps ⚡ *Lightning fast*
 .. join_slack::
    :align: left
 
-*******************************************************
-Build full stack AI apps from modular Python components
-*******************************************************
+***************************************************
+With Lightning, build full stack AI apps like these
+***************************************************
 
-.. raw:: html
-
-   <div class="row">
-      <div class='col-md-5' style="padding-top: 40px">
-      <p>
-         Lightning makes it painless to build full stack AI apps for the cloud. 
-         Implement Lightning components that encapsulate 
-         each part of your application to make it modular, interoperable and maintainable. 
-         Each Lightning component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
-      </p>
-      </div>
-      <div class='col-md-7'>
-
-.. raw:: html
-
-   <video style="height:auto; max-width: 100%; max-height: 400px" controls autoplay muted playsinline src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/hello_apps.m4v"></video>
-
-.. raw:: html
-
-      </div>
-   </div>
-
-****************************
-Define a Lightning component
-****************************
-A Lightning component organizes arbitrary Python code to make it modular, interoperable and maintainable.
-The component manages its own infrastructure, cloud costs, networking and more, so you can focus on the application logic.
-
-.. lit_tabs::
-   :titles: ; Example; Example; Example;
-   :descriptions: Add your code to a Lightning component; Train models on cloud GPUs; Serve models; Run R, Python, C++, Matlab scripts
-   :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
-   :highlights: 6, 11; 7, 11; 6-8; 7, 8
-   :images: <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: auto; height: 95%; padding: 10px"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto"> | <img src='https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cloud_run_all.gif' style="width: 450px; height: auto">
-   :side_image_width: 58%
-   :app_id: abc123
-   :tab_rows: 4
-   :height: 385px
-
-
-.. raw:: html
-
-   <p>Explore our ecosystem of <a href='https://lightning.ai/components' target="_blank">community-built components</a>!</p>
-
-
-----
-
-******************************************
-Compose components into full stack AI apps
-******************************************
-Components "connect" into full stack AI apps which we call Lightning apps. 
-Lightning apps can be as simple as sequential ML workflows without GUIs, or as complex as
-a generative AI app managing its own full react UI with models deployed and load-balanced in real-time.
-
-.. lit_tabs::
-   :titles: ; Example; Example; Example;
-   :descriptions: Compose modules into an app; Traditional sequential workflow; Human in the loop; Example: Something else 
-   :code_files: code_a.py; code_a_train_models.py; code_a_deploy_models.py; code_a_subprocess.py
-   :highlights: 6, 11; 7, 11; 6-8; 7, 8
-   :tab_rows: 4
-   :height: 315px
-
-
-.. raw:: html
-
-   <p>Explore our ecosystem of <a href='https://lightning.ai/apps' target="_blank"> community-built app templates</a>!</p>
-
-----
-
-*********************************
-Run on the cloud or your hardware
-*********************************
-Lightning apps are portable! take them to the cloud or cluster of your choice.
-
-.. lit_tabs::
-   :descriptions: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
-   :code_files: code_run_cloud.bash; code_run_cloud_yours.bash; code_run_local.bash
-   :tab_rows: 4
-   :height: 195px
-
-----
-
-***********
-Get Started
-***********
-Pick a tutorial to build your first Lightning App.
+|
 
 .. raw:: html
 
@@ -133,27 +48,62 @@ Pick a tutorial to build your first Lightning App.
    :deploy: https://lightning.ai
    :target: https://apple.com
 
-.. app_card::
-   :title: Build a full stack AI app
-   :width: 280
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-
-.. app_card::
-   :title: Build a cloud ML platform
-   :width: 280
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-
 .. raw:: html
 
       </div>
    </div>
 
+----
+
+************************
+Build modular components
+************************
+Build modular, self-contained Lightning components that can do anything from 
+train models, and deploy models to run web user interfaces. A Lightning component 
+manages its own infrastructure, cloud costs, networking and more. Components
+can be connected to form a full stack AI app that we call a Lightning App.
+
+Image:
+[Component] -> many components working together -> end product
+
+.. lit_tabs::
+   :code_files: code_a.py; 
+   :highlights: 6, 11
+   :app_id: abc123
+   :height: 385px
+
+|
+
+.. raw:: html
+
+   <p>Get inspired by community-built Lightning components on our <a href='https://lightning.ai/components' target="_blank">ecosystem</a></p>
+
+----
+
+********************
+Get started in steps
+********************
+Learn to go from Lightning components to full stack AI apps step-by-step.
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Level 1: Build a Lightning component
+   :description: Build a Lightning component that wraps Python code and runs it on the cloud.
+   :col_css: col-md-12
+   :button_link: levels/basic/build_a_lightning_component.html
+   :height: 160
+   :tag: All users
+
+.. raw:: html
+
+        </div>
+    </div>
 ----
 
 *****************
@@ -244,14 +194,7 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
-   :caption: Get Started
-
-   installation
-   Lightning in 15 minutes <levels/basic/lightning_in_15_minutes>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Learn Lightning in steps
+   :caption: Get started in steps
 
    Basic <levels/basic/index>
    Intermediate <levels/intermediate/index>
