@@ -690,7 +690,7 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 
 @pytest.mark.skip(reason="skipped due to deepspeed/#2449, keep track @rohitgr7")
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -732,7 +732,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     """Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning that the
     optimizer state and scheduler states cannot be restored."""
@@ -767,7 +767,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
@@ -833,7 +833,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 
 
 @pytest.mark.parametrize("offload_optimizer", [False, True])
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
 
