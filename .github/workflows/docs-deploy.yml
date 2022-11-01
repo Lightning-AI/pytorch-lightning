@@ -72,8 +72,14 @@ jobs:
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
-      # Uploading docs to GCS so they can be served on lightning.ai
-      - name: Upload to GCS 🪣
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/stable to GCS 🪣
+        if: ${{ success() && startsWith(github.ref, 'refs/heads/release/')) }}
         run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://${{ secrets.GCS_BUCKET }}
-        if: success()
+          gsutil -m rsync -d -R docs/build/html/ gs://${{ secrets.GCS_BUCKET_DOCS_STABLE }}
+
+      # Uploading docs to GCS, so they can be served on lightning.ai
+      - name: Upload docs/latest to GCS 🪣
+        if: ${{ success() && github.ref == 'refs/heads/master' }}
+        run: |-
+          gsutil -m rsync -d -R docs/build/html/ gs://${{ secrets.GCS_BUCKET_DOCS_LATEST }}
