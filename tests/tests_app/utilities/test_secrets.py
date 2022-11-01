@@ -29,8 +29,8 @@ from lightning_app.utilities.secrets import _names_to_ids
     ],
 )
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-@mock.patch("lightning_" + "app.utilities.network.LightningClient.secret_service_list_secrets")
-@mock.patch("lightning_" + "app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning_app.utilities.network.GridRestClient.secret_service_list_secrets")
+@mock.patch("lightning_app.utilities.network.GridRestClient.projects_service_list_memberships")
 def test_names_to_ids(
     list_memberships: MagicMock,
     list_secrets: MagicMock,
