@@ -381,7 +381,8 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
     app_id = next((app.id for app in apps if app.name == app_name), None)
     if app_id is None:
         raise click.ClickException(
-            f"Unable to find a running app with name {app_name} in your account. Available running apps are: {', '.join(available_app_names)}"
+            f"Unable to find a running app with name {app_name} in your account. "
+            + f"Available running apps are: {', '.join(available_app_names)}"
         )
     try:
         instance = app_manager.get_app(app_id=app_id)
