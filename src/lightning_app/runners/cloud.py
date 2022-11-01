@@ -116,8 +116,6 @@ class CloudRuntime(Runtime):
 
         if ENABLE_APP_CHECKPOINT and self.checkpoint:
             app_config.checkpoint = self.checkpoint
-        else:
-            app_config.checkpoint = None
 
         print(f"The name of the app is: {app_config.name}")
 

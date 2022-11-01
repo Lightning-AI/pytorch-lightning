@@ -32,7 +32,7 @@ def dispatch(
     env_vars: Dict[str, str] = None,
     secrets: Dict[str, str] = None,
     cluster_id: str = None,
-    checkpoint: str = None,
+    checkpoint: Optional[str] = None,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 

@@ -629,7 +629,7 @@ class LightningApp:
         self.load_state_dict(state)
 
     def _dump_checkpoint(self) -> Optional[str]:
-        # TODO: revisit this logic.
+        # TODO: This should be removed since it's an old implemenation which is no longer used.
         checkpoints_dir = self.checkpoint_dir
         # TODO: Add supports to remotely saving checkpoints.
         if checkpoints_dir.startswith("s3:"):
@@ -658,9 +658,11 @@ class LightningApp:
         saved in the local directory. If the app is running on the cloud, the checkpoint will be saved in the cloud
         storage.
 
-        :param checkpoint_name: The name of the checkpoint, if not defined, the checkpoint will be saved with the
+        Args:
+            checkpoint_name: The name of the checkpoint, if not defined, the checkpoint will be saved with the
             current timestamp.
-        :return: the path of the checkpoint file.
+        Returns:
+            The path of the checkpoint file.
         """
 
         if not checkpoint_name:

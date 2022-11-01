@@ -767,7 +767,7 @@ class LightningFlow:
         for structure, state in flow_state["structures"].items():
             getattr(self, structure).set_state(state)
 
-    def should_save_checkpoint(self):
+    def should_save_checkpoint(self) -> bool:
         """Whether the flow should save a checkpoint. Override this method to customize the checkpointing behavior.
         This method wil be called as part of the ``run`` method by default.
 

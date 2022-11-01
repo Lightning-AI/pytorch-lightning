@@ -72,4 +72,4 @@ ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
 ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(
     int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0"))
 )  # Note: This is disabled for the time being.
-ENABLE_APP_CHECKPOINT = bool(int(os.getenv("ENABLE_APP_CHECKPOINT", "0")))
+ENABLE_APP_CHECKPOINT = bool(int(os.getenv("LAI_ENABLE_APP_CHECKPOINT", "0")))
