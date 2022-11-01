@@ -117,14 +117,17 @@ def test_xla_validate_unsupported_iterable_dataloaders(_, dataloader, monkeypatc
 
 
 def tpu_all_gather_fn(strategy):
-    tensor = torch.tensor(1, device=strategy.root_device)
-    result = strategy.all_gather(tensor, sync_grads=False)
-    assert result.sum() == 8
-
-    tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
-    result = strategy.all_gather(tensor, sync_grads=False)
-    result.sum().backward()
-    assert torch.equal(tensor.grad, torch.tensor(1.0))
+    for sync_grads in [True, False]:
+        tensor = torch.tensor(1.0, device=strategy.root_device, requires_grad=True)
+        result = strategy.all_gather(tensor, sync_grads=sync_grads)
+        summed = result.sum()
+        assert torch.equal(summed, torch.tensor(8.0))
+        summed.backward()
+        if sync_grads:
+            assert torch.equal(tensor.grad, torch.tensor(1.0))
+        else:
+            # As gradients are not synced, the original tensor will not have gradients.
+            assert tensor.grad is None
 
 
 @RunIf(tpu=True)

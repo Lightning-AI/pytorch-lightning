@@ -328,32 +328,32 @@ def test_trainer_config_device_ids(devices, expected_device_ids):
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_all_gather(tmpdir):
-    nb_devices = 8
-    values_per_dim = 2
-    expected_tensor_dims = [nb_devices, values_per_dim, values_per_dim]
-
     class TestModel(BoringModel):
-
         training_step_called = False
 
         def training_step(self, batch, batch_idx):
             self.training_step_called = True
-            tensor = torch.rand(values_per_dim, values_per_dim, requires_grad=True, device=self.device)
-            tensor_with_grads = self.all_gather(tensor, sync_grads=True)
-            tensor_wo_grads = self.all_gather(tensor, sync_grads=False)
-            assert tensor_with_grads.shape == torch.Size(expected_tensor_dims)
-            assert tensor_wo_grads.shape == torch.Size(expected_tensor_dims)
 
-            loss = tensor_with_grads.sum() + tensor_wo_grads.sum()
+            for sync_grads in [True, False]:
+                tensor = torch.tensor(1.0, device=self.device, requires_grad=True)
+                result = self.all_gather(tensor, sync_grads=sync_grads)
+                summed = result.sum()
+                assert torch.equal(summed, torch.tensor(8.0))
+                summed.backward()
+                if sync_grads:
+                    assert torch.equal(tensor.grad, torch.tensor(1.0))
+                else:
+                    # As gradients are not synced, the original tensor will not have gradients.
+                    assert tensor.grad is None
 
-            return loss
+            return torch.rand(1, requires_grad=True, device=self.device).sum()
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
         accelerator="tpu",
-        devices=nb_devices,
+        devices=8,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
