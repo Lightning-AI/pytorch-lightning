@@ -5,7 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.8.0] - 2022-MM-DD
+## [unreleased] - 202Y-MM-DD
+
+
+### Added
+
+-
+
+-
+
+-
+
+
+### Changed
+
+-
+
+-
+
+-
+
+
+### Deprecated
+
+-
+
+-
+
+-
+
+
+### Removed
+
+-
+
+-
+
+-
+
+
+### Fixed
+
+-
+
+-
+
+-
+
+
+
+## [1.8.0] - 2022-11-01
 
 ### Added
 
@@ -22,17 +71,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support getting CLI help for connected apps even if the app isn't running ([#15196](https://github.com/Lightning-AI/lightning/pull/15196)
 - Added support for adding requirements to commands and installing them when missing when running an app command ([#15198](https://github.com/Lightning-AI/lightning/pull/15198)
 - Added Lightning CLI Connection to be terminal session instead of global ([#15241](https://github.com/Lightning-AI/lightning/pull/15241)
+- Added support for managing SSH-keys via CLI ([#15291](https://github.com/Lightning-AI/lightning/pull/15291))
 - Add a `JustPyFrontend` to ease UI creation with `https://github.com/justpy-org/justpy` ([#15002](https://github.com/Lightning-AI/lightning/pull/15002))
+- Added a layout endpoint to the Rest API and enable to disable pulling or pushing to the state ([#15367](https://github.com/Lightning-AI/lightning/pull/15367)
+- Added support for functions for `configure_api` and `configure_commands` to be executed in the Rest API process ([#15098](https://github.com/Lightning-AI/lightning/pull/15098)
+- Added support to start lightning app on cloud without needing to install dependencies locally ([#15019](https://github.com/Lightning-AI/lightning/pull/15019)
 
 ### Changed
 
 - Improved the show logs command to be standalone and re-usable ([#15343](https://github.com/Lightning-AI/lightning/pull/15343)
+- Removed the `--instance-types` option when creating clusters ([#15314](https://github.com/Lightning-AI/lightning/pull/15314))
 
 ### Fixed
 
 - Fixed an issue when using the CLI without arguments ([#14877](https://github.com/Lightning-AI/lightning/pull/14877))
 - Fixed a bug where the upload files endpoint would raise an error when running locally ([#14924](https://github.com/Lightning-AI/lightning/pull/14924))
+- Fixed BYOC cluster region selector -> hiding it from help since only us-east-1 has been tested and is recommended ([#15277]https://github.com/Lightning-AI/lightning/pull/15277)
 - Fixed a bug when launching an app on multiple clusters ([#15226](https://github.com/Lightning-AI/lightning/pull/15226))
+- Fixed a bug with a default CloudCompute for Lightning flows ([#15371](https://github.com/Lightning-AI/lightning/pull/15371))
 
 ## [0.6.2] - 2022-09-21
 
