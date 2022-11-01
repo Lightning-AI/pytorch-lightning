@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspect
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
