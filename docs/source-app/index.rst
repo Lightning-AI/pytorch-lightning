@@ -92,19 +92,6 @@ Image:
 
         </div>
     </div>
-----
-
-*****************
-Install Lightning
-*****************
-Use Python 3.8.x or later. We also recommend you install in a virtual environment (`learn how <install_beginner.rst>`_).
-
-.. code:: bash
-
-   python -m pip install -U lightning
-
-
-For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <install>` guide.
 
 .. raw:: html
 
@@ -115,6 +102,7 @@ For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <i
    :caption: Home
 
    self
+   Install <installation>
 
 .. toctree::
    :maxdepth: 1
@@ -145,8 +133,8 @@ For Mac M1/M2/M3, windows or custom installs, read the :ref:`advanced install <i
    :maxdepth: 1
    :caption: More
 
-   Examples <examples/index>
-   How to... <workflows/index>
-   Glossary <glossary/index>
    Start from component templates <https://lightning.ai/components>
    Start from app templates <https://lightning.ai/apps>
+   Examples <examples/index>
+   Glossary <glossary/index>
+   How to... <workflows/index>
