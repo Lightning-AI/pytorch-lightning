@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with the `lightning` CLI taking a long time to error out when the cloud is not reachable ([#15412](https://github.com/Lightning-AI/lightning/pull/15412))
 
 
-## [1.8.0] - 2022-MM-DD
+## [1.8.0] - 2022-11-01
 
 ### Added
 
