@@ -1,4 +1,5 @@
 import logging
+import os
 from copy import copy
 from pathlib import Path
 from unittest import mock
@@ -36,8 +37,8 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import LightningApp, LightningWork
-from lightning_app.runners import backends, cloud
+from lightning_app import _PROJECT_ROOT, LightningApp, LightningWork
+from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.storage import Drive, Mount
 from lightning_app.testing.helpers import EmptyFlow
 from lightning_app.utilities.cloud import _get_project
@@ -1083,6 +1084,16 @@ def test_project_has_sufficient_credits():
     for balance, result in credits_and_test_value:
         project = V1Membership(name="test-project1", project_id="test-project-id1", balance=balance)
         assert cloud_runtime._project_has_sufficient_credits(project) is result
+
+
+@mock.patch(
+    "lightning_app.runners.cloud.load_app_from_file",
+    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+)
+def test_load_app_from_file_module_error():
+    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
+    assert isinstance(empty_app, LightningApp)
+    assert isinstance(empty_app.root, EmptyFlow)
 
 
 @mock.patch("lightning_app.runners.cloud.ENABLE_APP_CHECKPOINT", True)

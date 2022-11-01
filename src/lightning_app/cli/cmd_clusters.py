@@ -15,7 +15,6 @@ from lightning_cloud.openapi import (
     V1ClusterState,
     V1ClusterType,
     V1CreateClusterRequest,
-    V1InstanceSpec,
     V1KubernetesClusterDriver,
 )
 from rich.console import Console
@@ -86,7 +85,6 @@ class AWSClusterManager:
         role_arn: str = None,
         region: str = "us-east-1",
         external_id: str = None,
-        instance_types: List[str] = [],
         edit_before_creation: bool = False,
         wait: bool = False,
     ) -> None:
@@ -98,7 +96,6 @@ class AWSClusterManager:
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
-            instance_types: AWS instance types supported by the cluster
             edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
             wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
         """
@@ -119,7 +116,6 @@ class AWSClusterManager:
                             region=region,
                             role_arn=role_arn,
                             external_id=external_id,
-                            instance_types=[V1InstanceSpec(name=x) for x in instance_types],
                         )
                     )
                 ),
