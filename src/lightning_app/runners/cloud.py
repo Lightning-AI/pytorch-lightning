@@ -4,6 +4,7 @@ import random
 import string
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
@@ -60,6 +61,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
@@ -462,6 +464,30 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """This is meant to use only locally for cloud runtime."""
+        try:
+            app = load_app_from_file(filepath, raise_exception=True)
+        except ModuleNotFoundError:
+            # this is very generic exception.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            # we want to format the exception as if no frame was on top.
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            # remove the entry for the first frame
+            del listing[1]
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a mocking app.
+            app = LightningApp(EmptyFlow())
+
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            _prettifiy_exception(filepath)
+        return app
 
 
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
