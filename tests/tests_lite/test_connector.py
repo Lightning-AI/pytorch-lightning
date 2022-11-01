@@ -799,7 +799,7 @@ def test_precision_from_environment(_, precision):
     """Test that the precision input can be set through the environment variable."""
     with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
         connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
-    assert isinstance(connector.precision_plugin, Precision)
+    assert isinstance(connector.precision, Precision)
 
 
 @pytest.mark.parametrize(
