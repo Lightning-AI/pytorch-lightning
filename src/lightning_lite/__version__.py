@@ -14,4 +14,4 @@ else:
 
         version: str = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("ascii").strip()
     except Exception:
-        version: str = ""
+        version = ""
