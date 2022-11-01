@@ -149,7 +149,8 @@ def test_inference_only(tmpdir, devices):
     trainer.predict(model)
 
 
-@RunIf(ipu=True)
+@RunIf(ipu=True, sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
