@@ -144,13 +144,19 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     else:
         num_processes = _get_num_processes(args.accelerator, args.devices)
 
-    torchrun_args = []
-    torchrun_args.extend(["--nproc_per_node", str(num_processes)])
-    torchrun_args.extend(["--nnodes", str(args.num_nodes)])
-    torchrun_args.extend(["--node_rank", str(args.node_rank)])
-    torchrun_args.extend(["--master_addr", args.main_address])
-    torchrun_args.extend(["--master_port", str(args.main_port)])
-    torchrun_args.append(args.script)
+    torchrun_args = [
+        "--nproc_per_node",
+        str(num_processes),
+        "--nnodes",
+        str(args.num_nodes),
+        "--node_rank",
+        str(args.node_rank),
+        "--master_addr",
+        args.main_address,
+        "--master_port",
+        str(args.main_port),
+        args.script,
+    ]
     torchrun_args.extend(script_args)
 
     # set a good default number of threads for OMP to avoid warnings being emitted to the user
