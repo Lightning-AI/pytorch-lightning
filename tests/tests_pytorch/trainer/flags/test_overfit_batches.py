@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from unittest import mock
+
 import pytest
 import torch
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
@@ -19,6 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.datasets import SklearnDataset
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
@@ -80,6 +84,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
 )
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
 @RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
     model = ClassificationModel()
     dm = ClassifDataModule()
@@ -103,8 +108,16 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
 @pytest.mark.parametrize("overfit_batches", [0.11, 4])
 @RunIf(sklearn=True)
 def test_overfit_batch_limits_train(overfit_batches):
+    class CustomDataModule(ClassifDataModule):
+        def train_dataloader(self):
+            return DataLoader(
+                SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
+                batch_size=self.batch_size,
+                shuffle=True,
+            )
+
     model = ClassificationModel()
-    dm = ClassifDataModule()
+    dm = CustomDataModule()
 
     # original train loader which should be replaced in all methods
     train_loader = dm.train_dataloader()

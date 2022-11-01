@@ -76,7 +76,6 @@ class SklearnDataModule(LightningDataModule):
         return DataLoader(
             SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
             batch_size=self.batch_size,
-            shuffle=True,
         )
 
     def val_dataloader(self):
