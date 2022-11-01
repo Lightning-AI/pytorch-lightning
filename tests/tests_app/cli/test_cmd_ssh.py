@@ -1,3 +1,4 @@
+import shutil
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -42,7 +43,8 @@ def test_ssh_no_arguments(
     runner = CliRunner()
     runner.invoke(ssh, [])
 
-    os_execv.assert_called_once_with("/usr/bin/ssh", ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
+    ssh_path = shutil.which("ssh")
+    os_execv.assert_called_once_with(ssh_path, ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -74,7 +76,8 @@ def test_ssh_app_preselected(
     runner = CliRunner()
     runner.invoke(ssh, ["--app-name", "test"])
 
-    os_execv.assert_called_once_with("/usr/bin/ssh", ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
+    ssh_path = shutil.which("ssh")
+    os_execv.assert_called_once_with(ssh_path, ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -103,7 +106,8 @@ def test_ssh_app_and_component_preselected(
     runner = CliRunner()
     runner.invoke(ssh, ["--app-name", "test", "--component-name", "root.server"])
 
-    os_execv.assert_called_once_with("/usr/bin/ssh", ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
+    ssh_path = shutil.which("ssh")
+    os_execv.assert_called_once_with(ssh_path, ["-tt", "lightningwork-work1234@ssh.lightning.ai"])
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
