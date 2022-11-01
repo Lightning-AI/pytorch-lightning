@@ -10,7 +10,7 @@ Welcome to ⚡ Lightning
 .. join_slack::
    :align: left
 
-Build models and full stack AI apps like these, ⚡ *Lightning fast*:
+Build models and full stack AI apps ⚡ *Lightning fast* (like these):
 
 |
 
