@@ -38,7 +38,7 @@ Build models and full stack AI apps ⚡ *Lightning fast* (like these):
    :tags: App
 
 .. app_card::
-   :title: Muse: A full stack AI app
+   :title: Launch: Full stack AI app
    :width: 300
    :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
    :preview: https://lightning.ai
