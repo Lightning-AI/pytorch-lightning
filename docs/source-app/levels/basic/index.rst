@@ -35,7 +35,7 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
    :button_link: build_a_lightning_component.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: 10 minutes
 
 .. displayitem::
    :header: Level 2: Connect Lightning components
@@ -43,7 +43,7 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
    :button_link: connect_lightning_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: 15 minutes
 
 .. raw:: html
 
