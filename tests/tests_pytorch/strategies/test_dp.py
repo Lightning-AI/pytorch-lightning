@@ -49,7 +49,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log("test_acc", self.test_acc(outputs["logits"], outputs["y"]))
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works.
 
