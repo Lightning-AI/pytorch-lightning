@@ -15,6 +15,8 @@ from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
+from lightning_app.structures import Dict as LDict
+from lightning_app.structures import List as LList
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
@@ -780,3 +782,40 @@ def test_lightning_flow_reload():
     flow = RootFlowReload2()
     with pytest.raises(ValueError, match="The component flow_2 wasn't instantiated for the component root"):
         _load_state_dict(flow, state)
+
+
+class NestedFlow(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = EmptyFlow()
+        self.flows_dict = LDict(**{"a": EmptyFlow()})
+        self.flows_list = LList(*[EmptyFlow()])
+
+    def run(self):
+        pass
+
+
+class FlowCollection(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = EmptyFlow()
+        self.flows_dict = LDict(**{"a": NestedFlow()})
+        self.flows_list = LList(*[NestedFlow()])
+
+    def run(self):
+        pass
+
+
+def test_lightning_flow_flows():
+
+    flow = FlowCollection()
+    app = LightningApp(flow)
+    assert list(app.root.flows.keys()) == [
+        "flow",
+        "root.flows_dict.a",
+        "root.flows_dict.a.flows_dict.a",
+        "root.flows_dict.a.flows_list.0",
+        "root.flows_list.0",
+        "root.flows_list.0.flows_dict.a",
+        "root.flows_list.0.flows_list.0",
+    ]

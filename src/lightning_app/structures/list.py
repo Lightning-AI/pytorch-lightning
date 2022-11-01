@@ -90,11 +90,11 @@ class List(t.List[T]):
     def flows(self):
         from lightning_app import LightningFlow
 
-        flows = []
+        flows = {}
         for flow in [item for item in self if isinstance(item, LightningFlow)]:
-            flows.append(flow)
-            for child_flow in flow.flows:
-                flows.append(child_flow)
+            flows[flow.name] = flow
+            for name, child_flow in flow.flows.items():
+                flows[name] = child_flow
         return flows
 
     @property
