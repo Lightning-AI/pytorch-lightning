@@ -5,10 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [unreleased] - 202Y-MM-DD
+
+
 ### Added
 
-- Added `LightningLite.launch()` to programmatically launch processes (e.g. in Jupyter notebook) ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
-- Added the option to launch Lightning Lite scripts from the CLI, without the need to wrap the code into the `run` method ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
+-
+
+-
+
+-
+
+
+### Changed
+
+-
+
+-
+
+-
+
+
+### Deprecated
+
+-
+
+-
+
+-
+
+
+### Removed
+
+-
+
+-
+
+-
+
+
+### Fixed
+
+-
+
+-
+
+-
+
+- Fixed an issue with the `BaseFinetuning` callback not setting the `track_running_stats` attribute for batch normaliztion layers ([#15063](https://github.com/Lightning-AI/lightning/pull/15063))
 
 
 ### Changed
