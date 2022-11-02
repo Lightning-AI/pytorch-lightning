@@ -6,11 +6,6 @@ Level 2: Connect components into a full stack AI app
 
 **Prereqs:** You know how to `build a component <build_a_lightning_component.html>`_.
 
-.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/workflow_intro.gif
-    :alt: Animation showing how to convert your PyTorch code to LightningLite.
-    :width: 800
-    :align: center
-
 ----
 
 ****************************
@@ -65,343 +60,79 @@ Now you can develop distributed cloud apps on your laptop 🤯🤯🤯🤯!
 Now you know ...
 **************************
 
--------------
-Orchestration
--------------
+Without going out of your way, you're now doing the following: (Hint: Click **visualize** to see an animation describing the code).
 
-In these lines, you defined a LightningFlow which coordinates how the LightningWorks interact together.
-In engineering, we call this **orchestration**:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-        <div class="col-md-4">
-
-        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" width="100%">
-
-.. raw:: html
-
-        </div>
-        <div class="col-md-8">
-
-.. code:: python
-    :emphasize-lines: 8, 15
-
-    # app.py
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-        # the run method of LightningFlow is an orchestrator
-        def run(self):
-            self.work_A.run("running code A on a CPU machine")
-            self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
-
-.. raw:: html
-
-        </div>
-        </div>
-    </div>
-
-⚡⚡ Now you know how to orchestrate!
-
-.. hint::
-
-    If you've used other orchestration frameworks before, this should already be familiar! In `level 4 <level_4.html>`_, you'll
-    see how to generalize beyond "orchestrators" with reactive workflows that allow you to build complex
-    systems without much effort!
+.. lit_tabs::
+   :titles: Orchestration; Distributed cloud computing; Multi-machine communication; Multi-machine communication; Multi-cloud;
+   :descriptions: Define orchestration in Python with full control-flow; The two pieces of independent Python code ran on separate machines 🤯🤯; The text "GPU machine 1" was sent from the flow machine to the machine running the TrainComponent;  The text "CPU machine 2" was sent from the flow machine to the machine running the AnalyzeComponent; The full Lightning app can move across clusters and clouds
+   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./hello_components/multi_cloud.bash
+   :tab_rows: 4
+   :highlights: 18-20; 15-16; 19; 20; 2
+   :images: <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" style="max-height: 430px; width: auto"></img>
+   :height: 450px
 
 ----
 
----------------------------
-Distributed cloud computing
----------------------------
-The two pieces of independent Python code ran on *separate* 🤯🤯 machines:
+*********************
+Maintain full control
+*********************
+Although we've abstracted the infrastructure, you still have full control when you need it:
 
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-        <div class="col-md-4">
-        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" width="100%">
-
-.. raw:: html
-
-        </div>
-        <div class="col-md-8">
-
-.. code:: python
-    :emphasize-lines: 13, 16
-
-    # app.py
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-
-            # runs on machine 1
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-
-            # runs on machine 2
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-        def run(self):
-            self.work_A.run("running code A on a CPU machine")
-            self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
-
-.. raw:: html
-
-        </div>
-        </div>
-    </div>
-
-⚡⚡ Now you're a distributed computing wiz!
+.. lit_tabs::
+   :titles: Scheduler; Crontab syntax; Auto-scaling; Organized Python; Full terraform control;
+   :descriptions: Although you can use Python timers, we have a scheduler short-hand; You can also use full cron syntax; Code your own auto-scaling syntax (Lightning plays well with Kubernetes); *Remember* components organize ANY Python code which can even call external non-python scripts such as optimized C++ model servers ;Experts have the option to use terraform to configure Lightning clusters
+   :code_files: ./level_2_scripts/hello_app_scheduler.py; ./level_2_scripts/hello_app_cron.py; ./level_2_scripts/hello_app_auto_scale.py; ./level_2_scripts/organized_app_python.py; ./hello_components/terraform_example.bash;
+   :tab_rows: 4
+   :highlights: 22, 23; 22, 23; 20, 23, 26, 27; 8-11, 15-17; 2
+   :height: 680px
 
 ----
 
----------------------------
-Multi-machine communication
----------------------------
-Notice that the LightningFlow sent the variables: (**message_a** -> machine A),  (**message_b** -> machine B):
+***************************
+Next step: Build a real app
+***************************
+Now that you know how to build components and connect them, pick an app to build in a 
+step-by-step walkthrough.
+
+Once you feel comfortable with these examples, move to the `intermediate levels <../intermediate/index.html>`_, where we'll learn about running
+components in parallel so we can build reactive full-stack AI apps.
 
 .. raw:: html
 
-    <div class="display-card-container">
-        <div class="row">
-        <div class="col-md-4">
-        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" width="100%">
+   <div>
+      <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
+
+.. app_card::
+   :title: TODO: Name 1
+   :description: Train an LLM (512 GPUs)
+   :width: 280
+   :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: Model
+
+.. app_card::
+   :title: TODO: Name 2
+   :description: Production-ready stable diffusion server
+   :width: 280
+   :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: App
+
+.. app_card::
+   :title: TODO: Name 3
+   :description: Production-ready generative AI app
+   :width: 280
+   :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
+   :preview: https://lightning.ai
+   :deploy: https://lightning.ai
+   :target: https://apple.com
+   :tags: App
 
 .. raw:: html
 
-        </div>
-        <div class="col-md-8">
-
-.. code:: python
-    :emphasize-lines: 15, 16, 17, 18
-
-    # app.py
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-        def run(self):
-            message_a = "running code A on a CPU machine"
-            message_b = "running code B on a GPU machine"
-            self.work_A.run(message_a)
-            self.work_B.run(message_b)
-
-    app = L.LightningApp(LitWorkflow())
-
-
-.. raw:: html
-
-        </div>
-        </div>
-    </div>
-⚡⚡ Now you're also an expert in networking and cross-machine communication!
-
-----
-
------------------------------
-Multi-cloud and multi-cluster
------------------------------
-The full workflow (which we call a Lightning App), can easily be moved across clouds and clusters.
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-        <div class="col-md-4">
-        <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" width="100%">
-
-.. raw:: html
-
-        </div>
-        <div class="col-md-8">
-
-Run on Cluster A
-
-.. code:: bash
-
-    lightning run app app.py --cloud cluster-A
-
-Run on Cluster B
-
-.. code:: bash
-
-    lightning run app app.py --cloud cluster-B
-
-.. raw:: html
-
-        </div>
-        </div>
-    </div>
-
-⚡⚡ Now your workflows are multi-cloud!
-
-.. collapse:: Create a cluster on your AWS account
-
-   |
-   To run on your own AWS account, first `create an AWS ARN <../glossary/aws_arn.rst>`_.
-
-   Next, set up a Lightning cluster (here we name it **cluster-A**):
-
-   .. code:: bash
-
-      # TODO: need to remove  --external-id dummy --region us-west-2
-      lightning create cluster cluster-A --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
-
-   Run your code on the **cluster-A** cluster by passing it into CloudCompute:
-
-   .. code:: python 
-
-      compute = L.CloudCompute('gpu', clusters=['cluster-A'])
-      app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-   .. warning:: 
-      
-      This feature is available only under early-access. Request access by emailing support@lightning.ai.
-
-----
-
-----------
-Kubernetes
-----------
-Under the hood, Lightning works with Kubernetes to manage the infrastructure on your behalf. 
-This means you don't have to learn kubernetes to run cloud workflows anymore.
-
-Lightning also plays well with current Kubernetes clusters and even lets you 
-`create the clusters yourself with terraform <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
-
-----
-
--------------------
-Secure environments
--------------------
-When you build clusters with Lightning, we ensure everything is configured securily which includes abiding by SOC-2 (type 1) guidelines.
-
-For startups or enterprises who want to learn more, please contact support@lightning.ai.
-
-----
-
-*************
-Schedule work
-*************
-Although you can use python timers to scheduler work, 
-Lightning has an optional shorthand API (`self.schedule <../../core_api/lightning_flow.html#lightning_app.core.flow.LightningFlow.schedule>`_) 
-that uses `crontab syntax <https://crontab.guru/>`_:
-
-.. code:: python
-    :emphasize-lines: 17
-
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-        def run(self):
-            self.work_A.run("running code A on a CPU machine")
-
-            # B runs once, and then again every hour
-            if self.schedule("hourly"):
-                self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
-
-----
-
-*************************
-Next step: A real example
-*************************
-You now know enough to build pretty powerful cloud workflows!
-
-Choose an example to walk through step-by-step. 
-
-Once you feel comfortable with these examples, move to the intermediate guide, where we'll learn about reactive
-workflows which will allow you build full-stack AI applications.
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Example: Train PyTorch on the cloud
-   :description: Train a PyTorch model in single or multi-node on the cloud
-   :button_link: train_pytorch_on_the_cloud.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Example: Deploy a model API
-   :description: Deploy a model behind a load-balanced API.
-   :button_link: deploy_ai_model_api.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Example: Develop a Jupyter Notebook component
-   :description: Develop a LightningWork that runs a notebook on the cloud.
-   :button_link: run_jupyter_notebook_on_the_cloud.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Example: Create a model demo
-   :description: Demo POCs and MVPs which can be shared with a public web user interface.
-   :button_link: create_a_model_demo.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Example: Directed Acyclical Graph (DAG)
-   :description: Learn how to build a DAG with Lightning workflows.
-   :button_link: create_a_model_demo.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. raw:: html
-
-        </div>
-    </div>
+      </div>
+   </div>
