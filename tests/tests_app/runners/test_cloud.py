@@ -92,19 +92,30 @@ def get_cloud_runtime_request_body(**kwargs) -> "Body8":
     return Body8(**default_request_body)
 
 
+@pytest.fixture
+def cloud_backend(monkeypatch):
+    cloud_backend = mock.MagicMock()
+    monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+    monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+    return cloud_backend
+
+@pytest.fixture
+def project_id():
+    return "test-project-id"
+
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
     # TODO: remove this test once there is support for multiple instances
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_new_instance_on_different_cluster(self, monkeypatch):
+    def test_new_instance_on_different_cluster(self, monkeypatch, cloud_backend, project_id):
         app_name = "test-app-name"
         original_cluster = "cluster-001"
         new_cluster = "cluster-002"
 
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
-            memberships=[V1Membership(name="Default Project", project_id="default-project-id")]
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
         mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
             cluster_id=new_cluster
@@ -113,11 +124,7 @@ class TestAppCreationClient:
             [Externalv1Cluster(id=original_cluster), Externalv1Cluster(id=new_cluster)]
         )
 
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
         app = mock.MagicMock()
         app.flows = []
@@ -133,38 +140,26 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
-        # without requirements file
-        # setting is_file to False so requirements.txt existence check will return False
-        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
-        monkeypatch.setattr(cloud, "Path", Path)
-
         # This is the main assertion:
         # we have an existing instance on `cluster-001`
         # but we want to run this app on `cluster-002`
-        cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
+        with pytest.raises(ValueError) as exception:
+            cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
-        body = Body8(
-            cluster_id=new_cluster,
-            app_entrypoint_file=mock.ANY,
-            enable_app_server=True,
-            flow_servers=[],
-            image_spec=None,
-            works=[],
-            local_source=True,
-            dependency_cache_key=mock.ANY,
-            user_requested_flow_compute_config=mock.ANY,
-        )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-            project_id="default-project-id", app_id=mock.ANY, body=body
-        )
-        cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
-            project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id=new_cluster, project_id="default-project-id"),
+        assert str(exception.value) == "\n".join([
+                f"Can not run app '{app_name}' on cluster {new_cluster} "
+                    f"since it already exists on {original_cluster} "
+                    "(moving apps between clusters is not supported).",
+                "You can either:",
+                f"a. rename app to run on {original_cluster} with the --name option",
+                "lightning run app script.py"
+                    f"--name (new name) --cloud --cluster-id {original_cluster}",
+                "b. delete the existing app in the UI before running this command."
+            ]
         )
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_run_with_default_flow_compute_config(self, monkeypatch, flow_cloud_compute):
+    def test_run_with_default_flow_compute_config(self, monkeypatch, flow_cloud_compute, cloud_backend):
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -176,10 +171,7 @@ class TestAppCreationClient:
             cluster_id="test"
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
 
         dummy_flow = mock.MagicMock()
         monkeypatch.setattr(dummy_flow, "run", lambda *args, **kwargs: None)
@@ -208,8 +200,7 @@ class TestAppCreationClient:
             project_id="test-project-id", app_id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_run_on_byoc_cluster(self, monkeypatch):
+    def test_run_on_byoc_cluster(self, monkeypatch, cloud_backend):
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="Default Project", project_id="default-project-id")]
@@ -223,11 +214,7 @@ class TestAppCreationClient:
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
             [Externalv1Cluster(id="test1234")]
         )
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
@@ -258,8 +245,7 @@ class TestAppCreationClient:
             body=V1ProjectClusterBinding(cluster_id="test1234", project_id="default-project-id"),
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_requirements_file(self, monkeypatch):
+    def test_requirements_file(self, monkeypatch, cloud_backend):
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -271,11 +257,7 @@ class TestAppCreationClient:
             cluster_id="test"
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
@@ -317,8 +299,7 @@ class TestAppCreationClient:
             project_id="test-project-id", app_id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_no_cache(self, monkeypatch):
+    def test_no_cache(self, monkeypatch, cloud_backend):
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -330,11 +311,7 @@ class TestAppCreationClient:
             cluster_id="test"
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         monkeypatch.setattr(cloud, "get_hash", lambda *args, **kwargs: "dummy-hash")
         app = mock.MagicMock()
         app.flows = []
@@ -367,9 +344,8 @@ class TestAppCreationClient:
         body = kwargs["body"]
         assert body.dependency_cache_key is None
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app(self, lightningapps, monkeypatch, tmpdir):
+    def test_call_with_work_app(self, lightningapps, monkeypatch, tmpdir, cloud_backend):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -391,11 +367,7 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         flow = mock.MagicMock()
 
@@ -469,9 +441,8 @@ class TestAppCreationClient:
                 project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_queue_server_type_specified(self, lightningapps, monkeypatch, tmpdir):
+    def test_call_with_queue_server_type_specified(self, lightningapps, monkeypatch, tmpdir, cloud_backend):
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
             memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -483,11 +454,7 @@ class TestAppCreationClient:
             cluster_id="test"
         )
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
@@ -529,9 +496,8 @@ class TestAppCreationClient:
             project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=body
         )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
+    def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir, cloud_backend):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -556,11 +522,7 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         flow = mock.MagicMock()
 
@@ -662,9 +624,8 @@ class TestAppCreationClient:
                 project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
+    def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir, cloud_backend):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -689,11 +650,7 @@ class TestAppCreationClient:
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         flow = mock.MagicMock()
 
@@ -860,9 +817,8 @@ class TestAppCreationClient:
                 project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
             )
 
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
     @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
+    def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir, cloud_backend):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -888,11 +844,7 @@ class TestAppCreationClient:
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = None
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
-        cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
         flow = mock.MagicMock()
 
@@ -1016,7 +968,6 @@ class TestAppCreationClient:
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_get_project(monkeypatch):
     mock_client = mock.MagicMock()
     monkeypatch.setattr(cloud, "CloudBackend", mock.MagicMock(return_value=mock_client))
@@ -1049,7 +1000,6 @@ def test_get_project(monkeypatch):
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
 
     monkeypatch.setattr(cloud, "logger", logging.getLogger())
@@ -1072,7 +1022,6 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
-@mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_project_has_sufficient_credits():
     app = mock.MagicMock(spec=LightningApp)
     cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
