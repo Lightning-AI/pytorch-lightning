@@ -45,7 +45,7 @@ jobs:
   make-doctest:
     runs-on: ubuntu-20.04
     # make it depending on build docs to reduce load
-    needs: make-html
+    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
