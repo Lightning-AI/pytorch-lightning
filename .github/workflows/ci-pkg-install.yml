@@ -99,11 +99,11 @@ jobs:
 
       - name: Run CLI
         # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name== '' }}
+        if: ${{ matrix.pkg-name == '' }}
         run: python -m lightning --version
 
       - name: DocTest package
         run: |
           pip list
-          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg}}', 'lightning'))")
+          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg-name}}', 'lightning'))")
           python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"
