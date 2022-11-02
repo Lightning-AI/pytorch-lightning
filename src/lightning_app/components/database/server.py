@@ -142,7 +142,6 @@ class Database(LightningWork):
         self.debug = debug
         self.store_interval = store_interval
         self._models = models if isinstance(models, list) else [models]
-        self._drive_name = "lit://database"
         self._store_thread = threading.Thread(target=self.periodic_store_database, args=(store_interval,), daemon=True)
 
     def run(self, token: Optional[str] = None) -> None:
@@ -150,7 +149,7 @@ class Database(LightningWork):
         Arguments:
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
         """
-        drive = Drive(self._drive_name, component_name=self.name)
+        drive = Drive("lit://database", component_name=self.name)
         if drive.list(component_name=self.name):
             drive.get(self.db_filename)
             print("Retrieved the database from Drive.")
@@ -200,7 +199,7 @@ class Database(LightningWork):
             source.close()
             dest.close()
 
-            drive = Drive(self._drive_name, component_name=self.name, root_folder=tmpdir)
+            drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
             drive.put(tmp_db_filename)
 
         print("Stored the database to the Drive.")
