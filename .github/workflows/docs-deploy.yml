@@ -37,8 +37,7 @@ jobs:
           aws-region: us-east-1
       - run: |
           mkdir pypi
-          aws s3 cp s3://sphinx-packages/*.whl pypi/
-          # aws s3 sync dist/ s3://sphinx-packages/
+          aws s3 sync s3://sphinx-packages/ pypi/
           # FIXME
           ls -l pypi/
 
