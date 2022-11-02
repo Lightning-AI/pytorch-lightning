@@ -195,7 +195,7 @@ class _LRFinder:
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
 
-    def broadcast_results(self, trainer: "pl.Trainer", global_rank: int):
+    def broadcast_results(self, trainer: "pl.Trainer", global_rank: int) -> None:
         results = self.results
         results = trainer.strategy.broadcast(results, src=global_rank)
         self.results = results
@@ -397,8 +397,10 @@ class _LRCallback(Callback):
                     self.progress_bar.close()
 
         if trainer.should_stop:
-            self.should_stop_rank = trainer.strategy.reduce(
-                torch.tensor(trainer.global_rank, device=pl_module.device), reduce_op="max"
+            self.should_stop_rank = int(
+                trainer.strategy.reduce(
+                    torch.tensor(trainer.global_rank, device=pl_module.device), reduce_op="max"
+                ).item()
             )
             trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
