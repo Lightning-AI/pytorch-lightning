@@ -283,7 +283,7 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
-@pytest.mark.parametrize("autosetup_strategy", [True, False])
+@pytest.mark.parametrize("autosetup_strategy", (False, True))
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_collectives_distributed_cuda(autosetup_strategy):
     collective_launch(_test_distributed_collectives_cuda_fn, "cuda", 1, autosetup_strategy)
@@ -304,16 +304,9 @@ def _test_two_groups(strategy, left_collective, right_collective, device):
 
 
 @skip_distributed_unavailable
-@pytest.mark.parametrize(
-    ["device_type", "autosetup_strategy"],
-    [
-        ("cpu", True),
-        ("cpu", False),
-        pytest.param("cuda", True, marks=RunIf(min_cuda_gpus=3)),
-        pytest.param("cuda", False, marks=RunIf(min_cuda_gpus=3)),
-    ],
-)
-@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 @RunIf(skip_windows=True)  # flaky test on Windows - RuntimeError: Socket Timeout
+@pytest.mark.parametrize("device_type", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))))
+@pytest.mark.parametrize("autosetup_strategy", (False, True))
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_two_groups(device_type, autosetup_strategy):
     collective_launch(_test_two_groups, device_type, 3, autosetup_strategy, num_groups=2)
