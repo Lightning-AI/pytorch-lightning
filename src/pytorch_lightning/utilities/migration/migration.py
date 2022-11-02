@@ -16,7 +16,7 @@
 When Lightning loads a checkpoint, these migrations will be applied on the loaded checkpoint dictionary sequentially,
 see :func:`~pytorch_lightning.utilities.migration.utils.migrate_checkpoint`.
 
-How to add a new migration?
+For the Lightning developer: How to add a new migration?
 
 1. Create a new function with a descriptive name and docstring that explains the details of this migration. Include
    version information as well as the specific commit or PR where the breaking change happened.
