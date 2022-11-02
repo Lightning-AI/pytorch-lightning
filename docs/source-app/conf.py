@@ -93,7 +93,7 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "sphinx.ext.githubpages",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
