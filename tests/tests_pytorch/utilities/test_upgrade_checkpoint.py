@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.migration import migrate_checkpoint
 from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 from pytorch_lightning.utilities.upgrade_checkpoint import main as upgrade_main
 
+
 @pytest.mark.parametrize(
     "old_checkpoint, new_checkpoint",
     [
