@@ -21,7 +21,6 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import accuracy_score
 from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
 
@@ -368,8 +367,10 @@ def test_result_reduce_horovod(tmpdir):
 
 # todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
-@RunIf(horovod=True, skip_windows=True, num_gpus=2)
+@RunIf(horovod=True, skip_windows=True, num_gpus=2, sklearn=True)
 def test_accuracy_metric_horovod():
+    from sklearn.metrics import accuracy_score
+
     num_batches = 10
     batch_size = 16
     threshold = 0.5
