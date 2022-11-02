@@ -121,7 +121,8 @@ callback appended. Here is an example:
 .. note::
 
     Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.cli.SaveConfigCallback`) always have
-    the full ``class_path``, even when class name shorthand notation is used in the command line or in input config files.
+    the full ``class_path``, even when class name shorthand notation is used in the command line or in input config
+    files.
 
 
 Multiple models and/or datasets
@@ -219,9 +220,9 @@ It is also possible to combine ``subclass_mode_model=True`` and submodules, ther
 Optimizers
 ^^^^^^^^^^
 
-In some cases, fixing the optimizer and/or learning scheduler might be desired instead of allowing multiple.
-For this, you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet
-shows how to implement it:
+In some cases, fixing the optimizer and/or learning scheduler might be desired instead of allowing multiple. For this,
+you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet shows how to
+implement it:
 
 .. testcode::
 

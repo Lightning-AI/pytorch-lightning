@@ -82,9 +82,9 @@ generates a config with all default values like the following:
       data_dir: ./
     ckpt_path: null
 
-Other command line arguments can be given and considered in the printed configuration. A use case for this is CLIs
-that accept multiple models. By default, no model is selected, meaning the printed config will not include model
-settings. To get a config with the default values of a particular model would be:
+Other command line arguments can be given and considered in the printed configuration. A use case for this is CLIs that
+accept multiple models. By default, no model is selected, meaning the printed config will not include model settings. To
+get a config with the default values of a particular model would be:
 
 .. code:: bash
 

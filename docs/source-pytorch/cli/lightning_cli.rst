@@ -15,8 +15,8 @@ When running deep learning experiments, there are a couple of good practices tha
 - Separate configuration from source code
 - Guarantee reproducibility of experiments
 
-Implementing a command line interface (CLI) makes it possible to execute an experiment from a shell terminal. By having a
-CLI, there is a clear separation between the Python source code and what hyperparameters are used for a particular
+Implementing a command line interface (CLI) makes it possible to execute an experiment from a shell terminal. By having
+a CLI, there is a clear separation between the Python source code and what hyperparameters are used for a particular
 experiment. If the CLI corresponds to a stable version of the code, reproducing an experiment can be achieved by
 installing the same version of the code plus dependencies and running with the same configuration (CLI arguments).
 

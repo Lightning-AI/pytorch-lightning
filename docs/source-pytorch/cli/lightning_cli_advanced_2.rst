@@ -56,7 +56,8 @@ To customize arguments by subcommand, pass the config *before* the subcommand:
     $ python main.py [before] [subcommand] [after]
     $ python main.py  ...         fit       ...
 
-For example, here we set the Trainer argument [max_steps = 100] for the full training routine and [max_steps = 10] for testing:
+For example, here we set the Trainer argument [max_steps = 100] for the full training routine and [max_steps = 10] for
+testing:
 
 .. code-block:: bash
 
@@ -107,7 +108,8 @@ For certain CI/CD systems, it's useful to pass in raw yaml config as environment
 ***************************************
 Run from environment variables directly
 ***************************************
-The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, set the *env_parse* argument:
+The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, set the *env_parse*
+argument:
 
 .. code:: python
 

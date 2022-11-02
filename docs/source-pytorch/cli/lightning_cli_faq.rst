@@ -103,5 +103,5 @@ before running the CLI:
 .. note::
 
     When asking about problems and reporting issues, please set the ``JSONARGPARSE_DEBUG`` and include the stack trace
-    in your description. With this, users are more likely to help identify the cause without needing to
-    create a reproducible script.
+    in your description. With this, users are more likely to help identify the cause without needing to create a
+    reproducible script.
