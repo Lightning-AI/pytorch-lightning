@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
+- Changed the `flow.flows` to be recursive wont to align the behavior with the `flow.works` ([#15466](https://github.com/Lightning-AI/lightning/pull/15466))
 
 -
 
@@ -47,7 +47,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 
-- Fixed an inconsistency where the flow won't be returning all its children flows ([#15466](https://github.com/Lightning-AI/lightning/pull/15466))
+-
 
 -
 
