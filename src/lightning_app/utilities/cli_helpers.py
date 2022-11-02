@@ -1,16 +1,24 @@
+import functools
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from typing import Dict, Optional
 
 import arrow
 import click
+import packaging
 import requests
 
+from lightning_app import __package_name__, __version__
 from lightning_app.core.constants import APP_SERVER_PORT
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
+
+logger = Logger(__name__)
 
 
 def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
@@ -214,3 +222,108 @@ def _arrow_time_callback(
             return arrow.get(value)
         except (ValueError, TypeError):
             raise click.ClickException(f"cannot parse time {value}")
+
+
+def _is_valid_release(release):
+    version, release = release
+    version = packaging.version.parse(version)
+    if any(r["yanked"] for r in release) or version.is_devrelease or version.is_prerelease:
+        return False
+    return True
+
+
+@functools.lru_cache(maxsize=1)
+def _get_newer_version() -> Optional[str]:
+    """Check PyPI for newer versions of ``lightning``, returning the newest version if different from the current
+    or ``None`` otherwise."""
+    if packaging.version.parse(__version__).is_prerelease:
+        return None
+    try:
+        response = requests.get(f"https://pypi.org/pypi/{__package_name__}/json")
+        releases = response.json()["releases"]
+        if __version__ not in releases:
+            # Always return None if not installed from PyPI (e.g. dev versions)
+            return None
+        releases = {version: release for version, release in filter(_is_valid_release, releases.items())}
+        sorted_releases = sorted(
+            releases.items(), key=lambda release: release[1][0]["upload_time_iso_8601"], reverse=True
+        )
+        latest_version = sorted_releases[0][0]
+        return None if __version__ == latest_version else latest_version
+    except Exception:
+        # Return None if any exception occurs
+        return "err"
+
+
+def _redirect_command(executable: str):
+    """Redirect the current lightning CLI call to the given executable."""
+    subprocess.run(
+        [executable, "-m", "lightning"] + sys.argv[1:],
+        env=os.environ,
+    )
+
+    sys.exit()
+
+
+def _check_version_and_upgrade():
+    """Checks that the current version of ``lightning`` is the latest on PyPI.
+
+    If not, prompt the user to upgrade ``lightning`` for them and re-run the current call in the new version.
+    """
+    new_version = _get_newer_version()
+    if new_version:
+        prompt = f"A newer version of {__package_name__} is available ({new_version}). Would you like to upgrade?"
+
+        if click.confirm(prompt, default=True):
+            command = f"pip install --upgrade {__package_name__}"
+
+            logger.info(f"⚡ RUN: {command}")
+
+            # Upgrade
+            subprocess.run(
+                [sys.executable, "-m"] + command.split(" "),
+                check=True,
+            )
+
+            # Re-launch
+            _redirect_command(sys.executable)
+    return
+
+
+def _check_environment_and_redirect():
+    """Checks that the current ``sys.executable`` is the same as the executable resolved from the current
+    environment.
+
+    If not, this utility tries to redirect the ``lightning`` call to the environment executable (prompting the user to
+    install lightning for them there if needed).
+    """
+    env_executable = shutil.which("python")
+
+    if env_executable != sys.executable:
+        logger.info(
+            "Lightning is running from outside your current environment. Switching to your current environment."
+        )
+
+        process = subprocess.run(
+            [env_executable, "-m", "lightning", "--version"],
+            capture_output=True,
+            text=True,
+        )
+
+        if "No module named lightning" in process.stderr:
+            prompt = f"The {__package_name__} package is not installed. Would you like to install it? [Y/n (exit)]"
+
+            if click.confirm(prompt, default=True, show_default=False):
+                command = f"pip install {__package_name__}"
+
+                logger.info(f"⚡ RUN: {command}")
+
+                subprocess.run(
+                    [env_executable, "-m"] + command.split(" "),
+                    check=True,
+                )
+            else:
+                sys.exit()
+
+        _redirect_command(env_executable)
+    return
