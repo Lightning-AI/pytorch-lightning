@@ -258,13 +258,15 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        error = False
+        invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
         except ValueError as e:
-            error = "optimizer got an empty parameter list" in str(e)
+            if "optimizer got an empty parameter list" not in str(e):
+                raise
+            invalid_params_error = True
 
-        if error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"

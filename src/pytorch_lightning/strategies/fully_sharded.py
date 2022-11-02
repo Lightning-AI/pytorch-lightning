@@ -28,7 +28,6 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
@@ -192,13 +191,15 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        error = False
+        invalid_params_error = False
         try:
             super().setup_optimizers(trainer)
         except ValueError as e:
-            error = "optimizer got an empty parameter list" in str(e)
+            if "optimizer got an empty parameter list" not in str(e):
+                raise
+            invalid_params_error = True
 
-        if error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
             raise ValueError(
                 "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
                 " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
@@ -209,11 +210,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
         """Wraps the model into a
         :class:`~fairscale.nn.data_parallel.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
-
-        rank_zero_info(
-            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
-            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
-        )
 
         return FullyShardedDataParallel(
             module=model,
