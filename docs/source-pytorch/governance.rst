@@ -20,7 +20,7 @@ Lightning.app Maintainers
 --------------------------
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
-- Mansy (`manskx <https://github.com/manskx>`_)
+- Mansy Ahmed (`manskx <https://github.com/manskx>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 
 Lightning.pytorch Maintainers
@@ -31,7 +31,7 @@ Lightning.pytorch Maintainers
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
-- Ota (`otaj <https://github.com/otaj>`_)
+- Ota Jasek (`otaj <https://github.com/otaj>`_)
 
 Flash Maintainers
 -----------------
