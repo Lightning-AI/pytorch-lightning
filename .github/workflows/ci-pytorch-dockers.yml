@@ -37,7 +37,7 @@ jobs:
           # The matrix here is the same as the one in release-docker.yml.
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.10", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -96,7 +96,7 @@ jobs:
           # so include at least all of the combinations in release-dockers.yml.
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.10", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
