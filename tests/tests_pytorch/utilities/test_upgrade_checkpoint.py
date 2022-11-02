@@ -108,16 +108,16 @@ def test_upgrade_checkpoint_directory(migrate_mock, load_mock, save_mock, tmp_pa
     with mock.patch("sys.argv", ["upgrade_checkpoint.py", str(tmp_path)]):
         upgrade_main()
 
-    assert load_mock.call_args_list == [
-        call(tmp_path / "top1.ckpt"),
-        call(tmp_path / "top0.ckpt"),
-        call(tmp_path / "subdir0" / "nested0.ckpt"),
-        call(tmp_path / "subdir1" / "nested2.ckpt"),
-    ]
+    assert {c[0][0] for c in load_mock.call_args_list} == {
+        tmp_path / "top0.ckpt",
+        tmp_path / "top1.ckpt",
+        tmp_path / "subdir0" / "nested0.ckpt",
+        tmp_path / "subdir1" / "nested2.ckpt",
+    }
     assert migrate_mock.call_count == 4
-    assert save_mock.call_args_list == [
-        call(ANY, tmp_path / "top1.ckpt"),
-        call(ANY, tmp_path / "top0.ckpt"),
-        call(ANY, tmp_path / "subdir0" / "nested0.ckpt"),
-        call(ANY, tmp_path / "subdir1" / "nested2.ckpt"),
-    ]
+    assert {c[0][1] for c in save_mock.call_args_list} == {
+        tmp_path / "top0.ckpt",
+        tmp_path / "top1.ckpt",
+        tmp_path / "subdir0" / "nested0.ckpt",
+        tmp_path / "subdir1" / "nested2.ckpt",
+    }
