@@ -309,7 +309,7 @@ def test_lightning_flow_and_work():
                 self._exit()
 
     flow_a = Flow_A()
-    assert flow_a.named_works() == [("work_a", flow_a.work_a), ("work_b", flow_a.work_b)]
+    assert flow_a.named_works() == [("root.work_a", flow_a.work_a), ("root.work_b", flow_a.work_b)]
     assert flow_a.works() == [flow_a.work_a, flow_a.work_b]
     state = {
         "vars": {"counter": 0, "_layout": ANY, "_paths": {}},

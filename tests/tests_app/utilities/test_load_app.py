@@ -1,5 +1,4 @@
 import os
-from unittest.mock import ANY
 
 import pytest
 import tests_app.core.scripts
@@ -31,12 +30,6 @@ def test_extract_metadata_from_component():
     metadata = extract_metadata_from_app(app)
     assert metadata == [
         {
-            "affiliation": ["root"],
-            "cls_name": "RootFlow",
-            "module": "__main__",
-            "docstring": "RootFlow.",
-        },
-        {
             "affiliation": ["root", "flow_a_1"],
             "cls_name": "FlowA",
             "module": "__main__",
@@ -47,9 +40,17 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": ANY},
-            "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": ANY,
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "mounts": None,
+                "_internal_id": "default",
+            },
         },
         {
             "affiliation": ["root", "flow_a_2"],
@@ -62,23 +63,34 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": ANY},
-            "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": ANY,
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "mounts": None,
+                "_internal_id": "default",
+            },
         },
-        {
-            "affiliation": ["root", "flow_b"],
-            "cls_name": "FlowB",
-            "module": "__main__",
-            "docstring": "FlowB.",
-        },
+        {"affiliation": ["root", "flow_b"], "cls_name": "FlowB", "module": "__main__", "docstring": "FlowB."},
         {
             "affiliation": ["root", "flow_b", "work_b"],
             "cls_name": "WorkB",
             "module": "__main__",
             "docstring": "WorkB.",
-            "local_build_config": {"__build_config__": ANY},
-            "cloud_build_config": {"__build_config__": ANY},
-            "cloud_compute": ANY,
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "gpu",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "shm_size": 0,
+                "mounts": None,
+                "_internal_id": "fe8e5bd",
+            },
         },
     ]
