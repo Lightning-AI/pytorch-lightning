@@ -16,14 +16,7 @@ Role: All final decisions related to Lightning.
 
 - William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 
-Lightning.app Maintainers
---------------------------
-- Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
-- Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
-- Mansy Ahmed (`manskx <https://github.com/manskx>`_)
-- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-
-Lightning.pytorch Maintainers
+Maintainers
 -----------------------------
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
@@ -33,16 +26,14 @@ Lightning.pytorch Maintainers
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ota Jasek (`otaj <https://github.com/otaj>`_)
 
-Flash Maintainers
------------------
-- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-- Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
+Sunsetting
+----------
+Role: These are no longer focused on maintenance
 
-TorchMetrics Maintainers
-------------------------
-- Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
-- Justus Schock (`justusschock <https://github.com/justusschock>`_)
-- Jirka Borovec (`Borda <https://github.com/Borda>`_)
+- Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
+- Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
+- Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
+
 
 Alumni
 ------
