@@ -124,3 +124,20 @@ def test_migrate_checkpoint_for_pl(caplog):
         "content": 123,
     }
     assert f"Lightning automatically upgraded your loaded checkpoint from v0.0.1 to v{pl.__version__}" in caplog.text
+
+
+def test_migrate_checkpoint_legacy_version(monkeypatch):
+    """Test that the legacy version gets set and does not change if migration is applied multiple times."""
+    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
+
+    # pretend the current pl version is 2.0
+    monkeypatch.setattr(pl, "__version__", "2.0.0")
+    new_checkpoint, _ = migrate_checkpoint(loaded_checkpoint)
+    assert new_checkpoint["pytorch-lightning_version"] == "2.0.0"
+    assert new_checkpoint["legacy_pytorch-lightning_version"] == "0.0.1"
+
+    # pretend the current pl version is even newer, we are migrating a second time
+    monkeypatch.setattr(pl, "__version__", "3.0.0")
+    new_new_checkpoint, _ = migrate_checkpoint(new_checkpoint)
+    assert new_new_checkpoint["pytorch-lightning_version"] == "3.0.0"
+    assert new_new_checkpoint["legacy_pytorch-lightning_version"] == "0.0.1"  # remains the same

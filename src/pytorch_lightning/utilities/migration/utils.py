@@ -131,8 +131,8 @@ def _set_version(checkpoint: _CHECKPOINT, version: str) -> None:
 
 
 def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
-    """Set the legacy version of a Lightning checkpoint."""
-    checkpoint["legacy_pytorch-lightning_version"] = version
+    """Set the legacy version of a Lightning checkpoint if a legacy version is not already set."""
+    checkpoint.setdefault("legacy_pytorch-lightning_version", version)
 
 
 def _should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
