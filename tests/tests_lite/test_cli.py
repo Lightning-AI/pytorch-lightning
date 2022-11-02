@@ -16,7 +16,6 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-
 import torch.distributed.run
 from tests_lite.helpers.runif import RunIf
 
