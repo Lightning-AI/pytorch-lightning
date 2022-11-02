@@ -7,7 +7,7 @@ import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -28,8 +28,12 @@ from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger, \
-    select_checkpoint_from_filenames_list
+from lightning_app.utilities.app_helpers import (
+    _delta_to_app_state_delta,
+    _LightningAppRef,
+    Logger,
+    select_checkpoint_from_filenames_list,
+)
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, ComponentContext
