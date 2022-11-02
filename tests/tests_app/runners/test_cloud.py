@@ -100,9 +100,11 @@ def cloud_backend(monkeypatch):
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
     return cloud_backend
 
+
 @pytest.fixture
 def project_id():
     return "test-project-id"
+
 
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
@@ -146,15 +148,15 @@ class TestAppCreationClient:
         with pytest.raises(ValueError) as exception:
             cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
-        assert str(exception.value) == "\n".join([
+        assert str(exception.value) == "\n".join(
+            [
                 f"Can not run app '{app_name}' on cluster {new_cluster} "
-                    f"since it already exists on {original_cluster} "
-                    "(moving apps between clusters is not supported).",
+                f"since it already exists on {original_cluster} "
+                "(moving apps between clusters is not supported).",
                 "You can either:",
                 f"a. rename app to run on {original_cluster} with the --name option",
-                "lightning run app script.py"
-                    f"--name (new name) --cloud --cluster-id {original_cluster}",
-                "b. delete the existing app in the UI before running this command."
+                "lightning run app script.py" f"--name (new name) --cloud --cluster-id {original_cluster}",
+                "b. delete the existing app in the UI before running this command.",
             ]
         )
 

@@ -11,12 +11,12 @@ from typing import Any, Callable, List, Optional, Union
 
 import click
 from lightning_cloud.openapi import (
-    Externalv1LightningappInstance,
     Body3,
     Body4,
     Body7,
     Body8,
     Body9,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
@@ -333,16 +333,18 @@ class CloudRuntime(Runtime):
                     app_config.cluster_id = None
                 if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
                     raise ValueError(
-                        "\n".join([
-                            f"Can not run app '{app_config.name}' on cluster {app_config.cluster_id} "
+                        "\n".join(
+                            [
+                                f"Can not run app '{app_config.name}' on cluster {app_config.cluster_id} "
                                 f"since it already exists on {existing_instance.spec.cluster_id} "
                                 "(moving apps between clusters is not supported).",
-                            "You can either:",
-                            f"a. rename app to run on {existing_instance.spec.cluster_id} with the --name option",
-                            "lightning run app script.py"
+                                "You can either:",
+                                f"a. rename app to run on {existing_instance.spec.cluster_id} with the --name option",
+                                "lightning run app script.py"
                                 f"--name (new name) --cloud --cluster-id {existing_instance.spec.cluster_id}",
-                            "b. delete the existing app in the UI before running this command."
-                        ])
+                                "b. delete the existing app in the UI before running this command.",
+                            ]
+                        )
                     )
 
             if app_config.cluster_id is not None:
