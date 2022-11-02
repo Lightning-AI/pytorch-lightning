@@ -35,6 +35,7 @@ class WorkWithCustomBaseImage(LightningWork):
 
 
 class CustomWorkBuildConfigChecker(LightningFlow):
+    # run
     def run(self):
         # create dynamically the work at runtime
         if not hasattr(self, "work1"):
