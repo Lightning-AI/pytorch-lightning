@@ -96,7 +96,7 @@ if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
     if _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
-        _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+        _SETUP_TOOLS.load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
 
     _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), _PACKAGE_MAPPING)
 

@@ -258,7 +258,7 @@ def _download_frontend(pkg_path: str):
         print("The Lightning UI downloading has failed!")
 
 
-def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
+def load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False, skip_pkgs: tuple = ('lightning-lite')) -> None:
     """Load all base requirements from all particular packages and prune duplicates."""
     requires = [
         load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
@@ -270,6 +270,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         return None
     # TODO: add some smarter version aggregation per each package
     requires = set(chain(*requires))
+    requires = [req for req in requires if parse_requirements([req])[0].name not in skip_pkgs]
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
 
