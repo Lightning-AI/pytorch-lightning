@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning.app.structures import Dict
+from lightning_app.structures import Dict
 from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
 
 

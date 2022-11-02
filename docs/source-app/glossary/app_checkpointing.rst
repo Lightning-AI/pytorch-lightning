@@ -22,12 +22,15 @@ How to save a checkpoint
 Saving a checkpoint is simple. In main flow if your lightning app, implement `should_save_checkpoint()` that returns True when you want to save a checkpoint.
 
 .. code-block:: python
+
     class MyLightningApp(L.LightningFlow):
         def run(self):
             # do stuff
             pass
+
         def should_save_checkpoint(self):
             return True
+
 When `should_save_checkpoint()` returns True, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in lightning shared storage at `/checkpoints` and will be named `lightningapp_checkpoint_<timestamp>.json`.
 
 
@@ -41,15 +44,23 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
 1. The path to the local checkpoint file
 
 .. code-block:: bash
+
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501626.json
+
+
 2. The name of the checkpoint file in lightning shared storage
 
 .. code-block:: bash
+
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501688
+
+
 3. keyword `latest` to start from the latest checkpoint file in lightning shared storage.
 
 .. code-block:: bash
+
     lightning run app app.py --checkpoint latest
+
 When starting from a checkpoint, Lightning will load the checkpoint file and start the app from the saved state and update all app components with the saved state.
 
 
@@ -65,23 +76,31 @@ To control how the checkpoint is loaded and create the missing components, imple
 
 
 .. code-block:: python
+
     class Work(L.LightningWork):
         def __init__(self):
             super().__init__()
             self.counter = 0
+
         def run(self):
             self.counter += 1
+
+
     class MyLightningApp(L.LightningFlow):
         def run(self):
             # dynamically create a work.
             if not getattr(self, "w", None):
                 self.w = WorkReload()
+
             self.w.run()
+
         def load_state_dict(self, flow_state, children_states, strict) -> None:
             # 1: Re-instantiate the dynamic work component
             self.w = Work()
+
             # 2: Make any states modification / migration.
             ...
+
             # 3: Call the parent ``load_state_dict`` to
             # recursively reload the states.
             super().load_state_dict(
@@ -89,4 +108,6 @@ To control how the checkpoint is loaded and create the missing components, imple
                 children_states,
                 strict,
             )
+
+
 .. note:: If you see this exception "The component <component_name> wasn't instantiated for the component root", it means that the checkpoint is not compatible with the app code and you need to implement `load_state_dict()` and make sure that all components in the checkpoint are instantiated.
