@@ -56,7 +56,7 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, 
         applied_migrations[migration_version] = [fn.__name__ for fn in migration_functions]
 
     if ckpt_version != pl.__version__:
-        _set_legacy_version(checkpoint, _get_version(checkpoint))
+        _set_legacy_version(checkpoint, ckpt_version)
     _set_version(checkpoint, pl.__version__)
     return checkpoint, applied_migrations
 
