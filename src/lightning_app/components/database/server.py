@@ -51,7 +51,8 @@ class Database(LightningWork):
         Arguments:
             models: A SQLModel or a list of SQLModels table to be added to the database.
             db_filename: The name of the SQLite database.
-            store_interval: Time interval (in seconds) at which the database is periodically synchronized to the Drive. Note that the database is also always synchronized on exit.
+            store_interval: Time interval (in seconds) at which the database is periodically synchronized to the Drive.
+                            Note that the database is also always synchronized on exit.
             debug: Whether to run the database in debug mode.
 
         Example::
@@ -141,9 +142,7 @@ class Database(LightningWork):
         self._models = models if isinstance(models, list) else [models]
         self.drive = None
         self._store_lock = threading.Lock()
-        self._store_thread = threading.Thread(target=self.periodic_store_database,
-                                              args=(store_interval,),
-                                              daemon=True)
+        self._store_thread = threading.Thread(target=self.periodic_store_database, args=(store_interval,), daemon=True)
 
     def run(self, token: Optional[str] = None) -> None:
         """
