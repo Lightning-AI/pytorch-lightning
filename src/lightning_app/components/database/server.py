@@ -190,6 +190,9 @@ class Database(LightningWork):
     def store_database(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_db_filename = os.path.join(tmpdir, self.db_filename)
+            print("#############")
+            print(tmp_db_filename)
+            print("#############")
 
             source = sqlite3.connect(self.db_filename)
             dest = sqlite3.connect(tmp_db_filename)
