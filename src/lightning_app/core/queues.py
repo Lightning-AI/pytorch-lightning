@@ -238,7 +238,8 @@ class RedisQueue(BaseQueue):
 
         is_work = isinstance(item, LightningWork)
 
-        # The backend isn't pickable.
+        # The backend isn't picklable
+        # Raises a TypeError: cannot pickle '_thread.RLock' object
         if is_work:
             backend = item._backend
             item._backend = None
