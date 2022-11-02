@@ -35,28 +35,28 @@ In this app, we define two components that run across 2 separate machines. One t
 on a separate CPU machine. We save money by stopping the GPU machine when the work is done.
 
 .. lit_tabs::
-   :titles: Import Lightning; Component 1;  Component 2; Orchestrator; Connect components; Implement run; Train; Analyze; Run app
-   :descriptions: First, import Lightning; This component trains a model on a GPU machine; This component analyzes a model on a CPU machine; Define the LightningFlow that orchestrates components; Connect components in the init method; Describe the workflow in the run method; Training runs first and completes; Analyze runs after training completes; This allows the app to be runnable
-   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py
-   :highlights: 2; 4-6; 8-10; 12; 15-16; 18; 19; 20; 22
+   :titles: Import Lightning; Define Component 1;  Define Component 2; Orchestrator; Connect component 1; Connect component 2; Implement run; Train; Analyze; Define app placeholder
+   :descriptions: First, import Lightning; This component trains a model on a GPU machine; This component analyzes a model on a CPU machine; Define the LightningFlow that orchestrates components; Component 1 will run on a CPU machine; Component 2 will run on an accelerated GPU machine; Describe the workflow in the run method; Training runs first and completes; Analyze runs after training completes; This allows the app to be runnable
+   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py
+   :highlights: 2; 4-6; 8-10; 12; 15; 16; 18; 19; 20; 22
    :app_id: abc123
    :tab_rows: 4
-   :height: 520px
+   :height: 450px
 
+|
 
-Run the app to see both works execute on separate machines 🤯
+Now run the app:
 
-.. code:: python
+.. lit_tabs::
+   :titles: Run on Lightning cloud; Your own hardware
+   :descriptions: Run to see these 2 components execute on separate machines 🤯; Run it locally without code changes 🤯🤯;
+   :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_local.bash
+   :tab_rows: 7
+   :height: 195px
 
-    lightning run app app.py --cloud
+|
 
-And run it locally to see that it runs on your laptop without code changes 🤯🤯
-
-.. code:: python
-
-    lightning run app app.py
-
-Now you can develop distributed cloud workflows on your laptop 🤯🤯🤯🤯!
+Now you can develop distributed cloud apps on your laptop 🤯🤯🤯🤯!
 
 
 ----
