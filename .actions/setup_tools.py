@@ -270,7 +270,7 @@ def load_aggregate_requirements(req_dir: str = "requirements", freeze_requiremen
         return None
     # TODO: add some smarter version aggregation per each package
     requires = set(chain(*requires))
-    requires = [req for req in requires if parse_requirements([req])[0].name not in skip_pkgs]
+    requires = [req for req in requires if list(parse_requirements([req]))[0].name not in skip_pkgs]
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
 
