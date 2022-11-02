@@ -9,6 +9,7 @@ on:
     paths:
       - ".actions/**"
       - "requirements/**"
+      - "docs/**"
       - "src/**"
       - "setup.py"
       - "setup.cfg"
