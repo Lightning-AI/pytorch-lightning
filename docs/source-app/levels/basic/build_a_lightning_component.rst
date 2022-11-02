@@ -1,6 +1,7 @@
-###########################
-Build a Lightning component
-###########################
+##########################################
+Package your code in a lightning component
+##########################################
+
 **Prereqs:** You know *basic* Python.
 
 **Goal:** In this guide you'll learn to develop `a Lightning component <https://lightning.ai/components>`_.
@@ -9,39 +10,33 @@ Build a Lightning component
    :align: left
 ----
 
-*****************************
-What is a Lightning component
-*****************************
-Full stack AI apps require many pieces working tightly together, such as training, deploying, data annotation. However, this tight coupling
-can lead to monoliths that are hard to scale. Breaking up a monolithic application leads to a ton of microservices which can't be managed
-correctly, monitored or scaled. A component is a self-contained piece of code (ie: a microservice) that manages its own infrastructure,
-auto-scaling, costs, and more.
+*********************************
+Why you need Lightning components
+*********************************
+ML workflows and full stack AI apps require many pieces working such as training, deploying, data annotation. However, this tight coupling
+can lead to monoliths that are hard to scale or many microservices that are hard to monitor, coordinate 
+and scale. A Lightning component is a self-contained piece of code (ie: a microservice) that executes your code
+and manages its own infrastructure, auto-scaling and costs for you.
 
-[] -> [] -> [] images
+.. raw:: html
 
-Components can be connected together to form a Lightning App (ie: a bundled set of microservices). The resulting Lightning App offers
-many key advantage:
+   <div style="display: flex; align-items: center; justify-content: center;">
+      <img src="https://lightning-ai-docs.s3.amazonaws.com/intro_components.gif" style="max-width: 800px"></img>
+   </div>
 
-.. collapse:: Packaged code
+|
 
-   |
+By using Lightning components you can focus on application logic without dealing with cloud operations
+or even how components speak to each other. Together, Lightning components form a Lightning App that
+gives you these benefits:
 
-   Lightning apps bundles components into an app that runs in any environment. The same code will run on your laptop, 
-   or any cloud or private clusters. You don't have to think about the cluster or know anything about the cloud.
-
-.. collapse:: Modularity
-
-   |
-
-   Components are modular and inter-operable by design. Leverage our vibrant community of components so you don't
-   have to build each piece of the system yourself.
-
-.. collapse:: Rapid iteration
+.. collapse:: Build systems not scripts
 
    |
 
-   Iterate through ideas in hours not months because you don't have to learn a million other concepts that the components 
-   handle for you such as kubernetes, cost management, auto-scaling and more.
+   The Lightning structure forces best practices so you don't have to be an expert production engineer.
+   Although it feels like you're writing a script, you are actually building a production-ready system.
+
 
 .. collapse:: Cost control
 
@@ -50,12 +45,43 @@ many key advantage:
    The component run-time has been optimized for cost management to support the largest machine-learning workloads.
    Lower your cloud bill with machines that shut down or spin up faster. 
 
-.. collapse:: Build systems not scripts
+.. collapse:: For beginners: Code like an expert
 
    |
 
-   The Lightning structure forces best practices so you don't have to be an expert production engineer.
-   Although it feels like you're writing a script, you are actually building a production-ready system.
+   Lightning embeds the best practices of building production-ready full stack AI apps into your
+   coding experience. You can write code like you normally do, and the Lightning structure
+   ensures your code is implicitely production ready... even if you're just doing research.
+
+
+.. collapse:: For experts: Scale with full control
+
+   |
+
+   if you know what you are doing, Lightning gives you full control to manage your own
+   scaling logic, fault-tolerance and even pre-provisioning, all from Python. We even give you
+   full flexibility to use tools like terraform to optimize cloud clusters for your Lightning apps.
+
+.. collapse:: Packaged code
+
+   |
+
+   Lightning apps bundles components into an app that runs in any environment. The same code will run on your laptop, 
+   or any cloud or private clusters. You don't have to think about the cluster or know anything about the cloud.
+
+.. collapse:: Rapid iteration
+
+   |
+
+   Iterate through ideas in hours not months because you don't have to learn a million other concepts that the components 
+   handle for you such as kubernetes, cost management, auto-scaling and more.
+
+.. collapse:: Modularity
+
+   |
+
+   Components are modular and inter-operable by design. Leverage our vibrant community of components so you don't
+   have to build each piece of the system yourself.
 
 ----
 

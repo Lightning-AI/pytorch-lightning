@@ -1,7 +1,8 @@
-#####################################
-Level 2: Connect Lightning Components
-#####################################
-**Audience:** Users who want to build complex workflows easily by connecting Lightning components.
+####################################################
+Level 2: Connect components into a full stack AI app 
+####################################################
+
+**Audience:** Users who want to build apps with multiple components.
 
 **Prereqs:** You know how to `build a component <build_a_lightning_component.html>`_.
 
@@ -12,16 +13,17 @@ Level 2: Connect Lightning Components
 
 ----
 
-*******************
-What is a workflow?
-*******************
-A workflow coordinates 2 or more python scripts together. We call a workflow built with Lightning a **Lightning App**.
+****************************
+What is a full stack AI app?
+****************************
+A full stack AI app coordinates 2 or more `Lightning components <build_a_lightning_component.html>`_ together.
+We call this system of components interacting with each other a Lightning App.
 
-In this guide, we'll build a workflow in <5 minutes and explain how it works.
+In this guide, we'll coordinate 2 components together and explain how it works.
 
-.. note:: If you've used other workflow tools for Python, in `level 4 <level_4.html>`_, we'll 
-        generalize simple workflows to reactive workflows that allow you to build complex
-        systems without much effort!
+.. note:: If you've used workflow tools for Python, this page describes conventional DAGs.
+        In `level 5 <../intermediate/run_lightning_work_in_parallel.html>`_, we introduce reactive workflows that generalize beyond DAGs
+        so you can build complex systems without much effort. 
 
 ----
 
@@ -29,46 +31,18 @@ In this guide, we'll build a workflow in <5 minutes and explain how it works.
 The toy app
 ***********
 
-In the previous example, we defined this LightningWork that can run ⚡ *any* ⚡ piece of Python code:
+In this app, we define two components that run across 2 separate machines. One to train a model on a GPU machine and one to analyze the model 
+on a separate CPU machine. We save money by stopping the GPU machine when the work is done.
 
-.. code:: python 
+.. lit_tabs::
+   :titles: Import Lightning; Component 1;  Component 2; Orchestrator; Connect components; Implement run; Train; Analyze; Run app
+   :descriptions: First, import Lightning; This component trains a model on a GPU machine; This component analyzes a model on a CPU machine; Define the LightningFlow that orchestrates components; Connect components in the init method; Describe the workflow in the run method; Training runs first and completes; Analyze runs after training completes; This allows the app to be runnable
+   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py
+   :highlights: 2; 4-6; 8-10; 12; 15-16; 18; 19; 20; 22
+   :app_id: abc123
+   :tab_rows: 4
+   :height: 520px
 
-    # app.py
-    # SINGLE WORKER
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self):
-            print("ANY python code can run here")
-
-    # uses 1 cloud GPU (or your own hardware)
-    compute = L.CloudCompute('gpu')
-    app = L.LightningApp(LitWorker(cloud_compute=compute))
-
-
-In this example, let's run two pieces of Python code in a workflow:
-
-.. code:: python
-
-    # app.py
-    # MULTIPLE WORKERS
-    import lightning as L
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-
-        def run(self):
-            self.work_A.run("running code A on a CPU machine")
-            self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
 
 Run the app to see both works execute on separate machines 🤯
 
@@ -334,42 +308,6 @@ Secure environments
 When you build clusters with Lightning, we ensure everything is configured securily which includes abiding by SOC-2 (type 1) guidelines.
 
 For startups or enterprises who want to learn more, please contact support@lightning.ai.
-
-----
-
-***********************
-Use Python control flow
-***********************
-Lightning code is simply **organized python**. If you know python, you already know Lightning. Use for-loops, if statements, while loops, timers, etc... as you do with Python:
-
-.. code:: python
-    :emphasize-lines: 2, 13, 16, 17, 21, 22
-
-    import lightning as L
-    from datetime import datetime
-
-    class LitWorker(L.LightningWork):
-        def run(self, message):
-            print(message)
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.work_A = LitWorker(cloud_compute=L.CloudCompute('cpu'))
-            self.work_B = LitWorker(cloud_compute=L.CloudCompute('gpu'))
-            self._start_time = None
-
-        def run(self):
-            if self._start_time is None:
-                self._start_time = datetime.now()
-            self.work_A.run("running code A on a CPU machine")
-
-            # start B, 5 seconds after A has finished
-            elapsed_seconds = (datetime.now() - self._start_time).seconds
-            if elapsed_seconds > 5:
-                self.work_B.run("running code B on a GPU machine")
-
-    app = L.LightningApp(LitWorkflow())
 
 ----
 

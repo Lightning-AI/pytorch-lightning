@@ -15,7 +15,9 @@
 ############
 Basic skills
 ############
-Learn to run python code on the cloud and build workflows (Lightning Apps). Every new user should start here.
+Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps. 
+
+Every new user should start here.
 
 .. join_slack::
    :align: left
@@ -30,19 +32,19 @@ Learn to run python code on the cloud and build workflows (Lightning Apps). Ever
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 1: Build a Lightning Component
-   :description: Build a Lightning component that wraps Python code and runs on the cloud.
+   :header: Level 1: Package code in a Lightning component
+   :description: Learn to build a Lightning component which is the core building block of a full stack AI app (Lightning App).
    :button_link: build_a_lightning_component.html
    :col_css: col-md-6
-   :height: 150
+   :height: 170
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Connect Lightning components
-   :description: Connect Lightning components to build a workflow (aka: a Lightning App).
+   :header: Level 2: Connect components into a full stack AI app 
+   :description: Learn to connect components into a full stack AI app.
    :button_link: connect_lightning_components.html
    :col_css: col-md-6
-   :height: 150
+   :height: 170
    :tag: 15 minutes
 
 .. raw:: html

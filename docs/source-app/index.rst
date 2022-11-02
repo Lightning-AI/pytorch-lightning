@@ -6,41 +6,45 @@
 ######################
 Welcome to ⚡ Lightning
 ######################
+Build models and full stack AI apps ⚡ *Lightning fast*.
 
 .. join_slack::
    :align: left
 
-Build models and full stack AI apps ⚡ *Lightning fast* (like these):
+**Featured examples:**
 
 |
 
 .. raw:: html
 
-   <div class="display-card-container">
+   <div>
       <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
 
 .. app_card::
-   :title: Train: LLM
+   :title: Develop and Train
+   :description: Train an LLM (512 GPUs)
    :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
    :tags: Model
 
 .. app_card::
-   :title: Deploy: Difussion model
+   :title: Serve and deploy
+   :description: Production-ready stable diffusion server (<2s latency)
    :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
    :tags: App
 
 .. app_card::
-   :title: Launch: Full stack AI app
+   :title: Scale and build a product
+   :description: Production-ready generative AI app
    :width: 300
-   :image: https://media3.giphy.com/media/KgEzIaqjorVRVGSvpU/giphy.gif
+   :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://apple.com
@@ -62,12 +66,13 @@ Build modular components
    <div class="row">
       <div class='col-md-5' style="padding-top: 18px">
          <p>
-            Build modular, self-contained Lightning components that can do anything from 
-            train models, and deploy models to run web user interfaces. A Lightning component 
-            manages its own infrastructure, cloud costs, networking and more. Connect components
-            to form a full stack AI app that we call a <i>Lightning App</i>.
+         Build modular, self-contained components that can train and deploy models, host a web UI or run arbitrary code on the cloud. 
+         A Lightning Component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
+
+         <br><br>
+         Combine your components and prebuilt ones from <a href="https://lightning.ai/components" target="_blank">our gallery </a> 
+         to create full-stack AI apps, ⚡ <i>Lightning fast</i>.
          </p>
-         <p>Image [] -> [] -> []</p>
       </div>
       <div class='col-md-7'>
 
