@@ -37,6 +37,8 @@ from lightning_app.utilities.packaging.cloud_compute import CloudCompute  # noqa
 if module_available("lightning_app.components.demo"):
     from lightning_app.components import demo  # noqa: F401
 
+__package_name__ = "lightning_app".split(".")[0]
+
 _PACKAGE_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
 
