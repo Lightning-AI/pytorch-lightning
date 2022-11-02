@@ -238,6 +238,8 @@ class RedisQueue(BaseQueue):
 
         is_work = isinstance(item, LightningWork)
 
+        # TODO: Be careful to handle with a lock if another thread needs
+        # to access the work backend one day.
         # The backend isn't picklable
         # Raises a TypeError: cannot pickle '_thread.RLock' object
         if is_work:
