@@ -31,6 +31,14 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
    :height: 150
    :tag: intermediate
 
+.. displayitem::
+   :header: Troubleshooting your Model on HPU's
+   :description: Shows general errors and ways to mitigate them.
+   :col_css: col-md-6
+   :button_link: ../accelerators/hpu_troubleshoot.html
+   :height: 150
+   :tag: troubleshoot
+
 .. raw:: html
 
         </div>

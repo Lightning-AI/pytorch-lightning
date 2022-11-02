@@ -34,6 +34,14 @@ Accelerator: HPU training
    :height: 150
    :tag: intermediate
 
+.. displayitem::
+   :header: Troubleshooting your Model
+   :description: Shows general errors and ways to mitigate them.
+   :col_css: col-md-4
+   :button_link: hpu_troubleshoot.html
+   :height: 150
+   :tag: troubleshoot
+
 .. raw:: html
 
         </div>
