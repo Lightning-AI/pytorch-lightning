@@ -31,8 +31,8 @@ def _adjust_manifest(**kwargs: Any) -> None:
     with open(manifest_path) as fp:
         lines = [ln.rstrip() for ln in fp.readlines()]
     lines += [
+        "include requirements/base.txt",
         "recursive-include src/lightning *.md",
-        "recursive-include requirements *.txt",
         "recursive-include src/lightning/app/ui *",
         "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in
         # fixme: this is strange, this shall work with setup find package - include

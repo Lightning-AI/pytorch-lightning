@@ -269,7 +269,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     if not requires:
         return None
     # TODO: add some smarter version aggregation per each package
-    requires = list(chain(*requires))
+    requires = set(chain(*requires))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
 
