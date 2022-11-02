@@ -1,15 +1,26 @@
-# EXAMPLE COMPONENT: TRAIN MODEL
 # app.py
 import lightning as L
+import torch
 
-
-class YourComponent(L.LightningWork):
+class PyTorchComponent(L.LightningWork):
    def run(self):
-      print('RUN ANY PYTHON CODE HERE')
+      device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+      model = torch.nn.Sequential(torch.nn.Linear(1, 1),
+                                 torch.nn.ReLU(),
+                                 torch.nn.Linear(1, 1))
+      model.to(device)
+      criterion = torch.nn.MSELoss()
+      optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        
+      for step in range(10000):
+         model.zero_grad()
+         x = torch.tensor([0.8]).to(device)
+         target = torch.tensor([1.0]).to(device)
+         output = model(x)
+         loss = criterion(output, target)
+         print(f'step: {step}.  loss {loss}')
+         loss.backward()
+         optimizer.step()
 
-
-
-# run on a cloud machine
-compute = L.CloudCompute("cpu")
-worker = YourComponent(cloud_compute=compute)
-app = L.LightningApp(worker)
+compute = L.CloudCompute('gpu')
+app = L.LightningApp(PyTorchComponent(cloud_compute=compute))

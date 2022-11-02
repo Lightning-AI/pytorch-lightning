@@ -126,12 +126,12 @@ A Lightning component organizes Python code so it can run on the cloud and be co
 Pick one of these components to run:
 
 .. lit_tabs::
-   :titles: Hello world; Train PyTorch on cloud GPUs; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; Build a model web UI
-   :code_files: ./hello_components/hello_world.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/build_demo.py
-   :highlights: 1;2;3;4;5;6
+   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; Build a model web UI
+   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/build_demo.py
+   :highlights: 7; 10, 11; 3, 7-23;3;4;5;6
    :app_id: abc123
-   :tab_rows: 3
-   :height: 385px
+   :tab_rows: 4
+   :height: 550px
 
 |
 
@@ -140,7 +140,7 @@ Components run the same on the cloud and locally on your choice of hardware.
 .. lit_tabs::
    :titles: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_cloud_yours.bash; ./hello_components/code_run_local.bash
-   :tab_rows: 3
+   :tab_rows: 4
    :height: 195px
 
 ----

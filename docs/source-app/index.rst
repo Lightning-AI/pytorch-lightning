@@ -11,7 +11,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. join_slack::
    :align: left
 
-**Featured examples:**
+**Featured examples of what you can build with Lightning:**
 
 |
 
