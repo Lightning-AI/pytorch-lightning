@@ -213,7 +213,7 @@ class LightningFlow:
         for child_flow in flow.flows.values():
             child_flow._backend = backend
             for name in child_flow._structures:
-                getattr(child_flow, name)._backend = backend
+                getattr(flow, name)._backend = backend
 
         app = _LightningAppRef().get_current()
 
@@ -298,18 +298,6 @@ class LightningFlow:
     def named_works(self, recurse: bool = True) -> List[Tuple[str, LightningWork]]:
         """Return its :class:`~lightning_app.core.work.LightningWork` with their names."""
         return [(w.name, w) for w in self.works(recurse=recurse)]
-
-    def get_all_children_(self, children):
-        sorted_children = sorted(self._flows)
-        children.extend([getattr(self, el) for el in sorted_children])
-        for child in sorted_children:
-            getattr(self, child).get_all_children_(children)
-        return children
-
-    def get_all_children(self):
-        children = []
-        self.get_all_children_(children)
-        return children
 
     def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and

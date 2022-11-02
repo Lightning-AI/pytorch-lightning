@@ -47,7 +47,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 
-- Fixed an inconsistency bug where the dict and list flows property won't return a dict ([#15466](https://github.com/Lightning-AI/lightning/pull/15466))
+- Fixed an inconsistency where the flow won't be returning all its children flows ([#15466](https://github.com/Lightning-AI/lightning/pull/15466))
 
 -
 
