@@ -333,6 +333,17 @@ def run_app(
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
+@run.command("lite")
+@click.pass_context
+@click.argument("script", type=click.Path(exists=True))
+def run_lite(script) -> None:
+    """Run an app from a file."""
+    from lightning_lite.cli import main
+    print(sys.argv)
+    sys.argv = sys.argv[3:]
+    main()
+
+
 @_main.group(hidden=True)
 def fork() -> None:
     """Fork an application."""
