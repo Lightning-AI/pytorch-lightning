@@ -23,12 +23,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.optimizer import optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device
 from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -50,6 +50,7 @@ class Strategy(ABC):
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision: Optional[Precision] = precision
         self._launcher: Optional[_Launcher] = None
+        self._backward_sync_control: Optional[_BackwardSyncControl] = None
 
     @property
     @abstractmethod
@@ -262,7 +263,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
+            _optimizer_to_device(optimizer, self.root_device)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -286,6 +287,23 @@ class Strategy(ABC):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
+
+
+class _BackwardSyncControl(ABC):
+    """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
+    synchronization during/after back-propagation.
+
+    The most common use-case is gradient accumulation. If a :class:`Strategy` implements this interface, the user can
+    implement their gradient accumulation loop very efficiently by disabling redundant gradient synchronization.
+    """
+
+    @contextmanager
+    @abstractmethod
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks the synchronization of gradients during the backward pass.
+
+        This is a context manager. It is only effective if it wraps a call to `.backward()`.
+        """
 
 
 class _Sharded(ABC):

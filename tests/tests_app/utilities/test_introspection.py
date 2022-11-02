@@ -1,9 +1,8 @@
 import os
 from numbers import Rational
 
-import pytest
-
 from lightning_app import LightningApp, LightningFlow
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.imports import _is_pytorch_lightning_available
 from lightning_app.utilities.introspection import Scanner
 
@@ -26,7 +25,7 @@ def test_introspection():
     assert not scanner.has_class(LightningFlow)
 
 
-@pytest.mark.skipif(not _is_pytorch_lightning_available(), reason="pytorch_lightning isn't installed.")
+@_RunIf(pl=True)
 def test_introspection_lightning():
     """This test validates the scanner can find some PyTorch Lightning class within the provided files."""
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_cli.py")))
@@ -38,7 +37,7 @@ def test_introspection_lightning():
     assert not scanner.has_class(LightningCLI)
 
 
-@pytest.mark.skipif(not _is_pytorch_lightning_available(), reason="pytorch_lightning isn't installed.")
+@_RunIf(pl=True)
 def test_introspection_lightning_overrides():
     """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning
     in the provided files."""

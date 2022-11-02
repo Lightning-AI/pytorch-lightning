@@ -14,12 +14,12 @@
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import lightning_lite.accelerators as accelerators  # avoid circular dependency
-from lightning_lite.plugins.environments.torchelastic_environment import TorchElasticEnvironment
+from lightning_lite.plugins.environments.torchelastic import TorchElasticEnvironment
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.types import _DEVICE
 
 
-def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
+def _determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
         gpus: Non-empty list of ints representing which GPUs to use
@@ -47,7 +47,7 @@ def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     return root_gpu
 
 
-def parse_gpu_ids(
+def _parse_gpu_ids(
     gpus: Optional[Union[int, str, List[int]]],
     include_cuda: bool = False,
     include_mps: bool = False,

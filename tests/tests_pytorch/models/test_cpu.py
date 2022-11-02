@@ -26,7 +26,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@mock.patch("lightning_lite.plugins.environments.slurm_environment.SLURMEnvironment.detect", return_value=True)
+@mock.patch("lightning_lite.plugins.environments.slurm.SLURMEnvironment.detect", return_value=True)
 def test_cpu_slurm_save_load(_, tmpdir):
     """Verify model save/load/checkpoint on CPU."""
     model = BoringModel()
@@ -126,7 +126,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@RunIf(skip_windows=True)
+@RunIf(skip_windows=True, sklearn=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     trainer_options = dict(

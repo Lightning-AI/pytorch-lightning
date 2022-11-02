@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
@@ -21,6 +22,7 @@ from typing import Any, Callable, cast, Dict, Generator, List, Optional, overloa
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
@@ -29,7 +31,7 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_lite.strategies import DeepSpeedStrategy, Strategy, XLAStrategy
+from lightning_lite.strategies import DeepSpeedStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning_lite.strategies.strategy import _Sharded, TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
@@ -90,8 +92,11 @@ class LightningLite(ABC):
         self._precision: Precision = self._strategy.precision
         self._models_setup: int = 0
 
-        # wrap the run method so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
+        self._prepare_run_method()
+        if _is_using_cli():
+            # when the CLI is used to launch the script, we need to set up the environment (init processes) here so
+            # that the user can immediately use all functionality in strategies
+            self._strategy.setup_environment()
 
     @property
     def device(self) -> torch.device:
@@ -126,7 +131,6 @@ class LightningLite(ABC):
         """Wether this rank is rank zero."""
         return self._strategy.is_global_zero
 
-    @abstractmethod
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
@@ -169,7 +173,7 @@ class LightningLite(ABC):
         self._models_setup += 1
         if optimizers:
             # join both types in a list for API convenience
-            return [model] + optimizers  # type: ignore
+            return [model] + optimizers
         return model
 
     def setup_dataloaders(
@@ -345,6 +349,52 @@ class LightningLite(ABC):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)
 
+    @contextmanager
+    def no_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
+        """Skip gradient synchronization during backward to avoid redundant communication overhead.
+
+        Use this context manager when performing gradient accumulation to speed up training with multiple devices.
+
+        Example::
+
+            # Accumulate gradient 8 batches at a time
+            with self.no_backward_sync(model, enabled=(batch_idx % 8 != 0)):
+                output = model(input)
+                loss = ...
+                self.backward(loss)
+                ...
+
+        For those strategies that don't support it, a warning is emitted. For single-device strategies, it is a no-op.
+        Both the model's `.forward()` and the `self.backward()` call need to run under this context.
+
+        Args:
+            module: The module for which to control the gradient synchronization.
+            enabled: Whether the context manager is enabled or not. ``True`` means skip the sync, ``False`` means do not
+                skip.
+        """
+
+        if not isinstance(module, _LiteModule):
+            raise TypeError(
+                "You need to set up the model first before you can call `self.no_backward_sync()`:"
+                " `model = self.setup(model, ...)`"
+            )
+        if not enabled or isinstance(self._strategy, SingleDeviceStrategy):
+            context = nullcontext()
+        elif self._strategy._backward_sync_control is None:
+            rank_zero_warn(
+                f"The `{self._strategy.__class__.__name__}` does not support skipping the gradient synchronization."
+                f" Remove `.no_backward_sync()` from your code or choose a different strategy.",
+                category=PossibleUserWarning,
+            )
+            context = nullcontext()
+        else:
+            context = self._strategy._backward_sync_control.no_backward_sync(  # type: ignore[assignment]
+                module._forward_module
+            )
+
+        with context:
+            yield
+
     # TODO: Find intuitive name
     @contextmanager
     def create_sharded_model(self) -> Generator:
@@ -385,6 +435,23 @@ class LightningLite(ABC):
         """
         return self._strategy.load_checkpoint(filepath)
 
+    def launch(self, function: Optional[Callable[["LightningLite"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+        if _is_using_cli():
+            raise RuntimeError(
+                "This script was launched through the CLI, and processes have already been created. Calling "
+                " `.launch()` again is not allowed."
+            )
+        if function is not None and not inspect.signature(function).parameters:
+            raise TypeError(
+                "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
+                " in the `LightningLite` object so you can use it inside the function."
+            )
+        function = partial(self._run_with_setup, function or _do_nothing)
+        args = [self, *args]
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(function, *args, **kwargs)
+        return function(*args, **kwargs)
+
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
         """Helper function to seed everything without explicitly importing Lightning.
@@ -398,21 +465,19 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # wrap the real run method with setup logic
         run_method = partial(self._run_with_setup, run_method)
-
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
         with self.create_sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
             BatchSampler
         ):
-            return run_method(*args, **kwargs)
+            return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         initial_device = next(model.parameters()).device
@@ -453,6 +518,15 @@ class LightningLite(ABC):
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
+    def _prepare_run_method(self) -> None:
+        if is_overridden("run", self, LightningLite) and _is_using_cli():
+            raise TypeError(
+                "Overriding `LightningLite.run()` and launching from the CLI is not allowed. Run the script normally,"
+                " or change your code to directly call `lite = LightningLite(...); lite.setup(...)` etc."
+            )
+        # wrap the run method, so we can inject setup logic or spawn processes for the user
+        setattr(self, "run", partial(self._run_impl, self.run))
+
     @staticmethod
     def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(model, _LiteModule):
@@ -468,3 +542,11 @@ class LightningLite(ABC):
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
             raise TypeError("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+
+
+def _is_using_cli() -> bool:
+    return bool(int(os.environ.get("LT_CLI_USED", "0")))
+
+
+def _do_nothing(*_: Any) -> None:
+    pass

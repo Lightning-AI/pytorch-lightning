@@ -4,15 +4,15 @@
 
 ## Unit and Integration Testing
 
-| workflow name              | workflow file                              | action                                                                                                                                                                      | accelerator\* |
-| -------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| Test PyTorch full          | .github/workflows/ci-pytorch-test-full.yml | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
-| Test PyTorch slow          | .github/workflows/ci-pytorch-test-slow.yml | Run only slow tests. Slow tests usually need to spawn threads and cannot be speed up or simplified.                                                                         | CPU           |
-| pytorch-lightning (IPUs)   | .azure-pipelines/ipu-tests.yml             | Run only IPU-specific tests.                                                                                                                                                | IPU           |
-| pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml             | Run only HPU-specific tests.                                                                                                                                                | HPU           |
-| pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests-pytorch.yml     | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
-| PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml         | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
-| test-on-tpus               | .circleci/config.yml                       | Run only TPU-specific tests.                                                                                                                                                | TPU           |
+| workflow name              | workflow file                               | action                                                                                                                                                                      | accelerator\* |
+| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| Test PyTorch full          | .github/workflows/ci-pytorch-tests.yml      | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
+| Test PyTorch slow          | .github/workflows/ci-pytorch-tests-slow.yml | Run only slow tests. Slow tests usually need to spawn threads and cannot be speed up or simplified.                                                                         | CPU           |
+| pytorch-lightning (IPUs)   | .azure-pipelines/ipu-tests.yml              | Run only IPU-specific tests.                                                                                                                                                | IPU           |
+| pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml              | Run only HPU-specific tests.                                                                                                                                                | HPU           |
+| pytorch-lightning (GPUs)   | .azure-pipelines/gpu-tests-pytorch.yml      | Run all CPU and GPU-specific tests, standalone, and examples. Each standalone test needs to be run in separate processes to avoid unwanted interactions between test cases. | GPU           |
+| PyTorchLightning.Benchmark | .azure-pipelines/gpu-benchmark.yml          | Run speed/memory benchmarks for parity with pure PyTorch.                                                                                                                   | GPU           |
+| test-on-tpus               | .github/workflows/tpu-tests.yml             | Run only TPU-specific tests.                                                                                                                                                | TPU           |
 
 - \*Accelerators used in CI
 

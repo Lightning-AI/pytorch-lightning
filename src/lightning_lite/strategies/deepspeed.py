@@ -234,6 +234,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             precision=precision,
             process_group_backend=process_group_backend,
         )
+        self._backward_sync_control = None  # DeepSpeed handles gradient accumulation internally
 
         self.config = self._load_config(config)
         if self.config is None:

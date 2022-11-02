@@ -197,7 +197,8 @@ class Trainer:
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.batch_size in the LightningModule.
+                The result will be stored in self.batch_size in the LightningModule
+                or LightningDataModule depending on your setup.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
@@ -837,6 +838,8 @@ class Trainer:
 
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
+
+        See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")

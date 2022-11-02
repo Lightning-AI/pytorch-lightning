@@ -79,7 +79,7 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow
+            >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
             ...     def __init__(self):
             ...         super().__init__()
@@ -276,7 +276,11 @@ class LightningFlow:
     @property
     def flows(self):
         """Return its children LightningFlow."""
-        return {el: getattr(self, el) for el in sorted(self._flows)}
+        flows = {el: getattr(self, el) for el in sorted(self._flows)}
+        for struct_name in sorted(self._structures):
+            for flow in getattr(self, struct_name).flows:
+                flows[flow.name] = flow
+        return flows
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
@@ -763,3 +767,15 @@ class LightningFlow:
                 child.set_state(state)
             elif strict:
                 raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
+
+
+class _RootFlow(LightningFlow):
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        self.work.run()
+
+    def configure_layout(self):
+        return [{"name": "Main", "content": self.work}]
