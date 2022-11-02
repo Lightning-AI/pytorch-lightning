@@ -18,8 +18,18 @@ import pytest
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import main as cli_main
+from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 
+def skip_windows_pt_1_13():
+    # https://github.com/pytorch/pytorch/issues/85427
+    return pytest.mark.skipif(
+        condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13),
+        reason="Torchelastic import bug in 1.13 affecting Windows"
+    )
+
+
+@skip_windows_pt_1_13()
 @mock.patch("lightning_lite.cli.torchrun")
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_defaults(*_):
@@ -33,6 +43,7 @@ def test_cli_env_vars_defaults(*_):
     assert os.environ["LT_PRECISION"] == "32"
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -43,6 +54,7 @@ def test_cli_env_vars_accelerator(_, __, accelerator):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -53,6 +65,7 @@ def test_cli_env_vars_strategy(_, __, strategy):
     assert os.environ["LT_STRATEGY"] == strategy
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -64,6 +77,7 @@ def test_cli_env_vars_devices_cuda(_, __, devices):
 
 
 @RunIf(mps=True)
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -73,6 +87,7 @@ def test_cli_env_vars_devices_mps(_, accelerator):
     assert os.environ["LT_DEVICES"] == "1"
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -82,6 +97,7 @@ def test_cli_env_vars_num_nodes(_, num_nodes):
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
@@ -91,6 +107,7 @@ def test_cli_env_vars_precision(_, precision):
     assert os.environ["LT_PRECISION"] == precision
 
 
+@skip_windows_pt_1_13()
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.cli.torchrun")
 def test_cli_torchrun_defaults(torchrun_mock):
@@ -113,6 +130,7 @@ def test_cli_torchrun_defaults(torchrun_mock):
     )
 
 
+@skip_windows_pt_1_13()
 @pytest.mark.parametrize(
     "devices,expected",
     [
