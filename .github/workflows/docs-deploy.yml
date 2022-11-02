@@ -29,8 +29,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
@@ -53,7 +52,8 @@ jobs:
           sudo apt-get install -y cmake pandoc
           sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . --quiet -r requirements/app/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/app/docs.txt \
+            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           pip list
 
       - name: Make Documentation
