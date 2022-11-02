@@ -276,7 +276,11 @@ class LightningFlow:
     @property
     def flows(self) -> Dict[str, "LightningFlow"]:
         """Return its children LightningFlow."""
-        flows = {el: getattr(self, el) for el in sorted(self._flows)}
+        flows = {}
+        for el in sorted(self._flows):
+            flow = getattr(self, el)
+            flows[flow.name] = flow
+            flows.update(flow.flows)
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows

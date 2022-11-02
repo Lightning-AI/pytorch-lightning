@@ -262,6 +262,13 @@ def _is_json_serializable(x: Any) -> bool:
 
 def _set_child_name(component: "Component", child: "Component", new_name: str) -> str:
     """Computes and sets the name of a child given the parent, and returns the name."""
+
+    splits = new_name.split(".")
+    if len(splits) > 1:
+        new_name = new_name.replace(".".join(splits[:-1]), "")
+        if new_name.startswith("."):
+            new_name = new_name[1:]
+
     child_name = f"{component.name}.{new_name}"
     child._name = child_name
 

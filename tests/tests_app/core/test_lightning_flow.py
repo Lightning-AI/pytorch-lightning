@@ -787,9 +787,19 @@ def test_lightning_flow_reload():
 class NestedFlow(LightningFlow):
     def __init__(self):
         super().__init__()
-        self.flow = EmptyFlow()
         self.flows_dict = LDict(**{"a": EmptyFlow()})
         self.flows_list = LList(*[EmptyFlow()])
+        self.flow = EmptyFlow()
+        assert list(self.flows) == ["root.flow", "root.flows_dict.a", "root.flows_list.0"]
+
+    def run(self):
+        pass
+
+
+class FlowNested2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow3 = EmptyFlow()
 
     def run(self):
         pass
@@ -799,8 +809,23 @@ class FlowCollection(LightningFlow):
     def __init__(self):
         super().__init__()
         self.flow = EmptyFlow()
+        assert self.flow.name == "root.flow"
+        self.flow2 = FlowNested2()
+        assert list(self.flow2.flows) == ["root.flow2.flow3"]
         self.flows_dict = LDict(**{"a": NestedFlow()})
+        assert list(self.flows_dict.flows) == [
+            "root.flows_dict.a",
+            "root.flows_dict.a.flow",
+            "root.flows_dict.a.flows_dict.a",
+            "root.flows_dict.a.flows_list.0",
+        ]
         self.flows_list = LList(*[NestedFlow()])
+        assert list(self.flows_list.flows) == [
+            "root.flows_list.0",
+            "root.flows_list.0.flow",
+            "root.flows_list.0.flows_dict.a",
+            "root.flows_list.0.flows_list.0",
+        ]
 
     def run(self):
         pass
@@ -810,20 +835,17 @@ def test_lightning_flow_flows():
 
     flow = FlowCollection()
     app = LightningApp(flow)
+
     assert list(app.root.flows.keys()) == [
-        "flow",
+        "root.flow",
+        "root.flow2",
+        "root.flow2.flow3",
         "root.flows_dict.a",
+        "root.flows_dict.a.flow",
         "root.flows_dict.a.flows_dict.a",
         "root.flows_dict.a.flows_list.0",
         "root.flows_list.0",
-        "root.flows_list.0.flows_dict.a",
-        "root.flows_list.0.flows_list.0",
-    ]
-    assert list(app.root.flows_dict.keys()) == [
-        "root.flows_dict.a.flows_dict.a",
-        "root.flows_dict.a.flows_list.0",
-    ]
-    assert list(app.root.flows_list.keys()) == [
+        "root.flows_list.0.flow",
         "root.flows_list.0.flows_dict.a",
         "root.flows_list.0.flows_list.0",
     ]

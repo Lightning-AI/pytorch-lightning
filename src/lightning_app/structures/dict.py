@@ -86,12 +86,17 @@ class Dict(t.Dict[str, T]):
     @property
     def flows(self):
         from lightning_app import LightningFlow
+        from lightning_app.structures import Dict, List
 
         flows = {}
-        for flow in [item for item in self.values() if isinstance(item, LightningFlow)]:
-            flows[flow.name] = flow
-            for name, child_flow in flow.flows.items():
-                flows[name] = child_flow
+        for item in self.values():
+            if isinstance(item, LightningFlow):
+                flows[item.name] = item
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
+            if isinstance(item, (Dict, List)):
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
         return flows
 
     @property
