@@ -16,8 +16,9 @@ import os
 from typing import Any, Callable, Dict, Optional
 
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
-from lightning_lite.utilities.cloud_io import atomic_save, get_filesystem
-from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.cloud_io import _atomic_save
+from lightning_lite.utilities.cloud_io import _load as pl_load
+from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.types import _PATH
 
@@ -50,7 +51,7 @@ class TorchCheckpointIO(CheckpointIO):
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
-            atomic_save(checkpoint, path)
+            _atomic_save(checkpoint, path)
         except AttributeError as err:
             # todo: is this try catch necessary still?
             # https://github.com/Lightning-AI/lightning/pull/431
@@ -58,7 +59,7 @@ class TorchCheckpointIO(CheckpointIO):
             key = "hyper_parameters"
             checkpoint.pop(key, None)
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-            atomic_save(checkpoint, path)
+            _atomic_save(checkpoint, path)
 
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage

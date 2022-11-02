@@ -7,10 +7,11 @@ import uvicorn
 from fastapi import FastAPI
 from uvicorn import run
 
-from lightning_app import BuildConfig, LightningWork
 from lightning_app.components.database.utilities import _create_database, _Delete, _Insert, _SelectAll, _Update
+from lightning_app.core.work import LightningWork
 from lightning_app.storage import Drive
 from lightning_app.utilities.imports import _is_sqlmodel_available
+from lightning_app.utilities.packaging.build_config import BuildConfig
 
 if _is_sqlmodel_available():
     from sqlmodel import SQLModel
@@ -18,7 +19,7 @@ if _is_sqlmodel_available():
 
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
 # Discussions: https://github.com/encode/uvicorn/discussions/1708
-class DatabaseUvicornServer(uvicorn.Server):
+class _DatabaseUvicornServer(uvicorn.Server):
 
     has_started_queue = None
 
@@ -154,7 +155,7 @@ class Database(LightningWork):
         app.post("/update/")(_Update(models, token))
         app.post("/delete/")(_Delete(models, token))
 
-        sys.modules["uvicorn.main"].Server = DatabaseUvicornServer
+        sys.modules["uvicorn.main"].Server = _DatabaseUvicornServer
 
         run(app, host=self.host, port=self.port, log_level="error")
 

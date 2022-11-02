@@ -11,8 +11,7 @@ import os
 from time import sleep
 
 import lightning as L
-from lightning.app.frontend.stream_lit import StreamlitFrontend
-from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
 
 
 class C11(L.LightningFlow):

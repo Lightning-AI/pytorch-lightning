@@ -1,9 +1,8 @@
 import json
 import subprocess
 
-from lightning import LightningWork
+from lightning import BuildConfig, LightningWork
 from lightning.app.storage import Path
-from lightning.app.utilities.packaging.build_config import BuildConfig
 
 # ML_SERVER_URL = https://github.com/SeldonIO/MLServer
 

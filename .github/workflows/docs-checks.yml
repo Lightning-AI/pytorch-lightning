@@ -3,9 +3,17 @@ name: Check Docs
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
+    paths:
+      - ".actions/**"
+      - "requirements/**"
+      - "docs/**"
+      - "src/**"
+      - "setup.py"
+      - "setup.cfg"
+      - ".github/workflows/docs-checks.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -16,20 +24,45 @@ defaults:
     shell: bash
 
 jobs:
+
+  build-pypi:
+    # This serves to create packages for potential internal dependencies
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Build package
+        env:
+          PACKAGE_NAME: "lite"
+        run: python setup.py sdist
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: dist
+
   make-doctest:
     runs-on: ubuntu-20.04
-    needs: make-html  # make it depending on build docs to reduce load
+    # make it depending on build docs to reduce load
+    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]  # TODO: , "lit"
+        pkg-name: ["app", "pytorch"]  # TODO: , "lit"
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.9"
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -37,55 +70,63 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-test-pip-
+            ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install package
-        env:
-          FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: ${{ matrix.pkg }}
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          # python -m pip install --upgrade --user pip
-          pip install -e . \
-            -r requirements/${{ matrix.pkg }}/docs.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
 
-      - name: Install dependencies
-        env:
-          FREEZE_REQUIREMENTS: 1
-          PACKAGE_NAME: pytorch
+      - name: Install LAI package
+        # This is needed as App docs is heavily using/referring to lightning package
+        if: ${{ matrix.pkg-name== 'app' }}
         run: |
-          pip install -r requirements/${{ matrix.pkg }}/devel.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip list
+          pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
+          git checkout -- setup.py MANIFEST.in
+
+      - name: Adjust docs refs
+        if: ${{ matrix.pkg-name == 'app' }}
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py copy_replace_imports --source_dir="./docs" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
+
+      - name: Install this package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+        run: |
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt --find-links pypi
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/source-${{ matrix.pkg }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make doctest
           make coverage
 
   make-html:
+    needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch", "lit"]
+        pkg-name: ["app", "pytorch", "lit"]
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-          # lfs: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: pypi
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.9"
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -93,30 +134,32 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-make-pip-
+            ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-
 
-      - name: Install dependencies
+      - name: Install package & dependencies
         env:
-          FREEZE_REQUIREMENTS: 1
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . --quiet -r requirements/${{ matrix.pkg }}/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
+            --find-links pypi
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/source-${{ matrix.pkg }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
-          name: docs-${{ matrix.pkg }}-${{ github.sha }}
+          name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
         # Use always() to always run this step to publish test results when there are test failures
         if: success()
