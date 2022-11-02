@@ -459,9 +459,9 @@ class CloudRuntime(Runtime):
             )
             if not os.path.exists(os.path.join(root, ".lightningignore")):
                 warning_msg = (
-                    warning_msg +
-                    "\nIn order to ignore some files or folder, " +
-                    "create a `.lightningignore` file and add the paths to ignore."
+                    warning_msg
+                    + "\nIn order to ignore some files or folder, "
+                    + "create a `.lightningignore` file and add the paths to ignore."
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
