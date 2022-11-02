@@ -3,23 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ⚡ Lightning
-======================
-
-.. raw:: html
-
-   <div 
-      style="width: 100%; background: #D7F5D5; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #050505; font-size: 16px">
-      <p style="margin-bottom: 5px">PyTorch Lightning has been renamed "Lightning" 🥳 (learn why)</p>
-   </div>
+Welcome to ⚡ PyTorch Lightning
+===============================
 
 .. twocolumns::
    :left:
-      .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
+      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right:
-      Lightning (previously PyTorch Lightning) is the fastest, most flexible
-      way to train PyTorch models, and build, monetize intelligent cloud applications.
+      PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
+      Lightning evolves with you as your projects go from idea to paper/production.
 
 .. raw:: html
 
@@ -46,6 +39,7 @@ Welcome to ⚡ Lightning
 Install Lightning
 -----------------
 
+
 .. raw:: html
 
    <div class="row" style='font-size: 16px'>
@@ -55,7 +49,7 @@ Pip users
 
 .. code-block:: bash
 
-    python -m pip install lightning
+    pip install pytorch-lightning
 
 .. raw:: html
 
@@ -66,16 +60,14 @@ Conda users
 
 .. code-block:: bash
 
-    conda install lightning -c conda-forge
+    conda install pytorch-lightning -c conda-forge
 
 .. raw:: html
 
       </div>
    </div>
 
-Mac M1/M2 users or for custom installation use the `advanced install guide <starter/installation.html>`_.
-
-.. note:: **pip install pytorch-lightning** has been deprecated and will stop being supported on June 2023. Use **pip install lightning** instead.
+Or read the `advanced install guide <starter/installation.html>`_
 
 .. raw:: html
 
@@ -86,18 +78,20 @@ Get Started
 
 .. raw:: html
 
-    <div class="display-card-container">
+    <div class="tutorials-callout-container">
         <div class="row">
 
 .. Add callout items below this line
 
-.. displayitem::
+.. customcalloutitem::
+   :description: Learn the 7 key steps of a typical Lightning workflow.
    :header: Lightning in 15 minutes
-   :description: Train and deploy a model to understand the 7 key steps of working with Lightning.
-   :col_css: col-md-12
-   :button_link: starter/introduction.html
-   :height: 160
-   :tag: All users
+   :button_link:  starter/introduction.html
+
+.. customcalloutitem::
+   :description: Learn how to benchmark PyTorch Lightning.
+   :header: Benchmarking
+   :button_link: benchmarking/benchmarks.html
 
 .. raw:: html
 
@@ -121,7 +115,7 @@ Current Lightning Users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn Lightning in small bites at 4 levels of expertise: basic, intermediate, advanced and expert.
+   :description: Learn Lightning in small bites at 4 levels of expertise: Introductory, intermediate, advanced and expert.
    :header: Level Up!
    :button_link:  expertise_levels.html
 
@@ -140,6 +134,12 @@ Current Lightning Users
    :header: Common Workflows
    :button_link: common_usecases.html
 
+.. customcalloutitem::
+   :description: Convert your current code to Lightning
+   :header: Convert code to PyTorch Lightning
+   :button_link: starter/converting.html
+
+
 .. raw:: html
 
         </div>
@@ -149,51 +149,15 @@ Current Lightning Users
 
 .. raw:: html
 
-   <hr class="docutils" style="margin: 50px 0 50px 0">
-
-Migrate To Lightning
---------------------
-
-.. raw:: html
-
-    <div class="tutorials-callout-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. customcalloutitem::
-   :header: PyTorch
-   :description: Organize your PyTorch code into Lightning
-   :button_link:  expertise_levels.html
-
-.. customcalloutitem::
-   :description: Organize your workflows with Lightning
-   :header: DAG frameworks
-   :button_link: api_references.html
-
-.. raw:: html
-
-        </div>
-    </div>
-
-.. raw:: html
-
    <div style="display:none">
-
-.. toctree::
-   :maxdepth: 1
-   :name: home
-   :caption: Home
-
-   self
 
 .. toctree::
    :maxdepth: 1
    :name: start
    :caption: Get Started
 
-   starter/installation
    starter/introduction
+   starter/installation
 
 
 .. toctree::
@@ -323,8 +287,14 @@ Migrate To Lightning
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
+   versioning
    generated/CHANGELOG.md
 
 .. raw:: html
 
    </div>
+   
+.. PyTorch-Lightning documentation master file, created by
+   sphinx-quickstart on Fri Nov 15 07:48:22 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
