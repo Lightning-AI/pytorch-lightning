@@ -194,6 +194,10 @@ jobs:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
+    - name: Adjust examples
+      if: ${{ matrix.pkg-name == 'lightning' }}
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
+
     - name: Run Examples
       working-directory: ./examples
       run: python -m pytest test_pl_examples.py -v --durations=10

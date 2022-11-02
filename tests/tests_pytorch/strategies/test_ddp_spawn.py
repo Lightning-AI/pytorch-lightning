@@ -20,7 +20,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     trainer_options = dict(
         default_root_dir=tmpdir,
