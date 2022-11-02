@@ -11,6 +11,7 @@ on:
       - "src/**"
       - "pyproject.toml"   # includes mypy config
       - "setup.cfg"
+      - "actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

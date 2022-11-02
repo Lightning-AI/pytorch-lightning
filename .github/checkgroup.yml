@@ -50,7 +50,6 @@ subprojects:
       #- "pl-cpu (windows-2022, lightning, 3.7, 1.9, oldest)"
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
-      - "mypy"
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
@@ -181,7 +180,6 @@ subprojects:
       - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
       - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
       - "lightning-lite (GPUs)"
-      - "mypy"
       # Lite also requires PL checks as it depends on Lite
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
@@ -313,7 +311,11 @@ subprojects:
   - id: "mypy"
     paths:
       - ".github/workflows/code-checks.yml"
+      - "requirements/**"
+      - "src/**"
       - "pyproject.toml"  # includes mypy config
+      - "setup.cfg"  # includes pytest config
+      - ".actions/**"
     checks:
       - "mypy"
 
