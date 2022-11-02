@@ -35,11 +35,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
-      - run: |
-          mkdir pypi
-          aws s3 sync s3://sphinx-packages/ pypi/
-          # FIXME
-          ls -l pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
