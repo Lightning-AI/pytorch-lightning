@@ -5,6 +5,7 @@ import functools
 import json
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -482,3 +483,30 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+def select_checkpoint_from_filenames_list(filenames_list: List[str], checkpoint: str) -> str:
+    """Select the checkpoint from a list of checkpoints.
+
+    Args:
+        filenames_list: List of checkpoints,
+        checkpoint: The checkpoint to load the state from. Can be either:
+            - checkpoint file name to be matched from the filenames_list
+            - 'latest' to load the latest checkpoint from the list. To do this, the names list must be in the format
+                "lightningapp_checkpoint_([0-9]{10}).json" where the number is the timestamp of the checkpoint.
+    """
+
+    checkpoint_drive_path = None
+
+    if checkpoint == "latest":
+        checkpoint_filenames_regex = r"lightningapp_checkpoint_([0-9]{10}).json"
+        r = re.compile(checkpoint_filenames_regex)
+        filtered_list = list(filter(r.search, filenames_list))
+        checkpoint_drive_path = max(filtered_list, key=lambda i: int(r.search(i).group(1))) if filtered_list else ""
+    else:
+        for cp in filenames_list:
+            if checkpoint in cp:
+                checkpoint_drive_path = cp
+                break
+
+    return checkpoint_drive_path

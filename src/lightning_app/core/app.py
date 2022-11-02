@@ -3,12 +3,11 @@ import logging
 import os
 import pickle
 import queue
-import re
 import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Any
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -29,7 +28,8 @@ from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger, \
+    select_checkpoint_from_filenames_list
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _context, _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, ComponentContext
@@ -392,7 +392,7 @@ class LightningApp:
         self._update_layout()
         self.maybe_apply_changes()
 
-        # TODO: This should be removed
+        # TODO: This should be removed once the new logic is stable.
         if self.checkpointing and self._should_snapshot():
             self._dump_checkpoint()
 
@@ -527,9 +527,9 @@ class LightningApp:
         self.set_state(state)
 
     @classmethod
-    def _load_checkpoint_from_json_file(cls, path: str) -> None:
+    def _load_checkpoint_from_json_file(cls, path: str) -> Dict[str, Any]:
         checkpoint_dict = json.load(open(path))
-        # TODO: Checkpoint versioning and compatibility checks
+        # TODO: Checkpoint versioning and compatibility checks. https://github.com/Lightning-AI/lightning/issues/15448
         return checkpoint_dict
 
     def _get_checkpoint_if_available_locally(self, checkpoint: str) -> Optional[dict]:
@@ -549,18 +549,7 @@ class LightningApp:
             found_checkpoints = drive.list()
             logger.debug("Found checkpoints: %s", found_checkpoints)
 
-        checkpoint_drive_path = ""
-
-        if checkpoint == "latest":
-            checkpoint_filenames_regex = r"lightningapp_checkpoint_([0-9]{10}).json"
-            r = re.compile(checkpoint_filenames_regex)
-            filtered_list = list(filter(r.search, found_checkpoints))
-            checkpoint_drive_path = max(filtered_list, key=lambda i: int(r.search(i).group(1))) if filtered_list else ""
-        else:
-            for cp in found_checkpoints:
-                if checkpoint in cp:
-                    checkpoint_drive_path = cp
-                    break
+        checkpoint_drive_path = select_checkpoint_from_filenames_list(found_checkpoints, checkpoint)
 
         # Cannot find the checkpoint on the drive
         if not checkpoint_drive_path:
