@@ -791,6 +791,7 @@ class NestedFlow(LightningFlow):
         self.flows_list = LList(*[EmptyFlow()])
         self.flow = EmptyFlow()
         assert list(self.flows) == ["root.flow", "root.flows_dict.a", "root.flows_list.0"]
+        self.w = EmptyWork()
 
     def run(self):
         pass
@@ -800,6 +801,7 @@ class FlowNested2(LightningFlow):
     def __init__(self):
         super().__init__()
         self.flow3 = EmptyFlow()
+        self.w = EmptyWork()
 
     def run(self):
         pass
@@ -826,12 +828,13 @@ class FlowCollection(LightningFlow):
             "root.flows_list.0.flows_dict.a",
             "root.flows_list.0.flows_list.0",
         ]
+        self.w = EmptyWork()
 
     def run(self):
         pass
 
 
-def test_lightning_flow_flows():
+def test_lightning_flow_flows_and_works():
 
     flow = FlowCollection()
     app = LightningApp(flow)
@@ -848,4 +851,12 @@ def test_lightning_flow_flows():
         "root.flows_list.0.flow",
         "root.flows_list.0.flows_dict.a",
         "root.flows_list.0.flows_list.0",
+    ]
+
+    generated = [v[0] for v in app.root.named_works()]
+    assert generated == [
+        "root.w",
+        "root.flow2.w",
+        "root.flows_dict.a.w",
+        "root.flows_list.0.w",
     ]

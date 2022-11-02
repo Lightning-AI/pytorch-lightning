@@ -300,16 +300,7 @@ class LightningFlow:
 
     def named_works(self, recurse: bool = True) -> List[Tuple[str, LightningWork]]:
         """Return its :class:`~lightning_app.core.work.LightningWork` with their names."""
-        named_works = [(el, getattr(self, el)) for el in sorted(self._works)]
-        if not recurse:
-            return named_works
-        for child_name in sorted(self._flows):
-            for w in getattr(self, child_name).works(recurse=recurse):
-                named_works.append(w)
-        for struct_name in sorted(self._structures):
-            for w in getattr(self, struct_name).works:
-                named_works.append((w.name, w))
-        return named_works
+        return [(w.name, w) for w in self.works(recurse=recurse)]
 
     def get_all_children_(self, children):
         sorted_children = sorted(self._flows)
