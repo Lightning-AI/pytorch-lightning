@@ -36,7 +36,7 @@ Accelerator: HPU training
 
 .. displayitem::
    :header: Troubleshooting your Model
-   :description: Shows general errors and ways to mitigate them.
+   :description: Describes general errors and solutions to mitigate them.
    :col_css: col-md-4
    :button_link: hpu_troubleshoot.html
    :height: 150
