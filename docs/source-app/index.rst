@@ -23,7 +23,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. app_card::
    :title: Develop and Train
    :description: Train an LLM (512 GPUs)
-   :width: 300
+   :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
@@ -33,7 +33,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. app_card::
    :title: Serve and deploy
    :description: Production-ready stable diffusion server (<2s latency)
-   :width: 300
+   :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
@@ -43,7 +43,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. app_card::
    :title: Scale and build a product
    :description: Production-ready generative AI app
-   :width: 300
+   :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
