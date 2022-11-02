@@ -79,6 +79,10 @@ jobs:
           pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
           git checkout -- setup.py MANIFEST.in
 
+      - name: Adjust examples
+        if: ${{ matrix.pkg-name == 'lightning' }}
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./src" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
+
       - name: Install this package
         env:
           PACKAGE_NAME: ${{ matrix.pkg }}
