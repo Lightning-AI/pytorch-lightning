@@ -65,9 +65,13 @@ class MixedTree(EmptyFlow):
             [
                 "root",
                 "root.work_tree",
+                "root.mixed_right.simple_flow_right",
+                "root.mixed_right.simple_flow_left",
                 "root.mixed_right",
                 "root.mixed_right.simple_flow_right",
                 "root.mixed_right.simple_flow_left",
+                "root.mixed_left.simple_flow_right",
+                "root.mixed_left.simple_flow_left",
                 "root.mixed_left",
                 "root.mixed_left.simple_flow_right",
                 "root.mixed_left.simple_flow_left",
@@ -89,9 +93,13 @@ class MixedTree(EmptyFlow):
                 "root.work_tree",
                 "root.work_tree.simple_work_right",
                 "root.work_tree.simple_work_left",
+                "root.mixed_right.simple_flow_right",
+                "root.mixed_right.simple_flow_left",
                 "root.mixed_right",
                 "root.mixed_right.simple_flow_right",
                 "root.mixed_right.simple_flow_left",
+                "root.mixed_left.simple_flow_right",
+                "root.mixed_left.simple_flow_left",
                 "root.mixed_left",
                 "root.mixed_left.simple_flow_right",
                 "root.mixed_left.simple_flow_left",
@@ -100,7 +108,8 @@ class MixedTree(EmptyFlow):
     ],
 )
 def test_depth_first(input_tree, types, expected_sequence):
-    assert list(node.name for node in depth_first(input_tree, types=types)) == expected_sequence
+    generated = list(node.name for node in depth_first(input_tree, types=types))
+    assert generated == expected_sequence
 
 
 @pytest.mark.parametrize(
