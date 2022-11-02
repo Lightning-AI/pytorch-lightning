@@ -819,3 +819,7 @@ def test_lightning_flow_flows():
         "root.flows_list.0.flows_dict.a",
         "root.flows_list.0.flows_list.0",
     ]
+    assert list(app.root.flows_dict.keys()) == [
+        "root.flows_dict.a.flows_dict.a",
+        "root.flows_dict.a.flows_list.0",
+    ]
