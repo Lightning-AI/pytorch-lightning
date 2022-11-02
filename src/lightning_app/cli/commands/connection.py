@@ -322,12 +322,12 @@ def _scan_lightning_connections(app_name_or_id):
         connection_path = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
 
         connected_file = os.path.join(connection_path, "connect.txt")
-        curr_app_name, _ = _read_connected_file(connected_file)
+        curr_app_name, curr_app_id = _read_connected_file(connected_file)
 
         if not curr_app_name:
             continue
 
-        if app_name_or_id == curr_app_name:
+        if app_name_or_id == curr_app_name or app_name_or_id == curr_app_id:
             return connection_path
 
     return None
