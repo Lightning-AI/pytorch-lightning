@@ -274,7 +274,7 @@ class CloudRuntime(Runtime):
             if not has_sufficient_credits:
                 logger.warn("You may need Lightning credits to run your apps on the cloud.")
 
-            # right now we only allow a single instance of the app
+            # right now we only allow a single instance of the app per cluster
             find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id, app_id=lit_app.id
             )
@@ -285,14 +285,25 @@ class CloudRuntime(Runtime):
             elif CLOUD_QUEUE_TYPE == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
-            if find_instances_resp.lightningapps:
-                existing_instance = find_instances_resp.lightningapps[0]
+            previous_app_instances = find_instances_resp.lightningapps
+            previous_app_instances = sorted(previous_app_instances, key=lambda i: i.created_at, reverse=True)
 
+            existing_instances_by_cluster = {}
+            for instance in previous_app_instances:
+                if instance.spec.desired_state == V1LightningappInstanceState.RUNNING:
+                    existing_instances_by_cluster[instance.spec.cluster_id] = instance
+
+            if previous_app_instances:
+                most_recent_instance = previous_app_instances[0]
                 if not app_config.cluster_id:
-                    # Re-run the app on the same cluster
-                    app_config.cluster_id = existing_instance.spec.cluster_id
+                    # Re-run the app on the most recent cluster
+                    app_config.cluster_id = most_recent_instance.spec.cluster_id
 
-                if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
+                # get the existing instance on the cluster, if any
+                existing_instance = existing_instances_by_cluster.get(app_config.cluster_id, None)
+
+                # stop old instances if releasing to the same cluster
+                if existing_instance and existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                     # TODO(yurij): Implement release switching in the UI and remove this
                     # We can only switch release of the stopped instance
                     existing_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
@@ -367,7 +378,8 @@ class CloudRuntime(Runtime):
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
 
-            if find_instances_resp.lightningapps:
+            # updates the app instance if on the same cluster
+            if existing_instance:
                 lightning_app_instance = (
                     self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
                         project_id=project.project_id,
@@ -447,9 +459,9 @@ class CloudRuntime(Runtime):
             )
             if not os.path.exists(os.path.join(root, ".lightningignore")):
                 warning_msg = (
-                    warning_msg
-                    + "\nIn order to ignore some files or folder, "
-                    + "create a `.lightningignore` file and add the paths to ignore."
+                    warning_msg +
+                    "\nIn order to ignore some files or folder, " +
+                    "create a `.lightningignore` file and add the paths to ignore."
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
