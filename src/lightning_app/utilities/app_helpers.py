@@ -267,10 +267,10 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 
     # the name changed, so recursively update the names of the children of this child
     if isinstance(child, lightning_app.core.LightningFlow):
-        for n in sorted(child._flows):
+        for n in child._flows:
             c = getattr(child, n)
             _set_child_name(child, c, n)
-        for n in sorted(child._works):
+        for n in child._works:
             c = getattr(child, n)
             _set_child_name(child, c, n)
         for n in child._structures:

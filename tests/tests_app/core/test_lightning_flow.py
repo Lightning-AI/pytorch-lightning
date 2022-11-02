@@ -853,8 +853,7 @@ def test_lightning_flow_flows_and_works():
         "root.flows_list.0.flows_list.0",
     ]
 
-    generated = [v[0] for v in app.root.named_works()]
-    assert generated == [
+    assert [w[0] for w in app.root.named_works()] == [
         "root.w",
         "root.flow2.w",
         "root.flows_dict.a.w",
