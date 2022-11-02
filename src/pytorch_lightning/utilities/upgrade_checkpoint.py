@@ -58,8 +58,7 @@ def _upgrade(args: Namespace) -> None:
         copyfile(file, backup_file)
 
     _log.info("Upgrading checkpoints ...")
-    progress = tqdm if len(files) > 1 else lambda x: x
-    for file in progress(files):
+    for file in tqdm(files):
         with pl_legacy_patch():
             checkpoint = torch.load(file)
         migrate_checkpoint(checkpoint)
