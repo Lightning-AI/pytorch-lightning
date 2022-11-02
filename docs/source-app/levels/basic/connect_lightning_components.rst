@@ -1,5 +1,5 @@
 ####################################################
-Level 2: Connect components into a full stack AI app 
+Level 2: Connect components into a full stack AI app
 ####################################################
 
 **Audience:** Users who want to build apps with multiple components.
@@ -18,7 +18,7 @@ In this guide, we'll coordinate 2 components together and explain how it works.
 
 .. note:: If you've used workflow tools for Python, this page describes conventional DAGs.
         In `level 5 <../intermediate/run_lightning_work_in_parallel.html>`_, we introduce reactive workflows that generalize beyond DAGs
-        so you can build complex systems without much effort. 
+        so you can build complex systems without much effort.
 
 ----
 
@@ -26,7 +26,7 @@ In this guide, we'll coordinate 2 components together and explain how it works.
 The toy app
 ***********
 
-In this app, we define two components that run across 2 separate machines. One to train a model on a GPU machine and one to analyze the model 
+In this app, we define two components that run across 2 separate machines. One to train a model on a GPU machine and one to analyze the model
 on a separate CPU machine. We save money by stopping the GPU machine when the work is done.
 
 .. lit_tabs::
@@ -91,7 +91,7 @@ Although we've abstracted the infrastructure, you still have full control when y
 ***************************
 Next step: Build a real app
 ***************************
-Now that you know how to build components and connect them, pick an app to build in a 
+Now that you know how to build components and connect them, pick an app to build in a
 step-by-step walkthrough.
 
 Once you feel comfortable with these examples, move to the `intermediate levels <../intermediate/index.html>`_, where we'll learn about running

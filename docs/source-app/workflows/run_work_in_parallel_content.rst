@@ -1,7 +1,7 @@
 
 
 ***********
-The toy app 
+The toy app
 ***********
 In this guide, we'll use the following toy app to illustrate the ideas:
 
@@ -32,7 +32,7 @@ In this guide, we'll use the following toy app to illustrate the ideas:
 ***************************************
 When to run a LightningWork in parallel
 ***************************************
-Run LightningWork in parallel when you want to execute work in the background or at the same time as another work. 
+Run LightningWork in parallel when you want to execute work in the background or at the same time as another work.
 An example of when this comes up in machine learning is when data streams-in while a model trains.
 
 ----

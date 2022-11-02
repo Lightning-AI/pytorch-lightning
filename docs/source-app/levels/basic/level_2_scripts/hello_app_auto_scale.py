@@ -1,6 +1,7 @@
 # app.py
 import lightning as L
 
+
 class TrainComponent(L.LightningWork):
     def run(self, x):
         print(f'train a model on {x}')
