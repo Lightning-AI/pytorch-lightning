@@ -1099,6 +1099,7 @@ def test_on_exception_hook(tmpdir):
 
 
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
+@RunIf(sklearn=True)
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     trainer = Trainer(

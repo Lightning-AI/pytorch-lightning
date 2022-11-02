@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import math
+import os
 import pickle
 from typing import List, Optional
 from unittest import mock
@@ -56,6 +57,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
         self.saved_states.append(self.state_dict().copy())
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """Prevent regressions to bugs:
 
@@ -98,6 +101,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
@@ -195,6 +199,7 @@ def test_pickling(tmpdir):
     assert vars(early_stopping) == vars(early_stopping_loaded)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 

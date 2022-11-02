@@ -1,6 +1,6 @@
 lightning-cloud>=0.5.11
 packaging
-typing-extensions>=4.0.0, <4.3.1
+typing-extensions>=4.0.0, <=4.4.0
 deepdiff>=5.7.0, <=5.8.1
 starsessions>=1.2.1, <2.0 # strict
 fsspec>=2022.5.0, <=2022.7.1
@@ -10,4 +10,4 @@ traitlets>=5.3.0, <=5.4.0
 arrow>=1.2.0, <1.2.4
 lightning-utilities==0.3.*
 beautifulsoup4<=4.8.2
-psutil<=5.9.2
+psutil<5.9.4

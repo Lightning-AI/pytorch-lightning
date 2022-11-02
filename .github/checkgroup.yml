@@ -21,6 +21,7 @@ subprojects:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
+      - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
@@ -207,6 +208,8 @@ subprojects:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
