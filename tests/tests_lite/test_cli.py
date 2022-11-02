@@ -16,11 +16,13 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-import torch.distributed.run
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import main as cli_main
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
+
+if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
+    import torch.distributed.run
 
 
 def skip_windows_pt_1_13():
