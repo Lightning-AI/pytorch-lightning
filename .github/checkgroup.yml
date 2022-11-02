@@ -314,7 +314,6 @@ subprojects:
       - "requirements/**"
       - "src/**"
       - "pyproject.toml"  # includes mypy config
-      - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
       - "mypy"

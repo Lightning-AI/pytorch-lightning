@@ -10,7 +10,6 @@ on:
       - "requirements/**"
       - "src/**"
       - "pyproject.toml"   # includes mypy config
-      - "setup.cfg"
       - "actions/**"
 
 concurrency:
