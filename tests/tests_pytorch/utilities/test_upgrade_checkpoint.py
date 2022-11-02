@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pytest
-import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
+from pytorch_lightning.utilities.migration import migrate_checkpoint
+from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 
 
 @pytest.mark.parametrize(
@@ -42,8 +41,9 @@ from pytorch_lightning.utilities.upgrade_checkpoint import upgrade_checkpoint
     ],
 )
 def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
-    filepath = os.path.join(tmpdir, "model.ckpt")
-    torch.save(old_checkpoint, filepath)
-    upgrade_checkpoint(filepath)
-    updated_checkpoint = torch.load(filepath)
-    assert updated_checkpoint == new_checkpoint
+    _set_version(old_checkpoint, "0.9.0")
+    _set_legacy_version(new_checkpoint, "0.9.0")
+    _set_version(new_checkpoint, pl.__version__)
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    assert updated_checkpoint == old_checkpoint == new_checkpoint
+    assert _get_version(updated_checkpoint) == pl.__version__
