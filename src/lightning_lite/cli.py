@@ -148,16 +148,11 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
         num_processes = _get_num_processes(args.accelerator, args.devices)
 
     torchrun_args = [
-        "--nproc_per_node",
-        str(num_processes),
-        "--nnodes",
-        str(args.num_nodes),
-        "--node_rank",
-        str(args.node_rank),
-        "--master_addr",
-        args.main_address,
-        "--master_port",
-        str(args.main_port),
+        f"--nproc_per_node={num_processes}",
+        f"--nnodes={args.num_nodes}",
+        f"--node_rank={args.node_rank}",
+        f"--master_addr={args.main_address}",
+        f"--master_port={args.main_port}",
         args.script,
     ]
     torchrun_args.extend(script_args)
