@@ -55,12 +55,14 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
     )
     parser.add_argument(
         "--num-nodes",
+        "--num_nodes",
         type=int,
         default=1,
         help="Number of machines (nodes) for distributed execution.",
     )
     parser.add_argument(
         "--node-rank",
+        "--node_rank",
         type=int,
         default=0,
         help=(
@@ -70,12 +72,14 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
     )
     parser.add_argument(
         "--main-address",
+        "--main_address",
         type=str,
         default="127.0.0.1",
         help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
     )
     parser.add_argument(
         "--main-port",
+        "--main_port",
         type=int,
         default=29400,
         help="The main port to connect to the main machine.",
