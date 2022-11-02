@@ -58,7 +58,7 @@ class Tuner:
         result = _TunerResult()
 
         self.trainer.strategy.connect(model)
-        
+
         is_tuning = self.trainer.auto_scale_batch_size
         if self.trainer._accelerator_connector.is_distributed and is_tuning:
             raise MisconfigurationException(
