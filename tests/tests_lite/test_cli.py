@@ -25,7 +25,7 @@ def skip_windows_pt_1_13():
     # https://github.com/pytorch/pytorch/issues/85427
     return pytest.mark.skipif(
         condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13),
-        reason="Torchelastic import bug in 1.13 affecting Windows"
+        reason="Torchelastic import bug in 1.13 affecting Windows",
     )
 
 
