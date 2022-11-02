@@ -42,6 +42,14 @@ Peek under the hood
    :tag: Intermediate
 
 .. displayitem::
+   :header: Customize Flow compute resources
+   :description: Learn more about Flow customizations.
+   :col_css: col-md-4
+   :button_link: compute_content.html
+   :height: 180
+   :tag: Intermediate
+
+.. displayitem::
    :header: Dynamically create, execute and stop Work
    :description: Learn more about components creation.
    :col_css: col-md-4

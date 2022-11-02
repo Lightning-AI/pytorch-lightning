@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 
-from lightning_app.frontend.panel.app_state_comm import watch_app_state
+from lightning_app.frontend.panel.app_state_comm import _watch_app_state
 from lightning_app.frontend.utils import _get_flow_state
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_param_available, requires
@@ -91,7 +91,7 @@ class AppStateWatcher(Parameterized):
 
     def _start_watching(self):
         # Create a thread listening to state changes.
-        watch_app_state(self._update_flow_state)
+        _watch_app_state(self._update_flow_state)
         self._update_flow_state()
 
     def _get_flow_state(self) -> AppState:

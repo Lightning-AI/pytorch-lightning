@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, OrderedDict, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from torch import Tensor
+from typing_extensions import OrderedDict
 
 from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
@@ -58,7 +59,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         """Resets the loop state."""
         self._outputs = []
 
-    def on_run_start(self, kwargs: OrderedDict) -> None:  # type: ignore[override]
+    def on_run_start(self, kwargs: OrderedDict) -> None:
         """Splits the data into tbptt splits.
 
         Args:
@@ -67,7 +68,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         batch = kwargs["batch"]
         self._remaining_splits = list(enumerate(self._tbptt_split_batch(batch)))
 
-    def advance(self, kwargs: OrderedDict) -> None:  # type: ignore[override]
+    def advance(self, kwargs: OrderedDict) -> None:
         """Runs the train step together with optimization (if necessary) on the current batch split.
 
         Args:

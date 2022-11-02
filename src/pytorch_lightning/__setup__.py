@@ -33,14 +33,13 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
         "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
-        "loggers": setup_tools.load_requirements(file_name="loggers.txt", **common_args),
         "extra": setup_tools.load_requirements(file_name="extra.txt", **common_args),
         "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+    extras["dev"] = extras["extra"] + extras["test"]
     extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
     return extras
 
@@ -53,10 +52,6 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
-        "recursive-include requirements/lite *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
-        "recursive-include src/lightning_lite *.md" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
@@ -68,6 +63,10 @@ def _adjust_manifest(**__: Any) -> None:
 def _setup_args(**__: Any) -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+    if os.path.isdir(os.path.join(_SOURCE_ROOT, "lightning_lite")):
+        _setup_tools.set_actual_version_from_src(
+            os.path.join(_PATH_REQUIREMENTS, "base.txt"), _SOURCE_ROOT, "lightning-lite"
+        )
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
     _long_description = _setup_tools.load_readme_description(

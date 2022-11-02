@@ -41,7 +41,7 @@ try:
     from wandb.wandb_run import Run
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
-    wandb, Run, RunDisabled = None, None, None  # type: ignore
+    wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
@@ -362,7 +362,7 @@ class WandbLogger(Logger):
         state["_experiment"] = None
         return state
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Union[Run, RunDisabled]:
         r"""
