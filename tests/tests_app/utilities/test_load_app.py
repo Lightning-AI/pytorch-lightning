@@ -1,4 +1,5 @@
 import os
+from unittest.mock import ANY
 
 import pytest
 import tests_app.core.scripts
@@ -40,7 +41,7 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": ANY},
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
@@ -90,7 +91,7 @@ def test_extract_metadata_from_component():
                 "idle_timeout": None,
                 "shm_size": 0,
                 "mounts": None,
-                "_internal_id": "fe8e5bd",
+                "_internal_id": ANY,
             },
         },
     ]
