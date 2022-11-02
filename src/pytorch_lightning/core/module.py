@@ -75,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = (
+    __jit_unused_properties__: List[str] = (
         [
             "example_input_array",
             "on_gpu",

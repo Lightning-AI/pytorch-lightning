@@ -148,6 +148,7 @@ def test_dm_pickle_after_init():
     pickle.dumps(dm)
 
 
+@RunIf(sklearn=True)
 def test_train_loop_only(tmpdir):
     seed_everything(7)
 
@@ -169,6 +170,7 @@ def test_train_loop_only(tmpdir):
     assert trainer.callback_metrics["train_loss"] < 1.1
 
 
+@RunIf(sklearn=True)
 def test_train_val_loop_only(tmpdir):
     seed_everything(7)
 
@@ -226,6 +228,7 @@ def test_dm_checkpoint_save_and_load(tmpdir):
         assert dm.my_state_dict == {"my": "state_dict"}
 
 
+@RunIf(sklearn=True)
 def test_full_loop(tmpdir):
     seed_everything(7)
 

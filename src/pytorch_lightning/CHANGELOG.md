@@ -5,12 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - 2022-MM-DD
+## [unreleased] - 202Y-MM-DD
+
+### Added
+
+- Added utilities to migrate checkpoints from one Lightning version to another ([#15237](https://github.com/Lightning-AI/lightning/pull/15237))
+
+-
+
+-
+
+
+### Changed
+
+- From now on, Lightning Trainer and `LightningModule.load_from_checkpoint` automatically upgrade the loaded checkpoint if it was produced in an old version of Lightning ([#15237](https://github.com/Lightning-AI/lightning/pull/15237))
+
+-
+
+-
+
+
+### Deprecated
+
+-
+
+-
+
+-
+
+
+### Removed
+
+-
+
+-
+
+-
+
 
 ### Fixed
 
 - Fixed `TensorBoardLogger` not validating the input array type when logging the model graph ([#15323](https://github.com/Lightning-AI/lightning/pull/15323))
 
+-
+
+-
+
+- Fixed an issue with the `BaseFinetuning` callback not setting the `track_running_stats` attribute for batch normaliztion layers ([#15063](https://github.com/Lightning-AI/lightning/pull/15063))
 
 
 ## [1.8.0] - 2022-11-01
