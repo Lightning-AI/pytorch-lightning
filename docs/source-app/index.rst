@@ -27,7 +27,7 @@ Install Lightning
 
 .. code-block:: bash
 
-   python -m pip install -U lightning
+   pip install -U lightning
 
 
 Or read the :ref:`advanced install <install>` guide.
