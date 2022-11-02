@@ -1,3 +1,25 @@
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   ios_and_android
+   app_tree
+   aws_arn
+   build_config/build_config
+   command_lines/command_lines
+   dag
+   event_loop
+   environment_variables
+   secrets
+   front ends <../workflows/add_web_ui/glossary_front_end>
+   ios_and_android
+   Lightning app <../core_api/lightning_app/index>
+   sharing_components
+   scheduling
+   storage/storage
+   restful_api/restful_api
+   add web ui <../workflows/add_web_ui/glossary_ui>
+
 ########
 Glossary
 ########
@@ -19,6 +41,13 @@ Glossary
    :description: Learn how components can be nested to form component trees where the LightningFlows are its branches and LightningWorks are its leaves.
    :col_css: col-md-12
    :button_link: app_tree.html
+   :height: 100
+
+.. displayitem::
+   :header: AWS ARN
+   :description: Create an AWS ARN
+   :col_css: col-md-12
+   :button_link: aws_arn.html
    :height: 100
 
 .. displayitem::
