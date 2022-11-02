@@ -59,7 +59,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning",
-        version=_version.version,  # todo: consider adding branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,

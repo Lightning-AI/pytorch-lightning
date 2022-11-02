@@ -71,7 +71,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning-lite",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,
