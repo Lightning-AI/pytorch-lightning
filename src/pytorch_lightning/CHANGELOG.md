@@ -5,8 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-- Added an error message when attempting to launch processes with `python -i` and an interactive-incompatible strategy ([#15293](https://github.com/Lightning-AI/lightning/pull/15293))
-- Added `LightningLite.setup_model()` and `LightningLite.setup_optimizers()` to support strategies that need to set up the model before an optimizer can be created ([#15185](https://github.com/Lightning-AI/lightning/pull/15185))
+## [unreleased] - 202Y-MM-DD
+
+
+### Added
+
+-
+
+-
+
+-
+
+
+### Changed
+
+-
+
+-
+
+-
+
+
+### Deprecated
+
+-
+
+-
+
+-
+
+
+### Removed
+
+-
+
+-
+
+-
+
+
+### Fixed
+
+-
+
+-
+
+-
+
+- Fixed an issue with the `BaseFinetuning` callback not setting the `track_running_stats` attribute for batch normaliztion layers ([#15063](https://github.com/Lightning-AI/lightning/pull/15063))
+
 
 
 ## [1.8.0] - 2022-11-01
