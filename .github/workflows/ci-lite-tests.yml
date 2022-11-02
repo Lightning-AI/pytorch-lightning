@@ -9,6 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
       - "requirements/lite/**"
+      - "!requirements/lite/docs.txt"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
