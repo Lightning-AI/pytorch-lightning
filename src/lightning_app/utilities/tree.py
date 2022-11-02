@@ -46,7 +46,6 @@ class _BreadthFirstVisitor:
                 self.queue += component.works(recurse=False)
 
             if any(isinstance(component, t) for t in self.types):
-                print(component.name)
                 return component
 
         raise StopIteration
