@@ -20,13 +20,6 @@ from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAcce
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
-# torchrun in PyTorch 1.13.0 has a bug on the Windows platform and is thus not importable:
-# https://github.com/pytorch/pytorch/issues/85427
-if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
-    import torch.distributed.run as torchrun
-else:
-    torchrun = None  # type: ignore[assignment]
-
 _log = logging.getLogger(__name__)
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
@@ -141,6 +134,8 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
             " upstream: https://github.com/pytorch/pytorch/issues/85427"
         )
         exit(1)
+
+    import torch.distributed.run as torchrun
 
     if args.strategy == "dp":
         num_processes = 1

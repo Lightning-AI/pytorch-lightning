@@ -13,8 +13,11 @@
 # limitations under the License.
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
+
+import torch.distributed.run
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import main as cli_main
@@ -30,9 +33,10 @@ def skip_windows_pt_1_13():
 
 
 @skip_windows_pt_1_13()
-@mock.patch("lightning_lite.cli.torchrun")
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_cli_env_vars_defaults(*_):
+def test_cli_env_vars_defaults(monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
+
     with mock.patch("sys.argv", ["cli.py", "script.py"]):
         cli_main()
     assert os.environ["LT_CLI_USED"] == "1"
@@ -46,9 +50,9 @@ def test_cli_env_vars_defaults(*_):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_accelerator(_, __, accelerator):
+def test_cli_env_vars_accelerator(_, accelerator, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--accelerator", accelerator]):
         cli_main()
     assert os.environ["LT_ACCELERATOR"] == accelerator
@@ -57,9 +61,9 @@ def test_cli_env_vars_accelerator(_, __, accelerator):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_strategy(_, __, strategy):
+def test_cli_env_vars_strategy(_, strategy, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--strategy", strategy]):
         cli_main()
     assert os.environ["LT_STRATEGY"] == strategy
@@ -68,9 +72,9 @@ def test_cli_env_vars_strategy(_, __, strategy):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_cli_env_vars_devices_cuda(_, __, devices):
+def test_cli_env_vars_devices_cuda(_, devices, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--accelerator", "cuda", "--devices", devices]):
         cli_main()
     assert os.environ["LT_DEVICES"] == devices
@@ -80,8 +84,8 @@ def test_cli_env_vars_devices_cuda(_, __, devices):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
-def test_cli_env_vars_devices_mps(_, accelerator):
+def test_cli_env_vars_devices_mps(accelerator, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--accelerator", accelerator]):
         cli_main()
     assert os.environ["LT_DEVICES"] == "1"
@@ -90,8 +94,8 @@ def test_cli_env_vars_devices_mps(_, accelerator):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
-def test_cli_env_vars_num_nodes(_, num_nodes):
+def test_cli_env_vars_num_nodes(num_nodes, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--num-nodes", num_nodes]):
         cli_main()
     assert os.environ["LT_NUM_NODES"] == num_nodes
@@ -100,8 +104,8 @@ def test_cli_env_vars_num_nodes(_, num_nodes):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
-def test_cli_env_vars_precision(_, precision):
+def test_cli_env_vars_precision(precision, monkeypatch):
+    monkeypatch.setattr(torch.distributed, "run", Mock())
     with mock.patch("sys.argv", ["cli.py", "script.py", "--precision", precision]):
         cli_main()
     assert os.environ["LT_PRECISION"] == precision
@@ -109,8 +113,9 @@ def test_cli_env_vars_precision(_, precision):
 
 @skip_windows_pt_1_13()
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
-def test_cli_torchrun_defaults(torchrun_mock):
+def test_cli_torchrun_defaults(monkeypatch):
+    torchrun_mock = Mock()
+    monkeypatch.setattr(torch.distributed, "run", torchrun_mock)
     with mock.patch("sys.argv", ["cli.py", "script.py"]):
         cli_main()
     torchrun_mock.main.assert_called_with(
@@ -137,9 +142,10 @@ def test_cli_torchrun_defaults(torchrun_mock):
     ],
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.cli.torchrun")
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=5)
-def test_cli_torchrun_num_processes_launched(_, torchrun_mock, devices, expected):
+def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch):
+    torchrun_mock = Mock()
+    monkeypatch.setattr(torch.distributed, "run", torchrun_mock)
     with mock.patch("sys.argv", ["cli.py", "script.py", "--accelerator", "cuda", "--devices", devices]):
         cli_main()
 
