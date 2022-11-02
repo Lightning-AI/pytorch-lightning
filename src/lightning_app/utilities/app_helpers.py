@@ -262,22 +262,17 @@ def _is_json_serializable(x: Any) -> bool:
 
 def _set_child_name(component: "Component", child: "Component", new_name: str) -> str:
     """Computes and sets the name of a child given the parent, and returns the name."""
-
-    splits = new_name.split(".")
-    if len(splits) > 1:
-        new_name = new_name.replace(".".join(splits[:-1]), "")
-        if new_name.startswith("."):
-            new_name = new_name[1:]
-
     child_name = f"{component.name}.{new_name}"
     child._name = child_name
 
     # the name changed, so recursively update the names of the children of this child
     if isinstance(child, lightning_app.core.LightningFlow):
-        for n, c in child.flows.items():
+        for n in sorted(child._flows):
+            c = getattr(child, n)
             _set_child_name(child, c, n)
-        for n, w in child.named_works(recurse=False):
-            _set_child_name(child, w, n)
+        for n in sorted(child._works):
+            c = getattr(child, n)
+            _set_child_name(child, c, n)
         for n in child._structures:
             s = getattr(child, n)
             _set_child_name(child, s, n)

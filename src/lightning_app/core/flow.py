@@ -207,22 +207,19 @@ class LightningFlow:
         """Attach the backend to all flows and its children."""
         flow._backend = backend
 
-        for child_flow in flow.flows.values():
-            LightningFlow._attach_backend(child_flow, backend)
-
-        for struct_name in flow._structures:
-            structure = getattr(flow, struct_name)
-            for flow in structure.flows:
-                LightningFlow._attach_backend(flow, backend)
-            for work in structure.works:
-                backend._wrap_run_method(_LightningAppRef().get_current(), work)
-                work._backend = backend
-
         for name in flow._structures:
             getattr(flow, name)._backend = backend
 
-        for work in flow.works(recurse=False):
-            backend._wrap_run_method(_LightningAppRef().get_current(), work)
+        for child_flow in flow.flows.values():
+            child_flow._backend = backend
+            for name in child_flow._structures:
+                getattr(child_flow, name)._backend = backend
+
+        app = _LightningAppRef().get_current()
+
+        for child_work in flow.works():
+            child_work._backend = backend
+            backend._wrap_run_method(app, child_work)
 
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):
