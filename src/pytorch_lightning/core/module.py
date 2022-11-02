@@ -109,7 +109,7 @@ class LightningModule(
         self.precision: Union[int, str] = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
@@ -189,7 +189,7 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def example_input_array(self) -> Any:
+    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
@@ -203,7 +203,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
+    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
         self._example_input_array = example
 
     @property
