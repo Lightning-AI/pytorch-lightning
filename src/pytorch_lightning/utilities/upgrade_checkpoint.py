@@ -72,7 +72,7 @@ if __name__ == "__main__":
     parser = ArgumentParser(
         description=(
             "A utility to upgrade old checkpoints to the format of the current Lightning version."
-            " By default, this will also save a backup of the original file."
+            " This will also save a backup of the original files."
         )
     )
     parser.add_argument("path", type=str, help="Path to a checkpoint file or a directory with checkpoints to upgrade")
