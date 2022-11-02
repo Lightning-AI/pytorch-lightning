@@ -442,6 +442,7 @@ def test_if_lr_finder_callback_already_configured():
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@RunIf(standalone=True)
 def test_lr_finder_with_ddp(tmpdir):
     seed_everything(7)
 
