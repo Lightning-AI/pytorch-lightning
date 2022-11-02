@@ -26,10 +26,9 @@ Maintainers
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Ota Jasek (`otaj <https://github.com/otaj>`_)
 
-Sunsetting
-----------
-Role: These are no longer focused on maintenance
 
+Emeritus Maintainers
+--------------------
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
