@@ -27,12 +27,12 @@ Install with pip
 
     .. code:: bash
 
-        python -m pip install -U lightning
+        pip install -U lightning
 
 .. note::
 
     If you encounter issues during installation use the following to help troubleshoot:
 
-	.. code:: bash
+    .. code:: bash
 
-            pip list | grep lightning
+        pip list | grep lightning
