@@ -14,7 +14,7 @@
 import logging
 from pathlib import Path
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import ANY
 
 import pytest
 
