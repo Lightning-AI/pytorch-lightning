@@ -14,4 +14,3 @@ sphinx-multiproject
 sphinx-toolbox==3.2.0
 sphinx-rtd-dark-mode
 jinja2>=3.0.0,<3.1.0
-pt-lightning-sphinx-theme @ https://github.com/Lightning-AI/lai_sphinx_theme/archive/master.zip
