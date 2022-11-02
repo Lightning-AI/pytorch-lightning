@@ -45,9 +45,8 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
    :description: Production-ready generative AI app
    :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
-   :preview: https://lightning.ai
+   :target: https://lightning.ai/muse
    :deploy: https://lightning.ai
-   :target: https://apple.com
    :tags: App
 
 .. raw:: html
@@ -126,8 +125,8 @@ Build modular components
    :maxdepth: 1
    :caption: Home
 
-   self
    Install <install/installation>
+   self
 
 .. toctree::
    :maxdepth: 1
