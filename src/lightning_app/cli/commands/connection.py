@@ -1,4 +1,3 @@
-from genericpath import isdir
 import json
 import os
 import shutil
@@ -102,6 +101,10 @@ def connect(app_name_or_id: str, yes: bool = False):
             commands = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
+            copied_files = [el for el in os.listdir(commands) if os.path.splitext(el)[1] == ".py"]
+            for target_file in copied_files:
+                pretty_command_name = os.path.splitext(target_file)[0].replace("_", " ")
+                click.echo(f"Storing `{pretty_command_name}` under {os.path.join(commands, target_file)}")
 
         click.echo(f"You can review all the commands at this location: {commands}")
         click.echo(" ")
