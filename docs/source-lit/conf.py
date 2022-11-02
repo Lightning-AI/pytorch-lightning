@@ -101,7 +101,7 @@ suppress_warnings = ["autosectionlabel.*"]
 
 copybutton_prompt_text = ">>> "
 copybutton_prompt_text1 = "... "
-copybutton_exclude = '.linenos'
+copybutton_exclude = ".linenos"
 
 copybutton_only_copy_prompt_lines = True
 

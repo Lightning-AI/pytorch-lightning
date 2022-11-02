@@ -107,7 +107,7 @@ Glossary
 
 .. displayitem::
    :header: REST API
-   :description: Learn how to set up a RESTful API endpoint 
+   :description: Learn how to set up a RESTful API endpoint
    :col_css: col-md-12
    :button_link: restful_api/restful_api.html
    :height: 100

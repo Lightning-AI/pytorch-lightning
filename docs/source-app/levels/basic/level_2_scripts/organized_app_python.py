@@ -1,10 +1,12 @@
 # app.py
 import subprocess
+
 import lightning as L
+
 
 class ExternalModelServer(L.LightningWork):
     def run(self, x):
-        # compile 
+        # compile
         process = subprocess.Popen('g++ model_server.cpp -o model_server')
         process.wait()
         process = subprocess.Popen('./model_server')

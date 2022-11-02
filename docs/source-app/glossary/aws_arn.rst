@@ -58,7 +58,7 @@ To run on your own AWS account, set up a Lightning cluster (here we name it pika
 
 Run your code on the pikachu cluster by passing it into CloudCompute:
 
-.. code:: python 
+.. code:: python
 
    # app.py
    import lightning as L

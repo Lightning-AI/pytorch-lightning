@@ -42,7 +42,7 @@ Auto-stop idle machines
 
 .. code:: python
 
-    # IDLE TIME-OUT 
+    # IDLE TIME-OUT
 
     # turn off machine when it's idle for 10 seconds
     compute = L.CloudCompute('gpu', idle_timeout=10)
@@ -58,8 +58,8 @@ Auto-timeout submitted work
 
 .. code:: python
 
-    # WAIT TIME-OUT 
-    
+    # WAIT TIME-OUT
+
     # if the machine hasn't started after 60 seconds, cancel the work
     compute = L.CloudCompute('gpu', wait_timeout=60)
     app = L.LightningApp(LitWorker(cloud_compute=compute)
@@ -72,7 +72,7 @@ Use spot machines (~70% discount)
 **spot**: Spot machines are ~70% cheaper because they can be turned off at any second without notice:
 
 .. code:: python
-    
+
     # ask for a spot machine
     # wait 60 seconds before auto-switching to a full-priced machine
     compute = L.CloudCompute('gpu', spot=True, wait_timeout=60)

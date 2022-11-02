@@ -9,11 +9,11 @@ Next, set up a Lightning cluster (here we name it pikachu):
 
 Run your code on the pikachu cluster by passing it into CloudCompute:
 
-.. code:: python 
+.. code:: python
 
    compute = L.CloudCompute('gpu', clusters=['pikachu'])
    app = L.LightningApp(LitWorker(cloud_compute=compute))
 
-.. warning:: 
-   
+.. warning::
+
    This feature is available only under early-access. Request access by emailing support@lightning.ai.
