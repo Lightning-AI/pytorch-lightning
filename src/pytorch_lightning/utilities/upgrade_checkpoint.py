@@ -23,22 +23,7 @@ from tqdm import tqdm
 
 from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
 
-log = logging.getLogger(__name__)
-
-
-def upgrade_checkpoint(filepath: _PATH) -> None:
-    checkpoint = torch.load(filepath)
-    checkpoint["callbacks"] = checkpoint.get("callbacks") or {}
-
-    for key, new_path in KEYS_MAPPING.items():
-        if key in checkpoint:
-            value = checkpoint[key]
-            callback_type, callback_key = new_path
-            checkpoint["callbacks"][callback_type] = checkpoint["callbacks"].get(callback_type) or {}
-            checkpoint["callbacks"][callback_type][callback_key] = value
-            del checkpoint[key]
-
-    torch.save(checkpoint, filepath)
+_log = logging.getLogger(__name__)
 
 
 def main(args: Namespace) -> None:
@@ -47,7 +32,7 @@ def main(args: Namespace) -> None:
     files: List[Path] = []
 
     if not path.exists():
-        log.error(
+        _log.error(
             f"The path {path} does not exist. Please provide a valid path to a checkpoint file or a directory"
             " containing checkpoints."
         )
@@ -58,13 +43,13 @@ def main(args: Namespace) -> None:
     if path.is_dir():
         files = [Path(p) for p in glob.glob(str(path / "**" / f"*{extension}"), recursive=True)]
     if not files:
-        log.error(
+        _log.error(
             f"No checkpoint files with extension {extension} were found in {path}."
             f" HINT: Try setting the `--extension` option to specify the right file extension to look for."
         )
         exit(1)
 
-    log.info("Creating a backup of the existing checkpoint files before overwriting in the upgrade process.")
+    _log.info("Creating a backup of the existing checkpoint files before overwriting in the upgrade process.")
     for file in files:
         backup_file = file.with_suffix(".bak")
         if backup_file.exists():
@@ -72,13 +57,15 @@ def main(args: Namespace) -> None:
             continue
         copyfile(file, backup_file)
 
-    log.info("Upgrading checkpoints ...")
+    _log.info("Upgrading checkpoints ...")
     progress = tqdm if len(files) > 1 else lambda x: x
     for file in progress(files):
         with pl_legacy_patch():
-            upgrade_checkpoint(file)
+            checkpoint = torch.load(file)
+        migrate_checkpoint(checkpoint)
+        torch.save(checkpoint, file)
 
-    log.info("Done.")
+    _log.info("Done.")
 
 
 if __name__ == "__main__":
