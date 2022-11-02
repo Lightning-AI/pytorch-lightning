@@ -115,16 +115,11 @@ def test_cli_torchrun_defaults(torchrun_mock):
         cli_main()
     torchrun_mock.main.assert_called_with(
         [
-            "--nproc_per_node",
-            "1",
-            "--nnodes",
-            "1",
-            "--node_rank",
-            "0",
-            "--master_addr",
-            "127.0.0.1",
-            "--master_port",
-            "29400",
+            "--nproc_per_node=1",
+            "--nnodes=1",
+            "--node_rank=0",
+            "--master_addr=127.0.0.1",
+            "--master_port=29400",
             "script.py",
         ]
     )
@@ -150,16 +145,11 @@ def test_cli_torchrun_num_processes_launched(_, torchrun_mock, devices, expected
 
     torchrun_mock.main.assert_called_with(
         [
-            "--nproc_per_node",
-            str(expected),
-            "--nnodes",
-            "1",
-            "--node_rank",
-            "0",
-            "--master_addr",
-            "127.0.0.1",
-            "--master_port",
-            "29400",
+            f"--nproc_per_node={expected}",
+            "--nnodes=1",
+            "--node_rank=0",
+            "--master_addr=127.0.0.1",
+            "--master_port=29400",
             "script.py",
         ]
     )
