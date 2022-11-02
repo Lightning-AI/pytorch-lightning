@@ -15,7 +15,7 @@
 ############
 Basic skills
 ############
-Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps. 
+Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps.
 
 Every new user should start here.
 
@@ -40,7 +40,7 @@ Every new user should start here.
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Connect components into a full stack AI app 
+   :header: Level 2: Connect components into a full stack AI app
    :description: Learn to connect components into a full stack AI app.
    :button_link: connect_lightning_components.html
    :col_css: col-md-6

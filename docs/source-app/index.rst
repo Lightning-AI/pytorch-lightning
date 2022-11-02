@@ -65,25 +65,25 @@ Build modular components
    <div class="row">
       <div class='col-md-5' style="padding-top: 18px">
          <p>
-         Build modular, self-contained components that can train and deploy models, host a web UI or run arbitrary code on the cloud. 
+         Build modular, self-contained components that can train and deploy models, host a web UI or run arbitrary code on the cloud.
          A Lightning Component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
 
          <br><br>
-         Combine your components and prebuilt ones from <a href="https://lightning.ai/components" target="_blank">our gallery </a> 
+         Combine your components and prebuilt ones from <a href="https://lightning.ai/components" target="_blank">our gallery </a>
          to create full-stack AI apps, ⚡ <i>Lightning fast</i>.
          </p>
       </div>
       <div class='col-md-7'>
 
 .. lit_tabs::
-   :code_files: landing_app.py; 
+   :code_files: landing_app.py;
    :highlights: 6
    :app_id: abc123
    :height: 250px
    :code_only: True
 
 .. lit_tabs::
-   :code_files: landing_app_run.bash 
+   :code_files: landing_app_run.bash
    :highlights: 6
    :height: 150px
    :code_only: True

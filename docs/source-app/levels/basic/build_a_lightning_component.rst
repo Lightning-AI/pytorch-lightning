@@ -14,7 +14,7 @@ Package your code in a lightning component
 Why you need Lightning components
 *********************************
 ML workflows and full stack AI apps require many pieces working such as training, deploying, data annotation. However, this tight coupling
-can lead to monoliths that are hard to scale or many microservices that are hard to monitor, coordinate 
+can lead to monoliths that are hard to scale or many microservices that are hard to monitor, coordinate
 and scale. A Lightning component is a self-contained piece of code (ie: a microservice) that executes your code
 and manages its own infrastructure, auto-scaling and costs for you.
 
@@ -43,7 +43,7 @@ gives you these benefits:
    |
 
    The component run-time has been optimized for cost management to support the largest machine-learning workloads.
-   Lower your cloud bill with machines that shut down or spin up faster. 
+   Lower your cloud bill with machines that shut down or spin up faster.
 
 .. collapse:: For beginners: Code like an expert
 
@@ -66,14 +66,14 @@ gives you these benefits:
 
    |
 
-   Lightning apps bundles components into an app that runs in any environment. The same code will run on your laptop, 
+   Lightning apps bundles components into an app that runs in any environment. The same code will run on your laptop,
    or any cloud or private clusters. You don't have to think about the cluster or know anything about the cloud.
 
 .. collapse:: Rapid iteration
 
    |
 
-   Iterate through ideas in hours not months because you don't have to learn a million other concepts that the components 
+   Iterate through ideas in hours not months because you don't have to learn a million other concepts that the components
    handle for you such as kubernetes, cost management, auto-scaling and more.
 
 .. collapse:: Modularity
@@ -100,8 +100,8 @@ First, install Lightning.
 
    **Mac**
 
-   To install on Mac, set these 2 environment variables   
-   
+   To install on Mac, set these 2 environment variables
+
    .. code-block:: bash
 
       # needed for M1/M2/M3
@@ -148,7 +148,7 @@ Components run the same on the cloud and locally on your choice of hardware.
 ************
 Key features
 ************
-You now know enough to build a self-contained component that runs any Python code on the cloud that can be connected to form a 
+You now know enough to build a self-contained component that runs any Python code on the cloud that can be connected to form a
 powerful Lightning app. Here are a few key features available to super-charge your work:
 
 .. lit_tabs::
@@ -167,7 +167,7 @@ Use the community ecosystem
 Lightning has a vibrant collection of community-built components you can use as templates or to inspire you.
 
 
-----   
+----
 
 ************************
 Next: Connect components
