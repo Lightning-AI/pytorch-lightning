@@ -258,7 +258,9 @@ def _download_frontend(pkg_path: str):
         print("The Lightning UI downloading has failed!")
 
 
-def load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False, skip_pkgs: tuple = ('lightning-lite')) -> None:
+def load_aggregate_requirements(
+    req_dir: str = "requirements", freeze_requirements: bool = False, skip_pkgs: tuple = ("lightning-lite")
+) -> None:
     """Load all base requirements from all particular packages and prune duplicates."""
     requires = [
         load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
