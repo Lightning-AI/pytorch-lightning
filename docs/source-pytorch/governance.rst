@@ -17,7 +17,7 @@ Role: All final decisions related to Lightning.
 - William Falcon (`williamFalcon <https://github.com/williamFalcon>`_) (Lightning founder)
 
 Maintainers
------------------------------
+-----------
 - Jirka Borovec (`Borda <https://github.com/Borda>`_)
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
