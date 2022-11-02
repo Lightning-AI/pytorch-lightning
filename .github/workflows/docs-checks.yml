@@ -105,6 +105,7 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
+          ls -l pypi/
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
 
       - name: Test Documentation
