@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_
 _log = logging.getLogger(__name__)
 
 
-def main(args: Namespace) -> None:
+def _upgrade(args: Namespace) -> None:
     path = Path(args.path).absolute()
     extension: str = args.extension if args.extension.startswith(".") else f".{args.extension}"
     files: List[Path] = []
@@ -34,7 +34,7 @@ def main(args: Namespace) -> None:
     if not path.exists():
         _log.error(
             f"The path {path} does not exist. Please provide a valid path to a checkpoint file or a directory"
-            " containing checkpoints."
+            f" containing checkpoints ending in {extension}."
         )
         exit(1)
 
@@ -68,7 +68,7 @@ def main(args: Namespace) -> None:
     _log.info("Done.")
 
 
-if __name__ == "__main__":
+def main() -> None:
     parser = ArgumentParser(
         description=(
             "A utility to upgrade old checkpoints to the format of the current Lightning version."
@@ -77,12 +77,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("path", type=str, help="Path to a checkpoint file or a directory with checkpoints to upgrade")
     parser.add_argument(
-        "--recursive",
-        "-r",
-        action="store_true",
-        help="If the specified path is a directory, recursively search for checkpoint files to upgrade",
-    )
-    parser.add_argument(
         "--extension",
         "-e",
         type=str,
@@ -90,4 +84,8 @@ if __name__ == "__main__":
         help="The file extension to look for when searching for checkpoint files in a directory.",
     )
     args = parser.parse_args()
-    main(args)
+    _upgrade(args)
+
+
+if __name__ == "__main__":
+    main()
