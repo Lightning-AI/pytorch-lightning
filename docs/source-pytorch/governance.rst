@@ -32,6 +32,8 @@ Emeritus Maintainers
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
+- Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
+- Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 
 
 Alumni
