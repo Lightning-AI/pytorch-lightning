@@ -1,6 +1,8 @@
 import asyncio
 import os
+import sqlite3
 import sys
+import tempfile
 import threading
 import time
 from typing import List, Optional, Type, Union
@@ -140,8 +142,7 @@ class Database(LightningWork):
         self.debug = debug
         self.store_interval = store_interval
         self._models = models if isinstance(models, list) else [models]
-        self.drive = None
-        self._store_lock = threading.Lock()
+        self._drive_name = "lit://database"
         self._store_thread = threading.Thread(target=self.periodic_store_database, args=(store_interval,), daemon=True)
 
     def run(self, token: Optional[str] = None) -> None:
@@ -149,9 +150,9 @@ class Database(LightningWork):
         Arguments:
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
         """
-        self.drive = Drive("lit://database")
-        if self.drive.list(component_name=self.name):
-            self.drive.get(self.db_filename)
+        drive = Drive(self._drive_name, component_name=self.name)
+        if drive.list(component_name=self.name):
+            drive.get(self.db_filename)
             print("Retrieved the database from Drive.")
 
         app = FastAPI()
@@ -188,8 +189,20 @@ class Database(LightningWork):
             time.sleep(store_interval)
 
     def store_database(self):
-        with self._store_lock:
-            self.drive.put(self.db_filename)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_db_filename = os.path.join(tmpdir, self.db_filename)
+
+            source = sqlite3.connect(self.db_filename)
+            dest = sqlite3.connect(tmp_db_filename)
+
+            source.backup(dest)
+
+            source.close()
+            dest.close()
+
+            drive = Drive(self._drive_name, component_name=self.name, root_folder=tmpdir)
+            drive.put(tmp_db_filename)
+
         print("Stored the database to the Drive.")
 
     def on_exit(self):
