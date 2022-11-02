@@ -1,8 +1,11 @@
 name: "Deploy Docs"
 on:
-  push: {}
-  # fixme
-  #  branches: ["master", "release/stable"]
+  push:
+    branches: ["master", "release/stable"]
+  pull_request:
+    branches: ["master", "release/*"]
+    paths:
+      - ".github/workflows/docs-deploy.yml"
 
 env:
   FREEZE_REQUIREMENTS: 1

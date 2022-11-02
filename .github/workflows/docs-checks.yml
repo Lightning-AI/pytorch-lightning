@@ -3,9 +3,16 @@ name: Check Docs
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
+    paths:
+      - ".actions/**"
+      - "requirements/**"
+      - "src/**"
+      - "setup.py"
+      - "setup.cfg"
+      - ".github/workflows/docs-checks.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
