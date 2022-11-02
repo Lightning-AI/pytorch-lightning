@@ -204,6 +204,8 @@ class Database(LightningWork):
 
             drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
             drive.put(tmp_db_filename)
+            print(drive.drive_root)
+            print("#############")
 
         print("Stored the database to the Drive.")
 
