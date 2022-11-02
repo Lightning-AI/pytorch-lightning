@@ -328,6 +328,8 @@ def test_trainer_config_device_ids(devices, expected_device_ids):
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_all_gather(tmpdir):
+    nb_devices = 8
+
     class TestModel(BoringModel):
         training_step_called = False
 
@@ -338,7 +340,7 @@ def test_all_gather(tmpdir):
                 tensor = torch.tensor(1.0, device=self.device, requires_grad=True)
                 result = self.all_gather(tensor, sync_grads=sync_grads)
                 summed = result.sum()
-                assert torch.equal(summed, torch.tensor(8.0))
+                assert torch.equal(summed, torch.tensor(float(nb_devices)))
                 summed.backward()
                 if sync_grads:
                     assert torch.equal(tensor.grad, torch.tensor(1.0))
@@ -346,16 +348,19 @@ def test_all_gather(tmpdir):
                     # As gradients are not synced, the original tensor will not have gradients.
                     assert tensor.grad is None
 
-            return torch.rand(1, requires_grad=True, device=self.device).sum()
+            dummy_loss = torch.rand(1, requires_grad=True, device=self.device).sum()
+            return dummy_loss
+
+        def on_train_end(self) -> None:
+            assert self.training_step_called
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
         accelerator="tpu",
-        devices=8,
+        devices=nb_devices,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
     trainer.fit(model)
-    assert model.training_step_called
