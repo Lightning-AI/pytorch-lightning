@@ -75,7 +75,7 @@ needs_sphinx = "4.5"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
@@ -96,13 +96,6 @@ extensions = [
     "sphinx.ext.githubpages",
     "lai_sphinx_theme.extensions.lightning",
 ]
-
-# what to copy in the code copy button
-copybutton_prompt_text = ">>> "
-copybutton_prompt_text1 = "... "
-copybutton_exclude = '.linenos'
-
-copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
