@@ -1,7 +1,8 @@
 name: "Deploy Docs"
 on:
-  push:
-    branches: ["master", "release/stable"]
+  push: {}
+  # FIXME
+  #  branches: ["master", "release/stable"]
   pull_request:
     branches: ["master", "release/*"]
     paths:
@@ -27,6 +28,19 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: |
+          mkdir pypi
+          aws s3 cp s3://sphinx-packages/*.whl pypi/
+          # aws s3 sync dist/ s3://sphinx-packages/
+          # FIXME
+          ls -l pypi/
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -85,10 +99,5 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
         if: ${{ success() && github.ref == 'refs/heads/master' }}
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
-
-      # fixme
-      - name: Upload docs/latest to GCS 🪣
         run: |-
           gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
