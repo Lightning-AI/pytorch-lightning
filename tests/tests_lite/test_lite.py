@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -486,3 +487,57 @@ def test_no_backward_sync():
     with lite.no_backward_sync(model):
         pass
     lite._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+
+
+def test_launch_without_function():
+    """Test the various ways `LightningLite.launch()` can be called."""
+
+    # default: no launcher, single process
+    lite = LightningLite()
+    with mock.patch("lightning_lite.lite._do_nothing") as nothing:
+        lite.launch()
+    nothing.assert_called()
+
+    # with a launcher on the strategy
+    lite = LightningLite()
+    lite._strategy._launcher = Mock()
+    lite.launch()
+    lite._strategy._launcher.launch.assert_called()
+
+
+def test_launch_with_function():
+    """Test the various ways `LightningLite.launch(function)` can be called."""
+
+    def fn_without_args():
+        pass
+
+    lite = LightningLite()
+    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+        lite.launch(fn_without_args)
+
+    def fn_with_one_arg(arg):
+        assert isinstance(arg, LightningLite)
+        fn_with_one_arg.called = True
+
+    lite = LightningLite()
+    lite.launch(fn_with_one_arg)
+    assert fn_with_one_arg.called
+
+
+@mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
+def test_launch_and_cli_not_allowed():
+    lite = LightningLite()
+    with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        lite.launch()
+
+
+@mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
+def test_overridden_run_and_cli_not_allowed():
+    class LiteWithRun(LightningLite):
+        def run(self):
+            pass
+
+    with pytest.raises(
+        TypeError, match=escape("Overriding `LightningLite.run()` and launching from the CLI is not allowed")
+    ):
+        LiteWithRun()

@@ -75,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = (
+    __jit_unused_properties__: List[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -661,6 +661,10 @@ class LightningModule(
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
+
+        Note:
+            When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
+            normalized by ``accumulate_grad_batches`` internally.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 

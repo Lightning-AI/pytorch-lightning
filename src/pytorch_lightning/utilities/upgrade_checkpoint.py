@@ -21,17 +21,7 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.utilities.migration import pl_legacy_patch
-
-KEYS_MAPPING = {
-    "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
-    "checkpoint_callback_best_model_path": (ModelCheckpoint, "best_model_path"),
-    "checkpoint_callback_best": (ModelCheckpoint, "best_model_score"),
-    "early_stop_callback_wait": (EarlyStopping, "wait_count"),
-    "early_stop_callback_patience": (EarlyStopping, "patience"),
-}
+from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
 
 log = logging.getLogger(__name__)
 
