@@ -1,7 +1,7 @@
 name: "Deploy Docs"
 on:
   push:
-    branches: ["naster", "release/stable"]
+    branches: ["master", "release/stable"]
 
 env:
   FREEZE_REQUIREMENTS: 1
