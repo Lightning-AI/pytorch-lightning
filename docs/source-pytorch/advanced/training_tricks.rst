@@ -272,6 +272,12 @@ initial learning rate.
     For the moment, this feature only works with models having a single optimizer.
 
 
+.. note::
+
+    With DDP since each process runs in isolation, which ever process gets the suggest learning rate first, that learning rate
+    will be broadcasted to all other processes.
+
+
 Using Lightning's built-in LR finder
 ====================================
 
