@@ -160,10 +160,8 @@ class SLURMEnvironment(ClusterEnvironment):
         """
         if _IS_WINDOWS:
             return
-        try:
-            srun_exists = shutil.which("srun") is not None
-        except FileNotFoundError:
-            srun_exists = False
+
+        srun_exists = shutil.which("srun") is not None
         if srun_exists and not _is_srun_used():
             hint = " ".join(["srun", os.path.basename(sys.executable), *sys.argv])[:64]
             rank_zero_warn(
