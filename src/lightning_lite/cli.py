@@ -30,7 +30,7 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 def _parse_args() -> Tuple[Namespace, List[str]]:
     parser = ArgumentParser(description="Launch your script with the Lightning Lite CLI.")
     subparsers = parser.add_subparsers()
-    subparser_run = subparsers.add_parser('run')
+    subparser_run = subparsers.add_parser("run")
     subparsers_run = subparser_run.add_subparsers()
     subparser_lite = subparsers_run.add_parser("lite")
     subparser_lite.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
