@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.components import MultiNode
+from lightning.app.components import MultiNode
 
 
 class PyTorchComponent(L.LightningWork):

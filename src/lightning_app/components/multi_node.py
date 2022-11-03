@@ -1,15 +1,16 @@
 from typing import Type
 
-from lightning import CloudCompute, LightningFlow, LightningWork
-from lightning.app import structures
+import lightning as L
+from lightning_app import structures
+from lightning_app.core.flow import LightningFlow
 
 
 class MultiNode(LightningFlow):
     def __init__(
         self,
-        work_cls: Type[LightningWork],
-        num_nodes: int,
-        cloud_compute: CloudCompute = CloudCompute("default"),
+        work_cls: Type["L.LightningWork"],
+        nodes: int,
+        cloud_compute: "L.CloudCompute",
     ):
         """This component enables performing distributed multi-node multi-device training.
 
@@ -36,20 +37,20 @@ class MultiNode(LightningFlow):
 
         Arguments:
             work_cls: The work to be executed
-            num_nodes: Number of nodes.
+            nodes: Number of nodes.
             cloud_compute: The cloud compute object used in the cloud.
         """
         super().__init__()
         self.ws = structures.List()
         self._work_cls = work_cls
-        self.num_nodes = num_nodes
+        self.nodes = nodes
         self.cloud_compute = cloud_compute
         self.has_initialized = False
 
     def run(self):
         # 1. Create & start the works
         if not self.has_initialized:
-            for _ in range(self.num_nodes):
+            for _ in range(self.nodes):
                 work = self._work_cls(cloud_compute=self.cloud_compute)
                 self.ws.append(work)
                 work.start()
@@ -57,7 +58,7 @@ class MultiNode(LightningFlow):
 
         # 2. Run the user code
         if all(w.internal_ip for w in self.ws):
-            for node_rank in range(self.num_nodes):
+            for node_rank in range(self.nodes):
                 self.ws[node_rank].run(
                     master_address=self.ws[node_rank].internal_ip,
                     master_port=self.ws[node_rank].port,
