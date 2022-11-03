@@ -549,11 +549,11 @@ def test_module_sharding_context():
     otherwise."""
     lite = EmptyLite()
     lite._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with lite.create_sharded_model():
+    with lite.sharded_model():
         pass
     lite._strategy.module_sharded_context.assert_not_called()
 
     lite._strategy = MagicMock(spec=_Sharded)
-    with lite.create_sharded_model():
+    with lite.sharded_model():
         pass
     lite._strategy.module_sharded_context.assert_called_once()

@@ -397,14 +397,14 @@ class LightningLite(ABC):
 
     # TODO: Find intuitive name
     @contextmanager
-    def create_sharded_model(self) -> Generator:
+    def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
 
         Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
 
         Example::
 
-            with self.create_sharded_model():
+            with self.sharded_model():
                 model = MyModel()
 
         The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
@@ -476,7 +476,7 @@ class LightningLite(ABC):
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.create_sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
             BatchSampler
         ):
             return run_function(*args, **kwargs)
