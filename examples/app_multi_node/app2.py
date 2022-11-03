@@ -9,8 +9,9 @@ class PyTorchComponent(L.LightningWork):
         master_port: int,
         node_rank: int,
     ):
+        print(master_address, master_port, node_rank)
         print("YOUR DISTRIBUTED CODE")
 
 
 compute = L.CloudCompute("gpu")
-app = L.LightningApp(MultiNode(PyTorchComponent, nodes=10, cloud_compute=compute))
+app = L.LightningApp(MultiNode(PyTorchComponent, nodes=2, cloud_compute=compute))

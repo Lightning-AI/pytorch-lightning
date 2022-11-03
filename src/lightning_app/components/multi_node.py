@@ -50,7 +50,7 @@ class MultiNode(LightningFlow):
         # 1. Create & start the works
         if not self.has_initialized:
             for _ in range(self.num_nodes):
-                work = self._work_cls()
+                work = self._work_cls(cloud_compute=self.cloud_compute)
                 self.ws.append(work)
                 work.start()
             self.has_initialized = True
