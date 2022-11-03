@@ -409,8 +409,10 @@ class LightningLite(ABC):
 
         The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
         """
-        context = self._strategy.module_sharded_context() if isinstance(self._strategy, _Sharded) else nullcontext()
-        with context:
+        if isinstance(self._strategy, _Sharded):
+            with self._strategy.module_sharded_context():
+                yield
+        else:
             yield
 
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
