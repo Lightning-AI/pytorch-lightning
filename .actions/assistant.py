@@ -30,6 +30,10 @@ REQUIREMENT_FILES = {
         "requirements/app/ui.txt",
         "requirements/app/cloud.txt",
     ),
+    "lite": (
+        "requirements/lite/base.txt",
+        "requirements/lite/strategies.txt",
+    ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}

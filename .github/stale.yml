@@ -14,7 +14,7 @@ issues:
     markComment: >
       This issue has been automatically marked as stale because it hasn't had any recent activity.
       This issue will be closed in 7 days if no further activity occurs.
-      Thank you for your contributions, PyTorch Lightning Team!
+      Thank you for your contributions - the Lightning Team!
     # Comment to post when closing a stale issue. Set to `false` to disable
     closeComment: false
 
@@ -34,7 +34,8 @@ pulls:
       Thank you for your contributions.
     # Comment to post when closing a stale issue. Set to `false` to disable
     closeComment: >
-      This pull request is going to be closed. Please feel free to reopen it create a new from the actual master.
+      This pull request is going to be closed. Please feel free to reopen it or create a new one based on top of the
+      'master' branch.
 
 # Label to use when marking an issue as stale
 staleLabel: "won't fix"
