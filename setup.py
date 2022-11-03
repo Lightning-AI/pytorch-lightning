@@ -45,20 +45,18 @@ from types import ModuleType
 
 from setuptools import setup
 
-_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "lightning")
+_PACKAGE_NAME = os.environ.get("PACKAGE_NAME")
 _PACKAGE_MAPPING = {
+    "lightning": "lightning",
     "pytorch": "pytorch_lightning",
     "app": "lightning_app",
     "lite": "lightning_lite",
-    "lightning": "lightning",
 }
-_REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
-_PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME, "__setup__.py")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
@@ -72,16 +70,26 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 if __name__ == "__main__":
-    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
-    print(f"Installing the {_PACKAGE_NAME} package")  # requires `-v` to appear
-    if _PACKAGE_NAME == "lightning":
+    package_to_install = _PACKAGE_NAME or "lightning"
+    print(f"Installing the {package_to_install} package")  # requires `-v` to appear
+    if package_to_install == "lightning":
         # install everything
-        _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        _SETUP_TOOLS.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
-    elif _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+        setup_tools.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+    elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}")
 
-    _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
-    _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
-    setup(**_SETUP_MODULE._setup_args(pkg_name=_REAL_PKG_NAME))
+    possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
+    for pkg in possible_packages:
+        pkg_setup = os.path.join(_PATH_SRC, pkg, "__setup__.py")
+        if os.path.exists(pkg_setup):
+            print(f"{pkg_setup} exists. Running `setuptools.setup`")
+            setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
+            setup_module._adjust_manifest(pkg_name=pkg)
+            setup_args = setup_module._setup_args(pkg_name=pkg)
+            setup(**setup_args)
+            break
+    else:
+        raise RuntimeError("Something's wrong, no package was installed.")
