@@ -14,7 +14,7 @@
 import os
 from unittest import mock
 
-import fsspec.registry
+import fsspec
 import pytest
 import torch
 from fsspec.implementations.arrow import ArrowFSWrapper
@@ -118,7 +118,7 @@ def test_ckpt_for_fsspec(tmpdir):
             fs = FileSystem.from_uri("mock://")  # Get mock file system
             super().__init__(fs=fs, **kwargs)
 
-    fsspec.registry.register_implementation("mock", MockFileSystem)
+    fsspec.register_implementation("mock", MockFileSystem)
 
     model = BoringModel()
     trainer = Trainer(default_root_dir="mock://" + tmpdir, max_steps=1)
