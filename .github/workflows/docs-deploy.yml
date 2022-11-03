@@ -1,8 +1,7 @@
 name: "Deploy Docs"
 on:
-  push: {}
-  # FIXME
-  #  branches: ["master", "release/stable"]
+  push:
+    branches: ["master", "release/stable"]
   pull_request:
     branches: ["master", "release/*"]
     paths:
