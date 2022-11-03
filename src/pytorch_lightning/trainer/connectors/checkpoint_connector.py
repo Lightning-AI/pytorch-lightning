@@ -575,7 +575,7 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs, uri = url_to_fs(dir_path)
+        fs, uri = url_to_fs(str(dir_path))
         if not fs.exists(dir_path):
             return None
 
