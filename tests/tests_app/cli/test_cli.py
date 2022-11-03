@@ -1,4 +1,4 @@
-import os
+import subprocess
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -52,7 +52,12 @@ def test_commands(command):
 
 def test_main_lightning_cli_no_arguments():
     """Validate the Lightning CLI without args."""
-    res = os.popen("lightning").read()
+    # FIXME:
+    import sys
+
+    if sys.platform == "win32":
+        print(subprocess.getoutput("where lightning"))
+    res = subprocess.getoutput("lightning")
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
@@ -66,7 +71,7 @@ def test_main_lightning_cli_no_arguments():
 
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
-    res = os.popen("lightning --help").read()
+    res = subprocess.getoutput("lightning --help")
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
@@ -77,7 +82,7 @@ def test_main_lightning_cli_help():
     assert "add     " in res
     assert "remove  " in res
 
-    res = os.popen("lightning run --help").read()
+    res = subprocess.getoutput("lightning run --help")
     assert "app  " in res
 
     # hidden run commands should not appear in the help text
@@ -87,12 +92,12 @@ def test_main_lightning_cli_help():
     assert "frontend" not in res
 
     # inspect show group
-    res = os.popen("lightning show --help").read()
+    res = subprocess.getoutput("lightning show --help")
     assert "logs " in res
     assert "cluster " in res
 
     # inspect show cluster group
-    res = os.popen("lightning show cluster --help").read()
+    res = subprocess.getoutput("lightning show cluster --help")
     assert "logs " in res
 
 
@@ -185,7 +190,7 @@ def test_cli_logout(exists: mock.MagicMock, unlink: mock.MagicMock, creds: bool)
 
 
 def test_lightning_cli_version():
-    res = os.popen("lightning --version").read()
+    res = subprocess.getoutput("lightning --version")
     assert __version__ in res
 
 
