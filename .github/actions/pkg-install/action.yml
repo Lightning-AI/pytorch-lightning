@@ -18,7 +18,8 @@ runs:
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
+      PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+      python -c "import ${PKG_NAME}; print(${PKG_NAME}.__version__)"
     shell: bash
 
   - name: Install package - wheel
@@ -26,5 +27,6 @@ runs:
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
+      PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+      python -c "import ${PKG_NAME}; print(${PKG_NAME}.__version__)"
     shell: bash

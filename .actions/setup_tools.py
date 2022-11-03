@@ -232,8 +232,10 @@ def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
     ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
     ... )
     """
-    for lit_name, pkg_name in lit_pkg_mapping.items():
-        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
+    mapping = lit_pkg_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+    for lit_name, pkg_name in mapping.items():
+        copy_adjusted_modules(src_folder, pkg_name, lit_name, mapping)
 
 
 def _download_frontend(pkg_path: str):

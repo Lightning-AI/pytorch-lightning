@@ -139,13 +139,14 @@ jobs:
             ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-
 
       - name: Install package & dependencies
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . -r requirements/${{ matrix.pkg-name }}/docs.txt \
+          # TODO: lit should be renamed to lightning
+          PACKAGE_NAME=$(python -c "print('lightning' if '${{matrix.pkg-name}}' == 'lit' else '${{matrix.pkg-name}}')") \
+          pip install -e . \
+            -r requirements/${{ matrix.pkg-name }}/docs.txt \
             --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
             --find-links pypi
           pip list

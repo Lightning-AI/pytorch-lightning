@@ -68,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg-name: ["app", "lite", "pytorch", ""]
+        pkg-name: ["app", "lite", "pytorch", "lightning"]
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3
@@ -104,11 +104,10 @@ jobs:
 
       - name: Run CLI
         # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name == '' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: python -m lightning --version
 
       - name: DocTest package
         run: |
-          pip list
-          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg-name}}', 'lightning'))")
-          python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"
+          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
