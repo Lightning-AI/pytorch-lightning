@@ -33,8 +33,8 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -81,19 +81,9 @@ class CheckpointConnector:
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
-        self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
-
-    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         with pl_legacy_patch():
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
-        if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
-            raise ValueError(
-                "The checkpoint you're attempting to load follows an"
-                " outdated schema. You can upgrade to the current schema by running"
-                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-                " where `model.ckpt` is your checkpoint file."
-            )
-        return loaded_checkpoint
+        self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _set_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
