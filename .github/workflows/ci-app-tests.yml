@@ -82,8 +82,6 @@ jobs:
           pip list
 
       - name: Install dependencies
-        env:  # TODO: drop this when we will be using regular releases for testing
-            PACKAGE_NAME: pytorch
         run: |
           pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
           pip list
