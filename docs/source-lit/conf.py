@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 
 import lightning
 
@@ -78,6 +78,7 @@ extensions = [
     # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
@@ -93,10 +94,16 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "sphinx.ext.githubpages",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 # todo: remove this after finishing fusion
 suppress_warnings = ["autosectionlabel.*"]
+
+copybutton_prompt_text = ">>> "
+copybutton_prompt_text1 = "... "
+copybutton_exclude = ".linenos"
+
+copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -155,8 +162,9 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
+
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

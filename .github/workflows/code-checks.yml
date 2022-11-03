@@ -5,6 +5,12 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths:
+      - ".github/workflows/code-checks.yml"
+      - "requirements/**"
+      - "src/**"
+      - "pyproject.toml"   # includes mypy config
+      - "actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
