@@ -14,7 +14,6 @@
 import os
 from unittest import mock
 
-import fsspec
 import pytest
 import torch
 
@@ -109,15 +108,19 @@ def test_ckpt_for_fsspec(tmpdir):
     model = BoringModel()
     trainer = Trainer(default_root_dir="memory://" + str(tmpdir), max_steps=1)
     trainer.fit(model)
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_3.ckpt")
-    trainer.save_checkpoint(tmpdir / "hpc_ckpt_33.ckpt")
+    trainer.save_checkpoint("memory://" + str(tmpdir / "hpc_ckpt.ckpt"))
+    trainer.save_checkpoint("memory://" + str(tmpdir / "hpc_ckpt_0.ckpt"))
+    trainer.save_checkpoint("memory://" + str(tmpdir / "hpc_ckpt_3.ckpt"))
+    trainer.save_checkpoint("memory://" + str(tmpdir / "hpc_ckpt_33.ckpt"))
 
-    assert trainer._checkpoint_connector._hpc_resume_path == str(tmpdir / "hpc_ckpt_33.ckpt")
-    assert trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir) == 33
+    assert trainer._checkpoint_connector._hpc_resume_path == "memory://" + str(tmpdir / "hpc_ckpt_33.ckpt")
     assert (
-        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(tmpdir / "not" / "existing")
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder("memory://" + str(tmpdir)) == 33
+    )
+    assert (
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder(
+            "memory://" + str(tmpdir / "not" / "existing")
+        )
         is None
     )
 
