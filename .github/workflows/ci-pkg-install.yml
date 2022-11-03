@@ -95,6 +95,7 @@ jobs:
       - run: ls -l pypi/
       - uses: ./.github/actions/pkg-install
         with:
+          pkg-name: ${{ matrix.pkg-name }}
           pip-flags: "--pre --find-links ../pypi/"
 
       - name: Run CLI

@@ -1,5 +1,5 @@
-name: Install and check package
-description: installing and validationg the package
+name: Install and validate the package
+description: Install and validate the package
 
 inputs:
   pkg-name:
@@ -11,32 +11,23 @@ inputs:
     required: false
     default: ""
 
+defaults:
+  run:
+    shell: bash
+
 runs:
   using: "composite"
   steps:
-  - name: Determine package name
-    if: ${{ inputs.pkg-import == '' }}
-    working-directory: ./dist
-    run: python -c "import glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
-    shell: bash
-
-  - name: Pass package name
-    if: ${{ inputs.pkg-import != '' }}
-    run: echo "PKG_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
-    shell: bash
-
   - name: Install package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-    shell: bash
+      python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
 
   - name: Install package - wheel
     working-directory: ./dist
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-    shell: bash
+      python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
