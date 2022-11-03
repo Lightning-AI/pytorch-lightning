@@ -62,7 +62,7 @@ jobs:
         PACKAGE_NAME: "lite"
       run: |
         pip install -e . --upgrade --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        git checkout -- setup.py MANIFEST.in
+        git checkout -- MANIFEST.in
 
     - name: Install package & dependencies
       env:

@@ -85,7 +85,7 @@ jobs:
         if: ${{ matrix.pkg-name== 'app' }}
         run: |
           pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
-          git checkout -- setup.py MANIFEST.in
+          git checkout -- MANIFEST.in
 
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'app' }}

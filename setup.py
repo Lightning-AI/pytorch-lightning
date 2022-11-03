@@ -68,16 +68,6 @@ if not os.path.isfile(_PATH_SETUP):
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
-# Hardcode the env variable from time of package creation, otherwise it fails during installation
-with open(__file__) as fp:
-    lines = fp.readlines()
-for i, ln in enumerate(lines):
-    if ln.startswith("_PACKAGE_NAME = "):
-        lines[i] = f'_PACKAGE_NAME = "{_PACKAGE_NAME}"{os.linesep}'
-with open(__file__, "w") as fp:
-    fp.writelines(lines)
-
-
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
     assert spec, f"Failed to load module {name} from {location}"
