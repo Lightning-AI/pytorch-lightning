@@ -6,7 +6,6 @@ from lightning.app.structures import Dict
 
 
 class Flow(L.LightningFlow):
-
     def __init__(self):
         super().__init__()
         self.notebooks = Dict()
@@ -17,9 +16,7 @@ class Flow(L.LightningFlow):
             return f"The Notebook {config.name} already exists."
         else:
             # 2. Dynamically creates the Notebook if it doesn't exist and runs it.
-            self.notebooks[config.name] = JupyterLab(
-                cloud_compute=L.CloudCompute(config.cloud_compute)
-            )
+            self.notebooks[config.name] = JupyterLab(cloud_compute=L.CloudCompute(config.cloud_compute))
             self.notebooks[config.name].run()
             return f"The Notebook {config.name} was created."
 
