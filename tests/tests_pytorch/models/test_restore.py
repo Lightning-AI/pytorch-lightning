@@ -29,7 +29,7 @@ import tests_pytorch.helpers.utils as tutils
 from lightning_lite import seed_everything
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
