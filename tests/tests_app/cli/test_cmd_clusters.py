@@ -13,7 +13,6 @@ from lightning_cloud.openapi import (
     V1ClusterStatus,
     V1ClusterType,
     V1CreateClusterRequest,
-    V1InstanceSpec,
     V1KubernetesClusterDriver,
     V1ListClustersResponse,
 )
@@ -43,7 +42,6 @@ def test_create_cluster(api: mock.MagicMock):
         cluster_name="test-7",
         external_id="dummy",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
-        instance_types=["t2.small"],
         region="us-west-2",
     )
 
@@ -59,7 +57,6 @@ def test_create_cluster(api: mock.MagicMock):
                             region="us-west-2",
                             role_arn="arn:aws:iam::1234567890:role/lai-byoc",
                             external_id="dummy",
-                            instance_types=[V1InstanceSpec(name="t2.small")],
                         )
                     )
                 ),

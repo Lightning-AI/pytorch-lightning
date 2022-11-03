@@ -17,7 +17,6 @@ import websockets
 from deepdiff import Delta
 
 import lightning_app
-from lightning_app.core.constants import APP_SERVER_PORT, APP_STATE_MAX_SIZE_BYTES, SUPPORTED_PRIMITIVE_TYPES
 from lightning_app.utilities.exceptions import LightningAppStateException
 
 if TYPE_CHECKING:
@@ -110,10 +109,10 @@ class InMemoryStateStore(StateStore):
 
     def set_app_state(self, k, v):
         state_size = sys.getsizeof(v)
-        if state_size > APP_STATE_MAX_SIZE_BYTES:
+        if state_size > lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES:
             raise LightningAppStateException(
                 f"App state size is {state_size} bytes, which is larger than the recommended size "
-                f"of {APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
+                f"of {lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
             )
         self.store[k].app_state = deepcopy(v)
         self.counter += 1
@@ -191,7 +190,11 @@ def target_fn():
     async def update_fn():
         server = Server.get_current()
         sessions = list(server._session_info_by_id.values())
-        url = "localhost:8080" if "LIGHTNING_APP_STATE_URL" in os.environ else f"localhost:{APP_SERVER_PORT}"
+        url = (
+            "localhost:8080"
+            if "LIGHTNING_APP_STATE_URL" in os.environ
+            else f"localhost:{lightning_app.core.constants.APP_SERVER_PORT}"
+        )
         ws_url = f"ws://{url}/api/v1/ws"
         last_updated = time.time()
         async with websockets.connect(ws_url) as websocket:
@@ -246,7 +249,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
 def _is_json_serializable(x: Any) -> bool:
     """Test whether a variable can be encoded as json."""
-    if type(x) in SUPPORTED_PRIMITIVE_TYPES:
+    if type(x) in lightning_app.core.constants.SUPPORTED_PRIMITIVE_TYPES:
         # shortcut for primitive types that are not containers
         return True
     try:
