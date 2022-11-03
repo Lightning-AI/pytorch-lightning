@@ -54,11 +54,13 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
 
 
 def main() -> None:
-    # Enforce running in PATH Python
-    _check_environment_and_redirect()
+    # Check environment and versions if not in the cloud
+    if "LIGHTNING_APP_STATE_URL" not in os.environ:
+        # Enforce running in PATH Python
+        _check_environment_and_redirect()
 
-    # Check for newer versions and upgrade
-    _check_version_and_upgrade()
+        # Check for newer versions and upgrade
+        _check_version_and_upgrade()
 
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
