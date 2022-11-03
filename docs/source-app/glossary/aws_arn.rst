@@ -1,6 +1,6 @@
 :orphan:
 
-.. _app_component_tree:
+.. _aws_arn:
 
 #######
 AWS ARN

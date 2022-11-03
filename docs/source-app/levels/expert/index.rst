@@ -1,3 +1,5 @@
+:orphan:
+
 .. _expert_level:
 
 .. toctree::
@@ -7,7 +9,6 @@
 #############
 Expert skills
 #############
-??
 
 .. join_slack::
    :align: left

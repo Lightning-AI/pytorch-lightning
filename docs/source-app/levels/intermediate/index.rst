@@ -8,7 +8,6 @@
    debug_a_lightning_workflow
    run_lightning_work_in_parallel
    share_variables_between_lightning_components
-   communicate_between_lightning_components
    level_12
    level_13
    level_14
