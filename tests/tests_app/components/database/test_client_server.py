@@ -155,7 +155,6 @@ def test_work_database_restart():
         # Note: Waiting for SIGTERM signal to be handled
         sleep(2)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
         app = LightningApp(Flow(db_root=tmpdir, restart=True))
         MultiProcessRuntime(app).dispatch()
 
