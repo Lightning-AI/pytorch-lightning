@@ -79,7 +79,7 @@ if __name__ == "__main__":
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         setup_tools.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     elif package_to_install not in _PACKAGE_MAPPING:
-        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}")
+        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
     possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
