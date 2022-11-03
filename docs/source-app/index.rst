@@ -44,9 +44,9 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
    :title: Scale and build a product
    :description: Production-ready generative AI app
    :width: 280
+   :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
    :target: https://lightning.ai/muse
-   :deploy: https://lightning.ai
    :tags: App
 
 .. raw:: html
