@@ -49,9 +49,8 @@ if _OMEGACONF_AVAILABLE:
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
-# LM = TypeVar("LM", bound=Union["pl.LightningModule", "pl.LightningDataModule"])
-LM = TypeVar("LM", bound="pl.LightningModule")
-LDM = TypeVar("LDM", bound="pl.LightningDataModule")
+LM = TypeVar("LM", bound=pl.LightningModule)
+LDM = TypeVar("LDM", bound=pl.LightningDataModule)
 
 
 class ModelIO:
