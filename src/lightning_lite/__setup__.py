@@ -115,9 +115,4 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",
         ],
-        entry_points={
-            'console_scripts': [
-                'lightning = lightning_lite.cli:main',
-            ],
-        },
     )
