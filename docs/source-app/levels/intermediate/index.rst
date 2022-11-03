@@ -4,10 +4,10 @@
    :maxdepth: 1
    :hidden:
 
-   run_on_aws_efficiently
+   save_money_on_cloud_costs
    debug_a_lightning_workflow
    run_lightning_work_in_parallel
-   embed_web_ui_into_lightningwork
+   share_variables_between_lightning_components
    communicate_between_lightning_components
    level_12
    level_13
@@ -99,14 +99,6 @@ Learn to run efficiently on the cloud
    :header: Level: Render a web UI alongside other components.
    :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
    :button_link: embed_web_ui_into_lightningwork.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level: Develop reactive apps.
-   :description: Learn to develop reactive Lightning Apps. Lightning shines with reactive workflows.
-   :button_link: level_14.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

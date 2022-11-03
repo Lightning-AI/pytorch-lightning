@@ -7,6 +7,49 @@ Level 6: Share variables between components
 
 ----
 
+****************************************
+Send a variable from Flow to a Component
+****************************************
+
+Todo 
+
+----
+
+**************************************
+Send a variable between two components
+**************************************
+Works cannot communicate directly between each other. Instead, a shared parent Flow must manage the communication.
+
+# A needs to know something about B, maybe the time?
+
+----
+
+********************************************
+Send a large variable between two components
+********************************************
+Payload.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ***********
 The toy app
 ***********

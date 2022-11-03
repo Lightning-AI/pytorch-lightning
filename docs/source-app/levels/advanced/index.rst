@@ -28,6 +28,22 @@ Learn to manage LightningWorks efficiently.
 .. Add callout items below this line
 
 .. displayitem::
+   :header: Level: Nest flows
+   :description: Learn to nest flows into other flows.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level: Develop reactive apps.
+   :description: Learn to develop reactive Lightning Apps. Lightning shines with reactive workflows.
+   :button_link: level_14.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
    :header: Level: Enable CLI commands for your app
    :description: Speak to your app from a CLI over the network
    :button_link: level_17.html
