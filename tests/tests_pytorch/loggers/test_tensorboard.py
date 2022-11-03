@@ -227,8 +227,13 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match="Could not log computational graph since the `model.example_input_array`"
-        " attribute is not set or `input_array` was not given",
+        match="Could not log computational graph to TensorBoard: The `model.example_input_array` .* was not given",
+    ):
+        logger.log_graph(model)
+
+    model.example_input_array = dict(x=1, y=2)
+    with pytest.warns(
+        UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
         logger.log_graph(model)
 
