@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import platform
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
@@ -327,8 +327,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # Current limitation in Lite: The config needs to be fully determined at the time of calling the
         # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
         # won't have an effect here.
-
-        model_parallel_context = nullcontext()
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -339,11 +337,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             else:
                 dtype = torch.float32
 
-            model_parallel_context = deepspeed.zero.Init(
+            with deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
-            )
-
-        with model_parallel_context:
+            ):
+                yield
+        else:
             yield
 
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
