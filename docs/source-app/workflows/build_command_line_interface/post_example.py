@@ -16,7 +16,7 @@ class Flow(L.LightningFlow):
     # 3. Method executed when a request is received.
     def handle_post(self, name: str):
         self.names.append(name)
-        return f"The name {name} was registered"
+        return f'The name {name} was registered'
 
     # 4. Defines this Component's Restful API. You can have several routes.
     def configure_api(self):

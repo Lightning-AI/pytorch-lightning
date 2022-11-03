@@ -18,7 +18,7 @@ class Flow(L.LightningFlow):
     # 3. Annotate your input with your custom pydantic model.
     def handle_post(self, config: NamePostConfig):
         self.names.append(config.name)
-        return f"The name {config} was registered"
+        return f'The name {config} was registered'
 
     # 4. Defines this Component's Restful API. You can have several routes.
     def configure_api(self):

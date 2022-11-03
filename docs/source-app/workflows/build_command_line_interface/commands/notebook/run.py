@@ -17,7 +17,7 @@ class RunNotebook(ClientCommand):
 
     def run(self):
         # 1. Define your own argument parser. You can use argparse, click, etc...
-        parser = ArgumentParser(description="Run Notebook Parser")
+        parser = ArgumentParser(description='Run Notebook Parser')
         parser.add_argument("--name", type=str, default=None)
         parser.add_argument("--cloud_compute", type=str, default="cpu")
         hparams = parser.parse_args()
