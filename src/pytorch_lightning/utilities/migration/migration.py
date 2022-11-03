@@ -42,7 +42,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
-        "1.6.5": [_migrate_loop_batches_that_stepped]
+        "1.6.5": [_migrate_loop_batches_that_stepped],
     }
 
 
