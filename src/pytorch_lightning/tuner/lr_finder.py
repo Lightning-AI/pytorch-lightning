@@ -195,11 +195,6 @@ class _LRFinder:
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
 
-    def broadcast_results(self, trainer: "pl.Trainer") -> None:
-        results = self.results
-        results = trainer.strategy.broadcast(results)
-        self.results = results
-
 
 def lr_find(
     trainer: "pl.Trainer",
@@ -258,7 +253,7 @@ def lr_find(
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
-    lr_finder.broadcast_results(trainer)
+    lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
     if update_attr:
         lr = lr_finder.suggestion()
 
