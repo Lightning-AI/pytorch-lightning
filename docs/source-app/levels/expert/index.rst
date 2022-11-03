@@ -7,7 +7,6 @@
 #############
 Expert skills
 #############
-??
 
 .. join_slack::
    :align: left
