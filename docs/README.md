@@ -72,5 +72,5 @@ export PL_FAST_DOCS_DEV=1
 
 ## docs CSS/theme
 
-To change the CSS theme of the docs, go [here](https://github.com/Lightning-AI/lightning_sphinx_theme).
+To change the CSS theme of the docs, go [here](https://github.com/Lightning-AI/sphinx-theme).
 Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.

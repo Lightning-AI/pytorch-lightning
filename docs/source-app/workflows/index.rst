@@ -1,13 +1,46 @@
-:orphan:
+.. toctree::
+   :maxdepth: 1
+   :hidden:
 
-################
-Common Workflows
-################
+   access_app_state/access_app_state
+   add_web_ui/index
+   add_web_link
+   secrets <../glossary/secrets>
+   arrange_tabs/index
+   connect components <../levels/basic/connect_lightning_components>
+   build components <../levels/basic/build_a_lightning_component>
+   run_work_once
+   cloud compute <../core_api/lightning_work/compute>
+   build_command_line_interface/index
+   connect components <../levels/basic/connect_lightning_components>
+   rest API <../glossary/restful_api/restful_api>
+   extend_app
+   build_lightning_component/publish_a_component
+   byoc/index
+   add_server/index
+   run_app_on_cloud/index
+   run_work_in_parallel
+   drive <../glossary/storage/drive>
+   share_app
+   share_files_between_components
+
+#######
+How to:
+#######
+
+----
 
 .. raw:: html
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+   :header: Access the App State
+   :description: Learn to work with the app state
+   :col_css: col-md-4
+   :button_link: access_app_state/access_app_state.html
+   :height: 180
 
 .. displayitem::
    :header: Add a web user interface
@@ -24,6 +57,13 @@ Common Workflows
    :height: 180
 
 .. displayitem::
+   :header: Add encrypted secrets
+   :description: Learn how to organize your UI
+   :col_css: col-md-4
+   :button_link: ../glossary/secrets.html
+   :height: 180
+
+.. displayitem::
    :header: Arrange App tabs
    :description: Learn how to organize your UI
    :col_css: col-md-4
@@ -34,14 +74,14 @@ Common Workflows
    :header: Build a Lightning App
    :description: Simple App to get started
    :col_css: col-md-4
-   :button_link: build_lightning_app/index.html
+   :button_link: ../levels/basic/connect_lightning_components.html
    :height: 180
 
 .. displayitem::
    :header: Build a Lightning Component
    :description: Understand how to separated the glue from the actual work
    :col_css: col-md-4
-   :button_link: build_lightning_component/index.html
+   :button_link: ../levels/basic/build_a_lightning_component.html
    :height: 180
 
 .. displayitem::
@@ -59,6 +99,27 @@ Common Workflows
    :height: 180
 
 .. displayitem::
+   :header: Develop a Command Line Interface (CLI)
+   :description: Learn to develop a CLI
+   :col_css: col-md-4
+   :button_link: build_command_line_interface/index.html
+   :height: 180
+
+.. displayitem::
+   :header: Develop a Lightning App
+   :description: Learn to connect components together into a Lightning App
+   :col_css: col-md-4
+   :button_link: ../levels/basic/connect_lightning_components.html
+   :height: 180
+
+.. displayitem::
+   :header: Develop a REST API
+   :description: Learn to deploy a model behind a REST API
+   :col_css: col-md-4
+   :button_link: ../glossary/restful_api/restful_api.html
+   :height: 180
+
+.. displayitem::
    :header: Extend an existing App
    :description: Learn where to go next with an App
    :col_css: col-md-4
@@ -70,6 +131,13 @@ Common Workflows
    :description: Share your components with others
    :col_css: col-md-4
    :button_link: build_lightning_component/publish_a_component.html
+   :height: 180
+
+.. displayitem::
+   :header: Run Apps on your cloud account (BYOC)
+   :description: Share your components with others
+   :col_css: col-md-4
+   :button_link: byoc/index.html
    :height: 180
 
 .. displayitem::
@@ -91,6 +159,13 @@ Common Workflows
    :description: Learn how to make your Work non blocking
    :col_css: col-md-4
    :button_link: run_work_in_parallel.html
+   :height: 180
+
+.. displayitem::
+   :header: Save files
+   :description: Learn how to save files in a work by using Drive
+   :col_css: col-md-4
+   :button_link: ../glossary/storage/drive.html
    :height: 180
 
 .. displayitem::
