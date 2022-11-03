@@ -235,21 +235,27 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        if self._log_graph:
-            if input_array is None:
-                input_array = model.example_input_array
+        if not self._log_graph:
+            return
 
-            if input_array is not None:
-                input_array = model._on_before_batch_transfer(input_array)
-                input_array = model._apply_batch_transfer_handler(input_array)
-                with pl.core.module._jit_is_scripting():
-                    self.experiment.add_graph(model, input_array)
-            else:
-                rank_zero_warn(
-                    "Could not log computational graph since the"
-                    " `model.example_input_array` attribute is not set"
-                    " or `input_array` was not given",
-                )
+        input_array = model.example_input_array if input_array is None else input_array
+
+        if input_array is None:
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `model.example_input_array` attribute"
+                " is not set or `input_array` was not given."
+            )
+        elif not isinstance(input_array, (Tensor, tuple)):
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `input_array` or `model.example_input_array`"
+                f" has type {type(input_array)} which can't be traced by TensorBoard. Make the input array a tuple"
+                f" representing the positional arguments to the model's `forward()` implementation."
+            )
+        else:
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            with pl.core.module._jit_is_scripting():
+                self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
     def save(self) -> None:

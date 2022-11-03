@@ -48,7 +48,7 @@ def create_neptune_mock():
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(init=MagicMock(side_effect=create_run_mock))
+    return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
 
 class Run:
@@ -102,7 +102,7 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock.exists.assert_called_once_with("sys/id")
         self.assertEqual(logger.name, "Run test name")
         self.assertEqual(logger.version, "TEST-1")
-        self.assertEqual(neptune.init.call_count, 1)
+        self.assertEqual(neptune.init_run.call_count, 1)
         self.assertEqual(created_run_mock.__getitem__.call_count, 2)
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
@@ -125,18 +125,18 @@ class TestNeptuneLogger(unittest.TestCase):
         assert logger._run_instance == created_run
         self.assertEqual(logger._run_instance, created_run)
         self.assertEqual(logger.version, "TEST-42")
-        self.assertEqual(neptune.init.call_count, 0)
+        self.assertEqual(neptune.init_run.call_count, 0)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
-        self.assertEqual(0, neptune.init.call_count)
+        self.assertEqual(0, neptune.init_run.call_count)
 
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
-        neptune.init.assert_called_once_with(name="Test name", run="TEST-42")
+        neptune.init_run.assert_called_once_with(name="Test name", run="TEST-42")
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)

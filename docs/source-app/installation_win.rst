@@ -31,4 +31,4 @@ Install with pip
 
     .. code:: bash
 
-        python -m pip install -U lightning
+        pip install -U lightning

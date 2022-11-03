@@ -53,11 +53,11 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # anything", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # my name", unfreeze="all")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0  # strict'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
     'arrow>=1.2.0, <=1.2.2  # strict'
@@ -81,7 +81,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@http" in req:
+    if not req or req.startswith("http") or "@" in req:
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -93,7 +93,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
 
     # remove version restrictions unless they are strict
     if unfreeze and "<" in req and not is_strict:
-        req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
         req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
@@ -198,3 +198,19 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     requires = list(chain(*requires))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
+
+
+def set_actual_version_from_src(req_path: str, src_root: str, pkg_name: str) -> None:
+    """Setting actual version from source code for a given package."""
+    with open(req_path, encoding="utf-8") as fo:
+        lines = fo.readlines()
+    ver = parse_version_from_file(os.path.join(src_root, pkg_name.replace("-", "_")))
+    for i, ln in enumerate(lines):
+        reqs = list(parse_requirements([ln]))
+        if not reqs:
+            continue
+        if reqs[0].name == pkg_name:
+            lines[i] = f"{pkg_name}=={ver}{os.linesep}"
+
+    with open(req_path, "w", encoding="utf-8") as fw:
+        fw.writelines(lines)

@@ -10,7 +10,7 @@ import click
 MAX_SPLIT_COUNT = 999
 
 
-def get_dir_size_and_count(source_dir: str, prefix: Optional[str] = None) -> Tuple[int, int]:
+def _get_dir_size_and_count(source_dir: str, prefix: Optional[str] = None) -> Tuple[int, int]:
     """Get size and file count of a directory.
 
     Parameters
@@ -38,7 +38,7 @@ def get_dir_size_and_count(source_dir: str, prefix: Optional[str] = None) -> Tup
 
 
 @dataclass
-class TarResults:
+class _TarResults:
     """This class holds the results of running tar_path.
 
     Attributes
@@ -53,7 +53,7 @@ class TarResults:
     after_size: int
 
 
-def get_split_size(
+def _get_split_size(
     total_size: int, minimum_split_size: int = 1024 * 1000 * 20, max_split_count: int = MAX_SPLIT_COUNT
 ) -> int:
     """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are
@@ -93,7 +93,7 @@ def get_split_size(
     return split_size
 
 
-def tar_path(source_path: str, target_file: str, compression: bool = False) -> TarResults:
+def _tar_path(source_path: str, target_file: str, compression: bool = False) -> _TarResults:
     """Create tar from directory using `tar`
 
     Parameters
@@ -111,7 +111,7 @@ def tar_path(source_path: str, target_file: str, compression: bool = False) -> T
         Results that holds file counts and sizes
     """
     if os.path.isdir(source_path):
-        before_size, _ = get_dir_size_and_count(source_path)
+        before_size, _ = _get_dir_size_and_count(source_path)
     else:
         before_size = os.path.getsize(source_path)
 
@@ -121,7 +121,7 @@ def tar_path(source_path: str, target_file: str, compression: bool = False) -> T
         _tar_path_python(source_path, target_file, compression)
 
     after_size = os.stat(target_file).st_size
-    return TarResults(before_size=before_size, after_size=after_size)
+    return _TarResults(before_size=before_size, after_size=after_size)
 
 
 def _tar_path_python(source_path: str, target_file: str, compression: bool = False) -> None:

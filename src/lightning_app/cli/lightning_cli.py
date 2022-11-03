@@ -20,14 +20,21 @@ from lightning_app.cli.commands.connection import (
     disconnect,
 )
 from lightning_app.cli.commands.logs import logs
+from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
+from lightning_app.cli.lightning_cli_remove import cli_remove
 from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
+from lightning_app.utilities.cli_helpers import (
+    _arrow_time_callback,
+    _check_environment_and_redirect,
+    _check_version_and_upgrade,
+    _format_input_env_variables,
+)
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
 from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
@@ -47,6 +54,12 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
 
 
 def main() -> None:
+    # Enforce running in PATH Python
+    _check_environment_and_redirect()
+
+    # Check for newer versions and upgrade
+    _check_version_and_upgrade()
+
     # 1: Handle connection to a Lightning App.
     if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
         _main()
@@ -335,6 +348,8 @@ def stop() -> None:
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
+_main.add_command(cli_add)
+_main.add_command(cli_remove)
 
 
 @_main.group()

@@ -4,10 +4,12 @@ import random
 import string
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
+import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -49,6 +51,8 @@ from lightning_app.core.constants import (
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
+    ENABLE_PULLING_STATE_ENDPOINT,
+    ENABLE_PUSHING_STATE_ENDPOINT,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -57,6 +61,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
@@ -104,7 +109,9 @@ class CloudRuntime(Runtime):
             # Override the name if provided by the CLI
             app_config.name = name
 
-        app_config.save_to_dir(root)
+        if cluster_id:
+            # Override the cluster ID if provided by the CLI
+            app_config.cluster_id = cluster_id
 
         print(f"The name of the app is: {app_config.name}")
 
@@ -122,6 +129,12 @@ class CloudRuntime(Runtime):
 
         if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
+
+        if not ENABLE_PULLING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PULLING_STATE_ENDPOINT", value="0"))
+
+        if not ENABLE_PUSHING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
         work_reqs: List[V1Work] = []
         for flow in self.app.flows:
@@ -187,7 +200,6 @@ class CloudRuntime(Runtime):
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
-                    cluster_id=cluster_id,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
@@ -239,21 +251,9 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id, body=app_body
                 )
 
-            release_body = Body8(
-                app_entrypoint_file=app_spec.app_entrypoint_file,
-                enable_app_server=app_spec.enable_app_server,
-                flow_servers=app_spec.flow_servers,
-                image_spec=app_spec.image_spec,
-                cluster_id=cluster_id,
-                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
-                local_source=True,
-                dependency_cache_key=app_spec.dependency_cache_key,
-                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
-            )
-
+            network_configs: Optional[List[V1NetworkConfig]] = None
             if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
-                network_configs: List[V1NetworkConfig] = []
-
+                network_configs = []
                 initial_port = 8080 + 1 + len(frontend_specs)
                 for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
                     network_configs.append(
@@ -263,11 +263,6 @@ class CloudRuntime(Runtime):
                         )
                     )
                     initial_port += 1
-
-                release_body.network_config = network_configs
-
-            if cluster_id is not None:
-                self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -293,13 +288,9 @@ class CloudRuntime(Runtime):
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
-                # TODO: support multiple instances / 1 instance per cluster
-                if existing_instance.spec.cluster_id != cluster_id:
-                    raise ValueError(
-                        f"Can not start app '{name}' on cluster '{cluster_id}' "
-                        f"since this app already exists on '{existing_instance.spec.cluster_id}'. "
-                        "To run it on another cluster, give it a new name with the --name option."
-                    )
+                if not app_config.cluster_id:
+                    # Re-run the app on the same cluster
+                    app_config.cluster_id = existing_instance.spec.cluster_id
 
                 if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                     # TODO(yurij): Implement release switching in the UI and remove this
@@ -320,16 +311,58 @@ class CloudRuntime(Runtime):
                     if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
                         raise RuntimeError("Failed to stop the existing instance.")
 
+            if app_config.cluster_id is not None:
+                # Verify that the cluster exists
+                list_clusters_resp = self.backend.client.cluster_service_list_clusters()
+                cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
+                if app_config.cluster_id not in cluster_ids:
+                    if cluster_id:
+                        msg = f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
+                    else:
+                        msg = (
+                            f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
+                            "doesn't exist anymore."
+                        )
+                    click.confirm(
+                        f"{msg} Do you want to run on Lightning Cloud instead?",
+                        abort=True,
+                        default=True,
+                    )
+                    app_config.cluster_id = None
+
+            if app_config.cluster_id is not None:
+                self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
+
+            for work_req in work_reqs:
+                work_req.spec.cluster_id = app_config.cluster_id
+
+            release_body = Body8(
+                app_entrypoint_file=app_spec.app_entrypoint_file,
+                enable_app_server=app_spec.enable_app_server,
+                flow_servers=app_spec.flow_servers,
+                image_spec=app_spec.image_spec,
+                cluster_id=app_config.cluster_id,
+                network_config=network_configs,
+                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
+                local_source=True,
+                dependency_cache_key=app_spec.dependency_cache_key,
+                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
+            )
+
             # create / upload the new app release / instace
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
 
-            if cluster_id is not None:
-                logger.info(f"running app on {lightning_app_release.cluster_id}")
-
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
+
+            if getattr(lightning_app_release, "cluster_id", None):
+                app_config.cluster_id = lightning_app_release.cluster_id
+                logger.info(f"Running app on {lightning_app_release.cluster_id}")
+
+            # Save the config for re-runs
+            app_config.save_to_dir(root)
 
             repo.package()
             repo.upload(url=lightning_app_release.source_upload_url)
@@ -361,7 +394,7 @@ class CloudRuntime(Runtime):
                         app_id=lit_app.id,
                         id=lightning_app_release.id,
                         body=Body9(
-                            cluster_id=cluster_id,
+                            cluster_id=app_config.cluster_id,
                             desired_state=app_release_desired_state,
                             name=lit_app.name,
                             env=v1_env_vars,
@@ -431,6 +464,30 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """This is meant to use only locally for cloud runtime."""
+        try:
+            app = load_app_from_file(filepath, raise_exception=True)
+        except ModuleNotFoundError:
+            # this is very generic exception.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            # we want to format the exception as if no frame was on top.
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            # remove the entry for the first frame
+            del listing[1]
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a mocking app.
+            app = LightningApp(EmptyFlow())
+
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            _prettifiy_exception(filepath)
+        return app
 
 
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
