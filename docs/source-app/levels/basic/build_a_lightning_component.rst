@@ -60,7 +60,7 @@ gives you these benefits:
 
    if you know what you are doing, Lightning gives you full control to manage your own
    scaling logic, fault-tolerance and even pre-provisioning, all from Python. We even give you
-   full flexibility to use tools like terraform to optimize cloud clusters for your Lightning apps.
+   full flexibility to use tools like `terraform <../../cloud/customize_a_lightning_cluster.html>`_ to optimize cloud clusters for your Lightning apps.
 
 .. collapse:: Packaged code
 
@@ -157,7 +157,7 @@ powerful Lightning app. Here are a few key features available to super-charge yo
    :highlights: 10;10;10;10;10;2,6,9, 10; 7
    :app_id: abc123
    :tab_rows: 3
-   :height: 385px
+   :height: 430px
 
 ----
 

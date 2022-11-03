@@ -62,6 +62,12 @@ Build modular components
 
 .. raw:: html
 
+   <div style="display: flex; align-items: center; justify-content: center;">
+      <img src="https://lightning-ai-docs.s3.amazonaws.com/intro_components.gif" style="max-width: 800px"></img>
+   </div>
+
+.. raw:: html
+
    <div class="row">
       <div class='col-md-5' style="padding-top: 18px">
          <p>

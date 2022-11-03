@@ -28,15 +28,15 @@ Learn to manage LightningWorks efficiently.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 10: Use custom containers
-   :description: Learn to use a custom cloud container.
-   :button_link: build_a_machine_learning_workflow.html
+   :header: Level: Enable CLI commands for your app
+   :description: Speak to your app from a CLI over the network
+   :button_link: level_17.html
    :col_css: col-md-6
    :height: 150
-   :tag: basic
+   :tag: advanced
 
 .. displayitem::
-   :header: Level 11: Network connect two LightningWorks
+   :header: Level 11: Connect two components over the network
    :description: Connect two LightningWorks over the network.
    :button_link: level_14.html
    :col_css: col-md-6
@@ -44,16 +44,8 @@ Learn to manage LightningWorks efficiently.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 12: Check work status
-   :description: Learn to use work status to coordinate complex apps.
-   :button_link: level_16.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: advanced
-
-.. displayitem::
-   :header: Level 13: Cache calls into run
-   :description: Learn about caching calls in work.run.
+   :header: Level 13: Rerun components
+   :description: Learn to reuse components by passing different variables.
    :button_link: level_17.html
    :col_css: col-md-6
    :height: 150

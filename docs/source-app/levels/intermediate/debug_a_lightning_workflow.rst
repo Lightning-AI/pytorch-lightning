@@ -1,46 +1,22 @@
 ##############################
 Level 4: Debug A Lightning app
 ##############################
-**Audience:** Users who want to debug Lightning workflows.
+**Audience:** Users who want to debug a distributed app locally.
 
 **Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 
 ----
 
-***********
-The toy app
-***********
-In this page, we'll be using the following toy snippet:
+**********************
+Enable local debugging
+**********************
+A distributed Lightning app can run locally on a single machine. To debug apps running locally
+you can use the multi-processing runtime:
 
-.. code:: python
-
-   # app.py
-   import lightning as L
-
-   class LitWorker(L.LightningWork):
-        def run(self):
-            print("run ANY python code here")
-
-    app = L.LightningApp(LitWorker())
-
-----
-
-*************
-Debug locally
-*************
-Lightning runs distributed cloud workflows locally for development and debugging purposes.
-Enable debugging by using **MultiProcessRuntime**:
-
-.. code:: python
-   :emphasize-lines: 3, 10
-
-   # app.py
-   import lightning as L
-   from lightning.app.runners import MultiProcessRuntime
-
-   class LitWorker(L.LightningWork):
-        def run(self):
-            print("run ANY python code here")
-
-    app = L.LightningApp(LitWorker())
-    MultiProcessRuntime(app).dispatch()
+.. lit_tabs::
+   :titles: Toy app; Enable MultiProcessRuntime 
+   :code_files: ./scripts/toy_app.py; ./scripts/debug_app.py
+   :highlights: ; 3, 24
+   :app_id: abc123
+   :tab_rows: 3
+   :height: 480px
