@@ -23,6 +23,7 @@ runs:
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
+    shell: bash
 
   - name: Install package - wheel
     working-directory: ./dist
@@ -30,3 +31,4 @@ runs:
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ inputs.pkg-name }}; print(${{ inputs.pkg-name }}.__version__)"
+    shell: bash
