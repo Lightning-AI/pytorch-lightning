@@ -4,7 +4,6 @@ import sqlite3
 import sys
 import tempfile
 import threading
-import time
 from typing import List, Optional, Type, Union
 
 import uvicorn
@@ -139,18 +138,43 @@ class Database(LightningWork):
         """
         super().__init__(parallel=True, cloud_build_config=BuildConfig(["sqlmodel"]))
         self.db_filename = db_filename
+        self._root_folder = os.path.dirname(db_filename)
         self.debug = debug
         self.store_interval = store_interval
         self._models = models if isinstance(models, list) else [models]
-        self._store_thread = threading.Thread(target=self.periodic_store_database, args=(store_interval,), daemon=True)
+        self._store_thread = None
+        self._exit_event = None
+
+    def store_database(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_db_filename = os.path.join(tmpdir, os.path.basename(self.db_filename))
+
+            source = sqlite3.connect(self.db_filename)
+            dest = sqlite3.connect(tmp_db_filename)
+
+            source.backup(dest)
+
+            source.close()
+            dest.close()
+
+            drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
+            drive.put(os.path.basename(tmp_db_filename))
+
+        print("Stored the database to the Drive.")
+
+    def periodic_store_database(self, store_interval):
+        while not self._exit_event.is_set():
+            self.store_database()
+            self._exit_event.wait(store_interval)
 
     def run(self, token: Optional[str] = None) -> None:
         """
         Arguments:
             token: Token used to protect the database access. Ensure you don't expose it through the App State.
         """
-        drive = Drive("lit://database", component_name=self.name)
-        if drive.list(component_name=self.name):
+        drive = Drive("lit://database", component_name=self.name, root_folder=self._root_folder)
+        filenames = drive.list(component_name=self.name)
+        if self.db_filename in filenames:
             drive.get(self.db_filename)
             print("Retrieved the database from Drive.")
 
@@ -165,6 +189,8 @@ class Database(LightningWork):
 
         sys.modules["uvicorn.main"].Server = _DatabaseUvicornServer
 
+        self._exit_event = threading.Event()
+        self._store_thread = threading.Thread(target=self.periodic_store_database, args=(self.store_interval,))
         self._store_thread.start()
 
         run(app, host=self.host, port=self.port, log_level="error")
@@ -182,32 +208,6 @@ class Database(LightningWork):
             return f"http://{self.internal_ip}:{self.port}"
         return self.internal_ip
 
-    def periodic_store_database(self, store_interval):
-        while True:
-            self.store_database()
-            time.sleep(store_interval)
-
-    def store_database(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_db_filename = os.path.join(tmpdir, self.db_filename)
-            print("#############")
-            print(tmp_db_filename)
-            print("#############")
-
-            source = sqlite3.connect(self.db_filename)
-            dest = sqlite3.connect(tmp_db_filename)
-
-            source.backup(dest)
-
-            source.close()
-            dest.close()
-
-            drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
-            drive.put(tmp_db_filename)
-            print(drive.drive_root)
-            print("#############")
-
-        print("Stored the database to the Drive.")
-
     def on_exit(self):
+        self._exit_event.set()
         self.store_database()
