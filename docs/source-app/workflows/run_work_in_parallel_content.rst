@@ -15,9 +15,9 @@ Run work in parallel
 By default, a LightningWork must complete before the next one runs:
 
 .. lit_tabs::
-   :descriptions: Toy app; Run the train component in parallel so we can immediately start analysis without waiting for A to complete.
-   :code_files: /workflows/scripts/parallel/toy_app.py; /workflows/scripts/parallel/toy_parallel.py
-   :highlights: ; 17
+   :descriptions: Toy app; Run the train component in parallel so we can immediately start analysis without waiting for A to complete; Train and baseline in parallel which launches analysis immediately.
+   :code_files: /workflows/scripts/parallel/toy_app.py; /workflows/scripts/parallel/toy_parallel.py; /workflows/scripts/parallel/toy_two_parallel.py
+   :highlights: ; 17; 17, 18, 22, 23
    :app_id: abc123
    :tab_rows: 3
-   :height: 480px
+   :height: 520px

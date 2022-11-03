@@ -17,8 +17,10 @@ class LitWorkflow(L.LightningFlow):
         self.train = TrainComponent(cloud_compute=L.CloudCompute('cpu'), parallel=True)
         self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('cpu'))
 
+
     def run(self):
         self.train.run("machine A counting")
         self.analyze.run("machine B counting")
+
 
 app = L.LightningApp(LitWorkflow())

@@ -1,7 +1,7 @@
-########################################
-Level 5: Run a LightningWork in parallel
-########################################
-**Audience:** Users who want to run a LightningWork in parallel (asynchroneously).
+##############################################
+Level 5: Run a Lightning component in parallel
+##############################################
+**Audience:** Users who want to run a Lightning Component in parallel (asynchroneously).
 
 **Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 

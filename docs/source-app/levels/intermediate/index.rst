@@ -48,17 +48,17 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level : Run components in parallel
-   :description: Learn when to run LightningWorks in parallel (asynchroneous).
+   :header: Level 5: Run a Lightning component in parallel
+   :description: Learn when and how to run Components in parallel (asynchronous).
    :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level : Share variables between components
-   :description: Share variables and files between LightningWorks.
-   :button_link: communicate_between_lightning_components.html
+   :header: Level 6: Share variables between components
+   :description: Share variables between Lightning components.
+   :button_link: share_variables_between_lightning_components.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
