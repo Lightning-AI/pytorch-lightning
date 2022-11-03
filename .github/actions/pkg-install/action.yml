@@ -4,8 +4,7 @@ description: Install and validate the package
 inputs:
   pkg-name:
     description: package name for import
-    required: false
-    default: ""
+    required: true
   pip-flags:
     description: additional pil install flags
     required: false
