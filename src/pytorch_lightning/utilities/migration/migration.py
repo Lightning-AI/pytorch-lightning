@@ -42,6 +42,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
+        "1.6.5": [_migrate_loop_batches_that_stepped]
     }
 
 
@@ -75,7 +76,8 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
-    Commit: aea96e4
+    Commit: c67b075
+    PR: #13645, #11805
     """
     global_step = checkpoint["global_step"]
     checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
@@ -95,11 +97,24 @@ def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) ->
 
     Version: 1.6.0
     Commit: aea96e4
+    PR: #11805
     """
     epoch = checkpoint["epoch"]
     checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
     checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
     checkpoint["loops"]["fit_loop"]["epoch_progress"]["current"]["completed"] = epoch
+    return checkpoint
+
+
+def _migrate_loop_batches_that_stepped(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Sets the `_batches_that_stepped` default value for checkpoints before v1.6.5 which don't have this key.
+
+    Version: 1.6.5
+    Commit: c67b075
+    PR: #13645
+    """
+    global_step = checkpoint["global_step"]
+    checkpoint["loops"]["fit_loop"]["epoch_loop.state_dict"].setdefault("_batches_that_stepped", global_step)
     return checkpoint
 
 

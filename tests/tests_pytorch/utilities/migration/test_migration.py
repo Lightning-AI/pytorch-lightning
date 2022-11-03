@@ -14,9 +14,12 @@
 from unittest.mock import ANY
 
 import pytest
+import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.utilities.migration import migrate_checkpoint
 from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 
@@ -54,3 +57,27 @@ def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     assert updated_checkpoint == old_checkpoint == new_checkpoint
     assert _get_version(updated_checkpoint) == pl.__version__
+
+
+@pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
+def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir, model_class):
+    trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
+    model = model_class()
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    ckpt = torch.load(ckpt_path)
+    # the key "_batches_that_stepped" doesn't exist in checkpoints generated with <v1.6.5
+    del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
+    _set_version(ckpt, "1.6.4")
+    torch.save(ckpt, ckpt_path)
+
+    class TestModel(model_class):
+        def on_train_start(self) -> None:
+            assert self.trainer.global_step == 1
+            assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
+
+    trainer = Trainer(max_steps=2, limit_val_batches=0, default_root_dir=tmpdir)
+    model = TestModel()
+    trainer.fit(model, ckpt_path=ckpt_path)
+    new_loop = trainer.fit_loop.epoch_loop
+    assert new_loop.global_step == new_loop._batches_that_stepped == 2
