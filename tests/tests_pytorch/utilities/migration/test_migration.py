@@ -50,7 +50,7 @@ from pytorch_lightning.utilities.migration.utils import _get_version, _set_legac
         ),
     ],
 )
-def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
+def test_migrate_model_checkpoint_early_stopping(tmpdir, old_checkpoint, new_checkpoint):
     _set_version(old_checkpoint, "0.9.0")
     _set_legacy_version(new_checkpoint, "0.9.0")
     _set_version(new_checkpoint, pl.__version__)
@@ -60,13 +60,14 @@ def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
 
 
 @pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
-def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir, model_class):
+def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
     trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
     model = model_class()
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    # pretend we have a checkpoint produced in < v1.6.5; the key "_batches_that_stepped" didn't exist back then
     ckpt = torch.load(ckpt_path)
-    # the key "_batches_that_stepped" doesn't exist in checkpoints generated with <v1.6.5
     del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
     _set_version(ckpt, "1.6.4")
     torch.save(ckpt, ckpt_path)
