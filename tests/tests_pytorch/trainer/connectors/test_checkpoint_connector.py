@@ -121,7 +121,7 @@ def test_ckpt_for_fsspec(tmpdir):
     fsspec.register_implementation("mock", MockFileSystem)
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir="mock://" + tmpdir, max_steps=1)
+    trainer = Trainer(default_root_dir="mock://" + str(tmpdir), max_steps=1)
     trainer.fit(model)
     trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
