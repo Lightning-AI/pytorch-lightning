@@ -4,7 +4,9 @@ name: Check Docs
 on:
   push:
     branches: ["master", "release/*"]
-  pull_request:
+  # use this event type to share secrets with forks.
+  # it's important that the PR head SHA is checked out to run the changes
+  pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -30,6 +32,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
@@ -56,6 +60,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
@@ -130,6 +135,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
