@@ -67,6 +67,7 @@ jobs:
     - name: Install lite from source for PL
       # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
       # also installing from source not from on-the-fly created package to prevent accidental interaction with cache
+      working-directory: ./
       env:
         PACKAGE_NAME: lite
       run: |
