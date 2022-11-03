@@ -151,6 +151,7 @@ class CloudRuntime(Runtime):
                     name=work.cloud_compute.name,
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
+                    preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
 
@@ -343,7 +344,7 @@ class CloudRuntime(Runtime):
                 image_spec=app_spec.image_spec,
                 cluster_id=app_config.cluster_id,
                 network_config=network_configs,
-                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
+                works=work_reqs,
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
