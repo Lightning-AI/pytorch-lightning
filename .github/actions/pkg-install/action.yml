@@ -3,10 +3,10 @@ description: Install and validate the package
 
 inputs:
   pkg-name:
-    description: package name for import
+    description: Package name to import
     required: true
   pip-flags:
-    description: additional pil install flags
+    description: Additional pip install flags
     required: false
     default: ""
 
