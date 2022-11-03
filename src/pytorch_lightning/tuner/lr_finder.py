@@ -195,9 +195,9 @@ class _LRFinder:
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
 
-    def broadcast_results(self, trainer: "pl.Trainer", global_rank: int) -> None:
+    def broadcast_results(self, trainer: "pl.Trainer") -> None:
         results = self.results
-        results = trainer.strategy.broadcast(results, src=global_rank)
+        results = trainer.strategy.broadcast(results)
         self.results = results
 
 
@@ -252,16 +252,13 @@ def lr_find(
     lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    # broadcast results
-    lr_callback = [cb for cb in trainer.callbacks if isinstance(cb, _LRCallback)][0]
-    lr_finder.broadcast_results(trainer, global_rank=lr_callback.should_stop_rank)
-
     __lr_finder_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
+    lr_finder.broadcast_results(trainer)
     if update_attr:
         lr = lr_finder.suggestion()
 
@@ -356,7 +353,6 @@ class _LRCallback(Callback):
         self.best_loss = 0.0
         self.progress_bar_refresh_rate = progress_bar_refresh_rate
         self.progress_bar = None
-        self.should_stop_rank = 0
 
     def on_train_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
@@ -396,15 +392,7 @@ class _LRCallback(Callback):
                 if self.progress_bar:
                     self.progress_bar.close()
 
-        if trainer.should_stop:
-            self.should_stop_rank = int(
-                trainer.strategy.reduce(
-                    torch.tensor(trainer.global_rank, device=pl_module.device), reduce_op="max"
-                ).item()
-            )
-            trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
-
-        trainer.strategy.barrier()
+        trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
