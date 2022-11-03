@@ -8,6 +8,7 @@ Package your code in a lightning component
 
 .. join_slack::
    :align: left
+
 ----
 
 *********************************

@@ -75,7 +75,7 @@ needs_sphinx = "4.5"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",

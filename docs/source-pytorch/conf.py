@@ -18,7 +18,7 @@ import shutil
 import sys
 import warnings
 
-import lai_sphinx_theme
+import pt_lightning_sphinx_theme
 
 import pytorch_lightning
 
@@ -118,7 +118,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "lai_sphinx_theme.extensions.lightning",
+    "pt_lightning_sphinx_theme.extensions.lightning",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -185,9 +185,8 @@ pygments_style = None
 # http://www.sphinx-doc.org/en/master/usage/theming.html#builtin-themes
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
-html_theme = "lai_sphinx_theme"
-html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
-# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lai_sphinx_theme"]
+html_theme = "pt_lightning_sphinx_theme"
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

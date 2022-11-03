@@ -114,4 +114,4 @@ Before you can install packages into the environment, you need to activate it:
 
 You need to do this step every time you want to work on your project / open the terminal.
 With your virtual environment activated, you are now ready to
-:doc:`install Lightning <../installation>` and get started with Apps!
+:doc:`install Lightning <installation>` and get started with Apps!
