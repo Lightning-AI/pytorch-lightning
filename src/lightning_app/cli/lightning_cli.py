@@ -1,16 +1,20 @@
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Tuple, Union
 
 import arrow
 import click
+import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi.rest import ApiException
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_apps import _AppManager
 from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.commands.app_commands import _run_app_command
 from lightning_app.cli.commands.connection import (
@@ -352,6 +356,87 @@ _main.add_command(delete)
 _main.add_command(create)
 _main.add_command(cli_add)
 _main.add_command(cli_remove)
+
+
+@_main.command("ssh")
+@click.option(
+    "--app-name",
+    "app_name",
+    type=str,
+    default=None,
+    required=False,
+)
+@click.option(
+    "--component-name",
+    "component_name",
+    type=str,
+    default=None,
+    help="Specify which component to SSH into",
+)
+def ssh(app_name: str = None, component_name: str = None) -> None:
+    """SSH into a Lightning App."""
+
+    app_manager = _AppManager()
+    apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
+    if len(apps) == 0:
+        raise click.ClickException("No running apps available. Start a Lightning App in the cloud to use this feature.")
+
+    available_app_names = [app.name for app in apps]
+    if app_name is None:
+        available_apps = [
+            inquirer.List(
+                "app_name",
+                message="What app to SSH into?",
+                choices=available_app_names,
+            ),
+        ]
+        app_name = inquirer.prompt(available_apps)["app_name"]
+    app_id = next((app.id for app in apps if app.name == app_name), None)
+    if app_id is None:
+        raise click.ClickException(
+            f"Unable to find a running app with name {app_name} in your account. "
+            + f"Available running apps are: {', '.join(available_app_names)}"
+        )
+    try:
+        instance = app_manager.get_app(app_id=app_id)
+    except ApiException:
+        raise click.ClickException("failed fetching app instance")
+
+    components = app_manager.list_components(app_id=app_id)
+    available_component_names = [work.name for work in components] + ["flow"]
+    if component_name is None:
+        available_components = [
+            inquirer.List(
+                "component_name",
+                message="Which component to SSH into?",
+                choices=available_component_names,
+            )
+        ]
+        component_name = inquirer.prompt(available_components)["component_name"]
+
+    component_id = None
+    if component_name == "flow":
+        component_id = f"lightningapp-{app_id}"
+    elif component_name is not None:
+        work_id = next((work.id for work in components if work.name == component_name), None)
+        if work_id is not None:
+            component_id = f"lightningwork-{work_id}"
+
+    if component_id is None:
+        raise click.ClickException(
+            f"Unable to find an app component with name {component_name}. "
+            f"Available components are: {', '.join(available_component_names)}"
+        )
+
+    app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
+    ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
+
+    ssh_path = shutil.which("ssh")
+    if ssh_path is None:
+        raise click.ClickException(
+            "Unable to find the ssh binary. You must install ssh first to use this functionality."
+        )
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
 
 
 @_main.group()
