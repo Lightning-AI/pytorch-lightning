@@ -12,7 +12,6 @@
    environment_variables
    secrets
    front ends <../workflows/add_web_ui/glossary_front_end>
-   ios_and_android
    Lightning app <../core_api/lightning_app/index>
    sharing_components
    scheduling
