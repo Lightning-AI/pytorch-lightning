@@ -177,3 +177,4 @@ saved_models
 data/
 .shared
 .lightning
+node_modules/

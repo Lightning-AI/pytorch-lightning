@@ -4,18 +4,20 @@
    :maxdepth: 1
    :hidden:
 
-   level_1
-   level_2
-   level_3
-   level_4
-   level_5
-   level_6
-   level_7
+   build_a_lightning_component
+   connect_lightning_components
+   train_pytorch_on_the_cloud
+   deploy_ai_model_api
+   run_jupyter_notebook_on_the_cloud
+   create_a_model_demo
+   build_a_dag
 
 ############
 Basic skills
 ############
-Learn the basics of running Lightning Apps and modifying existing Lightning Apps. Researchers and machine learning engineers should start here.
+Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps.
+
+Every new user should start here.
 
 .. join_slack::
    :align: left
@@ -30,63 +32,32 @@ Learn the basics of running Lightning Apps and modifying existing Lightning Apps
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 1: Clone and Run
-   :description: Learn how to get up and running in minutes
-   :button_link: level_1.html
+   :header: Level 1: Package code in a Lightning component
+   :description: Learn to build a Lightning component which is the core building block of a full stack AI app (Lightning App).
+   :button_link: build_a_lightning_component.html
    :col_css: col-md-6
-   :height: 150
-   :tag: basic
+   :height: 170
+   :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Run Lightning Apps locally
-   :description: Learn to run an Lightning Apps locally
-   :button_link: level_2.html
+   :header: Level 2: Connect components into a full stack AI app
+   :description: Learn to connect components into a full stack AI app.
+   :button_link: connect_lightning_components.html
    :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Level 3: Run Lightning Apps on the cloud
-   :description: Learn to run a Lightning Apps on the cloud
-   :button_link: level_3.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Level 4: Modify existing Lightning Apps
-   :description: Modify a Lightning App from the Lightning App Gallery for your use case.
-   :button_link: level_4.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Level 5: Share your Lightning App
-   :description: Learn how to share your Lightning App with colleagues
-   :button_link: level_5.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: Level 6: Publish your Lightning App
-   :description: Learn how to submit your Lightning App to the Lightning App Gallery
-   :button_link: level_6.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-
-.. displayitem::
-   :header: Level 7: Run on your cloud account
-   :description: Learn how to run a Lightning App on your own cloud account.
-   :button_link: level_7.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
+   :height: 170
+   :tag: 15 minutes
 
 .. raw:: html
 
         </div>
     </div>
+
+
+----
+
+**************
+Basic Examples
+**************
+Once you've finished the basic levels, work through the following examples:
+
+.. include:: basic_examples.rst

@@ -3,5 +3,4 @@
 ipython[notebook]
 ipython_genutils
 
-sphinx-autobuild
 lai-sphinx-theme
