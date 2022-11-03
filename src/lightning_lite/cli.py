@@ -29,22 +29,26 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 def _parse_args() -> Tuple[Namespace, List[str]]:
     parser = ArgumentParser(description="Launch your script with the Lightning Lite CLI.")
-    parser.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
-    parser.add_argument(
+    subparsers = parser.add_subparsers()
+    subparser_run = subparsers.add_parser('run')
+    subparsers_run = subparser_run.add_subparsers()
+    subparser_lite = subparsers_run.add_parser("lite")
+    subparser_lite.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
+    subparser_lite.add_argument(
         "--accelerator",
         type=str,
         default="cpu",
         choices=_SUPPORTED_ACCELERATORS,
         help="The hardware accelerator to run on.",
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--strategy",
         type=str,
         default=None,
         choices=_SUPPORTED_STRATEGIES,
         help="Strategy for how to run across multiple devices.",
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--devices",
         type=str,
         default="1",
@@ -53,14 +57,14 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
             " The value applies per node."
         ),
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--num-nodes",
         "--num_nodes",
         type=int,
         default=1,
         help="Number of machines (nodes) for distributed execution.",
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--node-rank",
         "--node_rank",
         type=int,
@@ -70,21 +74,21 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
             " 0, ..., num_nodes - 1."
         ),
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--main-address",
         "--main_address",
         type=str,
         default="127.0.0.1",
         help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--main-port",
         "--main_port",
         type=int,
         default=29400,
         help="The main port to connect to the main machine.",
     )
-    parser.add_argument(
+    subparser_lite.add_argument(
         "--precision",
         type=str,
         default="32",
@@ -95,7 +99,7 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
         ),
     )
 
-    args, script_args = parser.parse_known_args()
+    args, script_args = subparser_lite.parse_known_args()
     return args, script_args
 
 
