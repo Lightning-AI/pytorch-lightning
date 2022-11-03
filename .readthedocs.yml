@@ -46,6 +46,9 @@ build:
     - texlive-latex-extra
     - dvipng
     - texlive-pictures
+  jobs:
+    pre_install:
+      - PACKAGE_NAME=lite pip install -e . -f 'https://download.pytorch.org/whl/cpu/torch_stable.html'
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
