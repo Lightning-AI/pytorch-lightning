@@ -3,7 +3,6 @@ import sys
 from queue import Empty
 from typing import List, Optional, Tuple
 
-import pytest
 from packaging.version import Version
 
 from lightning_app import LightningFlow, LightningWork
@@ -15,7 +14,7 @@ from lightning_app.utilities.imports import (
 )
 
 
-def call_script(
+def _call_script(
     filepath: str,
     args: Optional[List[str]] = None,
     timeout: Optional[int] = 60 * 10,
@@ -35,14 +34,14 @@ def call_script(
     return p.returncode, stdout, stderr
 
 
-def run_script(filepath):
-    code, stdout, stderr = call_script(filepath)
+def _run_script(filepath):
+    code, stdout, stderr = _call_script(filepath)
     print(f"{filepath} STDOUT: {stdout}")
     print(f"{filepath} STDERR: {stderr}")
     assert not code, code
 
 
-class RunIf:
+class _RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
     @RunIf(...)
@@ -64,6 +63,8 @@ class RunIf:
         cloud: bool = False,
         **kwargs,
     ):
+        import pytest
+
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
@@ -113,7 +114,7 @@ class RunIf:
         )
 
 
-class MockQueue(BaseQueue):
+class _MockQueue(BaseQueue):
     def __init__(self, name: str = "", default_timeout: float = 0):
         super().__init__(name, default_timeout)
         self._queue = []

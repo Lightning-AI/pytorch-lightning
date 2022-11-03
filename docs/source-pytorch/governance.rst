@@ -24,17 +24,17 @@ Leads
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
-- Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
 - Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
+- Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
+- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 
 
 Core Maintainers
 ----------------
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
-- Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Siyu Wang (`four4fish <https://github.com/four4fish>`_)
 
@@ -56,6 +56,8 @@ Alumni
 - Nate Raw (`nateraw <https://github.com/nateraw>`_)
 - Peter Yu (`yukw777 <https://github.com/yukw777>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
+- Sean Narenthiran (`SeanNaren <https://github.com/SeanNaren>`_)
+
 
 Project Management and Decision Making
 **************************************

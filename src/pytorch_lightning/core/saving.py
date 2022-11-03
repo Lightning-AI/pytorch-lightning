@@ -20,6 +20,7 @@ import os
 from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
@@ -27,11 +28,12 @@ import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import _load as pl_load
 from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.cloud_io import load as pl_load
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
-from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.parsing import AttributeDict, parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -157,7 +159,9 @@ def _load_from_checkpoint(
         checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     # convert legacy checkpoints to the new format
-    checkpoint = migrate_checkpoint(checkpoint)
+    checkpoint = _pl_migrate_checkpoint(
+        checkpoint, checkpoint_path=(checkpoint_path if isinstance(checkpoint_path, (str, Path)) else None)
+    )
 
     if hparams_file is not None:
         extension = str(hparams_file).split(".")[-1]

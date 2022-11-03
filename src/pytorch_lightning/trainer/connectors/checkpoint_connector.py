@@ -32,7 +32,8 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
+from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 if _OMEGACONF_AVAILABLE:
@@ -51,7 +52,7 @@ class CheckpointConnector:
         if resume_from_checkpoint is not None:
             rank_zero_deprecation(
                 "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `Trainer.fit(ckpt_path=)` directly instead."
+                " will be removed in v2.0. Please pass `Trainer.fit(ckpt_path=)` directly instead."
             )
         self._loaded_checkpoint: Dict[str, Any] = {}
 
@@ -80,13 +81,9 @@ class CheckpointConnector:
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
-        self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
-
-    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         with pl_legacy_patch():
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
-        loaded_checkpoint = migrate_checkpoint(loaded_checkpoint)
-        return loaded_checkpoint
+        self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _set_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool

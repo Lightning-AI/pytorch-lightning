@@ -2,7 +2,7 @@ import collections
 
 import torch
 
-from lightning_lite.utilities.optimizer import optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device
 
 
 def test_optimizer_to_device():
@@ -13,9 +13,9 @@ def test_optimizer_to_device():
 
     layer = torch.nn.Linear(32, 2)
     opt = TestOptimizer(layer.parameters(), lr=0.1)
-    optimizer_to_device(opt, "cpu")
+    _optimizer_to_device(opt, "cpu")
     if torch.cuda.is_available():
-        optimizer_to_device(opt, "cuda")
+        _optimizer_to_device(opt, "cuda")
         assert_opt_parameters_on_device(opt, "cuda")
 
 

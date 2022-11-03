@@ -20,6 +20,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   app-examples:
     if: github.event.pull_request.draft == false
@@ -28,12 +32,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-11, windows-2022]
-        pkg-name: ["LAI", "app"]  # the "LAI" is for installing monolithic package
-        python-version: [3.8]
+        pkg-name: ["app"]
+        python-version: ["3.9"]
         requires: ["oldest", "latest"]
+        include:
+          # "lightning" installs the monolithic package
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.9", requires: "latest"}
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
@@ -60,17 +69,14 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
-          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
       - name: Install dependencies
-        env:  # TODO: drop this when we will be using regular releases for testing
-          PACKAGE_NAME: pytorch
         run: |
           pip --version
           pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
-        shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -80,15 +86,23 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install Lightning as top-level
+      - name: Install Lightning package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: pip install -e .
-        shell: bash
 
       - name: Adjust tests
-        if: ${{ matrix.pkg-name == 'LAI' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+
+      - name: Adjust examples
+        if: ${{ matrix.pkg-name != 'lightning' }}
+        run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app" --target_import="lightning_app"
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning" --target_import="lightning_app"
+
+      - name: Switch coverage scope
+        run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
       - name: Tests
         working-directory: ./tests
@@ -98,7 +112,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source lightning_app -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

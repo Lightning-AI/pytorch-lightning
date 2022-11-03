@@ -43,9 +43,9 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        from lightning_lite.utilities.device_parser import parse_gpu_ids
+        from lightning_lite.utilities.device_parser import _parse_gpu_ids
 
-        return parse_gpu_ids(devices, include_cuda=True)
+        return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
