@@ -213,7 +213,7 @@ class LightningFlow:
         for child_flow in flow.flows.values():
             child_flow._backend = backend
             for name in child_flow._structures:
-                getattr(flow, name)._backend = backend
+                getattr(child_flow, name)._backend = backend
 
         app = _LightningAppRef().get_current()
 

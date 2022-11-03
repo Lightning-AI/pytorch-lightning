@@ -94,6 +94,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     query_parameters = "&".join(provided_params)
     resp = requests.post(url + f"/command/{command}?{query_parameters}")
     assert resp.status_code == 200, resp.json()
+    print(resp.json())
 
 
 def _handle_command_with_client(command: str, metadata: Dict, app_name: str, app_id: Optional[str], url: str):
