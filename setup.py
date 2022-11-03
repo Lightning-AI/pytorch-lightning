@@ -38,15 +38,6 @@ There are considered three main scenarios for installing this project:
      compared against PyPI registry
     b) with a parameterization build desired packages in to standard `dist/` folder
     c) validate packages and publish to PyPI
-
-
-| Installation   | PIP version *       | Pkg version **  |
-| -------------- | ------------------- | --------------- |
-| source         | calendar + branch   | semantic        |
-| PyPI           | semantic            | semantic        |
-
-* shown version while calling `pip list | grep lightning`
-** shown version in python `from <pytorch_lightning|lightning_app> import __version__`
 """
 import os
 from importlib.util import module_from_spec, spec_from_file_location
@@ -54,8 +45,13 @@ from types import ModuleType
 
 from setuptools import setup
 
-_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "")
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
+_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "lightning")
+_PACKAGE_MAPPING = {
+    "pytorch": "pytorch_lightning",
+    "app": "lightning_app",
+    "lite": "lightning_lite",
+    "lightning": "lightning",
+}
 _REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
@@ -63,8 +59,6 @@ _PATH_ROOT = os.path.dirname(__file__)
 _PATH_SRC = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 _PATH_SETUP = os.path.join(_PATH_SRC, _REAL_PKG_NAME, "__setup__.py")
-if not os.path.isfile(_PATH_SETUP):
-    _PATH_SETUP = os.path.join(_PATH_SRC, "lightning", "__setup__.py")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
@@ -77,18 +71,16 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-# https://packaging.python.org/discussions/install-requires-vs-requirements /
-# keep the meta-data here for simplicity in reading this file... it's not obvious
-# what happens and to non-engineers they won't know to look in init ...
-# the goal of the project is simplicity for researchers, don't want to add too much
-# engineer specific practices
 if __name__ == "__main__":
     _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
-    if _PACKAGE_NAME not in _PACKAGE_MAPPING:  # install everything
+    print(f"Installing the {_PACKAGE_NAME} package")  # requires `-v` to appear
+    if _PACKAGE_NAME == "lightning":
+        # install everything
         _SETUP_TOOLS._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-
-    _SETUP_TOOLS.create_mirror_package(os.path.join(_PATH_ROOT, "src"), _PACKAGE_MAPPING)
+        _SETUP_TOOLS.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+    elif _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}")
 
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
