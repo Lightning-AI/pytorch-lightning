@@ -17,7 +17,6 @@ from unittest import mock
 import fsspec
 import pytest
 import torch
-from fsspec.implementations.arrow import ArrowFSWrapper
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -107,21 +106,8 @@ def test_hpc_max_ckpt_version(tmpdir):
 def test_ckpt_for_fsspec(tmpdir):
     """Test that the CheckpointConnector is able to write to fsspec file systems."""
 
-    class MockFileSystem(ArrowFSWrapper):
-        """A wrapper on pyarrow's mock filesystem for testing."""
-
-        protocol = "mock"
-
-        def __init__(self, **kwargs):
-            from pyarrow.fs import FileSystem
-
-            fs = FileSystem.from_uri("mock://")  # Get mock file system
-            super().__init__(fs=fs, **kwargs)
-
-    fsspec.register_implementation("mock", MockFileSystem)
-
     model = BoringModel()
-    trainer = Trainer(default_root_dir="mock://" + str(tmpdir), max_steps=1)
+    trainer = Trainer(default_root_dir="memory://" + str(tmpdir), max_steps=1)
     trainer.fit(model)
     trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
