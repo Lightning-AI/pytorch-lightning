@@ -59,7 +59,7 @@ subprojects:
       # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
       #- "test-on-tpus"
 
-  - id: "pytorch_lightning: CI/CPU"
+  - id: "pytorch_lightning: CPU workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests.yml"
     checks:
@@ -86,7 +86,7 @@ subprojects:
       - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
       #- "pl-cpu (windows-2022, lightning, 3.7, 1.9, oldest)"
 
-  - id: "pytorch_lightning: CI/Slow"
+  - id: "pytorch_lightning: Slow workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests-slow.yml"
     checks:
@@ -113,7 +113,7 @@ subprojects:
     checks:
       - "pytorch-lightning (IPUs)"
 
-  - id: "pytorch-lightning: CI/TPU"
+  - id: "pytorch-lightning: TPU workflow"
     paths:
       - ".github/workflows/tpu-tests.yml"
     checks:
@@ -247,7 +247,7 @@ subprojects:
 
   # SECTION: lightning_app
 
-  - id: "lightning_app: Code"
+  - id: "lightning_app"
     paths:
       - "requirements/app/**"
       - "src/lightning_app/**"
@@ -269,7 +269,7 @@ subprojects:
       - "app-pytest (windows-2022, app, 3.8, oldest)"
       - "app-pytest (windows-2022, lightning, 3.8, latest)"
 
-  - id: "lightning_app: CI/pytest"
+  - id: "lightning_app: Tests workflow"
     paths:
       - ".github/workflows/ci-app-tests.yml"
     checks:
@@ -302,7 +302,7 @@ subprojects:
       - "app-examples (windows-2022, app, 3.9, oldest)"
       - "app-examples (windows-2022, lightning, 3.9, latest)"
 
-  - id: "lightning_app: CI/Examples"
+  - id: "lightning_app: Examples workflow"
     paths:
       - ".github/workflows/ci-app-examples.yml"
     checks:
