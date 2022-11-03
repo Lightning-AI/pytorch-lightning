@@ -10,10 +10,6 @@ inputs:
     required: false
     default: ""
 
-defaults:
-  run:
-    shell: bash
-
 runs:
   using: "composite"
   steps:
