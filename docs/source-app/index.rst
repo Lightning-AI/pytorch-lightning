@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-######################
+#######################
 Welcome to ⚡ Lightning
-######################
+#######################
 Build models and full stack AI apps ⚡ *Lightning fast*.
 
 .. join_slack::
@@ -90,7 +90,7 @@ Build modular components
 
 .. lit_tabs::
    :code_files: landing_app_run.bash
-   :highlights: 6
+   :highlights: 5
    :height: 150px
    :code_only: True
 
