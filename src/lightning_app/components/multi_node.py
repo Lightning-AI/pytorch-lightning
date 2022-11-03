@@ -1,8 +1,8 @@
 from typing import Type
 
 import lightning as L
-from lightning_app import structures
-from lightning_app.core.flow import LightningFlow
+from lightning.app import structures
+from lightning.app.core.flow import LightningFlow
 
 
 class MultiNode(LightningFlow):
@@ -60,11 +60,11 @@ class MultiNode(LightningFlow):
         if all(w.internal_ip for w in self.ws):
             for node_rank in range(self.nodes):
                 self.ws[node_rank].run(
-                    master_address=self.ws[node_rank].internal_ip,
-                    master_port=self.ws[node_rank].port,
+                    master_address=self.ws[0].internal_ip,
+                    master_port=self.ws[0].port,
                     node_rank=node_rank,
                 )
 
                 # 3. Stop the machine when finished.
-                if self.ws[node_rank].has_succceded:
+                if self.ws[node_rank].has_succeeded:
                     self.ws[node_rank].stop()
