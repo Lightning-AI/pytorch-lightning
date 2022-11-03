@@ -17,35 +17,9 @@ from shutil import copyfile
 
 import torch
 
-from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.utilities.migration import pl_legacy_patch
-
-KEYS_MAPPING = {
-    "checkpoint_callback_best_model_score": (ModelCheckpoint, "best_model_score"),
-    "checkpoint_callback_best_model_path": (ModelCheckpoint, "best_model_path"),
-    "checkpoint_callback_best": (ModelCheckpoint, "best_model_score"),
-    "early_stop_callback_wait": (EarlyStopping, "wait_count"),
-    "early_stop_callback_patience": (EarlyStopping, "patience"),
-}
+from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
 
 log = logging.getLogger(__name__)
-
-
-def upgrade_checkpoint(filepath: _PATH) -> None:
-    checkpoint = torch.load(filepath)
-    checkpoint["callbacks"] = checkpoint.get("callbacks") or {}
-
-    for key, new_path in KEYS_MAPPING.items():
-        if key in checkpoint:
-            value = checkpoint[key]
-            callback_type, callback_key = new_path
-            checkpoint["callbacks"][callback_type] = checkpoint["callbacks"].get(callback_type) or {}
-            checkpoint["callbacks"][callback_type][callback_key] = value
-            del checkpoint[key]
-
-    torch.save(checkpoint, filepath)
-
 
 if __name__ == "__main__":
 
@@ -61,4 +35,6 @@ if __name__ == "__main__":
     log.info("Creating a backup of the existing checkpoint file before overwriting in the upgrade process.")
     copyfile(args.file, args.file + ".bak")
     with pl_legacy_patch():
-        upgrade_checkpoint(args.file)
+        checkpoint = torch.load(args.file)
+    migrate_checkpoint(checkpoint)
+    torch.save(checkpoint, args.file)

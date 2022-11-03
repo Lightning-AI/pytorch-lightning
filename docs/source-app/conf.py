@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
 
 import lightning_app
 
@@ -75,10 +75,11 @@ needs_sphinx = "4.5"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    # 'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
+    'sphinxcontrib.mockautodoc',  # raises error: directive 'automodule' is already registered ...
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.linkcode",
@@ -93,7 +94,7 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "sphinx.ext.githubpages",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -138,6 +139,7 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "_templates",
     "code_samples/convert_pl_to_app/requirements.txt",
 ]
 
@@ -149,8 +151,8 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

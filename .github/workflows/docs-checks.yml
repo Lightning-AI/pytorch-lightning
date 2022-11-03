@@ -4,11 +4,12 @@ name: Check Docs
 on:
   push:
     branches: ["master", "release/*"]
-  pull_request:
+  pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
       - "requirements/**"
+      - "docs/**"
       - "src/**"
       - "setup.py"
       - "setup.cfg"
@@ -44,7 +45,7 @@ jobs:
   make-doctest:
     runs-on: ubuntu-20.04
     # make it depending on build docs to reduce load
-    needs: make-html
+    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +63,15 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
+
+      - uses: aws-actions/configure-aws-credentials@v1
+        if: ${{ matrix.pkg-name == 'app' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
+        if: ${{ matrix.pkg-name == 'app' }}
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -81,9 +91,9 @@ jobs:
 
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg-name== 'app' }}
+        if: ${{ matrix.pkg-name == 'app' }}
         run: |
-          pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
+          pip install -e . -U  -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           git checkout -- setup.py MANIFEST.in
 
       - name: Adjust docs refs
@@ -96,7 +106,8 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt --find-links pypi
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
+          pip list
 
       - name: Test Documentation
         env:
@@ -127,6 +138,15 @@ jobs:
         with:
           python-version: "3.9"
 
+      - uses: aws-actions/configure-aws-credentials@v1
+        if: ${{ matrix.pkg-name == 'app' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
+        if: ${{ matrix.pkg-name == 'app' }}
+
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
@@ -144,9 +164,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . -r requirements/${{ matrix.pkg-name }}/docs.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
-            --find-links pypi
+          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           pip list
         shell: bash
 
