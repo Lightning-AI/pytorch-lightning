@@ -29,7 +29,6 @@ files = [
     "src/pytorch_lightning",
     "src/lightning_lite",
     "src/lightning_app",
-    "test/tests_type_checking",
 ]
 exclude = [
     "src/lightning_app/cli/component-template",
