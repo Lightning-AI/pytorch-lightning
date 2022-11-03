@@ -35,7 +35,7 @@ from lightning.app.core.flow import LightningFlow  # noqa: E402
 from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
-from lightning.lite import LightningLite  # noqa: E402
+from lightning.lite.lite import LightningLite  # noqa: E402
 from lightning.pytorch.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
