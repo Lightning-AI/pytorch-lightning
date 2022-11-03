@@ -59,6 +59,33 @@ def test_migrate_model_checkpoint_early_stopping(tmpdir, old_checkpoint, new_che
     assert _get_version(updated_checkpoint) == pl.__version__
 
 
+def test_migrate_loop_global_step_to_progress_tracking():
+    old_checkpoint = {"global_step": 15, "epoch": 2}
+    _set_version(old_checkpoint, "1.5.9")  # pretend a checkpoint prior to 1.6.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    # automatic optimization
+    assert (
+        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]["optimizer"][
+            "step"
+        ]["total"]["completed"]
+        == 15
+    )
+    # for manual optimization
+    assert (
+        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.manual_loop.optim_step_progress"]["total"][
+            "completed"
+        ]
+        == 15
+    )
+
+
+def test_migrate_loop_current_epoch_to_progress_tracking():
+    old_checkpoint = {"global_step": 15, "epoch": 2}
+    _set_version(old_checkpoint, "1.5.9")  # pretend a checkpoint prior to 1.6.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    assert updated_checkpoint["loops"]["fit_loop"]["epoch_progress"]["current"]["completed"] == 2
+
+
 @pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
 def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
     trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
