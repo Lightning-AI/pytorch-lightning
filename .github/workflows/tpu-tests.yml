@@ -8,7 +8,8 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/tpu-tests.yml"
-      - "requirements/pytorch/**"
+      - "requirements/pytorch/*"
+      - "!requirements/pytorch/docs.txt"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
