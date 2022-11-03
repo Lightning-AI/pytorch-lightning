@@ -75,7 +75,7 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
-    Commit:
+    Commit: aea96e4
     """
     global_step = checkpoint["global_step"]
     checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
@@ -94,7 +94,7 @@ def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) ->
     overwritten by the loop's state if it was also saved.
 
     Version: 1.6.0
-    Commit:
+    Commit: aea96e4
     """
     epoch = checkpoint["epoch"]
     checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
