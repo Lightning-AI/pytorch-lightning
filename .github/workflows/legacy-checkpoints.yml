@@ -64,6 +64,17 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
+    - name: Install lite from source for PL
+      # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
+      # also installing from source not from on-the-fly created package to prevent accidental interaction with cache
+      env:
+        PACKAGE_NAME: lite
+      run: |
+        pip install -e . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        git checkout -- setup.py MANIFEST.in
+        pip list
+      if: inputs.pl_version == ''
+
     - name: Install PL from source
       working-directory: ./
       env:
