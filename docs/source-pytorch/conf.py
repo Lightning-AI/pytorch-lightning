@@ -186,7 +186,7 @@ pygments_style = None
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
 html_theme = "lai_sphinx_theme"
-html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 # html_theme_path = ["/Users/williamfalcon/Developer/opensource/lai_sphinx_theme"]
 
 # Theme options are theme-specific and customize the look and feel of a theme

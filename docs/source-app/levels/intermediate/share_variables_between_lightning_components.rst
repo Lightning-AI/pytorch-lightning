@@ -11,7 +11,7 @@ Level 6: Share variables between components
 Send a variable from Flow to a Component
 ****************************************
 
-Todo 
+Todo
 
 ----
 

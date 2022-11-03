@@ -14,7 +14,7 @@ A distributed Lightning app can run locally on a single machine. To debug apps r
 you can use the multi-processing runtime:
 
 .. lit_tabs::
-   :titles: Toy app; Enable MultiProcessRuntime 
+   :titles: Toy app; Enable MultiProcessRuntime
    :code_files: ./scripts/toy_app.py; ./scripts/debug_app.py
    :highlights: ; 3, 24
    :app_id: abc123

@@ -163,7 +163,7 @@ pygments_style = None
 # a list of builtin themes.
 #
 html_theme = "lai_sphinx_theme"
-html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", lai_sphinx_theme.get_html_theme_path())]
 
 
 # Theme options are theme-specific and customize the look and feel of a theme

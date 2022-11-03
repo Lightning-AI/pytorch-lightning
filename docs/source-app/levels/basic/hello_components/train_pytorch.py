@@ -1,6 +1,8 @@
 # app.py
-import lightning as L
 import torch
+
+import lightning as L
+
 
 class PyTorchComponent(L.LightningWork):
    def run(self):
@@ -11,7 +13,7 @@ class PyTorchComponent(L.LightningWork):
       model.to(device)
       criterion = torch.nn.MSELoss()
       optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-        
+
       for step in range(10000):
          model.zero_grad()
          x = torch.tensor([0.8]).to(device)

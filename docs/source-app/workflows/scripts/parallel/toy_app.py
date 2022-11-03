@@ -1,6 +1,7 @@
 # app.py
 import lightning as L
 
+
 class TrainComponent(L.LightningWork):
     def run(self, message):
         for i in range(100000000000):
