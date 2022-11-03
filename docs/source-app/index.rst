@@ -90,7 +90,7 @@ Build modular components
 
 .. lit_tabs::
    :code_files: landing_app_run.bash
-   :highlights: 6
+   :highlights: 5
    :height: 150px
    :code_only: True
 
