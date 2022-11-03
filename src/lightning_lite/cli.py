@@ -14,7 +14,7 @@
 import logging
 import os
 from argparse import ArgumentParser, Namespace
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
@@ -23,7 +23,7 @@ from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1
 _log = logging.getLogger(__name__)
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
-_SUPPORTED_STRATEGIES = (None, "ddp", "dp", "deepspeed")
+_SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 
@@ -106,6 +106,7 @@ def _set_env_variables(args: Namespace) -> None:
     """
     os.environ["LT_CLI_USED"] = "1"
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
+    # TODO: what should be the default strategy if devices > 1?
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
@@ -161,8 +162,11 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main() -> None:
-    args, script_args = _parse_args()
+def main(args: Optional[Namespace] = None, script_args: Optional[List[str]] = None) -> None:
+    if args is None and script_args is not None:
+        raise ValueError("todo")
+    if args is None:
+        args, script_args = _parse_args()
     _set_env_variables(args)
     _torchrun_launch(args, script_args)
 

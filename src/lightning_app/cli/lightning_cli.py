@@ -1,5 +1,6 @@
 import os
 import sys
+from argparse import Namespace
 from pathlib import Path
 from typing import Any, Tuple, Union
 
@@ -40,6 +41,8 @@ from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLim
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
+from lightning_lite.cli import _SUPPORTED_ACCELERATORS, _SUPPORTED_PRECISION, _SUPPORTED_STRATEGIES
+from lightning_lite.cli import main as lite_cli_main
 
 logger = Logger(__name__)
 
@@ -333,15 +336,79 @@ def run_app(
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
 
-@run.command("lite")
-@click.pass_context
+@run.command(
+    "lite",
+    context_settings=dict(
+        ignore_unknown_options=True,
+    ),
+)
 @click.argument("script", type=click.Path(exists=True))
-def run_lite(script) -> None:
-    """Run an app from a file."""
-    from lightning_lite.cli import main
-    print(sys.argv)
-    sys.argv = sys.argv[3:]
-    main()
+@click.option(
+    "--accelerator",
+    type=click.Choice(_SUPPORTED_ACCELERATORS),
+    default="cpu",
+    help="The hardware accelerator to run on.",
+)
+@click.option(
+    "--strategy",
+    type=click.Choice(_SUPPORTED_STRATEGIES),
+    default=None,
+    help="Strategy for how to run across multiple devices.",
+)
+@click.option(
+    "--devices",
+    type=str,
+    default="1",
+    help=(
+        "Number of devices to run on (``int``), which devices to run on (``list`` or ``str``), or ``'auto'``."
+        " The value applies per node."
+    ),
+)
+@click.option(
+    "--num-nodes",
+    "--num_nodes",
+    type=int,
+    default=1,
+    help="Number of machines (nodes) for distributed execution.",
+)
+@click.option(
+    "--node-rank",
+    "--node_rank",
+    type=int,
+    default=0,
+    help=(
+        "The index of the machine (node) this command gets started on. Must be a number in the range"
+        " 0, ..., num_nodes - 1."
+    ),
+)
+@click.option(
+    "--main-address",
+    "--main_address",
+    type=str,
+    default="127.0.0.1",
+    help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
+)
+@click.option(
+    "--main-port",
+    "--main_port",
+    type=int,
+    default=29400,
+    help="The main port to connect to the main machine.",
+)
+@click.option(
+    "--precision",
+    type=click.Choice(_SUPPORTED_PRECISION),
+    default="32",
+    help=(
+        "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
+        " (``'bf16'``)"
+    ),
+)
+@click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
+def run_lite(**kwargs) -> None:
+    """Run a Lightning Lite script locally."""
+    script_args = list(kwargs.pop("script_args", []))
+    lite_cli_main(args=Namespace(**kwargs), script_args=script_args)
 
 
 @_main.group(hidden=True)
