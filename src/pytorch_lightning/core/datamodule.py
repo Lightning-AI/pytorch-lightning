@@ -14,7 +14,7 @@
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
 from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from typing_extensions import Self
@@ -215,7 +215,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     @classmethod
     def load_from_checkpoint(
-        cls: Type[Self],  # type: ignore [valid-type]
+        cls,
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
