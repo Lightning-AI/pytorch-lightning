@@ -14,9 +14,10 @@
 """LightningDataModule for loading DataLoaders with ease."""
 import inspect
 from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
+from typing_extensions import Self
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PATH
@@ -214,11 +215,11 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
 
     @classmethod
     def load_from_checkpoint(
-        cls,
+        cls: Type[Self],  # type: ignore [valid-type]
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+    ) -> Self:  # type: ignore [valid-type]
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.

@@ -21,11 +21,12 @@ from argparse import Namespace
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, IO, MutableMapping, Optional, Type, Union
 from warnings import warn
 
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
+from typing_extensions import Self
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import _load as pl_load
@@ -49,9 +50,6 @@ if _OMEGACONF_AVAILABLE:
 # the older shall be on the top
 CHECKPOINT_PAST_HPARAMS_KEYS = ("hparams", "module_arguments")  # used in 0.7.6
 
-LM = TypeVar("LM", bound="pl.LightningModule")
-LDM = TypeVar("LDM", bound="pl.LightningDataModule")
-
 
 class ModelIO:
     CHECKPOINT_HYPER_PARAMS_KEY = "hyper_parameters"
@@ -60,13 +58,13 @@ class ModelIO:
 
     @classmethod
     def load_from_checkpoint(
-        cls: Union[Type["ModelIO"], Type[LM], Type[LDM]],
+        cls: Type[Self],  # type: ignore [valid-type]
         checkpoint_path: Union[str, IO],
         map_location: _MAP_LOCATION_TYPE = None,
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Union[LM, LDM]:
+    ) -> Self:  # type: ignore [valid-type]
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
@@ -149,13 +147,13 @@ class ModelIO:
 
 
 def _load_from_checkpoint(
-    cls: Union[Type["ModelIO"], Type[LM], Type[LDM]],
+    cls: Union[Type["pl.LightningModule"], Type["pl.LightningDataModule"]],
     checkpoint_path: Union[_PATH, IO],
     map_location: _MAP_LOCATION_TYPE = None,
     hparams_file: Optional[_PATH] = None,
     strict: Optional[bool] = None,
     **kwargs: Any,
-) -> Union[LM, LDM]:
+) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
     if map_location is None:
         map_location = cast(_MAP_LOCATION_TYPE, lambda storage, loc: storage)
     with pl_legacy_patch():
@@ -185,9 +183,9 @@ def _load_from_checkpoint(
     checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
     if issubclass(cls, pl.LightningDataModule):
-        return cast(LDM, _load_state(cls, checkpoint, **kwargs))
+        return _load_state(cls, checkpoint, **kwargs)
     if issubclass(cls, pl.LightningModule):
-        return cast(LM, _load_state(cls, checkpoint, strict=strict, **kwargs))
+        return _load_state(cls, checkpoint, strict=strict, **kwargs)
     raise NotImplementedError(f"Unsupported {cls}")
 
 
