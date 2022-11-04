@@ -88,7 +88,7 @@ repos:
       - id: blacken-docs
         args: [--line-length=120]
         additional_dependencies: [black==21.12b0]
-        exclude: docs/source-app
+        exclude: docs/source-app/*
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.14
@@ -99,11 +99,11 @@ repos:
           #- mdformat-black
           - mdformat_frontmatter
         exclude: |
-            (?x)^(
-                src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_app/CHANGELOG.md|
-                src/lightning_lite/CHANGELOG.md
-            )$
+          (?x)^(
+              src/pytorch_lightning/CHANGELOG.md|
+              src/lightning_app/CHANGELOG.md|
+              src/lightning_lite/CHANGELOG.md
+          )$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
