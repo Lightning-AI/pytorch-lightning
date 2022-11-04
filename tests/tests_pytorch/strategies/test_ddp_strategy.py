@@ -267,13 +267,15 @@ class BoringFairScaleOptimizerModel(BoringModel):
 @RunIf(min_cuda_gpus=2, fairscale=True)
 @pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
-    """Test to ensure that checkpoint is saved correctly when using faircale optimizer."""
+    """Test to ensure that checkpoint is saved correctly when using fairscale optimizer."""
     model = BoringFairScaleOptimizerModel()
     trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 

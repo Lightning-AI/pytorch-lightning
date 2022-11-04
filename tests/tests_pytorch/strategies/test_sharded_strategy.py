@@ -315,6 +315,8 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, s
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
