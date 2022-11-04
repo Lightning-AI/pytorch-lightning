@@ -333,6 +333,7 @@ def run_app(
     """Run an app from a file."""
     _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
 
+
 #
 # @run.command(
 #     "lite",

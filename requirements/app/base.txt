@@ -11,3 +11,4 @@ arrow>=1.2.0, <1.2.4
 lightning-utilities==0.3.*
 beautifulsoup4<=4.8.2
 psutil<5.9.4
+click>=8.0.0, <=8.1.3
