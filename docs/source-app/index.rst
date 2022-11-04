@@ -134,7 +134,6 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
 
 .. toctree::
    :maxdepth: 1
-
    :caption: Core API Reference
 
    LightningApp <core_api/lightning_app/index>
