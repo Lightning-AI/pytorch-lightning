@@ -26,33 +26,8 @@ defaults:
     shell: bash
 
 jobs:
-
-  build-pypi:
-    # This serves to create packages for potential internal dependencies
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-
-      - name: Build package
-        env:
-          PACKAGE_NAME: "lite"
-        run: python setup.py sdist
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: dist
-
   make-doctest:
     runs-on: ubuntu-20.04
-    # make it depending on build docs to reduce load
-    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
@@ -129,7 +104,6 @@ jobs:
           make coverage
 
   make-html:
-    needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
