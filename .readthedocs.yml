@@ -49,6 +49,7 @@ build:
   jobs:
     post_install:
       - PACKAGE_NAME=lite pip install -e . -f 'https://download.pytorch.org/whl/cpu/torch_stable.html'
+      - git checkout -- setup.py MANIFEST.in
       - PACKAGE_NAME=pytorch pip install -e .
       - pip install -r requirements/pytorch/docs.txt
 
