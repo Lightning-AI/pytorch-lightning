@@ -13,12 +13,11 @@
 # limitations under the License.
 import logging
 import os
-from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Tuple
+from argparse import Namespace
+from typing import List, Optional
 
 import click
 
-import lightning_lite
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
@@ -39,7 +38,6 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 @click.argument(
     "script",
     type=click.Path(exists=True),
-    # help="Path to the Python script with Lightning Lite inside."
 )
 @click.option(
     "--accelerator",
@@ -103,7 +101,7 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
     ),
 )
 @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-def run_lite(**kwargs) -> None:
+def _run_lite(**kwargs) -> None:
     """Run a Lightning Lite script."""
     script_args = list(kwargs.pop("script_args", []))
     main(args=Namespace(**kwargs), script_args=script_args)
@@ -178,4 +176,4 @@ def main(args: Optional[Namespace] = None, script_args: Optional[List[str]] = No
 
 
 if __name__ == '__main__':
-    run_lite()
+    _run_lite()

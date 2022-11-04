@@ -19,7 +19,7 @@ import pytest
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import main as cli_main
-from lightning_lite.cli import run_lite
+from lightning_lite.cli import _run_lite
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
@@ -46,7 +46,7 @@ def fake_script(tmp_path):
 def test_cli_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script])
+        _run_lite.main([fake_script])
     assert e.value.code == 0
     assert os.environ["LT_CLI_USED"] == "1"
     assert os.environ["LT_ACCELERATOR"] == "cpu"
@@ -63,7 +63,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
 def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--accelerator", accelerator])
+        _run_lite.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
@@ -75,7 +75,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--strategy", strategy])
+        _run_lite.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
 
@@ -87,7 +87,7 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run_lite.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == devices
 
@@ -99,7 +99,7 @@ def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--accelerator", accelerator])
+        _run_lite.main([fake_script, "--accelerator", accelerator])
     assert e.value.code == 0
     assert os.environ["LT_DEVICES"] == "1"
 
@@ -110,7 +110,7 @@ def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
 def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--num-nodes", num_nodes])
+        _run_lite.main([fake_script, "--num-nodes", num_nodes])
     assert e.value.code == 0
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
@@ -121,7 +121,7 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--precision", precision])
+        _run_lite.main([fake_script, "--precision", precision])
     assert e.value.code == 0
     assert os.environ["LT_PRECISION"] == precision
 
@@ -132,7 +132,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setattr(torch.distributed, "run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script])
+        _run_lite.main([fake_script])
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with(
         [
@@ -163,7 +163,7 @@ def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, 
     torchrun_mock = Mock()
     monkeypatch.setattr(torch.distributed, "run", torchrun_mock)
     with pytest.raises(SystemExit) as e:
-        run_lite.main([fake_script, "--accelerator", "cuda", "--devices", devices])
+        _run_lite.main([fake_script, "--accelerator", "cuda", "--devices", devices])
     assert e.value.code == 0
     torchrun_mock.main.assert_called_with(
         [
