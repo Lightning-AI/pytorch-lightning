@@ -19,7 +19,7 @@ This is useful for long running apps that need to be stopped and restarted or wh
 How to save a checkpoint
 ************************
 
-Saving a checkpoint is simple. In the main flow of your Lightning App, implement ``should_save_checkpoint()`` that returns ``True`` when you want to save a checkpoint.
+Saving a checkpoint is simple. In the root flow of your Lightning App, implement ``should_save_checkpoint()`` that returns ``True`` when you want to save a checkpoint.
 
 .. code-block:: python
 
@@ -35,7 +35,7 @@ When ``should_save_checkpoint()`` returns ``True``, Lightning will save the stat
 
 
 *************************************
-How to an app start from a checkpoint
+How to start an app from a checkpoint
 *************************************
 
 
@@ -48,7 +48,7 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501626.json
 
 
-2. The name of the checkpoint file in lightning shared storage
+2. The name of the checkpoint file in Lightning Drive Storage
 
 .. code-block:: bash
 
