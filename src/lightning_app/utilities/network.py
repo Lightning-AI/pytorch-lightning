@@ -118,7 +118,7 @@ class _MethodsRetryWrapperMeta(type):
         return new_class
 
 
-class LightningClient(GridRestClient, metaclass=_MethodsRetryWrapperMeta):
+class LightningClient(GridRestClient):  # , metaclass=_MethodsRetryWrapperMeta):
     """The LightningClient is a wrapper around the GridRestClient.
 
     It wraps all methods to monitor connection exceptions and employs a retry strategy.
