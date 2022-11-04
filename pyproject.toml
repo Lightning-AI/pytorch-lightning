@@ -36,6 +36,7 @@ exclude = [
     "src/lightning_app/cli/react-ui-template",
     "src/lightning_app/cli/app-template",
     "src/lightning_app/components/database",
+    "src/lightning_app/components/multi_node",
     "src/lightning_app/frontend/just_py/just_py",
 ]
 install_types = "True"
@@ -58,6 +59,7 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
+    "lightning_app.components.multi_node",
     "lightning_app.api.http_methods",
     "lightning_app.api.request_types",
     "lightning_app.cli.commands.app_commands",

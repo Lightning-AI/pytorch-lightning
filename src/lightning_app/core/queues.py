@@ -234,6 +234,18 @@ class RedisQueue(BaseQueue):
         self.redis = redis.Redis(host=host, port=port, password=password)
 
     def put(self, item: Any) -> None:
+        from lightning_app import LightningWork
+
+        is_work = isinstance(item, LightningWork)
+
+        # TODO: Be careful to handle with a lock if another thread needs
+        # to access the work backend one day.
+        # The backend isn't picklable
+        # Raises a TypeError: cannot pickle '_thread.RLock' object
+        if is_work:
+            backend = item._backend
+            item._backend = None
+
         value = pickle.dumps(item)
         queue_len = self.length()
         if queue_len >= WARNING_QUEUE_SIZE:
@@ -251,6 +263,10 @@ class RedisQueue(BaseQueue):
                 "Please try running your app again. "
                 "If the issue persists, please contact support@lightning.ai"
             )
+
+        # The backend isn't pickable.
+        if is_work:
+            item._backend = backend
 
     def get(self, timeout: int = None):
         """Returns the left most element of the redis queue.
