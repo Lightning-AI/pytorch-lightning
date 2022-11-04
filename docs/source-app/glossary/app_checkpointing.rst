@@ -48,7 +48,7 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501626.json
 
 
-2. The name of the checkpoint file in lightning shared storage
+2. The name of the checkpoint file in Lightning shared storage.
 
 .. code-block:: bash
 
