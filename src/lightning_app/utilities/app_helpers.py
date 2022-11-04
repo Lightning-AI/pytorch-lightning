@@ -509,6 +509,7 @@ def smart_mocker(*args, original_fn=None):
 
     # We want to mock everything that's not available or not part of lightning.
     # This is not perfect solution and there are edge cases, but we keep improving it.
+    # TODO: Find a solution where the app imports primitives from the app itself
     if not available or module_names[0] not in {"lightning", "tokenize", "lightning_utilities"}:
         print(f"Mocking {module_names[0]}")
         return MagicMockJsonSerializable()
@@ -521,7 +522,6 @@ def mock_missing_imports():
 
     original_fn = builtins.__import__
     builtins.__import__ = functools.partial(smart_mocker, original_fn=original_fn)
-
     try:
         yield
     finally:
