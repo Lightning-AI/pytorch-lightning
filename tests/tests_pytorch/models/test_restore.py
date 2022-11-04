@@ -187,7 +187,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _test_on_val_test_predict_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
-            assert self.trainer.global_step == state_dict["global_step"]
+            assert self.trainer.global_step == 0
             assert self._check_model_state_dict()
 
         def on_train_start(self):
