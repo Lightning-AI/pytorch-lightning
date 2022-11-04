@@ -70,7 +70,7 @@ Checkpoint compatibility
 
 When starting an app from a saved checkpoint, it has to be compatible with the app code.
 This means that the app code has to be able to load the saved state and update all app components with the saved state.
-If the checkpoint contains a state of a component that is not yet instantiated in the component init(), the app won't start and will raise an exception.
+If the checkpoint contains a state of a component that is not yet instantiated in the component ``__init__()``, the app won't start and will raise an exception.
 
 To control how the checkpoint is loaded and create the missing components, implement `load_state_dict()` in your app. You can also implement any migration logic needed to read or update the checkpoint before loading it or instantiate component attributes that are not yet instantiated in the component init().
 
