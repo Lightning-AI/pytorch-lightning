@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
 import json
@@ -9,12 +10,15 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
+from lightning_utilities.core.imports import package_available
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
@@ -483,3 +487,42 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+class MagicMockJsonSerializable(MagicMock):
+    """This class is used make Magic mock serializable."""
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def smart_mocker(*args, original_fn=None):
+    """
+    This function is used to mock modules that cannot be imported.
+
+    params:
+        original_fn: the original import function
+
+    """
+    module_names = args[0].split(".")
+    available = package_available(module_names[0])
+
+    # We want to mock everything that's not available or not part of lightning.
+    # This is not perfect solution and there are edge cases, but we keep improving it.
+    if not available or module_names[0] not in {"lightning", "tokenize", "lightning_utilities"}:
+        print(f"Mocking {module_names[0]}")
+        return MagicMockJsonSerializable()
+
+    return original_fn(*args)
+
+
+@contextmanager
+def mock_missing_imports():
+
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(smart_mocker, original_fn=original_fn)
+
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
