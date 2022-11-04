@@ -1,6 +1,5 @@
 # app.py
 import subprocess
-
 import lightning as L
 
 
