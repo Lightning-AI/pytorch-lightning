@@ -1,3 +1,2 @@
-jsonargparse>=4.15.0
+jsonargparse>=4.16.0
 requests
-typing_extensions
