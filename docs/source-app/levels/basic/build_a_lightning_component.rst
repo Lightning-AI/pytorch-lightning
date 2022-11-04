@@ -14,8 +14,8 @@ Level 1: Package code in a lightning component
 *********************************
 Why you need Lightning components
 *********************************
-A Lightning component organizes a piece of code into a self-contained, modular component that 
-can be integrated into your existing workflows or assembled to form a Lightning app. 
+A Lightning component organizes a piece of code into a self-contained, modular component that
+can be integrated into your existing workflows or assembled to form a Lightning app.
 A Lightning component manages its own infrastructure, auto-scaling, cost management, and more, so you
 can focus on the program logic and not the cloud engineering.
 
@@ -30,7 +30,7 @@ Lightning apps to build powerful sequential AND reactive workflows.
 
 |
 
-Organizing your code into Lightning components offers these benefits: 
+Organizing your code into Lightning components offers these benefits:
 
 .. collapse:: Build systems not scripts
 

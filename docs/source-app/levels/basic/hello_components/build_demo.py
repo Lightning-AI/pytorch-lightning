@@ -25,7 +25,7 @@ class LitStreamlit(L.app.components.ServeStreamlit):
             sample_rate=sample_rate,
             speaker="en_0",
         ), sample_rate
-    
+
     def render(self):
         st.title("Text To Speech")
         text = st.text_input("Text:", "Lightning Apps are the best!")
