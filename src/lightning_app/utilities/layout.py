@@ -4,6 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.app_helpers import MagicMockJsonSerializable
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -103,6 +104,9 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             else:
                 entry["content"] = ""
                 entry["target"] = ""
+        elif isinstance(entry["content"], MagicMockJsonSerializable):
+            # don't do anything
+            pass
         else:
             m = f"""
             A dictionary returned by `{flow.__class__.__name__}.configure_layout()` contains an unsupported entry.
