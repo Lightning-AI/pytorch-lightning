@@ -1,5 +1,5 @@
-import lightning_app as L
-from lightning_app.components import MultiNode
+import lightning.app as L
+from lightning.app.components import MultiNode
 
 
 class AnyDistributedComponent(L.LightningWork):

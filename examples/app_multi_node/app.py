@@ -1,8 +1,8 @@
-from lightning_app import LightningApp
-from lightning_app.components import LightningTrainingComponent
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+import lightning as L
+from lightning.app.components import LightningTrainingComponent
+from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
-app = LightningApp(
+app = L.LightningApp(
     LightningTrainingComponent(
         "train.py",
         num_nodes=2,
