@@ -347,3 +347,30 @@ class LightningTestAppWithWork(LightningTestApp):
 def test_lightning_app_with_work():
     app = LightningTestAppWithWork(WorkCounter())
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkStart(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowStart(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkStart()
+
+    def run(self):
+        self.w.start()
+        if self.w.status.stage == WorkStageStatus.STARTED:
+            self.w.run()
+        if self.w.counter == 1:
+            self._exit()
+
+
+def test_lightning_app_work_start():
+    app = LightningApp(FlowStart())
+    MultiProcessRuntime(app, start_server=False).dispatch()
