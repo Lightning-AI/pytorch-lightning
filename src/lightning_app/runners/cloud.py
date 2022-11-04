@@ -467,8 +467,7 @@ class CloudRuntime(Runtime):
 
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
-        """Load a LightningApp from a file, mocking the imports.
-        """
+        """Load a LightningApp from a file, mocking the imports."""
         try:
             with mock_missing_imports():
                 app = load_app_from_file(filepath, raise_exception=True)
@@ -496,6 +495,7 @@ class CloudRuntime(Runtime):
                 sys.exit(1)
 
             from lightning_app.testing.helpers import EmptyFlow
+
             # Create a mocking app.
             app = LightningApp(EmptyFlow())
 

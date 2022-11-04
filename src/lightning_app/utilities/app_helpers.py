@@ -491,18 +491,17 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
 
 class MagicMockJsonSerializable(MagicMock):
     """This class is used make Magic mock serializable."""
+
     @staticmethod
     def __json__():
         return "{}"
 
 
 def smart_mocker(*args, original_fn=None):
-    """
-    This function is used to mock modules that cannot be imported.
+    """This function is used to mock modules that cannot be imported.
 
     params:
         original_fn: the original import function
-
     """
     module_names = args[0].split(".")
     available = package_available(module_names[0])
