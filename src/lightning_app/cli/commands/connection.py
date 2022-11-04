@@ -81,12 +81,12 @@ def connect(app_name_or_id: str, yes: bool = False):
                     target_file=target_file,
                 )
                 repr_command_name = command_name.replace("_", " ")
-                click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
+                click.echo(f"Storing `{repr_command_name}` at {target_file}")
             else:
                 with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                     f.write(command_name)
 
-        click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
+        click.echo(f"You can review all the downloaded commands at {commands_folder}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
@@ -104,9 +104,9 @@ def connect(app_name_or_id: str, yes: bool = False):
             copied_files = [el for el in os.listdir(commands) if os.path.splitext(el)[1] == ".py"]
             for target_file in copied_files:
                 pretty_command_name = os.path.splitext(target_file)[0].replace("_", " ")
-                click.echo(f"Storing `{pretty_command_name}` under {os.path.join(commands, target_file)}")
+                click.echo(f"Storing `{pretty_command_name}` at {os.path.join(commands, target_file)}")
 
-        click.echo(f"You can review all the commands at this location: {commands}")
+        click.echo(f"You can review all the commands at {commands}")
         click.echo(" ")
         click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
 
@@ -151,12 +151,12 @@ def connect(app_name_or_id: str, yes: bool = False):
                         target_file=target_file,
                     )
                     pretty_command_name = command_name.replace("_", " ")
-                    click.echo(f"Storing `{pretty_command_name}` under {target_file}")
+                    click.echo(f"Storing `{pretty_command_name}` at {target_file}")
                 else:
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
 
-            click.echo(f"You can review all the downloaded commands at this location: {commands_folder}")
+            click.echo(f"You can review all the downloaded commands at {commands_folder}")
 
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")

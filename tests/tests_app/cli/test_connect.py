@@ -57,8 +57,8 @@ def test_connect_disconnect_local(monkeypatch):
     s = "/" if sys.platform != "win32" else "\\"
     command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
     expected = [
-        f"Find the `command with client` command under {command_folder_path}{s}command_with_client.py.",
-        f"You can review all the downloaded commands under {command_folder_path} folder.",
+        f"Storing `command with client` at {command_folder_path}{s}command_with_client.py",
+        f"You can review all the downloaded commands at {command_folder_path}",
         "You are connected to the local Lightning App.",
     ]
     assert messages == expected
@@ -145,8 +145,8 @@ def test_connect_disconnect_cloud(monkeypatch):
     s = "/" if sys.platform != "win32" else "\\"
     command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
     expected = [
-        f"Storing `command with client` under {command_folder_path}{s}command_with_client.py",
-        f"You can review all the downloaded commands under {command_folder_path} folder.",
+        f"Storing `command with client` at {command_folder_path}{s}command_with_client.py",
+        f"You can review all the downloaded commands at {command_folder_path}",
         " ",
         "The client interface has been successfully installed. ",
         "You can now run the following commands:",
