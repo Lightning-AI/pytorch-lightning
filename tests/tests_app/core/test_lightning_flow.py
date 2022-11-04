@@ -15,6 +15,8 @@ from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
+from lightning_app.structures import Dict as LDict
+from lightning_app.structures import List as LList
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
@@ -307,7 +309,7 @@ def test_lightning_flow_and_work():
                 self._exit()
 
     flow_a = Flow_A()
-    assert flow_a.named_works() == [("work_a", flow_a.work_a), ("work_b", flow_a.work_b)]
+    assert flow_a.named_works() == [("root.work_a", flow_a.work_a), ("root.work_b", flow_a.work_b)]
     assert flow_a.works() == [flow_a.work_a, flow_a.work_b]
     state = {
         "vars": {"counter": 0, "_layout": ANY, "_paths": {}},
@@ -780,3 +782,80 @@ def test_lightning_flow_reload():
     flow = RootFlowReload2()
     with pytest.raises(ValueError, match="The component flow_2 wasn't instantiated for the component root"):
         _load_state_dict(flow, state)
+
+
+class NestedFlow(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flows_dict = LDict(**{"a": EmptyFlow()})
+        self.flows_list = LList(*[EmptyFlow()])
+        self.flow = EmptyFlow()
+        assert list(self.flows) == ["root.flow", "root.flows_dict.a", "root.flows_list.0"]
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+class FlowNested2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow3 = EmptyFlow()
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+class FlowCollection(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = EmptyFlow()
+        assert self.flow.name == "root.flow"
+        self.flow2 = FlowNested2()
+        assert list(self.flow2.flows) == ["root.flow2.flow3"]
+        self.flows_dict = LDict(**{"a": NestedFlow()})
+        assert list(self.flows_dict.flows) == [
+            "root.flows_dict.a",
+            "root.flows_dict.a.flow",
+            "root.flows_dict.a.flows_dict.a",
+            "root.flows_dict.a.flows_list.0",
+        ]
+        self.flows_list = LList(*[NestedFlow()])
+        assert list(self.flows_list.flows) == [
+            "root.flows_list.0",
+            "root.flows_list.0.flow",
+            "root.flows_list.0.flows_dict.a",
+            "root.flows_list.0.flows_list.0",
+        ]
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+def test_lightning_flow_flows_and_works():
+
+    flow = FlowCollection()
+    app = LightningApp(flow)
+
+    assert list(app.root.flows.keys()) == [
+        "root.flow",
+        "root.flow2",
+        "root.flow2.flow3",
+        "root.flows_dict.a",
+        "root.flows_dict.a.flow",
+        "root.flows_dict.a.flows_dict.a",
+        "root.flows_dict.a.flows_list.0",
+        "root.flows_list.0",
+        "root.flows_list.0.flow",
+        "root.flows_list.0.flows_dict.a",
+        "root.flows_list.0.flows_list.0",
+    ]
+
+    assert [w[0] for w in app.root.named_works()] == [
+        "root.w",
+        "root.flow2.w",
+        "root.flows_dict.a.w",
+        "root.flows_list.0.w",
+    ]

@@ -4,6 +4,8 @@ from typing import List
 
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
+    Externalv1Lightningwork,
+    V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
 )
@@ -22,12 +24,24 @@ class _AppManager:
     def __init__(self) -> None:
         self.api_client = LightningClient()
 
-    def list(self, cluster_id: str = None, limit: int = 100) -> None:
+    def get_cluster(self, cluster_id: str) -> V1GetClusterResponse:
+        return self.api_client.cluster_service_get_cluster(id=cluster_id)
+
+    def get_app(self, app_id: str) -> Externalv1LightningappInstance:
+        project = _get_project(self.api_client)
+        return self.api_client.lightningapp_instance_service_get_lightningapp_instance(
+            project_id=project.project_id, id=app_id
+        )
+
+    def list_apps(
+        self, cluster_id: str = None, limit: int = 100, phase_in: List[str] = []
+    ) -> List[Externalv1LightningappInstance]:
         project = _get_project(self.api_client)
 
         kwargs = {
             "project_id": project.project_id,
             "limit": limit,
+            "phase_in": phase_in,
         }
         if cluster_id is not None:
             kwargs["cluster_id"] = cluster_id
@@ -38,8 +52,16 @@ class _AppManager:
             kwargs["page_token"] = resp.next_page_token
             resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
             apps = apps + resp.lightningapps
+        return apps
+
+    def list_components(self, app_id: str) -> List[Externalv1Lightningwork]:
+        project = _get_project(self.api_client)
+        resp = self.api_client.lightningwork_service_list_lightningwork(project_id=project.project_id, app_id=app_id)
+        return resp.lightningworks
+
+    def list(self, cluster_id: str = None, limit: int = 100) -> None:
         console = Console()
-        console.print(_AppList(resp.lightningapps).as_table())
+        console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
 
 
 class _AppList(Formatable):
