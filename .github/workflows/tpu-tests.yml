@@ -108,7 +108,6 @@ jobs:
           mv xx01 coverage.xml
         else
           # failed run, print everything
-          mv /tmp/full_output.txt xx00;
           cat /tmp/full_output.txt;
         fi
         exit $status_code
