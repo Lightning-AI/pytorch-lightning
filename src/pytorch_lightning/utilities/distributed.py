@@ -36,6 +36,7 @@ from pytorch_lightning.utilities.rank_zero import (  # BACKWARD COMPATIBILITY
     rank_zero_warn,
 )
 
+
 def register_ddp_comm_hook(
     model: DistributedDataParallel,
     ddp_comm_state: Optional[object] = None,
