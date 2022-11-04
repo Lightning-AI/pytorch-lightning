@@ -16,6 +16,8 @@ import os
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Tuple
 
+from lightning_utilities.core.imports import RequirementCache
+
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
@@ -25,6 +27,85 @@ _log = logging.getLogger(__name__)
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 _SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
+
+
+if RequirementCache("click"):
+    import click
+
+
+    @click.command(
+        "lite",
+        context_settings=dict(
+            ignore_unknown_options=True,
+        ),
+    )
+    @click.argument("script", type=click.Path(exists=True))
+    @click.option(
+        "--accelerator",
+        type=click.Choice(_SUPPORTED_ACCELERATORS),
+        default="cpu",
+        help="The hardware accelerator to run on.",
+    )
+    @click.option(
+        "--strategy",
+        type=click.Choice(_SUPPORTED_STRATEGIES),
+        default=None,
+        help="Strategy for how to run across multiple devices.",
+    )
+    @click.option(
+        "--devices",
+        type=str,
+        default="1",
+        help=(
+                "Number of devices to run on (``int``), which devices to run on (``list`` or ``str``), or ``'auto'``."
+                " The value applies per node."
+        ),
+    )
+    @click.option(
+        "--num-nodes",
+        "--num_nodes",
+        type=int,
+        default=1,
+        help="Number of machines (nodes) for distributed execution.",
+    )
+    @click.option(
+        "--node-rank",
+        "--node_rank",
+        type=int,
+        default=0,
+        help=(
+                "The index of the machine (node) this command gets started on. Must be a number in the range"
+                " 0, ..., num_nodes - 1."
+        ),
+    )
+    @click.option(
+        "--main-address",
+        "--main_address",
+        type=str,
+        default="127.0.0.1",
+        help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
+    )
+    @click.option(
+        "--main-port",
+        "--main_port",
+        type=int,
+        default=29400,
+        help="The main port to connect to the main machine.",
+    )
+    @click.option(
+        "--precision",
+        type=click.Choice(_SUPPORTED_PRECISION),
+        default="32",
+        help=(
+                "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
+                " (``'bf16'``)"
+        ),
+    )
+    @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
+    def run_lite(**kwargs) -> None:
+        """Run a Lightning Lite script locally."""
+        script_args = list(kwargs.pop("script_args", []))
+        main(args=Namespace(**kwargs), script_args=script_args)
 
 
 def _parse_args() -> Tuple[Namespace, List[str]]:
