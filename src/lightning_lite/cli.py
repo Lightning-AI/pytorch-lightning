@@ -30,7 +30,7 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 
 @click.command(
-    "lite",
+    "model",
     context_settings=dict(
         ignore_unknown_options=True,
     ),
@@ -101,8 +101,13 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
     ),
 )
 @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-def _run_lite(**kwargs: Any) -> None:
-    """Run a Lightning Lite script."""
+def _run_model(**kwargs: Any) -> None:
+    """Run a Lightning Lite script.
+
+    SCRIPT is the path to the Python script with the code to run. The script must contain a LightningLite object.
+
+    SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed there.
+    """
     script_args = list(kwargs.pop("script_args", []))
     main(args=Namespace(**kwargs), script_args=script_args)
 
@@ -176,4 +181,4 @@ def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
 
 
 if __name__ == "__main__":
-    _run_lite()
+    _run_model()
