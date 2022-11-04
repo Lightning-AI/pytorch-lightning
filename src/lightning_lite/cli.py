@@ -14,7 +14,7 @@
 import logging
 import os
 from argparse import Namespace
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import click
 
@@ -101,7 +101,7 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
     ),
 )
 @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
-def _run_lite(**kwargs) -> None:
+def _run_lite(**kwargs: Any) -> None:
     """Run a Lightning Lite script."""
     script_args = list(kwargs.pop("script_args", []))
     main(args=Namespace(**kwargs), script_args=script_args)
@@ -170,9 +170,9 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main(args: Optional[Namespace] = None, script_args: Optional[List[str]] = None) -> None:
+def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
     _set_env_variables(args)
-    _torchrun_launch(args, script_args)
+    _torchrun_launch(args, script_args or [])
 
 
 if __name__ == '__main__':
