@@ -1,10 +1,7 @@
-import datetime
 import glob
-import json
 import os
 import re
 import shutil
-from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
@@ -33,25 +30,6 @@ REQUIREMENT_FILES = {
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
-
-
-def pypi_versions(package_name: str, drop_pre: bool = True) -> List[str]:
-    """Return a list of released versions of a provided pypi name.
-
-    >>> pypi_versions("lightning_app", drop_pre=False)  # doctest: +ELLIPSIS
-    ['0.5.1', '0.5.2', ...]
-    """
-    from urllib.request import Request, urlopen
-
-    # https://stackoverflow.com/a/27239645/4521646
-    url = f"https://pypi.org/pypi/{package_name}/json"
-    data = json.load(urlopen(Request(url)))
-    versions = list(data["releases"])
-    # todo: drop this line after cleaning Pypi history from invalid versions
-    versions = list(filter(lambda v: v.count(".") == 2, versions))
-    if drop_pre:
-        versions = list(filter(lambda v: all(c not in v for c in ["rc", "dev"]), versions))
-    return sorted(versions, key=LooseVersion)
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -95,24 +73,6 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
 
 
 class AssistantCLI:
-    _PATH_ROOT = str(Path(__file__).parent.parent)
-    _PATH_SRC = os.path.join(_PATH_ROOT, "src")
-
-    @staticmethod
-    def prepare_nightly_version(proj_root: str = _PATH_ROOT) -> None:
-        """Replace semantic version by date."""
-        path_info = os.path.join(proj_root, "pytorch_lightning", "__about__.py")
-        # get today date
-        now = datetime.datetime.now()
-        now_date = now.strftime("%Y%m%d")
-
-        print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info, encoding="utf-8") as fp:
-            init = fp.read()
-        init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w", encoding="utf-8") as fp:
-            fp.write(init)
-
     @staticmethod
     def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Remove some packages from given requirement files."""
@@ -152,46 +112,6 @@ class AssistantCLI:
             AssistantCLI._replace_min(fname)
 
     @staticmethod
-    def _release_pkg(pkg: str, src_folder: str = _PATH_SRC) -> bool:
-        pypi_ver = pypi_versions(pkg)[-1]
-        _version = _load_py_module("version", os.path.join(src_folder, pkg.replace("-", "_"), "__version__.py"))
-        local_ver = _version.version
-        return "dev" not in local_ver and LooseVersion(local_ver) > LooseVersion(pypi_ver)
-
-    @staticmethod
-    def determine_releasing_pkgs(
-        src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
-    ) -> Sequence[str]:
-        """Determine version of package where the name is `lightning.<name>`."""
-        if isinstance(packages, str):
-            packages = [packages]
-        releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
-        if inverse:
-            releasing = list(filter(lambda pkg: pkg not in releasing, packages))
-        return json.dumps([{"pkg": pkg for pkg in releasing}])
-
-    @staticmethod
-    def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
-        """Download specific or latest package from PyPI where the name is `lightning.<name>`."""
-        from urllib import request
-        from urllib.request import Request, urlopen
-
-        url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
-        data = json.load(urlopen(Request(url)))
-        if not version:
-            pypi_vers = pypi_versions(PACKAGE_MAPPING[package], drop_pre=False)
-            version = pypi_vers[-1]
-        releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
-        assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
-        release = releases[0]
-        pkg_url = release["url"]
-        pkg_file = os.path.basename(pkg_url)
-        pkg_path = os.path.join(folder, pkg_file)
-        os.makedirs(folder, exist_ok=True)
-        print(f"downloading: {pkg_url}")
-        request.urlretrieve(pkg_url, pkg_path)
-
-    @staticmethod
     def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
         """Find all python packages with spec.
 
@@ -202,17 +122,6 @@ class AssistantCLI:
             return AssistantCLI._find_pkgs(os.path.join(folder, "src"), pkg_pattern)
         pkg_dirs = list(filter(lambda p: pkg_pattern in os.path.basename(p), pkg_dirs))
         return pkg_dirs
-
-    @staticmethod
-    def mirror_pkg2source(pypi_folder: str, src_folder: str) -> None:
-        """From extracted sdist packages overwrite the python package with given pkg pattern."""
-        pypi_dirs = [d for d in glob.glob(os.path.join(pypi_folder, "*")) if os.path.isdir(d)]
-        for pkg_dir in pypi_dirs:
-            for py_dir in AssistantCLI._find_pkgs(pkg_dir):
-                dir_name = os.path.basename(py_dir)
-                py_dir2 = os.path.join(src_folder, dir_name)
-                shutil.rmtree(py_dir2, ignore_errors=True)
-                shutil.copytree(py_dir, py_dir2)
 
     @staticmethod
     def copy_replace_imports(
