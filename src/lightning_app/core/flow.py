@@ -740,10 +740,12 @@ class LightningFlow:
             elif isinstance(child, LightningWork):
                 child.set_state(state)
             elif strict:
-                raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}. "
-                                 f"If you are starting an app form a checkpoint, so th checkpoint is not compatible "
-                                 f"with the app code and you need to implement `load_state_dict()` and make sure that "
-                                 f"all components in the checkpoint are instantiated.")
+                raise ValueError(
+                    f"The component {child_name} wasn't instantiated for the component {self.name}. "
+                    f"If you are starting an app form a checkpoint, so th checkpoint is not compatible "
+                    f"with the app code and you need to implement `load_state_dict()` and make sure that "
+                    f"all components in the checkpoint are instantiated."
+                )
 
         # set state of the structures
         for structure, state in flow_state["structures"].items():
