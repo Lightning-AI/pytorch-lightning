@@ -7,6 +7,7 @@ from textwrap import dedent
 from typing import Any, List
 
 import click
+import lightning_cloud
 from lightning_cloud.openapi import (
     Externalv1Cluster,
     V1AWSClusterDriverSpec,
@@ -229,7 +230,7 @@ def _wait_for_cluster_state(
     cluster_id: str,
     target_state: V1ClusterState,
     timeout: int = MAX_CLUSTER_WAIT_TIME,
-    poll_duration: int = 60,
+    poll_duration: int = 10,
 ) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
@@ -249,20 +250,24 @@ def _wait_for_cluster_state(
     while elapsed < timeout:
         try:
             resp: V1GetClusterResponse = api_client.cluster_service_get_cluster(id=cluster_id)
-            _echo_cluster_status_long(
-                cluster_id=cluster_id,
-                current_state=resp.status.phase,
-                current_reason=resp.status.reason,
-                desired_state=target_state,
-                elapsed=elapsed,
+            click.echo(
+                _echo_cluster_status_long(
+                    cluster_id=cluster_id,
+                    current_state=resp.status.phase,
+                    current_reason=resp.status.reason,
+                    desired_state=target_state,
+                    elapsed=elapsed,
+                )
             )
             if resp.status.phase == target_state:
                 break
             time.sleep(poll_duration)
             elapsed = int(time.time() - start)
-        except Exception as e:  # TODO Handle not found exception
-            if target_state == V1ClusterState.DELETED:
+
+        except lightning_cloud.openapi.rest.ApiException as e:
+            if e.status == 404 and target_state == V1ClusterState.DELETED:
                 return
+            raise
     else:
         raise click.ClickException(
             dedent(
