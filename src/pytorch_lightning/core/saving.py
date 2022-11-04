@@ -64,7 +64,7 @@ class ModelIO:
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Self:  # type: ignore [valid-type]
+    ) -> Self:  # type: ignore[valid-type]
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.

@@ -219,7 +219,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         checkpoint_path: Union[_PATH, IO],
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
-    ) -> Self:  # type: ignore [valid-type]
+    ) -> Self:  # type: ignore[valid-type]
         r"""
         Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
