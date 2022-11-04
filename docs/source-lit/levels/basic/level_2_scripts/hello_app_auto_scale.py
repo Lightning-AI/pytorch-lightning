@@ -1,0 +1,1 @@
+../../../../source-app/levels/basic/level_2_scripts/hello_app_auto_scale.py

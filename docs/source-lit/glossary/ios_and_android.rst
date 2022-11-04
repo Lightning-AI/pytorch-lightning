@@ -1,0 +1,1 @@
+../../source-app/glossary/ios_and_android.rst
