@@ -11,10 +11,13 @@ Level 2: Connect components into a full stack AI app
 ****************************
 What is a full stack AI app?
 ****************************
-A full stack AI app coordinates 2 or more `Lightning components <build_a_lightning_component.html>`_ together.
-We call this system of components interacting with each other a Lightning App.
+In the ML world, workflows coordinate multiple pieces of code working together. In Lightning, 
+when we coordinate 2 or more `Lightning components <build_a_lightning_component.html>`_ working together,
+we instead call it a Lightning App. The difference will become more obvious when we introduce reactive
+workflows in the advanced section.
 
-In this guide, we'll coordinate 2 components together and explain how it works.
+For the time being, we'll go over how to coordinate 2 components together in a traditional workflow setting 
+and explain how it works.
 
 .. note:: If you've used workflow tools for Python, this page describes conventional DAGs.
         In `level 5 <../intermediate/run_lightning_work_in_parallel.html>`_, we introduce reactive workflows that generalize beyond DAGs

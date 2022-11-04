@@ -1,6 +1,6 @@
-##########################################
-Package your code in a lightning component
-##########################################
+##############################################
+Level 1: Package code in a lightning component
+##############################################
 
 **Prereqs:** You know *basic* Python.
 
