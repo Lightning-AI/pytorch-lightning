@@ -539,6 +539,10 @@ class LightningWork:
 
     def start(self):
         """Starts LightingWork component via L.CloudCompute."""
+        if self.status.stage == WorkStageStatus.STOPPED:
+            raise Exception("A work can be started only once for now.")
+
+        # This enables to start the run method with a phony input and exit.
         self.run(Action(method="start"))
 
     def run(self, *args, **kwargs):

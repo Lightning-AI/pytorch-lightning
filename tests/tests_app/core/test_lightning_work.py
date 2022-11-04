@@ -362,13 +362,21 @@ class FlowStart(LightningFlow):
     def __init__(self):
         super().__init__()
         self.w = WorkStart()
+        self.finish = False
 
     def run(self):
-        self.w.start()
+        if self.finish:
+            self._exit()
+        if self.w.status.stage == WorkStageStatus.STOPPED:
+            with pytest.raises(Exception, match="A work can be started only once for now."):
+                self.w.start()
+            self.finish = True
+        if self.w.status.stage == WorkStageStatus.NOT_STARTED:
+            self.w.start()
         if self.w.status.stage == WorkStageStatus.STARTED:
             self.w.run()
         if self.w.counter == 1:
-            self._exit()
+            self.w.stop()
 
 
 def test_lightning_app_work_start():
