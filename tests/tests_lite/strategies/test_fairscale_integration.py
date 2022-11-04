@@ -49,7 +49,7 @@ class ShardedSaveAndLoad(BoringLite):
         checkpoint = {"model": self.model.state_dict(), "optimizer": self.optimizer.state_dict()}
         self.save(checkpoint, checkpoint_path)
 
-        self.barrier()
+        self.barrier()  # ensure the checkpoint is saved before load
 
         loaded_checkpoint = self.load(checkpoint_path)
         new_model = self.get_model()
