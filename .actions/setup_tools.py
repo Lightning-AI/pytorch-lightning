@@ -20,9 +20,7 @@ import tarfile
 import tempfile
 import urllib.request
 from distutils.version import LooseVersion
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
-from types import ModuleType
 from typing import List
 
 from pkg_resources import parse_requirements
@@ -31,15 +29,6 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 # TODO: remove this once lightning-ui package is ready as a dependency
 _LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
-
-
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    assert spec, f"Failed to load module {name} from {location}"
-    py = module_from_spec(spec)
-    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
-    spec.loader.exec_module(py)
-    return py
 
 
 def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:

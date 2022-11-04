@@ -1,10 +1,8 @@
 import os
 import re
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
 from pprint import pprint
-from types import ModuleType
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import pkg_resources
@@ -27,14 +25,6 @@ REQUIREMENT_FILES = {
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
-PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
-
-
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    py = module_from_spec(spec)
-    spec.loader.exec_module(py)
-    return py
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
