@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]  # TODO: , "lit"
+        pkg-name: ["app", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
