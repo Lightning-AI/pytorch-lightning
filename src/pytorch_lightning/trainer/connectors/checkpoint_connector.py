@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from fsspec.core import url_to_fs
+from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 from torchmetrics import Metric
 
@@ -66,7 +67,10 @@ class CheckpointConnector:
             return None
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
-            return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
+            if isinstance(fs, LocalFileSystem):
+                return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+            else:
+                return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
