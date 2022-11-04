@@ -43,6 +43,7 @@ class ShardedSaveAndLoad(BoringLite):
         self.model.cpu()
 
         checkpoint_path = os.path.join(tmpdir, "checkpoint.ckpt")
+        # need to broadcast because tmpdir is different on each process
         checkpoint_path = self.broadcast(checkpoint_path)
 
         checkpoint = {"model": self.model.state_dict(), "optimizer": self.optimizer.state_dict()}
