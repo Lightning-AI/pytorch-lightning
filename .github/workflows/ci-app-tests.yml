@@ -6,6 +6,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
@@ -29,6 +30,7 @@ defaults:
 
 jobs:
   app-pytest:
+    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
