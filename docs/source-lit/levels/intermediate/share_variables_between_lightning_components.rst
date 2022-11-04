@@ -1,1 +1,0 @@
-../../../source-app/levels/intermediate/share_variables_between_lightning_components.rst

@@ -1,1 +1,0 @@
-../../../../source-app/levels/basic/hello_components/multi_cloud.bash

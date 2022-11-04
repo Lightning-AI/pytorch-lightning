@@ -1,1 +1,0 @@
-../../../source-app/levels/basic/build_a_lightning_component.rst

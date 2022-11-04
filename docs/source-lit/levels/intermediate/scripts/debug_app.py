@@ -1,1 +1,0 @@
-../../../../source-app/levels/intermediate/scripts/debug_app.py

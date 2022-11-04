@@ -1,1 +1,0 @@
-../../../source-app/levels/intermediate/debug_a_lightning_workflow.rst

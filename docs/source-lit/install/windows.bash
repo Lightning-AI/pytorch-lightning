@@ -1,1 +1,0 @@
-../../source-app/install/windows.bash
