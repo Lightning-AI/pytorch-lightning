@@ -91,32 +91,11 @@ Install Lightning
 *****************
 First, install Lightning.
 
-.. code:: bash
-
-    python -m pip install -U lightning
-
-.. collapse:: Mac M1/M2/M3 and Windows users
-
-   |
-
-   **Mac**
-
-   To install on Mac, set these 2 environment variables
-
-   .. code-block:: bash
-
-      # needed for M1/M2/M3
-      export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
-      export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
-
-      python -m pip install -U lightning
-
-   **Windows users**
-
-   To install on Windows:
-
-   - setup an alias for Python: python=python3
-   - Add the root folder of Lightning to the Environment Variables to PATH
+.. lit_tabs::
+   :descriptions: Pip; Macs, Apple Silicon (M1/M2/M3); Windows
+   :code_files: /install/pip.bash; /install/mac.bash; /install/windows.bash
+   :tab_rows: 4
+   :height: 180px
 
 ----
 
@@ -127,9 +106,9 @@ A Lightning component organizes Python code so it can run on the cloud and be co
 Pick one of these components to run:
 
 .. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; Build a model web UI
-   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 6;3;4;5; 10, 14, 29
+   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
+   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/xgboost.py; ./hello_components/xgboost_gpu.py; ./hello_components/build_demo.py
+   :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
    :app_id: abc123
    :tab_rows: 4
    :height: 550px
