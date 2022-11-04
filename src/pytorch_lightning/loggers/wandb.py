@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
+from torch import Tensor
 from lightning_utilities.core.imports import RequirementCache
 
 from pytorch_lightning.callbacks import Checkpoint
