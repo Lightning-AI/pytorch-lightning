@@ -21,8 +21,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
-from torch import Tensor
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
