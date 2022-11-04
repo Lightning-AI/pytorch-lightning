@@ -30,7 +30,7 @@ from lightning_app.utilities.packaging.cloud_compute import (
     _maybe_create_cloud_compute,
     CloudCompute,
 )
-from lightning_app.utilities.proxies import LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
+from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
 
 
 class LightningWork:
@@ -536,6 +536,14 @@ class LightningWork:
                     if status not in final_statuses:
                         final_statuses.append(status)
                 calls[call_hash]["statuses"] = final_statuses
+
+    def start(self):
+        """Starts LightingWork component via L.CloudCompute."""
+        if self.status.stage == WorkStageStatus.STOPPED:
+            raise Exception("A work can be started only once for now.")
+
+        # This enables to start the run method with a phony input and exit.
+        self.run(Action(method="start"))
 
     def run(self, *args, **kwargs):
         """Override to add your own logic.
