@@ -14,10 +14,13 @@ Level 1: Package code in a lightning component
 *********************************
 Why you need Lightning components
 *********************************
-ML workflows and full stack AI apps require many pieces working such as training, deploying, data annotation. However, this tight coupling
-can lead to monoliths that are hard to scale or many microservices that are hard to monitor, coordinate
-and scale. A Lightning component is a self-contained piece of code (ie: a microservice) that executes your code
-and manages its own infrastructure, auto-scaling and costs for you.
+A Lightning component organizes a piece of code into a self-contained, modular component that 
+can be integrated into your existing workflows or assembled to form a Lightning app. 
+A Lightning component manages its own infrastructure, auto-scaling, cost management, and more, so you
+can focus on the program logic and not the cloud engineering.
+
+Components run on the cloud or your laptop without code changes 🤯🤯. Connect components using your current workflow management tools or use
+Lightning apps to build powerful sequential AND reactive workflows.
 
 .. raw:: html
 
@@ -27,9 +30,15 @@ and manages its own infrastructure, auto-scaling and costs for you.
 
 |
 
-By using Lightning components you can focus on application logic without dealing with cloud operations
-or even how components speak to each other. Together, Lightning components form a Lightning App that
-gives you these benefits:
+Here are some key benefits:
+
+.. collapse:: Integrate into your current workflow tools
+
+   |
+
+   Lightning components are self-contained pieces of funcionality. Add them to your current workflow
+   tools to quickly fill in gaps in your ML workflow such as monitoring drift, training LLMs and more.
+   You can (optionally) use the Lightning App to integrate components into a cohesive workflow.
 
 .. collapse:: Build systems not scripts
 
@@ -37,7 +46,6 @@ gives you these benefits:
 
    The Lightning structure forces best practices so you don't have to be an expert production engineer.
    Although it feels like you're writing a script, you are actually building a production-ready system.
-
 
 .. collapse:: Cost control
 

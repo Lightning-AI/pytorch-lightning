@@ -57,9 +57,12 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 ----
 
-************************
-Build modular components
-************************
+****************************************
+Build self-contained, modular components
+****************************************
+Build modular, self-contained components and plug them into your existing workflows.
+A Lightning component organizes arbitrary code so it can run on the cloud. A component can train a model, deploy, or even host a web UI.
+The component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
 
 .. raw:: html
 
@@ -67,27 +70,19 @@ Build modular components
       <img src="https://lightning-ai-docs.s3.amazonaws.com/intro_components.gif" style="max-width: 800px"></img>
    </div>
 
-.. raw:: html
+|
 
-   <div class="row">
-      <div class='col-md-5' style="padding-top: 18px">
-         <p>
-         Build modular, self-contained components that can train and deploy models, host a web UI or run arbitrary code on the cloud.
-         A Lightning Component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
+|
 
-         <br><br>
-         Combine your components and prebuilt ones from <a href="https://lightning.ai/components" target="_blank">our gallery </a>
-         to create full-stack AI apps, ⚡ <i>Lightning fast</i>.
-         </p>
-      </div>
-      <div class='col-md-7'>
+**Run an example component on the cloud**:
 
 .. lit_tabs::
-   :code_files: landing_app.py;
-   :highlights: 6
+   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
+   :code_files: ./levels/basic/hello_components/hello_world.py; ./levels/basic/hello_components/hello_world_gpu.py; ./levels/basic/hello_components/train_pytorch.py; ./levels/basic/hello_components/train_ptl.py; ./levels/basic/hello_components/deploy_model.py; ./levels/basic/hello_components/run_script.py; ./levels/basic/hello_components/xgboost.py; ./levels/basic/hello_components/xgboost_gpu.py; ./levels/basic/hello_components/build_demo.py
+   :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
    :app_id: abc123
-   :height: 250px
-   :code_only: True
+   :tab_rows: 4
+   :height: 550px
 
 .. lit_tabs::
    :code_files: landing_app_run.bash
@@ -95,12 +90,7 @@ Build modular components
    :height: 150px
    :code_only: True
 
-|
-
-.. raw:: html
-
-      </div>
-   </div>
+Explore pre-built community components in `our gallery <https://lightning.ai/components>`_.
 
 |
 
@@ -113,7 +103,7 @@ Build modular components
 
 .. displayitem::
    :header: Get started
-   :description: Learn to go from Lightning components to full stack AI apps step-by-step.
+   :description: Learn to build Lightning components step-by-step.
    :col_css: col-md-12
    :button_link: levels/basic/index.html
    :height: 160
