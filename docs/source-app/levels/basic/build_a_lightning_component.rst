@@ -129,7 +129,7 @@ Pick one of these components to run:
 .. lit_tabs::
    :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; Build a model web UI
    :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 7-23;3;4;5;6
+   :highlights: 7; 10, 11; 3, 6;3;4;5; 10, 14, 29
    :app_id: abc123
    :tab_rows: 4
    :height: 550px
@@ -155,7 +155,7 @@ powerful Lightning app. Here are a few key features available to super-charge yo
 .. lit_tabs::
    :titles: 15+ accelerators; Auto-stop idle machines; Auto-timeout submitted work; Use spot machines (~70% discount); Work with massive datasets; Mount cloud storage; Use a custom container
    :code_files: ./key_features/accelerators.py; ./key_features/idle_machine.py; ./key_features/auto_timeout.py; ./key_features/spot.py; ./key_features/massive_dataset.py; ./key_features/mount_data.py; ./key_features/custom_container.py;
-   :highlights: 10;10;10;10;10;2,6,9, 10; 7
+   :highlights: 11;11;11;11;11;2,7,10, 11; 11
    :app_id: abc123
    :tab_rows: 3
    :height: 430px

@@ -3,11 +3,11 @@
 # app.py
 
 import lightning as L
+import torch
 from io import BytesIO
 from functools import partial
-import streamlit as st
-import torch
 from scipy.io.wavfile import write
+import streamlit as st
 
 
 class LitStreamlit(L.app.components.ServeStreamlit):
