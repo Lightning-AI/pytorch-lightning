@@ -5,12 +5,13 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements.txt"
-      - "requirements/*.txt"
-      - "requirements/pytorch/*"
+      - "requirements/**"
+      - "!requirements/*/docs.txt"
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - "setup.py"
@@ -28,6 +29,7 @@ env:
 
 jobs:
   build-pl:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -52,6 +54,7 @@ jobs:
         timeout-minutes: 50
 
   build-xla:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -87,6 +90,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-cuda:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -126,6 +130,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-ipu:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -170,6 +175,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-hpu:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -206,6 +212,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-NGC:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout

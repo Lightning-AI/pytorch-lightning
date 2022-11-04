@@ -1,5 +1,5 @@
 ########################
-lightning_app.components
+lightning.app.components
 ########################
 
 .. contents::
