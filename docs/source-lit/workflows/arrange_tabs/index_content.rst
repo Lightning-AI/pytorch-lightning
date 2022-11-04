@@ -1,1 +1,0 @@
-../../../source-app/workflows/arrange_tabs/index_content.rst

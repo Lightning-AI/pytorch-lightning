@@ -1,1 +1,0 @@
-../../source-app/examples/data_explore_app.rst
