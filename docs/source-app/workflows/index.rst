@@ -16,6 +16,7 @@
    extend_app
    build_lightning_component/publish_a_component
    byoc/index
+   ssh/index
    add_server/index
    run_app_on_cloud/index
    run_work_in_parallel
