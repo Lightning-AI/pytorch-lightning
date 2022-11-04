@@ -1,7 +1,7 @@
-########################################
-Level 15: Run LightningWorks in parallel
-########################################
-**Audience:** Users who want to run multiple LightningWorks at once.
+#######################################
+Level 15: Run LightningWork in parallel
+#######################################
+**Audience:** Users who want to run a LightningWork in parallel (asynchroneously).
 
 **Prereqs:** Level 8+
 

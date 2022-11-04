@@ -30,7 +30,7 @@ You must do so in every new shell.
 
 .. tip:: We highly recommend using virtual environments.
 
-.. code:: python
+.. code:: bash
 
     pip install lightning
 
