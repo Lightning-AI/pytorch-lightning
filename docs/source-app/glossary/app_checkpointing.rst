@@ -55,7 +55,7 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501688
 
 
-3. keyword `latest` to start from the latest checkpoint file in lightning shared storage.
+3. The keyword `latest` to start from the latest checkpoint file in Lightning shared storage.
 
 .. code-block:: bash
 
