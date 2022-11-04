@@ -6,6 +6,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
       - ".github/workflows/ci-pkg-install.yml"
@@ -34,6 +35,7 @@ jobs:
         path: pypi
 
   build-pypi:
+    if: github.event.pull_request.draft == false
     needs: init-pypi
     # This serves to create packages for potential internal dependencies
     runs-on: ubuntu-20.04
