@@ -1096,6 +1096,7 @@ def test_load_app_from_file_module_error():
     assert isinstance(empty_app.root, EmptyFlow)
 
 
+@mock.patch("lightning_app.runners.cloud.click", MagicMock())
 @mock.patch("lightning_app.runners.cloud.ENABLE_APP_CHECKPOINT", True)
 @mock.patch("lightning_app.runners.cloud.AppConfig")
 @mock.patch("lightning_app.runners.cloud._get_project", MagicMock())
