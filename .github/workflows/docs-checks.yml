@@ -126,7 +126,7 @@ jobs:
     needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         pkg-name: ["app", "pytorch", "lit"]
     env:
@@ -136,6 +136,9 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - run: exit(1)
+
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
