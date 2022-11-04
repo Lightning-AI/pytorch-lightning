@@ -79,16 +79,7 @@ if __name__ == "__main__":
         # merge all requirements files
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         # replace imports and copy the code
-        mapping = _PACKAGE_MAPPING.copy()
-        del mapping["lightning"]  # del this key to avoid replacing `lightning` to `lightning.lightning`
-        for new, previous in mapping.items():
-            assistant.copy_replace_imports(
-                source_dir=os.path.join(_PATH_SRC, previous),
-                # pytorch_lightning uses lightning_lite, so we need to replace all imports for all directories
-                source_imports=list(mapping.values()),
-                target_imports=[f"lightning.{new}" for new in mapping],
-                target_dir=os.path.join(_PATH_SRC, "lightning", new),
-            )
+        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 

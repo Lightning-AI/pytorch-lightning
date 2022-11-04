@@ -5,7 +5,7 @@ from itertools import chain
 from pathlib import Path
 from pprint import pprint
 from types import ModuleType
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import pkg_resources
 
@@ -98,6 +98,20 @@ def copy_replace_imports(
             os.makedirs(os.path.dirname(fp_new), exist_ok=True)
             with open(fp_new, "w", encoding="utf-8") as fo:
                 fo.writelines(lines)
+
+
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+    # replace imports and copy the code
+    mapping = package_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+    for new, previous in mapping.items():
+        copy_replace_imports(
+            source_dir=os.path.join(source_dir, previous),
+            # pytorch_lightning uses lightning_lite, so we need to replace all imports for all directories
+            source_imports=list(mapping.values()),
+            target_imports=[f"lightning.{new}" for new in mapping],
+            target_dir=os.path.join(source_dir, "lightning", new),
+        )
 
 
 class AssistantCLI:
