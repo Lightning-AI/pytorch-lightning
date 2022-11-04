@@ -14,7 +14,7 @@
 import logging
 import os
 from argparse import Namespace
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import click
 
@@ -175,5 +175,5 @@ def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
     _torchrun_launch(args, script_args or [])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _run_lite()
