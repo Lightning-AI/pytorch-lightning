@@ -1,19 +1,20 @@
-from typing import Type
+from typing import Any, Type
 
-import lightning as L
-from lightning.app import structures
-from lightning.app.core.flow import LightningFlow
+from lightning_app import structures
+from lightning_app.core.flow import LightningFlow
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MultiNode(LightningFlow):
     def __init__(
         self,
-        work_cls: Type["L.LightningWork"],
+        work_cls: Type["LightningWork"],
         nodes: int,
-        cloud_compute: "L.CloudCompute",
-        *work_args,
-        **work_kwargs,
-    ):
+        cloud_compute: "CloudCompute",
+        *work_args: Any,
+        **work_kwargs: Any,
+    ) -> None:
         """This component enables performing distributed multi-node multi-device training.
 
         Example::
@@ -58,7 +59,7 @@ class MultiNode(LightningFlow):
         self._work_kwargs = work_kwargs
         self.has_initialized = False
 
-    def run(self):
+    def run(self) -> None:
         # 1. Create & start the works
         if not self.has_initialized:
             for node_rank in range(self.nodes):
