@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
@@ -56,19 +55,49 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
     ...     "delete_cloud_lightning_apps",
     ...     "from lightning_app import",
     ...     "lightning_apps = []",
-    ...     "lightning_app is ours",
+    ...     "lightning_app and pytorch_lightning are ours",
     ...     "def _lightning_app():",
     ...     ":class:`~lightning_app.core.flow.LightningFlow`"
     ... ]
-    >>> _replace_imports(lns, [("lightning_app", "lightning.app")])  # doctest: +NORMALIZE_WHITESPACE
+    >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
+    >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
     ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
-    'lightning.app is ours', 'def _lightning_app():', ':class:`~lightning.app.core.flow.LightningFlow`']
+    'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
+    ':class:`~lightning.app.core.flow.LightningFlow`']
     """
     out = lines[:]
     for source_import, target_import in mapping:
-        for i, ln in enumerate(lines):
+        for i, ln in enumerate(out):
             out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
     return out
+
+
+def copy_replace_imports(
+    source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
+) -> None:
+    print(f"Replacing imports: {locals()}")
+    assert len(source_imports) == len(target_imports), (
+        "source and target imports must have the same length, "
+        f"source: {len(source_imports)}, target: {len(target_imports)}"
+    )
+    if target_dir is None:
+        target_dir = source_dir
+
+    ls = _retrieve_files(source_dir)
+    for fp in ls:
+        if fp.endswith(".py") or not fp.endswith(".pyc"):
+            with open(fp, encoding="utf-8") as fo:
+                try:
+                    lines = fo.readlines()
+                except UnicodeDecodeError:
+                    # a binary file, skip
+                    print(f"Skipped replacing imports for {fp}")
+                    break
+            lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
+            fp_new = fp.replace(source_dir, target_dir)
+            os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+            with open(fp_new, "w", encoding="utf-8") as fo:
+                fo.writelines(lines)
 
 
 class AssistantCLI:
@@ -117,33 +146,7 @@ class AssistantCLI:
         """Recursively replace imports in given folder."""
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        assert len(source_imports) == len(target_imports), (
-            "source and target imports must have the same length, "
-            f"source: {len(source_import)}, target: {len(target_import)}"
-        )
-
-        if target_dir is None:
-            target_dir = source_dir
-
-        ls = _retrieve_files(source_dir)
-
-        for fp in ls:
-            if fp.endswith(".py"):
-                with open(fp, encoding="utf-8") as fo:
-                    py = fo.readlines()
-
-                py = _replace_imports(py, list(zip(source_imports, target_imports)))
-
-                fp_new = fp.replace(source_dir, target_dir)
-                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-
-                with open(fp_new, "w", encoding="utf-8") as fo:
-                    fo.writelines(py)
-            elif not fp.endswith(".pyc"):
-                fp_new = fp.replace(source_dir, target_dir)
-                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                if os.path.abspath(fp) != os.path.abspath(fp_new):
-                    shutil.copy2(fp, fp_new)
+        copy_replace_imports(source_dir, source_imports, target_imports, target_dir=target_dir)
 
 
 if __name__ == "__main__":
