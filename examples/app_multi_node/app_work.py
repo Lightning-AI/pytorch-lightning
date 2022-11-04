@@ -2,7 +2,7 @@ import lightning as L
 from lightning.app.components import MultiNode
 
 
-class PyTorchComponent(L.LightningWork):
+class AnyDistributedComponent(L.LightningWork):
     def run(
         self,
         master_address: str,
@@ -14,4 +14,10 @@ class PyTorchComponent(L.LightningWork):
 
 
 compute = L.CloudCompute("gpu")
-app = L.LightningApp(MultiNode(PyTorchComponent, nodes=2, cloud_compute=compute), debug=True)
+app = L.LightningApp(
+    MultiNode(
+        AnyDistributedComponent,
+        nodes=2,
+        cloud_compute=compute,
+    )
+)

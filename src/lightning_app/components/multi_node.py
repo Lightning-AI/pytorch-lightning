@@ -23,19 +23,25 @@ class MultiNode(LightningFlow):
             import lightning as L
             from lightning.components import MultiNode
 
-            class PyTorchComponent(L.LightningWork):
-
+            class AnyDistributedComponent(L.LightningWork):
                 def run(
-                        self,
-                        master_address: str,
-                        master_port: int,
-                        node_rank: int,
-                    ):
-                        print("ADD YOUR DISTRIBUTED CODE")
+                    self,
+                    master_address: str,
+                    master_port: int,
+                    node_rank: int,
+                ):
+                    print(master_address, master_port, node_rank)
+                    print("YOUR DISTRIBUTED CODE")
 
 
-            compute = L.CloudCompute('gpu')
-            app = L.LightningApp(MultiNode(PyTorchComponent, nodes=10, cloud_compute=compute))
+            compute = L.CloudCompute("gpu")
+            app = L.LightningApp(
+                MultiNode(
+                    AnyDistributedComponent,
+                    nodes=8,
+                    cloud_compute=compute,
+                )
+            )
 
         Arguments:
             work_cls: The work to be executed
