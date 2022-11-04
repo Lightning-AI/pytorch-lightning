@@ -34,13 +34,16 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
+
       - name: Build package
         env:
           PACKAGE_NAME: "lite"
         run: python setup.py sdist
+
       - uses: actions/upload-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
@@ -61,10 +64,12 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
           path: pypi
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -75,6 +80,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name == 'app' }}
 
