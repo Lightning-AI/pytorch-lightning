@@ -19,7 +19,7 @@ This is useful for long running apps that need to be stopped and restarted or wh
 How to save a checkpoint
 ************************
 
-Saving a checkpoint is simple. In main flow if your lightning app, implement `should_save_checkpoint()` that returns True when you want to save a checkpoint.
+Saving a checkpoint is simple. In the main flow of your Lightning App, implement ``should_save_checkpoint()`` that returns ``True`` when you want to save a checkpoint.
 
 .. code-block:: python
 
