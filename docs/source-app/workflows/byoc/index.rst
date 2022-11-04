@@ -78,14 +78,7 @@ Parameters
 +------------------------+----------------------------------------------------------------------------------------------------+
 | region                 | AWS region containing compute resources                                                            |
 +------------------------+----------------------------------------------------------------------------------------------------+
-| enable-performance     | Specifies if the cluster uses cost savings mode.                                                   |
-|                        |                                                                                                    |
-|                        | In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters  |
-|                        | with low utilization.                                                                              |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| edit-before-creation   | Enables interactive editing of requests before submitting it to Lightning AI.                      |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| no-wait                | Cluster creation will happen in the background.                                                    |
+| async                  | Cluster creation will happen in the background.                                                    |
 +------------------------+----------------------------------------------------------------------------------------------------+
 
 ----
