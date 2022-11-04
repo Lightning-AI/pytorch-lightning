@@ -350,8 +350,8 @@ def test_lightning_app_with_work():
 
 
 class WorkStart(LightningWork):
-    def __init__(self):
-        super().__init__(parallel=True)
+    def __init__(self, cache_calls, parallel):
+        super().__init__(cache_calls=cache_calls, parallel=parallel)
         self.counter = 0
 
     def run(self):
@@ -359,9 +359,9 @@ class WorkStart(LightningWork):
 
 
 class FlowStart(LightningFlow):
-    def __init__(self):
+    def __init__(self, cache_calls, parallel):
         super().__init__()
-        self.w = WorkStart()
+        self.w = WorkStart(cache_calls, parallel)
         self.finish = False
 
     def run(self):
@@ -379,6 +379,8 @@ class FlowStart(LightningFlow):
             self.w.stop()
 
 
-def test_lightning_app_work_start():
-    app = LightningApp(FlowStart())
+@pytest.mark.parametrize("cache_calls", [False, True])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_lightning_app_work_start(cache_calls, parallel):
+    app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()
