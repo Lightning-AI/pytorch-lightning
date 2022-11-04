@@ -55,7 +55,7 @@ class MultiNode(LightningFlow):
         self.ws = structures.List()
         self._work_cls = work_cls
         self.nodes = nodes
-        self.cloud_compute = cloud_compute
+        self._cloud_compute = cloud_compute
         self._work_args = work_args
         self._work_kwargs = work_kwargs
         self.has_initialized = False
@@ -67,7 +67,7 @@ class MultiNode(LightningFlow):
                 self.ws.append(
                     self._work_cls(
                         *self._work_args,
-                        cloud_compute=self.cloud_compute,
+                        cloud_compute=self._cloud_compute,
                         **self._work_kwargs,
                         parallel=True,
                     )
