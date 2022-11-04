@@ -107,7 +107,9 @@ def test_ckpt_for_fsspec():
 
     model = BoringModel()
     # hardcoding dir since `tmpdir` can be windows path
-    trainer = Trainer(default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
+    )
     trainer.fit(model)
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt.ckpt")
     trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_0.ckpt")
