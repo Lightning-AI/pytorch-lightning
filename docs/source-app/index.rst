@@ -22,7 +22,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 .. app_card::
    :title: Develop and Train
-   :description: Train an LLM (512 GPUs)
+   :description: Train an LLM (64 GPUs)
    :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
    :preview: https://lightning.ai
@@ -36,7 +36,6 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
    :width: 280
    :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
-   :preview: https://lightning.ai
    :deploy: https://lightning.ai
    :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
    :tags: App

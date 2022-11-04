@@ -39,7 +39,7 @@ on a separate CPU machine. We save money by stopping the GPU machine when the wo
    :highlights: 2; 5-7; 9-11; 13; 16; 17; 19; 20; 21; 23
    :app_id: abc123
    :tab_rows: 4
-   :height: 450px
+   :height: 460px
 
 |
 
@@ -91,9 +91,9 @@ Although we've abstracted the infrastructure, you still have full control when y
 
 ----
 
-******************************************
-Using your own orchestrator (experts only)
-******************************************
+****************************************
+Use your own orchestrator (experts only)
+****************************************
 If you have your own orchestrator, feel free to coordinate individual Lightning components with
 those existing tools.
 
