@@ -30,8 +30,7 @@ class MultiNode(LightningFlow):
                     master_port: int,
                     node_rank: int,
                 ):
-                    print(master_address, master_port, node_rank)
-                    print("YOUR DISTRIBUTED CODE")
+                    print(f"ADD YOUR DISTRIBUTED CODE: {master_address} {master_port} {node_rank}")
 
 
             compute = L.CloudCompute("gpu")
