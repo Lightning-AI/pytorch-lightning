@@ -137,12 +137,12 @@ def application_testing(
 
     from click.testing import CliRunner
 
-    patch1 = mock.patch("lightning_app.LightningApp", lightning_app_cls)
+    _patch1 = mock.patch("lightning_app.LightningApp", lightning_app_cls)
     # we need to patch both only with the mirror package
-    patch2 = (
+    _patch2 = (
         mock.patch("lightning.LightningApp", lightning_app_cls) if "lightning.app" in sys.modules else nullcontext()
     )
-    with patch1, patch2:
+    with _patch1, _patch2:
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
