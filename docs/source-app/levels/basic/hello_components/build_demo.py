@@ -5,14 +5,12 @@
 import lightning as L
 from io import BytesIO
 from functools import partial
-
 import streamlit as st
 import torch
 from scipy.io.wavfile import write
 
 
 class LitStreamlit(L.app.components.ServeStreamlit):
-
     def build_model(self):
         sample_rate = 48000
 
