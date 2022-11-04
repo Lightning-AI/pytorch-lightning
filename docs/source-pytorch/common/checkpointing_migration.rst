@@ -1,6 +1,6 @@
 :orphan:
 
-.. _checkpointing_intermediate:
+.. _checkpointing_intermediate_2:
 
 ####################################
 Upgrading checkpoints (intermediate)
