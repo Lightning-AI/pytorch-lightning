@@ -5,11 +5,11 @@ from lightning.app.components import MultiNode
 class AnyDistributedComponent(L.LightningWork):
     def run(
         self,
-        master_address: str,
-        master_port: int,
+        main_address: str,
+        main_port: int,
         node_rank: int,
     ):
-        print(f"ADD YOUR DISTRIBUTED CODE: {master_address} {master_port} {node_rank}")
+        print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {node_rank}")
 
 
 compute = L.CloudCompute("gpu")

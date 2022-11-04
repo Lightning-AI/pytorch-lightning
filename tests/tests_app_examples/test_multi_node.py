@@ -9,6 +9,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
     def on_before_run_once(self):
         res = super().on_before_run_once()
         if all(w.has_finished for w in self.works):
+            assert len([w for w in self.works]) == 2
             return True
         return res
 

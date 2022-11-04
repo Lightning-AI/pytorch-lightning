@@ -3,6 +3,7 @@ from typing import Any, Type
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
+from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
@@ -27,11 +28,11 @@ class MultiNode(LightningFlow):
             class AnyDistributedComponent(L.LightningWork):
                 def run(
                     self,
-                    master_address: str,
-                    master_port: int,
+                    main_address: str,
+                    main_port: int,
                     node_rank: int,
                 ):
-                    print(f"ADD YOUR DISTRIBUTED CODE: {master_address} {master_port} {node_rank}")
+                    print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {node_rank}")
 
 
             compute = L.CloudCompute("gpu")
@@ -75,7 +76,7 @@ class MultiNode(LightningFlow):
             self.has_initialized = True
 
         # 2. Wait for all machines to be started !
-        if all(not w.has_started for w in self.ws):
+        if all(not w.stage.status == WorkStageStatus.STARTED for w in self.ws):
             return
 
         # Loop over all node machines
@@ -83,8 +84,8 @@ class MultiNode(LightningFlow):
 
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
-                master_address=self.ws[0].internal_ip,
-                master_port=self.ws[0].port,
+                main_address=self.ws[0].internal_ip,
+                main_port=self.ws[0].port,
                 node_rank=node_rank,
             )
 
