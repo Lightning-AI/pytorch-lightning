@@ -1,4 +1,3 @@
-import glob
 import os
 import re
 import shutil
@@ -110,18 +109,6 @@ class AssistantCLI:
         """Replace the min package version by fixed one."""
         for fname in requirement_fnames:
             AssistantCLI._replace_min(fname)
-
-    @staticmethod
-    def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
-        """Find all python packages with spec.
-
-        pattern in given folder, in case `src` exists dive there.
-        """
-        pkg_dirs = [d for d in glob.glob(os.path.join(folder, "*")) if os.path.isdir(d)]
-        if "src" in [os.path.basename(p) for p in pkg_dirs]:
-            return AssistantCLI._find_pkgs(os.path.join(folder, "src"), pkg_pattern)
-        pkg_dirs = list(filter(lambda p: pkg_pattern in os.path.basename(p), pkg_dirs))
-        return pkg_dirs
 
     @staticmethod
     def copy_replace_imports(
