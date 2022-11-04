@@ -27,6 +27,7 @@ env:
 
 jobs:
   build-pl:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -51,6 +52,7 @@ jobs:
         timeout-minutes: 50
 
   build-xla:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -86,6 +88,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-cuda:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -125,6 +128,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-ipu:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -169,6 +173,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-hpu:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -205,6 +210,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   build-NGC:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
