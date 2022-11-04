@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added the `start` method to the work ([#15523](https://github.com/Lightning-AI/lightning/pull/15523))
 
-- Added a `MultiNode` Component to run with any frameworks ([#15524](https://github.com/Lightning-AI/lightning/pull/15524))
+- Added a `MultiNode` Component to run with distributed computation with any frameworks ([#15524](https://github.com/Lightning-AI/lightning/pull/15524))
 
 -
 
