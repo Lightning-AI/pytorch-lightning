@@ -1,1 +1,0 @@
-../../../source-app/glossary/command_lines/command_lines.rst

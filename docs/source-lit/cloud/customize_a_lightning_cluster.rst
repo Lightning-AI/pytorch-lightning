@@ -1,1 +1,0 @@
-../../source-app/cloud/customize_a_lightning_cluster.rst

@@ -1,1 +1,0 @@
-../../source-app/glossary/aws_arn.rst
