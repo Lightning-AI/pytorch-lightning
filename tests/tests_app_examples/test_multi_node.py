@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pytest
 from tests_app import _PROJECT_ROOT
@@ -16,7 +15,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
         return res
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="flaky")
+@pytest.mark.skipif(True, reason="flaky")
 def test_multi_node_example():
     cwd = os.getcwd()
     new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
