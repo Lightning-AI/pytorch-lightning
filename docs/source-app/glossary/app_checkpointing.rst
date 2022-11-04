@@ -31,7 +31,7 @@ Saving a checkpoint is simple. In the root flow of your Lightning App, implement
         def should_save_checkpoint(self):
             return True
 
-When ``should_save_checkpoint()`` returns ``True``, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in Lightning shared storage at ``/checkpoints`` and will be named ``lightningapp_checkpoint_<timestamp>.json``.
+When ``should_save_checkpoint()`` returns ``True``, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in Lightning Drive Storage at ``lit://checkpoints`` and will be named ``lightningapp_checkpoint_<timestamp>.json``.
 
 
 *************************************
@@ -55,7 +55,7 @@ To start from a checkpoint, use the `--checkpoint` argument when starting the ap
     lightning run app app.py --checkpoint lightningapp_checkpoint_1665501688
 
 
-3. The keyword `latest` to start from the latest checkpoint file in Lightning shared storage.
+3. The keyword `latest` to start from the latest checkpoint file in Lightning Drive Storage.
 
 .. code-block:: bash
 
