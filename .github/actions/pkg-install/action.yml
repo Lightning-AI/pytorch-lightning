@@ -13,13 +13,17 @@ inputs:
 runs:
   using: "composite"
   steps:
+  - name: Choose package import
+    run: |
+      python -c "print('PACKAGE_NAME=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])" >> $GITHUB_ENV
+    shell: bash
+
   - name: Install package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
-      PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
-      python -c "import ${PKG_NAME}; print(${PKG_NAME}.__version__)"
+      python -c "import ${{ env.PACKAGE_NAME }}; print(${{ env.PACKAGE_NAME }}.__version__)"
     shell: bash
 
   - name: Install package - wheel
@@ -27,6 +31,5 @@ runs:
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
-      PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
-      python -c "import ${PKG_NAME}; print(${PKG_NAME}.__version__)"
+      python -c "import ${{ env.PACKAGE_NAME }}; print(${{ env.PACKAGE_NAME }}.__version__)"
     shell: bash
