@@ -1,10 +1,10 @@
 from typing import Any, Type
 
-from lightning.app import structures
-from lightning.app.core.flow import LightningFlow
-from lightning.app.core.work import LightningWork
-from lightning.app.utilities.enum import WorkStageStatus
-from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app import structures
+from lightning_app.core.flow import LightningFlow
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
 class MultiNode(LightningFlow):
