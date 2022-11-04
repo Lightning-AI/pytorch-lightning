@@ -81,6 +81,9 @@ if __name__ == "__main__":
     elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
+    # if `_PACKAGE_NAME` is not set, iterate over all possible packages until we find one that can be installed.
+    # this is useful for installing existing wheels, as the user wouldn't set this environment variable, but the wheel
+    # should have included only the relevant files of the package to install
     possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
         pkg_setup = os.path.join(_PATH_SRC, pkg, "__setup__.py")
@@ -92,4 +95,4 @@ if __name__ == "__main__":
             setup(**setup_args)
             break
     else:
-        raise RuntimeError("Something's wrong, no package was installed.")
+        raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
