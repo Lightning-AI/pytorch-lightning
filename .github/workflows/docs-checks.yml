@@ -3,9 +3,17 @@ name: Check Docs
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: ["master", "release/*"]
+    paths:
+      - ".actions/**"
+      - "requirements/**"
+      - "docs/**"
+      - "src/**"
+      - "setup.py"
+      - "setup.cfg"
+      - ".github/workflows/docs-checks.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -37,11 +45,11 @@ jobs:
   make-doctest:
     runs-on: ubuntu-20.04
     # make it depending on build docs to reduce load
-    needs: make-html
+    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch"]  # TODO: , "lit"
+        pkg-name: ["app", "pytorch"]  # TODO: , "lit"
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
@@ -56,15 +64,24 @@ jobs:
         with:
           python-version: "3.9"
 
+      - uses: aws-actions/configure-aws-credentials@v1
+        if: ${{ matrix.pkg-name == 'app' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
+        if: ${{ matrix.pkg-name == 'app' }}
+
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-test-${{ matrix.pkg }}-
+            ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-
 
       - name: Install dependencies
         run: |
@@ -74,21 +91,28 @@ jobs:
 
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
-        if: ${{ matrix.pkg == 'app' }}
+        if: ${{ matrix.pkg-name == 'app' }}
         run: |
-          pip install -e . -U  --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links pypi
+          pip install -e . -U  -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           git checkout -- setup.py MANIFEST.in
+
+      - name: Adjust docs refs
+        if: ${{ matrix.pkg-name == 'app' }}
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py copy_replace_imports --source_dir="./docs" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
 
       - name: Install this package
         env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg }}/docs.txt --find-links pypi
+          pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
+          pip list
 
       - name: Test Documentation
         env:
           SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs/source-${{ matrix.pkg }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make doctest
           make coverage
@@ -99,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pkg: ["app", "pytorch", "lit"]
+        pkg-name: ["app", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
@@ -114,38 +138,46 @@ jobs:
         with:
           python-version: "3.9"
 
+      - uses: aws-actions/configure-aws-credentials@v1
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
+        if: ${{ matrix.pkg-name != 'pytorch' }}
+
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-${{ matrix.pkg }}-${{ hashFiles('requirements/${{ matrix.pkg }}/*.txt') }}
+          key: ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-${{ hashFiles('requirements/${{ matrix.pkg-name }}/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-docs-make-${{ matrix.pkg }}-
+            ${{ runner.os }}-docs-make-${{ matrix.pkg-name }}-
 
       - name: Install package & dependencies
         env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . -r requirements/${{ matrix.pkg }}/docs.txt \
-            --find-links https://download.pytorch.org/whl/cpu/torch_stable.html \
-            --find-links pypi
+          pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
+            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           pip list
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/source-${{ matrix.pkg }}
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
-          name: docs-${{ matrix.pkg }}-${{ github.sha }}
+          name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failures
+        # Use always() to always run this step to publish test results when there are test failuress
         if: success()
