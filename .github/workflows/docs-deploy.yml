@@ -28,6 +28,13 @@ jobs:
         with:
           python-version: 3.8
 
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
+          aws-region: us-east-1
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
+
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
       - name: Cache pip
@@ -44,7 +51,8 @@ jobs:
           sudo apt-get install -y cmake pandoc
           sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip --version
-          pip install -e . --quiet -r requirements/app/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/app/docs.txt \
+            -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
           pip list
 
       - name: Make Documentation
@@ -85,10 +93,5 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
         if: ${{ success() && github.ref == 'refs/heads/master' }}
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
-
-      # fixme
-      - name: Upload docs/latest to GCS 🪣
         run: |-
           gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest

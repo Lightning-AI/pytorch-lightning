@@ -78,8 +78,8 @@ def test_list_all_apps_paginated(list_memberships: mock.MagicMock, list_instance
 
     list_memberships.assert_called_once()
     assert list_instances.mock_calls == [
-        mock.call(project_id="default-project", limit=100),
-        mock.call(project_id="default-project", page_token="page-2", limit=100),
+        mock.call(project_id="default-project", limit=100, phase_in=[]),
+        mock.call(project_id="default-project", page_token="page-2", limit=100, phase_in=[]),
     ]
 
 
@@ -94,7 +94,7 @@ def test_list_all_apps(list_memberships: mock.MagicMock, list_instances: mock.Ma
     cluster_manager.list()
 
     list_memberships.assert_called_once()
-    list_instances.assert_called_once_with(project_id="default-project", limit=100)
+    list_instances.assert_called_once_with(project_id="default-project", limit=100, phase_in=[])
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
@@ -108,4 +108,4 @@ def test_list_apps_on_cluster(list_memberships: mock.MagicMock, list_instances: 
     cluster_manager.list(cluster_id="12345")
 
     list_memberships.assert_called_once()
-    list_instances.assert_called_once_with(project_id="default-project", cluster_id="12345", limit=100)
+    list_instances.assert_called_once_with(project_id="default-project", cluster_id="12345", limit=100, phase_in=[])

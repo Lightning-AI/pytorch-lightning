@@ -113,6 +113,7 @@ class _LightningAppOpenAPIRetriever:
         self.openapi = None
         self.api_commands = None
         self.app_id = None
+        self.app_name = None
         home = os.path.expanduser("~")
         if use_cache:
             cache_openapi = os.path.join(home, ".lightning", "lightning_connection", "commands", "openapi.json")
@@ -210,6 +211,7 @@ class _LightningAppOpenAPIRetriever:
                 self.url = app.status.url
                 self.openapi = resp.json()
                 self.app_id = app.id
+                self.app_name = app.name
 
 
 def _arrow_time_callback(
@@ -299,7 +301,8 @@ def _check_environment_and_redirect():
     """
     env_executable = shutil.which("python")
 
-    if env_executable != sys.executable:
+    # on windows, the extension might be different, where one uses `.EXE` and the other `.exe`
+    if env_executable.lower() != sys.executable.lower():
         logger.info(
             "Lightning is running from outside your current environment. Switching to your current environment."
         )
