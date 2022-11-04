@@ -1,0 +1,1 @@
+../../source-app/glossary/distributed_hardware.rst
