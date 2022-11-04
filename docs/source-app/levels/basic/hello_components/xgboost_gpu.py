@@ -1,4 +1,5 @@
 # pip install sklearn xgboost
+# conda install py-xgboost-gpu
 # app.py
 import lightning as L
 from sklearn import datasets
