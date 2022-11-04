@@ -30,15 +30,7 @@ Lightning apps to build powerful sequential AND reactive workflows.
 
 |
 
-Here are some key benefits:
-
-.. collapse:: Integrate into your current workflow tools
-
-   |
-
-   Lightning components are self-contained pieces of funcionality. Add them to your current workflow
-   tools to quickly fill in gaps in your ML workflow such as monitoring drift, training LLMs and more.
-   You can (optionally) use the Lightning App to integrate components into a cohesive workflow.
+Organizing your code into Lightning components offers these benefits: 
 
 .. collapse:: Build systems not scripts
 
@@ -62,7 +54,6 @@ Here are some key benefits:
    coding experience. You can write code like you normally do, and the Lightning structure
    ensures your code is implicitely production ready... even if you're just doing research.
 
-
 .. collapse:: For experts: Scale with full control
 
    |
@@ -70,6 +61,14 @@ Here are some key benefits:
    if you know what you are doing, Lightning gives you full control to manage your own
    scaling logic, fault-tolerance and even pre-provisioning, all from Python. We even give you
    full flexibility to use tools like `terraform <../../cloud/customize_a_lightning_cluster.html>`_ to optimize cloud clusters for your Lightning apps.
+
+.. collapse:: Integrate into your current workflow tools
+
+   |
+
+   Lightning components are self-contained pieces of funcionality. Add them to your current workflow
+   tools to quickly fill in gaps in your ML workflow such as monitoring drift, training LLMs and more.
+   You can (optionally) use the Lightning App to integrate components into a cohesive workflow.
 
 .. collapse:: Packaged code
 
@@ -110,11 +109,12 @@ First, install Lightning.
 **************************
 Build your first component
 **************************
-A Lightning component organizes Python code so it can run on the cloud and be connected with other components to form a Lightning App.
-Pick one of these components to run:
+A Lightning component organizes Python code into a self-contained module so it can run on the cloud.
+
+**Run one of these components!**
 
 .. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
+   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch (cloud GPU); Train PyTorch with Lightning Trainer (cloud GPUs); Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
    :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/xgboost.py; ./hello_components/xgboost_gpu.py; ./hello_components/build_demo.py
    :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
    :app_id: abc123
