@@ -32,7 +32,7 @@ def test_missing_yarn():
 @_RunIf(skip_windows=True)
 def test_copy_and_setup_react_ui(tmpdir):
     dest_dir = os.path.join(tmpdir, "react-ui")
-    subprocess.Popen(["python", "-m", "lightning", "init", "react-ui", "--dest_dir", dest_dir]).wait()
+    subprocess.Popen(["lightning", "init", "react-ui", "--dest_dir", dest_dir]).wait()
 
     # make sure package is minimal
     files = sorted(f for f in os.listdir(dest_dir) if f != "__pycache__")

@@ -232,8 +232,10 @@ def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
     ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
     ... )
     """
-    for lit_name, pkg_name in lit_pkg_mapping.items():
-        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
+    mapping = lit_pkg_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+    for lit_name, pkg_name in mapping.items():
+        copy_adjusted_modules(src_folder, pkg_name, lit_name, mapping)
 
 
 def _download_frontend(pkg_path: str):
@@ -272,19 +274,3 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     requires = list(chain(*requires))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires])
-
-
-def set_actual_version_from_src(req_path: str, src_root: str, pkg_name: str) -> None:
-    """Setting actual version from source code for a given package."""
-    with open(req_path, encoding="utf-8") as fo:
-        lines = fo.readlines()
-    ver = parse_version_from_file(os.path.join(src_root, pkg_name.replace("-", "_")))
-    for i, ln in enumerate(lines):
-        reqs = list(parse_requirements([ln]))
-        if not reqs:
-            continue
-        if reqs[0].name == pkg_name:
-            lines[i] = f"{pkg_name}=={ver}{os.linesep}"
-
-    with open(req_path, "w", encoding="utf-8") as fw:
-        fw.writelines(lines)
