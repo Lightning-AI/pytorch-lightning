@@ -18,7 +18,6 @@ from unittest.mock import Mock
 import pytest
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.cli import main as cli_main
 from lightning_lite.cli import _run_lite
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
