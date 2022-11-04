@@ -1,15 +1,43 @@
-# A hello world component
+# pip install streamlit omegaconf scipy
+# pip install torch
 # app.py
+
 import lightning as L
+from io import BytesIO
+from functools import partial
+
+import streamlit as st
+import torch
+from scipy.io.wavfile import write
 
 
-class YourComponent(L.LightningWork):
-   def run(self):
-      print('RUN ANY PYTHON CODE HERE')
+class LitStreamlit(L.app.components.ServeStreamlit):
 
+    def build_model(self):
+        sample_rate = 48000
 
+        model, _ = torch.hub.load(
+            repo_or_dir='snakers4/silero-models',
+            model='silero_tts',
+            speaker="v3_en",
+        )
 
-# run on a cloud machine
-compute = L.CloudCompute("cpu")
-worker = YourComponent(cloud_compute=compute)
-app = L.LightningApp(worker)
+        return partial(
+            model.apply_tts,
+            sample_rate=sample_rate,
+            speaker="en_0",
+        ), sample_rate
+    
+    def render(self):
+        st.title("Text To Speech")
+        text = st.text_input("Text:", "Lightning Apps are the best!")
+
+        if text:
+            model, sample_rate = self.model
+            audio_numpy = model(text).numpy()
+            audio = BytesIO()
+            write(audio, sample_rate, audio_numpy)
+            audio.seek(0)
+            st.audio(audio)
+
+app = L.LightningApp(LitStreamlit())

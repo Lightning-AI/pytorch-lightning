@@ -1,8 +1,6 @@
 # app.py
 import torch
-
 import lightning as L
-
 
 class PyTorchComponent(L.LightningWork):
    def run(self):

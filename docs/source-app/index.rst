@@ -11,7 +11,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. join_slack::
    :align: left
 
-**Featured examples of what you can build with Lightning:**
+**Featured examples of what you can do with Lightning:**
 
 |
 
@@ -34,10 +34,11 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
    :title: Serve and deploy
    :description: Production-ready stable diffusion server (<2s latency)
    :width: 280
+   :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
    :preview: https://lightning.ai
    :deploy: https://lightning.ai
-   :target: https://apple.com
+   :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
    :tags: App
 
 .. app_card::
