@@ -1,5 +1,6 @@
-import lightning as L
 from docs.quickstart.app_02 import HourLongWork
+
+import lightning as L
 
 
 class RootFlow(L.LightningFlow):
