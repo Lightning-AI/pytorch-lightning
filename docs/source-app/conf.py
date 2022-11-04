@@ -79,6 +79,7 @@ extensions = [
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.linkcode",
@@ -138,6 +139,7 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "_templates",
     "code_samples/convert_pl_to_app/requirements.txt",
 ]
 
@@ -150,7 +152,7 @@ pygments_style = None
 # a list of builtin themes.
 #
 html_theme = "lai_sphinx_theme"
-html_theme_path = [lai_sphinx_theme.get_html_theme_path()]
+html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
