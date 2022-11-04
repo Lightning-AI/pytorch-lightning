@@ -31,7 +31,7 @@ Saving a checkpoint is simple. In the main flow of your Lightning App, implement
         def should_save_checkpoint(self):
             return True
 
-When `should_save_checkpoint()` returns True, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in lightning shared storage at `/checkpoints` and will be named `lightningapp_checkpoint_<timestamp>.json`.
+When ``should_save_checkpoint()`` returns ``True``, Lightning will save the state of the app to a checkpoint file. The checkpoint file will be saved in Lightning shared storage at ``/checkpoints`` and will be named ``lightningapp_checkpoint_<timestamp>.json``.
 
 
 *************************************
