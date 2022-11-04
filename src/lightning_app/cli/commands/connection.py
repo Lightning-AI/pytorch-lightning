@@ -19,6 +19,7 @@ _HOME = os.path.expanduser("~")
 _PPID = str(psutil.Process(os.getpid()).ppid())
 _LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
 _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
+_CLEAN_LIGHTNING_CONNECTION = True
 
 
 @click.argument("app_name_or_id", required=True)
@@ -27,7 +28,8 @@ def connect(app_name_or_id: str, yes: bool = False):
     """Connect to a Lightning App."""
     from lightning_app.utilities.commands.base import _download_command
 
-    _clean_lightning_connection()
+    if _CLEAN_LIGHTNING_CONNECTION:
+        _clean_lightning_connection()
 
     if not os.path.exists(_LIGHTNING_CONNECTION_FOLDER):
         os.makedirs(_LIGHTNING_CONNECTION_FOLDER)
@@ -102,6 +104,7 @@ def connect(app_name_or_id: str, yes: bool = False):
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
             copied_files = [el for el in os.listdir(commands) if os.path.splitext(el)[1] == ".py"]
+            click.echo("Found existing connection, reusing cached commands")
             for target_file in copied_files:
                 pretty_command_name = os.path.splitext(target_file)[0].replace("_", " ")
                 click.echo(f"Storing `{pretty_command_name}` at {os.path.join(commands, target_file)}")
@@ -174,7 +177,8 @@ def connect(app_name_or_id: str, yes: bool = False):
 
 def disconnect(logout: bool = False):
     """Disconnect from an App."""
-    _clean_lightning_connection()
+    if _CLEAN_LIGHTNING_CONNECTION:
+        _clean_lightning_connection()
 
     connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
     if os.path.exists(connected_file):

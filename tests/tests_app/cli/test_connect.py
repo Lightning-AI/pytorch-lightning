@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import click
 import pytest
 
+import lightning_app.cli.commands.connection as connection_module
 from lightning_app import _PROJECT_ROOT
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
@@ -20,7 +21,6 @@ from lightning_app.utilities.commands import base
 
 
 def test_connect_disconnect_local(monkeypatch):
-
     disconnect()
 
     with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
@@ -78,8 +78,11 @@ def test_connect_disconnect_local(monkeypatch):
 
     assert _retrieve_connection_to_an_app() == (None, None)
 
+    connection_module._CLEAN_LIGHTNING_CONNECTION = True
+
 
 def test_connect_disconnect_cloud(monkeypatch):
+    connection_module._CLEAN_LIGHTNING_CONNECTION = False
 
     disconnect()
 
@@ -170,9 +173,29 @@ def test_connect_disconnect_cloud(monkeypatch):
     connect("example", True)
     assert messages == ["You are already connected to the cloud Lightning App: example."]
 
+    ppid = connection_module._PPID
+    connection_module._PPID = "11111"
+    connection_module._LIGHTNING_CONNECTION_FOLDER = os.path.join(
+        connection_module._LIGHTNING_CONNECTION, connection_module._PPID
+    )
+    messages = []
+    connect("example", True)
+    assert messages[0] == "Found existing connection, reusing cached commands"
+
+    messages = []
+    disconnect()
+    print(messages)
+    assert messages == ["You are disconnected from the cloud Lightning App: example."]
+
+    connection_module._PPID = ppid
+    connection_module._LIGHTNING_CONNECTION_FOLDER = os.path.join(
+        connection_module._LIGHTNING_CONNECTION, connection_module._PPID
+    )
+
     messages = []
     disconnect()
     assert messages == ["You are disconnected from the cloud Lightning App: example."]
+
     messages = []
     disconnect()
     assert messages == [
@@ -180,3 +203,6 @@ def test_connect_disconnect_cloud(monkeypatch):
     ]
 
     assert _retrieve_connection_to_an_app() == (None, None)
+
+    connection_module._CLEAN_LIGHTNING_CONNECTION = True
+    connection_module._clean_lightning_connection()
