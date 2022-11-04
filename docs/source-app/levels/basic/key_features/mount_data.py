@@ -1,6 +1,5 @@
-import os
-
 import lightning as L
+import os
 
 
 class YourComponent(L.LightningWork):
