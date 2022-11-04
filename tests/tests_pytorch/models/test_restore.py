@@ -626,8 +626,10 @@ def test_dp_resume(tmpdir):
             super().__init__()
             self.on_train_start_called = False
 
-        def on_validation_start(self):
+        def on_train_start(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
+
+        def on_validation_start(self):
             dataloader = dm.val_dataloader()
             tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
 
