@@ -37,7 +37,7 @@ exclude = [
     "src/lightning_app/cli/app-template",
     "src/lightning_app/components/database",
     "src/lightning_app/frontend/just_py/just_py",
-    "src/lightning_app/components/multi_node.py",
+    "src/lightning_app/components/multi_node",
 ]
 install_types = "True"
 non_interactive = "True"
