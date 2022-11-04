@@ -42,7 +42,6 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
-                docs/source-apps/|
                 src/lightning_app/cli/pl-app-template/ui/yarn.lock|
                 src/pytorch_lightning/CHANGELOG.md|
                 src/lightning_lite/CHANGELOG.md
