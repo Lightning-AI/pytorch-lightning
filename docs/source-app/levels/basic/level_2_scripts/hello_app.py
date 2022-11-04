@@ -17,7 +17,7 @@ class WorkflowOrchestrator(L.LightningFlow):
         self.analyze = AnalyzeComponent(cloud_compute=L.CloudCompute('gpu'))
 
     def run(self):
-        self.train.run("GPU machine 1")
-        self.analyze.run("CPU machine 2")
+        self.train.run("CPU machine 1")
+        self.analyze.run("GPU machine 2")
 
 app = L.LightningApp(WorkflowOrchestrator())

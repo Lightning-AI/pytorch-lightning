@@ -12,7 +12,6 @@
    run_work_once
    cloud compute <../core_api/lightning_work/compute>
    build_command_line_interface/index
-   connect components <../levels/basic/connect_lightning_components>
    rest API <../glossary/restful_api/restful_api>
    extend_app
    build_lightning_component/publish_a_component
@@ -27,8 +26,6 @@
 #######
 How to:
 #######
-
-----
 
 .. raw:: html
 
