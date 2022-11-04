@@ -70,8 +70,8 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 if __name__ == "__main__":
-    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
-    _ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
+    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
+    assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")  # requires `-v` to appear
@@ -80,11 +80,11 @@ if __name__ == "__main__":
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         # replace imports and copy the code
         for new, previous in _PACKAGE_MAPPING.items():
-            _ASSISTANT.AssistantCLI.copy_replace_imports(
+            assistant.AssistantCLI.copy_replace_imports(
                 source_dir=os.path.join(_PATH_SRC, previous),
                 source_import=previous,
                 target_import=f"lightning.{new}",
-                target_dir=os.path.join(_PATH_SRC, _PACKAGE_NAME, new),
+                target_dir=os.path.join(_PATH_SRC, "lightning", new),
             )
     elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
