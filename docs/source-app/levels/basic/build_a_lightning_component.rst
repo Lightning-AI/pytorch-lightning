@@ -129,6 +129,7 @@ Components run the same on the cloud and locally on your choice of hardware.
    :titles: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_cloud_yours.bash; ./hello_components/code_run_local.bash
    :tab_rows: 4
+   :highlights: ; 5; 0
    :height: 195px
 
 ----
@@ -149,10 +150,10 @@ powerful Lightning app. Here are a few key features available to super-charge yo
 
 ----
 
-***************************
-Use the community ecosystem
-***************************
-Lightning has a vibrant collection of community-built components you can use as templates or to inspire you.
+**********************************
+Use pre-built community components
+**********************************
+Lightning has a vibrant collection of `community-built components <https://lightning.ai/components>`_ you can use as templates or to inspire you.
 
 
 ----
