@@ -88,6 +88,23 @@ Although we've abstracted the infrastructure, you still have full control when y
 
 ----
 
+******************************************
+Using your own orchestrator (experts only)
+******************************************
+If you have your own orchestrator, feel free to coordinate individual Lightning components with
+those existing tools.
+
+The Lightning orchestrator described below is optimized for advanced patterns using regular python 
+control-flow and an embedded state system that is discussed in the advanced sections.
+
+To run the app from a CI/CD job, CLI or other orchestrators, run it without opening the UI (unless you need the UI)
+
+.. code:: bash
+
+    lightning run app app.py --open-ui=false
+
+----
+
 ***************************
 Next step: Build a real app
 ***************************
