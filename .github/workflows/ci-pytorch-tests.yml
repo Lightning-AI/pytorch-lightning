@@ -125,8 +125,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Switch PyTorch URL
-      run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+    - name: Env. variables
+      run: |
+        # Switch PyTorch URL
+        python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
+        # Switch coverage scope
+        python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
+        # switch slow and quick tests
+        python -c "print('PL_RUN_SLOW_TESTS=' + str(int(${{ matrix.type }} == 'long')))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       env:
@@ -174,13 +180,8 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
-    - name: Switch coverage scope
-      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
-
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
-      env:
-        PL_RUN_SLOW_TESTS: $(python -c "print(int(${{ matrix.type }} == 'long'))")
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=120 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
