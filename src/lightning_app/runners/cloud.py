@@ -8,6 +8,7 @@ import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
+from textwrap import dedent
 
 import click
 from lightning_cloud.openapi import (
@@ -332,20 +333,15 @@ class CloudRuntime(Runtime):
                     )
                     app_config.cluster_id = None
                 if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
-                    raise ValueError(
-                        "\n".join(
-                            [
-                                f"Can not run app '{app_config.name}' on cluster {app_config.cluster_id} "
-                                f"since it already exists on {existing_instance.spec.cluster_id} "
-                                "(moving apps between clusters is not supported).",
-                                "You can either:",
-                                f"a. rename app to run on {existing_instance.spec.cluster_id} with the --name option",
-                                "lightning run app script.py"
-                                f"--name (new name) --cloud --cluster-id {existing_instance.spec.cluster_id}",
-                                "b. delete the existing app in the UI before running this command.",
-                            ]
-                        )
-                    )
+                    raise ValueError(dedent(f"""\
+                        Can not run app '{app_config.name}' on cluster {app_config.cluster_id} since it already exists on {existing_instance.spec.cluster_id}
+                            (moving apps between clusters is not supported).
+
+                        You can either:
+                            a. rename app to run on {app_config.cluster_id} with the --name option
+                                lightning run app script.py --name (new name) --cloud --cluster-id {app_config.cluster_id}
+                            b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
+                        """))
 
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
