@@ -1,6 +1,5 @@
 # app.py
 import lightning as L
-from lightning.app.perf import debug
 import time
 
 class TrainComponent(L.LightningWork):
@@ -18,7 +17,7 @@ class TrainComponent(L.LightningWork):
             if step % 10 == 0:
                 self.last_checkpoint_path = f'/some/path/{step=}_{fake_loss=}'
                 print(f'saved new checkpoint: {self.last_checkpoint_path}')
-                debug.set_trace()
+                L.pdb.set_trace()
                 self.has_new_checkpoint = True
 
 class ModelDeploymentComponent(L.LightningWork):

@@ -1,10 +1,9 @@
 import sys
 import pdb
 
-# https://github.com/williamFalcon/forked-pdb
-class ForkedPdb(pdb.Pdb):
-    """A Pdb subclass that may be used
-    from a forked multiprocessing child
+class MPPdb(pdb.Pdb):
+    """
+    debugger for forked programs
     """
     def interaction(self, *args, **kwargs):
         _stdin = sys.stdin
@@ -15,4 +14,4 @@ class ForkedPdb(pdb.Pdb):
             sys.stdin = _stdin
 
 def set_trace(*args, **kwargs):
-    ForkedPdb().set_trace(*args, **kwargs)
+    MPPdb().set_trace(*args, **kwargs)
