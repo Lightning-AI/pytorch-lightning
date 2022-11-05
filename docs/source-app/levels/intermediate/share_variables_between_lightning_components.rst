@@ -37,16 +37,18 @@ it makes network calls under the hood, but still functions like Python to you.
 **************************************
 Send a variable between two components
 **************************************
-A majority of workflows (especially in ML), require components to respond to a change in an unrelated component.
-For example, every time a model saves a checkpoint, you want to redeploy a model.
+A majority of workflows (especially in ML), require components to respond to a change in a component
+likely running on a separate machine or even cluster.
+
+In this example, every time a model saves a checkpoint, we redeploy a model:
 
 .. lit_tabs::
-   :descriptions: A
-   :code_files: ./scripts/two_work_comms.py
-   :highlights: 1
+   :descriptions: Define a component that simulates training; Define a component that simulates deployment; Training will happen in parallel over a long period; The deployment server also runs in parallel forever
+   :code_files: ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py
+   :highlights: 5-18; 20-22; 27; 28
    :app_id: abc123
    :tab_rows: 3
-   :height: 770px
+   :height: 690px
 
 ----
 
@@ -54,93 +56,3 @@ For example, every time a model saves a checkpoint, you want to redeploy a model
 Send a large variable between two components
 ********************************************
 Payload.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-***********
-The toy app
-***********
-In this page, we'll be using the following toy snippet:
-
-.. code:: python
-
-    # app.py
-    import lightning as L
-
-    class CountingWork(L.LightningWork):
-        def __init__(self):
-            super().__init__(parallel=True)
-            self.count = 0
-
-        def run(self):
-            for i in range(int(1000000)):
-                self.count += 1
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.counter = CountingWork(cloud_compute=L.CloudCompute('cpu'))
-
-        def run(self):
-            self.counter.run()
-            count = self.counter.count
-            print(count)
-
-    app = L.LightningApp(LitWorkflow())
-
-----
-
-*****************************
-Communicate from Flow to Work
-*****************************
-ABC
-
-----
-
-**********************************
-Communicate between LightningWorks
-**********************************
-Works cannot communicate directly between each other. Instead, a shared parent Flow must manage the communication.
-
-.. code:: python
-
-    # app.py
-    import lightning as L
-
-    class CountingWork(L.LightningWork):
-        def __init__(self):
-            super().__init__(parallel=True)
-            self.count = 0
-
-        def run(self):
-            for i in range(int(1000000)):
-                self.count += 1
-
-    class LitWorkflow(L.LightningFlow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.counter = CountingWork(cloud_compute=L.CloudCompute('cpu'))
-
-        def run(self):
-            self.counter.run()
-            count = self.counter.count
-            print(count)
