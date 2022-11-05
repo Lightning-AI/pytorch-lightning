@@ -132,7 +132,7 @@ jobs:
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
         # switch slow and quick tests
-        python -c "print('PL_RUN_SLOW_TESTS=' + str(int(${{ matrix.type }} == 'long')))" >> $GITHUB_ENV
+        python -c "print('PL_RUN_SLOW_TESTS=' + str(int('${{ matrix.type }}' == 'long')))" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       env:
