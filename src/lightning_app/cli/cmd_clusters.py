@@ -347,7 +347,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
 
 
-def _format_elapsed_seconds(seconds: Union[float,int]) -> str:
+def _format_elapsed_seconds(seconds: Union[float, int]) -> str:
     """Turns seconds into a duration string.
 
     >>> _format_elapsed_seconds(5)
