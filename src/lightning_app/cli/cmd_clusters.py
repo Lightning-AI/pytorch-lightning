@@ -149,7 +149,9 @@ class AWSClusterManager:
                 click.echo("cluster unchanged")
 
         resp = self.api_client.cluster_service_create_cluster(body=new_body)
-        click.echo(dedent(f"""\
+        click.echo(
+            dedent(
+                f"""\
             BYOC cluster creation triggered successfully!
             This can take up to an hour to complete.
 
@@ -161,7 +163,9 @@ class AWSClusterManager:
 
             To delete the cluster run:
                 lightning delete cluster {cluster_name}
-            """))
+            """
+            )
+        )
         if not do_async:
             try:
                 _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
@@ -194,7 +198,9 @@ class AWSClusterManager:
         bucket_name = resp.spec.driver.kubernetes.aws.bucket_name
 
         self.api_client.cluster_service_delete_cluster(id=cluster_id, force=force)
-        click.echo(dedent(f"""\
+        click.echo(
+            dedent(
+                f"""\
             Cluster deletion triggered successfully
 
             For safety purposes we will not delete anything in the S3 bucket associated with the cluster:
@@ -202,7 +208,9 @@ class AWSClusterManager:
 
             You may want to delete it manually using the AWS CLI:
                 aws s3 rb --force s3://{bucket_name}
-            """))
+            """
+            )
+        )
 
         if not do_async:
             try:
@@ -250,7 +258,9 @@ def _wait_for_cluster_state(
             raise
     else:
         state_str = ClusterState.from_api(target_state)
-        raise click.ClickException(dedent(f"""\
+        raise click.ClickException(
+            dedent(
+                f"""\
             The cluster has not entered the {state_str} state within {_format_elapsed_seconds(timeout)}.
 
             The cluster may eventually be {state_str} afterwards, please check its status using:
@@ -260,7 +270,9 @@ def _wait_for_cluster_state(
                 lightning show cluster logs {cluster_id}
 
             Contact support@lightning.ai for additional help
-            """))
+            """
+            )
+        )
 
 
 def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
@@ -290,7 +302,8 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     duration = _format_elapsed_seconds(elapsed)
 
     if current_state == V1ClusterState.FAILED:
-        return dedent(f"""\
+        return dedent(
+            f"""\
             The requested cluster operation for cluster {cluster_name} has errors:
             {current_reason}
 
@@ -302,26 +315,31 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
                 lightning delete cluster {cluster_name}
 
             Contact support@lightning.ai for additional help
-            """)
+            """
+        )
 
     if desired_state == current_state == V1ClusterState.RUNNING:
-        return dedent(f"""\
+        return dedent(
+            f"""\
                 Cluster {cluster_name} is now running and ready to use.
                 To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_name}
-                """)
+                """
+        )
 
     if desired_state == V1ClusterState.RUNNING:
         return f"Cluster {cluster_name} is being created [elapsed={duration}]"
 
     if desired_state == current_state == V1ClusterState.DELETED:
-        return dedent(f"""\
+        return dedent(
+            f"""\
             Cluster {cluster_name} has been successfully deleted, and almost all AWS resources have been removed
 
             For safety purposes we kept the S3 bucket associated with the cluster: {bucket_name}
 
             You may want to delete it manually using the AWS CLI:
                 aws s3 rb --force s3://{bucket_name}
-            """)
+            """
+        )
 
     if desired_state == V1ClusterState.DELETED:
         return f"Cluster {cluster_name} is being deleted [elapsed={duration}]"
@@ -330,7 +348,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
 
 
 def _format_elapsed_seconds(seconds: int) -> str:
-    """Turns seconds into a duration string
+    """Turns seconds into a duration string.
 
     >>> _format_elapsed_seconds(5)
     05s

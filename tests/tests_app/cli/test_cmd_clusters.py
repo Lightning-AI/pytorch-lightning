@@ -1,6 +1,6 @@
+from textwrap import dedent
 from unittest import mock
 from unittest.mock import call, MagicMock
-from textwrap import dedent
 
 import click
 import pytest
@@ -14,8 +14,8 @@ from lightning_cloud.openapi import (
     V1ClusterType,
     V1CreateClusterRequest,
     V1CreateClusterResponse,
-    V1KubernetesClusterDriver,
     V1GetClusterResponse,
+    V1KubernetesClusterDriver,
 )
 
 from lightning_app.cli import cmd_clusters
@@ -59,8 +59,10 @@ class FakeLightningClient:
 class Test_create:
     @mock.patch("click.echo")
     @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
-    @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_create_cluster",
-        MagicMock(return_value=V1CreateClusterResponse(id="test-cluster")))
+    @mock.patch(
+        "lightning_app.utilities.network.LightningClient.cluster_service_create_cluster",
+        MagicMock(return_value=V1CreateClusterResponse(id="test-cluster")),
+    )
     def test_delete_cluster_output(self, echo: mock.MagicMock, async_or_interrupt):
         cluster_manager = AWSClusterManager()
         cluster_manager.create(
@@ -72,7 +74,9 @@ class Test_create:
         )
 
         expected_output = [
-            call(dedent(f"""\
+            call(
+                dedent(
+                    f"""\
             BYOC cluster creation triggered successfully!
             This can take up to an hour to complete.
 
@@ -84,12 +88,13 @@ class Test_create:
 
             To delete the cluster run:
                 lightning delete cluster test-cluster
-            """)),
+            """
+                )
+            ),
             call("Cluster will be created in the background!"),
         ]
         for i, (expected, actual) in enumerate(zip(expected_output, echo.call_args_list)):
             assert expected == actual, f"Call {i} does not match"
-
 
     @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
     @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_create_cluster")
@@ -150,7 +155,9 @@ class Test_delete:
         cluster_manager.delete(cluster_id="test-7", do_async=async_or_interrupt)
 
         expected_output = [
-            call(dedent(f"""\
+            call(
+                dedent(
+                    f"""\
                 Cluster deletion triggered successfully
 
                 For safety purposes we will not delete anything in the S3 bucket associated with the cluster:
@@ -158,7 +165,9 @@ class Test_delete:
 
                 You may want to delete it manually using the AWS CLI:
                     aws s3 rb --force s3://test-bucket
-                """)),
+                """
+                )
+            ),
             call("Cluster will be deleted in the background!"),
         ]
         for i, (expected, actual) in enumerate(zip(expected_output, echo.call_args_list)):
@@ -167,12 +176,13 @@ class Test_delete:
     @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
     @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_delete_cluster")
     @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
-    def test_delete_cluster_api(self, api_get:mock.MagicMock, api_delete: mock.MagicMock, async_or_interrupt, spec):
+    def test_delete_cluster_api(self, api_get: mock.MagicMock, api_delete: mock.MagicMock, async_or_interrupt, spec):
         api_get.return_value = V1GetClusterResponse(spec=spec)
         cluster_manager = AWSClusterManager()
         cluster_manager.delete(cluster_id="test-7", do_async=async_or_interrupt)
 
         api_delete.assert_called_once_with(id="test-7", force=False)
+
 
 class Test_check_cluster_name_is_valid:
     @pytest.mark.parametrize("name", ["test-7", "0wildgoat"])
@@ -229,7 +239,8 @@ class Test_wait_for_cluster_state:
         if target_state == V1ClusterState.RUNNING:
             expected_state = "running"
 
-        assert str(e.value) == dedent(f"""\
+        assert str(e.value) == dedent(
+            f"""\
             The cluster has not entered the {expected_state} state within 0.1s.
 
             The cluster may eventually be {expected_state} afterwards, please check its status using:
@@ -239,7 +250,8 @@ class Test_wait_for_cluster_state:
                 lightning show cluster logs test-cluster
 
             Contact support@lightning.ai for additional help
-            """)
+            """
+        )
 
     @mock.patch("click.echo")
     def test_echo_state_change_on_desired_running(self, echo: MagicMock, spec):
@@ -281,7 +293,9 @@ class Test_wait_for_cluster_state:
             call("Cluster test-cluster is being created [elapsed=00s]"),
             call("Cluster test-cluster is being created [elapsed=00s]"),
             call("Cluster test-cluster is being created [elapsed=00s]"),
-            call(dedent("""\
+            call(
+                dedent(
+                    """\
                 The requested cluster operation for cluster test-cluster has errors:
                 some error
 
@@ -293,13 +307,18 @@ class Test_wait_for_cluster_state:
                     lightning delete cluster test-cluster
 
                 Contact support@lightning.ai for additional help
-                """)),
+                """
+                )
+            ),
             call("Cluster test-cluster is being created [elapsed=00s]"),
-            call(dedent("""\
+            call(
+                dedent(
+                    """\
                 Cluster test-cluster is now running and ready to use.
                 To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id test-cluster
-                """)
-                 ),
+                """
+                )
+            ),
         ]
         for i, (expected, actual) in enumerate(zip(expected_calls, echo.call_args_list)):
             assert expected == actual, f"call {i} did not match"
@@ -337,15 +356,18 @@ class Test_wait_for_cluster_state:
             call("Cluster test-cluster is being deleted [elapsed=00s]"),
             call("Cluster test-cluster is being deleted [elapsed=00s]"),
             call("Cluster test-cluster is being deleted [elapsed=00s]"),
-            call(dedent(f"""\
+            call(
+                dedent(
+                    f"""\
                 Cluster test-cluster has been successfully deleted, and almost all AWS resources have been removed
 
                 For safety purposes we kept the S3 bucket associated with the cluster: test-bucket
 
                 You may want to delete it manually using the AWS CLI:
                     aws s3 rb --force s3://test-bucket
-                """)
-                 ),
+                """
+                )
+            ),
         ]
         for i, (expected, actual) in enumerate(zip(expected_calls, echo.call_args_list)):
             assert expected == actual, f"Call {i} did not match"
