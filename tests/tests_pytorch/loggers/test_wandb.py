@@ -265,7 +265,7 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     checkpoint_callback = ModelCheckpoint(monitor="step")
