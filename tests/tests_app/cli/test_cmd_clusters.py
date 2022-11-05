@@ -76,7 +76,7 @@ class Test_create:
         expected_output = [
             call(
                 dedent(
-                    f"""\
+                    """\
             BYOC cluster creation triggered successfully!
             This can take up to an hour to complete.
 
@@ -157,7 +157,7 @@ class Test_delete:
         expected_output = [
             call(
                 dedent(
-                    f"""\
+                    """\
                 Cluster deletion triggered successfully
 
                 For safety purposes we will not delete anything in the S3 bucket associated with the cluster:
@@ -358,7 +358,7 @@ class Test_wait_for_cluster_state:
             call("Cluster test-cluster is being deleted [elapsed=00s]"),
             call(
                 dedent(
-                    f"""\
+                    """\
                 Cluster test-cluster has been successfully deleted, and almost all AWS resources have been removed
 
                 For safety purposes we kept the S3 bucket associated with the cluster: test-bucket

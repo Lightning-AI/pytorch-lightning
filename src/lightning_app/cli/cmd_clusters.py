@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from enum import Enum
 from textwrap import dedent
-from typing import Any, List
+from typing import Any, List, Union
 
 import click
 import lightning_cloud
@@ -347,7 +347,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
 
 
-def _format_elapsed_seconds(seconds: int) -> str:
+def _format_elapsed_seconds(seconds: Union[float,int]) -> str:
     """Turns seconds into a duration string.
 
     >>> _format_elapsed_seconds(5)
