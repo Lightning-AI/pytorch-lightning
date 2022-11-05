@@ -151,4 +151,4 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    Start from app templates <https://lightning.ai/apps>
    Examples <examples/index>
    Glossary <glossary/index>
-   How to... <workflows/index>
+   How-to <workflows/index>
