@@ -197,8 +197,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
 
         rank_zero_info(
-            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
-            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
+            "When using FairScale FSDP auto-wrap, make sure to initialize your model using trainer: "
+            "`torch.optim.Optimizer(self.trainer.model.parameters(), ...)`"
         )
 
         return FullyShardedDataParallel(

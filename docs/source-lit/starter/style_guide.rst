@@ -1,1 +1,0 @@
-../../source-pytorch/starter/style_guide.rst
