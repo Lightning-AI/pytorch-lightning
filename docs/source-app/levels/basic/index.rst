@@ -6,11 +6,6 @@
 
    build_a_lightning_component
    connect_lightning_components
-   train_pytorch_on_the_cloud
-   deploy_ai_model_api
-   run_jupyter_notebook_on_the_cloud
-   create_a_model_demo
-   build_a_dag
 
 ############
 Basic skills
@@ -33,7 +28,7 @@ Every new user should start here.
 
 .. displayitem::
    :header: Level 1: Package code in a Lightning component
-   :description: Learn to build a Lightning component which is the core building block of a full stack AI app (Lightning App).
+   :description: Learn to build a Lightning component which you can use in existing workflows or turn into a Lightning app.
    :button_link: build_a_lightning_component.html
    :col_css: col-md-6
    :height: 170
