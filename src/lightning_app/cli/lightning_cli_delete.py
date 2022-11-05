@@ -13,7 +13,7 @@ def delete() -> None:
 @click.argument("cluster", type=str)
 @click.option(
     "--async",
-    "no_wait",
+    "do_async",
     type=bool,
     required=False,
     default=False,
