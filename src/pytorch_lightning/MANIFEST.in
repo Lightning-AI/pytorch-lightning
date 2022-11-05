@@ -1,4 +1,4 @@
-# distibute the lite source code inside PL
+# distribute the lite source code inside PL
 include src/lightning_lite/CHANGELOG.md
 recursive-include requirements/lite *.txt
 include src/pytorch_lightning/CHANGELOG.md

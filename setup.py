@@ -86,12 +86,17 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
-        fp = open(manifest_path, mode="w")
-        packages = [v for v in _PACKAGE_MAPPING.values() if v != "lightning"]
-        for pkg in packages:
+        mapping = _PACKAGE_MAPPING.copy()
+        del mapping["lightning"]
+        lines = []
+        for pkg in mapping.values():
             with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
-                lines = fh.readlines()
-                fp.writelines(lines)
+                lines.extend(fh.readlines())
+        # convert lightning_foo to lightning/foo
+        for new, old in mapping.items():
+            lines = [line.replace(old, f"lightning/{new}") for line in lines]
+        fp = open(manifest_path, mode="w")
+        fp.writelines(lines)
         fp.flush()
     else:
         manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
@@ -100,7 +105,11 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
     manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
     yield
+    # cleanup
     setuptools.command.egg_info.manifest_maker.template = "MANIFEST.in"
+    if aggregate:
+        fp.close()
+        os.remove(manifest_path)
 
 
 if __name__ == "__main__":
