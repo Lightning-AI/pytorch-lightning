@@ -4,8 +4,9 @@
    :maxdepth: 1
    :hidden:
 
+   connect_lightning_components
+   debug_a_lightning_app
    save_money_on_cloud_costs
-   debug_a_lightning_workflow
    run_lightning_work_in_parallel
    share_variables_between_lightning_components
    share_files_between_components
@@ -15,7 +16,7 @@
 ###################
 Intermediate skills
 ###################
-Learn to run efficiently on the cloud
+Learn to coordinate 2+ components into workflows which we call Lightning apps.
 
 .. join_slack::
    :align: left
@@ -30,7 +31,7 @@ Learn to run efficiently on the cloud
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Connect components into a full stack AI app
+   :header: Level 3: Connect components into a full stack AI app
    :description: Learn to connect components into a full stack AI app.
    :button_link: connect_lightning_components.html
    :col_css: col-md-6
@@ -38,7 +39,15 @@ Learn to run efficiently on the cloud
    :tag: 15 minutes
 
 .. displayitem::
-   :header: Level 3: Save money on cloud costs
+   :header: Level 3: Debug a Lightning App
+   :description: Learn to debug a lightning app.
+   :button_link: debug_a_lightning_app.html
+   :col_css: col-md-6
+   :height: 170
+   :tag: 10 minutes
+
+.. displayitem::
+   :header: Level 4: Save money on cloud costs
    :description: Explore key Lightning features that save you cloud costs and improve performance.
    :button_link: save_money_on_cloud_costs.html
    :col_css: col-md-6

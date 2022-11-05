@@ -116,5 +116,3 @@ step-by-step walkthrough.
 
 Once you feel comfortable with these examples, move to the `intermediate levels <../intermediate/index.html>`_, where we'll learn about running
 components in parallel so we can build reactive full-stack AI apps.
-
-.. include:: basic_examples.rst

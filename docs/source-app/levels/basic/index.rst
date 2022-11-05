@@ -5,15 +5,13 @@
    :hidden:
 
    build_a_lightning_component
-   debug_a_lightning_workflow
-   explore_real_component_examples
+   real_lightning_component_implementations
+   <../intermediate/connect_lightning_components>
 
 ############
 Basic skills
 ############
-Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps.
-
-Every new user should start here.
+Learn to package your code into Lightning components. Every new user should start here.
 
 .. join_slack::
    :align: left
@@ -36,17 +34,9 @@ Every new user should start here.
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Debug a Lightning Component
-   :description: Learn to debug a lightning component.
-   :button_link: debug_a_lightning_workflow.html
-   :col_css: col-md-6
-   :height: 170
-   :tag: 10 minutes
-
-.. displayitem::
-   :header: Level 3: Explore real component examples
+   :header: Level 2: Explore real component implementations
    :description: Go deep into real component implementations.
-   :button_link: explore_real_component_examples.html
+   :button_link: real_lightning_component_implementations.html
    :col_css: col-md-6
    :height: 170
    :tag: 10 minutes
@@ -56,12 +46,3 @@ Every new user should start here.
         </div>
     </div>
 
-
-----
-
-**************
-Basic Examples
-**************
-Once you've finished the basic levels, work through the following examples:
-
-.. include:: basic_examples.rst

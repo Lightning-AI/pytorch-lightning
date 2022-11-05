@@ -152,10 +152,11 @@ Lightning has a vibrant collection of `community-built components <https://light
 
 ----
 
-************************
-Next: Connect components
-************************
-Now you can build components. To build powerful full stack AI apps you'll need to learn to connect them together.
+********************************************
+Next: Explore real component implementations
+********************************************
+In this section we introduced components. Let's explore
+real component implementations in-depth.
 
 .. raw:: html
 
@@ -165,10 +166,10 @@ Now you can build components. To build powerful full stack AI apps you'll need t
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Connect components
-   :description: Learn to connect components
+   :header: Level 2: Explore real component implementations
+   :description: Go deep into real component implementations.
    :col_css: col-md-12
-   :button_link: connect_lightning_components.html
+   :button_link: real_lightning_component_implementations.html
    :height: 150
    :tag: beginner
 

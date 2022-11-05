@@ -59,7 +59,8 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 ****************************************
 Build self-contained, modular components
 ****************************************
-Build modular, self-contained components and plug them into your existing workflows.
+Lightning is a hyper-minimalistic framework designed to maximize expressivity that
+enables you to build modular, self-contained components and plug them into your existing workflows.
 A Lightning component organizes arbitrary code so it can run on the cloud. A component can train a model, deploy, or even host a web UI.
 The component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
 
