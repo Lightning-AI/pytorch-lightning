@@ -1,0 +1,8 @@
+# distibute the lite source code inside PL
+include src/lightning_lite/CHANGELOG.md
+recursive-include requirements/lite *.txt
+include src/pytorch_lightning/CHANGELOG.md
+recursive-include requirements/pytorch *.txt
+include .actions/setup_tools.py
+include *.cff  # citation info
+include src/pytorch_lightning/py.typed  # marker file for PEP 561

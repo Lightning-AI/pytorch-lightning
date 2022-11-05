@@ -43,7 +43,7 @@ import os
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
-from setuptools import setup
+import setuptools
 
 _PACKAGE_NAME = os.environ.get("PACKAGE_NAME")
 _PACKAGE_MAPPING = {
@@ -69,6 +69,13 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
+def _set_manifest_path(manifest_dir: str) -> None:
+    # TODO: support mirror package. context manager with aggregation
+    manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
+    assert os.path.exists(manifest_path)
+    setuptools.command.egg_info.manifest_maker.template = manifest_path
+
+
 if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
 
@@ -86,13 +93,14 @@ if __name__ == "__main__":
     # should have included only the relevant files of the package to install
     possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
-        pkg_setup = os.path.join(_PATH_SRC, pkg, "__setup__.py")
+        pkg_path = os.path.join(_PATH_SRC, pkg)
+        pkg_setup = os.path.join(pkg_path, "__setup__.py")
         if os.path.exists(pkg_setup):
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
+            _set_manifest_path(pkg_path)
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
-            setup_module._adjust_manifest(pkg_name=pkg)
-            setup_args = setup_module._setup_args(pkg_name=pkg)
-            setup(**setup_args)
+            setup_args = setup_module._setup_args()
+            setuptools.setup(**setup_args)
             break
     else:
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
