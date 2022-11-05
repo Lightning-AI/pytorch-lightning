@@ -15,12 +15,12 @@ then it's passed into functions for the work components, under the hood
 Lightning sends the variables across the machines for you automatically.
 
 .. lit_tabs::
-   :descriptions: Toy app with a single work; Remember this component may live on its own machine; The flow may be on a separate machine as well; This variable is on the flow machine; When passed to the work component, it is actually sent across the network under the hood.; When it prints here, it prints on the work component machine (not the flow machine); The second string was directly created on machine 1
-   :code_files: ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py
-   :highlights: ; 4-7; 9-16; 15; 16; 6; 7;
+   :descriptions: Remember this component may live on its own machine; The flow may be on a separate machine as well; This variable is on the flow machine; When passed to the work component, it is actually sent across the network under the hood.; When it prints here, it prints on the work component machine (not the flow machine); The second string was directly created on machine 1
+   :code_files: ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py
+   :highlights: 4-7; 9-16; 15; 16; 6; 7;
    :app_id: abc123
    :tab_rows: 3
-   :height: 430px
+   :height: 380px
 
 |
 
