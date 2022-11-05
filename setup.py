@@ -70,7 +70,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 def _set_manifest_path(manifest_dir: str) -> None:
-    # TODO: support mirror package. context manager with aggregation
+    # FIXME: support mirror package. context manager with aggregation
     manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
     assert os.path.exists(manifest_path)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
