@@ -209,8 +209,8 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
 
 @RunIf(skip_windows=True, min_torch="1.10.0", min_cuda_gpus=2, standalone=True)
 @mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
-def test_post_local_sgd_model_averaging_value_error(average_parameters_mock, tmpdir):
-    """Test that when using DDP with post-localSGD a ValueError is thrown when the optmizer is
+def test_post_local_sgd_model_averaging_raises(average_parameters_mock, tmpdir):
+    """Test that when using DDP with post-localSGD a ValueError is thrown when the optimizer is
     ZeroRedundancyOptimizer."""
     from torch.distributed.optim import ZeroRedundancyOptimizer
 
