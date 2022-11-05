@@ -44,6 +44,7 @@ import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
+from typing import Generator
 
 import setuptools
 import setuptools.command.egg_info
@@ -73,7 +74,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 @contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False):
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
         fp = tempfile.NamedTemporaryFile(mode="w", dir=manifest_dir, delete=True)
@@ -92,8 +93,6 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False):
     setuptools.command.egg_info.manifest_maker.template = manifest_path
     yield
     setuptools.command.egg_info.manifest_maker.template = "MANIFEST.in"
-    if aggregate:
-        fp.close()
 
 
 if __name__ == "__main__":
