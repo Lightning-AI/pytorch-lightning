@@ -36,7 +36,7 @@ local tputests = base.BaseTest {
       fi
 
       echo "--- Install packages ---"
-      PACKAGE_NAME=lite pip install -e .[dev]
+      # this comes with lite package inside
       PACKAGE_NAME=pytorch pip install -e .[dev]
       pip list
 

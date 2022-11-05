@@ -1,4 +1,5 @@
 import os
+from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 from typing import Any, Dict
@@ -60,7 +61,27 @@ def _adjust_manifest(**__: Any) -> None:
         fp.writelines(lines)
 
 
+def _check_install_collision() -> None:
+    try:
+        import pytorch_lightning
+    except ModuleNotFoundError:
+        return
+    if LooseVersion(pytorch_lightning.__version__) >= LooseVersion("1.8.1"):
+        try:
+            import lightning_lite  # noqa: F401
+        except Exception as e:
+            raise RuntimeError("Unexpected error, `lightning_lite` should be available") from e
+        raise RuntimeError(
+            "`pytorch_lightning>=1.8.1` is installed and it already includes `lightning_lite`."
+            " Installing `lightning_lite` again will overwrite `pytorch_lightning`'s version. This might break it."
+            " You can use the existing `lightning_lite` installation or uninstall `pytorch_lightning` before installing"
+            "`lightning_lite` to avoid this error."
+        )
+
+
 def _setup_args(**__: Any) -> Dict[str, Any]:
+    _check_install_collision()
+
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
