@@ -281,7 +281,7 @@ def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
 
     calls = wandb.Artifact.call_args_list
     assert len(calls) == 1
-    score = calls[0].kwargs["metadata"]["score"]
+    score = calls[0][1]["metadata"]["score"]
     # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
     assert isinstance(score, int) and score == 3
 
