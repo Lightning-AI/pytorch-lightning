@@ -31,7 +31,7 @@ you can use the multi-processing runtime:
 .. lit_tabs::
    :titles: Toy app; Enable MultiProcessRuntime
    :code_files: ./scripts/toy_app.py; ./scripts/debug_app.py
-   :highlights: ; 3, 24
+   :highlights: ; 3, 25
    :app_id: abc123
    :tab_rows: 3
    :height: 520px
