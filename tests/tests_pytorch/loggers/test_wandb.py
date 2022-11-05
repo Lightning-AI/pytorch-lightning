@@ -255,7 +255,8 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
-    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar tensor."""
+    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar
+    tensor."""
     monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
 
     wandb.run = None
