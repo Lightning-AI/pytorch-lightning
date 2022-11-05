@@ -3,8 +3,8 @@ import lightning as L
 
 class Component(L.LightningWork):
     def run(self, x):
-        print(f'this string came from machine 0: " {x}')
-        print('this string is on machine 1')
+        print(f'MACHINE 1: this string came from machine 0: "{x}"')
+        print('MACHINE 1: this string is on machine 1')
 
 class WorkflowOrchestrator(L.LightningFlow):
     def __init__(self) -> None:
@@ -12,7 +12,7 @@ class WorkflowOrchestrator(L.LightningFlow):
         self.component = Component()
 
     def run(self):
-        x = 'this string is on machine 0'
-        self.component(x)
+        x = 'hello from machine 0'
+        self.component.run(x)
 
 app = L.LightningApp(WorkflowOrchestrator())
