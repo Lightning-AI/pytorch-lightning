@@ -113,13 +113,7 @@ A Lightning component organizes Python code into a self-contained module so it c
 
 **Run one of these components!**
 
-.. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch (cloud GPU); Train PyTorch with Lightning Trainer (cloud GPUs); Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
-   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/xgboost.py; ./hello_components/xgboost_gpu.py; ./hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
-   :app_id: abc123
-   :tab_rows: 4
-   :height: 550px
+.. include:: ./hero_components.rst 
 
 |
 
