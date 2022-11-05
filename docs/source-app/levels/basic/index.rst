@@ -5,7 +5,8 @@
    :hidden:
 
    build_a_lightning_component
-   connect_lightning_components
+   debug_a_lightning_workflow
+   explore_real_component_examples
 
 ############
 Basic skills
@@ -35,12 +36,20 @@ Every new user should start here.
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Connect components into a full stack AI app
-   :description: Learn to connect components into a full stack AI app.
-   :button_link: connect_lightning_components.html
+   :header: Level 2: Debug a Lightning Component
+   :description: Learn to debug a lightning component.
+   :button_link: debug_a_lightning_workflow.html
    :col_css: col-md-6
    :height: 170
-   :tag: 15 minutes
+   :tag: 10 minutes
+
+.. displayitem::
+   :header: Level 3: Explore real component examples
+   :description: Go deep into real component implementations.
+   :button_link: explore_real_component_examples.html
+   :col_css: col-md-6
+   :height: 170
+   :tag: 10 minutes
 
 .. raw:: html
 

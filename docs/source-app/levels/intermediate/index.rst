@@ -9,8 +9,7 @@
    run_lightning_work_in_parallel
    share_variables_between_lightning_components
    share_files_between_components
-   level_13
-   level_14
+   start_dynamic_components
    level_15
 
 ###################
@@ -31,17 +30,17 @@ Learn to run efficiently on the cloud
 .. Add callout items below this line
 
 .. displayitem::
+   :header: Level 2: Connect components into a full stack AI app
+   :description: Learn to connect components into a full stack AI app.
+   :button_link: connect_lightning_components.html
+   :col_css: col-md-6
+   :height: 170
+   :tag: 15 minutes
+
+.. displayitem::
    :header: Level 3: Save money on cloud costs
    :description: Explore key Lightning features that save you cloud costs and improve performance.
    :button_link: save_money_on_cloud_costs.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 4: Debug a Lightning App
-   :description: Learn to debug a lightning app.
-   :button_link: debug_a_lightning_workflow.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
@@ -63,7 +62,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level : Share files between components
+   :header: Level 7: Share files between components
    :description: Learn how Drives share files between components
    :button_link: level_14.html
    :col_css: col-md-6
@@ -71,15 +70,15 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level : Start dynamic components
+   :header: Level 8: Start dynamic components
    :description: Learn to start works dynamically
-   :button_link: level_15.html
+   :button_link: start_dynamic_components.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 12: Check component status
+   :header: Level 9: Check component status
    :description: Learn to use work status to coordinate complex apps.
    :button_link: level_16.html
    :col_css: col-md-6
@@ -87,7 +86,7 @@ Learn to run efficiently on the cloud
    :tag: advanced
 
 .. displayitem::
-   :header: Level : Adapt an app template
+   :header: Level 10: Adapt an app template
    :description: Learn to start from a template and expand it by adding your own components.
    :button_link: run_on_aws_efficiently.html
    :col_css: col-md-6
@@ -95,7 +94,7 @@ Learn to run efficiently on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: Level: Render a web UI alongside other components.
+   :header: Level 11: Render a web UI alongside other components.
    :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
    :button_link: embed_web_ui_into_lightningwork.html
    :col_css: col-md-6

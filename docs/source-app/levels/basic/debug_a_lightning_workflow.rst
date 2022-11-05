@@ -1,5 +1,5 @@
 ##############################
-Level 4: Debug A Lightning app
+Level 2: Debug A Lightning app
 ##############################
 **Audience:** Users who want to debug a distributed app locally.
 
@@ -19,19 +19,3 @@ To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support 
    :app_id: abc123
    :tab_rows: 3
    :height: 350px
-
-----
-
-**********************
-Enable local debugging
-**********************
-A distributed Lightning app can run locally on a single machine. To debug apps running locally
-you can use the multi-processing runtime:
-
-.. lit_tabs::
-   :titles: Toy app; Enable MultiProcessRuntime
-   :code_files: ./scripts/toy_app.py; ./scripts/debug_app.py
-   :highlights: ; 3, 25
-   :app_id: abc123
-   :tab_rows: 3
-   :height: 520px
