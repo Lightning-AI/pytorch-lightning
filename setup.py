@@ -39,7 +39,9 @@ There are considered three main scenarios for installing this project:
     b) with a parameterization build desired packages in to standard `dist/` folder
     c) validate packages and publish to PyPI
 """
+import contextlib
 import os
+import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
@@ -70,13 +72,28 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _set_manifest_path(manifest_dir: str) -> None:
-    # FIXME: support mirror package. context manager with aggregation
-    manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
+@contextlib.contextmanager
+def _set_manifest_path(manifest_dir: str, aggregate: bool = False):
+    if aggregate:
+        # aggregate all MANIFEST.in contents into a single temporary file
+        fp = tempfile.NamedTemporaryFile(mode="w", dir=manifest_dir, delete=True)
+        manifest_path = fp.name
+        packages = [v for v in _PACKAGE_MAPPING.values() if v != "lightning"]
+        for pkg in packages:
+            with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
+                lines = fh.readlines()
+                fp.writelines(lines)
+        fp.flush()
+    else:
+        manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
+        assert os.path.exists(manifest_path)
     # avoid error: setup script specifies an absolute path
     manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
-    assert os.path.exists(manifest_path)
     setuptools.command.egg_info.manifest_maker.template = manifest_path
+    yield
+    setuptools.command.egg_info.manifest_maker.template = "MANIFEST.in"
+    if aggregate:
+        fp.close()
 
 
 if __name__ == "__main__":
@@ -103,7 +120,8 @@ if __name__ == "__main__":
             _set_manifest_path(pkg_path)
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
-            setuptools.setup(**setup_args)
+            with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
+                setuptools.setup(**setup_args)
             break
     else:
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
