@@ -19,4 +19,4 @@ you can use the multi-processing runtime:
    :highlights: ; 3, 24
    :app_id: abc123
    :tab_rows: 3
-   :height: 480px
+   :height: 520px
