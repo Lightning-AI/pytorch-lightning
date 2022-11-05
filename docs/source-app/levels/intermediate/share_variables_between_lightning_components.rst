@@ -28,14 +28,25 @@ In this example, we learned that we can send variables to components like in reg
 On a local machine, it will behave like Python. When the workflow is distributed on the cloud,
 it makes network calls under the hood, but still functions like Python to you.
 
+.. collapse:: ML Example: TODO
+
+    TODO
+
 ----
 
 **************************************
 Send a variable between two components
 **************************************
-Works cannot communicate directly between each other. Instead, a shared parent Flow must manage the communication.
+A majority of workflows (especially in ML), require components to respond to a change in an unrelated component.
+For example, every time a model saves a checkpoint, you want to redeploy a model.
 
-# A needs to know something about B, maybe the time?
+.. lit_tabs::
+   :descriptions: A
+   :code_files: ./scripts/two_work_comms.py
+   :highlights: 1
+   :app_id: abc123
+   :tab_rows: 3
+   :height: 430px
 
 ----
 
