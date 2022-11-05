@@ -44,6 +44,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 
 import setuptools
+import setuptools.command.egg_info
 
 _PACKAGE_NAME = os.environ.get("PACKAGE_NAME")
 _PACKAGE_MAPPING = {
