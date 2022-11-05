@@ -19,6 +19,7 @@ import pytest
 
 import pytorch_lightning
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -249,6 +250,40 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
             },
         },
     )
+
+
+@mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+def test_wandb_log_model_with_score(wandb, monkeypatch, tmpdir):
+    """Test to prevent regression on #15543, ensuring the score is logged as a Python number, not a scalar
+    tensor."""
+    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
+
+    wandb.run = None
+    model = BoringModel()
+
+    wandb.init().log_artifact.reset_mock()
+    wandb.init.reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(log_model=True)
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    checkpoint_callback = ModelCheckpoint(monitor="step")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        callbacks=[checkpoint_callback],
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    calls = wandb.Artifact.call_args_list
+    assert len(calls) == 1
+    score = calls[0][1]["metadata"]["score"]
+    # model checkpoint monitors scalar tensors, but wandb can't serializable them - expect Python scalars in metadata
+    assert isinstance(score, int) and score == 3
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
