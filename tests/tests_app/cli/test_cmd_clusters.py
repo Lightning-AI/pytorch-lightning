@@ -88,10 +88,8 @@ class Test_create:
 
             To delete the cluster run:
                 lightning delete cluster test-cluster
-            """
-                )
-            ),
-            call("Cluster will be created in the background!"),
+            """)),
+            call("\nCluster will be created in the background!"),
         ]
         for i, (expected, actual) in enumerate(zip(expected_output, echo.call_args_list)):
             assert expected == actual, f"Call {i} does not match"
@@ -165,10 +163,8 @@ class Test_delete:
 
                 You may want to delete it manually using the AWS CLI:
                     aws s3 rb --force s3://test-bucket
-                """
-                )
-            ),
-            call("Cluster will be deleted in the background!"),
+                """)),
+            call("\nCluster will be deleted in the background!"),
         ]
         for i, (expected, actual) in enumerate(zip(expected_output, echo.call_args_list)):
             assert expected == actual, f"Call {i} does not match"

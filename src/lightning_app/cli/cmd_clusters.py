@@ -172,7 +172,7 @@ class AWSClusterManager:
                 return
             except KeyboardInterrupt:
                 pass
-        click.echo("Cluster will be created in the background!")
+        click.echo("\nCluster will be created in the background!")
 
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -218,7 +218,7 @@ class AWSClusterManager:
                 return
             except KeyboardInterrupt:
                 pass
-        click.echo("Cluster will be deleted in the background!")
+        click.echo("\nCluster will be deleted in the background!")
 
 
 def _wait_for_cluster_state(
