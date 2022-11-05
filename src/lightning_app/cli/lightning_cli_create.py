@@ -47,7 +47,7 @@ def create() -> None:
 )
 @click.option(
     "--async",
-    "no_wait",
+    "do_async",
     type=bool,
     required=False,
     default=False,
@@ -62,7 +62,7 @@ def create_cluster(
     provider: str,
     edit_before_creation: bool,
     enable_performance: bool,
-    no_wait: bool,
+    do_async: bool,
     **kwargs: Any,
 ) -> None:
     """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
@@ -77,5 +77,5 @@ def create_cluster(
         external_id=external_id,
         edit_before_creation=edit_before_creation,
         cost_savings=not enable_performance,
-        wait=not no_wait,
+        do_async=do_async,
     )

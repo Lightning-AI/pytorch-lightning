@@ -24,9 +24,9 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from lightning.app.cli.core import Formatable
-from lightning.app.utilities.network import LightningClient
-from lightning.app.utilities.openapi import create_openapi_object, string2dict
+from lightning_app.cli.core import Formatable
+from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.openapi import create_openapi_object, string2dict
 
 MAX_CLUSTER_WAIT_TIME = 5400
 
@@ -105,7 +105,7 @@ class AWSClusterManager:
         region: str = "us-east-1",
         external_id: str = None,
         edit_before_creation: bool = False,
-        wait: bool = False,
+        do_async: bool = False,
     ) -> None:
         """request Lightning AI BYOC compute cluster creation.
 
@@ -149,35 +149,26 @@ class AWSClusterManager:
                 click.echo("cluster unchanged")
 
         resp = self.api_client.cluster_service_create_cluster(body=new_body)
-        click.echo(
-            dedent(
-                f"""\
-            BYOC cluster {cluster_name} is now being created... This can take up to an hour.
+        click.echo(dedent(f"""\
+            BYOC cluster creation triggered successfully!
+            This can take up to an hour to complete.
 
             To view the status of your clusters use:
                 lightning list clusters
 
             To view cluster logs use:
                 lightning show cluster logs {cluster_name}
-            """
-            )
-        )
-        if wait:
-            click.echo("Waiting for cluster to enter state running...")
-            click.echo(
-                "Canceling this operation will NOT stop the cluster from creating"
-                f"(use `lightning delete cluster {cluster_name}`)"
-            )
-            _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
 
-            click.echo(
-                dedent(
-                    f"""\
-                Cluster {cluster_name} is now running and ready to use.",
-                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_name},
-            """
-                )
-            )
+            To delete the cluster run:
+                lightning delete cluster {cluster_name}
+            """))
+        if not do_async:
+            try:
+                _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
+                return
+            except KeyboardInterrupt:
+                pass
+        click.echo("Cluster will be created in the background!")
 
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -188,7 +179,7 @@ class AWSClusterManager:
         console = Console()
         console.print(clusters.as_table())
 
-    def delete(self, cluster_id: str, force: bool = False, wait: bool = False) -> None:
+    def delete(self, cluster_id: str, force: bool = False, do_async: bool = False) -> None:
         if force:
             click.echo(
                 """
@@ -203,26 +194,23 @@ class AWSClusterManager:
         bucket_name = resp.spec.driver.kubernetes.aws.bucket_name
 
         self.api_client.cluster_service_delete_cluster(id=cluster_id, force=force)
-        click.echo("Cluster deletion triggered successfully")
+        click.echo(dedent(f"""\
+            Cluster deletion triggered successfully
 
-        if wait:
-            click.echo("Waiting for cluster to delete...")
-            click.echo("Canceling the operation will NOT stop the cluster from deleting")
-            _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
-
-            click.echo(
-                dedent(
-                    f"""\
-            Cluster {cluster_id} has been successfully deleted, and almost all AWS resources have been removed
-
-            For safety purposes we kept the S3 bucket associated with the cluster: {bucket_name}
+            For safety purposes we will not delete anything in the S3 bucket associated with the cluster:
+                {bucket_name}
 
             You may want to delete it manually using the AWS CLI:
+                aws s3 rb --force s3://{bucket_name}
+            """))
 
-            aws s3 rb --force s3://{bucket_name}
-            """
-                )
-            )
+        if not do_async:
+            try:
+                _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
+                return
+            except KeyboardInterrupt:
+                pass
+        click.echo("Cluster will be deleted in the background!")
 
 
 def _wait_for_cluster_state(
@@ -235,7 +223,7 @@ def _wait_for_cluster_state(
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
     Messages will be displayed to the user as the cluster changes state.
-    We poll the API server for any changes check_
+    We poll the API server for any changes
 
     Args:
         api_client: LightningClient used for polling
@@ -247,44 +235,32 @@ def _wait_for_cluster_state(
     start = time.time()
     elapsed = 0
 
+    click.echo(f"Waiting for cluster to be {ClusterState.from_api(target_state)}...")
     while elapsed < timeout:
         try:
             resp: V1GetClusterResponse = api_client.cluster_service_get_cluster(id=cluster_id)
-            click.echo(
-                _echo_cluster_status_long(
-                    cluster_id=cluster_id,
-                    current_state=resp.status.phase,
-                    current_reason=resp.status.reason,
-                    desired_state=target_state,
-                    elapsed=elapsed,
-                )
-            )
+            click.echo(_cluster_status_long(cluster=resp, desired_state=target_state, elapsed=elapsed))
             if resp.status.phase == target_state:
                 break
             time.sleep(poll_duration)
             elapsed = int(time.time() - start)
-
         except lightning_cloud.openapi.rest.ApiException as e:
             if e.status == 404 and target_state == V1ClusterState.DELETED:
                 return
             raise
     else:
-        raise click.ClickException(
-            dedent(
-                f"""\
-        The cluster has not been created within {timeout} seconds.
+        state_str = ClusterState.from_api(target_state)
+        raise click.ClickException(dedent(f"""\
+            The cluster has not entered the {state_str} state within {_format_elapsed_seconds(timeout)}.
 
-        The cluster may still be created afterwards, please check its status using:
+            The cluster may eventually be {state_str} afterwards, please check its status using:
+                lighting list clusters
 
-            lighting list clusters
+            To view cluster logs use:
+                lightning show cluster logs {cluster_id}
 
-        To view cluster logs use:
-            lightning show cluster logs {cluster_id}
-
-        Feel free to reaching out to support@lightning.ai for any additional help
-        """
-            )
-        )
+            Contact support@lightning.ai for additional help
+            """))
 
 
 def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
@@ -298,32 +274,68 @@ def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
     return value
 
 
-def _echo_cluster_status_long(
-    cluster_id: str, current_state: V1ClusterState, current_reason: str, desired_state: V1ClusterState, elapsed: float
-) -> str:
+def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1ClusterState, elapsed: float) -> str:
     """Echos a long-form status message to the user about the cluster state.
 
     Args:
-        cluster_id: The name of the cluster
-        current_state: The cluster's current state
-        reason: The reason for the cluster's state
+        cluster: The cluster object
         elapsed: Seconds since we've started polling
     """
 
+    cluster_name = cluster.name
+    current_state = cluster.status.phase
+    current_reason = cluster.status.reason
+    bucket_name = cluster.spec.driver.kubernetes.aws.bucket_name
+
+    duration = _format_elapsed_seconds(elapsed)
+
     if current_state == V1ClusterState.FAILED:
-        return f"""\
-The requested cluster operation for cluster {cluster_id} has errors:
-{current_reason}
+        return dedent(f"""\
+            The requested cluster operation for cluster {cluster_name} has errors:
+            {current_reason}
 
----
-We are automatically retrying, and automated alert has been created
+            ---
+            We are automatically retrying, and an automated alert has been created
 
-WARNING: Any non-deleted cluster may consume cloud resources and incur cost to you."""
+            WARNING: Any non-deleted cluster may be using resources.
+            To avoid incuring cost on your cloud provider, delete the cluster using the following command:
+                lightning delete cluster {cluster_name}
+
+            Contact support@lightning.ai for additional help
+            """)
+
+    if desired_state == current_state == V1ClusterState.RUNNING:
+        return dedent(f"""\
+                Cluster {cluster_name} is now running and ready to use.
+                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_name}
+                """)
 
     if desired_state == V1ClusterState.RUNNING:
-        return f"Cluster {cluster_id} is being created [elapsed={elapsed}s]"
+        return f"Cluster {cluster_name} is being created [elapsed={duration}]"
+
+    if desired_state == current_state == V1ClusterState.DELETED:
+        return dedent(f"""\
+            Cluster {cluster_name} has been successfully deleted, and almost all AWS resources have been removed
+
+            For safety purposes we kept the S3 bucket associated with the cluster: {bucket_name}
+
+            You may want to delete it manually using the AWS CLI:
+                aws s3 rb --force s3://{bucket_name}
+            """)
 
     if desired_state == V1ClusterState.DELETED:
-        return f"Cluster {cluster_id} is being deleted [elapsed={elapsed}s]"
+        return f"Cluster {cluster_name} is being deleted [elapsed={duration}]"
 
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
+
+
+def _format_elapsed_seconds(seconds: int) -> str:
+    """Turns seconds into a duration string
+
+    >>> _format_elapsed_seconds(5)
+    05s
+    >>> _format_elapsed_seconds(60)
+    01m00s
+    """
+    minutes, seconds = divmod(seconds, 60)
+    return (f"{minutes:02}m" if minutes else "") + f"{seconds:02}s"
