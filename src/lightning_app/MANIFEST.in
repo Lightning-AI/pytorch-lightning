@@ -1,4 +1,5 @@
 include src/lightning_app/CHANGELOG.md
+include src/lightning_app/README.md
 recursive-include requirements/app *.txt
 include .actions/setup_tools.py
 recursive-include src/lightning_app/cli/*-template *

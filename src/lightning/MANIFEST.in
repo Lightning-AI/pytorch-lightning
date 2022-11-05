@@ -1,2 +1,0 @@
-include src/lightning_lite/CHANGELOG.md
-recursive-include requirements/lite *.txt

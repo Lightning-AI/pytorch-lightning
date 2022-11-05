@@ -2,6 +2,7 @@
 include src/lightning_lite/CHANGELOG.md
 recursive-include requirements/lite *.txt
 include src/pytorch_lightning/CHANGELOG.md
+include src/pytorch_lightning/README.md
 recursive-include requirements/pytorch *.txt
 include .actions/setup_tools.py
 include *.cff  # citation info

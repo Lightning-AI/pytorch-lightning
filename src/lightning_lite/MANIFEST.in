@@ -1,3 +1,4 @@
 include src/lightning_lite/CHANGELOG.md
+include src/lightning_lite/README.md
 recursive-include requirements/lite *.txt
 include .actions/setup_tools.py
