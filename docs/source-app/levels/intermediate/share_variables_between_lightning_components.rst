@@ -106,4 +106,60 @@ Example Continuous deployment: Every time a model saves a checkpoint, we redeplo
 ********************************************
 Send a large variable between two components
 ********************************************
-Payload.
+For large variables such as arrays, tensors, embeddings and so on, use Payload to enable
+transfering them across components. 
+
+.. lit_tabs::
+   :descriptions: Let's define a component to simulate generating embeddings (from a DB, feature store, etc...); This component simulates a server that will use the embeddings.; Run the component to generate the embeddings; Simulate embeddings as an array. Here you would query a DB, load from a feature store or disk or even use a neural network to extract the embedding.; Allow the embeddings to be transfered efficiently by wrapping them in the Payload object.; Pass the variable to the EmbeddingServer (just the pointer).; The data gets transfered once you use the .value attribute in the other component.
+   :code_files: ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py;
+   :highlights: 5-13; 15-19; 28; 12; 13; 29; 18
+   :app_id: abc123
+   :tab_rows: 3
+   :height: 600px
+
+|
+
+.. collapse:: CLI output
+
+    .. code:: bash
+
+            $ lightning run app app.py --open-ui=false
+
+            Your Lightning App is starting. This won't take long.
+            INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+            PROCESSOR: Generating embeddings...
+            SERVER: Using embeddings from processor <lightning.app.storage.payload.Payload object at 0x123383d60>
+            serving embeddings sent from EmbeddingProcessor:  [[1, 2, 3], [2, 3, 4]]
+
+|
+
+The payload object keeps the data on the machine and passes a pointer 
+to the data around the app until the data is needed by a component.
+
+----
+
+**********************************************
+Next steps: Share variables between components
+**********************************************
+Now that you know how to run components in parallel, we'll learn to share variables
+across components to simplify complex workflows.
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Level 7: Share files between components
+   :description: Learn to share files between components.
+   :col_css: col-md-12
+   :button_link: share_files_between_components.html
+   :height: 150
+   :tag: 10 minutes
+
+.. raw:: html
+
+        </div>
+    </div>

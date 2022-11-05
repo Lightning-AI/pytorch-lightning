@@ -39,31 +39,3 @@ allows the third component to run without waiting for the others to finish.
    :app_id: abc123
    :tab_rows: 3
    :height: 540px
-
-----
-
-**********************************************
-Next steps: Share variables between components
-**********************************************
-Now that you know how to run components in parallel, we'll learn to share variables
-across components to simplify complex workflows.
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Level 6: Share variables between components
-   :description: Learn to connect components
-   :col_css: col-md-12
-   :button_link: share_variables_between_lightning_components.html
-   :height: 150
-   :tag: 10 minutes
-
-.. raw:: html
-
-        </div>
-    </div>
