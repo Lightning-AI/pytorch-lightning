@@ -82,7 +82,7 @@ def copy_replace_imports(
                 except UnicodeDecodeError:
                     # a binary file, skip
                     print(f"Skipped replacing imports for {fp}")
-                    break
+                    continue
             lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
             fp_new = fp.replace(source_dir, target_dir)
             os.makedirs(os.path.dirname(fp_new), exist_ok=True)
