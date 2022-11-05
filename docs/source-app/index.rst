@@ -115,8 +115,8 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    :maxdepth: 1
    :caption: Home
 
-   Install <install/installation>
    self
+   Install <install/installation>
 
 .. toctree::
    :maxdepth: 1
