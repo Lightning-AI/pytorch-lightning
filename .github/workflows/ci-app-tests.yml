@@ -46,7 +46,7 @@ jobs:
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", requires: "latest"}
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 30
+    timeout-minutes: 999
 
     steps:
       - uses: actions/checkout@v3
@@ -108,6 +108,10 @@ jobs:
 
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
+
+      - name: Setup tmate session
+        if: ${{ matrix.pkg-name == 'app' && matrix.os == 'ubuntu-20.04' && matrix.requires == 'oldest' }}
+        uses: mxschmitt/action-tmate@v3
 
       - name: Tests
         working-directory: ./tests
