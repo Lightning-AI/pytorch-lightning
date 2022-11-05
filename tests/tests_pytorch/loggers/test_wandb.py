@@ -197,7 +197,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     model = BoringModel()
 
     # test log_model=True
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -207,7 +207,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model='all'
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(log_model="all")
+    logger = WandbLogger(save_dir=tmpdir, log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -217,7 +217,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model=False
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
-    logger = WandbLogger(log_model=False)
+    logger = WandbLogger(save_dir=tmpdir, log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -228,7 +228,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = WandbLogger(log_model=True)
+    logger = WandbLogger(save_dir=tmpdir, log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
