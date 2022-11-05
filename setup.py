@@ -44,7 +44,7 @@ import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Generator
+from typing import Generator, Optional
 
 import setuptools
 import setuptools.command.egg_info
@@ -73,12 +73,20 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
+def _named_temporary_file(directory: Optional[str] = None) -> str:
+    # `tempfile.NamedTemporaryFile` has issues in Windows
+    # https://github.com/deepchem/deepchem/issues/707#issuecomment-556002823
+    if directory is None:
+        directory = tempfile.gettempdir()
+    return os.path.join(directory, os.urandom(24).hex())
+
+
 @contextlib.contextmanager
 def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
     if aggregate:
         # aggregate all MANIFEST.in contents into a single temporary file
-        fp = tempfile.NamedTemporaryFile(mode="w", dir=manifest_dir, delete=True)
-        manifest_path = fp.name
+        manifest_path = _named_temporary_file(manifest_dir)
+        fp = open(manifest_path, mode="w")
         packages = [v for v in _PACKAGE_MAPPING.values() if v != "lightning"]
         for pkg in packages:
             with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
