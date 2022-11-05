@@ -46,7 +46,7 @@ For example, every time a model saves a checkpoint, you want to redeploy a model
    :highlights: 1
    :app_id: abc123
    :tab_rows: 3
-   :height: 430px
+   :height: 770px
 
 ----
 
