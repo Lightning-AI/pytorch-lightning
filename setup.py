@@ -124,7 +124,6 @@ if __name__ == "__main__":
         pkg_setup = os.path.join(pkg_path, "__setup__.py")
         if os.path.exists(pkg_setup):
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
-            _set_manifest_path(pkg_path)
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
             if _PACKAGE_NAME is None:
