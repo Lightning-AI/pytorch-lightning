@@ -130,16 +130,13 @@ RUN \
     pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
 
-# FIXME: Bagua does not have compatible package with PT 1.13 yet
-#RUN \
-#    # install Bagua
-#    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-#    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
-#    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
-#    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then \
-#      python -c "import bagua_core; bagua_core.install_deps()"; \
-#    fi && \
-#    python -c "import bagua; print(bagua.__version__)"
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
+    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
+    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
+    python -c "import bagua; print(bagua.__version__)"
 
 RUN \
     # install ColossalAI
@@ -173,5 +170,5 @@ RUN \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
     python requirements/pytorch/check-avail-extras.py && \
-    python requirements/pytorch/check-avail-strategies.py deepspeed fairscale horovod && \
+    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/
