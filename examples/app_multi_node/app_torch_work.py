@@ -1,7 +1,7 @@
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-import lightning.app as L
+import lightning as L
 from lightning.app.components import MultiNode
 
 

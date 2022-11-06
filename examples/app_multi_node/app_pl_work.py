@@ -2,11 +2,10 @@ import os
 
 import torch
 
-import lightning.app as L
+import lightning as L
 from lightning.app.components import MultiNode
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class LoggingBoringModel(BoringModel):
@@ -30,7 +29,7 @@ class PyTorchLightningMultiNode(L.LightningWork):
 
         devices = torch.cuda.device_count() if torch.cuda.is_available() else 2
         model = LoggingBoringModel()
-        trainer = Trainer(
+        trainer = L.Trainer(
             max_epochs=10,
             devices=devices,
             accelerator="auto",
