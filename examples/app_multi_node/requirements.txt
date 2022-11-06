@@ -1,2 +1,1 @@
 torch
-pytorch_lightning
