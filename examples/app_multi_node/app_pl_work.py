@@ -23,7 +23,7 @@ class PyTorchLightningMultiNode(L.LightningWork):
         devices = torch.cuda.device_count() if torch.cuda.is_available() else 2
         model = BoringModel()
         trainer = Trainer(
-            max_epochs=1,
+            max_epochs=10,
             devices=devices,
             accelerator="auto",
             num_nodes=nodes,
