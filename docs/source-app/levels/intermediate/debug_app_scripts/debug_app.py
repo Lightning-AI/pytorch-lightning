@@ -1,6 +1,6 @@
 # app.py
 import lightning as L
-
+from lightning.app.runners import MultiProcessRuntime
 
 
 class TrainComponent(L.LightningWork):
@@ -18,7 +18,8 @@ class WorkflowOrchestrator(L.LightningFlow):
         self.analyze = AnalyzeComponent()
 
     def run(self):
-        self.train.run("CPU machine 1")
+        self.train.run("GPU machine 1")
         self.analyze.run("CPU machine 2")
 
 app = L.LightningApp(WorkflowOrchestrator())
+MultiProcessRuntime(app).dispatch()
