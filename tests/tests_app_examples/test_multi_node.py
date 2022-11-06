@@ -47,6 +47,8 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
         "app_torch_work.py",
         "app_generic_work.py",
         "app_lite_work.py",
+        "app_torch_work_executor.py",
+        "app_torch_work_executor.py",
         # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
     ],
 )
