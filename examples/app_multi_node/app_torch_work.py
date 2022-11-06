@@ -5,9 +5,9 @@ import lightning.app as L
 from lightning.app.components import MultiNode
 
 
-def distributed_train(rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
+def distributed_train(local_rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
     # 1. Setting distributed environment
-    global_rank = rank + node_rank * nprocs
+    global_rank = local_rank + node_rank * nprocs
     world_size = nodes * nprocs
 
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
@@ -20,7 +20,7 @@ def distributed_train(rank: int, main_address: str, main_port: int, nodes: int, 
 
     # 2. Prepare distributed model
     model = torch.nn.Linear(32, 2)
-    device = torch.device(f"cuda:{rank}") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
     device_ids = device if torch.cuda.is_available() else None
     model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
