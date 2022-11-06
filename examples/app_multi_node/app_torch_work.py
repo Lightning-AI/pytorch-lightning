@@ -5,10 +5,10 @@ import lightning as L
 from lightning.app.components import MultiNode
 
 
-def distributed_train(local_rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
+def distributed_train(local_rank: int, main_address: str, main_port: int, num_nodes: int, node_rank: int, nprocs: int):
     # 1. Setting distributed environment
     global_rank = local_rank + node_rank * nprocs
-    world_size = nodes * nprocs
+    world_size = num_nodes * nprocs
 
     if torch.distributed.is_available() and not torch.distributed.is_initialized():
         torch.distributed.init_process_group(
@@ -51,12 +51,12 @@ class PyTorchDistributed(L.LightningWork):
         self,
         main_address: str,
         main_port: int,
-        nodes: int,
+        num_nodes: int,
         node_rank: int,
     ):
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            distributed_train, args=(main_address, main_port, nodes, node_rank, nprocs), nprocs=nprocs
+            distributed_train, args=(main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
         )
 
 
@@ -64,7 +64,7 @@ compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
     MultiNode(
         PyTorchDistributed,
-        nodes=2,
+        num_nodes=2,
         cloud_compute=compute,
     )
 )

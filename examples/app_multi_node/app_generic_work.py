@@ -7,10 +7,10 @@ class AnyDistributedComponent(L.LightningWork):
         self,
         main_address: str,
         main_port: int,
-        nodes: int,
+        num_nodes: int,
         node_rank: int,
     ):
-        print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {node_rank} {nodes}")
+        print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {num_nodes} {node_rank}.")
 
 
 compute = L.CloudCompute("gpu")

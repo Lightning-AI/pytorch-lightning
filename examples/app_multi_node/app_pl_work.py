@@ -10,7 +10,7 @@ class PyTorchLightningDistributed(L.LightningWork):
         self,
         main_address: str,
         main_port: int,
-        nodes: int,
+        num_nodes: int,
         node_rank: int,
     ):
         os.environ["MASTER_ADDR"] = main_address
@@ -22,7 +22,7 @@ class PyTorchLightningDistributed(L.LightningWork):
             max_epochs=10,
             devices="auto",
             accelerator="auto",
-            num_nodes=nodes,
+            num_nodes=num_nodes,
             strategy="ddp_spawn",  # Only spawn based strategies are supported for now.
         )
         trainer.fit(model)
@@ -32,7 +32,7 @@ compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
     MultiNode(
         PyTorchLightningDistributed,
-        nodes=2,
+        num_nodes=2,
         cloud_compute=compute,
     )
 )
