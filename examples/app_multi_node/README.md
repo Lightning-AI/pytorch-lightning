@@ -10,15 +10,6 @@ You can run the multi-node raw PyTorch by running the following commands.
 lightning run app app_torch_work.py
 ```
 
-Here are the logs you obtain:
-
-```
-Global Rank 0: [tensor([0.]), tensor([1.]), tensor([2.]), tensor([3.])]
-Global Rank 1: [tensor([0.]), tensor([1.]), tensor([2.]), tensor([3.])]
-Global Rank 2: [tensor([0.]), tensor([1.]), tensor([2.]), tensor([3.])]
-Global Rank 3: [tensor([0.]), tensor([1.]), tensor([2.]), tensor([3.])]
-```
-
 ## Multi Node with PyTorch Lightning
 
 Lightning supports running PyTorch Lightning from a script or within a Lightning Work.
