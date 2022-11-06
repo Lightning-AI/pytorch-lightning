@@ -69,12 +69,11 @@ class MultiNode(LightningFlow):
         self._work_kwargs = work_kwargs
         self._protocol = DistributedProtocol
 
-        if isinstance(executor, WorkRunExecutor):
-            self._work_kwargs["run_executor_cls"] = executor
-        elif executor == "lite":
+        if executor == "lite":
             self._work_kwargs["run_executor_cls"] = LiteRunExecutor
             self._protocol = LiteProtocol
-        elif executor == "pytorch":
+
+        elif executor == "pytorch_spawn":
             self._work_kwargs["run_executor_cls"] = PyTorchSpawnRunExecutor
             self._protocol = DistributedPyTorchSpawnProtocol
 
@@ -93,8 +92,7 @@ class MultiNode(LightningFlow):
                         parallel=True,
                     )
 
-                    if self._protocol:
-                        assert isinstance(work, self._protocol)
+                    assert isinstance(work, self._protocol)
 
                     # Starting node `node_rank`` ...
                     work.start()
