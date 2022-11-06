@@ -5,14 +5,13 @@
    :hidden:
 
    build_a_lightning_component
-   connect_lightning_components
+   real_lightning_component_implementations
+   save_money_on_cloud_costs
 
 ############
 Basic skills
 ############
-Learn to package your code into Lightning components and assemble them into full stack AI Lightning apps.
-
-Every new user should start here.
+Learn to package your code into Lightning components. Every new user should start here.
 
 .. join_slack::
    :align: left
@@ -35,24 +34,22 @@ Every new user should start here.
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 2: Connect components into a full stack AI app
-   :description: Learn to connect components into a full stack AI app.
-   :button_link: connect_lightning_components.html
+   :header: Level 2: Explore real component implementations
+   :description: Go deep into real component implementations.
+   :button_link: real_lightning_component_implementations.html
    :col_css: col-md-6
    :height: 170
-   :tag: 15 minutes
+   :tag: 10 minutes
+
+.. displayitem::
+   :header: Level 3: Save money on cloud costs
+   :description: Explore key Lightning features that save you cloud costs and improve performance.
+   :button_link: save_money_on_cloud_costs.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: 10 minutes
 
 .. raw:: html
 
         </div>
     </div>
-
-
-----
-
-**************
-Basic Examples
-**************
-Once you've finished the basic levels, work through the following examples:
-
-.. include:: basic_examples.rst
