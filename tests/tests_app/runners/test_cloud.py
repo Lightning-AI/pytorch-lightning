@@ -173,7 +173,7 @@ class TestAppCreationClient:
                     (moving apps between clusters is not supported).
 
                 You can either:
-                    a. rename app to run on {new_cluster} with the --name option
+                    a. rename the app to run on {new_cluster} with the --name option
                         lightning run app script.py --name (new name) --cloud --cluster-id {new_cluster}
                     b. delete the app running on {old_cluster} in the UI before running this command.
                 """)

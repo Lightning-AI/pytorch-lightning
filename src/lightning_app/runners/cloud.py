@@ -338,7 +338,7 @@ class CloudRuntime(Runtime):
                             (moving apps between clusters is not supported).
 
                         You can either:
-                            a. rename app to run on {app_config.cluster_id} with the --name option
+                            a. rename the app to run on {app_config.cluster_id} with the --name option
                                 lightning run app script.py --name (new name) --cloud --cluster-id {app_config.cluster_id}
                             b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
                         """))
