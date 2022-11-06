@@ -7,7 +7,7 @@
    add_web_link
    secrets <../glossary/secrets>
    arrange_tabs/index
-   connect components <../levels/basic/connect_lightning_components>
+   connect components <../levels/intermediate/connect_lightning_components>
    build components <../levels/basic/build_a_lightning_component>
    run_work_once
    cloud compute <../core_api/lightning_work/compute>
