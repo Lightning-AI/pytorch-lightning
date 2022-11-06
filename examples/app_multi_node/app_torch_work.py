@@ -1,7 +1,7 @@
 import torch
 
 import lightning.app as L
-from lightning.app.components import MultiNode
+from lightning_app.components import MultiNode
 
 
 def distributed_function(rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
