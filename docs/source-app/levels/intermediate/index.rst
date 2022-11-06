@@ -31,7 +31,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 3: Coordinate 2+ components in a workflow
+   :header: Level 4: Coordinate 2+ components in a workflow
    :description: Learn to coordinate 2_ components in a workflow which we call a Lightning app.
    :button_link: connect_lightning_components.html
    :col_css: col-md-6
@@ -39,20 +39,12 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: 15 minutes
 
 .. displayitem::
-   :header: Level 4: Debug a Lightning App
+   :header: Level 5: Debug a Lightning App
    :description: Learn to debug a lightning app.
    :button_link: debug_a_lightning_app.html
    :col_css: col-md-6
    :height: 170
-   :tag: 10 minutes
-
-.. displayitem::
-   :header: Level 5: Save money on cloud costs
-   :description: Explore key Lightning features that save you cloud costs and improve performance.
-   :button_link: save_money_on_cloud_costs.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
+   :tag: 2 minutes
 
 .. displayitem::
    :header: Level 6: Run a Lightning component in parallel
@@ -60,7 +52,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 10 minutes
 
 .. displayitem::
    :header: Level 7: Share variables between components
@@ -68,7 +60,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :button_link: share_variables_between_lightning_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 15 minutes
 
 .. displayitem::
    :header: Level 8: Share files between components
@@ -76,20 +68,20 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :button_link: share_files_between_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: 20 minutes
 
 .. displayitem::
-   :header: Level 9: Adapt an app template
-   :description: Learn to start from a template and expand it by adding your own components.
-   :button_link: run_on_aws_efficiently.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 10: Render a web UI with other components
+   :header: Level 9: Render a web UI with other components
    :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
    :button_link: embed_web_ui_into_lightningwork.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: 15 minutes
+
+.. displayitem::
+   :header: Level 10: Practice adapting app templates
+   :description: Practice starting apps from templates and evolving them by replacing or adding components.
+   :button_link: start_from_lightning_app_templates.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

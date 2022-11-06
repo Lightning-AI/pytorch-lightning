@@ -1,5 +1,5 @@
 ####################################################
-Level 3: Connect components into a full stack AI app
+Level 4: Connect components into a full stack AI app
 ####################################################
 
 **Audience:** Users who want to build apps with multiple components.
@@ -12,7 +12,7 @@ Level 3: Connect components into a full stack AI app
 What is a full stack AI app?
 ****************************
 In the ML world, workflows coordinate multiple pieces of code working together. In Lightning,
-when we coordinate 2 or more `Lightning components <build_a_lightning_component.html>`_ working together,
+when we coordinate 2 or more `Lightning components <../basic/build_a_lightning_component.html>`_ working together,
 we instead call it a Lightning App. The difference will become more obvious when we introduce reactive
 workflows in the advanced section.
 
@@ -20,7 +20,7 @@ For the time being, we'll go over how to coordinate 2 components together in a t
 and explain how it works.
 
 .. note:: If you've used workflow tools for Python, this page describes conventional DAGs.
-        In `level 5 <../intermediate/run_lightning_work_in_parallel.html>`_, we introduce reactive workflows that generalize beyond DAGs
+        In `level 6 <./run_lightning_work_in_parallel.html>`_, we introduce reactive workflows that generalize beyond DAGs
         so you can build complex systems without much effort.
 
 ----
@@ -87,3 +87,30 @@ Although we've abstracted the infrastructure, you still have full control when y
    :tab_rows: 4
    :highlights: 24; 24; 21, 24, 27, 28; 9, 16, 17; 5
    :height: 700px
+
+----
+
+*************************
+Next: Review how to debug
+*************************
+The next levels does a 2 minute review to make sure you know how to debug a Lightning app.
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Level 5: Debug a Lightning App
+   :description: Learn to debug a lightning app.
+   :button_link: debug_a_lightning_app.html
+   :col_css: col-md-12
+   :height: 170
+   :tag: 10 minutes
+
+.. raw:: html
+
+        </div>
+    </div>

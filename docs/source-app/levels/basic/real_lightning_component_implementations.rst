@@ -36,13 +36,14 @@ Ex 1: Train PyTorch component
 *****************************
 TODO:
 
+
 ----
 
-******************************
-Next: Coordinate 2+ components
-******************************
-Now that you know how to organize arbitrary code inside a Lightning component,
-learn to coordinate 2 or more components into workflows which we call Lightning apps. 
+*************************
+Next: Save on cloud costs
+*************************
+Let's review key lightning features to help you run components more efficiently on the cloud
+so you can save on cloud costs.
 
 .. raw:: html
 
@@ -52,12 +53,12 @@ learn to coordinate 2 or more components into workflows which we call Lightning 
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Intermediate skills
-   :description: Learn to coordinate 2+ components into workflows which we call Lightning apps.
-   :button_link: ../intermediate/index.html
+   :header: Level 3: Save money on cloud costs
+   :description: Explore key Lightning features that save you cloud costs and improve performance.
+   :button_link: save_money_on_cloud_costs.html
    :col_css: col-md-12
-   :height: 170
-   :tag: 15 minutes
+   :height: 150
+   :tag: 10 minutes
 
 .. raw:: html
 

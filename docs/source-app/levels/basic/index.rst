@@ -6,6 +6,7 @@
 
    build_a_lightning_component
    real_lightning_component_implementations
+   save_money_on_cloud_costs
    <../intermediate/connect_lightning_components>
 
 ############
@@ -39,6 +40,14 @@ Learn to package your code into Lightning components. Every new user should star
    :button_link: real_lightning_component_implementations.html
    :col_css: col-md-6
    :height: 170
+   :tag: 10 minutes
+
+.. displayitem::
+   :header: Level 3: Save money on cloud costs
+   :description: Explore key Lightning features that save you cloud costs and improve performance.
+   :button_link: save_money_on_cloud_costs.html
+   :col_css: col-md-6
+   :height: 150
    :tag: 10 minutes
 
 .. raw:: html

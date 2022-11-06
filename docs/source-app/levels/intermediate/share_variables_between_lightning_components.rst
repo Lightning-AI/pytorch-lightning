@@ -1,5 +1,5 @@
 ###########################################
-Level 6: Share variables between components
+Level 7: Share variables between components
 ###########################################
 **Audience:** Users who want to share variables and files across Lightning components.
 
@@ -40,10 +40,6 @@ Lightning sends the variables across the machines for you automatically.
 In this example, we learned that we can send variables to components like in regular Python.
 On a local machine, it will behave like Python. When the workflow is distributed on the cloud,
 it makes network calls under the hood, but still functions like Python to you.
-
-.. collapse:: ML Example: TODO
-
-    TODO
 
 ----
 
@@ -138,9 +134,9 @@ to the data around the app until the data is needed by a component.
 
 ----
 
-**********************************************
-Next steps: Share variables between components
-**********************************************
+******************************************
+Next steps: Share files between components
+******************************************
 Now that you know how to run components in parallel, we'll learn to share variables
 across components to simplify complex workflows.
 
@@ -152,7 +148,7 @@ across components to simplify complex workflows.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 7: Share files between components
+   :header: Level 8: Share files between components
    :description: Learn to share files between components.
    :col_css: col-md-12
    :button_link: share_files_between_components.html

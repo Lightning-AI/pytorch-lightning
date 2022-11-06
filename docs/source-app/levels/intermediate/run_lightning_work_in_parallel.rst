@@ -1,9 +1,9 @@
 ##############################################
-Level 5: Run a Lightning component in parallel
+Level 6: Run a Lightning component in parallel
 ##############################################
 **Audience:** Users who want to run a Lightning Component in parallel (asynchroneously).
 
-**Prereqs:** You must have finished the `Basic levels <../basic/>`_.
+**Prereqs:** You must have finished `Level 5 <debug_a_lightning_app.html>`_.
 
 ----
 
@@ -25,7 +25,7 @@ across components to simplify complex workflows.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 6: Share variables between components
+   :header: Level 7: Share variables between components
    :description: Learn to connect components
    :col_css: col-md-12
    :button_link: share_variables_between_lightning_components.html
