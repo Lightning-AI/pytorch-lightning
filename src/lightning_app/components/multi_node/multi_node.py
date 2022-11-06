@@ -1,4 +1,4 @@
-from typing import Any, Optional, Type
+from typing import Any, Literal, Optional, Type
 
 from lightning_app import structures
 from lightning_app.components.multi_node.executors import LiteRunExecutor, PyTorchSpawnRunExecutor
@@ -19,7 +19,7 @@ class MultiNode(LightningFlow):
         work_cls: Type["LightningWork"],
         num_nodes: int,
         cloud_compute: "CloudCompute",
-        backend: Optional[str] = None,
+        backend: Optional[Literal["lite", "pytorch"]] = None,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -55,6 +55,7 @@ class MultiNode(LightningFlow):
             work_cls: The work to be executed
             num_nodes: Number of nodes.
             cloud_compute: The cloud compute object used in the cloud.
+            backend: Choose the work run executor. Currently supported are [None, `lite`, `pytorch`].
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
         """
@@ -65,15 +66,14 @@ class MultiNode(LightningFlow):
         self._cloud_compute = cloud_compute
         self._work_args = work_args
         self._work_kwargs = work_kwargs
+        self._protocol = DistributedProtocol
 
         if backend == "lite":
-            assert issubclass(work_cls, LiteProtocol)
             self._work_kwargs["run_executor_cls"] = LiteRunExecutor
+            self._protocol = LiteProtocol
         elif backend == "pytorch":
-            assert issubclass(work_cls, DistributedPyTorchSpawnProtocol)
             self._work_kwargs["run_executor_cls"] = PyTorchSpawnRunExecutor
-        else:
-            assert issubclass(work_cls, DistributedProtocol)
+            self._protocol = DistributedPyTorchSpawnProtocol
 
         self.has_started = False
 
@@ -83,16 +83,18 @@ class MultiNode(LightningFlow):
             # 1. Create & start the works
             if not self.ws:
                 for node_rank in range(self.num_nodes):
-                    self.ws.append(
-                        self._work_cls(
-                            *self._work_args,
-                            cloud_compute=self._cloud_compute,
-                            **self._work_kwargs,
-                            parallel=True,
-                        )
+                    work = self._work_cls(
+                        *self._work_args,
+                        cloud_compute=self._cloud_compute,
+                        **self._work_kwargs,
+                        parallel=True,
                     )
+                    assert isinstance(work, self._protocol)
+
                     # Starting node `node_rank`` ...
-                    self.ws[-1].start()
+                    work.start()
+
+                    self.ws.append(work)
 
             # 2. Wait for all machines to be started !
             if not all(w.status.stage == WorkStageStatus.STARTED for w in self.ws):

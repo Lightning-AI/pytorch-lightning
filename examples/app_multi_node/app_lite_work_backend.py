@@ -2,7 +2,7 @@ import torch
 
 import lightning as L
 from lightning.app.components import MultiNode
-from lightning.pytorch.lite import LightningLite
+from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
