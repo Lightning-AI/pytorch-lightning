@@ -1,6 +1,12 @@
-from typing import Any, Type
+from typing import Any, Optional, Type
 
 from lightning_app import structures
+from lightning_app.components.multi_node.executors import LiteRunExecutor, PyTorchSpawnRunExecutor
+from lightning_app.components.multi_node.protocols import (
+    DistributedProtocol,
+    DistributedPyTorchSpawnProtocol,
+    LiteProtocol,
+)
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.enum import WorkStageStatus
@@ -13,6 +19,7 @@ class MultiNode(LightningFlow):
         work_cls: Type["LightningWork"],
         num_nodes: int,
         cloud_compute: "CloudCompute",
+        backend: Optional[str] = None,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -58,6 +65,16 @@ class MultiNode(LightningFlow):
         self._cloud_compute = cloud_compute
         self._work_args = work_args
         self._work_kwargs = work_kwargs
+
+        if backend == "lite":
+            assert issubclass(work_cls, LiteProtocol)
+            self._work_kwargs["run_executor_cls"] = LiteRunExecutor
+        elif backend == "pytorch":
+            assert issubclass(work_cls, DistributedPyTorchSpawnProtocol)
+            self._work_kwargs["run_executor_cls"] = PyTorchSpawnRunExecutor
+        else:
+            assert issubclass(work_cls, DistributedProtocol)
+
         self.has_started = False
 
     def run(self) -> None:

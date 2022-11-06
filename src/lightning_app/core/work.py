@@ -2,7 +2,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from deepdiff import DeepHash
 
@@ -30,7 +30,7 @@ from lightning_app.utilities.packaging.cloud_compute import (
     _maybe_create_cloud_compute,
     CloudCompute,
 )
-from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
+from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunner
 
 
 class LightningWork:
@@ -56,6 +56,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
+        run_executor_cls: Type[WorkRunner] = WorkRunner,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -107,6 +108,7 @@ class LightningWork:
                 "The `run_once` argument to LightningWork is deprecated in favor of `cache_calls` and will be removed"
                 " in the next version. Use `cache_calls` instead."
             )
+        self._run_executor_cls = run_executor_cls
         self._cache_calls = run_once if run_once is not None else cache_calls
         self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
         self._parallel = parallel
