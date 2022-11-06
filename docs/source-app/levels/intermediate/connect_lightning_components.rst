@@ -1,10 +1,10 @@
 ####################################################
-Level 2: Connect components into a full stack AI app
+Level 3: Connect components into a full stack AI app
 ####################################################
 
 **Audience:** Users who want to build apps with multiple components.
 
-**Prereqs:** You know how to `build a component <build_a_lightning_component.html>`_.
+**Prereqs:** You know how to `build a component <../basic/build_a_lightning_component.html>`_.
 
 ----
 
@@ -48,7 +48,7 @@ Now run the app:
 .. lit_tabs::
    :titles: Run on Lightning cloud; Your own hardware
    :descriptions: Run to see these 2 components execute on separate machines 🤯; Run it locally without code changes 🤯🤯;
-   :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_local.bash
+   :code_files: ./level_2_scripts/code_run_cloud.bash; ./level_2_scripts/code_run_local.bash
    :tab_rows: 7
    :height: 195px
 
@@ -68,7 +68,7 @@ Without going out of your way, you're now doing the following: (Hint: Click **vi
 .. lit_tabs::
    :titles: Orchestration; Distributed cloud computing; Multi-machine communication; Multi-machine communication; Multi-cloud;
    :descriptions: Define orchestration in Python with full control-flow; The two pieces of independent Python code ran on separate machines 🤯🤯; The text "CPU machine 1" was sent from the flow machine to the machine running the TrainComponent;  The text "GPU machine 2" was sent from the flow machine to the machine running the AnalyzeComponent; The full Lightning app can move across clusters and clouds
-   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./hello_components/multi_cloud.bash
+   :code_files: ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/hello_app.py; ./level_2_scripts/multi_cloud.bash
    :tab_rows: 4
    :highlights: 19-21; 16-17; 20; 21; 2, 6, 10
    :images: <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" style="max-height: 430px; width: auto"></img>
@@ -105,14 +105,3 @@ To run the app from a CI/CD job, CLI or other orchestrators, run it without open
 .. code:: bash
 
     lightning run app app.py --open-ui=false
-
-----
-
-***************************
-Next step: Build a real app
-***************************
-Now that you know how to build components and connect them, pick an app to build in a
-step-by-step walkthrough.
-
-Once you feel comfortable with these examples, move to the `intermediate levels <../intermediate/index.html>`_, where we'll learn about running
-components in parallel so we can build reactive full-stack AI apps.
