@@ -35,7 +35,7 @@ class PyTorchMultiNode(L.LightningWork):
         )
 
 
-compute = L.CloudCompute("gpu")
+compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
     MultiNode(
         PyTorchMultiNode,
