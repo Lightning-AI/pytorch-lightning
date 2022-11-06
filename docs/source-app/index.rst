@@ -76,7 +76,7 @@ The component manages its own infrastructure, cloud costs, networking and more, 
 
 **Run an example component on the cloud**:
 
-.. include:: ./levels/basic/hero_components.rst 
+.. include:: ./levels/basic/hero_components.rst
 
 .. lit_tabs::
    :code_files: landing_app_run.bash

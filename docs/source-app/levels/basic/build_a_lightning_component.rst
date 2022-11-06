@@ -113,7 +113,7 @@ A Lightning component organizes Python code into a self-contained module so it c
 
 **Run one of these components!**
 
-.. include:: ./hero_components.rst 
+.. include:: ./hero_components.rst
 
 |
 

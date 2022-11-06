@@ -13,7 +13,7 @@ An example of when this comes up in machine learning is when data streams-in whi
 Toy example
 ************
 By default, a Component must complete before the next one runs. We can enable one
-component to start in parallel which allows the code to proceed without having 
+component to start in parallel which allows the code to proceed without having
 to wait for the first one to finish.
 
 .. lit_tabs::

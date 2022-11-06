@@ -25,7 +25,7 @@ with **L.pdb.set_trace()**:
 
 |
 
-.. note:: 
+.. note::
 
    Direct python pdb support is work in progress and open to contributions
 

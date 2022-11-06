@@ -104,7 +104,7 @@ Example Continuous deployment: Every time a model saves a checkpoint, we redeplo
 Send a large variable between two components
 ********************************************
 For large variables such as arrays, tensors, embeddings and so on, use Payload to enable
-transfering them across components. 
+transfering them across components.
 
 .. lit_tabs::
    :descriptions: Let's define a component to simulate generating embeddings (from a DB, feature store, etc...); This component simulates a server that will use the embeddings.; Run the component to generate the embeddings; Simulate embeddings as an array. Here you would query a DB, load from a feature store or disk or even use a neural network to extract the embedding.; Allow the embeddings to be transfered efficiently by wrapping them in the Payload object.; Pass the variable to the EmbeddingServer (just the pointer).; The data gets transfered once you use the .value attribute in the other component.
@@ -130,7 +130,7 @@ transfering them across components.
 
 |
 
-The payload object keeps the data on the machine and passes a pointer 
+The payload object keeps the data on the machine and passes a pointer
 to the data around the app until the data is needed by a component.
 
 ----

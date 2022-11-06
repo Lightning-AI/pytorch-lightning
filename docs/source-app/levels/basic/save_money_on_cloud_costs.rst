@@ -33,7 +33,7 @@ Here are a few features that will enable you save a lot on your cloud costs:
 Next: Coordinate 2+ components
 ******************************
 Now that you know how to organize arbitrary code inside a Lightning component,
-learn to coordinate 2 or more components into workflows which we call Lightning apps. 
+learn to coordinate 2 or more components into workflows which we call Lightning apps.
 
 .. raw:: html
 

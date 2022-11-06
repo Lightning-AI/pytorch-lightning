@@ -53,4 +53,3 @@ Learn to package your code into Lightning components. Every new user should star
 
         </div>
     </div>
-

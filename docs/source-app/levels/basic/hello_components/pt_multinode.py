@@ -15,8 +15,8 @@ class MultiNodePytorchComponent(L.LightningWork):
         print(f"Init process group: {main_address=}, {main_port=}, {world_size=}, {node_rank=}")
         torch.distributed.init_process_group(
             backend="gloo",
-            init_method=f"tcp://{main_address}:{main_port}", 
-            world_size=world_size, 
+            init_method=f"tcp://{main_address}:{main_port}",
+            world_size=world_size,
             rank=node_rank
         )
         for step in range(10000):
