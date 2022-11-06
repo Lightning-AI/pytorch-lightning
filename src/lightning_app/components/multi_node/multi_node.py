@@ -67,15 +67,21 @@ class MultiNode(LightningFlow):
         self._cloud_compute = cloud_compute
         self._work_args = work_args
         self._work_kwargs = work_kwargs
-        self._protocol = DistributedProtocol
+        self._protocol = None
 
-        if executor == "lite":
+        if issubclass(executor, WorkRunExecutor):
+            self._work_kwargs["run_executor_cls"] = executor
+
+        elif executor == "lite":
             self._work_kwargs["run_executor_cls"] = LiteRunExecutor
             self._protocol = LiteProtocol
 
         elif executor == "pytorch_spawn":
             self._work_kwargs["run_executor_cls"] = PyTorchSpawnRunExecutor
             self._protocol = DistributedPyTorchSpawnProtocol
+
+        else:
+            self._protocol = DistributedProtocol
 
         self.has_started = False
 
@@ -85,19 +91,20 @@ class MultiNode(LightningFlow):
             # 1. Create & start the works
             if not self.ws:
                 for node_rank in range(self.num_nodes):
-                    work = self._work_cls(
-                        *self._work_args,
-                        cloud_compute=self._cloud_compute,
-                        **self._work_kwargs,
-                        parallel=True,
+                    self.ws.append(
+                        self._work_cls(
+                            *self._work_args,
+                            cloud_compute=self._cloud_compute,
+                            **self._work_kwargs,
+                            parallel=True,
+                        )
                     )
 
-                    assert isinstance(work, self._protocol)
+                    if self._protocol:
+                        assert isinstance(self.ws[-1], self._protocol)
 
                     # Starting node `node_rank`` ...
-                    work.start()
-
-                    self.ws.append(work)
+                    self.ws[-1].start()
 
             # 2. Wait for all machines to be started !
             if not all(w.status.stage == WorkStageStatus.STARTED for w in self.ws):
