@@ -6,12 +6,11 @@
 
    connect_lightning_components
    debug_a_lightning_app
-   save_money_on_cloud_costs
    run_lightning_work_in_parallel
    share_variables_between_lightning_components
    share_files_between_components
-   start_dynamic_components
-   level_15
+   embed_web_ui_into_lightningwork
+   start_from_lightning_app_templates
 
 ###################
 Intermediate skills

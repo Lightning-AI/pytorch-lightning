@@ -7,7 +7,6 @@
    build_a_lightning_component
    real_lightning_component_implementations
    save_money_on_cloud_costs
-   <../intermediate/connect_lightning_components>
 
 ############
 Basic skills
