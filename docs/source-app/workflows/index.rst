@@ -16,6 +16,7 @@
    extend_app
    build_lightning_component/publish_a_component
    byoc/index
+   ssh/index
    add_server/index
    run_app_on_cloud/index
    run_work_in_parallel
@@ -177,6 +178,13 @@ How to:
    :description: Learn how Lightning Storage emulates a single filesystem in a distributed setting
    :col_css: col-md-4
    :button_link: share_files_between_components.html
+   :height: 180
+
+.. displayitem::
+   :header: Debug cloud apps via SSH
+   :description: Learn how to get SSH access to your App
+   :col_css: col-md-4
+   :button_link: ssh/index.html
    :height: 180
 
 
