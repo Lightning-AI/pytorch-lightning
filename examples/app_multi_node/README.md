@@ -10,6 +10,14 @@ You can run the multi-node raw PyTorch by running the following commands.
 lightning run app app_torch_work.py
 ```
 
+## Multi Node with raw PyTorch + Lite
+
+You can run the multi-node raw PyTorch and Lite by running the following commands.
+
+```bash
+lightning run app app_lite_work.py
+```
+
 ## Multi Node with PyTorch Lightning
 
 Lightning supports running PyTorch Lightning from a script or within a Lightning Work.
