@@ -46,7 +46,7 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, nodes:
     print("Multi Node Distributed Training Done!")
 
 
-class PyTorchMultiNode(L.LightningWork):
+class PyTorchDistributed(L.LightningWork):
     def run(
         self,
         main_address: str,
@@ -63,7 +63,7 @@ class PyTorchMultiNode(L.LightningWork):
 compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
     MultiNode(
-        PyTorchMultiNode,
+        PyTorchDistributed,
         nodes=2,
         cloud_compute=compute,
     )

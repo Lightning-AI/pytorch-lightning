@@ -5,7 +5,7 @@ from lightning.app.components import MultiNode
 from lightning.pytorch.demos.boring_classes import BoringModel
 
 
-class PyTorchLightningMultiNode(L.LightningWork):
+class PyTorchLightningDistributed(L.LightningWork):
     def run(
         self,
         main_address: str,
@@ -31,7 +31,7 @@ class PyTorchLightningMultiNode(L.LightningWork):
 compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
     MultiNode(
-        PyTorchLightningMultiNode,
+        PyTorchLightningDistributed,
         nodes=2,
         cloud_compute=compute,
     )
