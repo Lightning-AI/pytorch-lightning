@@ -59,7 +59,8 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 ****************************************
 Build self-contained, modular components
 ****************************************
-Build modular, self-contained components and plug them into your existing workflows.
+Lightning is a hyper-minimalistic framework designed to maximize expressivity that
+enables you to build modular, self-contained components and plug them into your existing workflows.
 A Lightning component organizes arbitrary code so it can run on the cloud. A component can train a model, deploy, or even host a web UI.
 The component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
 
@@ -75,13 +76,7 @@ The component manages its own infrastructure, cloud costs, networking and more, 
 
 **Run an example component on the cloud**:
 
-.. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
-   :code_files: ./levels/basic/hello_components/hello_world.py; ./levels/basic/hello_components/hello_world_gpu.py; ./levels/basic/hello_components/train_pytorch.py; ./levels/basic/hello_components/train_ptl.py; ./levels/basic/hello_components/deploy_model.py; ./levels/basic/hello_components/run_script.py; ./levels/basic/hello_components/xgboost.py; ./levels/basic/hello_components/xgboost_gpu.py; ./levels/basic/hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
-   :app_id: abc123
-   :tab_rows: 4
-   :height: 550px
+.. include:: ./levels/basic/hero_components.rst
 
 .. lit_tabs::
    :code_files: landing_app_run.bash
@@ -121,8 +116,8 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    :maxdepth: 1
    :caption: Home
 
-   Install <install/installation>
    self
+   Install <install/installation>
 
 .. toctree::
    :maxdepth: 1
@@ -157,4 +152,4 @@ Explore pre-built community components in `our gallery <https://lightning.ai/com
    Start from app templates <https://lightning.ai/apps>
    Examples <examples/index>
    Glossary <glossary/index>
-   How to... <workflows/index>
+   How-to <workflows/index>
