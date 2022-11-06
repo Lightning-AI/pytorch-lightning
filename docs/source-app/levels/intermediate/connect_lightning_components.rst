@@ -56,12 +56,11 @@ Now run the app:
 
 Now you can develop distributed cloud apps on your laptop 🤯🤯🤯🤯!
 
-
 ----
 
-**************************
-Now you know ...
-**************************
+*************
+Now you know:
+*************
 
 Without going out of your way, you're now doing the following: (Hint: Click **visualize** to see an animation describing the code).
 
@@ -72,7 +71,7 @@ Without going out of your way, you're now doing the following: (Hint: Click **vi
    :tab_rows: 4
    :highlights: 19-21; 16-17; 20; 21; 2, 6, 10
    :images: <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/orchestration.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/distributed_computing.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_machine_comms.gif" style="max-height: 430px; width: auto"></img> | <img src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/multi_cloud.gif" style="max-height: 430px; width: auto"></img>
-   :height: 450px
+   :height: 470px
 
 ----
 
@@ -87,21 +86,4 @@ Although we've abstracted the infrastructure, you still have full control when y
    :code_files: ./level_2_scripts/hello_app_scheduler.py; ./level_2_scripts/hello_app_cron.py; ./level_2_scripts/hello_app_auto_scale.py; ./level_2_scripts/organized_app_python.py; ./level_2_scripts/tr.bash
    :tab_rows: 4
    :highlights: 24; 24; 21, 24, 27, 28; 9, 16, 17; 5
-   :height: 680px
-
-----
-
-****************************************
-Use your own orchestrator (experts only)
-****************************************
-If you have your own orchestrator, feel free to coordinate individual Lightning components with
-those existing tools.
-
-The Lightning orchestrator described below is optimized for advanced patterns using regular python
-control-flow and an embedded state system that is discussed in the advanced sections.
-
-To run the app from a CI/CD job, CLI or other orchestrators, run it without opening the UI (unless you need the UI)
-
-.. code:: bash
-
-    lightning run app app.py --open-ui=false
+   :height: 700px

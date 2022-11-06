@@ -39,7 +39,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: 15 minutes
 
 .. displayitem::
-   :header: Level 3: Debug a Lightning App
+   :header: Level 4: Debug a Lightning App
    :description: Learn to debug a lightning app.
    :button_link: debug_a_lightning_app.html
    :col_css: col-md-6
@@ -47,7 +47,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: 10 minutes
 
 .. displayitem::
-   :header: Level 4: Save money on cloud costs
+   :header: Level 5: Save money on cloud costs
    :description: Explore key Lightning features that save you cloud costs and improve performance.
    :button_link: save_money_on_cloud_costs.html
    :col_css: col-md-6
@@ -55,7 +55,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 5: Run a Lightning component in parallel
+   :header: Level 6: Run a Lightning component in parallel
    :description: Learn when and how to run Components in parallel (asynchronous).
    :button_link: run_lightning_work_in_parallel.html
    :col_css: col-md-6
@@ -63,7 +63,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 6: Share variables between components
+   :header: Level 7: Share variables between components
    :description: Share variables between Lightning components.
    :button_link: share_variables_between_lightning_components.html
    :col_css: col-md-6
@@ -71,15 +71,15 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 7: Share files between components
+   :header: Level 8: Share files between components
    :description: Learn how Drives share files between components
-   :button_link: level_14.html
+   :button_link: share_files_between_components.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 8: Start dynamic components
+   :header: Level 9: Start dynamic components
    :description: Learn to start works dynamically
    :button_link: start_dynamic_components.html
    :col_css: col-md-6
@@ -87,7 +87,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 9: Check component status
+   :header: Level 10: Check component status
    :description: Learn to use work status to coordinate complex apps.
    :button_link: level_16.html
    :col_css: col-md-6
@@ -95,7 +95,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: advanced
 
 .. displayitem::
-   :header: Level 10: Adapt an app template
+   :header: Level 11: Adapt an app template
    :description: Learn to start from a template and expand it by adding your own components.
    :button_link: run_on_aws_efficiently.html
    :col_css: col-md-6
@@ -103,7 +103,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 11: Render a web UI alongside other components.
+   :header: Level 12: Render a web UI alongside other components.
    :description: Learn how to embed graphical UIs like react, vue, streamlit and notebook UIs into a lightning workflow.
    :button_link: embed_web_ui_into_lightningwork.html
    :col_css: col-md-6
