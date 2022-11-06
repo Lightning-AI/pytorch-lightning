@@ -1,5 +1,5 @@
 ##############################
-Level 2: Debug A Lightning app
+Level 4: Debug A Lightning app
 ##############################
 **Audience:** Users who want to debug a distributed app locally.
 
@@ -14,7 +14,7 @@ To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support 
 
 .. lit_tabs::
    :descriptions: Toy app; Add a breakpoint. When the program runs, it will stop at this line.
-   :code_files: ./scripts/toy_app_1_component.py; ./scripts/toy_app_1_component_pdb.py
+   :code_files: ./debug_app_scripts/toy_app_1_component.py; ./debug_app_scripts/toy_app_1_component_pdb.py
    :highlights: ; 7
    :app_id: abc123
    :tab_rows: 3
