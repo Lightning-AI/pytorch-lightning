@@ -1,11 +1,13 @@
 import sys
 import pdb
+from typing import Any
+
 
 class MPPdb(pdb.Pdb):
     """
     debugger for forked programs
     """
-    def interaction(self, *args, **kwargs):
+    def interaction(self, *args: Any, **kwargs: Any) -> None:
         _stdin = sys.stdin
         try:
             sys.stdin = open('/dev/stdin')
@@ -13,5 +15,5 @@ class MPPdb(pdb.Pdb):
         finally:
             sys.stdin = _stdin
 
-def set_trace(*args, **kwargs):
+def set_trace(*args: Any, **kwargs: Any) -> None:
     MPPdb().set_trace(*args, **kwargs)
