@@ -31,7 +31,7 @@ Learn to coordinate 2+ components into workflows which we call Lightning apps.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 3: Coordinate 2+ components in a workflow.
+   :header: Level 3: Coordinate 2+ components in a workflow
    :description: Learn to coordinate 2_ components in a workflow which we call a Lightning app.
    :button_link: connect_lightning_components.html
    :col_css: col-md-6

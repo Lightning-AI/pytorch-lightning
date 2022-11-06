@@ -144,14 +144,6 @@ powerful Lightning app. Here are a few key features available to super-charge yo
 
 ----
 
-******************************
-Use community-built components
-******************************
-Lightning has a vibrant collection of `community-built components <https://lightning.ai/components>`_ you can use as templates or to inspire you.
-
-
-----
-
 ********************************************
 Next: Explore real component implementations
 ********************************************

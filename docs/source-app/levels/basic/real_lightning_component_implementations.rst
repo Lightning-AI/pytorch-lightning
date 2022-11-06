@@ -7,10 +7,13 @@ Level 2: Explore real component implementations
 
 ----
 
-******************
-Enable breakpoints
-******************
-To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support is work in progress and open to contributions).
+***************************
+Debug a lightning component
+***************************
+Before we dive into real component implementations, we'll learn to debug a Lightning component.
+
+To stop the code execution at a particular line, enable a breakpoint
+with **L.pdb.set_trace()**:
 
 .. lit_tabs::
    :descriptions: Toy app; Add a breakpoint. When the program runs, it will stop at this line.
@@ -20,11 +23,24 @@ To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support 
    :tab_rows: 3
    :height: 350px
 
+|
+
+.. note:: 
+
+   Direct python pdb support is work in progress and open to contributions
+
 ----
 
-************************
-Next: Connect components
-************************
+*****************************
+Ex 1: Train PyTorch component
+*****************************
+TODO:
+
+----
+
+******************************
+Next: Coordinate 2+ components
+******************************
 Now that you know how to organize arbitrary code inside a Lightning component,
 learn to coordinate 2 or more components into workflows which we call Lightning apps. 
 
@@ -36,9 +52,9 @@ learn to coordinate 2 or more components into workflows which we call Lightning 
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 3: Connect components into a full stack AI app
-   :description: Learn to connect components into a full stack AI app.
-   :button_link: ../intermediate/connect_lightning_components.html
+   :header: Intermediate skills
+   :description: Learn to coordinate 2+ components into workflows which we call Lightning apps.
+   :button_link: ../intermediate/index.html
    :col_css: col-md-12
    :height: 170
    :tag: 15 minutes
