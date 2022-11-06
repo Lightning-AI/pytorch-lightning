@@ -3,9 +3,9 @@ import os
 from contextlib import contextmanager
 from copy import copy
 from pathlib import Path
+from textwrap import dedent
 from unittest import mock
 from unittest.mock import MagicMock
-from textwrap import dedent
 
 import pytest
 from lightning_cloud.openapi import (
@@ -107,24 +107,32 @@ def cloud_backend(monkeypatch):
 def project_id():
     return "test-project-id"
 
+
 @contextmanager
 def does_not_raise():
     yield
 
+
 DEFAULT_CLUSTER = "litng-ai-03"
+
 
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
     # TODO: remove this test once there is support for multiple instances
-    @pytest.mark.parametrize("old_cluster,new_cluster,expected_raise", [
-        ("test", "other", pytest.raises(ValueError)),
-        ("test", "test", does_not_raise()),
-        (None, None, does_not_raise()),
-        (None, "litng-ai-03", does_not_raise()),
-        ("litng-ai-03", None, does_not_raise()),
-    ])
-    def test_new_instance_on_different_cluster(self, cloud_backend, project_id, old_cluster, new_cluster, expected_raise):
+    @pytest.mark.parametrize(
+        "old_cluster,new_cluster,expected_raise",
+        [
+            ("test", "other", pytest.raises(ValueError)),
+            ("test", "test", does_not_raise()),
+            (None, None, does_not_raise()),
+            (None, "litng-ai-03", does_not_raise()),
+            ("litng-ai-03", None, does_not_raise()),
+        ],
+    )
+    def test_new_instance_on_different_cluster(
+        self, cloud_backend, project_id, old_cluster, new_cluster, expected_raise
+    ):
         app_name = "test-app-name"
 
         mock_client = mock.MagicMock()
@@ -168,7 +176,8 @@ class TestAppCreationClient:
         if exception is not None:
             old_cluster = old_cluster or DEFAULT_CLUSTER
             new_cluster = new_cluster or DEFAULT_CLUSTER
-            assert str(exception.value) == dedent(f"""\
+            assert str(exception.value) == dedent(
+                f"""\
                 Can not run app '{app_name}' on cluster {new_cluster} since it already exists on {old_cluster}
                     (moving apps between clusters is not supported).
 
@@ -176,7 +185,8 @@ class TestAppCreationClient:
                     a. rename the app to run on {new_cluster} with the --name option
                         lightning run app script.py --name (new name) --cloud --cluster-id {new_cluster}
                     b. delete the app running on {old_cluster} in the UI before running this command.
-                """)
+                """
+            )
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
