@@ -40,6 +40,6 @@ app = L.LightningApp(
         PyTorchDistributed,
         num_nodes=2,
         cloud_compute=compute,
-        backend="pytorch",
+        executor="pytorch_spawn",
     )
 )

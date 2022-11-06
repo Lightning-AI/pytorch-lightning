@@ -31,6 +31,6 @@ app = L.LightningApp(
         LitePyTorchDistributed,
         num_nodes=2,
         cloud_compute=compute,
-        backend="lite",
+        executor="lite",
     )
 )

@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional, Type
+from typing import Any, Literal, Optional, Type, Union
 
 from lightning_app import structures
 from lightning_app.components.multi_node.executors import LiteRunExecutor, PyTorchSpawnRunExecutor
@@ -11,6 +11,7 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.proxies import WorkRunExecutor
 
 
 class MultiNode(LightningFlow):
@@ -19,7 +20,7 @@ class MultiNode(LightningFlow):
         work_cls: Type["LightningWork"],
         num_nodes: int,
         cloud_compute: "CloudCompute",
-        backend: Optional[Literal["lite", "pytorch"]] = None,
+        executor: Optional[Union[WorkRunExecutor, Literal["lite", "pytorch_spawn"]]] = None,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -55,7 +56,7 @@ class MultiNode(LightningFlow):
             work_cls: The work to be executed
             num_nodes: Number of nodes.
             cloud_compute: The cloud compute object used in the cloud.
-            backend: Choose the work run executor. Currently supported are [None, `lite`, `pytorch`].
+            executor: Choose the work run executor. Currently supported are [None, `lite`, `pytorch`].
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
         """
@@ -68,10 +69,12 @@ class MultiNode(LightningFlow):
         self._work_kwargs = work_kwargs
         self._protocol = DistributedProtocol
 
-        if backend == "lite":
+        if isinstance(executor, WorkRunExecutor):
+            self._work_kwargs["run_executor_cls"] = executor
+        elif executor == "lite":
             self._work_kwargs["run_executor_cls"] = LiteRunExecutor
             self._protocol = LiteProtocol
-        elif backend == "pytorch":
+        elif executor == "pytorch":
             self._work_kwargs["run_executor_cls"] = PyTorchSpawnRunExecutor
             self._protocol = DistributedPyTorchSpawnProtocol
 
@@ -89,7 +92,9 @@ class MultiNode(LightningFlow):
                         **self._work_kwargs,
                         parallel=True,
                     )
-                    assert isinstance(work, self._protocol)
+
+                    if self._protocol:
+                        assert isinstance(work, self._protocol)
 
                     # Starting node `node_rank`` ...
                     work.start()
