@@ -42,14 +42,10 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
 
 
 @pytest.mark.parametrize(
-    "app_name, logs",
-    [
-        ("app_torch_work.py", "[tensor([0.]), tensor([1.]), tensor([2.]), tensor([3.])]"),
-        ("app_generic_work.py", "ADD YOUR DISTRIBUTED CODE"),
-        ("app_pl_work.py", "Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4"),
-    ],
+    "app_name",
+    ["app_torch_work.py", "app_generic_work.py", "app_pl_work.py"],
 )
-def test_multi_node_examples(app_name, logs):
+def test_multi_node_examples(app_name):
     cwd = os.getcwd()
     new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
     os.chdir(new_cwd)
@@ -62,5 +58,4 @@ def test_multi_node_examples(app_name, logs):
     ]
     result = application_testing(LightningTestMultiNodeWorksApp, command_line)
     assert result.exit_code == 0
-    assert logs in result.stdout
     os.chdir(cwd)
