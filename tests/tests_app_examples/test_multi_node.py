@@ -3,7 +3,7 @@ import os
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning.app.testing.testing import application_testing, LightningTestApp
+from lightning_app.testing.testing import application_testing, LightningTestApp
 
 
 class LightningTestMultiNodeApp(LightningTestApp):
