@@ -322,7 +322,7 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
-    work_run_executor: Type[WorkRunExecutor] = WorkRunExecutor
+    run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
         self.parallel = self.work.parallel
@@ -439,7 +439,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = self.work_run_executor(work_run)(*args, **kwargs)
+            ret = self.run_executor_cls(work_run)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:

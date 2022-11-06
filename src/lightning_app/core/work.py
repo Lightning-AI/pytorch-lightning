@@ -30,7 +30,7 @@ from lightning_app.utilities.packaging.cloud_compute import (
     _maybe_create_cloud_compute,
     CloudCompute,
 )
-from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunner
+from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunExecutor
 
 
 class LightningWork:
@@ -56,7 +56,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
-        run_executor_cls: Type[WorkRunner] = WorkRunner,
+        run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
