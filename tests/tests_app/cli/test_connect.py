@@ -6,9 +6,10 @@ from unittest.mock import MagicMock
 import click
 import pytest
 
-from lightning_app import _PACKAGE_ROOT
+from lightning_app import _PROJECT_ROOT
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
+    _PPID,
     _resolve_command_path,
     _retrieve_connection_to_an_app,
     connect,
@@ -29,7 +30,7 @@ def test_connect_disconnect_local(monkeypatch):
         data = json.load(f)
 
     data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
-        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        _PROJECT_ROOT,
         data["paths"]["/command/command_with_client"]["post"]["cls_path"],
     )
 
@@ -54,7 +55,7 @@ def test_connect_disconnect_local(monkeypatch):
     assert os.path.exists(command_path)
     home = os.path.expanduser("~")
     s = "/" if sys.platform != "win32" else "\\"
-    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}commands"
+    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
     expected = [
         f"Find the `command with client` command under {command_folder_path}{s}command_with_client.py.",
         f"You can review all the downloaded commands under {command_folder_path} folder.",
@@ -91,7 +92,7 @@ def test_connect_disconnect_cloud(monkeypatch):
         data = json.load(f)
 
     data["paths"]["/command/command_with_client"]["post"]["cls_path"] = os.path.join(
-        os.path.dirname(os.path.dirname(_PACKAGE_ROOT)),
+        _PROJECT_ROOT,
         data["paths"]["/command/command_with_client"]["post"]["cls_path"],
     )
 
@@ -142,16 +143,16 @@ def test_connect_disconnect_cloud(monkeypatch):
     assert os.path.exists(command_path)
     home = os.path.expanduser("~")
     s = "/" if sys.platform != "win32" else "\\"
-    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}commands"
+    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
     expected = [
-        f"Storing `command_with_client` under {command_folder_path}{s}command_with_client.py",
+        f"Storing `command with client` under {command_folder_path}{s}command_with_client.py",
         f"You can review all the downloaded commands under {command_folder_path} folder.",
         " ",
         "The client interface has been successfully installed. ",
         "You can now run the following commands:",
-        "    lightning command_without_client",
-        "    lightning command_with_client",
-        "    lightning nested_command",
+        "    lightning command without client",
+        "    lightning command with client",
+        "    lightning nested command",
         " ",
         "You are connected to the cloud Lightning App: example.",
         "Usage: lightning [OPTIONS] COMMAND [ARGS]...",

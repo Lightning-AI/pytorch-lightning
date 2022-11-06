@@ -1,10 +1,10 @@
 import os
 import sys
 
-from tests_app import _PROJECT_ROOT
+from tests_app import _TESTS_ROOT
 
-from lightning_app import BuildConfig
 from lightning_app.testing import application_testing, LightningTestApp
+from lightning_app.utilities.packaging.build_config import BuildConfig
 
 EXTRAS_ARGS = ["--blocking", "False", "--multiprocess", "--open-ui", "False"]
 
@@ -17,7 +17,7 @@ class NoRequirementsLightningTestApp(LightningTestApp):
 
 
 def test_build_config_no_requirements():
-    command_line = [os.path.join(_PROJECT_ROOT, "tests/utilities/packaging/projects/no_req/app.py")]
+    command_line = [os.path.join(_TESTS_ROOT, "utilities/packaging/projects/no_req/app.py")]
     application_testing(NoRequirementsLightningTestApp, command_line + EXTRAS_ARGS)
     sys.path = sys.path[:-1]
 
@@ -60,7 +60,7 @@ class DockerfileLightningTestApp(LightningTestApp):
 
 
 def test_build_config_dockerfile():
-    command_line = [os.path.join(_PROJECT_ROOT, "tests/utilities/packaging/projects/dockerfile/app.py")]
+    command_line = [os.path.join(_TESTS_ROOT, "utilities/packaging/projects/dockerfile/app.py")]
     application_testing(DockerfileLightningTestApp, command_line + EXTRAS_ARGS)
     sys.path = sys.path[:-1]
 
@@ -76,6 +76,6 @@ class RequirementsLightningTestApp(LightningTestApp):
 
 
 def test_build_config_requirements():
-    command_line = [os.path.join(_PROJECT_ROOT, "tests/utilities/packaging/projects/req/app.py")]
+    command_line = [os.path.join(_TESTS_ROOT, "utilities/packaging/projects/req/app.py")]
     application_testing(RequirementsLightningTestApp, command_line + EXTRAS_ARGS)
     sys.path = sys.path[:-1]

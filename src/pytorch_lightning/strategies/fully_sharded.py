@@ -21,7 +21,7 @@ import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -186,7 +186,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         if not is_overridden("configure_sharded_model", self.lightning_module):
             self.model = self._setup_model(self.model)
         self.setup_optimizers(self.lightning_module.trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
 
         self.setup_precision_plugin()
@@ -197,8 +197,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
 
         rank_zero_info(
-            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
-            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
+            "When using FairScale FSDP auto-wrap, make sure to initialize your model using trainer: "
+            "`torch.optim.Optimizer(self.trainer.model.parameters(), ...)`"
         )
 
         return FullyShardedDataParallel(

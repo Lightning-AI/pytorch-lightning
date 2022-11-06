@@ -104,6 +104,7 @@ extensions = [
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
@@ -124,6 +125,12 @@ extensions = [
 suppress_warnings = [
     "autosectionlabel.*",
 ]
+
+copybutton_prompt_text = ">>> "
+copybutton_prompt_text1 = "... "
+copybutton_exclude = ".linenos"
+
+copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -179,8 +186,7 @@ pygments_style = None
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
-# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -333,8 +339,6 @@ PACKAGE_MAPPING = {
     "Pillow": "PIL",
     "opencv-python": "cv2",
     "PyYAML": "yaml",
-    "comet-ml": "comet_ml",
-    "neptune-client": "neptune",
     "hydra-core": "hydra",
 }
 MOCK_PACKAGES = []
@@ -343,7 +347,6 @@ if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
-    MOCK_PACKAGES += package_list_from_file(_path_require("loggers.txt"))
     MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
@@ -397,5 +400,9 @@ from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
 )
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
+from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True

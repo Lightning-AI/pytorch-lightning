@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
@@ -41,7 +42,7 @@ try:
     from wandb.wandb_run import Run
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
-    wandb, Run, RunDisabled = None, None, None  # type: ignore
+    wandb, Run, RunDisabled = None, None, None
 
 _WANDB_AVAILABLE = RequirementCache("wandb")
 _WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
@@ -362,7 +363,7 @@ class WandbLogger(Logger):
         state["_experiment"] = None
         return state
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> Union[Run, RunDisabled]:
         r"""
@@ -572,7 +573,7 @@ class WandbLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = (
                 {
-                    "score": s,
+                    "score": s.item() if isinstance(s, Tensor) else s,
                     "original_filename": Path(p).name,
                     checkpoint_callback.__class__.__name__: {
                         k: getattr(checkpoint_callback, k)

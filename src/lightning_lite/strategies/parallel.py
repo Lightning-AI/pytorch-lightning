@@ -22,7 +22,7 @@ from lightning_lite.plugins.environments.cluster_environment import ClusterEnvir
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available
 from lightning_lite.utilities.types import ReduceOp
 
 
@@ -83,7 +83,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the

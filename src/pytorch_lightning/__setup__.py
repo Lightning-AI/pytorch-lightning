@@ -33,14 +33,13 @@ def _prepare_extras() -> Dict[str, Any]:
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
         "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
-        "loggers": setup_tools.load_requirements(file_name="loggers.txt", **common_args),
         "extra": setup_tools.load_requirements(file_name="extra.txt", **common_args),
         "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+    extras["dev"] = extras["extra"] + extras["test"]
     extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
     return extras
 
@@ -53,9 +52,7 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include requirements/lite *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include src/lightning_lite *.md" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
@@ -87,8 +84,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
-                "lightning_lite",  # TODO: remove after the first standalone Lite release
-                "lightning_lite.*",  # TODO: remove after the first standalone Lite release
+                "lightning_lite",
+                "lightning_lite.*",
             ],
         ),
         package_dir={"": "src"},
@@ -99,6 +96,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
+        # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
+        # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
         install_requires=_setup_tools.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
         ),

@@ -491,7 +491,7 @@ Below are the possible configurations we support.
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.init_dist_connection`.
+If you need your own way to init PyTorch DDP you can override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.setup_distributed`.
 
 If you also need to use your own DDP implementation, override :meth:`pytorch_lightning.strategies.ddp.DDPStrategy.configure_ddp`.
 
