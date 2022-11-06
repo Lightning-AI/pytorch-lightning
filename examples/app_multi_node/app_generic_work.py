@@ -17,7 +17,7 @@ compute = L.CloudCompute("gpu")
 app = L.LightningApp(
     MultiNode(
         AnyDistributedComponent,
-        nodes=2,
+        num_nodes=2,
         cloud_compute=compute,
     )
 )
