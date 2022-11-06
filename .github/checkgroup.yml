@@ -6,63 +6,10 @@ subprojects:
 
   # SECTION: pytorch_lightning
 
-  - id: "pytorch_lightning"
-    paths:
-      # all examples don't need to be added because they aren't used in CI, but these are
-      - "examples/run_ddp_examples.sh"
-      - "examples/convert_from_pt_to_pl/**"
-      - "examples/run_pl_examples.sh"
-      - "examples/pl_basics/backbone_image_classifier.py"
-      - "examples/pl_basics/autoencoder.py"
-      - "examples/pl_loops/mnist_lite.py"
-      - "examples/pl_fault_tolerant/automatic.py"
-      - "examples/test_pl_examples.py"
-      - "examples/pl_integrations/dali_image_classifier.py"
-      - "requirements/pytorch/**"
-      - "src/pytorch_lightning/**"
-      - "tests/tests_pytorch/**"
-      - "tests/legacy/back-compatible-versions.txt"
-      - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-    checks:
-      # Note: updates here should be applied to the lightning_lite group
-      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
-      - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.12)"
-      - "pl-cpu (macOS-11, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13, pre)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.10)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.13, pre)"
-      - "pl-cpu (windows-2022, pytorch, 3.9, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (windows-2022, pytorch, 3.8, 1.13, pre)"
-      - "pl-cpu (macOS-11, lightning, 3.10, 1.12)"
-      #- "pl-cpu (macOS-11, lightning, 3.7, 1.9, oldest)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.10, 1.12)"
-      #- "pl-cpu (ubuntu-20.04, lightning, 3.7, 1.9, oldest)"
-      - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
-      #- "pl-cpu (windows-2022, lightning, 3.7, 1.9, oldest)"
-      - "make-doctest (pytorch)"
-      - "make-html (pytorch)"
-      - "pytorch-lightning (GPUs)"
-      - "pytorch-lightning (HPUs)"
-      - "pytorch-lightning (IPUs)"
-      - "pl-slow (macOS-11, 3.7, 1.11)"
-      - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
-      - "pl-slow (windows-2022, 3.7, 1.11)"
-      # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
-      #- "test-on-tpus"
-
   - id: "pytorch_lightning: CPU workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests.yml"
-    checks:
+    checks: &check_spl_cpu
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
       - "pl-cpu (macOS-11, pytorch, 3.10, 1.12)"
@@ -89,7 +36,7 @@ subprojects:
   - id: "pytorch_lightning: Slow workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests-slow.yml"
-    checks:
+    checks: &checks_pl_slow
       - "pl-slow (macOS-11, 3.7, 1.11)"
       - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
       - "pl-slow (windows-2022, 3.7, 1.11)"
@@ -118,6 +65,51 @@ subprojects:
       - ".github/workflows/tpu-tests.yml"
     checks:
       - "test-on-tpus"
+
+  - id: "pytorch_lightning: Tests"
+    paths:
+      # all examples don't need to be added because they aren't used in CI, but these are
+      - "tests/tests_pytorch/**"
+      - "tests/legacy/back-compatible-versions.txt"
+    checks:
+      # Note: updates here should be applied to the lightning_lite group
+      *check_spl_cpu
+      *checks_pl_slow
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+      # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
+      #- "test-on-tpus"
+
+  - id: "pytorch_lightning"
+    paths:
+      # all examples don't need to be added because they aren't used in CI, but these are
+      - "examples/run_ddp_examples.sh"
+      - "examples/convert_from_pt_to_pl/**"
+      - "examples/run_pl_examples.sh"
+      - "examples/pl_basics/backbone_image_classifier.py"
+      - "examples/pl_basics/autoencoder.py"
+      - "examples/pl_loops/mnist_lite.py"
+      - "examples/pl_fault_tolerant/automatic.py"
+      - "examples/test_pl_examples.py"
+      - "examples/pl_integrations/dali_image_classifier.py"
+      - "requirements/pytorch/**"
+      - "src/pytorch_lightning/**"
+      - "tests/tests_pytorch/**"
+      - "tests/legacy/back-compatible-versions.txt"
+      - "setup.cfg"  # includes pytest config
+      - ".actions/**"
+    checks:
+      # Note: updates here should be applied to the lightning_lite group
+      *check_spl_cpu
+      *checks_pl_slow
+      - "make-doctest (pytorch)"
+      - "make-html (pytorch)"
+      - "pytorch-lightning (GPUs)"
+      - "pytorch-lightning (HPUs)"
+      - "pytorch-lightning (IPUs)"
+      # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
+      #- "test-on-tpus"
 
   - id: "pytorch_lightning: Docs"
     paths:
@@ -154,6 +146,29 @@ subprojects:
 
   # SECTION: lightning_lite
 
+  - id: "lightning_lite: CPU workflow"
+    paths:
+      - ".github/workflows/ci-lite-tests.yml"
+    checks: &checks_lite_cpu
+      - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
+      - "lite-cpu (macOS-11, lite, 3.8, 1.10)"
+      - "lite-cpu (macOS-11, lite, 3.10, 1.12)"
+      - "lite-cpu (macOS-11, lite, 3.10, 1.13, pre)"
+      - "lite-cpu (macOS-11, lite, 3.7, 1.9, oldest)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.11)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.12)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.7, 1.9, oldest)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.13, pre)"
+      - "lite-cpu (windows-2022, lite, 3.8, 1.9)"
+      - "lite-cpu (windows-2022, lite, 3.9, 1.10)"
+      - "lite-cpu (windows-2022, lite, 3.10, 1.11)"
+      - "lite-cpu (windows-2022, lite, 3.10, 1.12)"
+      - "lite-cpu (windows-2022, lite, 3.7, 1.9, oldest)"
+      - "lite-cpu (windows-2022, lite, 3.8, 1.13, pre)"
+      - "lite-cpu (macOS-11, lightning, 3.8, 1.12)"
+      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
+      - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
+
   - id: "lightning_lite"
     paths:
       - "requirements/lite/**"
@@ -161,80 +176,23 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
-      - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
-      - "lite-cpu (macOS-11, lite, 3.8, 1.10)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.12)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.13, pre)"
-      - "lite-cpu (macOS-11, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.11)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.13, pre)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.9)"
-      - "lite-cpu (windows-2022, lite, 3.9, 1.10)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.11)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.12)"
-      - "lite-cpu (windows-2022, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.13, pre)"
-      - "lite-cpu (macOS-11, lightning, 3.8, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
-      - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
+      *checks_lite_cpu
       - "lightning-lite (GPUs)"
       # Lite also requires PL checks as it depends on Lite
-      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
-      - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.12)"
-      - "pl-cpu (macOS-11, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13, pre)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.10)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.13, pre)"
-      - "pl-cpu (windows-2022, pytorch, 3.9, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, pytorch, 3.7, 1.9, oldest)"
-      - "pl-cpu (windows-2022, pytorch, 3.8, 1.13, pre)"
-      - "pl-cpu (macOS-11, lightning, 3.10, 1.12)"
-      #- "pl-cpu (macOS-11, lightning, 3.7, 1.9, oldest)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.10, 1.12)"
-      #- "pl-cpu (ubuntu-20.04, lightning, 3.7, 1.9, oldest)"
-      - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
-      #- "pl-cpu (windows-2022, lightning, 3.7, 1.9, oldest)"
+      *check_spl_cpu
+      *checks_pl_slow
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
-      - "pl-slow (macOS-11, 3.7, 1.11)"
-      - "pl-slow (ubuntu-20.04, 3.7, 1.11)"
-      - "pl-slow (windows-2022, 3.7, 1.11)"
       #- "test-on-tpus"
 
   - id: "lightning_lite: Tests"
     paths:
       - "tests/tests_lite/**"
     checks:
-      - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
-      - "lite-cpu (macOS-11, lite, 3.8, 1.10)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.12)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.13, pre)"
-      - "lite-cpu (macOS-11, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.11)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.13, pre)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.9)"
-      - "lite-cpu (windows-2022, lite, 3.9, 1.10)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.11)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.12)"
-      - "lite-cpu (windows-2022, lite, 3.7, 1.9, oldest)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.13, pre)"
-      - "lite-cpu (macOS-11, lightning, 3.8, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
-      - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
+      *checks_lite_cpu
       - "lightning-lite (GPUs)"
 
   - id: "lightning_lite: Azure GPU"
@@ -246,6 +204,34 @@ subprojects:
       - "lightning-lite (GPUs)"
 
   # SECTION: lightning_app
+
+  - id: "lightning_app: Tests workflow"
+    paths:
+      - ".github/workflows/ci-app-tests.yml"
+    checks: &checks_app_cpu
+      - "app-pytest (macOS-11, app, 3.8, latest)"
+      - "app-pytest (macOS-11, app, 3.8, oldest)"
+      - "app-pytest (macOS-11, lightning, 3.9, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
+      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
+      - "app-pytest (windows-2022, app, 3.8, latest)"
+      - "app-pytest (windows-2022, app, 3.8, oldest)"
+      - "app-pytest (windows-2022, lightning, 3.8, latest)"
+
+  - id: "lightning_app: Examples workflow"
+    paths:
+      - ".github/workflows/ci-app-examples.yml"
+    checks: &checks_app_examples
+      - "app-examples (macOS-11, app, 3.9, latest)"
+      - "app-examples (macOS-11, app, 3.9, oldest)"
+      - "app-examples (macOS-11, lightning, 3.9, latest)"
+      - "app-examples (ubuntu-20.04, app, 3.9, latest)"
+      - "app-examples (ubuntu-20.04, app, 3.9, oldest)"
+      - "app-examples (ubuntu-20.04, lightning, 3.9, latest)"
+      - "app-examples (windows-2022, app, 3.9, latest)"
+      - "app-examples (windows-2022, app, 3.9, oldest)"
+      - "app-examples (windows-2022, lightning, 3.9, latest)"
 
   - id: "lightning_app"
     paths:
@@ -259,29 +245,7 @@ subprojects:
       - "App.cloud-e2e"
       - "make-doctest (app)"
       - "make-html (app)"
-      - "app-pytest (macOS-11, app, 3.8, latest)"
-      - "app-pytest (macOS-11, app, 3.8, oldest)"
-      - "app-pytest (macOS-11, lightning, 3.9, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
-      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
-      - "app-pytest (windows-2022, app, 3.8, latest)"
-      - "app-pytest (windows-2022, app, 3.8, oldest)"
-      - "app-pytest (windows-2022, lightning, 3.8, latest)"
-
-  - id: "lightning_app: Tests workflow"
-    paths:
-      - ".github/workflows/ci-app-tests.yml"
-    checks:
-      - "app-pytest (macOS-11, app, 3.8, latest)"
-      - "app-pytest (macOS-11, app, 3.8, oldest)"
-      - "app-pytest (macOS-11, lightning, 3.9, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
-      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
-      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
-      - "app-pytest (windows-2022, app, 3.8, latest)"
-      - "app-pytest (windows-2022, app, 3.8, oldest)"
-      - "app-pytest (windows-2022, lightning, 3.8, latest)"
+      *checks_app_cpu
 
   - id: "lightning_app: Examples"
     paths:
@@ -292,29 +256,7 @@ subprojects:
       - "setup.py"
       - ".actions/**"
     checks:
-      - "app-examples (macOS-11, app, 3.9, latest)"
-      - "app-examples (macOS-11, app, 3.9, oldest)"
-      - "app-examples (macOS-11, lightning, 3.9, latest)"
-      - "app-examples (ubuntu-20.04, app, 3.9, latest)"
-      - "app-examples (ubuntu-20.04, app, 3.9, oldest)"
-      - "app-examples (ubuntu-20.04, lightning, 3.9, latest)"
-      - "app-examples (windows-2022, app, 3.9, latest)"
-      - "app-examples (windows-2022, app, 3.9, oldest)"
-      - "app-examples (windows-2022, lightning, 3.9, latest)"
-
-  - id: "lightning_app: Examples workflow"
-    paths:
-      - ".github/workflows/ci-app-examples.yml"
-    checks:
-      - "app-examples (macOS-11, app, 3.9, latest)"
-      - "app-examples (macOS-11, app, 3.9, oldest)"
-      - "app-examples (macOS-11, lightning, 3.9, latest)"
-      - "app-examples (ubuntu-20.04, app, 3.9, latest)"
-      - "app-examples (ubuntu-20.04, app, 3.9, oldest)"
-      - "app-examples (ubuntu-20.04, lightning, 3.9, latest)"
-      - "app-examples (windows-2022, app, 3.9, latest)"
-      - "app-examples (windows-2022, app, 3.9, oldest)"
-      - "app-examples (windows-2022, lightning, 3.9, latest)"
+      *checks_app_examples
 
   - id: "lightning_app: Azure"
     paths:
