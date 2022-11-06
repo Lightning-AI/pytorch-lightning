@@ -43,7 +43,7 @@ def distributed_train(rank: int, main_address: str, main_port: int, nodes: int, 
     torch.distributed.all_reduce(weight)
     assert torch.equal(model.module.weight, weight / world_size)
 
-    print("Multi Node Distributed Training Done !")
+    print("Multi Node Distributed Training Done!")
 
 
 class PyTorchMultiNode(L.LightningWork):
