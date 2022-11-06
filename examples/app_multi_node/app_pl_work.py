@@ -1,7 +1,5 @@
 import os
 
-import torch
-
 import lightning as L
 from lightning.app.components import MultiNode
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -27,11 +25,10 @@ class PyTorchLightningMultiNode(L.LightningWork):
         os.environ["MASTER_PORT"] = str(main_port)
         os.environ["NODE_RANK"] = str(node_rank)
 
-        devices = torch.cuda.device_count() if torch.cuda.is_available() else 2
         model = LoggingBoringModel()
         trainer = L.Trainer(
             max_epochs=10,
-            devices=devices,
+            devices="auto",
             accelerator="auto",
             num_nodes=nodes,
             strategy="ddp_spawn",  # Only spawn based strategies are supported for now.
