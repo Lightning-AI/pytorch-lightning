@@ -19,11 +19,11 @@ class PyTorchDistributed(L.LightningWork):
         device_ids = device if torch.cuda.is_available() else None
         model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
-        # 3. Prepare loss and optimizer
+        # 2. Prepare loss and optimizer
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-        # 4. Train the model for 50 steps.
+        # 3. Train the model for 50 steps.
         for step in range(50):
             model.zero_grad()
             x = torch.randn(64, 32).to(device)
@@ -32,13 +32,6 @@ class PyTorchDistributed(L.LightningWork):
             print(f"global_rank: {global_rank} step: {step} loss: {loss}")
             loss.backward()
             optimizer.step()
-
-        # 5. Verify all processes have the same weights at the end of training.
-        weight = model.module.weight.clone()
-        torch.distributed.all_reduce(weight)
-        assert torch.equal(model.module.weight, weight / world_size)
-
-        print("Multi Node Distributed Training Done!")
 
 
 compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
