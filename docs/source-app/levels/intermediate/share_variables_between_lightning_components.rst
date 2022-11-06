@@ -26,7 +26,7 @@ Lightning sends the variables across the machines for you automatically.
 
 .. collapse:: CLI output
 
-    .. code:: bash
+    .. code-block::
 
         $ lightning run app app.py --open-ui=false
 
@@ -63,7 +63,7 @@ Example Continuous deployment: Every time a model saves a checkpoint, we redeplo
 
 .. collapse:: CLI output:
 
-    .. code:: bash
+    .. code::
 
         $ lightning run app app.py --open-ui=false
 
@@ -97,6 +97,7 @@ Example Continuous deployment: Every time a model saves a checkpoint, we redeplo
         TRAIN COMPONENT: saved new checkpoint: /some/path/step=20_fake_loss=0.05
         DEPLOY COMPONENT: load new model from checkpoint: /some/path/step=20_fake_loss=0.05
         step=21: fake_loss=0.0476
+
 ----
 
 ********************************************
@@ -117,7 +118,7 @@ transfering them across components.
 
 .. collapse:: CLI output
 
-    .. code:: bash
+    .. code::
 
             $ lightning run app app.py --open-ui=false
 
