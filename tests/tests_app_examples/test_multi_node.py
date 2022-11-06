@@ -43,7 +43,11 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
 
 @pytest.mark.parametrize(
     "app_name",
-    ["app_torch_work.py", "app_generic_work.py", "app_pl_work.py"],
+    [
+        "app_torch_work.py",
+        "app_generic_work.py",
+        # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
+    ],
 )
 def test_multi_node_examples(app_name):
     cwd = os.getcwd()
