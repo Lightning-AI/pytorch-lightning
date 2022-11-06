@@ -54,7 +54,7 @@ class PyTorchMultiNode(L.LightningWork):
         nodes: int,
         node_rank: int,
     ):
-        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 2
+        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
             distributed_train, args=(main_address, main_port, nodes, node_rank, nprocs), nprocs=nprocs
         )
