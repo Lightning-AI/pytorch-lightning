@@ -3,7 +3,7 @@ import os
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.testing.testing import application_testing, LightningTestApp
+from lightning.app.testing.testing import application_testing, LightningTestApp
 
 
 class LightningTestMultiNodeApp(LightningTestApp):
@@ -45,7 +45,7 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
     "app_name",
     [
         "app_torch_work.py",
-        "app_generic_work.py",
+        # "app_generic_work.py",
         # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
     ],
 )

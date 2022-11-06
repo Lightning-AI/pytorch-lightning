@@ -1,10 +1,12 @@
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 import lightning.app as L
 from lightning.app.components import MultiNode
 
 
-def distributed_function(rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
+def distributed_train(rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
+    # 1. Setting distributed environment
     global_rank = rank + node_rank * nprocs
     world_size = nodes * nprocs
 
@@ -16,11 +18,32 @@ def distributed_function(rank: int, main_address: str, main_port: int, nodes: in
             init_method=f"tcp://{main_address}:{main_port}",
         )
 
+    # 2. Prepare distributed model
+    model = torch.nn.Linear(32, 2)
     device = torch.device(f"cuda:{rank}") if torch.cuda.is_available() else torch.device("cpu")
+    device_ids = device if torch.cuda.is_available() else None
+    model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
-    gathered = [torch.zeros(1, device=device) for _ in range(world_size)]
-    torch.distributed.all_gather(gathered, torch.tensor([global_rank], device=device).float())
-    print(f"Global Rank {global_rank} / Node Rank {node_rank}: {gathered}")
+    # 3. Prepare loss and optimizer
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+    # 4. Train the model for 50 steps.
+    for step in range(50):
+        model.zero_grad()
+        x = torch.randn(64, 32).to(device)
+        output = model(x)
+        loss = criterion(output, torch.ones_like(output))
+        print(f"global_rank: {global_rank} step: {step} loss: {loss}")
+        loss.backward()
+        optimizer.step()
+
+    # 5. Verify all processes have the same weights at the end of training.
+    weight = model.module.weight.clone()
+    torch.distributed.all_reduce(weight)
+    assert torch.equal(model.module.weight, weight / world_size)
+
+    print("Multi Node Distributed Training Done !")
 
 
 class PyTorchMultiNode(L.LightningWork):
@@ -33,7 +56,7 @@ class PyTorchMultiNode(L.LightningWork):
     ):
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 2
         torch.multiprocessing.spawn(
-            distributed_function, args=(main_address, main_port, nodes, node_rank, nprocs), nprocs=nprocs
+            distributed_train, args=(main_address, main_port, nodes, node_rank, nprocs), nprocs=nprocs
         )
 
 
