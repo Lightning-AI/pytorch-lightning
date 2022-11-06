@@ -1,7 +1,7 @@
 import torch
 
 import lightning.app as L
-from lightning_app.components import MultiNode
+from lightning.app.components import MultiNode
 
 
 def distributed_function(rank: int, main_address: str, main_port: int, nodes: int, node_rank: int, nprocs: int):
@@ -16,9 +16,11 @@ def distributed_function(rank: int, main_address: str, main_port: int, nodes: in
             init_method=f"tcp://{main_address}:{main_port}",
         )
 
-    gathered = [torch.zeros(1) for _ in range(world_size)]
-    torch.distributed.all_gather(gathered, torch.tensor([global_rank]).float())
-    print(f"Global Rank {global_rank}: {gathered}")
+    device = torch.device(f"cuda:{rank}") if torch.cuda.is_available() else torch.device("cpu")
+
+    gathered = [torch.zeros(1, device=device) for _ in range(world_size)]
+    torch.distributed.all_gather(gathered, torch.tensor([global_rank], device=device).float())
+    print(f"Global Rank {global_rank} / Node Rank {node_rank}: {gathered}")
 
 
 class PyTorchMultiNode(L.LightningWork):
