@@ -100,6 +100,7 @@ jobs:
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
           python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app,lightning" --target_import="lightning_app,lightning_app"
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning_app.lite" --target_import="lightning_lite"
 
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
