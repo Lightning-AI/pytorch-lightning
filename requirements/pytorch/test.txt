@@ -13,4 +13,4 @@ onnxruntime<1.13.0
 psutil<5.9.4 # for `DeviceStatsMonitor`
 pandas>1.0, <1.5.2  # needed in benchmarks
 fastapi<0.83.0
-uvicorn<=0.18.2
+uvicorn<0.19.1
