@@ -39,7 +39,6 @@ def monkeypatch_connection(monkeypatch, tmpdir, ppid):
 def test_connect_disconnect_local(tmpdir, monkeypatch):
     disconnect()
 
-
     ppid = str(psutil.Process(os.getpid()).ppid())
     connection_path = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid)
 
@@ -98,10 +97,8 @@ def test_connect_disconnect_local(tmpdir, monkeypatch):
     assert _retrieve_connection_to_an_app() == (None, None)
 
 
-
 def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     disconnect()
-
 
     ppid_1 = str(psutil.Process(os.getpid()).ppid())
     ppid_2 = "222"
