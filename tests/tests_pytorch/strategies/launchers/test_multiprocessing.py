@@ -11,14 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, Mock
 
 import pytest
 import torch
 
+from lightning_lite.plugins.environments.debug import _DebugEnvironment
+from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
 from tests_pytorch.helpers.runif import RunIf
+
+from pytorch_lightning.trainer.states import TrainerFn
 
 
 @mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
@@ -76,3 +84,43 @@ def test_global_state_snapshot():
     assert torch.are_deterministic_algorithms_enabled()
     assert not torch.backends.cudnn.benchmark
     assert torch.initial_seed() == 123
+
+
+@pytest.mark.parametrize("trainer_fn", [
+    TrainerFn.FITTING,
+    "other",
+])
+@pytest.mark.parametrize("fake_node_rank", [0, 1])
+@pytest.mark.parametrize("fake_local_rank", [0, 1])
+def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, tmpdir, monkeypatch):
+    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
+    file."""
+    monkeypatch.setitem(os.environ, "NODE_RANK", str(fake_node_rank))
+    monkeypatch.setitem(os.environ, "LOCAL_RANK", str(fake_local_rank))
+
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    fake_global_rank = 2 * fake_node_rank + fake_local_rank
+    strategy = DDPSpawnStrategy(cluster_environment=_DebugEnvironment(world_size=4, node_rank=fake_node_rank, local_rank=fake_local_rank, global_rank=fake_global_rank))
+    strategy._local_rank = fake_local_rank
+
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
+
+    assert strategy.node_rank == fake_node_rank
+    assert strategy.local_rank == fake_local_rank
+    assert strategy.global_rank == fake_global_rank
+
+    trainer.strategy.connect(model)
+    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
+    temp_file = Path(tmpdir, ".temp.ckpt")
+
+    assert not temp_file.exists()
+    spawn_output = launcher._collect_rank_zero_results(trainer, {})
+
+    model.state_dict.assert_called_once()
+    is_fitting = trainer_fn == TrainerFn.FITTING
+    if strategy.local_rank == 0:
+        assert spawn_output.weights_path == (str(temp_file) if is_fitting else None)
+        assert not is_fitting or temp_file.exists()
+    else:
+        assert spawn_output is None
