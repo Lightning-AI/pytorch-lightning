@@ -284,7 +284,7 @@ class LightningApp:
     @property
     def flows(self) -> List["LightningFlow"]:
         """Returns all the flows defined within this application."""
-        return [self.root] + self.root.get_all_children()
+        return [self.root] + list(self.root.flows.values())
 
     @property
     def works(self) -> List[LightningWork]:

@@ -1,7 +1,7 @@
 coverage==6.4.2
 codecov==2.1.12
 pytest==7.1.3
-pytest-cov==3.0.0
+pytest-cov==4.0.0
 pytest-forked==1.4.0
 pytest-rerunfailures==10.2
 pre-commit==2.20.0
@@ -13,4 +13,4 @@ onnxruntime<1.13.0
 psutil<5.9.4 # for `DeviceStatsMonitor`
 pandas>1.0, <1.5.2  # needed in benchmarks
 fastapi<0.83.0
-uvicorn<=0.18.2
+uvicorn<0.19.1
