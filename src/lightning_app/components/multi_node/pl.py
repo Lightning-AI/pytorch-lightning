@@ -13,14 +13,14 @@ from lightning_app.utilities.tracer import Tracer
 
 
 @runtime_checkable
-class _LiteProtocol(Protocol):
+class _PyTorchLightningProtocol(Protocol):
     @staticmethod
     def run() -> None:
         ...
 
 
 @dataclass
-class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
+class _PyTorchLightningRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
@@ -31,8 +31,8 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite import LightningLite
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
+        from lightning.pytorch import Trainer
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -50,7 +50,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["LT_CLI_USED"] = "1"
 
         # Used to pass information to Lite directly.
-        def pre_fn(lite, *args, **kwargs):
+        def pre_fn(trainer, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
             kwargs["accelerator"] = "auto"
@@ -66,13 +66,13 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
             return {}, args, kwargs
 
         tracer = Tracer()
-        tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
+        tracer.add_traced(Trainer, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         work_run()
         tracer._restore()
 
 
-class LiteMultiNode(MultiNode):
+class PyTorchLightningMultiNode(MultiNode):
     def __init__(
         self,
         work_cls: Type["LightningWork"],
@@ -81,7 +81,7 @@ class LiteMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, _LiteProtocol)
+        assert issubclass(work_cls, _PyTorchLightningProtocol)
         if not is_static_method(work_cls, "run"):
             raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
@@ -90,6 +90,6 @@ class LiteMultiNode(MultiNode):
             *work_args,
             num_nodes=num_nodes,
             cloud_compute=cloud_compute,
-            executor_cls=_LiteRunExecutor,
+            executor_cls=_PyTorchLightningRunExecutor,
             **work_kwargs,
         )
