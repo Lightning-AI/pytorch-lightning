@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
@@ -572,7 +573,7 @@ class WandbLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = (
                 {
-                    "score": s,
+                    "score": s.item() if isinstance(s, Tensor) else s,
                     "original_filename": Path(p).name,
                     checkpoint_callback.__class__.__name__: {
                         k: getattr(checkpoint_callback, k)
