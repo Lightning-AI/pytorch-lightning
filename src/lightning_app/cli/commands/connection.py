@@ -146,7 +146,7 @@ def connect(app_name_or_id: str, yes: bool = False):
                 click.echo(f"    lightning {pretty_command_name}")
 
         with open(connected_file, "w") as f:
-            f.write(app_name_or_id + "\n")
+            f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
         click.echo(" ")
         click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
