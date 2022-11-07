@@ -32,7 +32,8 @@ class _PyTorchLightningRunExecutor(_PyTorchSpawnRunExecutor):
         nprocs: int,
     ):
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
-        from lightning.pytorch import Trainer
+        from lightning.pytorch import Trainer as LTrainer
+        from pytorch_lightning import Trainer as PLTrainer
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -66,7 +67,8 @@ class _PyTorchLightningRunExecutor(_PyTorchSpawnRunExecutor):
             return {}, args, kwargs
 
         tracer = Tracer()
-        tracer.add_traced(Trainer, "__init__", pre_fn=pre_fn)
+        tracer.add_traced(PLTrainer, "__init__", pre_fn=pre_fn)
+        tracer.add_traced(LTrainer, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         work_run()
         tracer._restore()
