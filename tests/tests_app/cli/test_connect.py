@@ -99,10 +99,9 @@ def test_connect_disconnect_local(tmpdir, monkeypatch):
 
 
 
-def test_connect_disconnect_cloud(monkeypatch):
+def test_connect_disconnect_cloud(tmpdir, monkeypatch):
     disconnect()
 
-    tmpdir = tempfile.mkdtemp()
 
     ppid_1 = str(psutil.Process(os.getpid()).ppid())
     ppid_2 = "222"
