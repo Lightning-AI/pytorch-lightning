@@ -216,7 +216,7 @@ class Test_wait_for_cluster_state:
                 for state in [previous_state, target_state]
             ]
         )
-        cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, poll_duration=0.1)
+        cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, poll_duration_seconds=0.1)
         assert client.get_call_count == 2
 
     @pytest.mark.parametrize("target_state", [V1ClusterState.RUNNING, V1ClusterState.DELETED])
@@ -232,7 +232,7 @@ class Test_wait_for_cluster_state:
             consume=False,
         )
         with pytest.raises(click.ClickException) as e:
-            cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, timeout=0.1, poll_duration=0.1)
+            cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, timeout_seconds=0.1, poll_duration_seconds=0.1)
 
         if target_state == V1ClusterState.DELETED:
             expected_state = "deleted"
@@ -281,8 +281,8 @@ class Test_wait_for_cluster_state:
             client,
             "test-cluster",
             target_state=V1ClusterState.RUNNING,
-            timeout=0.6,
-            poll_duration=0.1,
+            timeout_seconds=0.6,
+            poll_duration_seconds=0.1,
         )
 
         assert client.get_call_count == 7
@@ -345,8 +345,8 @@ class Test_wait_for_cluster_state:
             client,
             "test-cluster",
             target_state=V1ClusterState.DELETED,
-            timeout=0.4,
-            poll_duration=0.1,
+            timeout_seconds=0.4,
+            poll_duration_seconds=0.1,
         )
 
         assert client.get_call_count == 4

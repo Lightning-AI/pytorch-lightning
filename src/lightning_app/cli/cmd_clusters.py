@@ -225,8 +225,8 @@ def _wait_for_cluster_state(
     api_client: LightningClient,
     cluster_id: str,
     target_state: V1ClusterState,
-    timeout: int = MAX_CLUSTER_WAIT_TIME,
-    poll_duration: int = 10,
+    timeout_seconds: int = MAX_CLUSTER_WAIT_TIME,
+    poll_duration_seconds: int = 10,
 ) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
@@ -237,20 +237,20 @@ def _wait_for_cluster_state(
         api_client: LightningClient used for polling
         cluster_id: Specifies the cluster to wait for
         target_state: Specifies the desired state the target cluster needs to meet
-        timeout: Maximum duration to wait (in seconds)
-        poll_duration: duration between polling for the cluster state (in seconds)
+        timeout_seconds: Maximum duration to wait
+        poll_duration_seconds: duration between polling for the cluster state
     """
     start = time.time()
     elapsed = 0
 
     click.echo(f"Waiting for cluster to be {ClusterState.from_api(target_state)}...")
-    while elapsed < timeout:
+    while elapsed < timeout_seconds:
         try:
             resp: V1GetClusterResponse = api_client.cluster_service_get_cluster(id=cluster_id)
             click.echo(_cluster_status_long(cluster=resp, desired_state=target_state, elapsed=elapsed))
             if resp.status.phase == target_state:
                 break
-            time.sleep(poll_duration)
+            time.sleep(poll_duration_seconds)
             elapsed = int(time.time() - start)
         except lightning_cloud.openapi.rest.ApiException as e:
             if e.status == 404 and target_state == V1ClusterState.DELETED:
@@ -261,7 +261,7 @@ def _wait_for_cluster_state(
         raise click.ClickException(
             dedent(
                 f"""\
-            The cluster has not entered the {state_str} state within {_format_elapsed_seconds(timeout)}.
+            The cluster has not entered the {state_str} state within {_format_elapsed_seconds(timeout_seconds)}.
 
             The cluster may eventually be {state_str} afterwards, please check its status using:
                 lighting list clusters
