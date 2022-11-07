@@ -30,7 +30,7 @@ class LiteRunExecutor(WorkRunExecutor):
         main_port: int,
         num_nodes: int,
         node_rank: int,
-    ):
+    ) -> None:
         from lightning.lite import LightningLite
 
         os.environ["MASTER_ADDR"] = main_address
@@ -60,9 +60,9 @@ class LiteMultiNode(MultiNode):
 
         super().__init__(
             work_cls,
-            lite._strategy._num_nodes if lite else 1,
-            cloud_compute,
-            executor_cls=partial(LiteRunExecutor, lite=lite),
             *work_args,
+            num_nodes=lite._strategy._num_nodes if lite else 1,
+            cloud_compute=cloud_compute,
+            executor_cls=partial(LiteRunExecutor, lite=lite),
             **work_kwargs,
         )
