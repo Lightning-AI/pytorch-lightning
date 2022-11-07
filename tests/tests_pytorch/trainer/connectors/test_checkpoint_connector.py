@@ -102,6 +102,30 @@ def test_hpc_max_ckpt_version(tmpdir):
     )
 
 
+def test_ckpt_for_fsspec():
+    """Test that the CheckpointConnector is able to write to fsspec file systems."""
+
+    model = BoringModel()
+    # hardcoding dir since `tmpdir` can be windows path
+    trainer = Trainer(
+        default_root_dir="memory://test_ckpt_for_fsspec", limit_train_batches=1, limit_val_batches=1, max_epochs=1
+    )
+    trainer.fit(model)
+    trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt.ckpt")
+    trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_0.ckpt")
+    trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_3.ckpt")
+    trainer.save_checkpoint("memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt")
+
+    assert trainer._checkpoint_connector._hpc_resume_path == "memory://test_ckpt_for_fsspec/hpc_ckpt_33.ckpt"
+    assert (
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder("memory://test_ckpt_for_fsspec")
+        == 33
+    )
+    assert (
+        trainer._checkpoint_connector._CheckpointConnector__max_ckpt_version_in_folder("memory://not_existing") is None
+    )
+
+
 def test_loops_restore(tmpdir):
     """Test that required loop state_dict is loaded correctly by checkpoint connector."""
     model = BoringModel()
