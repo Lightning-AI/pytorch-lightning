@@ -71,10 +71,10 @@ subprojects:
       # all examples don't need to be added because they aren't used in CI, but these are
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
-    checks:
+    checks: !merge
       # Note: updates here should be applied to the lightning_lite group
-      *check_spl_cpu
-      *checks_pl_slow
+      - *check_spl_cpu
+      - *checks_pl_slow
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
@@ -101,8 +101,8 @@ subprojects:
       - ".actions/**"
     checks:
       # Note: updates here should be applied to the lightning_lite group
-      *check_spl_cpu
-      *checks_pl_slow
+      - *check_spl_cpu
+      - *checks_pl_slow
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "pytorch-lightning (GPUs)"
@@ -176,11 +176,11 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
-      *checks_lite_cpu
+      - *checks_lite_cpu
       - "lightning-lite (GPUs)"
       # Lite also requires PL checks as it depends on Lite
-      *check_spl_cpu
-      *checks_pl_slow
+      - *check_spl_cpu
+      - *checks_pl_slow
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
       - "pytorch-lightning (GPUs)"
@@ -192,7 +192,7 @@ subprojects:
     paths:
       - "tests/tests_lite/**"
     checks:
-      *checks_lite_cpu
+      - *checks_lite_cpu
       - "lightning-lite (GPUs)"
 
   - id: "lightning_lite: Azure GPU"
@@ -245,7 +245,7 @@ subprojects:
       - "App.cloud-e2e"
       - "make-doctest (app)"
       - "make-html (app)"
-      *checks_app_cpu
+      - *checks_app_cpu
 
   - id: "lightning_app: Examples"
     paths:
@@ -256,7 +256,7 @@ subprojects:
       - "setup.py"
       - ".actions/**"
     checks:
-      *checks_app_examples
+      - *checks_app_examples
 
   - id: "lightning_app: Azure"
     paths:
