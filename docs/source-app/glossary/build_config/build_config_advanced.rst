@@ -50,8 +50,7 @@ Create a :class:`~lightning_app.utilities.packaging.build_config.BuildConfig` an
 
 .. note::
     Custom docker images must have python installed. We'll use `virtualenv` from this system python to create a virtual environment.
-    We'll also configure the `virtualenv` to use the packages installed under system's python so your
-    packages are not lost
+    We'll also configure the `virtualenv` to use the packages installed under system's python so your packages are not lost
 
 ----
 
