@@ -38,7 +38,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["MASTER_ADDR"] = main_address
         os.environ["MASTER_PORT"] = str(main_port)
 
-        # Used to hijack TorchElastic Cluster Environement.
+        # Used to hijack TorchElastic Cluster Environnement.
         os.environ["GROUP_RANK"] = str(node_rank)
         os.environ["RANK"] = str(local_rank + node_rank * nprocs)
         os.environ["LOCAL_RANK"] = str(local_rank)
@@ -46,7 +46,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["LOCAL_WORLD_SIZE"] = str(nprocs)
         os.environ["TORCHELASTIC_RUN_ID"] = "1"
 
-        # Used to force Lite to setup the distributed environement.
+        # Used to force Lite to setup the distributed environnement.
         os.environ["LT_CLI_USED"] = "1"
 
         # Used to pass information to Lite directly.
