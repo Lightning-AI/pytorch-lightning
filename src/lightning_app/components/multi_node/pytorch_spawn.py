@@ -10,7 +10,7 @@ from lightning_app.utilities.proxies import WorkRunExecutor
 
 
 @runtime_checkable
-class PyTorchSpawnProtocol(Protocol):
+class _PyTorchSpawnProtocol(Protocol):
     def run(
         self,
         world_size: int,
@@ -21,7 +21,7 @@ class PyTorchSpawnProtocol(Protocol):
         pass
 
 
-class PyTorchSpawnRunExecutor(WorkRunExecutor):
+class _PyTorchSpawnRunExecutor(WorkRunExecutor):
     def __call__(
         self,
         main_address: str,
@@ -75,10 +75,10 @@ class PyTorchSpawnMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, PyTorchSpawnProtocol)
+        assert issubclass(work_cls, _PyTorchSpawnProtocol)
         if not is_static_method(work_cls, "run"):
             raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
         super().__init__(
-            work_cls, num_nodes, cloud_compute, executor_cls=PyTorchSpawnRunExecutor, *work_args, **work_kwargs
+            work_cls, num_nodes, cloud_compute, executor_cls=_PyTorchSpawnRunExecutor, *work_args, **work_kwargs
         )

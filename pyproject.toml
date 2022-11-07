@@ -61,6 +61,7 @@ warn_no_return = "False"
 module = [
     "lightning_app.components.multi_node.lite",
     "lightning_app.components.multi_node.base",
+    "lightning_app.components.multi_node.pytorch_spawn",
     "lightning_app.api.http_methods",
     "lightning_app.api.request_types",
     "lightning_app.cli.commands.app_commands",

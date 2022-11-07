@@ -13,14 +13,14 @@ from lightning_app.utilities.proxies import WorkRunExecutor
 
 
 @runtime_checkable
-class LiteProtocol(Protocol):
+class _LiteProtocol(Protocol):
     @staticmethod
     def run(lite) -> None:
         ...
 
 
 @dataclass
-class LiteRunExecutor(WorkRunExecutor):
+class _LiteRunExecutor(WorkRunExecutor):
 
     lite: Any
 
@@ -55,7 +55,7 @@ class LiteMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, LiteProtocol)
+        assert issubclass(work_cls, _LiteProtocol)
         if not is_static_method(work_cls, "run"):
             raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
@@ -74,6 +74,6 @@ class LiteMultiNode(MultiNode):
             *work_args,
             num_nodes=num_nodes if lite else 1,
             cloud_compute=cloud_compute,
-            executor_cls=partial(LiteRunExecutor, lite=lite),
+            executor_cls=partial(_LiteRunExecutor, lite=lite),
             **work_kwargs,
         )
