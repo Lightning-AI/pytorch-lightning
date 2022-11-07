@@ -19,6 +19,8 @@ from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
+from fsspec.core import url_to_fs
+from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 from torchmetrics import Metric
 
@@ -59,13 +61,16 @@ class CheckpointConnector:
     @property
     def _hpc_resume_path(self) -> Optional[str]:
         dir_path_hpc = self.trainer.default_root_dir
-        fs = get_filesystem(dir_path_hpc)
-        if not fs.isdir(dir_path_hpc):
-            return None
         dir_path_hpc = str(dir_path_hpc)
+        fs, path = url_to_fs(dir_path_hpc)
+        if not fs.isdir(path):
+            return None
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
-            return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+            if isinstance(fs, LocalFileSystem):
+                return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+            else:
+                return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -341,19 +346,20 @@ class CheckpointConnector:
         pl_module = self.trainer.lightning_module
         assert pl_module is not None
 
-        # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
-        # it will be overwritten by the loop's state if it was also saved
-        batch_loop = fit_loop.epoch_loop.batch_loop
-        if pl_module.automatic_optimization:
-            batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
-                "global_step"
-            ]
-        else:
-            batch_loop.manual_loop.optim_step_progress.total.completed = self._loaded_checkpoint["global_step"]
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
+            # it will be overwritten by the loop's state if it was also saved
+            batch_loop = fit_loop.epoch_loop.batch_loop
+            if pl_module.automatic_optimization:
+                batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
+                    "global_step"
+                ]
+            else:
+                batch_loop.manual_loop.optim_step_progress.total.completed = self._loaded_checkpoint["global_step"]
 
-        # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
-        # it will be overwritten by the loop's state if it was also saved
-        fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
+            # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
+            # it will be overwritten by the loop's state if it was also saved
+            fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
@@ -564,12 +570,12 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs = get_filesystem(dir_path)
+        fs, uri = url_to_fs(str(dir_path))
         if not fs.exists(dir_path):
             return None
 
         # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [os.path.basename(f["name"]) for f in fs.listdir(uri)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return None

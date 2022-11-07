@@ -59,7 +59,7 @@ subprojects:
       # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
       #- "test-on-tpus"
 
-  - id: "pytorch_lightning: CPU"
+  - id: "pytorch_lightning: CPU workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests.yml"
     checks:
@@ -86,7 +86,7 @@ subprojects:
       - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
       #- "pl-cpu (windows-2022, lightning, 3.7, 1.9, oldest)"
 
-  - id: "pytorch_lightning: Slow"
+  - id: "pytorch_lightning: Slow workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests-slow.yml"
     checks:
@@ -113,7 +113,7 @@ subprojects:
     checks:
       - "pytorch-lightning (IPUs)"
 
-  - id: "pytorch-lightning: TPU"
+  - id: "pytorch-lightning: TPU workflow"
     paths:
       - ".github/workflows/tpu-tests.yml"
     checks:
@@ -252,8 +252,7 @@ subprojects:
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*"  # some tests_app tests call examples files
-      - ".github/workflows/ci-app-tests.yml"
+      - "examples/app_*/**"  # some tests_app tests call examples files
       - "setup.py"
       - ".actions/**"
     checks:
@@ -270,15 +269,42 @@ subprojects:
       - "app-pytest (windows-2022, app, 3.8, oldest)"
       - "app-pytest (windows-2022, lightning, 3.8, latest)"
 
+  - id: "lightning_app: Tests workflow"
+    paths:
+      - ".github/workflows/ci-app-tests.yml"
+    checks:
+      - "app-pytest (macOS-11, app, 3.8, latest)"
+      - "app-pytest (macOS-11, app, 3.8, oldest)"
+      - "app-pytest (macOS-11, lightning, 3.9, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, latest)"
+      - "app-pytest (ubuntu-20.04, app, 3.8, oldest)"
+      - "app-pytest (ubuntu-20.04, lightning, 3.9, latest)"
+      - "app-pytest (windows-2022, app, 3.8, latest)"
+      - "app-pytest (windows-2022, app, 3.8, oldest)"
+      - "app-pytest (windows-2022, lightning, 3.8, latest)"
+
   - id: "lightning_app: Examples"
     paths:
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app_examples/**"
-      - "examples/app_*"
-      - ".github/workflows/ci-app-examples.yml"
+      - "examples/app_*/**"
       - "setup.py"
       - ".actions/**"
+    checks:
+      - "app-examples (macOS-11, app, 3.9, latest)"
+      - "app-examples (macOS-11, app, 3.9, oldest)"
+      - "app-examples (macOS-11, lightning, 3.9, latest)"
+      - "app-examples (ubuntu-20.04, app, 3.9, latest)"
+      - "app-examples (ubuntu-20.04, app, 3.9, oldest)"
+      - "app-examples (ubuntu-20.04, lightning, 3.9, latest)"
+      - "app-examples (windows-2022, app, 3.9, latest)"
+      - "app-examples (windows-2022, app, 3.9, oldest)"
+      - "app-examples (windows-2022, lightning, 3.9, latest)"
+
+  - id: "lightning_app: Examples workflow"
+    paths:
+      - ".github/workflows/ci-app-examples.yml"
     checks:
       - "app-examples (macOS-11, app, 3.9, latest)"
       - "app-examples (macOS-11, app, 3.9, oldest)"
@@ -332,21 +358,21 @@ subprojects:
       - "install-pkg (ubuntu-22.04, lite, 3.10)"
       - "install-pkg (ubuntu-22.04, pytorch, 3.7)"
       - "install-pkg (ubuntu-22.04, pytorch, 3.10)"
-      - "install-pkg (ubuntu-22.04, 3.7)"
-      - "install-pkg (ubuntu-22.04, 3.10)"
+      - "install-pkg (ubuntu-22.04, lightning, 3.7)"
+      - "install-pkg (ubuntu-22.04, lightning, 3.10)"
       - "install-pkg (macOS-12, app, 3.7)"
       - "install-pkg (macOS-12, app, 3.10)"
       - "install-pkg (macOS-12, lite, 3.7)"
       - "install-pkg (macOS-12, lite, 3.10)"
       - "install-pkg (macOS-12, pytorch, 3.7)"
       - "install-pkg (macOS-12, pytorch, 3.10)"
-      - "install-pkg (macOS-12, 3.7)"
-      - "install-pkg (macOS-12, 3.10)"
+      - "install-pkg (macOS-12, lightning, 3.7)"
+      - "install-pkg (macOS-12, lightning, 3.10)"
       - "install-pkg (windows-2022, app, 3.7)"
       - "install-pkg (windows-2022, app, 3.10)"
       - "install-pkg (windows-2022, lite, 3.7)"
       - "install-pkg (windows-2022, lite, 3.10)"
       - "install-pkg (windows-2022, pytorch, 3.7)"
       - "install-pkg (windows-2022, pytorch, 3.10)"
-      - "install-pkg (windows-2022, 3.7)"
-      - "install-pkg (windows-2022, 3.10)"
+      - "install-pkg (windows-2022, lightning, 3.7)"
+      - "install-pkg (windows-2022, lightning, 3.10)"
