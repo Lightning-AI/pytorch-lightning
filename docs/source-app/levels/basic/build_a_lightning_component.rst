@@ -1,6 +1,6 @@
-##########################################
-Package your code in a lightning component
-##########################################
+##############################################
+Level 1: Package code in a lightning component
+##############################################
 
 **Prereqs:** You know *basic* Python.
 
@@ -14,10 +14,13 @@ Package your code in a lightning component
 *********************************
 Why you need Lightning components
 *********************************
-ML workflows and full stack AI apps require many pieces working such as training, deploying, data annotation. However, this tight coupling
-can lead to monoliths that are hard to scale or many microservices that are hard to monitor, coordinate
-and scale. A Lightning component is a self-contained piece of code (ie: a microservice) that executes your code
-and manages its own infrastructure, auto-scaling and costs for you.
+A Lightning component organizes a piece of code into a self-contained, modular component that
+can be integrated into your existing workflows or assembled to form a Lightning app.
+A Lightning component manages its own infrastructure, auto-scaling, cost management, and more, so you
+can focus on the program logic and not the cloud engineering.
+
+Components run on the cloud or your laptop without code changes 🤯🤯. Connect components using your current workflow management tools or use
+Lightning apps to build powerful sequential AND reactive workflows.
 
 .. raw:: html
 
@@ -27,9 +30,7 @@ and manages its own infrastructure, auto-scaling and costs for you.
 
 |
 
-By using Lightning components you can focus on application logic without dealing with cloud operations
-or even how components speak to each other. Together, Lightning components form a Lightning App that
-gives you these benefits:
+Organizing your code into Lightning components offers these benefits:
 
 .. collapse:: Build systems not scripts
 
@@ -37,7 +38,6 @@ gives you these benefits:
 
    The Lightning structure forces best practices so you don't have to be an expert production engineer.
    Although it feels like you're writing a script, you are actually building a production-ready system.
-
 
 .. collapse:: Cost control
 
@@ -54,7 +54,6 @@ gives you these benefits:
    coding experience. You can write code like you normally do, and the Lightning structure
    ensures your code is implicitely production ready... even if you're just doing research.
 
-
 .. collapse:: For experts: Scale with full control
 
    |
@@ -62,6 +61,14 @@ gives you these benefits:
    if you know what you are doing, Lightning gives you full control to manage your own
    scaling logic, fault-tolerance and even pre-provisioning, all from Python. We even give you
    full flexibility to use tools like `terraform <../../cloud/customize_a_lightning_cluster.html>`_ to optimize cloud clusters for your Lightning apps.
+
+.. collapse:: Integrate into your current workflow tools
+
+   |
+
+   Lightning components are self-contained pieces of funcionality. Add them to your current workflow
+   tools to quickly fill in gaps in your ML workflow such as monitoring drift, training LLMs and more.
+   You can (optionally) use the Lightning App to integrate components into a cohesive workflow.
 
 .. collapse:: Packaged code
 
@@ -91,48 +98,22 @@ Install Lightning
 *****************
 First, install Lightning.
 
-.. code:: bash
-
-    python -m pip install -U lightning
-
-.. collapse:: Mac M1/M2/M3 and Windows users
-
-   |
-
-   **Mac**
-
-   To install on Mac, set these 2 environment variables
-
-   .. code-block:: bash
-
-      # needed for M1/M2/M3
-      export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1
-      export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1
-
-      python -m pip install -U lightning
-
-   **Windows users**
-
-   To install on Windows:
-
-   - setup an alias for Python: python=python3
-   - Add the root folder of Lightning to the Environment Variables to PATH
+.. lit_tabs::
+   :descriptions: Pip; Macs, Apple Silicon (M1/M2/M3); Windows
+   :code_files: /install/pip.bash; /install/mac.bash; /install/windows.bash
+   :tab_rows: 4
+   :height: 180px
 
 ----
 
 **************************
 Build your first component
 **************************
-A Lightning component organizes Python code so it can run on the cloud and be connected with other components to form a Lightning App.
-Pick one of these components to run:
+A Lightning component organizes Python code into a self-contained module so it can run on the cloud.
 
-.. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch on a cloud GPU; Train PyTorch ⚡ on cloud GPUs; Deploy a model on cloud GPUs; Run a model script; Build a model web UI
-   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 7-23;3;4;5;6
-   :app_id: abc123
-   :tab_rows: 4
-   :height: 550px
+**Run one of these components!**
+
+.. include:: ./hero_components.rst
 
 |
 
@@ -142,6 +123,7 @@ Components run the same on the cloud and locally on your choice of hardware.
    :titles: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
    :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_cloud_yours.bash; ./hello_components/code_run_local.bash
    :tab_rows: 4
+   :highlights: ; 5; 0
    :height: 195px
 
 ----
@@ -155,25 +137,18 @@ powerful Lightning app. Here are a few key features available to super-charge yo
 .. lit_tabs::
    :titles: 15+ accelerators; Auto-stop idle machines; Auto-timeout submitted work; Use spot machines (~70% discount); Work with massive datasets; Mount cloud storage; Use a custom container
    :code_files: ./key_features/accelerators.py; ./key_features/idle_machine.py; ./key_features/auto_timeout.py; ./key_features/spot.py; ./key_features/massive_dataset.py; ./key_features/mount_data.py; ./key_features/custom_container.py;
-   :highlights: 10;10;10;10;10;2,6,9, 10; 7
+   :highlights: 11;11;11;11;11;2,7,10, 11; 11
    :app_id: abc123
    :tab_rows: 3
    :height: 430px
 
 ----
 
-***************************
-Use the community ecosystem
-***************************
-Lightning has a vibrant collection of community-built components you can use as templates or to inspire you.
-
-
-----
-
-************************
-Next: Connect components
-************************
-Now you can build components. To build powerful full stack AI apps you'll need to learn to connect them together.
+********************************************
+Next: Explore real component implementations
+********************************************
+In this section we introduced components. Let's explore
+real component implementations in-depth.
 
 .. raw:: html
 
@@ -183,10 +158,10 @@ Now you can build components. To build powerful full stack AI apps you'll need t
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Connect components
-   :description: Learn to connect components
+   :header: Level 2: Explore real component implementations
+   :description: Go deep into real component implementations.
    :col_css: col-md-12
-   :button_link: connect_lightning_components.html
+   :button_link: real_lightning_component_implementations.html
    :height: 150
    :tag: beginner
 

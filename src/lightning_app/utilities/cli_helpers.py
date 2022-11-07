@@ -301,7 +301,8 @@ def _check_environment_and_redirect():
     """
     env_executable = shutil.which("python")
 
-    if env_executable != sys.executable:
+    # on windows, the extension might be different, where one uses `.EXE` and the other `.exe`
+    if env_executable.lower() != sys.executable.lower():
         logger.info(
             "Lightning is running from outside your current environment. Switching to your current environment."
         )

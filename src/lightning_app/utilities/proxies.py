@@ -7,7 +7,7 @@ import time
 import traceback
 import warnings
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
 from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
@@ -39,6 +39,13 @@ from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
+
+
+@dataclass
+class Action:
+    method: str = "run"
+    args: Tuple = field(default_factory=lambda: ())
+    kwargs: Dict = field(default_factory=lambda: {})
 
 
 def unwrap(fn):
@@ -388,17 +395,20 @@ class WorkRunner:
         # 6. Create the state observer thread.
         self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
 
+        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
+        reference_state = deepcopy(self.work.state)
+
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
 
-        # 7. Patch the setattr method of the work. This needs to be done after step 4, so we don't
+        # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
         self._proxy_setattr()
 
-        # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        reference_state = deepcopy(self.work.state)
+        if self._is_starting(called, reference_state, call_hash):
+            return
 
         # 9. Inform the flow the work is running and add the delta to the deepcopy.
         self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
@@ -568,6 +578,21 @@ class WorkRunner:
                 path._attach_work(self.work)
             if path.origin_name and path.origin_name != self.work.name and path.exists_remote():
                 path.get(overwrite=True)
+
+    def _is_starting(self, called, reference_state, call_hash) -> bool:
+        if len(called["args"]) == 1 and isinstance(called["args"][0], Action):
+            action = called["args"][0]
+            if action.method == "start":
+                # 9. Inform the flow the work is running and add the delta to the deepcopy.
+                self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
+                self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.STARTED))
+                delta = Delta(DeepDiff(reference_state, self.work.state))
+                self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+                self._proxy_setattr(cleanup=True)
+                return True
+            else:
+                raise Exception("Only the `start` action is supported right now !")
+        return False
 
 
 def persist_artifacts(work: "LightningWork") -> None:

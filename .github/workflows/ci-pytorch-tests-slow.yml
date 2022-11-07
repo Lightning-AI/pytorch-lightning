@@ -6,7 +6,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/ci-pytorch-tests-slow.yml"
       - "requirements/pytorch/*"
@@ -55,15 +55,6 @@ jobs:
         key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ hashFiles('requirements/pytorch/base.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-
-
-    - name: Install lite for PL
-      # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
-      # also installing from source not from on-the-fly created package to prevent accidental interaction with cache
-      env:
-        PACKAGE_NAME: "lite"
-      run: |
-        pip install -e . --upgrade --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        git checkout -- setup.py MANIFEST.in
 
     - name: Install package & dependencies
       env:

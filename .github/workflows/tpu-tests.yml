@@ -5,7 +5,7 @@ on:
     branches: [master, "release/*"]
   pull_request_target:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/tpu-tests.yml"
       - "requirements/pytorch/*"
@@ -101,10 +101,15 @@ jobs:
         done
         echo "Done waiting. Job status code: $status_code"
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
-        grep '<?xml version="1.0" ?>' /tmp/full_output.txt  # sanity check
-        csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'
-        cat xx00  # test logs
-        mv xx01 coverage.xml
+        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
+          # successful run. split the output into logs + coverage report
+          csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/';
+          cat xx00  # test logs
+          mv xx01 coverage.xml
+        else
+          # failed run, print everything
+          cat /tmp/full_output.txt;
+        fi
         exit $status_code
       shell: bash
 

@@ -10,9 +10,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added the `start` method to the work ([#15523](https://github.com/Lightning-AI/lightning/pull/15523))
 
--
+- Added a `MultiNode` Component to run with distributed computation with any frameworks ([#15524](https://github.com/Lightning-AI/lightning/pull/15524))
 
 -
 
@@ -22,9 +22,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Cluster creation and deletion now waits by default [#15458](https://github.com/Lightning-AI/lightning/pull/15458)
 - Changed the `flow.flows` to be recursive wont to align the behavior with the `flow.works` ([#15466](https://github.com/Lightning-AI/lightning/pull/15466))
 
--
 
--
+- The `params` argument in `TracerPythonScript.run` no longer prepends `--` automatically to parameters ([#15518](https://github.com/Lightning-AI/lightning/pull/15518))
+
 
 
 ### Deprecated
@@ -50,9 +50,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed writing app name and id in connect.txt file for the command CLI ([#15443](https://github.com/Lightning-AI/lightning/pull/15443))
 
--
+- Fixed missing root flow among the flows of the app ([#15531](https://github.com/Lightning-AI/lightning/pull/15531))
 
--
+- Fixed bug with Multi Node Component and add some examples ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 
 
 

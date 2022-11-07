@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
@@ -137,9 +137,12 @@ def application_testing(
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning.LightningApp", lightning_app_cls), mock.patch(
-        "lightning_app.LightningApp", lightning_app_cls
-    ):
+    patch1 = mock.patch("lightning_app.LightningApp", lightning_app_cls)
+    # we need to patch both only with the mirror package
+    patch2 = (
+        mock.patch("lightning.LightningApp", lightning_app_cls) if "lightning.app" in sys.modules else nullcontext()
+    )
+    with patch1, patch2:
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()

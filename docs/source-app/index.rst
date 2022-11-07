@@ -11,7 +11,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 .. join_slack::
    :align: left
 
-**Featured examples of what you can build with Lightning:**
+**Featured examples of what you can do with Lightning:**
 
 |
 
@@ -22,7 +22,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 .. app_card::
    :title: Develop and Train
-   :description: Train an LLM (512 GPUs)
+   :description: Train an LLM (64 GPUs)
    :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
    :preview: https://lightning.ai
@@ -34,10 +34,10 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
    :title: Serve and deploy
    :description: Production-ready stable diffusion server (<2s latency)
    :width: 280
+   :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
-   :preview: https://lightning.ai
    :deploy: https://lightning.ai
-   :target: https://apple.com
+   :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
    :tags: App
 
 .. app_card::
@@ -56,9 +56,13 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 ----
 
-************************
-Build modular components
-************************
+****************************************
+Build self-contained, modular components
+****************************************
+Lightning is a hyper-minimalistic framework designed to maximize expressivity that
+enables you to build modular, self-contained components and plug them into your existing workflows.
+A Lightning component organizes arbitrary code so it can run on the cloud. A component can train a model, deploy, or even host a web UI.
+The component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
 
 .. raw:: html
 
@@ -66,27 +70,13 @@ Build modular components
       <img src="https://lightning-ai-docs.s3.amazonaws.com/intro_components.gif" style="max-width: 800px"></img>
    </div>
 
-.. raw:: html
+|
 
-   <div class="row">
-      <div class='col-md-5' style="padding-top: 18px">
-         <p>
-         Build modular, self-contained components that can train and deploy models, host a web UI or run arbitrary code on the cloud.
-         A Lightning Component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
+|
 
-         <br><br>
-         Combine your components and prebuilt ones from <a href="https://lightning.ai/components" target="_blank">our gallery </a>
-         to create full-stack AI apps, ⚡ <i>Lightning fast</i>.
-         </p>
-      </div>
-      <div class='col-md-7'>
+**Run an example component on the cloud**:
 
-.. lit_tabs::
-   :code_files: landing_app.py;
-   :highlights: 6
-   :app_id: abc123
-   :height: 250px
-   :code_only: True
+.. include:: ./levels/basic/hero_components.rst
 
 .. lit_tabs::
    :code_files: landing_app_run.bash
@@ -94,12 +84,7 @@ Build modular components
    :height: 150px
    :code_only: True
 
-|
-
-.. raw:: html
-
-      </div>
-   </div>
+Explore pre-built community components in `our gallery <https://lightning.ai/components>`_.
 
 |
 
@@ -112,7 +97,7 @@ Build modular components
 
 .. displayitem::
    :header: Get started
-   :description: Learn to go from Lightning components to full stack AI apps step-by-step.
+   :description: Learn to build Lightning components step-by-step.
    :col_css: col-md-12
    :button_link: levels/basic/index.html
    :height: 160
@@ -131,8 +116,8 @@ Build modular components
    :maxdepth: 1
    :caption: Home
 
-   Install <install/installation>
    self
+   Install <install/installation>
 
 .. toctree::
    :maxdepth: 1
@@ -167,4 +152,4 @@ Build modular components
    Start from app templates <https://lightning.ai/apps>
    Examples <examples/index>
    Glossary <glossary/index>
-   How to... <workflows/index>
+   How-to <workflows/index>
