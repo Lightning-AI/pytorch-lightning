@@ -292,7 +292,7 @@ def _run_app(
             env_vars=env_vars,
             secrets=secrets,
             cluster_id=cluster_id,
-            force_upload=force_upload
+            force_upload=force_upload,
         )
         if runtime_type == RuntimeType.CLOUD:
             click.echo("Application is ready in the cloud")
