@@ -4,23 +4,60 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [unreleased] - 2022-MM-DD
+
+## [unreleased] - 202Y-MM-DD
+
 
 ### Added
 
-- Added an error message when attempting to launch processes with `python -i` and an interactive-incompatible strategy ([#15293](https://github.com/Lightning-AI/lightning/pull/15293))
+- Added utilities to migrate checkpoints from one Lightning version to another ([#15237](https://github.com/Lightning-AI/lightning/pull/15237))
+
+- Added support to upgrade all checkpoints in a folder using the `pl.utilities.upgrade_checkpoint` script ([#15333](https://github.com/Lightning-AI/lightning/pull/15333))
+
+-
 
 
 ### Changed
 
+- From now on, Lightning Trainer and `LightningModule.load_from_checkpoint` automatically upgrade the loaded checkpoint if it was produced in an old version of Lightning ([#15237](https://github.com/Lightning-AI/lightning/pull/15237))
+
+- `Trainer.{validate,test,predict}(ckpt_path=...)` no longer restores the `Trainer.global_step` and `trainer.current_epoch` value from the checkpoints - From now on, only `Trainer.fit` will restore this value ([#15532](https://github.com/Lightning-AI/lightning/pull/15532))
+
+-
+
+
+### Deprecated
+
+-
+
+-
+
+-
+
+
+### Removed
+
+-
+
+-
+
+-
+
 
 ### Fixed
 
-- Fixed a pickling error when using `RichProgressBar` together with checkpointing ([#15319](https://github.com/Lightning-AI/lightning/pull/15319))
+- Fixed `TensorBoardLogger` not validating the input array type when logging the model graph ([#15323](https://github.com/Lightning-AI/lightning/pull/15323))
+
+- Fixed an attribute error in `ColossalAIStrategy` at import time when `torch.distributed` is not available ([#15535](https://github.com/Lightning-AI/lightning/pull/15535))
+
+- Fixed an issue when calling `fs.listdir` with file URI instead of path in `CheckpointConnector` ([#15413](https://github.com/Lightning-AI/lightning/pull/15413))
+
+- Fixed an issue with the `BaseFinetuning` callback not setting the `track_running_stats` attribute for batch normaliztion layers ([#15063](https://github.com/Lightning-AI/lightning/pull/15063))
+
+- Fixed an issue with `WandbLogger(log_model=True|'all)` raising an error and not being able to serialize tensors in the metadata ([#15544](https://github.com/Lightning-AI/lightning/pull/15544))
 
 
-## [1.8.0] - 2022-MM-DD
-
+## [1.8.0] - 2022-11-01
 
 ### Added
 
@@ -52,6 +89,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `inference_mode` flag to Trainer to let users enable/disable inference mode during evaluation ([#15034](https://github.com/Lightning-AI/lightning/pull/15034))
 - Added `LightningLite.no_backward_sync` for control over efficient gradient accumulation with distributed strategies ([#14966](https://github.com/Lightning-AI/lightning/pull/14966))
 - Added a sanity check that scripts are executed with the `srun` command in SLURM and that environment variables are not conflicting ([#15011](https://github.com/Lightning-AI/lightning/pull/15011))
+- Added an error message when attempting to launch processes with `python -i` and an interactive-incompatible strategy ([#15293](https://github.com/Lightning-AI/lightning/pull/15293))
 
 
 ### Changed
@@ -79,6 +117,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `Callback.on_load_checkpoint` now gets the full checkpoint dictionary and the `callback_state` argument was renamed `checkpoint` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
 - Moved the warning about saving nn.Module in `save_hyperparameters()` to before the deepcopy ([#15132](https://github.com/Lightning-AI/lightning/pull/15132))
 - To avoid issues with forking processes, from PyTorch 1.13 and higher, Lightning will directly use the PyTorch NVML-based check for `torch.cuda.device_count` and from PyTorch 1.14 and higher, Lightning will configure PyTorch to use a NVML-based check for `torch.cuda.is_available`. ([#15110](https://github.com/Lightning-AI/lightning/pull/15110), [#15133](https://github.com/Lightning-AI/lightning/pull/15133))
+- The `NeptuneLogger` now uses `neptune.init_run` instead of the deprecated `neptune.init` to initialize a run ([#15393](https://github.com/Lightning-AI/lightning/pull/15393))
 
 
 ### Deprecated
@@ -107,9 +146,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_tpu_cores` in favor of `lightning_lite.accelerators.tpu.parse_tpu_cores`
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_hpus` in favor of `pytorch_lightning.accelerators.hpu.parse_hpus`
 - Deprecated duplicate `SaveConfigCallback` parameters in `LightningCLI.__init__`: `save_config_kwargs`, `save_config_overwrite` and `save_config_multifile`. New `save_config_kwargs` parameter should be used instead ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
-
-
-- Deprecated `TrainerFn.TUNING`, `RunningStage.TUNING` and `trainer.tuning` property ([#15100](https://github.com/Lightning-AI/lightning/pull/15100)
+- Deprecated `TrainerFn.TUNING`, `RunningStage.TUNING` and `trainer.tuning` property ([#15100](https://github.com/Lightning-AI/lightning/pull/15100))
+- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's ([#15364](https://github.com/Lightnign-AI/lightning/pull/15364))
 
 
 ### Removed
@@ -187,6 +225,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoided initializing optimizers during deepspeed inference ([#14944](https://github.com/Lightning-AI/lightning/pull/14944))
 - Fixed `LightningCLI` parse_env and description in subcommands ([#15138](https://github.com/Lightning-AI/lightning/pull/15138))
 - Fixed an exception that would occur when creating a `multiprocessing.Pool` after importing Lightning ([#15292](https://github.com/Lightning-AI/lightning/pull/15292))
+- Fixed a pickling error when using `RichProgressBar` together with checkpointing ([#15319](https://github.com/Lightning-AI/lightning/pull/15319))
+- Fixed the `RichProgressBar` crashing when used with distributed strategies ([#15376](https://github.com/Lightning-AI/lightning/pull/15376))
+- Fixed an issue with `RichProgressBar` not resetting the internal state for the sanity check progress ([#15377](https://github.com/Lightning-AI/lightning/pull/15377))
+- Fixed an issue with DataLoader re-instantiation when the attribute is an array and the default value of the corresponding argument changed ([#15409](https://github.com/Lightning-AI/lightning/pull/15409))
 
 
 ## [1.7.7] - 2022-09-22

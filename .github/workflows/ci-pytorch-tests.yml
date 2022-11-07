@@ -6,17 +6,18 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
-      - "requirements/pytorch/**"
+      - "requirements/pytorch/*"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/**"
+      - "requirements/lite/*"
       - "src/lightning_lite/**"
       - ".actions/**"
+      - "!requirements/*/docs.txt"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -67,7 +68,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
 
-    timeout-minutes: 50
+    timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v3
@@ -103,6 +104,7 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
+        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         cat requirements/pytorch/base.txt
@@ -182,6 +184,10 @@ jobs:
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+
+    - name: Adjust examples
+      if: ${{ matrix.pkg-name == 'lightning' }}
+      run: python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
 
     - name: Run Examples
       working-directory: ./examples
