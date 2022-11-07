@@ -52,13 +52,16 @@ class PyTorchSpawnRunExecutor(WorkRunExecutor):
         global_rank = local_rank + node_rank * nprocs
         world_size = num_nodes * nprocs
 
-        if torch.distributed.is_available() and not torch.distributed.is_initialized():
-            torch.distributed.init_process_group(
-                "nccl" if torch.cuda.is_available() else "gloo",
-                rank=global_rank,
-                world_size=world_size,
-                init_method=f"tcp://{main_address}:{main_port}",
-            )
+        if torch.distributed.is_available():
+            if not torch.distributed.is_initialized():
+                torch.distributed.init_process_group(
+                    "nccl" if torch.cuda.is_available() else "gloo",
+                    rank=global_rank,
+                    world_size=world_size,
+                    init_method=f"tcp://{main_address}:{main_port}",
+                )
+        elif world_size > 1:
+            raise Exception("Torch distributed should be available.")
 
         work_run(world_size, node_rank, global_rank, local_rank)
 
