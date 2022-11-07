@@ -31,7 +31,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
     ):
         import torch
 
-        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 2
+        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
             self.run, args=(self.work_run, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
         )
