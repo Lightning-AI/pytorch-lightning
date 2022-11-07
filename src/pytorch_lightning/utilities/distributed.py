@@ -252,3 +252,13 @@ def tpu_distributed() -> bool:
     from lightning_lite.accelerators.tpu import _tpu_distributed
 
     return _tpu_distributed()
+
+
+def rank_zero_only(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "`pytorch_lightning.utilities.distributed.rank_zero_only` has been deprecated in v1.8.1 and will"
+        " be removed in v1.10.0. You can import it from `pytorch_lightning.utilities` instead."
+    )
+    from pytorch_lightning.utilities.rank_zero import rank_zero_only as new_rank_zero_only
+
+    return new_rank_zero_only(*args, **kwargs)
