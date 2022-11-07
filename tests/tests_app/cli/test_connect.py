@@ -98,7 +98,6 @@ def test_connect_disconnect_local(monkeypatch):
 
     assert _retrieve_connection_to_an_app() == (None, None)
 
-    shutil.rmtree(tmpdir)
 
 
 def test_connect_disconnect_cloud(monkeypatch):
