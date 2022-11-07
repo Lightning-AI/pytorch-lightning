@@ -232,7 +232,9 @@ class Test_wait_for_cluster_state:
             consume=False,
         )
         with pytest.raises(click.ClickException) as e:
-            cmd_clusters._wait_for_cluster_state(client, "test-cluster", target_state, timeout_seconds=0.1, poll_duration_seconds=0.1)
+            cmd_clusters._wait_for_cluster_state(
+                client, "test-cluster", target_state, timeout_seconds=0.1, poll_duration_seconds=0.1
+            )
 
         if target_state == V1ClusterState.DELETED:
             expected_state = "deleted"
