@@ -59,9 +59,9 @@ class ModelIO:
     @classmethod
     def load_from_checkpoint(
         cls,
-        checkpoint_path: Union[str, IO],
+        checkpoint_path: Union[_PATH, IO],
         map_location: _MAP_LOCATION_TYPE = None,
-        hparams_file: Optional[str] = None,
+        hparams_file: Optional[_PATH] = None,
         strict: bool = True,
         **kwargs: Any,
     ) -> Self:  # type: ignore[valid-type]
