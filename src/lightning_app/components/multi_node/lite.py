@@ -5,11 +5,11 @@ from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning.app.components.multi_node.base import MultiNode
-from lightning.app.core.work import LightningWork
-from lightning.app.utilities.app_helpers import is_static_method
-from lightning.app.utilities.packaging.cloud_compute import CloudCompute
-from lightning.app.utilities.proxies import WorkRunExecutor
+from lightning_app.components.multi_node.base import MultiNode
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import is_static_method
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.proxies import WorkRunExecutor
 
 
 @runtime_checkable
