@@ -457,7 +457,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = work_run(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
                     user_exception = True
 
             if used_runpy:
