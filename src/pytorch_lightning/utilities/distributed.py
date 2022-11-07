@@ -27,14 +27,7 @@ from lightning_lite.utilities.distributed import (
 from lightning_lite.utilities.distributed import _init_dist_connection as new_init_dist_connection
 from lightning_lite.utilities.distributed import _sync_ddp as new_sync_ddp
 from lightning_lite.utilities.distributed import _sync_ddp_if_available as new_sync_ddp_if_available
-from pytorch_lightning.utilities.rank_zero import (  # BACKWARD COMPATIBILITY
-    rank_zero_debug,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_module,
-    rank_zero_only,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
 
 
 def register_ddp_comm_hook(
