@@ -36,10 +36,9 @@ def monkeypatch_connection(monkeypatch, tmpdir, ppid):
     return connection_path
 
 
-def test_connect_disconnect_local(monkeypatch):
+def test_connect_disconnect_local(tmpdir, monkeypatch):
     disconnect()
 
-    tmpdir = tempfile.mkdtemp()
 
     ppid = str(psutil.Process(os.getpid()).ppid())
     connection_path = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid)
