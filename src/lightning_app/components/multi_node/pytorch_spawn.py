@@ -1,27 +1,23 @@
-import os
+from typing import Any, Type
 
+from typing_extensions import Protocol, runtime_checkable
+
+from lightning_app.components.multi_node.base import MultiNode
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.proxies import WorkRunExecutor
 
 
-class LiteRunExecutor(WorkRunExecutor):
-    def __call__(
+@runtime_checkable
+class PyTorchSpawnProtocol(Protocol):
+    def run(
         self,
-        main_address: str,
-        main_port: int,
-        num_nodes: int,
+        world_size: int,
         node_rank: int,
-    ):
-        os.environ["MASTER_ADDR"] = main_address
-        os.environ["MASTER_PORT"] = str(main_port)
-        os.environ["NODE_RANK"] = str(node_rank)
-
-        lite = self.configure_lite(num_nodes)
-        lite.launch(function=self.work_run)
-
-    def configure_lite(self, num_nodes: int):
-        from lightning.lite import LightningLite
-
-        return LightningLite(accelerator="auto", devices="auto", strategy="ddp_spawn", num_nodes=num_nodes)
+        global_rank: int,
+        local_rank: int,
+    ) -> None:
+        pass
 
 
 class PyTorchSpawnRunExecutor(WorkRunExecutor):
@@ -55,3 +51,19 @@ class PyTorchSpawnRunExecutor(WorkRunExecutor):
             )
 
         self.work_run(world_size, node_rank, global_rank, local_rank)
+
+
+class PyTorchSpawnMultiNode(MultiNode):
+    def __init__(
+        self,
+        work_cls: Type["LightningWork"],
+        cloud_compute: "CloudCompute",
+        num_nodes: int,
+        *work_args: Any,
+        **work_kwargs: Any,
+    ) -> None:
+        assert issubclass(work_cls, PyTorchSpawnProtocol)
+
+        super().__init__(
+            work_cls, num_nodes, cloud_compute, executor_cls=PyTorchSpawnRunExecutor, *work_args, **work_kwargs
+        )

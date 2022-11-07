@@ -1,6 +1,8 @@
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
-from lightning_app.components.multi_node.multi_node import MultiNode
+from lightning_app.components.multi_node.base import MultiNode
+from lightning_app.components.multi_node.lite import LiteMultiNode
+from lightning_app.components.multi_node.pytorch_spawn import PyTorchSpawnMultiNode
 from lightning_app.components.python.popen import PopenPythonScript
 from lightning_app.components.python.tracer import Code, TracerPythonScript
 from lightning_app.components.serve.gradio import ServeGradio
@@ -18,6 +20,8 @@ __all__ = [
     "ServeStreamlit",
     "ModelInferenceAPI",
     "MultiNode",
+    "LiteMultiNode",
     "LightningTrainingComponent",
     "PyTorchLightningScriptRunner",
+    "PyTorchSpawnMultiNode",
 ]

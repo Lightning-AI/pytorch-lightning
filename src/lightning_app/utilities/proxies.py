@@ -304,6 +304,7 @@ class ComponentDelta:
 @dataclass
 class WorkRunExecutor:
 
+    work: "LightningWork"
     work_run: Callable
 
     def __call__(self, *args, **kwargs):
@@ -439,7 +440,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = self.run_executor_cls(work_run)(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:

@@ -1,11 +1,13 @@
 import torch
 
 import lightning as L
-from lightning.app.components import MultiNode
+from lightning.app.components import LiteMultiNode
 from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
+
+    # Note: Only staticmethod are support for now with `LiteMultiNode`
     @staticmethod
     def run(lite: LightningLite):
         # 1. Prepare distributed model and optimizer
@@ -25,12 +27,10 @@ class LitePyTorchDistributed(L.LightningWork):
             optimizer.step()
 
 
-compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
 app = L.LightningApp(
-    MultiNode(
+    LiteMultiNode(
         LitePyTorchDistributed,
-        num_nodes=2,
-        cloud_compute=compute,
-        executor="lite",
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100,
+        lite=LightningLite(accelerator="auto", devices="auto", strategy="ddp_spawn", num_nodes=2),
     )
 )
