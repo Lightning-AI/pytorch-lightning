@@ -351,9 +351,9 @@ def _format_elapsed_seconds(seconds: Union[float, int]) -> str:
     """Turns seconds into a duration string.
 
     >>> _format_elapsed_seconds(5)
-    05s
+    '05s'
     >>> _format_elapsed_seconds(60)
-    01m00s
+    '01m00s'
     """
     minutes, seconds = divmod(seconds, 60)
     return (f"{minutes:02}m" if minutes else "") + f"{seconds:02}s"
