@@ -1,16 +1,17 @@
 import json
 import os
+import shutil
 import sys
+import tempfile
 from unittest.mock import MagicMock
 
 import click
+import psutil
 import pytest
 
-import lightning_app.cli.commands.connection as connection_module
 from lightning_app import _PROJECT_ROOT
 from lightning_app.cli.commands.connection import (
     _list_app_commands,
-    _PPID,
     _resolve_command_path,
     _retrieve_connection_to_an_app,
     connect,
@@ -20,8 +21,28 @@ from lightning_app.utilities import cli_helpers
 from lightning_app.utilities.commands import base
 
 
+def monkeypatch_connection(monkeypatch, tmpdir, ppid):
+    connection_path = os.path.join(tmpdir, ppid)
+    try:
+        monkeypatch.setattr("lightning_app.cli.commands.connection._clean_lightning_connection", MagicMock())
+        monkeypatch.setattr("lightning_app.cli.commands.connection._PPID", ppid)
+        monkeypatch.setattr("lightning_app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
+        monkeypatch.setattr("lightning_app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
+    except ModuleNotFoundError:
+        monkeypatch.setattr("lightning.app.cli.commands.connection._clean_lightning_connection", MagicMock())
+        monkeypatch.setattr("lightning_app.cli.commands.connection._PPID", ppid)
+        monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION", tmpdir)
+        monkeypatch.setattr("lightning.app.cli.commands.connection._LIGHTNING_CONNECTION_FOLDER", connection_path)
+    return connection_path
+
+
 def test_connect_disconnect_local(monkeypatch):
     disconnect()
+
+    tmpdir = tempfile.mkdtemp()
+
+    ppid = str(psutil.Process(os.getpid()).ppid())
+    connection_path = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid)
 
     with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
         connect("localhost", True)
@@ -53,9 +74,8 @@ def test_connect_disconnect_local(monkeypatch):
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
     assert os.path.exists(command_path)
-    home = os.path.expanduser("~")
     s = "/" if sys.platform != "win32" else "\\"
-    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
+    command_folder_path = f"{connection_path}{s}commands"
     expected = [
         f"Storing `command with client` at {command_folder_path}{s}command_with_client.py",
         f"You can review all the downloaded commands at {command_folder_path}",
@@ -78,13 +98,18 @@ def test_connect_disconnect_local(monkeypatch):
 
     assert _retrieve_connection_to_an_app() == (None, None)
 
-    connection_module._CLEAN_LIGHTNING_CONNECTION = True
+    shutil.rmtree(tmpdir)
 
 
 def test_connect_disconnect_cloud(monkeypatch):
-    connection_module._CLEAN_LIGHTNING_CONNECTION = False
-
     disconnect()
+
+    tmpdir = tempfile.mkdtemp()
+
+    ppid_1 = str(psutil.Process(os.getpid()).ppid())
+    ppid_2 = "222"
+
+    connection_path = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_1)
 
     target_file = _resolve_command_path("command_with_client")
 
@@ -144,9 +169,8 @@ def test_connect_disconnect_cloud(monkeypatch):
     assert not os.path.exists(command_path)
     command_path = _resolve_command_path("command_with_client")
     assert os.path.exists(command_path)
-    home = os.path.expanduser("~")
     s = "/" if sys.platform != "win32" else "\\"
-    command_folder_path = f"{home}{s}.lightning{s}lightning_connection{s}{_PPID}{s}commands"
+    command_folder_path = f"{connection_path}{s}commands"
     expected = [
         f"Storing `command with client` at {command_folder_path}{s}command_with_client.py",
         f"You can review all the downloaded commands at {command_folder_path}",
@@ -173,11 +197,8 @@ def test_connect_disconnect_cloud(monkeypatch):
     connect("example", True)
     assert messages == ["You are already connected to the cloud Lightning App: example."]
 
-    ppid = connection_module._PPID
-    connection_module._PPID = "11111"
-    connection_module._LIGHTNING_CONNECTION_FOLDER = os.path.join(
-        connection_module._LIGHTNING_CONNECTION, connection_module._PPID
-    )
+    _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_2)
+
     messages = []
     connect("example", True)
     assert messages[0] == "Found existing connection, reusing cached commands"
@@ -187,10 +208,7 @@ def test_connect_disconnect_cloud(monkeypatch):
     print(messages)
     assert messages == ["You are disconnected from the cloud Lightning App: example."]
 
-    connection_module._PPID = ppid
-    connection_module._LIGHTNING_CONNECTION_FOLDER = os.path.join(
-        connection_module._LIGHTNING_CONNECTION, connection_module._PPID
-    )
+    _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_1)
 
     messages = []
     disconnect()
@@ -204,5 +222,4 @@ def test_connect_disconnect_cloud(monkeypatch):
 
     assert _retrieve_connection_to_an_app() == (None, None)
 
-    connection_module._CLEAN_LIGHTNING_CONNECTION = True
-    connection_module._clean_lightning_connection()
+    shutil.rmtree(tmpdir)
