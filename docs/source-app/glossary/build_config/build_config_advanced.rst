@@ -49,7 +49,7 @@ Create a :class:`~lightning_app.utilities.packaging.build_config.BuildConfig` an
     - Images from private registries are currently not supported.
 
 .. note::
-    Base image must have python installed. We'll be using this system python to create a virtual environment using
+    Custom docker images must have python installed. We'll be using this system python to create a virtual environment using
     `virtualenv`. We'll also be configuring the virtualenv to use the packages installed under system's python so your
     packages are not lost
 
