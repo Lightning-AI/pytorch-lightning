@@ -1,9 +1,10 @@
-from typing import Any, Type
+from typing import Any, Callable, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.proxies import WorkRunExecutor
 
@@ -32,10 +33,19 @@ class PyTorchSpawnRunExecutor(WorkRunExecutor):
 
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            self.run, args=(main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
+            self.run, args=(self.work_run, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
         )
 
-    def run(self, local_rank: int, main_address: str, main_port: int, num_nodes: int, node_rank: int, nprocs: int):
+    @staticmethod
+    def run(
+        local_rank: int,
+        work_run: Callable,
+        main_address: str,
+        main_port: int,
+        num_nodes: int,
+        node_rank: int,
+        nprocs: int,
+    ):
         import torch
 
         # 1. Setting distributed environment
@@ -50,7 +60,7 @@ class PyTorchSpawnRunExecutor(WorkRunExecutor):
                 init_method=f"tcp://{main_address}:{main_port}",
             )
 
-        self.work_run(world_size, node_rank, global_rank, local_rank)
+        work_run(world_size, node_rank, global_rank, local_rank)
 
 
 class PyTorchSpawnMultiNode(MultiNode):
@@ -63,6 +73,8 @@ class PyTorchSpawnMultiNode(MultiNode):
         **work_kwargs: Any,
     ) -> None:
         assert issubclass(work_cls, PyTorchSpawnProtocol)
+        if not is_static_method(work_cls, "run"):
+            raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
         super().__init__(
             work_cls, num_nodes, cloud_compute, executor_cls=PyTorchSpawnRunExecutor, *work_args, **work_kwargs

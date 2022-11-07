@@ -2,6 +2,7 @@ import abc
 import asyncio
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -483,3 +484,28 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+# Taken from https://github.com/MacHu-GWU/inspect_mate-project/blob/master/inspect_mate/tester.py#L117
+# Credits to @MacHu-GWU
+def is_static_method(klass_or_instance, attr):
+    value = getattr(klass_or_instance, attr)
+
+    # is a function or method
+    if inspect.isroutine(value):
+        if isinstance(value, property):
+            return False
+
+        args = inspect.getfullargspec(value).args
+        # Can't be a regular method, must be a static method
+        if len(args) == 0:
+            return True
+
+        # must be a regular method
+        elif args[0] == "self":
+            return False
+
+        else:
+            return inspect.isfunction(value)
+
+    return False

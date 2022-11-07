@@ -7,6 +7,7 @@ from typing_extensions import Protocol, runtime_checkable
 
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.proxies import WorkRunExecutor
 
@@ -54,6 +55,8 @@ class LiteMultiNode(MultiNode):
         **work_kwargs: Any,
     ) -> None:
         assert issubclass(work_cls, LiteProtocol)
+        if not is_static_method(work_cls, "run"):
+            raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
         super().__init__(
             work_cls,
