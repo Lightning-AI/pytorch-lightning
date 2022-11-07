@@ -32,5 +32,6 @@ app = L.LightningApp(
         LitePyTorchDistributed,
         cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100,
         num_nodes=2,
+        precision="bf16",
     )
 )

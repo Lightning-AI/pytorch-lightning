@@ -1,15 +1,15 @@
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Optional, Type
+from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_app.components.multi_node.base import MultiNode
-from lightning_app.core.work import LightningWork
-from lightning_app.utilities.app_helpers import is_static_method
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import WorkRunExecutor
+from lightning.app.components.multi_node.base import MultiNode
+from lightning.app.core.work import LightningWork
+from lightning.app.utilities.app_helpers import is_static_method
+from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+from lightning.app.utilities.proxies import WorkRunExecutor
 
 
 @runtime_checkable
@@ -50,7 +50,8 @@ class LiteMultiNode(MultiNode):
         self,
         work_cls: Type["LightningWork"],
         cloud_compute: "CloudCompute",
-        lite: Optional["Any"] = None,
+        num_nodes: int,
+        precision: Any,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -58,10 +59,20 @@ class LiteMultiNode(MultiNode):
         if not is_static_method(work_cls, "run"):
             raise Exception(f"The provided {work_cls} run method needs to be static for now.")
 
+        from lightning_lite import LightningLite
+
+        lite = LightningLite(
+            accelerator="auto",
+            devices="auto",
+            strategy="ddp_spawn",  # Only spawn based strategies are support for now.
+            num_nodes=num_nodes,
+            precision=precision,
+        )
+
         super().__init__(
             work_cls,
             *work_args,
-            num_nodes=lite._strategy._num_nodes if lite else 1,
+            num_nodes=num_nodes if lite else 1,
             cloud_compute=cloud_compute,
             executor_cls=partial(LiteRunExecutor, lite=lite),
             **work_kwargs,
