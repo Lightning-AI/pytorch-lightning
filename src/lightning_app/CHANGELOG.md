@@ -53,6 +53,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed bug with Multi Node Component and add some examples ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 
+- Fixed bug when launching apps on multiple clusters ([#15484](https://github.com/Lightning-AI/lightning/pull/15484))
+
 
 
 ## [1.8.0] - 2022-11-01
