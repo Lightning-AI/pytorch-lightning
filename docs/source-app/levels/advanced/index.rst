@@ -4,6 +4,7 @@
    :maxdepth: 1
    :hidden:
 
+   start_dynamic_components
    level_16
    level_17
    level_18
@@ -13,7 +14,7 @@
 ###############
 Advanced skills
 ###############
-Learn to manage LightningWorks efficiently.
+Learn to build nested components with advanced functionality.
 
 .. join_slack::
    :align: left
@@ -26,6 +27,22 @@ Learn to manage LightningWorks efficiently.
         <div class="row">
 
 .. Add callout items below this line
+
+.. displayitem::
+   :header: Level 9: Start dynamic components
+   :description: Learn to start works dynamically
+   :button_link: start_dynamic_components.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: intermediate
+
+.. displayitem::
+   :header: Level 10: Check component status
+   :description: Learn to use work status to coordinate complex apps.
+   :button_link: level_16.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: advanced
 
 .. displayitem::
    :header: Level: Nest flows

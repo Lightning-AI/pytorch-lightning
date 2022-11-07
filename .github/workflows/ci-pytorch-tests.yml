@@ -6,7 +6,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - "requirements/pytorch/*"
       - "src/pytorch_lightning/**"
@@ -123,16 +123,6 @@ jobs:
 
     - name: Switch PyTorch URL
       run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
-
-    - name: Install lite for PL
-      # Lite shall have pin version, so to keep development aligned we need to install lite from source not from pypi
-      # also installing from source not from on-the-fly created package tp prevent accidental interaction with cache
-      if: ${{ matrix.pkg-name != 'lightning' }}
-      env:
-        PACKAGE_NAME: "lite"
-      run: |
-        pip install -e . --upgrade --find-links ${TORCH_URL}
-        git checkout -- setup.py MANIFEST.in
 
     - name: Install package & dependencies
       env:

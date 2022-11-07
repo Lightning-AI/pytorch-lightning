@@ -26,34 +26,12 @@ defaults:
     shell: bash
 
 jobs:
-
-  build-pypi:
-    # This serves to create packages for potential internal dependencies
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - name: Build package
-        env:
-          PACKAGE_NAME: "lite"
-        run: python setup.py sdist
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: dist
-
   make-doctest:
     runs-on: ubuntu-20.04
-    # make it depending on build docs to reduce load
-    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]  # TODO: , "lit"
+        pkg-name: ["app", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
@@ -61,10 +39,7 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -75,6 +50,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name == 'app' }}
 
@@ -99,7 +75,7 @@ jobs:
         if: ${{ matrix.pkg-name == 'app' }}
         run: |
           pip install -e . -U  -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
-          git checkout -- setup.py MANIFEST.in
+          git checkout -- MANIFEST.in
 
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'app' }}
@@ -123,12 +99,11 @@ jobs:
           make coverage
 
   make-html:
-    needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch", "lit"]
+        pkg-name: ["app", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
@@ -136,10 +111,7 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -150,6 +122,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
@@ -185,5 +158,5 @@ jobs:
         with:
           name: docs-${{ matrix.pkg-name }}-${{ github.sha }}
           path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failures
+        # Use always() to always run this step to publish test results when there are test failuress
         if: success()

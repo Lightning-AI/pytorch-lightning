@@ -26,6 +26,7 @@ from warnings import warn
 
 import yaml
 from lightning_utilities.core.apply_func import apply_to_collection
+from typing_extensions import Self
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import _load as pl_load
@@ -63,7 +64,7 @@ class ModelIO:
         hparams_file: Optional[str] = None,
         strict: bool = True,
         **kwargs: Any,
-    ) -> Union["pl.LightningModule", "pl.LightningDataModule"]:
+    ) -> Self:  # type: ignore[valid-type]
         r"""
         Primary way of loading a model from a checkpoint. When Lightning saves a checkpoint
         it stores the arguments passed to ``__init__``  in the checkpoint under ``"hyper_parameters"``.
