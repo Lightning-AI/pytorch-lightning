@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
-- Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15319](https://github.com/Lightning-AI/lightning/pull/15319))
+- Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15301](https://github.com/Lightning-AI/lightning/pull/15301))
 
 
 ### Changed
