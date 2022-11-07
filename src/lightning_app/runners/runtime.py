@@ -49,7 +49,7 @@ def dispatch(
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
-        force_upload: Whether to force upload the source code, ignoring the size limit
+        force_upload: Whether to force upload the source code when running the app on cloud, ignoring the size limit.
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context

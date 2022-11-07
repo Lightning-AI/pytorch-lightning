@@ -239,6 +239,7 @@ def _run_app(
     open_ui: bool,
     env: tuple,
     secret: tuple,
+    force_upload: bool,
 ) -> None:
     file = _prepare_file(file)
 
@@ -259,6 +260,11 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
+        if force_upload:
+            raise click.ClickException(
+                "Force upload can only be used for apps running in cloud. "
+                "Using the flag --force-upload in local execution is not supported."
+            )
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
@@ -274,20 +280,26 @@ def _run_app(
     # TODO: Fixme when Grid utilities are available.
     # And refactor test_lightning_run_app_cloud
     file_path = Path(file)
-    dispatch(
-        file_path,
-        runtime_type,
-        start_server=not without_server,
-        no_cache=no_cache,
-        blocking=blocking,
-        on_before_run=on_before_run,
-        name=name,
-        env_vars=env_vars,
-        secrets=secrets,
-        cluster_id=cluster_id,
-    )
-    if runtime_type == RuntimeType.CLOUD:
-        click.echo("Application is ready in the cloud")
+    try:
+        dispatch(
+            file_path,
+            runtime_type,
+            start_server=not without_server,
+            no_cache=no_cache,
+            blocking=blocking,
+            on_before_run=on_before_run,
+            name=name,
+            env_vars=env_vars,
+            secrets=secrets,
+            cluster_id=cluster_id,
+            force_upload=force_upload
+        )
+        if runtime_type == RuntimeType.CLOUD:
+            click.echo("Application is ready in the cloud")
+
+    except KeyboardInterrupt:
+        click.echo("Terminating...")
+        sys.exit(0)
 
 
 @_main.group()
@@ -322,6 +334,12 @@ def run() -> None:
 @click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
 @click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
+@click.option(
+    "--force-upload",
+    type=bool,
+    default=True,
+    help="Whether to force upload the source code when running the app on cloud, ignoring the size limit.",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -334,9 +352,10 @@ def run_app(
     env: tuple,
     secret: tuple,
     app_args: tuple,
+    force_upload: bool,
 ) -> None:
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
+    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret, force_upload)
 
 
 @_main.group(hidden=True)

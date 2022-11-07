@@ -259,12 +259,13 @@ def _get_newer_version() -> Optional[str]:
 
 def _redirect_command(executable: str):
     """Redirect the current lightning CLI call to the given executable."""
-    subprocess.run(
-        [executable, "-m", "lightning"] + sys.argv[1:],
-        env=os.environ,
-    )
-
-    sys.exit()
+    try:
+        subprocess.run(
+            [executable, "-m", "lightning"] + sys.argv[1:],
+            env=os.environ,
+        )
+    finally:
+        sys.exit(0)
 
 
 def _check_version_and_upgrade():
