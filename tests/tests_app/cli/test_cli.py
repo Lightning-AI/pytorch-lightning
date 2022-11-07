@@ -112,7 +112,7 @@ def test_create_cluster(create_command: mock.MagicMock):
             "dummy",
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
-        ]
+        ],
     )
 
     create_command.assert_called_once_with(
