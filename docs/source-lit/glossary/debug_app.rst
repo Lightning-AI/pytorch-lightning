@@ -1,1 +1,0 @@
-../../source-app/glossary/debug_app.rst
