@@ -172,7 +172,7 @@ class _MultiProcessingLauncher(_Launcher):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
 
-        if self._strategy.global_rank != 0:
+        if self._strategy.local_rank != 0:
             return None
 
         # save the last weights
