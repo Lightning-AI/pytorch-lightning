@@ -31,11 +31,6 @@ app = L.LightningApp(
     LiteMultiNode(
         LitePyTorchDistributed,
         cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100,
-        lite=LightningLite(
-            accelerator="auto",
-            devices="auto",
-            strategy="deepspeed_zero_3",
-            num_nodes=2,
-        ),
+        num_nodes=2,
     )
 )
