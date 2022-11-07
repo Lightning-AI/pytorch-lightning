@@ -79,6 +79,7 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
+            run_executor_cls: The WorkRunExecutor class executing the work.run method within the proxy.
 
         **Learn More About Lightning Work Inner Workings**
 
