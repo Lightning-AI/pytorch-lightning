@@ -14,7 +14,7 @@ def _rank_zero_debug(*_: Any, **__: Any) -> None:
 def _rank_zero_info(*_: Any, **__: Any) -> None:
     # TODO: Remove in v2.0.0
     raise RuntimeError(
-        "pytorch_lightning.utilities.distributed.rank_zero_info` was deprecated in v1.6 and is no longer accessible"
+        "`pytorch_lightning.utilities.distributed.rank_zero_info` was deprecated in v1.6 and is no longer accessible"
         " as of v1.8. Use the equivalent function from the `pytorch_lightning.utilities.rank_zero` module instead."
     )
 
