@@ -42,13 +42,7 @@
 /tests/tests_lite                           @awaelchli @carmocca @justusschock
 
 # Lightning App
-/src/lightning_app                          @tchaton @lantiga
-/src/lightning_app/cli/pl-app-template      @tchaton @awaelchli @lantiga
-/src/lightning_app/core                     @tchaton @awaelchli
-/src/lightning_app/core/queues.py           @tchaton @hhsecond
-/src/lightning_app/runners/cloud.py         @tchaton @hhsecond @lantiga
-/src/lightning_app/testing                  @tchaton @lantiga
-/src/lightning_app/__about__.py             @nohalon @edenlightning @lantiga
+/src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond
 /tests/tests_app                            @tchaton @awaelchli @hhsecond
 /tests/tests_app_examples                   @tchaton @awaelchli @hhsecond
 /examples/app_*                             @tchaton @awaelchli @hhsecond
