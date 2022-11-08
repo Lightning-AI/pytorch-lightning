@@ -1,1 +1,0 @@
-../../source-pytorch/starter/lightning_lite.rst
