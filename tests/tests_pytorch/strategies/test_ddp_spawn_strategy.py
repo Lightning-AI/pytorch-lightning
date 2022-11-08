@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from datetime import timedelta
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
@@ -135,23 +135,19 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
-    temp_file = Path(tmpdir, ".temp.ckpt")
 
-    assert not temp_file.exists()
     spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
 
     model.state_dict.assert_called_once()
     if trainer_fn == TrainerFn.FITTING:
-        assert spawn_output.weights_path == str(temp_file)
-        assert temp_file.exists()
+        assert spawn_output.weights_path.endswith(".temp.ckpt")
+        assert os.path.isfile(spawn_output.weights_path)
     else:
         assert spawn_output.weights_path is None
-        assert not temp_file.exists()
 
     # <-- here would normally be the multiprocessing boundary
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
-    assert not temp_file.exists()
 
 
 @mock.patch("torch.distributed.init_process_group")
