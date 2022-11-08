@@ -33,7 +33,6 @@ class FusedOptimizerParityModel(BoringModel):
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
-@mock.patch.dict(os.environ, os.environ.copy())
 def test_native_mixed_precision_fused_optimizer_parity(tmpdir):
     def run(fused=False):
         seed_everything(1234)
