@@ -70,14 +70,16 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 if __name__ == "__main__":
-    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
+    assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")  # requires `-v` to appear
-    if package_to_install == "lightning":
-        # install everything
+    if package_to_install == "lightning":  # install everything
+        # merge all requirements files
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        setup_tools.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+        # replace imports and copy the code
+        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
