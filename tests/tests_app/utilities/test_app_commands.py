@@ -81,4 +81,9 @@ def test_execute_app_commands_raises_appropriate_traceback_on_error(capfd):
         _execute_app_commands(cl)
     out, err = capfd.readouterr()
     assert "foo" in out
-    assert "CommandDoesNotExist: not found" in err
+    if sys.platform.startswith("linux"):
+        assert "CommandDoesNotExist: not found" in err
+    elif sys.platform.startswith("darwin"):
+        assert "CommandDoesNotExist: command not found" in err
+    else:
+        assert "CommandDoesNotExist' is not recognized" in err

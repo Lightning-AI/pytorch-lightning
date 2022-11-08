@@ -88,7 +88,7 @@ def _execute_app_commands(cl: CommandLines) -> None:
             raise MisconfigurationException(err_txt) from None
 
 
-def run_app_commands(file: str):
+def run_app_commands(file: str) -> None:
     """Extract all lines at the top of the file which contain commands & execute  them.
 
     Commands to execute are comment lines whose first non-whitespace character
