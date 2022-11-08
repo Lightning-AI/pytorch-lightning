@@ -38,13 +38,6 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
         loss.backward()
         optimizer.step()
 
-    # 5. Verify all processes have the same weights at the end of training.
-    weight = model.module.weight.clone()
-    torch.distributed.all_reduce(weight)
-    assert torch.equal(model.module.weight, weight / world_size)
-
-    print("Multi Node Distributed Training Done!")
-
 
 class PyTorchDistributed(L.LightningWork):
     def run(
@@ -60,11 +53,11 @@ class PyTorchDistributed(L.LightningWork):
         )
 
 
-compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
+# Run over 2 nodes of 4 x V100
 app = L.LightningApp(
     MultiNode(
         PyTorchDistributed,
         num_nodes=2,
-        cloud_compute=compute,
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
     )
 )
