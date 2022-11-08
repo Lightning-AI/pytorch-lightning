@@ -6,7 +6,7 @@ import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -52,7 +52,7 @@ class LightningApp:
         self,
         root: Union["LightningFlow", "LightningWork"],
         flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
-        log_level: Literal["info", "debug"] = "info",
+        log_level: str = "info",
         info: frontend.AppInfo = None,
         root_path: str = "",
     ):
@@ -149,6 +149,9 @@ class LightningApp:
         # Path attributes can't get properly attached during the initialization, because the full name
         # is only available after all Flows and Works have been instantiated.
         _convert_paths_after_init(self.root)
+
+        if log_level not in ("debug", "info"):
+            raise Exception(f"Log Level should be in ['debug', 'info']. Found {log_level}")
 
         # Lazily enable debugging.
         if log_level == "debug" or DEBUG_ENABLED:
