@@ -13,6 +13,7 @@
 # limitations under the License.
 from functools import partial
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -510,26 +511,37 @@ def test_metrics_reset(tmpdir):
 
 @pytest.mark.parametrize("compute_groups", [True, False])
 def test_metriccollection_compute_groups(tmpdir, compute_groups):
-    class CustomMetricsCollection(MetricCollection):
-        def items(self, keep_base: bool = False, copy_state: bool = True):
-            if _TORCHMETRICS_GREATER_EQUAL_0_9_1:
-                assert copy_state != compute_groups
+    def assertion_calls(keep_base: bool, copy_state: bool):
+        if _TORCHMETRICS_GREATER_EQUAL_0_9_1:
+            assert copy_state != compute_groups
 
-            assert not keep_base
+        assert not keep_base
+
+    class CustomMetricsCollection(MetricCollection):
+        wrapped_assertion_calls = Mock(wraps=assertion_calls)
+
+        def items(self, keep_base: bool = False, copy_state: bool = True):
+            if getattr(self, "_is_currently_logging", False):
+                self.wrapped_assertion_calls(keep_base, copy_state)
 
             return super().items(keep_base=keep_base, copy_state=copy_state)
 
     class DummyModule(LightningModule):
         def __init__(self):
             super().__init__()
-            self.metrics = CustomMetricsCollection([Accuracy(), Precision()], compute_groups=compute_groups)
-            self.layer = torch.nn.Linear(1, 1)
+            self.metrics = CustomMetricsCollection(
+                [Accuracy(num_classes=10, average="micro"), Precision(num_classes=10, average="micro")],
+                compute_groups=compute_groups,
+            )
+            self.layer = torch.nn.Linear(32, 10)
 
         def training_step(self, batch):
 
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
+            self.metrics._is_currently_logging = True
             self.log_dict(self.metrics, on_step=True, on_epoch=True)
-            return batch.sum()
+            self.metrics._is_currently_logging = False
+            return self.layer(batch).sum()
 
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
@@ -537,6 +549,10 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
             return optimizer
+
+        def on_train_epoch_end(self) -> None:
+            self.metrics.wrapped_assertion_calls.call_count == 2
+            self.metrics.wrapped_assertion_calls.reset_mock()
 
     trainer = Trainer(
         default_root_dir=tmpdir,
