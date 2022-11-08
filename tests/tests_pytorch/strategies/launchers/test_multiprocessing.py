@@ -120,7 +120,9 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
     model.state_dict.assert_called_once()
     is_fitting = trainer_fn == TrainerFn.FITTING
     if strategy.local_rank == 0:
+        # on local rank 0 (each node), we expect a temp checkpoint (when fitting)
         assert spawn_output.weights_path == (str(temp_file) if is_fitting else None)
         assert not is_fitting or temp_file.exists()
     else:
+        # all other ranks don't have outputs (rank 0 needs to handle the output)
         assert spawn_output is None
