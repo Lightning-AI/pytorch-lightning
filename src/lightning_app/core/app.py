@@ -640,20 +640,22 @@ class LightningApp:
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if deep_diff:
-                # TODO: Add support for changes format.
-                # Supported are `values_changed` or `type_changed`.
+                # TODO: Add support for more changes format from DeepDiff.
+                # Currently supported are `values_changed` or `type_changed`.
                 updates = []
                 if "values_changed" in deep_diff:
                     for k, v in deep_diff["values_changed"].items():
+                        k = k.split("'")[1]
                         if k in LightningWork._INTERNAL_STATE_VARS:
                             continue
-                        updates.append({"key": k.split("'")[1], **v})
+                        updates.append({"key": k, **v})
 
                 if "type_changed" in deep_diff:
                     for k, v in deep_diff["type_changed"].items():
+                        k = k.split("'")[1]
                         if k in LightningWork._INTERNAL_STATE_VARS:
                             continue
-                        updates.append({"key": k.split("'")[1], **v})
+                        updates.append({"key": k, **v})
 
                 logger.debug(f"Sending deepdiff to {w.name} : {updates}")
                 self.flow_to_work_delta_queues[w.name].put(updates)
