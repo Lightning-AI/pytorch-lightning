@@ -703,6 +703,8 @@ class WorkBi(LightningWork):
         while not self.finished:
             self.counter_2 += 1
             time.sleep(0.1)
+        self.counter = -1
+        time.sleep(1)
 
 
 class FlowBi(LightningFlow):
@@ -716,7 +718,7 @@ class FlowBi(LightningFlow):
             self.w.counter += 1
         if self.w.counter > 3:
             self.w.finished = True
-        if self.w.has_succeeded:
+        if self.w.counter == -1 and self.w.has_succeeded:
             self._exit()
 
 
