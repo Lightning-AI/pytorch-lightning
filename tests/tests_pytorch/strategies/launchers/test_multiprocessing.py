@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, Mock
@@ -111,17 +112,15 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
 
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
-    temp_file = Path(tmpdir, ".temp.ckpt")
 
-    assert not temp_file.exists()
     spawn_output = launcher._collect_rank_zero_results(trainer, {})
 
     model.state_dict.assert_called_once()
     is_fitting = trainer_fn == TrainerFn.FITTING
     if strategy.local_rank == 0:
         # on local rank 0 (each node), we expect a temp checkpoint (when fitting)
-        assert spawn_output.weights_path == (str(temp_file) if is_fitting else None)
-        assert not is_fitting or temp_file.exists()
+        assert not is_fitting or spawn_output.weights_path.endswith(".temp.ckpt")
+        assert not is_fitting or os.path.isfile(spawn_output.weights_path)
     else:
         # all other ranks don't have outputs (rank 0 needs to handle the output)
         assert spawn_output is None
