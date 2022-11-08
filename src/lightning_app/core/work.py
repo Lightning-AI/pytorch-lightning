@@ -2,7 +2,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from deepdiff import DeepHash
 
@@ -30,7 +30,7 @@ from lightning_app.utilities.packaging.cloud_compute import (
     _maybe_create_cloud_compute,
     CloudCompute,
 )
-from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap
+from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunExecutor
 
 
 class LightningWork:
@@ -44,6 +44,8 @@ class LightningWork:
         "_restarting",
         "_internal_ip",
     )
+
+    _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __init__(
         self,

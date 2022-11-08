@@ -41,12 +41,22 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
         return res
 
 
-def test_multi_node_example_2():
+@pytest.mark.parametrize(
+    "app_name",
+    [
+        "train_pytorch.py",
+        "train_any.py",
+        # "app_lite_work.py",
+        "train_pytorch_spawn.py",
+        # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
+    ],
+)
+def test_multi_node_examples(app_name):
     cwd = os.getcwd()
     new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
     os.chdir(new_cwd)
     command_line = [
-        "app_work.py",
+        app_name,
         "--blocking",
         "False",
         "--open-ui",
