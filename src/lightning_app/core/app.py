@@ -165,8 +165,6 @@ class LightningApp:
         # this should happen once for all apps before the ui server starts running.
         frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
 
-        print(os.environ)
-
         if (
             debugger_is_active()
             and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
