@@ -755,4 +755,4 @@ def test_bi_directional_proxy_forbidden(monkeypatch):
     app = LightningApp(FlowBi2())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.stage == AppStage.FAILED
-    assert "The work root.w received a flow delta changing counter from 0 to 1" in str(app.exception)
+    assert "The work `root.w` received a flow delta changing `counter` from `0` to `1`" in str(app.exception)

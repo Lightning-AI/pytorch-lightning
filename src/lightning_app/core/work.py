@@ -608,8 +608,8 @@ class LightningWork:
         current_value = getattr(self, key)
         if current_value != old_value:
             raise Exception(
-                f"The work {self.name} received a flow delta changing {key} from {old_value} to {new_value}."
-                f" But, the current value is {current_value}. Creating state divergence isn't supported."
+                f"The work `{self.name}` received a flow delta changing `{key}` from `{old_value}` to `{new_value}`."
+                f" But, the current value is `{current_value}`. Creating state divergence isn't supported."
             )
 
         setattr(self, key, new_value)

@@ -630,7 +630,7 @@ class LightningApp:
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if deep_diff:
-                # TODO: Add support for more types
+                # TODO: Add support for changes than `values_changed`.
                 updates = []
                 for k, v in deep_diff["values_changed"].items():
                     updates.append({"key": k.split("'")[1], **v})
