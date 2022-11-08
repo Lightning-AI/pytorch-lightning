@@ -6,7 +6,7 @@
 Installation
 ############
 
-**Prerequisites**: Use Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x). We also recommend you install in a virtual environment (`learn how <install_beginner.rst>`_).
+**Prerequisites**: Use Python 3.8.x or later (3.8.x, 3.9.x, 3.10.x). We also recommend you install in a virtual environment (learn how).
 
 .. lit_tabs::
    :descriptions: Pip; Macs, Apple Silicon (M1/M2/M3); Windows

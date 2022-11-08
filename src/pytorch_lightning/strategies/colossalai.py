@@ -432,7 +432,7 @@ class ColossalAIStrategy(DDPStrategy):
         strategy_registry.register("colossalai", cls, description="Default ColossalAI Strategy")
 
     def reduce(
-        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = ReduceOp.SUM
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "sum"
     ) -> Tensor:
         with _patch_cuda_is_available():
             from colossalai.communication.collective import reduce

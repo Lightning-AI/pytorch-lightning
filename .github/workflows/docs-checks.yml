@@ -4,7 +4,9 @@ name: Check Docs
 on:
   push:
     branches: ["master", "release/*"]
-  pull_request:
+  # use this event type to share secrets with forks.
+  # it's important that the PR head SHA is checked out to run the changes
+  pull_request_target:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -24,42 +26,20 @@ defaults:
     shell: bash
 
 jobs:
-
-  build-pypi:
-    # This serves to create packages for potential internal dependencies
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - name: Build package
-        env:
-          PACKAGE_NAME: "lite"
-        run: python setup.py sdist
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: dist
-
   make-doctest:
     runs-on: ubuntu-20.04
-    # make it depending on build docs to reduce load
-    needs: build-pypi
     strategy:
       fail-fast: false
       matrix:
-        pkg-name: ["app", "pytorch"]  # TODO: , "lit"
+        pkg-name: ["app", "pytorch"]
     env:
       FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -70,6 +50,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name == 'app' }}
 
@@ -94,7 +75,7 @@ jobs:
         if: ${{ matrix.pkg-name == 'app' }}
         run: |
           pip install -e . -U  -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
-          git checkout -- setup.py MANIFEST.in
+          git checkout -- .
 
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'app' }}
@@ -118,7 +99,6 @@ jobs:
           make coverage
 
   make-html:
-    needs: build-pypi
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -130,10 +110,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -144,6 +122,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
       - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
