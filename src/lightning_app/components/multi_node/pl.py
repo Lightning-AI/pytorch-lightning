@@ -13,7 +13,7 @@ from lightning_app.utilities.tracer import Tracer
 
 
 @runtime_checkable
-class _PyTorchLightningProtocol(Protocol):
+class _PyTorchLightningWorkProtocol(Protocol):
     @staticmethod
     def run() -> None:
         ...
@@ -80,15 +80,19 @@ class PyTorchLightningMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, _PyTorchLightningProtocol)
+        assert issubclass(work_cls, _PyTorchLightningWorkProtocol)
         if not is_static_method(work_cls, "run"):
-            raise Exception(f"The provided {work_cls} run method needs to be static for now.")
+            raise TypeError(
+                f"The provided {work_cls} run method needs to be static for now."
+                "HINT: Remove `self` and add staticmethod decorator."
+            )
+
+        work_cls._run_executor_cls = _PyTorchLightningRunExecutor
 
         super().__init__(
             work_cls,
             *work_args,
             num_nodes=num_nodes,
             cloud_compute=cloud_compute,
-            executor_cls=_PyTorchLightningRunExecutor,
             **work_kwargs,
         )

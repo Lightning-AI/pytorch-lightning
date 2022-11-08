@@ -45,6 +45,8 @@ class LightningWork:
         "_internal_ip",
     )
 
+    _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
+
     def __init__(
         self,
         parallel: bool = False,
@@ -56,7 +58,6 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
-        run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -79,8 +80,6 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
-            run_executor_cls: The WorkRunExecutor class executes the work.run method within the work proxy.
-                In a distributed deployment, It can be provided as an argument to customize the way work is spawned.
 
         **Learn More About Lightning Work Inner Workings**
 
@@ -110,7 +109,6 @@ class LightningWork:
                 "The `run_once` argument to LightningWork is deprecated in favor of `cache_calls` and will be removed"
                 " in the next version. Use `cache_calls` instead."
             )
-        self._run_executor_cls = run_executor_cls
         self._cache_calls = run_once if run_once is not None else cache_calls
         self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
         self._parallel = parallel
