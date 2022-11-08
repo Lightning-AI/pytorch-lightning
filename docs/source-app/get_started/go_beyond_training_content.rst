@@ -25,12 +25,12 @@ Here are `the entire App's code <https://github.com/Lightning-AI/lightning-quick
 Step 1: Install Lightning
 *************************
 
-If you are using a :ref:`virtual environment<install_beginner>`, don't forget to activate it before running commands.
+If you are using a virtual env, don't forget to activate it before running commands.
 You must do so in every new shell.
 
 .. tip:: We highly recommend using virtual environments.
 
-.. code:: python
+.. code:: bash
 
     pip install lightning
 

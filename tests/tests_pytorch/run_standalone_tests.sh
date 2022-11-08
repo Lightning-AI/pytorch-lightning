@@ -18,12 +18,12 @@ set -e
 # Batch size for testing: Determines how many standalone test invocations run in parallel
 # It can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
 test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
-source="${PL_STANDALONE_TESTS_SOURCE}"
+source="${PL_STANDALONE_TESTS_SOURCE:-"pytorch_lightning"}"
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults="-m coverage run --source $source --append -m pytest --no-header"
+defaults="-m coverage run --source $source --append -m pytest --no-header -v -s"
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
@@ -49,6 +49,12 @@ rm -f standalone_test_output.txt  # in case it exists, remove it
 function show_batched_output {
   if [ -f standalone_test_output.txt ]; then  # if exists
     cat standalone_test_output.txt
+    # heuristic: stop if there's mentions of errors. this can prevent false negatives when only some of the ranks fail
+    if grep --quiet --ignore-case --extended-regexp 'error|exception|traceback|failed' standalone_test_output.txt; then
+      echo "Potential error! Stopping."
+      rm standalone_test_output.txt
+      exit 1
+    fi
     rm standalone_test_output.txt
   fi
 }

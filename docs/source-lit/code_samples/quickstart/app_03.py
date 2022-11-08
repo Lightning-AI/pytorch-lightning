@@ -1,1 +1,0 @@
-../../../source-app/code_samples/quickstart/app_03.py

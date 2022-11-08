@@ -347,3 +347,40 @@ class LightningTestAppWithWork(LightningTestApp):
 def test_lightning_app_with_work():
     app = LightningTestAppWithWork(WorkCounter())
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkStart(LightningWork):
+    def __init__(self, cache_calls, parallel):
+        super().__init__(cache_calls=cache_calls, parallel=parallel)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowStart(LightningFlow):
+    def __init__(self, cache_calls, parallel):
+        super().__init__()
+        self.w = WorkStart(cache_calls, parallel)
+        self.finish = False
+
+    def run(self):
+        if self.finish:
+            self._exit()
+        if self.w.status.stage == WorkStageStatus.STOPPED:
+            with pytest.raises(Exception, match="A work can be started only once for now."):
+                self.w.start()
+            self.finish = True
+        if self.w.status.stage == WorkStageStatus.NOT_STARTED:
+            self.w.start()
+        if self.w.status.stage == WorkStageStatus.STARTED:
+            self.w.run()
+        if self.w.counter == 1:
+            self.w.stop()
+
+
+@pytest.mark.parametrize("cache_calls", [False, True])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_lightning_app_work_start(cache_calls, parallel):
+    app = LightningApp(FlowStart(cache_calls, parallel))
+    MultiProcessRuntime(app, start_server=False).dispatch()
