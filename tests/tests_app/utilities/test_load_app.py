@@ -30,6 +30,7 @@ def test_extract_metadata_from_component():
     app = load_app_from_file(os.path.join(test_script_dir, "app_metadata.py"))
     metadata = extract_metadata_from_app(app)
     assert metadata == [
+        {"affiliation": ["root"], "cls_name": "RootFlow", "module": "__main__", "docstring": "RootFlow."},
         {
             "affiliation": ["root", "flow_a_1"],
             "cls_name": "FlowA",
@@ -41,7 +42,7 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": ANY},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
             "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",

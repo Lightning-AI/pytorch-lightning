@@ -196,3 +196,9 @@ class _FairscaleBackwardSyncControl(_BackwardSyncControl):
             )
         with module.no_sync():
             yield None
+
+
+def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    from fairscale.nn.misc.flatten_params_wrapper import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
