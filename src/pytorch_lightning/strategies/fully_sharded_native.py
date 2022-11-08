@@ -20,6 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.strategies.fsdp_native import _optimizer_has_flat_params
 from lightning_lite.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -215,6 +216,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             del self.kwargs["auto_wrap_policy"]
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+
         return FullyShardedDataParallel(
             module=model,
             process_group=self.process_group,
@@ -254,6 +256,22 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         _optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        invalid_params_error = False
+        try:
+            super().setup_optimizers(trainer)
+        except ValueError as e:
+            if "optimizer got an empty parameter list" not in str(e):
+                raise
+            invalid_params_error = True
+
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
 
     def model_to_device(self) -> None:
         pass
