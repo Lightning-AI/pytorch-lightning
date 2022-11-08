@@ -2,8 +2,6 @@
 Examples
 ########
 
-----
-
 .. raw:: html
 
     <div class="display-card-container">

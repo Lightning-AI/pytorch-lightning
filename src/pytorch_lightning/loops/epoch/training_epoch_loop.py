@@ -299,8 +299,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
-        # restore global step instead to make sure logging works correctly if checkpoints <v1.6.5 used to resume
-        self._batches_that_stepped = state_dict.get("_batches_that_stepped", self.global_step)
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _run_validation(self) -> None:
         # reload dataloaders
