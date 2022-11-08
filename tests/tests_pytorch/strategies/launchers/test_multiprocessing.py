@@ -121,6 +121,7 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
         # on local rank 0 (each node), we expect a temp checkpoint (when fitting)
         assert not is_fitting or spawn_output.weights_path.endswith(".temp.ckpt")
         assert not is_fitting or os.path.isfile(spawn_output.weights_path)
+        assert is_fitting or spawn_output.weights_path is None
     else:
         # all other ranks don't have outputs (rank 0 needs to handle the output)
         assert spawn_output is None
