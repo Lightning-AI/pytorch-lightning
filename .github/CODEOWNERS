@@ -28,24 +28,6 @@
 
 # PyTorch Lightning
 /src/pytorch_lightning                      @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/accelerators         @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/callbacks            @borda @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/core                 @borda @carmocca @justusschock
-/src/pytorch_lightning/distributed          @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/lite                 @awaelchli @carmocca @justusschock  # remove in 1.10
-/src/pytorch_lightning/loggers              @borda @awaelchli @carmocca
-/src/pytorch_lightning/loggers/wandb.py     @borisdayma @awaelchli
-/src/pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
-/src/pytorch_lightning/loops                @awaelchli @justusschock @carmocca
-/src/pytorch_lightning/plugins              @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/profilers            @tchaton @borda @carmocca
-/src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng @carmocca
-/src/pytorch_lightning/strategies           @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/trainer/connectors   @awaelchli @carmocca @justusschock
-/src/pytorch_lightning/trainer/conectors/logger_connector @awaelchli @carmocca
-/src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
-/src/pytorch_lightning/utilities            @borda @awaelchli @carmocca
 /tests/tests_pytorch                        @awaelchli @carmocca @justusschock
 
 # Core APIs
