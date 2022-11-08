@@ -18,16 +18,6 @@ or you can use the built-in component for it.
 lightning run app train_pytorch_spawn.py
 ```
 
-## Multi Node with raw PyTorch + Lite
-
-You can run the multi-node raw PyTorch and Lite by running the following commands.
-
-```bash
-lightning run app train_lite.py
-```
-
-Using Lite, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
-
 ## Multi Node with PyTorch Lightning
 
 Lightning supports running PyTorch Lightning from a script or within a Lightning Work.
