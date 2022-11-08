@@ -23,6 +23,8 @@ _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) 
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 # duplicated from fabric because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
+_TORCH_GREATER_EQUAL_1_14 = compare_version("torch", operator.ge, "1.14.0", use_base_version=True)
+_TORCHMETRICS_GREATER_EQUAL_0_9_1 = compare_version("torchmetrics", operator.ge, "0.9.1")
 
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = package_available("hivemind")

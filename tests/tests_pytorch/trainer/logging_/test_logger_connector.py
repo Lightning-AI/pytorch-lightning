@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
+from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection, Precision
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
@@ -27,6 +27,7 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
@@ -505,6 +506,47 @@ def test_metrics_reset(tmpdir):
 
     trainer.test(model)
     _assert_called(model, "test", "test")
+
+
+@pytest.mark.parametrize("compute_groups", [True, False])
+def test_metriccollection_compute_groups(tmpdir, compute_groups):
+    class CustomMetricsCollection(MetricCollection):
+        def items(self, keep_base: bool = False, copy_state: bool = True):
+            if _TORCHMETRICS_GREATER_EQUAL_0_9_1:
+                assert copy_state != compute_groups
+
+            assert not keep_base
+
+            return super().items(keep_base=keep_base, copy_state=copy_state)
+
+    class DummyModule(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.metrics = CustomMetricsCollection([Accuracy(), Precision()], compute_groups=compute_groups)
+            self.layer = torch.nn.Linear(1, 1)
+
+        def training_step(self, batch):
+
+            self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
+            self.log_dict(self.metrics, on_step=True, on_epoch=True)
+            return self.metrics["accuracy"].compute()
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, 64))
+
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            return optimizer
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(DummyModule())
 
 
 def test_result_collection_on_tensor_with_mean_reduction():

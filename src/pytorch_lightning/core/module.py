@@ -28,7 +28,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from torchmetrics import Metric
+from torchmetrics import Metric, MetricCollection
 from typing_extensions import Literal
 
 import lightning_fabric as lf
@@ -52,6 +52,12 @@ from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_11,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCHMETRICS_GREATER_EQUAL_0_9_1,
+)
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,
@@ -558,9 +564,19 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
+
         if self._fabric is not None:
             return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
-        for k, v in dictionary.items():
+
+        kwargs = {}
+
+        if isinstance(dictionary, MetricCollection):
+            kwargs["keep_base"] = False
+            if _TORCHMETRICS_GREATER_EQUAL_0_9_1 and dictionary._enable_compute_groups:
+                kwargs["copy_state"] = False
+
+        for k, v in dictionary.items(**kwargs):
+
             self.log(
                 name=k,
                 value=v,
