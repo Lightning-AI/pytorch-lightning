@@ -53,9 +53,9 @@ subprojects:
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
-      - "pl-cpu (long, macOS-11, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, ubuntu-20.04, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, windows-2022, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, macOS-11, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, ubuntu-20.04, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, windows-2022, pytorch, 3.7, 1.11)"
       # TODO: since this job has intermittent availability, it cannot be required or it will block all PL PRs from forks
       #- "test-on-tpus"
 
@@ -90,9 +90,9 @@ subprojects:
     paths:
       - ".github/workflows/ci-pytorch-tests-slow.yml"
     checks:
-      - "pl-cpu (long, macOS-11, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, ubuntu-20.04, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, windows-2022, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, macOS-11, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, ubuntu-20.04, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, windows-2022, pytorch, 3.7, 1.11)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -208,9 +208,9 @@ subprojects:
       - "pytorch-lightning (GPUs)"
       - "pytorch-lightning (HPUs)"
       - "pytorch-lightning (IPUs)"
-      - "pl-cpu (long, macOS-11, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, ubuntu-20.04, pytorch, 3.7, 1.11)"
-      - "pl-cpu (long, windows-2022, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, macOS-11, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, ubuntu-20.04, pytorch, 3.7, 1.11)"
+      - "pl-cpu (slow, windows-2022, pytorch, 3.7, 1.11)"
       #- "test-on-tpus"
 
   - id: "lightning_lite: Tests"
