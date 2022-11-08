@@ -633,13 +633,15 @@ class LightningApp:
             if state_work is None or last_state_work is None:
                 continue
 
+            # Note: The flow shouldn't update path or drive manually.
             last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: None)
             state_work = apply_to_collection(state_work, (Path, Drive), lambda x: None)
 
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if deep_diff:
-                # TODO: Add support for changes more than `values_changed` or `type_changed`.
+                # TODO: Add support for changes format.
+                # Supported are `values_changed` or `type_changed`.
                 updates = []
                 if "values_changed" in deep_diff:
                     for k, v in deep_diff["values_changed"].items():
