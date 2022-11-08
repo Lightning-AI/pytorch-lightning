@@ -617,10 +617,15 @@ class LightningApp:
         return child["vars"]
 
     def _send_flow_to_work_deltas(self, state) -> None:
+        from lightning_app import LightningWork
+
         if not self.flow_to_work_delta_queues:
             return
 
         for w in self.works:
+            if not w.has_started:
+                continue
+
             state_work = self._extract_vars_from_component(w.name, state)
             last_state_work = self._extract_vars_from_component(w.name, self._last_state)
 
@@ -628,19 +633,24 @@ class LightningApp:
             if state_work is None or last_state_work is None:
                 continue
 
-            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: x.to_dict())
-            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: x.to_dict())
+            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: None)
+            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: None)
 
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if deep_diff:
-                # TODO: Add support for changes than `values_changed`.
+                # TODO: Add support for changes more than `values_changed` or `type_changed`.
                 updates = []
                 if "values_changed" in deep_diff:
                     for k, v in deep_diff["values_changed"].items():
+                        if k in LightningWork._INTERNAL_STATE_VARS:
+                            continue
                         updates.append({"key": k.split("'")[1], **v})
+
                 if "type_changed" in deep_diff:
                     for k, v in deep_diff["type_changed"].items():
+                        if k in LightningWork._INTERNAL_STATE_VARS:
+                            continue
                         updates.append({"key": k.split("'")[1], **v})
 
                 logger.debug(f"Sending deepdiff to {w.name} : {updates}")
