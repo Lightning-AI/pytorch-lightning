@@ -116,11 +116,11 @@ Under the hood, the Lightning Trainer runs the following training loop on your b
 
 .. code:: python
 
-    autoencoder = LitAutoEncoder(encoder, decoder)
+    autoencoder = LitAutoEncoder(Encoder(), Decoder())
     optimizer = autoencoder.configure_optimizers()
 
     for batch_idx, batch in enumerate(train_loader):
-        loss = autoencoder(batch, batch_idx)
+        loss = autoencoder.training_step(batch, batch_idx)
 
         loss.backward()
         optimizer.step()

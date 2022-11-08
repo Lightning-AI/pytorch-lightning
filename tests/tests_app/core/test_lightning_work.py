@@ -9,7 +9,7 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork, MockQueue
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -161,14 +161,14 @@ def test_lightning_status(enable_exception, raise_exception):
     work = Work(raise_exception, enable_exception=enable_exception)
     work._name = "root.w"
     assert work.status.stage == WorkStageStatus.NOT_STARTED
-    caller_queue = MockQueue("caller_queue")
-    delta_queue = MockQueue("delta_queue")
-    readiness_queue = MockQueue("readiness_queue")
-    error_queue = MockQueue("error_queue")
-    request_queue = MockQueue("request_queue")
-    response_queue = MockQueue("response_queue")
-    copy_request_queue = MockQueue("copy_request_queue")
-    copy_response_queue = MockQueue("copy_response_queue")
+    caller_queue = _MockQueue("caller_queue")
+    delta_queue = _MockQueue("delta_queue")
+    readiness_queue = _MockQueue("readiness_queue")
+    error_queue = _MockQueue("error_queue")
+    request_queue = _MockQueue("request_queue")
+    response_queue = _MockQueue("response_queue")
+    copy_request_queue = _MockQueue("copy_request_queue")
+    copy_response_queue = _MockQueue("copy_response_queue")
     call_hash = "fe3fa0f"
     work._calls[call_hash] = {
         "args": (),
@@ -346,4 +346,41 @@ class LightningTestAppWithWork(LightningTestApp):
 
 def test_lightning_app_with_work():
     app = LightningTestAppWithWork(WorkCounter())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkStart(LightningWork):
+    def __init__(self, cache_calls, parallel):
+        super().__init__(cache_calls=cache_calls, parallel=parallel)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowStart(LightningFlow):
+    def __init__(self, cache_calls, parallel):
+        super().__init__()
+        self.w = WorkStart(cache_calls, parallel)
+        self.finish = False
+
+    def run(self):
+        if self.finish:
+            self._exit()
+        if self.w.status.stage == WorkStageStatus.STOPPED:
+            with pytest.raises(Exception, match="A work can be started only once for now."):
+                self.w.start()
+            self.finish = True
+        if self.w.status.stage == WorkStageStatus.NOT_STARTED:
+            self.w.start()
+        if self.w.status.stage == WorkStageStatus.STARTED:
+            self.w.run()
+        if self.w.counter == 1:
+            self.w.stop()
+
+
+@pytest.mark.parametrize("cache_calls", [False, True])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_lightning_app_work_start(cache_calls, parallel):
+    app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()

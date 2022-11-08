@@ -7,7 +7,7 @@ from tests_app import _PROJECT_ROOT
 from lightning_app.components.python import PopenPythonScript, TracerPythonScript
 from lightning_app.components.python.tracer import Code
 from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import run_work_isolated
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import CacheCallsKeys
@@ -46,7 +46,7 @@ def test_simple_popen_python_script_with_kwargs():
     assert python_script.has_succeeded
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_popen_python_script_failure():
     python_script = PopenPythonScript(
         COMPONENTS_SCRIPTS_FOLDER + "c.py",
@@ -95,7 +95,7 @@ def test_tracer_component_with_code():
     os.remove("sample.tar.gz")
 
     python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
-    run_work_isolated(python_script, params={"a": "1"}, restart_count=0)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0)
     assert "An error" in python_script.status.message
 
     with open("file.py", "w") as f:
@@ -117,7 +117,7 @@ def test_tracer_component_with_code():
     python_script._calls[call_hash]["statuses"].pop(-1)
     python_script._calls[call_hash]["statuses"].pop(-1)
 
-    run_work_isolated(python_script, params={"a": "1"}, restart_count=1)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=1)
     assert python_script.has_succeeded
     assert python_script.script_args == ["--b=1", "--a=1"]
     os.remove("file.py")
