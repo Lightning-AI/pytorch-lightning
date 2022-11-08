@@ -113,13 +113,7 @@ A Lightning component organizes Python code into a self-contained module so it c
 
 **Run one of these components!**
 
-.. lit_tabs::
-   :titles: Hello CPU world; Hello GPU (accelerated) world; Train PyTorch (cloud GPU); Train PyTorch with Lightning Trainer (cloud GPUs); Deploy a model on cloud GPUs; Run a model script; XGBoost; XGBoost (GPU accelerated); Build a streamlit demo
-   :code_files: ./hello_components/hello_world.py; ./hello_components/hello_world_gpu.py; ./hello_components/train_pytorch.py; ./hello_components/train_ptl.py; ./hello_components/deploy_model.py; ./hello_components/run_script.py; ./hello_components/xgboost.py; ./hello_components/xgboost_gpu.py; ./hello_components/build_demo.py
-   :highlights: 7; 10, 11; 3, 6;3;4;5; 6, 9; 15, 20, 21; 10, 14, 29
-   :app_id: abc123
-   :tab_rows: 4
-   :height: 550px
+.. include:: ./hero_components.rst
 
 |
 
@@ -150,18 +144,11 @@ powerful Lightning app. Here are a few key features available to super-charge yo
 
 ----
 
-******************************
-Use community-built components
-******************************
-Lightning has a vibrant collection of `community-built components <https://lightning.ai/components>`_ you can use as templates or to inspire you.
-
-
-----
-
-************************
-Next: Connect components
-************************
-Now you can build components. To build powerful full stack AI apps you'll need to learn to connect them together.
+********************************************
+Next: Explore real component implementations
+********************************************
+In this section we introduced components. Let's explore
+real component implementations in-depth.
 
 .. raw:: html
 
@@ -171,10 +158,10 @@ Now you can build components. To build powerful full stack AI apps you'll need t
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Connect components
-   :description: Learn to connect components
+   :header: Level 2: Explore real component implementations
+   :description: Go deep into real component implementations.
    :col_css: col-md-12
-   :button_link: connect_lightning_components.html
+   :button_link: real_lightning_component_implementations.html
    :height: 150
    :tag: beginner
 

@@ -1,8 +1,0 @@
--r ../docs.txt
-
-ipython[notebook]
-ipython_genutils
-
-lai-sphinx-theme
-
--r ../../_notebooks/.actions/requirements.txt
