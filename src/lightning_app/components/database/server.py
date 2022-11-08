@@ -160,7 +160,7 @@ class Database(LightningWork):
             drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
             drive.put(os.path.basename(tmp_db_filename))
 
-            print("Stored the database to the Drive.")
+        print("Stored the database to the Drive.")
 
     def periodic_store_database(self, store_interval):
         while not self._exit_event.is_set():
