@@ -170,22 +170,23 @@ def test_start_app(create_response, monkeypatch):
         cloud.Body8.assert_called_once()
 
 
+class HttpHeaderDict(dict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.reason = kwargs["reason"]
+        self.status = kwargs["status"]
+        self.data = kwargs["data"]
+
+    def getheaders(self):
+        return {}
+
+
 class FakeLightningClientException(FakeLightningClient):
     def __init__(self, *args, message, api_client=None, **kwargs):
         super().__init__(*args, api_client=api_client, **kwargs)
         self.message = message
 
     def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
-        class HttpHeaderDict(dict):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                self.reason = ""
-                self.status = 500
-                self.data = kwargs["data"]
-
-            def getheaders(self):
-                return {}
-
         raise ApiException(
             http_resp=HttpHeaderDict(
                 data=self.message,

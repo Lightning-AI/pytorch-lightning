@@ -166,9 +166,7 @@ class TracerPythonScript(LightningWork):
 
     @staticmethod
     def _to_script_args(k: str, v: str) -> str:
-        if k.startswith("--"):
-            return f"{k}={v}"
-        return f"--{k}={v}"
+        return f"{k}={v}"
 
 
 __all__ = ["TracerPythonScript"]
