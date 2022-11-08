@@ -11,14 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
 from functools import partial
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection, Precision
+from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
@@ -529,8 +531,20 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
     class DummyModule(LightningModule):
         def __init__(self):
             super().__init__()
+            if compare_version("torchmetrics", operator.ge, "0.10.0"):
+                from torchmetrics.classification import MulticlassAccuracy, MulticlassPrecision
+
+                metrics = [
+                    MulticlassAccuracy(num_classes=10, average="micro"),
+                    MulticlassPrecision(num_classes=10, average="micro"),
+                ]
+            else:
+                from torchmetrics import Accuracy, Precision
+
+                metrics = [Accuracy(num_classes=10, average="micro"), Precision(num_classes=10, average="micro")]
+
             self.metrics = CustomMetricsCollection(
-                [Accuracy(num_classes=10, average="micro"), Precision(num_classes=10, average="micro")],
+                metrics,
                 compute_groups=compute_groups,
             )
             self.layer = torch.nn.Linear(32, 10)
