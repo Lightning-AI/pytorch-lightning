@@ -28,6 +28,7 @@ from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
@@ -87,20 +88,21 @@ class TensorBoardLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
+        save_dir: _PATH,
         name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = "",
-        sub_dir: Optional[str] = None,
+        sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
         super().__init__()
+        save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
-        self._sub_dir = sub_dir
+        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix

@@ -22,17 +22,13 @@ Maintainers
 - Justus Schock (`justusschock <https://github.com/justusschock>`_)
 - Adrian Wälchli (`awaelchli <https://github.com/awaelchli>`_)
 - Carlos Mocholí (`carmocca <https://github.com/carmocca>`_)
-- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
-- Ota Jasek (`otaj <https://github.com/otaj>`_)
 
 
 Emeritus Maintainers
 --------------------
 - Thomas Chaton (`tchaton <https://github.com/tchaton>`_)
 - Ethan Harris (`ethanwharris <https://github.com/ethanwharris>`_) (Torchbearer founder)
-- Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
-- Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 
 
@@ -53,6 +49,10 @@ Alumni
 - Ananth Subramaniam (`ananthsub <https://github.com/ananthsub>`_)
 - Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
 - Siyu Wang (`four4fish <https://github.com/four4fish>`_)
+- Rohit Gupta (`rohitgr7 <https://github.com/rohitgr7>`_)
+- Kaushik Bokka (`kaushikb11 <https://github.com/kaushikb11>`_)
+- Kushashwa Ravi Shrimali (`krshrimali <https://github.com/krshrimali>`_)
+- Ota Jasek (`otaj <https://github.com/otaj>`_)
 
 
 Project Management and Decision Making
