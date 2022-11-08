@@ -276,7 +276,7 @@ initial learning rate.
 
     With DDP: Since all the processes run in isolation, only process with ``global_rank=0`` will make the decision to stop the
     learning rate finder and broadcast its results to all other ranks. That means, at the end of LR finder, each process will be running with
-    the learning rate found on ``global_rank==0``.
+    the learning rate found on ``global_rank=0``.
 
 
 Using Lightning's built-in LR finder
