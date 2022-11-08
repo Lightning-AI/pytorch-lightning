@@ -16,7 +16,8 @@
 import numpy
 
 from lightning_lite.utilities import move_data_to_device  # noqa: F401
-from lightning_lite.utilities import AllGatherGrad, AMPType, LightningEnum  # noqa: F401
+from lightning_lite.utilities import AMPType, LightningEnum  # noqa: F401
+from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
 from pytorch_lightning.utilities.enums import GradClipAlgorithmType  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
@@ -25,7 +26,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _IS_INTERACTIVE,
     _IS_WINDOWS,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,

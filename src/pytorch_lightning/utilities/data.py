@@ -204,7 +204,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not was_wrapped:
         # keep only the params whose default is different to the current attr value
-        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+        non_defaults = {name for name, p in params.items() if name in attrs and p.default is not attrs[name]}
 
         # add `dataset` as it might have been replaced with `*args`
         non_defaults.add("dataset")

@@ -1,1 +1,0 @@
-../../source-app/glossary/app_tree.rst

@@ -6,10 +6,10 @@ from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
-    from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
 
@@ -25,7 +25,11 @@ def load_requirements(
         requirements = load_requirements(path_req)
         print(requirements)  # ['numpy...', 'torch...', ...]
     """
-    with open(os.path.join(path_dir, file_name)) as file:
+    path = os.path.join(path_dir, file_name)
+    if not os.path.isfile(path):
+        return []
+
+    with open(path) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
