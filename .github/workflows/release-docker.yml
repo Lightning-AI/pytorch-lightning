@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: ["*"]  # FIXME
   release:
     types: [published]
 
