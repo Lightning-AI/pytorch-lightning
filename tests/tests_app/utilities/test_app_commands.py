@@ -18,6 +18,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
         ("bang_not_at_start_of_line.txt", ['echo "foo"'], [2]),
         ("space_between_bang_and_command.txt", ['echo "foo"'], [1]),
         ("multiple_spaces_between_band_and_command.txt", ['echo "foo"'], [1]),
+        ("app_commands_to_ignore.txt", [], []),
     ],
 )
 def test_extract_app_commands_from_file(filename, expected_commands, expected_line_numbers):

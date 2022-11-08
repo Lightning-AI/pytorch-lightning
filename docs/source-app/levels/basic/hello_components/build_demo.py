@@ -1,6 +1,6 @@
-# pip install streamlit omegaconf scipy
-# pip install torch
 # app.py
+# !pip install streamlit omegaconf scipy
+# !pip install torch
 
 import lightning as L
 import torch
