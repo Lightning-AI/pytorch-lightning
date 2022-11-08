@@ -1,4 +1,4 @@
-import lightning.app as L
+import lightning as L
 from lightning.app.components import MultiNode
 
 
@@ -7,16 +7,16 @@ class AnyDistributedComponent(L.LightningWork):
         self,
         main_address: str,
         main_port: int,
+        num_nodes: int,
         node_rank: int,
     ):
-        print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {node_rank}")
+        print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {num_nodes} {node_rank}.")
 
 
-compute = L.CloudCompute("gpu")
 app = L.LightningApp(
     MultiNode(
         AnyDistributedComponent,
-        nodes=2,
-        cloud_compute=compute,
+        num_nodes=2,
+        cloud_compute=L.CloudCompute("gpu"),
     )
 )

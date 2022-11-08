@@ -10,7 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -302,6 +302,16 @@ class ComponentDelta:
 
 
 @dataclass
+class WorkRunExecutor:
+
+    work: "LightningWork"
+    work_run: Callable
+
+    def __call__(self, *args, **kwargs):
+        return self.work_run(*args, **kwargs)
+
+
+@dataclass
 class WorkRunner:
     work: "LightningWork"
     work_name: str
@@ -313,6 +323,7 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
+    run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
         self.parallel = self.work.parallel
@@ -395,17 +406,17 @@ class WorkRunner:
         # 6. Create the state observer thread.
         self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
 
+        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
+        reference_state = deepcopy(self.work.state)
+
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
 
-        # 7. Patch the setattr method of the work. This needs to be done after step 4, so we don't
+        # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
         self._proxy_setattr()
-
-        # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        reference_state = deepcopy(self.work.state)
 
         if self._is_starting(called, reference_state, call_hash):
             return
@@ -429,7 +440,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = work_run(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
@@ -446,7 +457,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = work_run(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
                     user_exception = True
 
             if used_runpy:

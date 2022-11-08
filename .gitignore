@@ -175,3 +175,6 @@ data/
 .shared
 .lightning
 node_modules/
+
+# instalation artifacts
+requirements/base.txt
