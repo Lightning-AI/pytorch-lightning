@@ -95,9 +95,8 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
             lines = [line.replace(old, f"lightning/{new}") for line in lines]
-        fp = open(manifest_path, mode="w")
-        fp.writelines(lines)
-        fp.flush()
+        with open(manifest_path, mode="w") as fp:
+            fp.writelines(lines)
     else:
         manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
         assert os.path.exists(manifest_path)
@@ -108,7 +107,6 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
     # cleanup
     setuptools.command.egg_info.manifest_maker.template = "MANIFEST.in"
     if aggregate:
-        fp.close()
         os.remove(manifest_path)
 
 
