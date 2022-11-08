@@ -126,7 +126,7 @@ def test_srun_available_and_not_used(monkeypatch):
     expected = "`srun` .* available .* but is not used. HINT: .* srun python train.py --lr 0.01"
 
     # pretend `srun` is available
-    with mock.patch("lightning_lite.plugins.environments.slurm.subprocess.call", return_value=0):
+    with mock.patch("lightning_lite.plugins.environments.slurm.shutil.which", return_value="/usr/bin/srun"):
         with pytest.warns(PossibleUserWarning, match=expected):
             SLURMEnvironment()
 

@@ -219,6 +219,7 @@ def test_nested_component_names():
 
 def test_get_component_by_name():
     app = LightningApp(A())
+    assert app.root in app.flows
     assert app.get_component_by_name("root") is app.root
     assert app.get_component_by_name("root.b") is app.root.b
     assert app.get_component_by_name("root.w_a") is app.root.w_a

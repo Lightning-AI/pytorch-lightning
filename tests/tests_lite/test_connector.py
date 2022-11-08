@@ -13,6 +13,7 @@
 # limitations under the License
 
 import os
+from re import escape
 from typing import Any, Dict
 from unittest import mock
 
@@ -790,3 +791,78 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)
+
+
+@pytest.mark.parametrize("precision", ["64", "32", "16", pytest.param("bf16", marks=RunIf(min_torch="1.10"))])
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1)
+def test_precision_from_environment(_, precision):
+    """Test that the precision input can be set through the environment variable."""
+    with mock.patch.dict(os.environ, {"LT_PRECISION": precision}):
+        connector = _Connector(accelerator="cuda")  # need to use cuda, because AMP not available on CPU
+    assert isinstance(connector.precision, Precision)
+
+
+@pytest.mark.parametrize(
+    "accelerator, strategy, expected_accelerator, expected_strategy",
+    [
+        ("cpu", None, CPUAccelerator, SingleDeviceStrategy),
+        ("cpu", "ddp", CPUAccelerator, DDPStrategy),
+        pytest.param("mps", None, MPSAccelerator, SingleDeviceStrategy, marks=RunIf(mps=True)),
+        pytest.param("cuda", "dp", CUDAAccelerator, DataParallelStrategy, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            "cuda", "deepspeed", CUDAAccelerator, DeepSpeedStrategy, marks=RunIf(min_cuda_gpus=1, deepspeed=True)
+        ),
+    ],
+)
+def test_accelerator_strategy_from_environment(accelerator, strategy, expected_accelerator, expected_strategy):
+    """Test that the accelerator and strategy input can be set through the environment variables."""
+    env_vars = {"LT_ACCELERATOR": accelerator}
+    if strategy is not None:
+        env_vars["LT_STRATEGY"] = strategy
+
+    with mock.patch.dict(os.environ, env_vars):
+        connector = _Connector()
+        assert isinstance(connector.accelerator, expected_accelerator)
+        assert isinstance(connector.strategy, expected_strategy)
+
+
+@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=8)
+def test_devices_from_environment(*_):
+    """Test that the devices and number of nodes can be set through the environment variables."""
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2", "LT_NUM_NODES": "3"}):
+        connector = _Connector(accelerator="cuda")
+        assert isinstance(connector.accelerator, CUDAAccelerator)
+        assert isinstance(connector.strategy, DDPStrategy)
+        assert len(connector._parallel_devices) == 2
+        assert connector._num_nodes_flag == 3
+
+
+def test_arguments_from_environment_collision():
+    """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
+    with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
+        with pytest.raises(
+            ValueError, match=escape("Your code has `LightningLite(accelerator='cuda', ...)` but it conflicts")
+        ):
+            _Connector(accelerator="cuda")
+
+    with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
+        with pytest.raises(
+            ValueError, match=escape("Your code has `LightningLite(strategy='ddp_spawn', ...)` but it conflicts")
+        ):
+            _Connector(strategy="ddp_spawn")
+
+    with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
+        with pytest.raises(ValueError, match=escape("Your code has `LightningLite(devices=3, ...)` but it conflicts")):
+            _Connector(devices=3)
+
+    with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
+        with pytest.raises(
+            ValueError, match=escape("Your code has `LightningLite(num_nodes=2, ...)` but it conflicts")
+        ):
+            _Connector(num_nodes=2)
+
+    with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
+        with pytest.raises(
+            ValueError, match=escape("Your code has `LightningLite(precision=64, ...)` but it conflicts")
+        ):
+            _Connector(precision=64)

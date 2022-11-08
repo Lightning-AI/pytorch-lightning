@@ -6,12 +6,14 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "examples/app_*"  # some tests_app tests call examples files
-      - "requirements/app/**"
+      - "requirements/app/*"
+      - "!requirements/app/docs.txt"
       - "setup.py"
       - ".actions/**"
 
@@ -28,6 +30,7 @@ defaults:
 
 jobs:
   app-pytest:
+    if: github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -101,8 +104,7 @@ jobs:
       - name: Adjust examples
         if: ${{ matrix.pkg-name != 'lightning' }}
         run: |
-          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app" --target_import="lightning_app"
-          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning" --target_import="lightning_app"
+          python .actions/assistant.py copy_replace_imports --source_dir="./examples" --source_import="lightning.app,lightning" --target_import="lightning_app,lightning_app"
 
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV

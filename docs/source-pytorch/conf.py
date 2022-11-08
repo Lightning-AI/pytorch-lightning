@@ -104,6 +104,7 @@ extensions = [
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
@@ -124,6 +125,12 @@ extensions = [
 suppress_warnings = [
     "autosectionlabel.*",
 ]
+
+copybutton_prompt_text = ">>> "
+copybutton_prompt_text1 = "... "
+copybutton_exclude = ".linenos"
+
+copybutton_only_copy_prompt_lines = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -179,8 +186,7 @@ pygments_style = None
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
-# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
+html_theme_path = [os.environ.get("LIT_SPHINX_PATH", pt_lightning_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

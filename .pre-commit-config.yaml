@@ -73,6 +73,7 @@ repos:
     hooks:
       - id: isort
         name: Format imports
+        exclude: docs/source-app
 
   - repo: https://github.com/psf/black
     rev: 22.10.0
@@ -98,11 +99,11 @@ repos:
           #- mdformat-black
           - mdformat_frontmatter
         exclude: |
-            (?x)^(
-                src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_app/CHANGELOG.md|
-                src/lightning_lite/CHANGELOG.md
-            )$
+          (?x)^(
+              src/pytorch_lightning/CHANGELOG.md|
+              src/lightning_app/CHANGELOG.md|
+              src/lightning_lite/CHANGELOG.md
+          )$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 5.0.4
