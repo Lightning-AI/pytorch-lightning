@@ -529,7 +529,7 @@ def test_metriccollection_compute_groups(tmpdir, compute_groups):
 
             self.metrics(torch.rand(10, 10).softmax(-1), torch.randint(0, 10, (10,)))
             self.log_dict(self.metrics, on_step=True, on_epoch=True)
-            return self.metrics["accuracy"].compute()
+            return batch.sum()
 
         def train_dataloader(self):
             return DataLoader(RandomDataset(32, 64))
