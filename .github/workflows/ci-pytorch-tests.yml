@@ -132,9 +132,9 @@ jobs:
         # Switch coverage scope
         python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'pytorch_lightning'))" >> $GITHUB_ENV
         # Whether to run slow tests
-        python -c "print(f'PL_RUN_SLOW_TESTS={int('${{ matrix.type }}' == 'slow')}')" >> $GITHUB_ENV
+        python -c "print('PL_RUN_SLOW_TESTS=' + str(int('${{ matrix.type }}' == 'slow'))')" >> $GITHUB_ENV
         # Decide timeout
-        python -c "print(f'TEST_TIMEOUT={120 if '${{ matrix.type }}' == 'slow' else 60}')" >> $GITHUB_ENV
+        python -c "print('TEST_TIMEOUT=' + str(120 if '${{ matrix.type }}' == 'slow' else 60)')" >> $GITHUB_ENV
 
     - name: Install package & dependencies
       env:
