@@ -833,7 +833,6 @@ class FlowCollection(LightningFlow):
 
 
 def test_lightning_flow_flows_and_works():
-
     flow = FlowCollection()
     app = LightningApp(flow)
 

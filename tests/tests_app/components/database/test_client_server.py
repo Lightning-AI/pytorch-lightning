@@ -163,7 +163,6 @@ def test_work_database_restart():
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
 @pytest.mark.skipif(not _is_sqlmodel_available(), reason="sqlmodel is required for this test.")
 def test_work_database_periodic_store():
-
     id = str(uuid4()).split("-")[0]
 
     class Flow(LightningFlow):
