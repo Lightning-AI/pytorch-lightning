@@ -28,10 +28,11 @@ class LitePyTorchDistributed(L.LightningWork):
             optimizer.step()
 
 
+# Run over 2 nodes of 4 x V100
 app = L.LightningApp(
     LiteMultiNode(
         LitePyTorchDistributed,
-        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100,
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
         num_nodes=2,
     )
 )

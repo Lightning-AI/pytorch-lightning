@@ -60,11 +60,11 @@ class PyTorchDistributed(L.LightningWork):
         )
 
 
-compute = L.CloudCompute("gpu-fast-multi")  # 4 x V100
+# Run over 2 nodes of 4 x V100
 app = L.LightningApp(
     MultiNode(
         PyTorchDistributed,
         num_nodes=2,
-        cloud_compute=compute,
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
     )
 )
