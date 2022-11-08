@@ -89,7 +89,7 @@ def _execute_app_commands(cl: CommandLines) -> None:
 
 
 def run_app_commands(file: str) -> None:
-    """Extract all lines at the top of the file which contain commands & execute  them.
+    """Extract all lines at the top of the file which contain commands & execute them.
 
     Commands to execute are comment lines whose first non-whitespace character
     begins with the "bang" symbol (`!`).  After the first non comment line we

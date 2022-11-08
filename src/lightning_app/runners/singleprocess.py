@@ -2,8 +2,10 @@ import multiprocessing as mp
 from typing import Any, Callable, Optional
 
 from lightning_app.core.api import start_server
+from lightning_app.core.constants import ENABLE_APP_COMMENT_COMMAND_EXECUTION
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.runtime import Runtime
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.load_app import extract_metadata_from_app
 
 
@@ -15,6 +17,10 @@ class SingleProcessRuntime(Runtime):
 
     def dispatch(self, *args, on_before_run: Optional[Callable] = None, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
+
+        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or self.run_app_comment_commands:
+            if self.entrypoint_file is not None:
+                run_app_commands(str(self.entrypoint_file))
 
         queue = QueuingSystem.SINGLEPROCESS
 
