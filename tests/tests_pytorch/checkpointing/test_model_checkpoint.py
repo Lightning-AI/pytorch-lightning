@@ -1366,3 +1366,7 @@ def test_train_epoch_end_ckpt_with_no_validation():
     trainer = Trainer(val_check_interval=0.5)
     trainer.num_val_batches = [0]
     assert trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.num_val_batches = [1]
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.val_check_interval = 0.8
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
