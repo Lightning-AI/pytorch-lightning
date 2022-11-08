@@ -540,7 +540,8 @@ class LightningModule(
 
         Args:
             dictionary: key value pairs.
-                The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
+                The values can be a ``float``, ``Tensor``, ``Metric``, a dictionary of the former
+                or a ``MetricCollection``.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.
             on_step: if ``True`` logs at this step.
