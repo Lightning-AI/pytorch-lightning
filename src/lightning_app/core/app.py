@@ -167,7 +167,7 @@ class LightningApp:
 
         if debugger_is_active() and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0"))):
             os.environ["LIGHTNING_DISPATCHED"] = "1"
-            from lightning.app.runners import MultiProcessRuntime
+            from lightning_app.runners import MultiProcessRuntime
 
             MultiProcessRuntime(self).dispatch()
 
