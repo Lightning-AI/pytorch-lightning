@@ -103,6 +103,7 @@ jobs:
         python .actions/assistant.py replace_oldest_ver
 
     - name: Pull legacy checkpoints
+      if: ${{ matrix.type != 'slow' }}
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Adjust PyTorch versions in requirements files
