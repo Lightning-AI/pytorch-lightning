@@ -41,6 +41,8 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
     """Migration functions returned here will get executed in the order they are listed."""
     return {
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
+        "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
+        "1.6.5": [_migrate_loop_batches_that_stepped],
     }
 
 
@@ -67,3 +69,94 @@ def _migrate_model_checkpoint_early_stopping(checkpoint: _CHECKPOINT) -> _CHECKP
             checkpoint["callbacks"][callback_type][callback_key] = value
             del checkpoint[key]
     return checkpoint
+
+
+def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Sets the `global_step` value for checkpoints before v1.6 without the progress tracking state. It will be
+    overwritten by the loop's state if it was also saved.
+
+    Version: 1.6.0
+    Commit: c67b075
+    PR: #13645, #11805
+    """
+    global_step = checkpoint["global_step"]
+    checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
+    checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
+    # for automatic optimization
+    optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]
+    optim_progress["optimizer"]["step"]["total"]["completed"] = global_step
+    # for manual optimization
+    optim_step_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.manual_loop.optim_step_progress"]
+    optim_step_progress["total"]["completed"] = global_step
+    return checkpoint
+
+
+def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Sets the `current_epoch` value for checkpoints before v1.6 without the progress tracking state. It will be
+    overwritten by the loop's state if it was also saved.
+
+    Version: 1.6.0
+    Commit: aea96e4
+    PR: #11805
+    """
+    epoch = checkpoint["epoch"]
+    checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
+    checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
+    checkpoint["loops"]["fit_loop"]["epoch_progress"]["current"]["completed"] = epoch
+    return checkpoint
+
+
+def _migrate_loop_batches_that_stepped(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Sets the `_batches_that_stepped` default value for checkpoints before v1.6.5 which don't have this key.
+
+    Version: 1.6.5
+    Commit: c67b075
+    PR: #13645
+    """
+    global_step = checkpoint["global_step"]
+    checkpoint["loops"]["fit_loop"]["epoch_loop.state_dict"].setdefault("_batches_that_stepped", global_step)
+    return checkpoint
+
+
+_FIT_LOOP_INITIAL_STATE_1_6_0 = {
+    "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+        "current": {"completed": 0, "ready": 0},
+        "total": {"completed": 0, "ready": 0},
+    },
+    "epoch_loop.batch_loop.manual_loop.state_dict": {},
+    "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+        "optimizer": {
+            "step": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
+            "zero_grad": {
+                "current": {"completed": 0, "ready": 0, "started": 0},
+                "total": {"completed": 0, "ready": 0, "started": 0},
+            },
+        },
+        "optimizer_position": 0,
+    },
+    "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
+    "epoch_loop.batch_loop.state_dict": {},
+    "epoch_loop.batch_progress": {
+        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        "is_last_batch": False,
+        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+    },
+    "epoch_loop.scheduler_progress": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
+    "epoch_loop.state_dict": {"_batches_that_stepped": 0},
+    "epoch_loop.val_loop.dataloader_progress": {
+        "current": {"completed": 0, "ready": 0},
+        "total": {"completed": 0, "ready": 0},
+    },
+    "epoch_loop.val_loop.epoch_loop.batch_progress": {
+        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        "is_last_batch": False,
+        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+    },
+    "epoch_loop.val_loop.epoch_loop.state_dict": {},
+    "epoch_loop.val_loop.state_dict": {},
+    "epoch_progress": {
+        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+    },
+    "state_dict": {},
+}
