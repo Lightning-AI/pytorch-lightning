@@ -16,13 +16,13 @@ from typing import Any, Callable, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.optim import LBFGS
+from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import _patch_cuda_is_available
 from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
@@ -83,8 +83,13 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
-        # `unscale` after the closure is executed but before the `on_before_optimizer_step` hook.
-        self.scaler.unscale_(optimizer)
+
+        if not _optimizer_handles_unscaling(optimizer):
+            # Unscaling needs to be performed here in case we are going to apply gradient clipping.
+            # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
+            # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
+            self.scaler.unscale_(optimizer)
+
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
@@ -94,6 +99,19 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
             self.scaler.update()
             return step_output
         return closure_result
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
+            raise RuntimeError(
+                f"The current optimizer, {type(optimizer).__qualname__}, does not allow for gradient clipping"
+                " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
+            )
+        super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
@@ -116,3 +134,13 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+
+def _optimizer_handles_unscaling(optimizer: Any) -> bool:
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
+    return getattr(optimizer, "_step_supports_amp_scaling", False)

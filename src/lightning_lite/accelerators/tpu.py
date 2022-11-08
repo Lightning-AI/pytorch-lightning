@@ -41,7 +41,7 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
         """Accelerator device parsing logic."""
-        return parse_tpu_cores(devices)
+        return _parse_tpu_cores(devices)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[int]:
@@ -120,7 +120,7 @@ def _is_device_tpu() -> bool:
 _XLA_AVAILABLE = RequirementCache("torch_xla")
 
 
-def tpu_distributed() -> bool:
+def _tpu_distributed() -> bool:
     if not TPUAccelerator.is_available():
         return False
     import torch_xla.core.xla_model as xm
@@ -128,7 +128,7 @@ def tpu_distributed() -> bool:
     return xm.xrt_world_size() > 1
 
 
-def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
+def _parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
