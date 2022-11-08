@@ -275,10 +275,11 @@ class WorkStateObserver(Thread):
 
         if self._flow_to_work_delta_queue:
             while True:
-                deep_diff = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
-                if deep_diff:
+                updates = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+                if updates is None:
                     try:
-                        self._work._apply_flow_delta(deep_diff["key"], deep_diff["new_value"], deep_diff["old_value"])
+                        for update in updates:
+                            self._work._apply_flow_delta(update["key"], update["new_value"], update["old_value"])
                     except Exception as e:
                         print(traceback.print_exc())
                         self._error_queue.put(e)

@@ -630,7 +630,9 @@ class LightningApp:
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if deep_diff:
+                # TODO: Add support for more types
+                updates = []
                 for k, v in deep_diff["values_changed"].items():
-                    update = {"key": k.split("'")[1], **v}
-                    logger.debug(f"Sending deepdiff to {w.name} : {update}")
-                    self.flow_to_work_delta_queues[w.name].put(update)
+                    updates.append({"key": k.split("'")[1], **v})
+                logger.debug(f"Sending deepdiff to {w.name} : {updates}")
+                self.flow_to_work_delta_queues[w.name].put(updates)
