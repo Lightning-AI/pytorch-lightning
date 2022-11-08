@@ -12,6 +12,7 @@ def test_installation_commands_app_example_cloud() -> None:
     with run_app_in_cloud(
         os.path.join(_PROJECT_ROOT, "examples/app_installation_commands"),
         app_name="app.py",
+        extra_args=["--setup"],
         debug=True,
     ) as (_, _, fetch_logs, _):
         has_logs = False

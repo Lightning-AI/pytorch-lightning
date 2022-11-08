@@ -70,6 +70,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
             no_cache=True,
             env=("FOO=bar",),
             secret=(),
+            run_app_comment_commands=False,
         )
 
 
@@ -96,6 +97,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             no_cache=True,
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
+            run_app_comment_commands=True,
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -111,6 +113,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         env_vars={"FOO": "bar"},
         secrets={"BAR": "my-secret"},
         cluster_id="",
+        run_app_comment_commands=True,
     )
 
 
@@ -130,4 +133,5 @@ def test_lightning_run_app_secrets(monkeypatch):
             no_cache=True,
             env=(),
             secret=("FOO=my-secret"),
+            run_app_comment_commands=False,
         )
