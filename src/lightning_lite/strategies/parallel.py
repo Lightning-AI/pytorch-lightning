@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
-import lightning_lite as lite
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available
 from lightning_lite.utilities.types import ReduceOp
 
 
@@ -86,26 +83,13 @@ class ParallelStrategy(Strategy, ABC):
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks ddp sync gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, lite.utilities.types.DistributedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
 
     def teardown(self) -> None:
         assert self.cluster_environment is not None

@@ -27,13 +27,17 @@ local tputests = base.BaseTest {
       conda activate lightning
 
       echo "--- Fetch the SHA's changes ---"
-      git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git /home/runner/work/lightning
-      cd home/runner/work/lightning
-      git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
-      git -c advice.detachedHead=false checkout {SHA}
+      git clone --single-branch --depth 1 https://github.com/Lightning-AI/lightning.git
+      cd lightning
+      if [ -n "{PR_NUMBER}" ]; then  # if PR number is not empty
+        # PR triggered it, check it out
+        git fetch origin --depth 1 pull/{PR_NUMBER}/head:test/{PR_NUMBER}
+        git -c advice.detachedHead=false checkout {SHA}
+      fi
 
-      echo "--- Install PL ---"
-      PACKAGE_NAME=pytorch FREEZE_REQUIREMENTS=1 pip install -e .[test]
+      echo "--- Install packages ---"
+      PACKAGE_NAME=lite pip install -e .[dev]
+      PACKAGE_NAME=pytorch pip install -e .[dev]
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS

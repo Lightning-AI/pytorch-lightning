@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from collections import Counter
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import Literal
@@ -54,8 +54,8 @@ from lightning_lite.strategies import (
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
-from lightning_lite.utilities.device_parser import determine_root_gpu_device
-from lightning_lite.utilities.imports import _HPU_AVAILABLE, _IPU_AVAILABLE, _IS_INTERACTIVE
+from lightning_lite.utilities.device_parser import _determine_root_gpu_device
+from lightning_lite.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
@@ -101,6 +101,14 @@ class _Connector:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
+
+        # These arguments can be set through environment variables set by the CLI
+        accelerator = self._argument_from_env("accelerator", accelerator, default=None)
+        strategy = self._argument_from_env("strategy", strategy, default=None)
+        devices = self._argument_from_env("devices", devices, default=None)
+        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        precision = self._argument_from_env("precision", precision, default=32)
+
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
@@ -109,7 +117,7 @@ class _Connector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
+        # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
         self._precision_input: Optional[_PRECISION_INPUT] = None
@@ -302,10 +310,6 @@ class _Connector:
         if self._accelerator_flag == "auto":
             if TPUAccelerator.is_available():
                 return "tpu"
-            if _IPU_AVAILABLE:
-                return "ipu"
-            if _HPU_AVAILABLE:
-                return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
             if CUDAAccelerator.is_available():
@@ -379,7 +383,7 @@ class _Connector:
             if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
                 isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
-                device = determine_root_gpu_device(self._parallel_devices)
+                device = _determine_root_gpu_device(self._parallel_devices)
             else:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
@@ -499,8 +503,6 @@ class _Connector:
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
 
-        from lightning_lite.utilities import _IS_INTERACTIVE
-
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(
                 f"`Lite(strategy={self._strategy_flag!r})` is not compatible with an interactive"
@@ -519,6 +521,27 @@ class _Connector:
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
+
+    @staticmethod
+    def _argument_from_env(name: str, current: Any, default: Any) -> Any:
+        env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
+
+        if env_value is None:
+            return current
+
+        if name == "precision":
+            # TODO: support precision input as string, then this special handling is not needed
+            env_value = int(env_value) if env_value in ("16", "32", "64") else env_value
+
+        if env_value is not None and env_value != current and current != default:
+            raise ValueError(
+                f"Your code has `LightningLite({name}={current!r}, ...)` but it conflicts with the value "
+                f"`--{name}={current}` set through the CLI. "
+                " Remove it either from the CLI or from the Lightning Lite object."
+            )
+        if env_value is None:
+            return current
+        return env_value
 
     @property
     def is_distributed(self) -> bool:

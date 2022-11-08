@@ -92,6 +92,7 @@ def _test_strategy_choice_ddp_and_cpu(tmpdir, ddp_strategy_class):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -128,6 +129,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -195,6 +197,7 @@ def test_custom_accelerator(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",
@@ -210,8 +213,8 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
@@ -226,22 +229,22 @@ def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypat
         Trainer(strategy="dp")
 
 
-def test_ipython_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+def test_interactive_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="dp", accelerator="gpu")
     assert trainer.strategy.launcher is None
 
 
 @RunIf(skip_windows=True)
-def test_ipython_compatible_strategy_tpu(tpu_available, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+def test_interactive_compatible_strategy_tpu(tpu_available, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
 
 @RunIf(skip_windows=True)
-def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
     assert trainer.strategy.launcher.is_interactive_compatible
 
@@ -473,6 +476,7 @@ def test_strategy_choice_ddp_slurm(cuda_count_2, strategy, job_name, expected_en
         {
             "CUDA_VISIBLE_DEVICES": "0,1",
             "SLURM_NTASKS": "2",
+            "SLURM_NTASKS_PER_NODE": "1",
             "SLURM_JOB_NAME": job_name,
             "SLURM_NODEID": "0",
             "SLURM_PROCID": "1",
@@ -575,6 +579,7 @@ def test_strategy_choice_ddp_cpu_kubeflow(cuda_count_0):
     os.environ,
     {
         "SLURM_NTASKS": "2",
+        "SLURM_NTASKS_PER_NODE": "1",
         "SLURM_JOB_NAME": "SOME_NAME",
         "SLURM_NODEID": "0",
         "LOCAL_RANK": "0",

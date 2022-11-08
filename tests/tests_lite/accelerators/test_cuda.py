@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
+import os
 from unittest import mock
 
 import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
+import lightning_lite
 from lightning_lite.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
 
 
@@ -62,3 +65,11 @@ def test_num_cuda_devices_without_nvml(*_):
     assert is_cuda_available()
     assert num_cuda_devices() == 100
     num_cuda_devices.cache_clear()
+
+
+@mock.patch.dict(os.environ, {}, clear=True)
+def test_force_nvml_based_cuda_check():
+    """Test that we force PyTorch to use the NVML-based CUDA checks."""
+    importlib.reload(lightning_lite)  # reevaluate top-level code, without becoming a different object
+
+    assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"

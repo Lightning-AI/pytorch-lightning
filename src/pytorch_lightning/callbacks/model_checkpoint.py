@@ -351,13 +351,6 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
-        raise NotImplementedError(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and is no longer supported"
-            f" as of 1.8. Please use `trainer.save_checkpoint()` to manually save a checkpoint. This method will be"
-            f" removed completely in v2.0."
-        )
-
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
             return
@@ -581,15 +574,10 @@ class ModelCheckpoint(Checkpoint):
             return self.dirpath
 
         if len(trainer.loggers) > 0:
-            if trainer.loggers[0].save_dir is not None:
-                save_dir = trainer.loggers[0].save_dir
-            else:
-                save_dir = trainer.default_root_dir
             save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
             name = trainer.loggers[0].name
             version = trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"
-
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             # if no loggers, use default_root_dir

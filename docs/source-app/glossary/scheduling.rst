@@ -51,7 +51,7 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
 .. code-block:: python
 
     from lightning_app import LightningFlow
-    from lightning_app.core.structures import List
+    from lightning_app.structures import List
 
     class ScheduledDAG(LightningFlow):
         def __init__(self):

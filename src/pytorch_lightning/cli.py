@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.12.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.15.2")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -294,9 +294,9 @@ class LightningCLI:
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Value for the :func:`~lightning_lite.utilities.seed.seed_everything`
-                seed argument. Set to True to automatically choose a valid seed.
-                Setting it to False will not call seed_everything.
+            seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
+                seed value. Set to True to automatically choose a seed value.
+                Setting it to False will avoid calling ``seed_everything``.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -472,11 +472,13 @@ class LightningCLI:
         )
         # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
-            self._subcommand_parsers[subcommand] = subcommand_parser
             fn = getattr(trainer_class, subcommand)
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
+            subparser_kwargs = kwargs.get(subcommand, {})
+            subparser_kwargs.setdefault("description", description)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **subparser_kwargs)
+            self._subcommand_parsers[subcommand] = subcommand_parser
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
     def _prepare_subcommand_parser(self, klass: Type, subcommand: str, **kwargs: Any) -> LightningArgumentParser:
