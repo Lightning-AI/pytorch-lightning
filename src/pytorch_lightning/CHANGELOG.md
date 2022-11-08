@@ -12,9 +12,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added utilities to migrate checkpoints from one Lightning version to another ([#15237](https://github.com/Lightning-AI/lightning/pull/15237))
 
+- Added back the accidentally removed `pytorch_lightning.utilities.distributed.rank_zero_only` function ([#15536](https://github.com/Lightning-AI/lightning/pull/15536))
+
 - Added support to upgrade all checkpoints in a folder using the `pl.utilities.upgrade_checkpoint` script ([#15333](https://github.com/Lightning-AI/lightning/pull/15333))
 
 -
+
+
+- Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15301](https://github.com/Lightning-AI/lightning/pull/15301))
 
 
 ### Changed
@@ -28,7 +33,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
--
+- Deprecated `pytorch_lightning.utilities.distributed.rank_zero_only` in favor of `pytorch_lightning.utilities.rank_zero_only` ([#15536](https://github.com/Lightning-AI/lightning/pull/15536))
 
 -
 
