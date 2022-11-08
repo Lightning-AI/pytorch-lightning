@@ -28,7 +28,7 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
     V1LightningworkDrives,
-    V1LightningworkSpec,
+    V1LightningworkRelease,
     V1Membership,
     V1Metadata,
     V1NetworkConfig,
@@ -39,7 +39,6 @@ from lightning_cloud.openapi import (
     V1SourceType,
     V1UserRequestedComputeConfig,
     V1UserRequestedFlowComputeConfig,
-    V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
 
@@ -136,7 +135,7 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
-        work_reqs: List[V1Work] = []
+        work_releases: List[V1LightningworkRelease] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
@@ -199,13 +198,14 @@ class CloudRuntime(Runtime):
                         )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-                spec = V1LightningworkSpec(
+                work_release = V1LightningworkRelease(
+                    name=work.name,
                     build_spec=build_spec,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
-                work_reqs.append(V1Work(name=work.name, spec=spec))
+                work_releases.append(work_release)
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows
         # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
@@ -334,9 +334,6 @@ class CloudRuntime(Runtime):
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
 
-            for work_req in work_reqs:
-                work_req.spec.cluster_id = app_config.cluster_id
-
             release_body = Body8(
                 app_entrypoint_file=app_spec.app_entrypoint_file,
                 enable_app_server=app_spec.enable_app_server,
@@ -344,7 +341,7 @@ class CloudRuntime(Runtime):
                 image_spec=app_spec.image_spec,
                 cluster_id=app_config.cluster_id,
                 network_config=network_configs,
-                works=work_reqs,
+                work_releases=work_releases,
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
