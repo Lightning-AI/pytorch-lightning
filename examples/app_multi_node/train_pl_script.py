@@ -4,7 +4,7 @@ from lightning.app.utilities.packaging.cloud_compute import CloudCompute
 
 app = L.LightningApp(
     LightningTrainingComponent(
-        "train.py",
+        "pl_boring_script.py",
         num_nodes=2,
         cloud_compute=CloudCompute("gpu-fast-multi"),
     ),
