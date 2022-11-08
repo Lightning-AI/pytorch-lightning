@@ -1,1 +1,0 @@
-../../../source-app/workflows/build_lightning_component/intermediate.rst

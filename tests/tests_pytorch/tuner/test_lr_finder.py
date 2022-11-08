@@ -14,6 +14,7 @@
 import logging
 import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -24,6 +25,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
 
@@ -194,12 +196,14 @@ def test_call_to_trainer_method(tmpdir, opt):
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_datamodule_parameter(tmpdir):
     """Test that the datamodule parameter works."""
     seed_everything(1)
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = ClassificationModel(lr=1e-3)
 
     before_lr = model.lr
     # logger file to get meta
