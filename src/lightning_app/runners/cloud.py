@@ -28,7 +28,7 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
     V1LightningworkDrives,
-    V1LightningworkRelease,
+    V1LightningworkSpec,
     V1Membership,
     V1Metadata,
     V1NetworkConfig,
@@ -39,6 +39,7 @@ from lightning_cloud.openapi import (
     V1SourceType,
     V1UserRequestedComputeConfig,
     V1UserRequestedFlowComputeConfig,
+    V1Work,
 )
 from lightning_cloud.openapi.rest import ApiException
 
@@ -135,9 +136,12 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
-        work_releases: List[V1LightningworkRelease] = []
+        works: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
+                if not work._start_with_flow:
+                    continue
+
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
                 build_spec = V1BuildSpec(
                     commands=work.cloud_build_config.build_commands(),
@@ -198,14 +202,13 @@ class CloudRuntime(Runtime):
                         )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-                work_release = V1LightningworkRelease(
-                    name=work.name,
+                work_spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
-                work_releases.append(work_release)
+                works.append(V1Work(name=work.name, spec=work_spec))
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows
         # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
@@ -341,13 +344,13 @@ class CloudRuntime(Runtime):
                 image_spec=app_spec.image_spec,
                 cluster_id=app_config.cluster_id,
                 network_config=network_configs,
-                work_releases=work_releases,
+                works=works,
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
-            # create / upload the new app release / instace
+            # create / upload the new app release
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
