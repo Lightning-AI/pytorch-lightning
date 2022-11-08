@@ -1,11 +1,10 @@
-from typing import Any, Callable, Optional, Type, Union
+from typing import Any, Type
 
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import WorkRunExecutor
 
 
 class MultiNode(LightningFlow):
@@ -14,7 +13,6 @@ class MultiNode(LightningFlow):
         work_cls: Type["LightningWork"],
         num_nodes: int,
         cloud_compute: "CloudCompute",
-        executor_cls: Optional[Union[Type[WorkRunExecutor], Callable]] = None,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -50,7 +48,6 @@ class MultiNode(LightningFlow):
             work_cls: The work to be executed
             num_nodes: Number of nodes.
             cloud_compute: The cloud compute object used in the cloud.
-            executor_cls: Customize the work run method execution.
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
         """
@@ -61,10 +58,6 @@ class MultiNode(LightningFlow):
         self._cloud_compute = cloud_compute
         self._work_args = work_args
         self._work_kwargs = work_kwargs
-
-        if executor_cls:
-            self._work_kwargs["run_executor_cls"] = executor_cls
-
         self.has_started = False
 
     def run(self) -> None:
