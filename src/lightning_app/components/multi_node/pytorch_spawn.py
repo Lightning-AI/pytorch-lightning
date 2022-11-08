@@ -82,6 +82,8 @@ class PyTorchSpawnMultiNode(MultiNode):
                 "HINT: Remove `self` and add staticmethod decorator."
             )
 
+        # Note: Private way to modify the work run executor
+        # Probably exposed to the users in the future if needed.
         work_cls._run_executor_cls = _PyTorchSpawnRunExecutor
 
         super().__init__(
