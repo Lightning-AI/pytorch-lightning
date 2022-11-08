@@ -6,8 +6,16 @@ Lightning supports makes multi-node training simple by providing a simple interf
 
 You can run the multi-node raw PyTorch by running the following commands.
 
+Here is an example where you spawn your processes yourself.
+
 ```bash
-lightning run app app_torch_work.py
+lightning run app train_pytorch.py
+```
+
+or you can use the built-in component for it.
+
+```bash
+lightning run app train_pytorch_spawn.py
 ```
 
 ## Multi Node with raw PyTorch + Lite
@@ -15,27 +23,29 @@ lightning run app app_torch_work.py
 You can run the multi-node raw PyTorch and Lite by running the following commands.
 
 ```bash
-lightning run app app_lite_work.py
+lightning run app train_lite.py
 ```
+
+Using Lite, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
 
 ## Multi Node with PyTorch Lightning
 
 Lightning supports running PyTorch Lightning from a script or within a Lightning Work.
 
-### Multi Node PyTorch Lightning Script
+You can either run a script directly
 
 ```bash
-lightning run app app_pl_script.py
+lightning run app train_pl_script.py
 ```
 
-### Multi Node PyTorch Lightning Work
+or run your code within as a work.
 
 ```bash
-lightning run app app_pl_work.py
+lightning run app train_pl.py
 ```
 
 ## Multi Node with any frameworks
 
 ```bash
-lightning run app app_generic_work.py
+lightning run app train_any.py
 ```

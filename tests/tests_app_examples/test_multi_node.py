@@ -44,9 +44,10 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
 @pytest.mark.parametrize(
     "app_name",
     [
-        "app_torch_work.py",
-        "app_generic_work.py",
+        "train_pytorch.py",
+        "train_any.py",
         # "app_lite_work.py",
+        "train_pytorch_spawn.py",
         # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
     ],
 )
