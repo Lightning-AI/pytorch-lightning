@@ -2,6 +2,7 @@ import abc
 import asyncio
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -483,3 +484,7 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+def is_static_method(klass_or_instance, attr) -> bool:
+    return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)

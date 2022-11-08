@@ -11,7 +11,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -334,6 +334,16 @@ class ComponentDelta:
 
 
 @dataclass
+class WorkRunExecutor:
+
+    work: "LightningWork"
+    work_run: Callable
+
+    def __call__(self, *args, **kwargs):
+        return self.work_run(*args, **kwargs)
+
+
+@dataclass
 class WorkRunner:
     work: "LightningWork"
     work_name: str
@@ -346,6 +356,7 @@ class WorkRunner:
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
     flow_to_work_delta_queue: Optional["BaseQueue"] = None
+    run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
         self.parallel = self.work.parallel
@@ -467,7 +478,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = work_run(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
@@ -484,7 +495,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = work_run(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
                     user_exception = True
 
             if used_runpy:
