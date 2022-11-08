@@ -13,11 +13,10 @@ class AnyDistributedComponent(L.LightningWork):
         print(f"ADD YOUR DISTRIBUTED CODE: {main_address} {main_port} {num_nodes} {node_rank}.")
 
 
-compute = L.CloudCompute("gpu")
 app = L.LightningApp(
     MultiNode(
         AnyDistributedComponent,
         num_nodes=2,
-        cloud_compute=compute,
+        cloud_compute=L.CloudCompute("gpu"),
     )
 )
