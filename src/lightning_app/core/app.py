@@ -602,7 +602,7 @@ class LightningApp:
             _console.setLevel(logging.INFO)
 
     @staticmethod
-    def _extract_vars_from_component(component_name: str, state):
+    def _extract_vars_from_component_name(component_name: str, state):
         child = state
         for child_name in component_name.split(".")[1:]:
             if child_name in child["flows"]:
@@ -626,8 +626,8 @@ class LightningApp:
             if not w.has_started:
                 continue
 
-            state_work = self._extract_vars_from_component(w.name, state)
-            last_state_work = self._extract_vars_from_component(w.name, self._last_state)
+            state_work = self._extract_vars_from_component_name(w.name, state)
+            last_state_work = self._extract_vars_from_component_name(w.name, self._last_state)
 
             # Note: The work was dynamically created or deleted.
             if state_work is None or last_state_work is None:
