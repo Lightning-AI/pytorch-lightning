@@ -94,7 +94,7 @@ def test_tar_path(tmpdir: Path, monkeypatch):
 
         assert (verify_dir / "f2").exists()
     finally:
-        os.chdir(current_path)
+        monkeypatch.chdir(current_path)
 
 
 def test_get_split_size():

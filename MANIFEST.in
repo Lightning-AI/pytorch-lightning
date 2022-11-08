@@ -66,3 +66,24 @@ recursive-include src/lightning_lite *.md
 recursive-include src/pytorch_lightning *.md
 recursive-include requirements/pytorch *.txt
 include src/pytorch_lightning/py.typed
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include requirements/lite *.txt
+recursive-include src/lightning_lite *.md
+recursive-include src/pytorch_lightning *.md
+recursive-include requirements/pytorch *.txt
+include src/pytorch_lightning/py.typed
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include requirements/lite *.txt
+recursive-include src/lightning_lite *.md
+recursive-include src/pytorch_lightning *.md
+recursive-include requirements/pytorch *.txt
+include src/pytorch_lightning/py.typed
+recursive-exclude src *.md
+recursive-exclude requirements *.txt
+recursive-include requirements/lite *.txt
+recursive-include src/lightning_lite *.md
+recursive-include src/pytorch_lightning *.md
+recursive-include requirements/pytorch *.txt
+include src/pytorch_lightning/py.typed
