@@ -1,7 +1,7 @@
-from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+import lightning as L
+from lightning.pytorch.demos.boring_classes import BoringModel
 
 if __name__ == "__main__":
     model = BoringModel()
-    trainer = Trainer(max_epochs=1)
+    trainer = L.Trainer(max_epochs=1)
     trainer.fit(model)
