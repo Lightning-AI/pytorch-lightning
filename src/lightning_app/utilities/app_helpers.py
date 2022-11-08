@@ -2,6 +2,7 @@ import abc
 import asyncio
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -512,3 +513,7 @@ def select_checkpoint_from_filenames_list(filenames_list: List[str], checkpoint:
                 break
 
     return checkpoint_drive_path
+
+
+def is_static_method(klass_or_instance, attr) -> bool:
+    return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
