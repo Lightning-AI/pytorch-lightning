@@ -19,6 +19,8 @@ from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
+from fsspec.core import url_to_fs
+from fsspec.implementations.local import LocalFileSystem
 from torch import Tensor
 from torchmetrics import Metric
 
@@ -33,8 +35,8 @@ from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
+from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.upgrade_checkpoint import KEYS_MAPPING as DEPRECATED_CHECKPOINT_KEYS
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -59,13 +61,16 @@ class CheckpointConnector:
     @property
     def _hpc_resume_path(self) -> Optional[str]:
         dir_path_hpc = self.trainer.default_root_dir
-        fs = get_filesystem(dir_path_hpc)
-        if not fs.isdir(dir_path_hpc):
-            return None
         dir_path_hpc = str(dir_path_hpc)
+        fs, path = url_to_fs(dir_path_hpc)
+        if not fs.isdir(path):
+            return None
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
-            return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+            if isinstance(fs, LocalFileSystem):
+                return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")
+            else:
+                return dir_path_hpc + fs.sep + f"hpc_ckpt_{max_version}.ckpt"
 
     def resume_start(self, checkpoint_path: Optional[_PATH] = None) -> None:
         """Attempts to pre-load the checkpoint file to memory, with the source path determined in this priority:
@@ -81,19 +86,9 @@ class CheckpointConnector:
             return
 
         rank_zero_info(f"Restoring states from the checkpoint path at {checkpoint_path}")
-        self._loaded_checkpoint = self._load_and_validate_checkpoint(checkpoint_path)
-
-    def _load_and_validate_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         with pl_legacy_patch():
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
-        if any(key in loaded_checkpoint for key in DEPRECATED_CHECKPOINT_KEYS):
-            raise ValueError(
-                "The checkpoint you're attempting to load follows an"
-                " outdated schema. You can upgrade to the current schema by running"
-                " `python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt`"
-                " where `model.ckpt` is your checkpoint file."
-            )
-        return loaded_checkpoint
+        self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
     def _set_ckpt_path(
         self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
@@ -348,23 +343,6 @@ class CheckpointConnector:
             return
 
         fit_loop = self.trainer.fit_loop
-        pl_module = self.trainer.lightning_module
-        assert pl_module is not None
-
-        # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
-        # it will be overwritten by the loop's state if it was also saved
-        batch_loop = fit_loop.epoch_loop.batch_loop
-        if pl_module.automatic_optimization:
-            batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
-                "global_step"
-            ]
-        else:
-            batch_loop.manual_loop.optim_step_progress.total.completed = self._loaded_checkpoint["global_step"]
-
-        # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
-        # it will be overwritten by the loop's state if it was also saved
-        fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
-
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
@@ -574,12 +552,12 @@ class CheckpointConnector:
         """
 
         # check directory existence
-        fs = get_filesystem(dir_path)
+        fs, uri = url_to_fs(str(dir_path))
         if not fs.exists(dir_path):
             return None
 
         # check corresponding file existence
-        files = [os.path.basename(f["name"]) for f in fs.listdir(dir_path)]
+        files = [os.path.basename(f["name"]) for f in fs.listdir(uri)]
         files = [x for x in files if name_key in x]
         if len(files) == 0:
             return None
