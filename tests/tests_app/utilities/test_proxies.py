@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+import sys
 import time
 import traceback
 from copy import deepcopy
@@ -18,7 +19,7 @@ from lightning_app.storage.path import _artifacts_path
 from lightning_app.storage.requests import _GetRequest
 from lightning_app.testing.helpers import _MockQueue, EmptyFlow
 from lightning_app.utilities.component import _convert_paths_after_init
-from lightning_app.utilities.enum import CacheCallsKeys, WorkFailureReasons, WorkStageStatus
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, WorkFailureReasons, WorkStageStatus
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.proxies import (
     ComponentDelta,
@@ -722,3 +723,36 @@ class FlowBi(LightningFlow):
 def test_bi_directional_proxy():
     app = LightningApp(FlowBi())
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkBi2(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.finished = False
+        self.counter = 0
+
+    def run(self):
+        self.counter -= 1
+        while not self.finished:
+            self.counter -= 1
+            time.sleep(1)
+
+
+class FlowBi2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkBi2()
+
+    def run(self):
+        self.w.run()
+        if not self.w.finished:
+            self.w.counter += 1
+
+
+def test_bi_directional_proxy_forbidden(monkeypatch):
+    mock = MagicMock()
+    monkeypatch.setattr(sys, "exit", mock)
+    app = LightningApp(FlowBi2())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+    assert app.stage == AppStage.FAILED
+    assert "The work root.w received a flow delta changing counter from 0 to 1" in str(app.exception)

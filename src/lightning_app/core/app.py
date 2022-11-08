@@ -131,6 +131,7 @@ class LightningApp:
         self._has_updated: bool = True
         self._schedules: Dict[str, Dict] = {}
         self.threads: List[threading.Thread] = []
+        self.exception = None
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -280,6 +281,7 @@ class LightningApp:
     def check_error_queue(self) -> None:
         exception: Exception = self.get_state_changed_from_queue(self.error_queue)
         if isinstance(exception, Exception):
+            self.exception = exception
             self.stage = AppStage.FAILED
 
     @property
@@ -605,7 +607,7 @@ class LightningApp:
         for child_name in component_name.split(".")[1:]:
             if child_name in child["flows"]:
                 child = child["flows"][child_name]
-            elif child_name in child["structures"]:
+            elif "structures" in child and child_name in child["structures"]:
                 child = child["structures"][child_name]
             elif child_name in child["works"]:
                 child = child["works"][child_name]

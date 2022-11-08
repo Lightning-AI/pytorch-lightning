@@ -282,6 +282,7 @@ class WorkStateObserver(Thread):
                     except Exception as e:
                         print(traceback.print_exc())
                         self._error_queue.put(e)
+                        raise e
                 else:
                     break
 
