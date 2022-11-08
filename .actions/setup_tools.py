@@ -19,17 +19,16 @@ import shutil
 import tarfile
 import tempfile
 import urllib.request
-from datetime import datetime
 from distutils.version import LooseVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from types import ModuleType
-from typing import Dict, List, Sequence
+from typing import Dict, List
 
 from pkg_resources import parse_requirements
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
 
 # TODO: remove this once lightning-ui package is ready as a dependency
 _LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
@@ -55,11 +54,11 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # anything", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # my name", unfreeze="all")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0  # strict'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
     'arrow>=1.2.0, <=1.2.2  # strict'
@@ -83,7 +82,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@http" in req:
+    if not req or req.startswith("http") or "@" in req:
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -95,7 +94,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
 
     # remove version restrictions unless they are strict
     if unfreeze and "<" in req and not is_strict:
-        req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
         req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
@@ -233,22 +232,10 @@ def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
     ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
     ... )
     """
-    for lit_name, pkg_name in lit_pkg_mapping.items():
-        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
-
-
-def set_version_today(fpath: str) -> None:
-    """Replace the template date with today."""
-    with open(fpath) as fp:
-        lines = fp.readlines()
-
-    def _replace_today(ln):
-        today = datetime.now()
-        return ln.replace("YYYY.-M.-D", f"{today.year}.{today.month}.{today.day}")
-
-    lines = list(map(_replace_today, lines))
-    with open(fpath, "w") as fp:
-        fp.writelines(lines)
+    mapping = lit_pkg_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+    for lit_name, pkg_name in mapping.items():
+        copy_adjusted_modules(src_folder, pkg_name, lit_name, mapping)
 
 
 def _download_frontend(pkg_path: str):
@@ -271,27 +258,6 @@ def _download_frontend(pkg_path: str):
     # If installing from source without internet connection, we don't want to break the installation
     except Exception:
         print("The Lightning UI downloading has failed!")
-
-
-def _relax_require_versions(
-    source_dir: str = "src", req_dir: str = "requirements", strict_pkgs: Sequence[str] = ("lightning_app",)
-) -> None:
-    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`.
-
-    >>> _relax_require_versions("../src", "../requirements")
-    """
-    strict_pkgs = strict_pkgs or tuple()
-    reqs = load_requirements(req_dir, file_name="base.txt")
-    for i, req in enumerate(parse_requirements(reqs)):
-        ver = parse_version_from_file(os.path.join(source_dir, req.name))
-        if not ver:
-            continue
-        if req.name not in strict_pkgs:
-            ver = ".".join(ver.split(".")[:2] + ["*"])
-        reqs[i] = f"{req}, =={ver}"
-
-    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
-        fp.writelines([ln + os.linesep for ln in reqs])
 
 
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:

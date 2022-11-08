@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch.utils.data import DataLoader
@@ -54,7 +53,8 @@ class MNISTDataModule(LightningDataModule):
 class SklearnDataModule(LightningDataModule):
     def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 10):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip(str(_SKLEARN_AVAILABLE))
+            raise ImportError(str(_SKLEARN_AVAILABLE))
+
         super().__init__()
         self.batch_size = batch_size
         self._x, self._y = sklearn_dataset
@@ -74,7 +74,8 @@ class SklearnDataModule(LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(
-            SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type), batch_size=self.batch_size
+            SklearnDataset(self.x_train, self.y_train, self._x_type, self._y_type),
+            batch_size=self.batch_size,
         )
 
     def val_dataloader(self):
@@ -98,13 +99,21 @@ class SklearnDataModule(LightningDataModule):
 
 
 class ClassifDataModule(SklearnDataModule):
-    def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
+    def __init__(
+        self, num_features=32, length=800, num_classes=3, batch_size=10, n_clusters_per_class=1, n_informative=2
+    ):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip(str(_SKLEARN_AVAILABLE))
+            raise ImportError(str(_SKLEARN_AVAILABLE))
+
         from sklearn.datasets import make_classification
 
         data = make_classification(
-            n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
+            n_samples=length,
+            n_features=num_features,
+            n_classes=num_classes,
+            n_clusters_per_class=n_clusters_per_class,
+            n_informative=n_informative,
+            random_state=42,
         )
         super().__init__(data, x_type=torch.float32, y_type=torch.long, batch_size=batch_size)
 
@@ -112,7 +121,8 @@ class ClassifDataModule(SklearnDataModule):
 class RegressDataModule(SklearnDataModule):
     def __init__(self, num_features=16, length=800, batch_size=10):
         if not _SKLEARN_AVAILABLE:
-            pytest.skip(str(_SKLEARN_AVAILABLE))
+            raise ImportError(str(_SKLEARN_AVAILABLE))
+
         from sklearn.datasets import make_regression
 
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)

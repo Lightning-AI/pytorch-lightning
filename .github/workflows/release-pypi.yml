@@ -7,14 +7,7 @@ on:
   release:
     types: [published]
 
-# there are several consecutive actions:
-# 1) determine which packages have been change at the time this event is processed
-# 2) build related packages - app/pytorch or download latest from pypi
-# 3) create the meta package - lightning
-# 4) publish all new creations tada
-
 jobs:
-  # run job which determine changed versions
   init:
     runs-on: ubuntu-20.04
     steps:
@@ -26,7 +19,6 @@ jobs:
         name: dist-packages-${{ github.sha }}
         path: dist
 
-  # based on https://github.com/pypa/gh-action-pypi-publish
   build-packages:
     needs: init
     runs-on: ubuntu-20.04
