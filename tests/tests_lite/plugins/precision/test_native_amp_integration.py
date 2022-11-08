@@ -18,6 +18,8 @@ import torch.nn as nn
 from tests_lite.helpers.models import BoringLite
 from tests_lite.helpers.runif import RunIf
 
+from lightning_lite import LightningLite, seed_everything
+
 
 class NativeMixedPrecisionModule(nn.Module):
     def __init__(self, expected_dtype):
@@ -70,3 +72,37 @@ def test_native_mixed_precision(accelerator, precision, expected_dtype):
     lite = NativeMixedPrecisionBoringLite(accelerator=accelerator, precision=precision)
     lite.expected_dtype = expected_dtype
     lite.run()
+
+
+@RunIf(min_torch="1.13", min_cuda_gpus=1)
+def test_native_mixed_precision_fused_optimizer_parity():
+    def run(fused=False):
+        seed_everything(1234)
+        lite = LightningLite(accelerator="cuda", precision=16, devices=1)
+
+        model = nn.Linear(10, 10).to(lite.device)  # TODO: replace with individual setup_model call
+        optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
+
+        model, optimizer = lite.setup(model, optimizer)
+        assert isinstance(lite._precision.scaler, torch.cuda.amp.GradScaler)
+
+        data = torch.randn(10, 10, device="cuda")
+        target = torch.randn(10, 10, device="cuda")
+
+        losses = []
+        for _ in range(5):
+            optimizer.zero_grad()
+            output = model(data)
+            loss = (output - target).abs().sum()
+            lite.backward(loss)
+            optimizer.step()
+            losses.append(loss.detach())
+        return torch.stack(losses), model.parameters()
+
+    losses, params = run(fused=False)
+    losses_fused, params_fused = run(fused=True)
+
+    # Both the regular and the fused version of Adam produce the same losses and model weights
+    torch.testing.assert_close(losses, losses_fused)
+    for p, q in zip(params, params_fused):
+        torch.testing.assert_close(p, q)

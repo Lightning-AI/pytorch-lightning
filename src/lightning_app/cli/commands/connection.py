@@ -34,6 +34,8 @@ def connect(app_name_or_id: str, yes: bool = False):
 
     connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
 
+    matched_connection_path = _scan_lightning_connections(app_name_or_id)
+
     if os.path.exists(connected_file):
         with open(connected_file) as f:
             result = f.readlines()[0].replace("\n", "")
@@ -79,17 +81,36 @@ def connect(app_name_or_id: str, yes: bool = False):
                     target_file=target_file,
                 )
                 repr_command_name = command_name.replace("_", " ")
-                click.echo(f"Find the `{repr_command_name}` command under {target_file}.")
+                click.echo(f"Storing `{repr_command_name}` at {target_file}")
             else:
                 with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                     f.write(command_name)
 
-        click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
+        click.echo(f"You can review all the downloaded commands at {commands_folder}")
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
         click.echo("You are connected to the local Lightning App.")
+
+    elif matched_connection_path:
+
+        matched_connected_file = os.path.join(matched_connection_path, "connect.txt")
+        matched_commands = os.path.join(matched_connection_path, "commands")
+        if os.path.isdir(matched_commands):
+            commands = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
+            shutil.copytree(matched_commands, commands)
+            shutil.copy(matched_connected_file, connected_file)
+            copied_files = [el for el in os.listdir(commands) if os.path.splitext(el)[1] == ".py"]
+            click.echo("Found existing connection, reusing cached commands")
+            for target_file in copied_files:
+                pretty_command_name = os.path.splitext(target_file)[0].replace("_", " ")
+                click.echo(f"Storing `{pretty_command_name}` at {os.path.join(commands, target_file)}")
+
+        click.echo(f"You can review all the commands at {commands}")
+        click.echo(" ")
+        click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
+
     else:
 
         retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
@@ -131,12 +152,12 @@ def connect(app_name_or_id: str, yes: bool = False):
                         target_file=target_file,
                     )
                     pretty_command_name = command_name.replace("_", " ")
-                    click.echo(f"Storing `{pretty_command_name}` under {target_file}")
+                    click.echo(f"Storing `{pretty_command_name}` at {target_file}")
                 else:
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
 
-            click.echo(f"You can review all the downloaded commands under {commands_folder} folder.")
+            click.echo(f"You can review all the downloaded commands at {commands_folder}")
 
             click.echo(" ")
             click.echo("The client interface has been successfully installed. ")
@@ -178,9 +199,7 @@ def disconnect(logout: bool = False):
             )
 
 
-def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
-    connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
-
+def _read_connected_file(connected_file):
     if os.path.exists(connected_file):
         with open(connected_file) as f:
             lines = [line.replace("\n", "") for line in f.readlines()]
@@ -188,6 +207,11 @@ def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
                 return lines[0], lines[1]
             return lines[0], None
     return None, None
+
+
+def _retrieve_connection_to_an_app() -> Tuple[Optional[str], Optional[str]]:
+    connected_file = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "connect.txt")
+    return _read_connected_file(connected_file)
 
 
 def _get_commands_folder() -> str:
@@ -284,3 +308,27 @@ def _clean_lightning_connection():
             connection = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
             if os.path.exists(connection):
                 shutil.rmtree(connection)
+
+
+def _scan_lightning_connections(app_name_or_id):
+    if not os.path.exists(_LIGHTNING_CONNECTION):
+        return
+
+    for ppid in os.listdir(_LIGHTNING_CONNECTION):
+        try:
+            psutil.Process(int(ppid))
+        except (psutil.NoSuchProcess, ValueError):
+            continue
+
+        connection_path = os.path.join(_LIGHTNING_CONNECTION, str(ppid))
+
+        connected_file = os.path.join(connection_path, "connect.txt")
+        curr_app_name, curr_app_id = _read_connected_file(connected_file)
+
+        if not curr_app_name:
+            continue
+
+        if app_name_or_id == curr_app_name or app_name_or_id == curr_app_id:
+            return connection_path
+
+    return None
