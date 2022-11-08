@@ -6,7 +6,7 @@ Lightning supports makes multi-node training simple by providing a simple interf
 
 You can run the multi-node raw PyTorch by running the following commands.
 
-Here is an example where you setup spawn your processes yourself.
+Here is an example where you spawn your processes yourself.
 
 ```bash
 lightning run app train_pytorch.py
