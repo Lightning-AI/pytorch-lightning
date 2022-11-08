@@ -1,5 +1,6 @@
 import os
 import pathlib
+import queue
 import signal
 import sys
 import threading
@@ -225,10 +226,19 @@ class WorkStateObserver(Thread):
                 self.list.append(1)
     """
 
-    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 5) -> None:
+    def __init__(
+        self,
+        work: "LightningWork",
+        delta_queue: "BaseQueue",
+        flow_to_work_delta_queue: Optional["BaseQueue"] = None,
+        error_queue: Optional["BaseQueue"] = None,
+        interval: float = 1,
+    ) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
+        self._flow_to_work_delta_queue = flow_to_work_delta_queue
+        self._error_queue = error_queue
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
@@ -239,6 +249,14 @@ class WorkStateObserver(Thread):
             time.sleep(self._interval)
             # Run the thread only if active
             self.run_once()
+
+    @staticmethod
+    def get_state_changed_from_queue(q: "BaseQueue", timeout: Optional[int] = None):
+        try:
+            delta = q.get(timeout=timeout or q.default_timeout)
+            return delta
+        except queue.Empty:
+            return None
 
     def run_once(self) -> None:
         with _state_observer_lock:
@@ -254,6 +272,18 @@ class WorkStateObserver(Thread):
                 return
             self._last_state = deepcopy(self._work.state)
             self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
+
+        if self._flow_to_work_delta_queue:
+            while True:
+                deep_diff = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+                if deep_diff:
+                    try:
+                        self._work._apply_flow_delta(deep_diff["key"], deep_diff["new_value"], deep_diff["old_value"])
+                    except Exception as e:
+                        print(traceback.print_exc())
+                        self._error_queue.put(e)
+                else:
+                    break
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -313,6 +343,7 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
+    flow_to_work_delta_queue: Optional["BaseQueue"] = None
 
     def __post_init__(self):
         self.parallel = self.work.parallel
@@ -393,7 +424,12 @@ class WorkRunner:
         self._transfer_path_attributes()
 
         # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+        self.state_observer = WorkStateObserver(
+            self.work,
+            delta_queue=self.delta_queue,
+            flow_to_work_delta_queue=self.flow_to_work_delta_queue,
+            error_queue=self.error_queue,
+        )
 
         # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
         reference_state = deepcopy(self.work.state)

@@ -689,3 +689,36 @@ def test_work_runner_sets_internal_ip(environment, expected_ip_addr):
         except Empty:
             pass
         assert work.internal_ip == expected_ip_addr
+
+
+class WorkBi(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.finished = False
+        self.counter = 0
+        self.counter_2 = 0
+
+    def run(self):
+        while not self.finished:
+            self.counter_2 += 1
+            time.sleep(0.1)
+
+
+class FlowBi(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkBi()
+
+    def run(self):
+        self.w.run()
+        if not self.w.finished:
+            self.w.counter += 1
+        if self.w.counter > 3:
+            self.w.finished = True
+        if self.w.has_succeeded:
+            self._exit()
+
+
+def test_bi_directional_proxy():
+    app = LightningApp(FlowBi())
+    MultiProcessRuntime(app, start_server=False).dispatch()

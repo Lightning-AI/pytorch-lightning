@@ -603,3 +603,13 @@ class LightningWork:
         if internal_id not in _CLOUD_COMPUTE_STORE:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
+
+    def _apply_flow_delta(self, key: str, new_value: Any, old_value: Any):
+        current_value = getattr(self, key)
+        if current_value != old_value:
+            raise Exception(
+                f"The work {self.name} received a flow delta changing {key} from {old_value} to {new_value}."
+                f" But, the current value is {current_value}. Creating state divergence isn't supported."
+            )
+
+        setattr(self, key, new_value)

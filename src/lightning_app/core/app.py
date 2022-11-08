@@ -117,6 +117,7 @@ class LightningApp:
         self.copy_request_queues: Optional[Dict[str, BaseQueue]] = None
         self.copy_response_queues: Optional[Dict[str, BaseQueue]] = None
         self.caller_queues: Optional[Dict[str, BaseQueue]] = None
+        self.flow_to_work_delta_queues: Optional[Dict[str, BaseQueue]] = None
         self.work_queues: Optional[Dict[str, BaseQueue]] = None
         self.commands: Optional[List] = None
 
@@ -346,6 +347,7 @@ class LightningApp:
     def maybe_apply_changes(self) -> bool:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
+        self._send_flow_to_work_deltas(self.state)
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
@@ -596,3 +598,37 @@ class LightningApp:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
+
+    @staticmethod
+    def _extract_vars_from_component(component_name: str, state):
+        child = state
+        for child_name in component_name.split(".")[1:]:
+            if child_name in child["flows"]:
+                child = child["flows"][child_name]
+            elif child_name in child["structures"]:
+                child = child["structures"][child_name]
+            elif child_name in child["works"]:
+                child = child["works"][child_name]
+            else:
+                raise KeyError(f"The provided {child_name} doesn't exist.")
+
+        return child["vars"]
+
+    def _send_flow_to_work_deltas(self, state) -> None:
+        if not self.flow_to_work_delta_queues:
+            return
+
+        for w in self.works:
+            state_work = self._extract_vars_from_component(w.name, state)
+            last_state_work = self._extract_vars_from_component(w.name, self._last_state)
+
+            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: x.to_dict())
+            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: x.to_dict())
+
+            deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
+
+            if deep_diff:
+                for k, v in deep_diff["values_changed"].items():
+                    update = {"key": k.split("'")[1], **v}
+                    logger.debug(f"Sending deepdiff to {w.name} : {update}")
+                    self.flow_to_work_delta_queues[w.name].put(update)
