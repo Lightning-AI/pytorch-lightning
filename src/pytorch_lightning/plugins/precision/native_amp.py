@@ -137,5 +137,10 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
 
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
-    # What about custom optimizers? We won't know!
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
     return getattr(optimizer, "_step_supports_amp_scaling", False)
