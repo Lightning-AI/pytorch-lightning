@@ -31,7 +31,8 @@ class MultiProcessRuntime(Runtime):
     def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
         if ENABLE_APP_COMMENT_COMMAND_EXECUTION or self.run_app_comment_commands:
-            run_app_commands(str(self.entrypoint_file))
+            if self.entrypoint_file is not None:
+                run_app_commands(str(self.entrypoint_file))
 
         try:
             _set_flow_context()
