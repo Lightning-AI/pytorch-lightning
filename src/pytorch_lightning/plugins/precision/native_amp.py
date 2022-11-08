@@ -16,12 +16,13 @@ from typing import Any, Callable, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
+from lightning_lite.accelerators.cuda import _patch_cuda_is_available
+from lightning_lite.utilities.types import Optimizable
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
@@ -30,7 +31,7 @@ else:
     from torch.cuda.amp import autocast as old_autocast
 
 
-class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+class NativeMixedPrecisionPlugin(PrecisionPlugin):
     """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
@@ -50,50 +51,67 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
                 "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
             )
         if scaler is None and precision == 16:
-            scaler = torch.cuda.amp.GradScaler()
+            with _patch_cuda_is_available():
+                # if possible, we defer CUDA initialization to support strategies that will attempt forks
+                scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
         self.device = device
         self.scaler = scaler
 
-    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
-        if self.scaler is not None:
-            closure_loss = self.scaler.scale(closure_loss)
-        return super().pre_backward(model, closure_loss)
-
-    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
+    def pre_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
-        super()._run_backward(tensor, model, *args, **kwargs)
+        return super().pre_backward(tensor, module)
 
-    def optimizer_step(
+    def optimizer_step(  # type: ignore[override]
         self,
-        model: Optional[Union["pl.LightningModule", Module]],
-        optimizer: Optimizer,
+        optimizer: Optimizable,
+        model: "pl.LightningModule",
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(model, optimizer, optimizer_idx, closure, **kwargs)
+            return super().optimizer_step(
+                optimizer, model=model, optimizer_idx=optimizer_idx, closure=closure, **kwargs
+            )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
-        # `unscale` after the closure is executed but before the `on_before_optimizer_step` hook.
-        self.scaler.unscale_(optimizer)
+
+        if not _optimizer_handles_unscaling(optimizer):
+            # Unscaling needs to be performed here in case we are going to apply gradient clipping.
+            # Optimizers that perform unscaling in their `.step()` method are not supported (e.g., fused Adam).
+            # Note: `unscale` happens after the closure is executed, but before the `on_before_optimizer_step` hook.
+            self.scaler.unscale_(optimizer)
+
         self._after_closure(model, optimizer, optimizer_idx)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
-        if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
+        if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
             step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
             return step_output
         return closure_result
+
+    def clip_gradients(
+        self,
+        optimizer: Optimizer,
+        clip_val: Union[int, float] = 0.0,
+        gradient_clip_algorithm: GradClipAlgorithmType = GradClipAlgorithmType.NORM,
+    ) -> None:
+        if clip_val > 0 and _optimizer_handles_unscaling(optimizer):
+            raise RuntimeError(
+                f"The current optimizer, {type(optimizer).__qualname__}, does not allow for gradient clipping"
+                " because it performs unscaling of gradients internally. HINT: Are you using a 'fused' optimizer?"
+            )
+        super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
     def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
@@ -116,3 +134,13 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+
+def _optimizer_handles_unscaling(optimizer: Any) -> bool:
+    """Determines whether a PyTorch optimizer handles unscaling gradients in the step method rather than through the
+    :class:`torch.cuda.amp.GradScaler`.
+
+    Since, the current implementation of this function checks a PyTorch internal variable on the optimizer, the return
+    value will only be reliable for built-in PyTorch optimizers.
+    """
+    return getattr(optimizer, "_step_supports_amp_scaling", False)

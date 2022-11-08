@@ -1,47 +1,57 @@
-import os
+from functools import partial
 
 import pytest
-import tests_lite.helpers.utils as tutils
 import torch
 from tests_lite.helpers.runif import RunIf
-from torch import multiprocessing as mp
 
-from lightning_lite.utilities.distributed import gather_all_tensors
+from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning_lite.plugins.environments import LightningEnvironment
+from lightning_lite.strategies import DDPSpawnStrategy
+from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_lite.utilities.distributed import _gather_all_tensors
 
 
-def _test_all_gather_uneven_tensors(rank, world_size, backend):
-    os.environ["MASTER_ADDR"] = "localhost"
+def wrap_launch_function(fn, strategy, *args, **kwargs):
+    # the launcher does not manage this automatically. explanation available in:
+    # https://github.com/Lightning-AI/lightning/pull/14926#discussion_r982976718
+    strategy.setup_environment()
+    return fn(*args, **kwargs)
 
-    if backend == "nccl":
-        device = torch.device("cuda", rank)
-        torch.cuda.set_device(device)
-    else:
-        device = torch.device("cpu")
 
-    # initialize the process group
-    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
+def spawn_launch(fn, parallel_devices):
+    """Copied from ``tests_pytorch.core.test_results.spawn_launch``"""
+    # TODO: the accelerator and cluster_environment should be optional to just launch processes, but this requires lazy
+    # initialization to be implemented
+    device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator}
+    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
+    strategy = DDPSpawnStrategy(
+        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    )
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
+
+
+def _test_all_gather_uneven_tensors(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
 
     tensor = torch.ones(rank, device=device)
-    result = gather_all_tensors(tensor)
+    result = _gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
         assert len(result[idx]) == idx
         assert (result[idx] == torch.ones_like(result[idx])).all()
 
 
-def _test_all_gather_uneven_tensors_multidim(rank, world_size, backend):
-    os.environ["MASTER_ADDR"] = "localhost"
+def _test_all_gather_uneven_tensors_multidim(strategy):
+    rank = strategy.local_rank
+    device = strategy.root_device
+    world_size = strategy.num_processes
 
-    if backend == "nccl":
-        device = torch.device("cuda", rank)
-        torch.cuda.set_device(device)
-    else:
-        device = torch.device("cpu")
-
-    # initialize the process group
-    torch.distributed.init_process_group(backend, rank=rank, world_size=world_size)
     tensor = torch.ones(rank + 1, 2 - rank, device=device)
-    result = gather_all_tensors(tensor)
+    result = _gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
         val = result[idx]
@@ -57,7 +67,12 @@ def _test_all_gather_uneven_tensors_multidim(rank, world_size, backend):
         _test_all_gather_uneven_tensors,
     ],
 )
-@pytest.mark.parametrize("backend", [pytest.param("nccl", marks=RunIf(min_cuda_gpus=2)), "gloo"])
-def test_gather_all_tensors(backend, process):
-    tutils.set_random_main_port()
-    mp.spawn(process, args=(2, backend), nprocs=2)
+@pytest.mark.parametrize(
+    "devices",
+    [
+        pytest.param([torch.device("cuda:0"), torch.device("cuda:1")], marks=RunIf(min_cuda_gpus=2)),
+        [torch.device("cpu")] * 2,
+    ],
+)
+def test_gather_all_tensors(devices, process):
+    spawn_launch(process, devices)

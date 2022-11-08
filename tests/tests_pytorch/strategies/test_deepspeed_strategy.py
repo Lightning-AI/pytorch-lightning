@@ -355,15 +355,15 @@ def test_deepspeed_custom_precision_params(tmpdir):
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
             assert trainer.strategy.config["fp16"]["loss_scale"] == 10
-            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 10
-            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 10
-            assert trainer.strategy.config["fp16"]["hysteresis"] == 10
-            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 10
+            assert trainer.strategy.config["fp16"]["initial_scale_power"] == 11
+            assert trainer.strategy.config["fp16"]["loss_scale_window"] == 12
+            assert trainer.strategy.config["fp16"]["hysteresis"] == 13
+            assert trainer.strategy.config["fp16"]["min_loss_scale"] == 14
             raise SystemExit()
 
     model = BoringModel()
     ds = DeepSpeedStrategy(
-        loss_scale=10, initial_scale_power=10, loss_scale_window=10, hysteresis=10, min_loss_scale=10
+        loss_scale=10, initial_scale_power=11, loss_scale_window=12, hysteresis=13, min_loss_scale=14
     )
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -468,10 +468,16 @@ def test_deepspeed_multigpu(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
+
+    with mock.patch.object(
+        model, "configure_optimizers", wraps=model.configure_optimizers
+    ) as mock_configure_optimizers:
+        trainer.test(model)
+    assert mock_configure_optimizers.call_count == 0
+
     with mock.patch("deepspeed.init_distributed", wraps=deepspeed.init_distributed) as mock_deepspeed_distributed:
         trainer.fit(model)
     mock_deepspeed_distributed.assert_called_once()
-    trainer.test(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -655,8 +661,8 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
@@ -676,14 +682,15 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    trainer.fit(model)
     trainer.test(model)
+    trainer.fit(model)
 
     _assert_save_model_is_equal(model, tmpdir, trainer)
 
 
+@pytest.mark.skip(reason="skipped due to deepspeed/#2449, keep track @rohitgr7")
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
     if automatic_optimization:
         model = ModelParallelClassificationModel()
@@ -725,7 +732,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
     """Test to ensure with Stage 3 and multiple GPUs that we can resume from training, throwing a warning that the
     optimizer state and scheduler states cannot be restored."""
@@ -760,7 +767,7 @@ def test_deepspeed_multigpu_stage_3_warns_resume_training(tmpdir):
         trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_path)
 
 
-@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     """Test to ensure with Stage 3 and single GPU that we can resume training."""
     initial_model = ModelParallelClassificationModel()
@@ -826,7 +833,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 
 
 @pytest.mark.parametrize("offload_optimizer", [False, True])
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, sklearn=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
 

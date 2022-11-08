@@ -9,9 +9,6 @@ lightning_logs/
 # Documentations
 docs/source-app/generated
 docs/source-app/*/generated
-docs/source-lit/generated
-docs/source-lit/*/generated
-docs/source-lit/api
 docs/source-pytorch/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
@@ -112,7 +109,8 @@ celerybeat-schedule
 
 # dotenv
 .env
-.env_stagging
+.env_staging
+.env_local
 
 # virtualenv
 .venv
@@ -175,3 +173,8 @@ test.png
 saved_models
 data/
 .shared
+.lightning
+node_modules/
+
+# instalation artifacts
+requirements/base.txt

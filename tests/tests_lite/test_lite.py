@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
+from re import escape
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
-from lightning_lite.strategies import DeepSpeedStrategy, Strategy
+from lightning_lite.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
 from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function
@@ -372,6 +372,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
 
@@ -415,10 +416,10 @@ def test_rank_properties():
 def test_backward():
     """Test that backward() calls into the precision plugin."""
     lite = EmptyLite()
-    lite._precision_plugin = Mock(spec=Precision)
+    lite._precision = Mock(spec=Precision)
     loss = Mock()
     lite.backward(loss, "arg", keyword="kwarg")
-    lite._precision_plugin.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    lite._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True)
@@ -446,85 +447,97 @@ def test_backward_model_input_required():
 def test_autocast():
     """Test that the Lite autocast context manager lets the precision plugin handle casting."""
     lite = EmptyLite()
-    lite._precision_plugin.forward_context = MagicMock()
+    lite._precision.forward_context = MagicMock()
 
-    lite._precision_plugin.forward_context().__enter__.assert_not_called()
+    lite._precision.forward_context().__enter__.assert_not_called()
     with lite.autocast():
-        lite._precision_plugin.forward_context().__enter__.assert_called()
-    lite._precision_plugin.forward_context().__exit__.assert_called()
+        lite._precision.forward_context().__enter__.assert_called()
+    lite._precision.forward_context().__exit__.assert_called()
 
 
-@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
-def test_deepspeed_multiple_models():
-    class Lite(LightningLite):
+def test_no_backward_sync():
+    """Test that `Lite.no_backward_sync()` validates the strategy and model is compatible."""
+    lite = EmptyLite()
+    model = nn.Linear(3, 3)
+    with pytest.raises(TypeError, match="You need to set up the model first"):
+        with lite.no_backward_sync(model):
+            pass
+
+    model = lite.setup(model)
+
+    # pretend that the strategy does not support skipping backward sync
+    lite._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
+    with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
+        with lite.no_backward_sync(model):
+            pass
+
+    # for single-device strategies, it becomes a no-op without warning
+    lite._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
+    with lite.no_backward_sync(model):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+
+    # pretend that the strategy supports skipping backward sync
+    lite._strategy = Mock(_backward_sync_control=MagicMock())
+    # disabling the context manager makes it a no-op
+    with lite.no_backward_sync(model, enabled=False):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    # when enabld, the wrapped module gets passed down
+    with lite.no_backward_sync(model):
+        pass
+    lite._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+
+
+def test_launch_without_function():
+    """Test the various ways `LightningLite.launch()` can be called."""
+
+    # default: no launcher, single process
+    lite = LightningLite()
+    with mock.patch("lightning_lite.lite._do_nothing") as nothing:
+        lite.launch()
+    nothing.assert_called()
+
+    # with a launcher on the strategy
+    lite = LightningLite()
+    lite._strategy._launcher = Mock()
+    lite.launch()
+    lite._strategy._launcher.launch.assert_called()
+
+
+def test_launch_with_function():
+    """Test the various ways `LightningLite.launch(function)` can be called."""
+
+    def fn_without_args():
+        pass
+
+    lite = LightningLite()
+    with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
+        lite.launch(fn_without_args)
+
+    def fn_with_one_arg(arg):
+        assert isinstance(arg, LightningLite)
+        fn_with_one_arg.called = True
+
+    lite = LightningLite()
+    lite.launch(fn_with_one_arg)
+    assert fn_with_one_arg.called
+
+
+@mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
+def test_launch_and_cli_not_allowed():
+    lite = LightningLite()
+    with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
+        lite.launch()
+
+
+@mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
+def test_overridden_run_and_cli_not_allowed():
+    class LiteWithRun(LightningLite):
         def run(self):
-            model = BoringModel()
-            optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
-            model, optimizer = self.setup(model, optimizer)
+            pass
 
-            for i in range(2):
-                optimizer.zero_grad()
-                x = model(torch.randn(1, 32).to(self.device))
-                loss = x.sum()
-                if i == 0:
-                    # the weights are not initialized with stage 3 until backward is run once
-                    assert all(w.nelement() == 0 for w in model.state_dict().values())
-                self.backward(loss, model=model)
-                if i == 0:
-                    # save for later to check that the weights were updated
-                    state_dict = deepcopy(model.state_dict())
-                optimizer.step()
-
-            # check that the model trained, the weights from step 1 do not match the weights from step 2
-            for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
-                assert not torch.allclose(mw_b, mw_a)
-
-            self.seed_everything(42)
-            model_1 = BoringModel()
-            optimizer_1 = torch.optim.SGD(model_1.parameters(), lr=0.0001)
-
-            self.seed_everything(42)
-            model_2 = BoringModel()
-            optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
-
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
-
-            model_1, optimizer_1 = self.setup(model_1, optimizer_1)
-            model_2, optimizer_2 = self.setup(model_2, optimizer_2)
-
-            # train model_1 first
-            self.seed_everything(42)
-            data_list = []
-            for _ in range(2):
-                optimizer_1.zero_grad()
-                data = torch.randn(1, 32).to(self.device)
-                data_list.append(data)
-                x = model_1(data)
-                loss = x.sum()
-                self.backward(loss, model=model_1)
-                optimizer_1.step()
-
-            # the weights do not match
-            assert all(w.nelement() > 1 for w in model_1.state_dict().values())
-            assert all(w.nelement() == 0 for w in model_2.state_dict().values())
-
-            # now train model_2 with the same data
-            for data in data_list:
-                optimizer_2.zero_grad()
-                x = model_2(data)
-                loss = x.sum()
-                self.backward(loss, model=model_2)
-                optimizer_2.step()
-
-            # the weights should match
-            for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.allclose(mw_1, mw_2)
-
-            # Verify collectives works as expected
-            ranks = self.all_gather(torch.tensor([self.local_rank]).to(self.device))
-            assert torch.allclose(ranks.cpu(), torch.tensor([[0], [1]]))
-            assert self.broadcast(True)
-            assert self.is_global_zero == (self.local_rank == 0)
-
-    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    with pytest.raises(
+        TypeError, match=escape("Overriding `LightningLite.run()` and launching from the CLI is not allowed")
+    ):
+        LiteWithRun()

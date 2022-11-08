@@ -20,9 +20,9 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning_lite.plugins.environments import ClusterEnvironment, LightningEnvironment
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
@@ -155,9 +155,7 @@ def test_ddp_configure_ddp():
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.mark.parametrize(
-    "trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TUNING, TrainerFn.TESTING, TrainerFn.PREDICTING)
-)
+@pytest.mark.parametrize("trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING))
 def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
@@ -236,10 +234,9 @@ def test_configure_launcher_create_processes_externally():
     assert ddp_strategy.launcher is None
 
 
-@RunIf(min_cuda_gpus=1)
 @mock.patch("torch.distributed.init_process_group")
 def test_ddp_strategy_set_timeout(mock_init_process_group):
-    """Tests with ddp strategy."""
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
     ddp_strategy = DDPStrategy(timeout=test_timedelta)
@@ -270,14 +267,17 @@ class BoringFairScaleOptimizerModel(BoringModel):
 @RunIf(min_cuda_gpus=2, fairscale=True)
 @pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
-    """Test to ensure that checkpoint is saved correctly when using faircale optimizer."""
+    """Test to ensure that checkpoint is saved correctly when using fairscale optimizer."""
     model = BoringFairScaleOptimizerModel()
     trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
 
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
+    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading
@@ -300,7 +300,10 @@ def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
+    # need to broadcast because tmpdir is different on each process
+    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
     trainer.save_checkpoint(checkpoint_path)
+    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
     saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
 
     # Assert model parameters are identical after loading

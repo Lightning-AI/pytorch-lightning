@@ -16,6 +16,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
 
     model = BoringModel()
     model.lr = 0.1  # avoid no-lr-found exception
+    model.batch_size = 8
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -23,7 +24,7 @@ def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):
         auto_lr_find=(tuner_alg == "learning rate finder"),
         fast_dev_run=True,
     )
-    expected_message = f"Skipping {tuner_alg} since fast_dev_run is enabled."
+    expected_message = f"Skipping {tuner_alg} since `fast_dev_run` is enabled."
     with pytest.warns(UserWarning, match=expected_message):
         trainer.tune(model)
 

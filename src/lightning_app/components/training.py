@@ -1,11 +1,12 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from lightning import CloudCompute
-from lightning_app import LightningFlow, structures
+from lightning_app import structures
 from lightning_app.components.python import TracerPythonScript
+from lightning_app.core.flow import LightningFlow
 from lightning_app.storage.path import Path
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 _logger = Logger(__name__)
 
@@ -125,9 +126,9 @@ class LightningTrainingComponent(LightningFlow):
 
         Example::
 
-            from lightning import LightningApp
-            from lightning.app.components.training import LightningTrainingComponent
-            from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+            from lightning_app import LightningApp
+            from lightning_app.components.training import LightningTrainingComponent
+            from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
             app = LightningApp(
                 LightningTrainingComponent(

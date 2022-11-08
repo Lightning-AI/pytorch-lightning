@@ -24,6 +24,7 @@ from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
 from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.lite import LightningLite
@@ -33,8 +34,8 @@ from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, 
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
-from pytorch_lightning.strategies.ipu import LightningIPUModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -85,7 +86,6 @@ def test_deprecated_amp_level():
         LightningBaguaModule,
         LightningDeepSpeedModule,
         pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
-        LightningIPUModule,
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
@@ -134,11 +134,16 @@ def test_v1_10_deprecated_xla_device_utilities():
     with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
         XLADeviceUtils()
 
-    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils.xla_available` has been deprecated in v1.8.0"):
         XLADeviceUtils.xla_available()
 
-    with pytest.deprecated_call(match="xla_device.XLADeviceUtils` has been deprecated in v1.8.0"):
+    with pytest.deprecated_call(match="xla_device.XLADeviceUtils.tpu_device_exists` has been deprecated in v1.8.0"):
         XLADeviceUtils.tpu_device_exists()
+
+    from pytorch_lightning.utilities.distributed import tpu_distributed
+
+    with pytest.deprecated_call(match="tpu_distributed` has been deprecated in v1.8.0"):
+        tpu_distributed()
 
 
 def test_v1_10_deprecated_apply_func_utilities():
@@ -279,9 +284,58 @@ def test_lite_convert_deprecated_gpus_argument(cuda_count_2):
 
 
 @RunIf(skip_windows=True)
-@mock.patch("lightning_lite.accelerators.TPUAccelerator.is_available", return_value=True)
-def test_lite_convert_deprecated_tpus_argument(*_):
+def test_lite_convert_deprecated_tpus_argument(tpu_available):
     with pytest.deprecated_call(match=escape("Setting `Lite(tpu_cores=8)` is deprecated in v1.8.0")):
         lite = EmptyLite(tpu_cores=8)
     assert isinstance(lite._accelerator, LiteTPUAccelerator)
     assert lite._connector._parallel_devices == list(range(8))
+
+
+@pytest.mark.parametrize(
+    ["name", "value"],
+    [("save_config_filename", "config.yaml"), ("save_config_overwrite", False), ("save_config_multifile", False)],
+)
+def test_lightningCLI_save_config_init_params_deprecation_warning(name, value):
+    with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
+        LightningCLI(BoringModel, run=False, **{name: value})
+
+
+def test_tuning_enum():
+    with pytest.deprecated_call(
+        match="`TrainerFn.TUNING` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        TrainerFn.TUNING
+
+    with pytest.deprecated_call(
+        match="`RunningStage.TUNING` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        RunningStage.TUNING
+
+
+def test_tuning_trainer_property():
+    trainer = Trainer()
+
+    with pytest.deprecated_call(match="`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0."):
+        trainer.tuning
+
+    with pytest.deprecated_call(
+        match="Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+    ):
+        trainer.tuning = True
+
+
+@RunIf(skip_windows=True)
+def test_v1_8_0_deprecated_all_gather_grad():
+    tensor1 = torch.ones(1, requires_grad=True)
+    with mock.patch("torch.distributed.all_gather"), mock.patch("torch.distributed.get_world_size", return_value=1):
+        from pytorch_lightning.utilities import AllGatherGrad
+
+        with pytest.deprecated_call(match="`AllGatherGrad` has been deprecated in v1.8"):
+            AllGatherGrad.apply(tensor1)
+
+
+def test_v1_8_1_deprecated_rank_zero_only():
+    from pytorch_lightning.utilities.distributed import rank_zero_only
+
+    with pytest.deprecated_call(match="rank_zero_only` has been deprecated in v1.8.1"):
+        rank_zero_only(lambda: None)

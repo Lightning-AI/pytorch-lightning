@@ -35,6 +35,7 @@ from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterab
 from lightning_lite.utilities.data import has_len as new_has_len
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -96,14 +97,14 @@ def extract_batch_size(batch: BType) -> int:
 
 
 def has_len_all_ranks(
-    dataloader: DataLoader,
+    dataloader: Union[DataLoader, CombinedLoader],
     strategy: "pl.strategies.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
     infinite dataloader."""
     try:
-        local_length = len(dataloader)
+        local_length = len(dataloader)  # type: ignore [arg-type] # we are checking with duck-typing
         total_length = strategy.reduce(torch.tensor(local_length, device=strategy.root_device), reduce_op="sum")
 
         if total_length == 0:
@@ -129,7 +130,8 @@ def has_len_all_ranks(
     except (TypeError, NotImplementedError):
         has_len = False
 
-    if has_len and new_has_iterable_dataset(dataloader):
+    # we are checking using lightning_lite, which doesn't know CombinedLoader
+    if has_len and new_has_iterable_dataset(dataloader):  # type: ignore [arg-type]
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
             " In combination with multi-process data loading (when num_workers > 1),"
@@ -202,7 +204,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not was_wrapped:
         # keep only the params whose default is different to the current attr value
-        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+        non_defaults = {name for name, p in params.items() if name in attrs and p.default is not attrs[name]}
 
         # add `dataset` as it might have been replaced with `*args`
         non_defaults.add("dataset")

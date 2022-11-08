@@ -1,5 +1,6 @@
 import os
 import shutil
+import threading
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
@@ -9,8 +10,9 @@ import py
 import pytest
 from tests_app import _PROJECT_ROOT
 
-from lightning_app.storage.path import storage_root_dir
+from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities.component import _set_context
+from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning_app.utilities.state import AppState
 
@@ -24,13 +26,8 @@ def pytest_sessionstart(*_):
     entering the run test loop."""
     for name, url in GITHUB_APP_URLS.items():
         if not os.path.exists(os.path.join(_PROJECT_ROOT, "examples", name)):
-            Popen(
-                ["git", "clone", url, name],
-                cwd=os.path.join(
-                    _PROJECT_ROOT,
-                    "examples",
-                ),
-            ).wait(timeout=90)
+            path_examples = os.path.join(_PROJECT_ROOT, "examples")
+            Popen(["git", "clone", url, name], cwd=path_examples).wait(timeout=90)
         else:
             Popen(["git", "pull", "main"], cwd=os.path.join(_PROJECT_ROOT, "examples", name)).wait(timeout=90)
 
@@ -50,6 +47,11 @@ def pytest_sessionfinish(session, exitstatus):
             continue
         child.kill()
 
+    main_thread = threading.current_thread()
+    for t in threading.enumerate():
+        if t is not main_thread:
+            t.join(0)
+
 
 @pytest.fixture(scope="function", autouse=True)
 def cleanup():
@@ -58,7 +60,7 @@ def cleanup():
     yield
     _LightningAppRef._app_instance = None
     shutil.rmtree("./storage", ignore_errors=True)
-    shutil.rmtree(storage_root_dir(), ignore_errors=True)
+    shutil.rmtree(_storage_root_dir(), ignore_errors=True)
     shutil.rmtree("./.shared", ignore_errors=True)
     if os.path.isfile(_APP_CONFIG_FILENAME):
         os.remove(_APP_CONFIG_FILENAME)
@@ -74,6 +76,8 @@ def clear_app_state_state_variables():
     lightning_app.utilities.state._STATE = None
     lightning_app.utilities.state._LAST_STATE = None
     AppState._MY_AFFILIATION = ()
+    if hasattr(cloud_compute, "_CLOUD_COMPUTE_STORE"):
+        cloud_compute._CLOUD_COMPUTE_STORE.clear()
 
 
 @pytest.fixture

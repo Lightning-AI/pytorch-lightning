@@ -15,7 +15,7 @@
 import pytest
 import torch
 
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 

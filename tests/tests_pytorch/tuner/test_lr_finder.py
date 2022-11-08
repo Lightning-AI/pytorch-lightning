@@ -14,15 +14,18 @@
 import logging
 import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
 
@@ -85,7 +88,7 @@ def test_trainer_reset_correctly(tmpdir):
         "callbacks",
         "checkpoint_callback",
         "current_epoch",
-        "logger",
+        "loggers",
         "global_step",
         "max_steps",
         "fit_loop.max_steps",
@@ -193,12 +196,14 @@ def test_call_to_trainer_method(tmpdir, opt):
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_datamodule_parameter(tmpdir):
     """Test that the datamodule parameter works."""
     seed_everything(1)
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = ClassificationModel(lr=1e-3)
 
     before_lr = model.lr
     # logger file to get meta
@@ -355,7 +360,15 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     seed_everything(1)
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=10,
+        limit_val_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
     all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
 
     assert all(
@@ -415,3 +428,13 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
     lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
     assert lr_finder.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
+
+
+def test_if_lr_finder_callback_already_configured():
+    """Test that an error is raised if `LearningRateFinder` is already configured inside `Tuner`"""
+    cb = LearningRateFinder()
+    trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+        trainer.tune(model)

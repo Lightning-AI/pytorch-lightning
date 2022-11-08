@@ -22,7 +22,11 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_11,
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+)
 
 
 class TestBackboneFinetuningCallback(BackboneFinetuning):
@@ -143,19 +147,23 @@ def test_freeze_unfreeze_function(tmpdir):
             self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
 
     model = FreezeModel()
+    assert model.backbone[1].track_running_stats
     BaseFinetuning.freeze(model, train_bn=True)
     assert not model.backbone[0].weight.requires_grad
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
     BaseFinetuning.freeze(model, train_bn=False)
     assert not model.backbone[0].weight.requires_grad
     assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
     BaseFinetuning.make_trainable(model)
     assert model.backbone[0].weight.requires_grad
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert model.backbone[3].weight.requires_grad
 
     BaseFinetuning.freeze(model.backbone[0], train_bn=False)
@@ -163,6 +171,7 @@ def test_freeze_unfreeze_function(tmpdir):
 
     BaseFinetuning.freeze(([(model.backbone[1]), [model.backbone[3]]]), train_bn=True)
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
 
@@ -370,6 +379,8 @@ def test_callbacks_restore(tmpdir):
         expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
+    if _TORCH_GREATER_EQUAL_1_13:
+        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][0] == expected
 
@@ -386,6 +397,8 @@ def test_callbacks_restore(tmpdir):
         expected["maximize"] = False
     if _TORCH_GREATER_EQUAL_1_12:
         expected["foreach"] = None
+    if _TORCH_GREATER_EQUAL_1_13:
+        expected["differentiable"] = False
 
     assert callback._internal_optimizer_metadata[0][1] == expected
 

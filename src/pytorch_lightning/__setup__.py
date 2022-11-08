@@ -22,9 +22,9 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
-    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+def _prepare_extras() -> Dict[str, Any]:
+    path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
+    setup_tools = _load_py_module("setup_tools", path_setup_tools)
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
@@ -32,15 +32,14 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "examples": _setup_tools.load_requirements(file_name="examples.txt", **common_args),
-        "loggers": _setup_tools.load_requirements(file_name="loggers.txt", **common_args),
-        "extra": _setup_tools.load_requirements(file_name="extra.txt", **common_args),
-        "strategies": _setup_tools.load_requirements(file_name="strategies.txt", **common_args),
-        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
+        "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
+        "extra": setup_tools.load_requirements(file_name="extra.txt", **common_args),
+        "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
+        "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+    extras["dev"] = extras["extra"] + extras["test"]
     extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
     return extras
 
@@ -53,9 +52,7 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include requirements/lite *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include src/lightning_lite *.md" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
@@ -87,8 +84,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
-                "lightning_lite",  # TODO: remove after the first standalone Lite release
-                "lightning_lite.*",  # TODO: remove after the first standalone Lite release
+                "lightning_lite",
+                "lightning_lite.*",
             ],
         ),
         package_dir={"": "src"},
@@ -99,6 +96,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
+        # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
+        # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
         install_requires=_setup_tools.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
         ),

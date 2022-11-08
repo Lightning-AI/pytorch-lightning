@@ -228,6 +228,31 @@ def test_lightning_cli_args(tmpdir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
+def test_lightning_env_parse(tmpdir):
+    out = StringIO()
+    with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(BoringModel, BoringDataModule, env_parse=True)
+    out = out.getvalue()
+    assert "PL_FIT__CONFIG" in out
+    assert "PL_FIT__SEED_EVERYTHING" in out
+    assert "PL_FIT__TRAINER__LOGGER" in out
+    assert "PL_FIT__DATA__DATA_DIR" in out
+    assert "PL_FIT__CKPT_PATH" in out
+
+    env_vars = {
+        "PL_FIT__DATA__DATA_DIR": str(tmpdir),
+        "PL_FIT__TRAINER__DEFAULT_ROOT_DIR": str(tmpdir),
+        "PL_FIT__TRAINER__MAX_EPOCHS": "1",
+        "PL_FIT__TRAINER__LOGGER": "false",
+    }
+    with mock.patch.dict(os.environ, env_vars), mock.patch("sys.argv", ["", "fit"]):
+        cli = LightningCLI(BoringModel, BoringDataModule, env_parse=True)
+    assert cli.config.fit.data.data_dir == str(tmpdir)
+    assert cli.config.fit.trainer.default_root_dir == str(tmpdir)
+    assert cli.config.fit.trainer.max_epochs == 1
+    assert cli.config.fit.trainer.logger is False
+
+
 def test_lightning_cli_save_config_cases(tmpdir):
 
     config_path = tmpdir / "config.yaml"
@@ -247,6 +272,22 @@ def test_lightning_cli_save_config_cases(tmpdir):
     # If run again on same directory exception should be raised since config file already exists
     with mock.patch("sys.argv", ["any.py"] + cli_args), pytest.raises(RuntimeError):
         LightningCLI(BoringModel)
+
+
+def test_lightning_cli_save_config_only_once(tmpdir):
+    config_path = tmpdir / "config.yaml"
+    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.max_epochs=1"]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(BoringModel, run=False)
+
+    save_config_callback = next(c for c in cli.trainer.callbacks if isinstance(c, SaveConfigCallback))
+    assert not save_config_callback.overwrite
+    assert not save_config_callback.already_saved
+    cli.trainer.fit(cli.model)
+    assert os.path.isfile(config_path)
+    assert save_config_callback.already_saved
+    cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
@@ -493,7 +534,7 @@ def test_cli_config_overwrite(tmpdir):
     with mock.patch("sys.argv", argv), pytest.raises(RuntimeError, match="Aborting to avoid overwriting"):
         LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
     with mock.patch("sys.argv", argv):
-        LightningCLI(BoringModel, save_config_overwrite=True, trainer_defaults=trainer_defaults)
+        LightningCLI(BoringModel, save_config_kwargs={"overwrite": True}, trainer_defaults=trainer_defaults)
 
 
 @pytest.mark.parametrize("run", (False, True))

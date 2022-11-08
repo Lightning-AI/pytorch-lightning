@@ -36,7 +36,8 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -74,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = (
+    __jit_unused_properties__: List[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -87,11 +88,12 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
-            "_running_torchscript",
+            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
+    _jit_is_scripting = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -107,15 +109,13 @@ class LightningModule(
         self.precision: Union[int, str] = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        self._running_torchscript_internal = False  # workaround for https://github.com/pytorch/pytorch/issues/67146
-
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
     @overload
@@ -175,7 +175,7 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if not self._running_torchscript and self._trainer is None:
+        if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
 
@@ -189,7 +189,7 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def example_input_array(self) -> Any:
+    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
@@ -203,7 +203,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
+    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
         self._example_input_array = example
 
     @property
@@ -269,17 +269,6 @@ class LightningModule(
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
-
-    @property
-    def _running_torchscript(self) -> bool:
-        return self._running_torchscript_internal
-
-    @_running_torchscript.setter
-    def _running_torchscript(self, value: bool) -> None:
-        for v in self.children():
-            if isinstance(v, LightningModule):
-                v._running_torchscript = value
-        self._running_torchscript_internal = value
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
@@ -461,8 +450,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
+            sync_dist=sync_dist and _distributed_available(),
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -610,7 +599,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -672,6 +661,10 @@ class LightningModule(
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
+
+        Note:
+            When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
+            normalized by ``accumulate_grad_batches`` internally.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
@@ -1192,10 +1185,6 @@ class LightningModule(
                 early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
-
-        Note:
-            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
-            will never be invoked on the new callbacks returned here.
         """
         return []
 
@@ -1398,7 +1387,7 @@ class LightningModule(
         self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
-        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
+        self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
     ) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
         own implementation if you need to.
@@ -1888,10 +1877,9 @@ class LightningModule(
         """
         mode = self.training
 
-        self._running_torchscript = True
-
         if method == "script":
-            torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
             # if no example inputs are provided, try to see if model has example_input_array set
             if example_inputs is None:
@@ -1905,7 +1893,8 @@ class LightningModule(
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
-            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
@@ -1915,8 +1904,6 @@ class LightningModule(
             fs = get_filesystem(file_path)
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
-
-        self._running_torchscript = False
 
         return torchscript_module
 
@@ -1959,3 +1946,13 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
+
+
+@contextmanager
+def _jit_is_scripting() -> Generator:
+    """Workaround for https://github.com/pytorch/pytorch/issues/67146."""
+    LightningModule._jit_is_scripting = True
+    try:
+        yield
+    finally:
+        LightningModule._jit_is_scripting = False

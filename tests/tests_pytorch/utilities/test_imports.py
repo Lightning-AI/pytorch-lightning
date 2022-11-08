@@ -14,15 +14,16 @@
 
 import importlib
 import operator
+import subprocess
+import sys
+from textwrap import dedent
 from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
 from torch.distributed import is_available
 
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
 
 
@@ -40,20 +41,6 @@ def test_imports():
         assert not _BAGUA_AVAILABLE
     else:
         assert _BAGUA_AVAILABLE
-
-    try:
-        import deepspeed  # noqa
-    except ModuleNotFoundError:
-        assert not _DEEPSPEED_AVAILABLE
-    else:
-        assert _DEEPSPEED_AVAILABLE
-
-    try:
-        import fairscale.nn  # noqa
-    except ModuleNotFoundError:
-        assert not _FAIRSCALE_AVAILABLE
-    else:
-        assert _FAIRSCALE_AVAILABLE
 
     try:
         import horovod.torch  # noqa
@@ -157,3 +144,16 @@ def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, cle
     """
     with mock.patch(patch_name, new=new_fn):
         importlib.import_module(to_import)
+
+
+def test_import_pytorch_lightning_with_torch_dist_unavailable():
+    """Test that the package can be imported regardless of whether torch.distributed is available."""
+    code = dedent(
+        """
+        import torch
+        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+        import pytorch_lightning
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0

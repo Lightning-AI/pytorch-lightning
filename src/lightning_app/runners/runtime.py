@@ -3,10 +3,9 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
-import lightning_app
-from lightning_app import LightningApp
+from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
 from lightning_app.utilities.app_helpers import Logger
@@ -15,6 +14,9 @@ from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
 logger = Logger(__name__)
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 def dispatch(
@@ -54,7 +56,7 @@ def dispatch(
 
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
-    app = load_app_from_file(str(entrypoint_file))
+    app = runtime_cls.load_app_from_file(str(entrypoint_file))
 
     env_vars = {} if env_vars is None else env_vars
     secrets = {} if secrets is None else secrets
@@ -95,7 +97,7 @@ class Runtime:
         if isinstance(self.backend, str):
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
-        lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
+        LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""
@@ -149,3 +151,8 @@ class Runtime:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if latest_call_hash in work._calls:
             work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+
+        return load_app_from_file(filepath)

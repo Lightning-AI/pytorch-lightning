@@ -50,14 +50,24 @@ def test_manual_optimization(tmpdir):
     model = ManualOptimBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
         strategy="bagua",
         accelerator="gpu",
         devices=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
 
+@pytest.mark.skipif(
+    torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8,
+    reason="Async does not support this CUDA architecture",
+)
 @RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()

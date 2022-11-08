@@ -34,13 +34,21 @@ def fetchable_paths(value):
     return MagicMock()
 
 
+def create_run_mock(mode="async", **kwargs):
+    if mode == "offline":
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=False))
+    else:
+        return MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths), exists=MagicMock(return_value=True))
+
+
 def create_neptune_mock():
-    """Mock with provides nice `logger.name` and `logger.version` values.
+    """Mock with provides nice `logger.name` and `logger.version` values. Additionally, it allows `mode` as an
+    argument to test different Neptune modes.
 
     Mostly due to fact, that windows tests were failing with MagicMock based strings, which were used to create local
     directories in FS.
     """
-    return MagicMock(init=MagicMock(return_value=MagicMock(__getitem__=MagicMock(side_effect=fetchable_paths))))
+    return MagicMock(init_run=MagicMock(side_effect=create_run_mock))
 
 
 class Run:
@@ -66,6 +74,9 @@ class Run:
     def __getstate__(self):
         raise pickle.PicklingError("Runs are unpickleable")
 
+    def exists(self, value):
+        return True
+
 
 @pytest.fixture
 def tmpdir_unittest_fixture(request, tmpdir):
@@ -88,13 +99,23 @@ class TestNeptuneLogger(unittest.TestCase):
         created_run_mock = logger.run
 
         self.assertEqual(logger._run_instance, created_run_mock)
+        created_run_mock.exists.assert_called_once_with("sys/id")
         self.assertEqual(logger.name, "Run test name")
         self.assertEqual(logger.version, "TEST-1")
-        self.assertEqual(neptune.init.call_count, 1)
+        self.assertEqual(neptune.init_run.call_count, 1)
         self.assertEqual(created_run_mock.__getitem__.call_count, 2)
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
         created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
+
+    def test_neptune_offline(self, neptune):
+        logger = NeptuneLogger(mode="offline")
+        created_run_mock = logger.run
+        logger.experiment["foo"] = "bar"
+
+        created_run_mock.exists.assert_called_once_with("sys/id")
+        self.assertEqual(logger._run_short_id, "OFFLINE")
+        self.assertEqual(logger._run_name, "offline-name")
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):
@@ -104,18 +125,18 @@ class TestNeptuneLogger(unittest.TestCase):
         assert logger._run_instance == created_run
         self.assertEqual(logger._run_instance, created_run)
         self.assertEqual(logger.version, "TEST-42")
-        self.assertEqual(neptune.init.call_count, 0)
+        self.assertEqual(neptune.init_run.call_count, 0)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_neptune_pickling(self, neptune):
         unpickleable_run = Run()
         logger = NeptuneLogger(run=unpickleable_run)
-        self.assertEqual(0, neptune.init.call_count)
+        self.assertEqual(0, neptune.init_run.call_count)
 
         pickled_logger = pickle.dumps(logger)
         unpickled = pickle.loads(pickled_logger)
 
-        neptune.init.assert_called_once_with(name="Test name", run="TEST-42")
+        neptune.init_run.assert_called_once_with(name="Test name", run="TEST-42")
         self.assertIsNotNone(unpickled.experiment)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)

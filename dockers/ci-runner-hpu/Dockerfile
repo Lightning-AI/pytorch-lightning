@@ -16,7 +16,7 @@
 #        gaudi-docker-agent:latest
 
 ARG DIST="latest"
-ARG GAUDI_VERSION="1.6.0"
+ARG GAUDI_VERSION="1.6.1"
 ARG PYTORCH_INSTALLER_VERSION="1.12.0"
 FROM vault.habana.ai/gaudi-docker/${GAUDI_VERSION}/ubuntu20.04/habanalabs/pytorch-installer-${PYTORCH_INSTALLER_VERSION}:${DIST}
 
@@ -59,7 +59,7 @@ RUN pip uninstall pytorch-lightning -y
 
 WORKDIR /azp
 
-COPY ./dockers/ci-runner-hpu/start.sh /usr/local/bin/
+COPY ./.azure/start.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start.sh
 
 ENTRYPOINT ["/usr/local/bin/start.sh"]

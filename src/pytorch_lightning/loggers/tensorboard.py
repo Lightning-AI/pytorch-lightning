@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
 from torch import Tensor
@@ -28,6 +28,7 @@ from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
@@ -87,22 +88,21 @@ class TensorBoardLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
+        save_dir: _PATH,
         name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = "",
-        sub_dir: Optional[str] = None,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
+        sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
+        save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
-        self._sub_dir = sub_dir
+        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
@@ -155,7 +155,7 @@ class TensorBoardLogger(Logger):
         """
         return self._sub_dir
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
@@ -237,22 +237,27 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        if self._log_graph:
-            if input_array is None:
-                input_array = model.example_input_array
+        if not self._log_graph:
+            return
 
-            if input_array is not None:
-                input_array = model._on_before_batch_transfer(input_array)
-                input_array = model._apply_batch_transfer_handler(input_array)
-                model._running_torchscript = True
+        input_array = model.example_input_array if input_array is None else input_array
+
+        if input_array is None:
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `model.example_input_array` attribute"
+                " is not set or `input_array` was not given."
+            )
+        elif not isinstance(input_array, (Tensor, tuple)):
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `input_array` or `model.example_input_array`"
+                f" has type {type(input_array)} which can't be traced by TensorBoard. Make the input array a tuple"
+                f" representing the positional arguments to the model's `forward()` implementation."
+            )
+        else:
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            with pl.core.module._jit_is_scripting():
                 self.experiment.add_graph(model, input_array)
-                model._running_torchscript = False
-            else:
-                rank_zero_warn(
-                    "Could not log computational graph since the"
-                    " `model.example_input_array` attribute is not set"
-                    " or `input_array` was not given",
-                )
 
     @rank_zero_only
     def save(self) -> None:
