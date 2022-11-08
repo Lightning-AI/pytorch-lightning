@@ -93,6 +93,7 @@ def test_trainer_reset_correctly(tmpdir):
         "max_steps",
         "fit_loop.max_steps",
         "strategy.setup_optimizers",
+        "should_stop",
     ]
     expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
@@ -438,3 +439,27 @@ def test_if_lr_finder_callback_already_configured():
 
     with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
         trainer.tune(model)
+
+
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@RunIf(standalone=True)
+def test_lr_finder_with_ddp(tmpdir):
+    seed_everything(7)
+
+    init_lr = 1e-4
+    dm = ClassifDataModule()
+    model = ClassificationModel(lr=init_lr)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        strategy="ddp",
+        devices=2,
+        accelerator="cpu",
+    )
+
+    trainer.tuner.lr_find(model, datamodule=dm, update_attr=True, num_training=20)
+    lr = trainer.lightning_module.lr
+    lr = trainer.strategy.broadcast(lr)
+    assert trainer.lightning_module.lr == lr
+    assert lr != init_lr
