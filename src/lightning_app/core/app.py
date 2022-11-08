@@ -6,7 +6,7 @@ import threading
 import warnings
 from copy import deepcopy
 from time import time
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Dict, List, Literal, Optional, Tuple, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -27,7 +27,7 @@ from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, debugger_is_active, Logger
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -52,7 +52,7 @@ class LightningApp:
         self,
         root: Union["LightningFlow", "LightningWork"],
         flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
-        debug: bool = False,
+        log_level: Literal["info", "debug"] = "info",
         info: frontend.AppInfo = None,
         root_path: str = "",
     ):
@@ -70,7 +70,7 @@ class LightningApp:
             root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
                  components, running infinitely. It must define a `run()` method that the app can call.
             flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
-            debug: Whether to activate the Lightning Logger debug mode.
+            log_level: Whether to activate the Lightning Logger debug mode.
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
@@ -151,7 +151,7 @@ class LightningApp:
         _convert_paths_after_init(self.root)
 
         # Lazily enable debugging.
-        if debug or DEBUG_ENABLED:
+        if log_level == "debug" or DEBUG_ENABLED:
             if not DEBUG_ENABLED:
                 os.environ["LIGHTNING_DEBUG"] = "2"
             _console.setLevel(logging.DEBUG)
@@ -161,6 +161,12 @@ class LightningApp:
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
         frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
+
+        if debugger_is_active() and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0"))):
+            os.environ["LIGHTNING_DISPATCHED"] = "1"
+            from lightning.app.runners import MultiProcessRuntime
+
+            MultiProcessRuntime(self).dispatch()
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""

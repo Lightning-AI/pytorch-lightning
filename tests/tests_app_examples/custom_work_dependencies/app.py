@@ -50,4 +50,4 @@ class CustomWorkBuildConfigChecker(LightningFlow):
             self._exit()
 
 
-app = LightningApp(CustomWorkBuildConfigChecker(), debug=True)
+app = LightningApp(CustomWorkBuildConfigChecker(), log_level="debug")

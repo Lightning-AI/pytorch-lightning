@@ -488,3 +488,8 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
 
 def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
+
+
+def debugger_is_active() -> bool:
+    """Return if the debugger is currently active."""
+    return hasattr(sys, "gettrace") and sys.gettrace() is not None
