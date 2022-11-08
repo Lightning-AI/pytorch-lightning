@@ -179,6 +179,7 @@ class _MultiProcessingLauncher(_Launcher):
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
+            # use tempdir here to avoid race conditions because the filesystem may be shared between nodes
             weights_path = os.path.join(tempfile.mkdtemp(), ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
