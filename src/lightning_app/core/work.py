@@ -608,6 +608,10 @@ class LightningWork:
 
     def _apply_flow_delta(self, key: str, new_value: Any, old_value: Any):
         current_value = getattr(self, key)
+
+        if new_value == current_value:
+            return
+
         if current_value != old_value:
             raise Exception(
                 f"The work `{self.name}` received a flow delta changing `{key}` from `{old_value}` to `{new_value}`."

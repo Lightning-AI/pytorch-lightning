@@ -612,7 +612,7 @@ class LightningApp:
             elif child_name in child["works"]:
                 child = child["works"][child_name]
             else:
-                raise KeyError(f"The provided {child_name} doesn't exist.")
+                return None
 
         return child["vars"]
 
@@ -624,6 +624,10 @@ class LightningApp:
             state_work = self._extract_vars_from_component(w.name, state)
             last_state_work = self._extract_vars_from_component(w.name, self._last_state)
 
+            # Note: The work was dynamically created or deleted.
+            if state_work is None or last_state_work is None:
+                continue
+
             last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: x.to_dict())
             state_work = apply_to_collection(state_work, (Path, Drive), lambda x: x.to_dict())
 
@@ -632,7 +636,12 @@ class LightningApp:
             if deep_diff:
                 # TODO: Add support for changes than `values_changed`.
                 updates = []
-                for k, v in deep_diff["values_changed"].items():
-                    updates.append({"key": k.split("'")[1], **v})
+                if "values_changed" in deep_diff:
+                    for k, v in deep_diff["values_changed"].items():
+                        updates.append({"key": k.split("'")[1], **v})
+                if "type_changed" in deep_diff:
+                    for k, v in deep_diff["type_changed"].items():
+                        updates.append({"key": k.split("'")[1], **v})
+
                 logger.debug(f"Sending deepdiff to {w.name} : {updates}")
                 self.flow_to_work_delta_queues[w.name].put(updates)
