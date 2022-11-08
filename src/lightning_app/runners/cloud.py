@@ -58,6 +58,7 @@ from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
@@ -469,6 +470,7 @@ class CloudRuntime(Runtime):
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """This is meant to use only locally for cloud runtime."""
         try:
+            run_app_commands(filepath)
             app = load_app_from_file(filepath, raise_exception=True)
         except ModuleNotFoundError:
             # this is very generic exception.

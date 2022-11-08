@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Uni
 from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
@@ -154,5 +155,5 @@ class Runtime:
 
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
-
+        run_app_commands(filepath)
         return load_app_from_file(filepath)
