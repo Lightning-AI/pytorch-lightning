@@ -22,6 +22,7 @@ from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
@@ -284,6 +285,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
+@RunIf(sklearn=True)
 def test_lr_monitor_param_groups(tmpdir):
     """Test that learning rates are extracted and logged for single lr scheduler."""
 

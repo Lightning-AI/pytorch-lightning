@@ -18,7 +18,7 @@ from lightning_app.utilities.log import get_logfile
 _logger = Logger(__name__)
 
 
-def has_panel_autoreload() -> bool:
+def _has_panel_autoreload() -> bool:
     """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
 
     Please note the casing of value does not matter
@@ -165,7 +165,7 @@ class PanelFrontend(Frontend):
             "--allow-websocket-origin",
             _get_allowed_hosts(),
         ]
-        if has_panel_autoreload():
+        if _has_panel_autoreload():
             command.append("--autoreload")
         _logger.debug("PanelFrontend command %s", command)
         return command

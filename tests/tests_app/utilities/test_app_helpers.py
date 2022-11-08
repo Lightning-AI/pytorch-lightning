@@ -8,6 +8,7 @@ from lightning_app.utilities.app_helpers import (
     BaseStatePlugin,
     InMemoryStateStore,
     is_overridden,
+    is_static_method,
     StateStore,
 )
 from lightning_app.utilities.exceptions import LightningAppStateException
@@ -53,7 +54,7 @@ def test_simple_app_store():
     assert isinstance(store, StateStore)
 
 
-@mock.patch("lightning_app.utilities.app_helpers.APP_STATE_MAX_SIZE_BYTES", 120)
+@mock.patch("lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES", 120)
 def test_simple_app_store_warning():
     store = InMemoryStateStore()
     user_id = "1234"
@@ -83,3 +84,21 @@ def test_base_state_plugin():
     plugin.should_update_app(None)
     plugin.get_context()
     plugin.render_non_authorized()
+
+
+def test_is_static_method():
+    class A:
+        @staticmethod
+        def a(self):
+            pass
+
+        @staticmethod
+        def b(a):
+            pass
+
+        def c(self):
+            pass
+
+    assert is_static_method(A, "a")
+    assert is_static_method(A, "b")
+    assert not is_static_method(A, "c")
