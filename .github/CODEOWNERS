@@ -27,7 +27,7 @@
 /docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
 
 # PyTorch Lightning
-/src/pytorch_lightning                      @awaelchli @carmocca @justusschock
+/src/pytorch_lightning                      @williamfalcon @awaelchli @carmocca @justusschock
 /tests/tests_pytorch                        @awaelchli @carmocca @justusschock
 
 # Core APIs
