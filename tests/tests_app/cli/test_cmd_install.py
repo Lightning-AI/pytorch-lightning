@@ -61,11 +61,11 @@ def test_valid_unpublished_app_name():
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
-def test_app_install(tmpdir):
+def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
 
     cwd = os.getcwd()
-    os.chdir(tmpdir)
+    monkeypatch.chdir(tmpdir)
 
     real_app = "https://github.com/Lightning-AI/install-app"
     test_app_pip_name = "install-app"

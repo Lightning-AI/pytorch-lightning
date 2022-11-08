@@ -43,7 +43,7 @@ def test_get_dir_size_and_count(tmpdir: Path, size):
     assert _get_dir_size_and_count(tmpdir, "a") == (size, 1)
 
 
-def test_tar_path(tmpdir: Path):
+def test_tar_path(tmpdir: Path, monkeypatch):
     source_dir, inner_dir = _create_files(tmpdir)
 
     # Test directory
@@ -78,7 +78,7 @@ def test_tar_path(tmpdir: Path):
     # Test single file (local)
     current_path = os.getcwd()
     try:
-        os.chdir(inner_dir)
+        monkeypatch.chdir(inner_dir)
 
         f2_path = "f2"
 
