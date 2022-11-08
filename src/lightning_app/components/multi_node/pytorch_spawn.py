@@ -86,6 +86,4 @@ class PyTorchSpawnMultiNode(MultiNode):
         # Probably exposed to the users in the future if needed.
         work_cls._run_executor_cls = _PyTorchSpawnRunExecutor
 
-        super().__init__(
-            work_cls, num_nodes, cloud_compute, executor_cls=_PyTorchSpawnRunExecutor, *work_args, **work_kwargs
-        )
+        super().__init__(work_cls, num_nodes, cloud_compute, *work_args, **work_kwargs)

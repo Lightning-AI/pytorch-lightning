@@ -22,11 +22,11 @@ lightning run app train_pytorch_spawn.py
 
 You can run the multi-node raw PyTorch and Lite by running the following commands.
 
-This removes all the boilerplate around distributed strategy by you remain in control of your loops.
-
 ```bash
 lightning run app train_lite.py
 ```
+
+Using Lite, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
 
 ## Multi Node with PyTorch Lightning
 
