@@ -38,13 +38,6 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
         loss.backward()
         optimizer.step()
 
-    # 5. Verify all processes have the same weights at the end of training.
-    weight = model.module.weight.clone()
-    torch.distributed.all_reduce(weight)
-    assert torch.equal(model.module.weight, weight / world_size)
-
-    print("Multi Node Distributed Training Done!")
-
 
 class PyTorchDistributed(L.LightningWork):
     def run(
