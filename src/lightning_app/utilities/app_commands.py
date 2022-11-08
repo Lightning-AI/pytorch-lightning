@@ -2,8 +2,8 @@ import logging
 import os
 import subprocess
 from dataclasses import dataclass, field
+from typing import List
 
-from lightning_app.structures import List
 from lightning_app.utilities.exceptions import MisconfigurationException
 
 logger = logging.getLogger(__name__)
