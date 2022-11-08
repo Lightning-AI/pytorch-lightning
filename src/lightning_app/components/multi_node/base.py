@@ -74,6 +74,7 @@ class MultiNode(LightningFlow):
                             parallel=True,
                         )
                     )
+
                     # Starting node `node_rank`` ...
                     self.ws[-1].start()
 
