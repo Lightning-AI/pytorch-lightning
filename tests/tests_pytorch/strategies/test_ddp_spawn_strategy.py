@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from datetime import timedelta
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
