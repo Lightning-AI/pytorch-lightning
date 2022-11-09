@@ -58,6 +58,9 @@ def main():
     assert trainer.global_rank == 0
     assert str(exception) == "DeadLock detected from rank: 0"
 
+    # used to capture success from this script in the CI.
+    print("SUCCEEDED")
+
 
 if __name__ == "__main__":
     os.environ["PL_RECONCILE_PROCESS"] = "1"

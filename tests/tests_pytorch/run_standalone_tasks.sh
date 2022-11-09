@@ -26,8 +26,8 @@ fi
 
 # test deadlock is properly handled with TorchElastic.
 echo "Running plugins/environments/torch_elastic_deadlock.py"
-if coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "Traceback"
-then
+LOGS=$(coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
+if [ -z "$LOGS" ]; then
     exit 1
 fi
 
