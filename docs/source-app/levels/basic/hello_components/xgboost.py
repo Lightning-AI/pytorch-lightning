@@ -1,5 +1,5 @@
-# pip install sklearn xgboost
 # app.py
+# !pip install sklearn xgboost
 
 import lightning as L
 from sklearn import datasets
