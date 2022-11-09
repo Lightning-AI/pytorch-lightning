@@ -761,10 +761,10 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
+                            cluster_id=mock.ANY,
                         ),
                     )
                 ],
