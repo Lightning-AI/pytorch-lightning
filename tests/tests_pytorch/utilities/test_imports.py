@@ -167,12 +167,12 @@ def test_import_deepspeed_lazily():
         """
         import pytorch_lightning
         import sys
-        
+
         assert 'deepspeed' not in sys.modules
         from pytorch_lightning.strategies import DeepSpeedStrategy
         from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
         assert 'deepspeed' not in sys.modules
-        
+
         import deepspeed
         assert 'deepspeed' in sys.modules
         """

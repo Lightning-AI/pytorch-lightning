@@ -57,7 +57,7 @@ def test_import_deepspeed_lazily():
         """
         import lightning_lite
         import sys
-        
+
         assert 'deepspeed' not in sys.modules
         from lightning_lite.strategies import DeepSpeedStrategy
         from lightning_lite.plugins import DeepSpeedPrecision
