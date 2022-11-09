@@ -425,7 +425,7 @@ class DDPStrategy(ParallelStrategy):
         pids = pids.cpu().numpy().tolist()
         self._pids = pids if isinstance(pids, list) else [pids]
 
-    def reconciliate_processes(self, trace: str) -> None:
+    def reconciliate_processes(self, exception: BaseException) -> None:
         if self.world_size < 2:
             return
 
@@ -458,7 +458,7 @@ class DDPStrategy(ParallelStrategy):
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
         shutil.rmtree(sync_dir)
-        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank}") from exception
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
