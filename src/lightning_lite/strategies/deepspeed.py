@@ -18,7 +18,7 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache

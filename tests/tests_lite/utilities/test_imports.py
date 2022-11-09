@@ -15,9 +15,10 @@ import subprocess
 import sys
 from textwrap import dedent
 
+from tests_lite.helpers.runif import RunIf
+
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from tests_lite.helpers.runif import RunIf
 
 
 def test_imports():
@@ -57,14 +58,14 @@ def test_import_deepspeed_lazily():
         import lightning_lite
         import sys
         assert 'deepspeed' not in sys.modules
-        
+
         from lightning_lite.strategies import DeepSpeedStrategy
         from lightning_lite.plugins import DeepSpeedPrecision
 
         assert 'deepspeed' not in sys.modules
-        
+
         import deepspeed
-        
+
         assert 'deepspeed' in sys.modules
         """
     )
