@@ -1,1 +1,0 @@
-../../source-app/core_api/core_api.rst
