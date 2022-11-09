@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are 5 easy steps to use LightningLite in your PyTorch code.
+"""Here are 4 easy steps to use LightningLite in your PyTorch code.
 
 1. Create the Lightning Lite object at the beginning of your script.
 
