@@ -17,6 +17,7 @@ from textwrap import dedent
 
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from tests_lite.helpers.runif import RunIf
 
 
 def test_imports():
@@ -42,6 +43,28 @@ def test_import_lightning_lite_with_torch_dist_unavailable():
         import torch
         torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
         import lightning_lite
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
+
+
+@RunIf(deepspeed=True)
+def test_lazy_deepspeed_import():
+    code = dedent(
+        """
+        import lightning_lite
+        import sys
+        assert 'deepspeed' not in sys.modules
+        
+        from lightning_lite.strategies import DeepSpeedStrategy
+        from lightning_lite.plugins import DeepSpeedPrecision
+
+        assert 'deepspeed' not in sys.modules
+        
+        import deepspeed
+        
+        assert 'deepspeed' in sys.modules
         """
     )
     # run in complete isolation
