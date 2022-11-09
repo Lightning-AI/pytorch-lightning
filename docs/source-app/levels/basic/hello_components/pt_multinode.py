@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+# !pip install torch
+>>>>>>> 10b945bcc1fddf1b96ccf95819764a54bc6fab13
 import lightning as L
 from lightning.app.components import MultiNode
 
