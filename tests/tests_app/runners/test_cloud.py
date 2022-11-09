@@ -118,10 +118,14 @@ class TestAppCreationClient:
     @pytest.mark.parametrize(
         "old_cluster,new_cluster,expected_raise",
         [
-            ("test", "other", pytest.raises(
-                ValueError,
-                match="Can not run app test-app on cluster other since it already exists on test",
-            )),
+            (
+                "test",
+                "other",
+                pytest.raises(
+                    ValueError,
+                    match="Can not run app test-app on cluster other since it already exists on test",
+                ),
+            ),
             ("test", "test", does_not_raise()),
             (None, None, does_not_raise()),
             (None, "litng-ai-03", does_not_raise()),
@@ -172,7 +176,6 @@ class TestAppCreationClient:
         # but we want to run this app on `cluster-002`
         with expected_raise:
             cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
-
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
