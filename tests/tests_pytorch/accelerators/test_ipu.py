@@ -152,7 +152,7 @@ def test_inference_only(tmpdir, devices):
 
 
 @RunIf(ipu=True, sklearn=True)
-@pytest.mark.xfail(raises=NotImplementedError, reason="TODO: issues with latest poptorch")
+@pytest.mark.xfail(reason="TODO: issues with latest poptorch")
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
