@@ -38,7 +38,6 @@ def test_names_to_ids(
     monkeypatch,
 ):
     class FakeLightningClient:
-
         def projects_service_list_memberships(self, *_, **__):
             return V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
 
