@@ -27,7 +27,7 @@ class ModelServer(LightningWork, abc.ABC):
 
         .. doctest::
 
-            >>> from lightning.app.components.serve.model_server import ModelServer
+            >>> from lightning_app.components.serve.model_server import ModelServer
             >>> from pydantic import BaseModel
             >>>
             >>> class InputData(BaseModel):
