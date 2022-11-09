@@ -25,7 +25,7 @@ jobs:
 
       - name: Get release version
         id: get_version
-        run: echo "::set-output name=RELEASE_VERSION::$(echo ${GITHUB_REF##*/})"
+        run: echo "RELEASE_VERSION=$(echo ${GITHUB_REF##*/})" >> $GITHUB_OUTPUT
 
       - name: Publish Releases to Docker
         uses: docker/build-push-action@v3
