@@ -115,7 +115,7 @@ class Trainer:
         logger: Union[Logger, Iterable[Logger], bool] = True,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
-        default_root_dir: Optional[str] = None,
+        default_root_dir: Optional[_PATH] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
@@ -197,7 +197,8 @@ class Trainer:
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.batch_size in the LightningModule.
+                The result will be stored in self.batch_size in the LightningModule
+                or LightningDataModule depending on your setup.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
@@ -397,6 +398,9 @@ class Trainer:
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
+
+        if default_root_dir is not None:
+            default_root_dir = os.fspath(default_root_dir)
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)

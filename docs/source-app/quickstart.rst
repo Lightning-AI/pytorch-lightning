@@ -16,7 +16,7 @@ and uses `Gradio <https://gradio.app>`_ to serve it.
 Step 1 - Installation
 **********************
 
-First, you'll need to install Lightning. You can find the complete guide here: :ref:`install`.
+First, you'll need to install Lightning. You can find the complete guide here.
 
 Then, you'll need to install the `Lightning Quick Start package <https://github.com/Lightning-AI/lightning-quick-start>`_.
 
