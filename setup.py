@@ -30,8 +30,8 @@ There are considered three main scenarios for installing this project:
 
 3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
-   In case you want to build just a particular package you would use exporting env. variable as above:
-   `export PACKAGE_NAME=pytorch|app|lite ; python setup.py sdist bdist_wheel`
+   In case you want to build just a particular package you want to set an environment variable:
+   `PACKAGE_NAME=lightning|pytorch|app|lite python setup.py sdist|bdist_wheel`
 
 4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
     a) determine which packages shall be released based on version increment in `__version__.py` and eventually
@@ -73,8 +73,8 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    # copy the version information to all packages
     if _PACKAGE_NAME is not None:  # not a wheel install
+        # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 
     package_to_install = _PACKAGE_NAME or "lightning"

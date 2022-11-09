@@ -54,6 +54,7 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include requirements/lite *.txt" + os.linesep,
         "recursive-include src/lightning_lite *.md" + os.linesep,
+        "include src/lightning_lite/version.info" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
         "include src/pytorch_lightning/version.info" + os.linesep,
