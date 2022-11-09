@@ -368,8 +368,11 @@ class TestAppCreationClient:
         assert body.dependency_cache_key is None
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app(self, lightningapps, monkeypatch, tmpdir):
+    @pytest.mark.parametrize(
+        "lightningapps,start_with_flow",
+        [([], False), ([MagicMock()], False), ([MagicMock()], True)],
+    )
+    def test_call_with_work_app(self, lightningapps, start_with_flow, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -399,7 +402,7 @@ class TestAppCreationClient:
         app = mock.MagicMock()
         flow = mock.MagicMock()
 
-        work = MyWork()
+        work = MyWork(start_with_flow=start_with_flow)
         monkeypatch.setattr(work, "_name", "test-work")
         monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
         monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
@@ -431,7 +434,10 @@ class TestAppCreationClient:
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
                     )
                 ),
-                works=[
+            )
+
+            if start_with_flow:
+                expected_body.works = [
                     V1Work(
                         name="test-work",
                         spec=V1LightningworkSpec(
@@ -444,14 +450,19 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
-                ],
-            )
+                ]
+            else:
+                expected_body.works = []
+
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
                 project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
@@ -637,10 +648,13 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -788,10 +802,13 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_2_spec, lit_drive_1_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -824,10 +841,13 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_1_spec, lit_drive_2_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -989,10 +1009,13 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="default",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
