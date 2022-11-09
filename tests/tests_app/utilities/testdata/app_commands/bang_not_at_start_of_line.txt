@@ -1,0 +1,2 @@
+# This is somefile.py! should not execute this!
+# !echo "foo"

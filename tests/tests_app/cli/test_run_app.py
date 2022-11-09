@@ -70,6 +70,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
             no_cache=True,
             env=("FOO=bar",),
             secret=(),
+            run_app_comment_commands=False,
         )
 
 
@@ -96,6 +97,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             no_cache=True,
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
+            run_app_comment_commands=False,
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -111,6 +113,50 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         env_vars={"FOO": "bar"},
         secrets={"BAR": "my-secret"},
         cluster_id="",
+        run_app_comment_commands=False,
+    )
+
+
+@mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
+@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+@pytest.mark.parametrize("open_ui", (True, False))
+def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
+    """This test validates the command has ran properly when --cloud argument is passed.
+
+    It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
+    call to `dispatch` for the right arguments.
+    """
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+
+    with caplog.at_level(logging.INFO):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=True,
+            cluster_id="",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=open_ui,
+            no_cache=True,
+            env=("FOO=bar",),
+            secret=("BAR=my-secret",),
+            run_app_comment_commands=True,
+        )
+    # capture logs.
+    # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
+    #  page is being opened
+    mock_dispatch.assert_called_with(
+        Path(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")),
+        RuntimeType.CLOUD,
+        start_server=True,
+        blocking=False,
+        on_before_run=mock.ANY,
+        name="",
+        no_cache=True,
+        env_vars={"FOO": "bar"},
+        secrets={"BAR": "my-secret"},
+        cluster_id="",
+        run_app_comment_commands=True,
     )
 
 
@@ -130,4 +176,5 @@ def test_lightning_run_app_secrets(monkeypatch):
             no_cache=True,
             env=(),
             secret=("FOO=my-secret"),
+            run_app_comment_commands=False,
         )
