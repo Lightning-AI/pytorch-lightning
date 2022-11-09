@@ -34,6 +34,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         import torch
 
         # Remove the wrapper.
+        setattr_fn = self.work._setattr_replacement
         self.work._setattr_replacement = None
 
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
@@ -42,6 +43,9 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
             args=(self.work, self.delta_queue, main_address, main_port, num_nodes, node_rank, nprocs),
             nprocs=nprocs,
         )
+
+        # Re-attach the wrapper.
+        self.work._setattr_replacement = setattr_fn
 
     @staticmethod
     def run(
