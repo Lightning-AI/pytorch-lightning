@@ -5,7 +5,7 @@ from typing_extensions import Protocol, runtime_checkable
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor
+from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 
 @runtime_checkable
@@ -59,7 +59,9 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         nprocs: int,
     ):
         if local_rank == 0:
-            _proxy_setattr(work, delta_queue, None)
+            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
+            state_observer.start()
+            _proxy_setattr(work, delta_queue, state_observer)
             pass
 
         import torch
@@ -80,6 +82,9 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
             raise Exception("Torch distributed should be available.")
 
         unwrap(work.run)(world_size, node_rank, global_rank, local_rank)
+
+        if local_rank == 0:
+            state_observer.join(0)
 
 
 class PyTorchSpawnMultiNode(MultiNode):
