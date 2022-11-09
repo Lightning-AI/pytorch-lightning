@@ -50,7 +50,8 @@ def test_import_lightning_lite_with_torch_dist_unavailable():
 
 
 @RunIf(deepspeed=True)
-def test_lazy_deepspeed_import():
+def test_import_deepspeed_lazily():
+    """Test that we are importing deepspeed only when necessary."""
     code = dedent(
         """
         import lightning_lite

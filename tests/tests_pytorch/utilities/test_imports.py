@@ -161,7 +161,8 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
 
 
 @RunIf(deepspeed=True)
-def test_lazy_deepspeed_import():
+def test_import_deepspeed_lazily():
+    """Test that we are importing deepspeed only when necessary."""
     code = dedent(
         """
         import pytorch_lightning
