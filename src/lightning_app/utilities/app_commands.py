@@ -70,7 +70,7 @@ def _execute_app_commands(cl: CommandLines) -> None:
     The calling app environment is used in the current environment the code is running in
     """
     for command, line_number in zip(cl.commands, cl.line_numbers):
-        logger.info(f"running app setup command: {command}")
+        logger.info(f"Running app setup command: {command}")
         completed = subprocess.run(
             command,
             shell=True,
