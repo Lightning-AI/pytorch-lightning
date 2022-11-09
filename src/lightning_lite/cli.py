@@ -119,7 +119,6 @@ def _set_env_variables(args: Namespace) -> None:
     """
     os.environ["LT_CLI_USED"] = "1"
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
-    # TODO: what should be the default strategy if devices > 1?
     if args.strategy is not None:
         os.environ["LT_STRATEGY"] = str(args.strategy)
     os.environ["LT_DEVICES"] = str(args.devices)
