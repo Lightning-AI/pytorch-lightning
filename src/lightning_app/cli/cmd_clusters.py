@@ -42,7 +42,7 @@ class ClusterList(Formatable):
             V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
             V1ClusterState.PENDING: Text("pending", style="bold yellow"),
             V1ClusterState.RUNNING: Text("running", style="bold green"),
-            V1ClusterState.FAILED: Text("failed", style="bold red"),
+            V1ClusterState.FAILED: Text("error", style="bold red"),
             V1ClusterState.DELETED: Text("deleted", style="bold red"),
         }
 
