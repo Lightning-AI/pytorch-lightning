@@ -8,6 +8,7 @@
 * @williamfalcon @borda @tchaton @awaelchli
 
 # CI/CD and configs
+/.actions/      @borda @carmocca @akihironitta
 /.github/       @borda @carmocca @akihironitta
 /.azure/        @borda @carmocca @akihironitta
 /dockers/       @borda @carmocca @akihironitta
