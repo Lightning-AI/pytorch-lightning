@@ -22,8 +22,11 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
     model = torch.nn.Linear(32, 2)
 
     # 3. Setup distributed training
-    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-    torch.cuda.set_device(device)
+    if torch.cuda.is_available():
+        device = torch.device(f"cuda:{local_rank}")
+        torch.cuda.set_device(device)
+    else:
+        device = torch.device("cpu")
 
     model = model.to(device)
     model = DistributedDataParallel(model, device_ids=[device.index] if torch.cuda.is_available() else None)
