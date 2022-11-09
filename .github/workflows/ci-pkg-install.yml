@@ -6,6 +6,7 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
       - ".github/workflows/ci-pkg-install.yml"
@@ -24,55 +25,17 @@ defaults:
 
 jobs:
 
-  init-pypi:
-    runs-on: ubuntu-20.04
-    steps:
-    - run: mkdir pypi && touch pypi/.placeholder
-    - uses: actions/upload-artifact@v3
-      with:
-        name: ci-packages-${{ github.sha }}
-        path: pypi
-
-  build-pypi:
-    needs: init-pypi
-    # This serves to create packages for potential internal dependencies
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: true
-      max-parallel: 1
-      matrix:
-        pkg-name: ["lite"]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.8"
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
-      - name: Build package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: |
-          python setup.py sdist
-          cp dist/* pypi/
-      - uses: actions/upload-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
-
   install-pkg:
-    needs: build-pypi
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg-name: ["app", "lite", "pytorch", ""]
+        pkg-name: ["app", "lite", "pytorch", "lightning"]
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -84,27 +47,22 @@ jobs:
           python -m pytest setup_tools.py
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+
       - uses: ./.github/actions/pkg-check
         with:
           pkg-name: ${{ matrix.pkg-name }}
           nb-dirs: ${{ env.NB_DIRS }}
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: ci-packages-${{ github.sha }}
-          path: pypi
-      - run: ls -l pypi/
       - uses: ./.github/actions/pkg-install
         with:
-          pip-flags: "--pre --find-links ../pypi/"
+          pkg-name: ${{ matrix.pkg-name }}
 
       - name: Run CLI
         # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name == '' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: python -m lightning --version
 
       - name: DocTest package
         run: |
-          pip list
-          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg-name}}', 'lightning'))")
-          python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"
+          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
