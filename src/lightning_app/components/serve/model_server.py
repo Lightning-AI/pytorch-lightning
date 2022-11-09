@@ -48,7 +48,7 @@ class ModelServer(LightningWork, abc.ABC):
         self._input_type = input_type
         self._output_type = output_type
 
-    def setup(self):
+    def setup(self) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
         initialize the weights, setting up pipelines etc.
 
@@ -64,7 +64,7 @@ class ModelServer(LightningWork, abc.ABC):
         return self._output_type
 
     @abc.abstractmethod
-    def predict(self, request: Any):
+    def predict(self, request: Any) -> Any:
         """This method is called when a request is made to the server.
 
         This method must be overriden by the user with the prediction logic. The pre/post processing, actual prediction
@@ -72,24 +72,24 @@ class ModelServer(LightningWork, abc.ABC):
         """
         pass
 
-    def _attach_predict_fn(self, fastapi_app: FastAPI):
+    def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
         if not issubclass(input_type, BaseModel):
             # adding a Body() default value is necessary for FastAPI to add the request to body
             # instead of query params
-            def predict_fn(request: input_type = Body()):
+            def predict_fn(request: input_type = Body()):  # type: ignore
                 return self.predict(request)
 
         else:
 
-            def predict_fn(request: input_type):
+            def predict_fn(request: input_type):  # type: ignore
                 return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def run(self):
+    def run(self) -> None:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
 
         Normally, you don't need to override this method.
