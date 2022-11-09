@@ -81,7 +81,7 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
-            start_with_flow: Whether the work should be started at the same time as the Root Flow. Only applies to works
+            start_with_flow: Whether the work should be started at the same time as the root flow. Only applies to works
                 defined in ``__init__``.
 
         **Learn More About Lightning Work Inner Workings**
