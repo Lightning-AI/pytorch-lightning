@@ -4,7 +4,6 @@ Here are two MNIST classifiers implemented in PyTorch.
 The first one is implemented in pure PyTorch, but isn't easy to scale.
 The second one is using [Lightning Lite](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) to accelerate and scale the model.
 
-
 #### 1. Image Classifier with Vanilla PyTorch
 
 Trains a simple CNN over MNIST using vanilla PyTorch. It only supports singe GPU training.
