@@ -104,6 +104,5 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
 
 Lightning works seamlessly with all kinds of custom data iterables,
 but unfortunately it cannot support the entire featureset with arbitrary iterables as some are specific to dataloaders.
-
 These features are mainly automatic replacement of the sampler and fully fault-tolerant training as these dataloaders
 typically don't expose sampling APIs to fast-forward or save and load states.
