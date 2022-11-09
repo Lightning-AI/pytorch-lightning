@@ -625,6 +625,10 @@ class LightningApp:
             if not w.has_started:
                 continue
 
+            # Don't send changes when the state has been just sent.
+            if w.run.has_sent:
+                continue
+
             state_work = self._extract_vars_from_component_name(w.name, state)
             last_state_work = self._extract_vars_from_component_name(w.name, self._last_state)
 

@@ -59,7 +59,11 @@ def unwrap(fn):
     return fn
 
 
-def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str) -> Dict:
+def _send_data_to_caller_queue(
+    proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
+) -> Dict:
+
+    proxy.has_sent = True
 
     if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
         work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
@@ -103,6 +107,8 @@ class ProxyWorkRun:
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
+        self.has_sent = False
+
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
@@ -118,18 +124,18 @@ class ProxyWorkRun:
         # for the readers.
         if self.cache_calls:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned:
                     return
         else:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned or stopped_on_sigterm:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                    _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
