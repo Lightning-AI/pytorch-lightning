@@ -239,6 +239,7 @@ def _run_app(
     open_ui: bool,
     env: tuple,
     secret: tuple,
+    run_app_comment_commands: bool,
 ) -> None:
     file = _prepare_file(file)
 
@@ -285,6 +286,7 @@ def _run_app(
         env_vars=env_vars,
         secrets=secrets,
         cluster_id=cluster_id,
+        run_app_comment_commands=run_app_comment_commands,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -322,6 +324,14 @@ def run() -> None:
 @click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
 @click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
+@click.option(
+    "--setup",
+    "-s",
+    "run_app_comment_commands",
+    is_flag=True,
+    default=False,
+    help="run environment setup commands from the app comments.",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -334,9 +344,22 @@ def run_app(
     env: tuple,
     secret: tuple,
     app_args: tuple,
+    run_app_comment_commands: bool,
 ) -> None:
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
+    _run_app(
+        file,
+        cloud,
+        cluster_id,
+        without_server,
+        no_cache,
+        name,
+        blocking,
+        open_ui,
+        env,
+        secret,
+        run_app_comment_commands,
+    )
 
 
 @_main.group(hidden=True)
