@@ -4,8 +4,8 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class PyTorchLightningDistributed(L.LightningWork):
-    @staticmethod
-    def run():
+
+    def run(self):
         model = BoringModel()
         trainer = L.Trainer(
             max_epochs=10,

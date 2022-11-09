@@ -7,9 +7,8 @@ from lightning.app.components import PyTorchSpawnMultiNode
 
 class PyTorchDistributed(L.LightningWork):
 
-    # Note: Only staticmethod are support for now with `PyTorchSpawnMultiNode`
-    @staticmethod
     def run(
+        self,
         world_size: int,
         node_rank: int,
         global_rank: str,

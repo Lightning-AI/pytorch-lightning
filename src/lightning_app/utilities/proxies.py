@@ -278,10 +278,11 @@ class LightningWorkSetAttrProxy:
     work: "LightningWork"
     delta_queue: "BaseQueue"
     state_observer: "WorkStateObserver"
+    lock: threading.Lock
 
     def __call__(self, name: str, value: Any) -> None:
         logger.debug(f"Setting {name}: {value}")
-        with _state_observer_lock:
+        with self.lock:
             state = deepcopy(self.work.state)
             self.work._default_setattr(name, value)
             delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
@@ -292,7 +293,8 @@ class LightningWorkSetAttrProxy:
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
             # add the delta to the buffer to let WorkStateObserver know we already sent this one to the Flow
-            self.state_observer._delta_memory.append(delta)
+            if self.state_observer:
+                self.state_observer._delta_memory.append(delta)
 
 
 @dataclass
@@ -306,6 +308,8 @@ class WorkRunExecutor:
 
     work: "LightningWork"
     work_run: Callable
+    delta_queue: "BaseQueue"
+    enable_start_observer: bool = True
 
     def __call__(self, *args, **kwargs):
         return self.work_run(*args, **kwargs)
@@ -404,7 +408,8 @@ class WorkRunner:
         self._transfer_path_attributes()
 
         # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
 
         # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
         reference_state = deepcopy(self.work.state)
@@ -435,7 +440,8 @@ class WorkRunner:
         # 11. Start the state observer thread. It will look for state changes and send them back to the Flow
         # The observer has to be initialized here, after the set_state call above so that the thread can start with
         # the proper initial state of the work
-        self.state_observer.start()
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.start()
 
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
@@ -482,7 +488,8 @@ class WorkRunner:
             return
 
         # 13. Destroy the state observer.
-        self.state_observer.join(0)
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.join(0)
         self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
@@ -531,14 +538,7 @@ class WorkRunner:
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
-        if cleanup:
-            setattr_proxy = None
-        else:
-            assert self.state_observer
-            setattr_proxy = LightningWorkSetAttrProxy(
-                self.work_name, self.work, delta_queue=self.delta_queue, state_observer=self.state_observer
-            )
-        self.work._setattr_replacement = setattr_proxy
+        _proxy_setattr(self.work, self.delta_queue, self.state_observer, cleanup=cleanup)
 
     def _process_call_args(
         self, args: Tuple[Any, ...], kwargs: Dict[str, Any]
@@ -645,3 +645,17 @@ def persist_artifacts(work: "LightningWork") -> None:
             f"All {destination_paths} artifacts from Work {work.name} successfully "
             "stored at {artifacts_path(work.name)}."
         )
+
+
+def _proxy_setattr(work, delta_queue, state_observer: WorkStateObserver, cleanup: bool = False):
+    if cleanup:
+        setattr_proxy = None
+    else:
+        setattr_proxy = LightningWorkSetAttrProxy(
+            work.name,
+            work,
+            delta_queue=delta_queue,
+            state_observer=state_observer,
+            lock=_state_observer_lock,
+        )
+    work._setattr_replacement = setattr_proxy

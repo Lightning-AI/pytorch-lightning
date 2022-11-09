@@ -6,8 +6,7 @@ from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
-    @staticmethod
-    def run():
+    def run(self):
         # 1. Create LightningLite.
         lite = LightningLite(strategy="ddp", precision="bf16")
 

@@ -22,6 +22,9 @@ class _PyTorchSpawnWorkProtocol(Protocol):
 
 
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
+
+    enable_start_observer: bool = False
+
     def __call__(
         self,
         main_address: str,
@@ -33,19 +36,31 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            self.run, args=(self.work_run, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
+            self.run, args=(self.work, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
         )
 
     @staticmethod
     def run(
         local_rank: int,
-        work_run: Callable,
+        work: "LightningWork",
         main_address: str,
         main_port: int,
         num_nodes: int,
         node_rank: int,
         nprocs: int,
     ):
+        if local_rank == 0:
+            _proxy_setattr(work, self.delta_queue, self.state_observer, cleanup=cleanup)
+            setattr_proxy = LightningWorkSetAttrProxy(
+                self.work_name,
+                self.work,
+                delta_queue=self.delta_queue,
+                state_observer=state_observer,
+                lock=_state_observer_lock,
+            )
+        self.work._setattr_replacement = setattr_proxy
+
+
         import torch
 
         # 1. Setting distributed environment
