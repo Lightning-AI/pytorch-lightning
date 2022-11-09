@@ -58,6 +58,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
+        start_with_flow: bool = True,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -80,6 +81,8 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
+            start_with_flow: Whether the work should be started at the same time as the root flow. Only applies to works
+                defined in ``__init__``.
 
         **Learn More About Lightning Work Inner Workings**
 
@@ -141,6 +144,7 @@ class LightningWork:
         self._request_queue: Optional[BaseQueue] = None
         self._response_queue: Optional[BaseQueue] = None
         self._restarting = False
+        self._start_with_flow = start_with_flow
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
