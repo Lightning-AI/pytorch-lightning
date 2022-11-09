@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
