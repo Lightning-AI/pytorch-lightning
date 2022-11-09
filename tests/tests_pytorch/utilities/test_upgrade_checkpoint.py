@@ -18,41 +18,7 @@ from unittest.mock import ANY
 
 import pytest
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.utilities.migration import migrate_checkpoint
-from pytorch_lightning.utilities.migration.utils import _get_version, _set_legacy_version, _set_version
 from pytorch_lightning.utilities.upgrade_checkpoint import main as upgrade_main
-
-
-@pytest.mark.parametrize(
-    "old_checkpoint, new_checkpoint",
-    [
-        (
-            {"epoch": 1, "global_step": 23, "checkpoint_callback_best": 0.34},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.34}}},
-        ),
-        (
-            {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_score": 0.99},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.99}}},
-        ),
-        (
-            {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_path": "path"},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_path": "path"}}},
-        ),
-        (
-            {"epoch": 1, "global_step": 23, "early_stop_callback_wait": 2, "early_stop_callback_patience": 4},
-            {"epoch": 1, "global_step": 23, "callbacks": {EarlyStopping: {"wait_count": 2, "patience": 4}}},
-        ),
-    ],
-)
-def test_upgrade_checkpoint(tmpdir, old_checkpoint, new_checkpoint):
-    _set_version(old_checkpoint, "0.9.0")
-    _set_legacy_version(new_checkpoint, "0.9.0")
-    _set_version(new_checkpoint, pl.__version__)
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
-    assert updated_checkpoint == old_checkpoint == new_checkpoint
-    assert _get_version(updated_checkpoint) == pl.__version__
 
 
 def test_upgrade_checkpoint_file_missing(tmp_path, caplog):
