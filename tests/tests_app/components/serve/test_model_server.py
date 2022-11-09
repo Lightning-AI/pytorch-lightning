@@ -10,7 +10,6 @@ from lightning_app.utilities.imports import _is_numpy_available, _is_torch_avail
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 
 
-
 class SimpleServer(model_server.ModelServer):
     def __init__(self, port):
         super().__init__(port=port)
@@ -33,6 +32,6 @@ def test_model_server_component():
     process = mp.Process(target=target_fn, args=(port,))
     process.start()
     session = _configure_session()
-    res = session.post(f"http://127.0.0.1:{port}/predict", data='\"test\"')
+    res = session.post(f"http://127.0.0.1:{port}/predict", data='"test"')
     process.terminate()
-    assert res.text == '\"test\"'
+    assert res.text == '"test"'

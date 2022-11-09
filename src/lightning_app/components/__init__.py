@@ -9,8 +9,8 @@ from lightning_app.components.multi_node import (
 from lightning_app.components.python.popen import PopenPythonScript
 from lightning_app.components.python.tracer import Code, TracerPythonScript
 from lightning_app.components.serve.gradio import ServeGradio
-from lightning_app.components.serve.serve import ModelInferenceAPI
 from lightning_app.components.serve.model_server import ModelServer
+from lightning_app.components.serve.serve import ModelInferenceAPI
 from lightning_app.components.serve.streamlit import ServeStreamlit
 from lightning_app.components.training import LightningTrainingComponent, PyTorchLightningScriptRunner
 
