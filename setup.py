@@ -92,9 +92,10 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         for pkg in mapping.values():
             with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
                 lines.extend(fh.readlines())
+        # TODO: this makes e2e examples tests hang
         # convert lightning_foo to lightning/foo
-        for new, old in mapping.items():
-            lines = [line.replace(old, f"lightning/{new}") for line in lines]
+        # for new, old in mapping.items():
+        #    lines = [line.replace(old, f"lightning/{new}") for line in lines]
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:
