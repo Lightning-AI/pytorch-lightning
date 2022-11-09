@@ -20,15 +20,22 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
     # 2. Prepare distributed model
     model = torch.nn.Linear(32, 2)
-    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-    device_ids = device if torch.cuda.is_available() else None
-    model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
-    # 3. Prepare loss and optimizer
+    # 3. Setup distributed training
+    if torch.cuda.is_available():
+        device = torch.device(f"cuda:{local_rank}")
+        torch.cuda.set_device(device)
+    else:
+        device = torch.device("cpu")
+
+    model = model.to(device)
+    model = DistributedDataParallel(model, device_ids=[device.index] if torch.cuda.is_available() else None)
+
+    # 4. Prepare loss and optimizer
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    # 4. Train the model for 50 steps.
+    # 5. Train the model for 50 steps.
     for step in range(50):
         model.zero_grad()
         x = torch.randn(64, 32).to(device)
@@ -37,13 +44,6 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
         print(f"global_rank: {global_rank} step: {step} loss: {loss}")
         loss.backward()
         optimizer.step()
-
-    # 5. Verify all processes have the same weights at the end of training.
-    weight = model.module.weight.clone()
-    torch.distributed.all_reduce(weight)
-    assert torch.equal(model.module.weight, weight / world_size)
-
-    print("Multi Node Distributed Training Done!")
 
 
 class PyTorchDistributed(L.LightningWork):
@@ -60,11 +60,11 @@ class PyTorchDistributed(L.LightningWork):
         )
 
 
-compute = L.CloudCompute("gpu-fast-multi")  # 4xV100
+# Run over 2 nodes of 4 x V100
 app = L.LightningApp(
     MultiNode(
         PyTorchDistributed,
         num_nodes=2,
-        cloud_compute=compute,
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
     )
 )

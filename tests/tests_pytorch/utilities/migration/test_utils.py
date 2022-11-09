@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import sys
+from unittest.mock import ANY
 
 import pytest
 
@@ -109,26 +110,28 @@ def test_migrate_checkpoint_for_pl(caplog):
     """Test that the automatic migration in Lightning informs the user about how to make the upgrade permanent."""
 
     # simulate a very recent checkpoint, no migrations needed
-    loaded_checkpoint = {"pytorch-lightning_version": pl.__version__, "content": 123}
+    loaded_checkpoint = {"pytorch-lightning_version": pl.__version__, "global_step": 2, "epoch": 0}
     new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
-    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "content": 123}
+    assert new_checkpoint == {"pytorch-lightning_version": pl.__version__, "global_step": 2, "epoch": 0}
 
     # simulate an old checkpoint that needed an upgrade
-    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
+    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "global_step": 2, "epoch": 0}
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.utilities.migration.utils"):
         new_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, "path/to/ckpt")
     assert new_checkpoint == {
         "legacy_pytorch-lightning_version": "0.0.1",
         "pytorch-lightning_version": pl.__version__,
         "callbacks": {},
-        "content": 123,
+        "global_step": 2,
+        "epoch": 0,
+        "loops": ANY,
     }
     assert f"Lightning automatically upgraded your loaded checkpoint from v0.0.1 to v{pl.__version__}" in caplog.text
 
 
 def test_migrate_checkpoint_legacy_version(monkeypatch):
     """Test that the legacy version gets set and does not change if migration is applied multiple times."""
-    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "content": 123}
+    loaded_checkpoint = {"pytorch-lightning_version": "0.0.1", "global_step": 2, "epoch": 0}
 
     # pretend the current pl version is 2.0
     monkeypatch.setattr(pl, "__version__", "2.0.0")

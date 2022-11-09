@@ -146,6 +146,8 @@ nbsphinx_requirejs_path = ""
 # myst-parser, forcing to parse all html pages with mathjax
 # https://github.com/executablebooks/MyST-Parser/issues/394
 myst_update_mathjax = False
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
