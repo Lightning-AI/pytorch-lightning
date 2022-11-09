@@ -29,7 +29,7 @@ dependencies:
     - python>=3.7
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.9.*
+    - pytorch>=1.10.*
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
@@ -43,7 +43,7 @@ dependencies:
     - omegaconf>=2.0.5
 
     # Examples
-    - torchvision>=0.10.*
+    - torchvision>=0.11.*
 
     - pip:
         - mlflow>=1.0.0
