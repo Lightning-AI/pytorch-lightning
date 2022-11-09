@@ -153,7 +153,6 @@ RUN \
     # install rest of strategies
     # remove colossalai from requirements since they are installed separately
     python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
-    cat requirements/pytorch/strategies.txt && \
     pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
 COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
