@@ -73,6 +73,10 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
+    # copy the version information to all packages
+    if _PACKAGE_NAME is not None:  # not a wheel install
+        setup_tools.distribute_version(_PATH_SRC)
+
     package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")  # requires `-v` to appear
     if package_to_install == "lightning":  # install everything

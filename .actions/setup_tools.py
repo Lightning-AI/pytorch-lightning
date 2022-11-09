@@ -159,7 +159,7 @@ def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
         fpath = os.path.join(os.path.dirname(fpath), ver_file)
         if os.path.isfile(fpath):
             os.remove(fpath)
-        shutil.copy(ver_template, fpath)
+        shutil.copy2(ver_template, fpath)
 
 
 def _download_frontend(pkg_path: str):

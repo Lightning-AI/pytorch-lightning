@@ -56,6 +56,7 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-include src/lightning_lite *.md" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
+        "include src/pytorch_lightning/version.info" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
     ]
     with open(manifest_path, "w") as fp:
