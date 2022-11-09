@@ -24,13 +24,6 @@ if [[ $can_run_nvprof == "True" ]]; then
     nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
-# test deadlock is properly handled with TorchElastic.
-echo "Running plugins/environments/torch_elastic_deadlock.py"
-LOGS=$(coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
-if [ -z "$LOGS" ]; then
-    exit 1
-fi
-
 # test that a user can manually launch individual processes
 echo "Running manual ddp launch test"
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
