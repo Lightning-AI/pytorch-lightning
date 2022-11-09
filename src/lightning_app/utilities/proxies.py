@@ -277,7 +277,7 @@ class LightningWorkSetAttrProxy:
     work_name: str
     work: "LightningWork"
     delta_queue: "BaseQueue"
-    state_observer: "WorkStateObserver"
+    state_observer: Optional["WorkStateObserver"]
     lock: threading.Lock
 
     def __call__(self, name: str, value: Any) -> None:
@@ -446,7 +446,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run, self.delta_queue)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
@@ -647,7 +647,7 @@ def persist_artifacts(work: "LightningWork") -> None:
         )
 
 
-def _proxy_setattr(work, delta_queue, state_observer: WorkStateObserver, cleanup: bool = False):
+def _proxy_setattr(work, delta_queue, state_observer: Optional[WorkStateObserver], cleanup: bool = False):
     if cleanup:
         setattr_proxy = None
     else:

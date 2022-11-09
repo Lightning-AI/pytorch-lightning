@@ -1,12 +1,11 @@
-from typing import Any, Callable, Type
+from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import WorkRunExecutor
+from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor
 
 
 @runtime_checkable
@@ -34,15 +33,21 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
     ):
         import torch
 
+        # Remove the wrapper.
+        self.work._setattr_replacement = None
+
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            self.run, args=(self.work, self.delta_queue, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
+            self.run,
+            args=(self.work, self.delta_queue, main_address, main_port, num_nodes, node_rank, nprocs),
+            nprocs=nprocs,
         )
 
     @staticmethod
     def run(
         local_rank: int,
         work: "LightningWork",
+        delta_queue,
         main_address: str,
         main_port: int,
         num_nodes: int,
@@ -50,16 +55,8 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         nprocs: int,
     ):
         if local_rank == 0:
-            _proxy_setattr(work, self.delta_queue, self.state_observer, cleanup=cleanup)
-            setattr_proxy = LightningWorkSetAttrProxy(
-                self.work_name,
-                self.work,
-                delta_queue=self.delta_queue,
-                state_observer=state_observer,
-                lock=_state_observer_lock,
-            )
-        self.work._setattr_replacement = setattr_proxy
-
+            _proxy_setattr(work, delta_queue, None)
+            pass
 
         import torch
 
@@ -78,7 +75,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         elif world_size > 1:
             raise Exception("Torch distributed should be available.")
 
-        work_run(world_size, node_rank, global_rank, local_rank)
+        unwrap(work.run)(world_size, node_rank, global_rank, local_rank)
 
 
 class PyTorchSpawnMultiNode(MultiNode):
@@ -91,11 +88,6 @@ class PyTorchSpawnMultiNode(MultiNode):
         **work_kwargs: Any,
     ) -> None:
         assert issubclass(work_cls, _PyTorchSpawnWorkProtocol)
-        if not is_static_method(work_cls, "run"):
-            raise TypeError(
-                f"The provided {work_cls} run method needs to be static for now."
-                "HINT: Remove `self` and add staticmethod decorator."
-            )
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.

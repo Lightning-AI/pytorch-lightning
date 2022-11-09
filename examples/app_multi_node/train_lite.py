@@ -6,6 +6,10 @@ from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.step = 0
+
     def run(self):
         # 1. Create LightningLite.
         lite = LightningLite(strategy="ddp", precision="bf16")
@@ -18,6 +22,9 @@ class LitePyTorchDistributed(L.LightningWork):
 
         # 3. Train the model for 50 steps.
         for step in range(50):
+
+            self.step = step
+
             model.zero_grad()
             x = torch.randn(64, 32).to(lite.device)
             output = model(x)
@@ -33,5 +40,6 @@ app = L.LightningApp(
         LitePyTorchDistributed,
         cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
         num_nodes=2,
-    )
+    ),
+    log_level="debug",
 )

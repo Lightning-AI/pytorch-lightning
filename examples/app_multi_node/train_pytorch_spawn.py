@@ -6,6 +6,10 @@ from lightning.app.components import PyTorchSpawnMultiNode
 
 
 class PyTorchDistributed(L.LightningWork):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.step = 0
+
     def run(
         self,
         world_size: int,
@@ -25,6 +29,10 @@ class PyTorchDistributed(L.LightningWork):
 
         # 3. Train the model for 50 steps.
         for step in range(50):
+
+            # 4. Update step
+            self.step = step
+
             model.zero_grad()
             x = torch.randn(64, 32).to(device)
             output = model(x)

@@ -1,13 +1,13 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Type
+from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
+from lightning.app.utilities.proxies import _proxy_setattr, unwrap
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.tracer import Tracer
 
@@ -24,13 +24,18 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
-        work_run: Callable,
+        work: "LightningWork",
+        delta_queue,
         main_address: str,
         main_port: int,
         num_nodes: int,
         node_rank: int,
         nprocs: int,
     ):
+        if local_rank == 0:
+            _proxy_setattr(work, delta_queue, None)
+            pass
+
         from lightning.lite import LightningLite
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
 
@@ -68,7 +73,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         tracer = Tracer()
         tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
         tracer._instrument()
-        work_run()
+        unwrap(work.run)()
         tracer._restore()
 
 
@@ -82,11 +87,6 @@ class LiteMultiNode(MultiNode):
         **work_kwargs: Any,
     ) -> None:
         assert issubclass(work_cls, _LiteWorkProtocol)
-        if not is_static_method(work_cls, "run"):
-            raise TypeError(
-                f"The provided {work_cls} run method needs to be static for now."
-                "HINT: Remove `self` and add staticmethod decorator."
-            )
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.
