@@ -49,6 +49,7 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
@@ -123,6 +124,9 @@ class CloudRuntime(Runtime):
                 V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()
             ]
             v1_env_vars.extend(env_vars_from_secrets)
+
+        if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
 
         if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
