@@ -125,7 +125,7 @@ class DataParallelStrategy(ParallelStrategy):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         return decision
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
