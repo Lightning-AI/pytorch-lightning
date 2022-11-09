@@ -603,7 +603,4 @@ def _is_jupyter() -> bool:
     shell_name = get_ipython().__class__.__name__  # noqa: F821
 
     # https://stackoverflow.com/questions/15411967/how-can-i-check-if-code-is-executed-in-the-ipython-notebook/
-    if shell_name == "ZMQInteractiveShell":
-        return True
-
-    return False
+    return shell_name == "ZMQInteractiveShell":
