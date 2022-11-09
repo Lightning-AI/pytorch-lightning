@@ -109,3 +109,39 @@ def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
     trainer.fit(model, ckpt_path=ckpt_path)
     new_loop = trainer.fit_loop.epoch_loop
     assert new_loop.global_step == new_loop._batches_that_stepped == 2
+
+
+def test_migrate_model_checkpoint_save_on_train_epoch_end_default():
+    # None -> None
+    legacy_state_key_none = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': None}"  # noqa: E501
+    old_checkpoint = {"callbacks": {legacy_state_key_none: {"dummy": 0}}, "global_step": 0, "epoch": 1}
+    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # no change in the key name
+
+    # True -> None
+    legacy_state_key_true = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"  # noqa: E501
+    old_checkpoint = {"callbacks": {legacy_state_key_true: {"dummy": 0}}, "global_step": 0, "epoch": 1}
+    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # True -> None
+
+    # False -> None
+    legacy_state_key_false = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': False}"  # noqa: E501
+    old_checkpoint = {"callbacks": {legacy_state_key_false: {"dummy": 0}}, "global_step": 0, "epoch": 1}
+    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    assert updated_checkpoint["callbacks"] == {legacy_state_key_false: {"dummy": 0}}  # False -> None
+    #
+    #
+    # new_state_key_none = new_state_key_true = new_state_key_false = legacy_state_key_none
+    #
+    # callbacks_states = {
+    #     legacy_state_key_none: {"dummy": 0}, legacy_state_key_true: {"dummy": 1}, legacy_state_key_false: {"dummy": 2}
+    # }
+    # old_checkpoint = {"callbacks": callbacks_states, "global_step": 0, "epoch": 1}
+    # _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
+    # updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    # assert updated_checkpoint["callbacks"] == {
+    #     new_state_key_none: {"dummy": 0} ,new_state_key_true: {"dummy": 1},new_state_key_false: {"dummy": 2}
+    # }

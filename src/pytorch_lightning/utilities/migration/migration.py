@@ -28,7 +28,7 @@ For the Lightning developer: How to add a new migration?
    cp model.ckpt model.ckpt.backup
    python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
 """
-
+import re
 from typing import Any, Callable, Dict, List
 
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -160,3 +160,20 @@ _FIT_LOOP_INITIAL_STATE_1_6_0 = {
     },
     "state_dict": {},
 }
+
+
+def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """
+
+    Version: 1.9.0
+    Commit: f4ca56
+    PR: #15300
+    """
+
+    def new_state_key(state_key: str) -> str:
+        if not state_key.startswith("ModelCheckpoint"):
+            return state_key
+        return re.sub("'save_on_train_epoch_end': (True|False)", "'save_on_train_epoch_end': None", state_key)
+
+    checkpoint["callbacks"] = {new_state_key(state_key): state for state_key, state in checkpoint["callbacks"].items()}
+    return checkpoint
