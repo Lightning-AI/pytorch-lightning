@@ -38,16 +38,17 @@ def test_names_to_ids(
     monkeypatch,
 ):
 
-
-
     list_memberships = Mock()
     list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
     list_secrets = Mock()
     list_secrets.return_value = V1ListSecretsResponse(secrets=secrets)
-    monkeypatch.setattr(lightning_app.utilities.secrets.LightningClient, "projects_service_list_memberships", list_memberships)
+    monkeypatch.setattr(
+        lightning_app.utilities.secrets.LightningClient, "projects_service_list_memberships", list_memberships
+    )
     monkeypatch.setattr(lightning_app.utilities.secrets.LightningClient, "secret_service_list_secrets", list_secrets)
 
     from lightning.app.utilities import secrets as _secrets
+
     monkeypatch.setattr(_secrets.LightningClient, "projects_service_list_memberships", list_memberships)
     monkeypatch.setattr(_secrets.LightningClient, "secret_service_list_secrets", list_secrets)
 
