@@ -20,27 +20,15 @@ import tarfile
 import tempfile
 import urllib.request
 from distutils.version import LooseVersion
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
-from types import ModuleType
-from typing import Dict, List
+from typing import List
 
 from pkg_resources import parse_requirements
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
 
 # TODO: remove this once lightning-ui package is ready as a dependency
 _LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
-
-
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    assert spec, f"Failed to load module {name} from {location}"
-    py = module_from_spec(spec)
-    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
-    spec.loader.exec_module(py)
-    return py
 
 
 def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
@@ -161,81 +149,6 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # # download badge and replace url with local file
     # text = _parse_for_badge(text, github_release_url)
     return text
-
-
-def parse_version_from_file(pkg_root: str) -> str:
-    """Loading the package version from file."""
-    file_ver = os.path.join(pkg_root, "__version__.py")
-    file_about = os.path.join(pkg_root, "__about__.py")
-    if os.path.isfile(file_ver):
-        ver = _load_py_module("version", file_ver).version
-    elif os.path.isfile(file_about):
-        ver = _load_py_module("about", file_about).__version__
-    else:  # this covers case you have build only meta-package so not additional source files are present
-        ver = ""
-    return ver
-
-
-def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[str]:
-    """Replace imports of standalone package to lightning.
-
-    >>> lns = ["lightning_app",
-    ...        "delete_cloud_lightning_apps",
-    ...        "from lightning_app import",
-    ...        "lightning_apps = []",
-    ...        "lightning_app is ours",
-    ...        "def _lightning_app():",
-    ...        ":class:`~lightning_app.core.flow.LightningFlow`"]
-    >>> from pprint import pprint
-    >>> pprint(_replace_imports_in_file(lns, {"app": "lightning_app"}))
-    ['lightning.app',
-     'delete_cloud_lightning_apps',
-     'from lightning.app import',
-     'lightning_apps = []',
-     'lightning.app is ours',
-     'def _lightning_app():',
-     ':class:`~lightning.app.core.flow.LightningFlow`']
-    """
-    for n2, n1 in pkg_lut.items():
-        for i, ln in enumerate(lines):
-            lines[i] = re.sub(rf"([^_]|^){n1}([^_\w]|$)", rf"\1lightning.{n2}\2", ln)
-    return lines
-
-
-# TODO: unify usage with assistant function, such that import this function in there
-def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
-    """Recursively replace imports in given folder."""
-    package_dir = os.path.join(src_folder, pkg_name)
-    all_files = glob.glob(os.path.join(package_dir, "**", "*.*"), recursive=True)
-    for fname in all_files:
-        local_path = fname.replace(package_dir + os.path.sep, "")
-        new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
-        if not fname.endswith(".py"):
-            if not fname.endswith(".pyc"):
-                os.makedirs(os.path.dirname(new_file), exist_ok=True)
-                shutil.copy2(fname, new_file)
-            continue
-
-        with open(fname, encoding="utf-8") as fo:
-            py = fo.readlines()
-        py = _replace_imports_in_file(py, pkg_lut)
-        os.makedirs(os.path.dirname(new_file), exist_ok=True)
-        with open(new_file, "w", encoding="utf-8") as fo:
-            fo.writelines(py)
-
-
-def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
-    """Recursively replace imports in given folder.
-
-    >>> create_mirror_package(
-    ...     os.path.join(_PROJECT_ROOT, "src"),
-    ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
-    ... )
-    """
-    mapping = lit_pkg_mapping.copy()
-    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
-    for lit_name, pkg_name in mapping.items():
-        copy_adjusted_modules(src_folder, pkg_name, lit_name, mapping)
 
 
 def _download_frontend(pkg_path: str):
