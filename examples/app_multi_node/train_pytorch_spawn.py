@@ -19,15 +19,22 @@ class PyTorchDistributed(L.LightningWork):
     ):
         # 1. Prepare distributed model
         model = torch.nn.Linear(32, 2)
-        device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-        device_ids = device if torch.cuda.is_available() else None
-        model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
-        # 2. Prepare loss and optimizer
+        # 2. Setup distributed training
+        if torch.cuda.is_available():
+            device = torch.device(f"cuda:{local_rank}")
+            torch.cuda.set_device(device)
+        else:
+            device = torch.device("cpu")
+
+        model = model.to(device)
+        model = DistributedDataParallel(model, device_ids=[device.index] if torch.cuda.is_available() else None)
+
+        # 3. Prepare loss and optimizer
         criterion = torch.nn.MSELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-        # 3. Train the model for 50 steps.
+        # 4. Train the model for 50 steps.
         for step in range(50):
 
             # 4. Update step
