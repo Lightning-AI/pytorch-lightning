@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Callable
+from typing import Any
 
 import uvicorn
 from fastapi import Body, FastAPI
