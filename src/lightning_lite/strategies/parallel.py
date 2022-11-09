@@ -99,7 +99,7 @@ class ParallelStrategy(Strategy, ABC):
         """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
+        decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 
     def teardown(self) -> None:
