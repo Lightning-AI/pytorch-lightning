@@ -1,12 +1,6 @@
-import base64
 import multiprocessing as mp
-import os
-from unittest.mock import ANY, MagicMock
-
-import pytest
 
 from lightning_app.components.serve import model_server
-from lightning_app.utilities.imports import _is_numpy_available, _is_torch_available
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 
 
