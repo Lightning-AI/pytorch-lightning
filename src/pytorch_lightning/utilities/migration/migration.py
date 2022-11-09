@@ -171,7 +171,7 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
     ``save_on_train_epoch_end=True|False`` was set by the user or set internally (according to old logic).
 
     Checkpoints created with ``ModelCheckpoint(..., save_on_train_epoch_end=True|False)`` will be loaded as if
-    ``save_on_train_epoch_end`` was set to ``None`` to migitate the impact of this breaking change.
+    ``save_on_train_epoch_end`` was set to ``None`` to mitigate the impact of this breaking change.
 
     Version: 1.9.0
     Commit: f4ca56
