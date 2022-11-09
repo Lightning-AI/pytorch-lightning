@@ -73,7 +73,7 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    if _PACKAGE_NAME is not None:  # not a wheel install
+    if os.path.exists(_PATH_SRC):  # not a wheel install
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 

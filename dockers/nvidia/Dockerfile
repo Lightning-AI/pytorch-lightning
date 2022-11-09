@@ -44,7 +44,7 @@ RUN \
 # Installations \
     pip install -q fire && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
-    pip install ./lightning["extra","loggers","strategies","examples"] --no-cache-dir && \
+    PACKAGE_NAME=pytorch pip install ./lightning["extra","loggers","strategies","examples"] --no-cache-dir && \
     rm -rf lightning && \
     pip list
 
