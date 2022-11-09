@@ -43,6 +43,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
         "1.6.5": [_migrate_loop_batches_that_stepped],
+        "1.9.0": [_migrate_model_checkpoint_save_on_train_epoch_end_default],
     }
 
 
@@ -163,7 +164,14 @@ _FIT_LOOP_INITIAL_STATE_1_6_0 = {
 
 
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """
+    """Changes the value of `save_on_train_epoch_end` inside the state key of ``ModelCheckpoint`` callbacks.
+
+    The initial value of ``ModelCheckpoint.save_on_train_epoch_end`` before training (and before loading the state)
+    has changed. After this breaking change, Lightning is no longer able to determine whether
+    ``save_on_train_epoch_end=True|False`` was set by the user or set internally (according to old logic).
+
+    Checkpoints created with ``ModelCheckpoint(..., save_on_train_epoch_end=True|False)`` will be loaded as if
+    ``save_on_train_epoch_end`` was set to ``None`` to migitate the impact of this breaking change.
 
     Version: 1.9.0
     Commit: f4ca56
