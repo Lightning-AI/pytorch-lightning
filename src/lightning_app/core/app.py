@@ -638,6 +638,10 @@ class LightningApp:
 
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
+            if "unprocessed" in deep_diff:
+                deep_diff.pop("unprocessed")
+
             if deep_diff:
+                print(deep_diff)
                 logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)

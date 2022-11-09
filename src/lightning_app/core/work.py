@@ -612,7 +612,7 @@ class LightningWork:
         if any(k not in ["values_changed", "type_changed"] for k in delta.to_dict()):
             raise Exception(
                 "A forbidden operation to update the work from the flow was detected."
-                f"Found {delta.to_dict()}, only `values_changed` and `type_changes` are currently allowed."
+                f" Found {delta.to_dict()}, only `values_changed` and `type_changes` are currently allowed."
             )
 
         vars = self.state["vars"] + delta
