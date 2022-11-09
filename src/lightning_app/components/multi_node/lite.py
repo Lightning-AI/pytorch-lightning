@@ -4,11 +4,11 @@ from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning.app.utilities.proxies import _proxy_setattr, unwrap, WorkStateObserver
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkStateObserver
 from lightning_app.utilities.tracer import Tracer
 
 
