@@ -20,7 +20,6 @@ import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops import FitLoop
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_outputs_format(tmpdir):
