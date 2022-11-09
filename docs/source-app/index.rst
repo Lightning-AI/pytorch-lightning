@@ -78,6 +78,10 @@ The component manages its own infrastructure, cloud costs, networking and more, 
 
 .. include:: ./levels/basic/hero_components.rst
 
+|
+
+Components run the same on the cloud and locally on your choice of hardware.
+
 .. lit_tabs::
    :code_files: landing_app_run.bash
    :highlights: 5
