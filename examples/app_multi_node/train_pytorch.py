@@ -20,15 +20,19 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
     # 2. Prepare distributed model
     model = torch.nn.Linear(32, 2)
-    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-    device_ids = [device.index] if torch.cuda.is_available() else None
-    model = DistributedDataParallel(model, device_ids=device_ids).to(device)
 
-    # 3. Prepare loss and optimizer
+    # 3. Setup distributed training
+    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
+    torch.cuda.set_device(device)
+
+    model = model.to(device)
+    model = DistributedDataParallel(model, device_ids=[device.index] if torch.cuda.is_available() else None)
+
+    # 4. Prepare loss and optimizer
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    # 4. Train the model for 50 steps.
+    # 5. Train the model for 50 steps.
     for step in range(50):
         model.zero_grad()
         x = torch.randn(64, 32).to(device)
