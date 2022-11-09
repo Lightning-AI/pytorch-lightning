@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-
 ## [unreleased] - 202Y-MM-DD
 
 
@@ -12,7 +11,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added the `start` method to the work ([#15523](https://github.com/Lightning-AI/lightning/pull/15523))
 
+
 - Added a `MultiNode` Component to run with distributed computation with any frameworks ([#15524](https://github.com/Lightning-AI/lightning/pull/15524))
+
 
 - Expose `RunWorkExecutor` to the work and provides default ones for the `MultiNode` Component ([#15561](https://github.com/Lightning-AI/lightning/pull/15561))
 
@@ -34,7 +35,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
--
 
 -
 
@@ -43,7 +43,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
--
 
 -
 
@@ -53,10 +52,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed writing app name and id in connect.txt file for the command CLI ([#15443](https://github.com/Lightning-AI/lightning/pull/15443))
 
+
 - Fixed missing root flow among the flows of the app ([#15531](https://github.com/Lightning-AI/lightning/pull/15531))
+
 
 - Fixed bug with Multi Node Component and add some examples ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 
+
+- Fixed an issue with the `lightning` CLI taking a long time to error out when the cloud is not reachable ([#15412](https://github.com/Lightning-AI/lightning/pull/15412))
 
 
 ## [1.8.0] - 2022-11-01
