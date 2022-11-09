@@ -21,7 +21,12 @@ class OutputData(BaseModel):
 
 class ModelServer(LightningWork, abc.ABC):
     def __init__(  # type: ignore
-        self, host: str = "127.0.0.1", port: int = 7777, input_type: type = InputData, output_type: type = OutputData, **kwargs
+        self,
+        host: str = "127.0.0.1",
+        port: int = 7777,
+        input_type: type = InputData,
+        output_type: type = OutputData,
+        **kwargs,
     ):
         """The ModelServer Class enables to easily get your machine learning server up and running.
 
