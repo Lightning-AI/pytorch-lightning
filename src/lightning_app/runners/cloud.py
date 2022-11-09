@@ -336,7 +336,7 @@ class CloudRuntime(Runtime):
                     raise ValueError(
                         dedent(
                             f"""\
-                            Can not run app '{app_config.name}' on cluster {app_config.cluster_id} since it already exists on {existing_instance.spec.cluster_id}
+                            Can not run app {app_config.name} on cluster {app_config.cluster_id} since it already exists on {existing_instance.spec.cluster_id}
                                 (moving apps between clusters is not supported).
 
                             You can either:

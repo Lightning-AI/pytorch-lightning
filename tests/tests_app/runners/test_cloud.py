@@ -1,6 +1,6 @@
 import logging
 import os
-from contextlib import contextmanager
+from contextlib import nullcontext as does_not_raise
 from copy import copy
 from pathlib import Path
 from textwrap import dedent
@@ -108,11 +108,6 @@ def project_id():
     return "test-project-id"
 
 
-@contextmanager
-def does_not_raise():
-    yield
-
-
 DEFAULT_CLUSTER = "litng-ai-03"
 
 
@@ -123,7 +118,10 @@ class TestAppCreationClient:
     @pytest.mark.parametrize(
         "old_cluster,new_cluster,expected_raise",
         [
-            ("test", "other", pytest.raises(ValueError)),
+            ("test", "other", pytest.raises(
+                ValueError,
+                match="Can not run app test-app on cluster other since it already exists on test",
+            )),
             ("test", "test", does_not_raise()),
             (None, None, does_not_raise()),
             (None, "litng-ai-03", does_not_raise()),
@@ -133,7 +131,7 @@ class TestAppCreationClient:
     def test_new_instance_on_different_cluster(
         self, cloud_backend, project_id, old_cluster, new_cluster, expected_raise
     ):
-        app_name = "test-app-name"
+        app_name = "test-app"
 
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
@@ -143,7 +141,9 @@ class TestAppCreationClient:
             cluster_id=new_cluster
         )
 
+        # Note:
         # backend converts "None" cluster to "litng-ai-03"
+        # dispatch should receive None, but API calls should return "litng-ai-03"
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
             [
                 Externalv1Cluster(id=old_cluster or DEFAULT_CLUSTER),
@@ -170,23 +170,9 @@ class TestAppCreationClient:
         # This is the main assertion:
         # we have an existing instance on `cluster-001`
         # but we want to run this app on `cluster-002`
-        with expected_raise as exception:
+        with expected_raise:
             cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
-        if exception is not None:
-            old_cluster = old_cluster or DEFAULT_CLUSTER
-            new_cluster = new_cluster or DEFAULT_CLUSTER
-            assert str(exception.value) == dedent(
-                f"""\
-                Can not run app '{app_name}' on cluster {new_cluster} since it already exists on {old_cluster}
-                    (moving apps between clusters is not supported).
-
-                You can either:
-                    a. rename the app to run on {new_cluster} with the --name option
-                        lightning run app script.py --name (new name) --cloud --cluster-id {new_cluster}
-                    b. delete the app running on {old_cluster} in the UI before running this command.
-                """
-            )
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
