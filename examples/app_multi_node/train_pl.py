@@ -4,7 +4,6 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class PyTorchLightningDistributed(L.LightningWork):
-
     def run(self):
         model = BoringModel()
         trainer = L.Trainer(

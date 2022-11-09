@@ -36,7 +36,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            self.run, args=(self.work, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
+            self.run, args=(self.work, self.delta_queue, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
         )
 
     @staticmethod

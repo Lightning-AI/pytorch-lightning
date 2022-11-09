@@ -6,7 +6,6 @@ from lightning.app.components import PyTorchSpawnMultiNode
 
 
 class PyTorchDistributed(L.LightningWork):
-
     def run(
         self,
         world_size: int,
