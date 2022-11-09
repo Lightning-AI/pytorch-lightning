@@ -116,7 +116,7 @@ class AWSClusterManager:
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
             edit_before_creation: Enables interactive editing of requests before submitting it to Lightning AI.
-            wait: Waits for the cluster to be in a RUNNING state. Only use this for debugging.
+            do_async: Triggers cluster creation in the background and exits
         """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
@@ -166,13 +166,14 @@ class AWSClusterManager:
             """
             )
         )
-        if not do_async:
+        background_message = "\nCluster will be created in the background!"
+        if do_async:
+            click.echo(background_message)
+        else:
             try:
                 _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
-                return
             except KeyboardInterrupt:
-                pass
-        click.echo("\nCluster will be created in the background!")
+                click.echo(background_message)
 
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -212,13 +213,14 @@ class AWSClusterManager:
             )
         )
 
-        if not do_async:
+        background_message = "\nCluster will be deleted in the background!"
+        if do_async:
+            click.echo(background_message)
+        else:
             try:
                 _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
-                return
             except KeyboardInterrupt:
-                pass
-        click.echo("\nCluster will be deleted in the background!")
+                click.echo(background_message)
 
 
 def _wait_for_cluster_state(
