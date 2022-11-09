@@ -262,13 +262,6 @@ class ModelCheckpoint(Checkpoint):
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
-        # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
-        # because the attributes are part of the state_key which needs to be fully defined before reloading.
-        if self._save_on_train_epoch_end is None:
-            # if the user runs validation multiple times per training epoch or multiple training epochs without
-            # validation, then we run after validation instead of on train epoch end
-            self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
-
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
 
@@ -306,7 +299,7 @@ class ModelCheckpoint(Checkpoint):
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        if not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end:
+        if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
@@ -314,7 +307,7 @@ class ModelCheckpoint(Checkpoint):
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
-        if not self._should_skip_saving_checkpoint(trainer) and not self._save_on_train_epoch_end:
+        if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
@@ -389,6 +382,23 @@ class ModelCheckpoint(Checkpoint):
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
+
+    def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
+        if self._save_on_train_epoch_end is not None:
+            return self._save_on_train_epoch_end
+
+        # if `check_val_every_n_epoch != 1`, we can't say when the validation dataloader will be loaded
+        # so let's not enforce saving at every training epoch end
+        if trainer.check_val_every_n_epoch != 1:
+            return False
+
+        # no validation means save on train epoch end
+        if sum(trainer.num_val_batches) == 0:
+            return True
+
+        # if the user runs validation multiple times per training epoch, then we run after validation
+        # instead of on train epoch end
+        return trainer.val_check_interval == 1.0
 
     def __validate_init_configuration(self) -> None:
         if self.save_top_k < -1:
