@@ -4,7 +4,7 @@ from typing import Any, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning.app.utilities.proxies import _proxy_setattr, unwrap
+from lightning.app.utilities.proxies import _proxy_setattr, unwrap, WorkStateObserver
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor
 from lightning_app.core.work import LightningWork
@@ -33,7 +33,9 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         nprocs: int,
     ):
         if local_rank == 0:
-            _proxy_setattr(work, delta_queue, None)
+            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
+            state_observer.start()
+            _proxy_setattr(work, delta_queue, state_observer)
             pass
 
         from lightning.lite import LightningLite
@@ -75,6 +77,9 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         tracer._instrument()
         unwrap(work.run)()
         tracer._restore()
+
+        if local_rank == 0:
+            state_observer.join(0)
 
 
 class LiteMultiNode(MultiNode):
