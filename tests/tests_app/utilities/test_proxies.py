@@ -267,7 +267,7 @@ class WorkRunnerPatch(WorkRunner):
 
 @mock.patch("lightning_app.runners.backends.mp_process.WorkRunner", WorkRunnerPatch)
 def test_proxy_timeout():
-    app = LightningApp(FlowTimeout(), debug=True)
+    app = LightningApp(FlowTimeout(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
     call_hash = app.root.work._calls[CacheCallsKeys.LATEST_CALL_HASH]
