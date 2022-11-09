@@ -4,7 +4,7 @@ from copy import deepcopy
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from deepdiff import DeepHash
+from deepdiff import DeepHash, Delta
 
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
@@ -606,16 +606,17 @@ class LightningWork:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
 
-    def _apply_flow_delta(self, key: str, new_value: Any, old_value: Any):
-        current_value = getattr(self, key)
-
-        if new_value == current_value:
-            return
-
-        if current_value != old_value:
+    def apply_flow_delta(self, delta: Delta):
+        """Override to customize how the flow should update the work state."""
+        if any(k not in ["values_changed", "type_changed"] for k in delta.to_dict()):
             raise Exception(
-                f"The work `{self.name}` received a flow delta changing `{key}` from `{old_value}` to `{new_value}`."
-                f" But, the current value is `{current_value}`. Creating state divergence isn't supported."
+                f"A forbidden operation to update the work from the flow was detected. Found {delta.to_dict()}"
             )
 
-        setattr(self, key, new_value)
+        vars = self.state["vars"] + delta
+        for name, value in vars.items():
+            property_object = self._get_property_if_exists(name)
+            if property_object is not None and property_object.fset is not None:
+                property_object.fset(self, value)
+            else:
+                self._default_setattr(name, value)

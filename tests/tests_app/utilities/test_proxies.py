@@ -732,6 +732,7 @@ class WorkBi2(LightningWork):
         super().__init__(parallel=True)
         self.finished = False
         self.counter = 0
+        self.d = {}
 
     def run(self):
         self.counter -= 1
@@ -747,6 +748,7 @@ class FlowBi2(LightningFlow):
 
     def run(self):
         self.w.run()
+        self.w.d["self.w.counter"] = 0
         if not self.w.finished:
             self.w.counter += 1
 
@@ -757,4 +759,4 @@ def test_bi_directional_proxy_forbidden(monkeypatch):
     app = LightningApp(FlowBi2())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.stage == AppStage.FAILED
-    assert "The work `root.w` received a flow delta changing `counter` from `0` to `1`" in str(app.exception)
+    assert "A forbidden operation to update the work" in str(app.exception)
