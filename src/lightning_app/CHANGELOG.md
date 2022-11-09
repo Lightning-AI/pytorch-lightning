@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Expose `RunWorkExecutor` to the work and provides default ones for the `MultiNode` Component ([#15561](https://github.com/Lightning-AI/lightning/pull/15561))
 
+- Added support for running Lightning App with IDE debugger ([#15590](https://github.com/Lightning-AI/lightning/pull/15590))
+
 
 ### Changed
 
