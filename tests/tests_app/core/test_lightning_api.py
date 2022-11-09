@@ -75,7 +75,7 @@ class _A(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_state_api(runtime_cls):
     """This test validates the AppState can properly broadcast changes from work within its own process."""
-    app = LightningApp(_A(), debug=True)
+    app = LightningApp(_A(), log_level="debug")
     runtime_cls(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
@@ -110,7 +110,7 @@ class A2(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 def test_app_state_api_with_flows(runtime_cls, tmpdir):
     """This test validates the AppState can properly broadcast changes from flows."""
-    app = LightningApp(A2(), debug=True)
+    app = LightningApp(A2(), log_level="debug")
     runtime_cls(app, start_server=True).dispatch()
     assert app.root.var_a == -1
 
@@ -185,7 +185,7 @@ class AppStageTestingApp(LightningApp):
 def test_app_stage_from_frontend(runtime_cls):
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
     start and stop the app."""
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
     runtime_cls(app, start_server=True).dispatch()
 
@@ -197,7 +197,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
     - receives a notification to refresh the UI and makes a GET Request (streamlit).
     """
 
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
 
@@ -224,7 +224,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
         def get(self, timeout: int = 0):
             return self._queue[0]
 
-    app = AppStageTestingApp(FlowA(), debug=True)
+    app = AppStageTestingApp(FlowA(), log_level="debug")
     app._update_layout()
     app.stage = AppStage.BLOCKING
     publish_state_queue = InfiniteQueue("publish_state_queue")
