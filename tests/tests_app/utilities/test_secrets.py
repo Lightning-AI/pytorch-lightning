@@ -1,6 +1,6 @@
 from typing import Dict, List
 from unittest import mock
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import pytest
 from lightning_cloud.openapi import V1ListMembershipsResponse, V1ListSecretsResponse, V1Membership, V1Secret
