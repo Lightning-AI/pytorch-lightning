@@ -39,7 +39,7 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -351,20 +351,6 @@ class ModelCheckpoint(Checkpoint):
 
         self.best_model_path = state_dict["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
-        """Performs the main logic around saving a checkpoint.
-
-        This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
-        behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
-            " Instead, you can use `trainer.save_checkpoint()` to manually save a checkpoint."
-        )
-        monitor_candidates = self._monitor_candidates(trainer)
-        self._save_topk_checkpoint(trainer, monitor_candidates)
-        self._save_last_checkpoint(trainer, monitor_candidates)
-
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
             return
@@ -588,15 +574,10 @@ class ModelCheckpoint(Checkpoint):
             return self.dirpath
 
         if len(trainer.loggers) > 0:
-            if trainer.loggers[0].save_dir is not None:
-                save_dir = trainer.loggers[0].save_dir
-            else:
-                save_dir = trainer.default_root_dir
             save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
             name = trainer.loggers[0].name
             version = trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"
-
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             # if no loggers, use default_root_dir

@@ -4,49 +4,76 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning_app.cli.commands.connection import _resolve_command_path
-from lightning_app.utilities.cli_helpers import _retrieve_application_url_and_available_commands
+from lightning_app.cli.commands.connection import (
+    _clean_lightning_connection,
+    _install_missing_requirements,
+    _resolve_command_path,
+)
+from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
+
+
+def _is_running_help(argv) -> bool:
+    return argv[-1] in ["--help", "-"] if argv else False
 
 
 def _run_app_command(app_name: str, app_id: Optional[str]):
     """Execute a function in a running App from its name."""
     # 1: Collect the url and comments from the running application
-    url, api_commands, _ = _retrieve_application_url_and_available_commands(app_id)
-    if url is None or api_commands is None:
-        raise Exception("We couldn't find any matching running App.")
+    _clean_lightning_connection()
 
-    if not api_commands:
+    running_help = _is_running_help(sys.argv)
+
+    retriever = _LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
+
+    if not running_help and (retriever.url is None or retriever.api_commands is None):
+        if app_name == "localhost":
+            print("The command couldn't be executed as your local Lightning App isn't running.")
+        else:
+            print(f"The command couldn't be executed as your cloud Lightning App `{app_name}` isn't running.")
+        sys.exit(0)
+
+    if not retriever.api_commands:
         raise Exception("This application doesn't expose any commands yet.")
 
     full_command = "_".join(sys.argv)
 
     has_found = False
-    for command in list(api_commands):
+    for command in list(retriever.api_commands):
         if command in full_command:
             has_found = True
+            for value in sys.argv:
+                if value == command and "_" in value:
+                    print(
+                        f"The command `{value}` was provided with an underscore and it isn't allowed."
+                        f"Instead, use `lightning {value.replace('_', ' ')}`."
+                    )
+                    sys.exit(0)
             break
 
     if not has_found:
-        raise Exception(f"The provided command isn't available in {list(api_commands)}")
+        raise Exception(f"The provided command isn't available in {list(retriever.api_commands)}")
 
     # 2: Send the command from the user
-    metadata = api_commands[command]
+    metadata = retriever.api_commands[command]
 
-    # 3: Execute the command
-    if metadata["tag"] == OpenAPITags.APP_COMMAND:
-        _handle_command_without_client(command, metadata, url)
-    else:
-        _handle_command_with_client(command, metadata, app_name, app_id, url)
+    try:
+        # 3: Execute the command
+        if metadata["tag"] == OpenAPITags.APP_COMMAND:
+            _handle_command_without_client(command, metadata, retriever.url)
+        else:
+            _handle_command_with_client(command, metadata, app_name, app_id, retriever.url)
+    except ModuleNotFoundError:
+        _install_missing_requirements(retriever, fail_if_missing=True)
 
-    if sys.argv[-1] != "--help":
+    if running_help:
         print("Your command execution was successful.")
 
 
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:
     supported_params = list(metadata["parameters"])
-    if "--help" == sys.argv[-1]:
+    if _is_running_help(sys.argv):
         print(f"Usage: lightning {command} [ARGS]...")
         print(" ")
         print("Options")
@@ -67,6 +94,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     query_parameters = "&".join(provided_params)
     resp = requests.post(url + f"/command/{command}?{query_parameters}")
     assert resp.status_code == 200, resp.json()
+    print(resp.json())
 
 
 def _handle_command_with_client(command: str, metadata: Dict, app_name: str, app_id: Optional[str], url: str):

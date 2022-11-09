@@ -20,9 +20,8 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from lightning_lite.plugins.environments import TorchElasticEnvironment
-from lightning_lite.utilities.device_parser import parse_gpu_ids
+from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -34,10 +33,9 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 PRETEND_N_OF_GPUS = 16
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, sklearn=True)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
-    tutils.set_random_main_port()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -109,10 +107,10 @@ def test_torchelastic_gpu_parsing(cuda_count_1, gpus):
         trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu
-    if parse_gpu_ids(gpus, include_cuda=True) is not None:
+    if _parse_gpu_ids(gpus, include_cuda=True) is not None:
         assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == parse_gpu_ids(gpus, include_cuda=True)
+        assert trainer.device_ids == _parse_gpu_ids(gpus, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)

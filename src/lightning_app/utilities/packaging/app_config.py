@@ -18,6 +18,7 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
+    cluster_id: Optional[str] = field(default=None)
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""

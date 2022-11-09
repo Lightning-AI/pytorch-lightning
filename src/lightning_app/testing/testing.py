@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import os
 import shutil
@@ -6,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from multiprocessing import Process
 from subprocess import Popen
 from time import sleep
@@ -22,13 +23,15 @@ from lightning_app import LightningApp, LightningFlow
 from lightning_app.cli.lightning_cli import run_app
 from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.runners.multiprocess import MultiProcessRuntime
-from lightning_app.testing.config import Config
+from lightning_app.testing.config import _Config
 from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.imports import _is_playwright_available, requires
+from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.logs_socket_api import _LightningLogsSocketAPI
 from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.packaging.lightning_utils import get_dist_path_if_editable_install
 from lightning_app.utilities.proxies import ProxyWorkRun
 
 if _is_playwright_available():
@@ -40,7 +43,7 @@ def _on_error_callback(ws_app, *_):
     ws_app.close()
 
 
-def print_logs(app_id: str):
+def _print_logs(app_id: str):
     client = LightningClient()
     project = _get_project(client)
 
@@ -134,7 +137,12 @@ def application_testing(
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning.LightningApp", lightning_app_cls):
+    patch1 = mock.patch("lightning_app.LightningApp", lightning_app_cls)
+    # we need to patch both only with the mirror package
+    patch2 = (
+        mock.patch("lightning.LightningApp", lightning_app_cls) if "lightning.app" in sys.modules else nullcontext()
+    )
+    with patch1, patch2:
         original = sys.argv
         sys.argv = command_line
         runner = CliRunner()
@@ -143,7 +151,7 @@ def application_testing(
         return result
 
 
-class SingleWorkFlow(LightningFlow):
+class _SingleWorkFlow(LightningFlow):
     def __init__(self, work, args, kwargs):
         super().__init__()
         self.work = work
@@ -159,7 +167,7 @@ class SingleWorkFlow(LightningFlow):
 def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
     """This function is used to run a work a single time with multiprocessing runtime."""
     MultiProcessRuntime(
-        LightningApp(SingleWorkFlow(work, args, kwargs), debug=True),
+        LightningApp(_SingleWorkFlow(work, args, kwargs), debug=True),
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.
@@ -172,7 +180,7 @@ def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
         work.run = work.run.work_run
 
 
-def browser_context_args(browser_context_args: Dict) -> Dict:
+def _browser_context_args(browser_context_args: Dict) -> Dict:
     return {
         **browser_context_args,
         "viewport": {
@@ -184,7 +192,7 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
 
 
 @contextmanager
-def run_cli(args) -> Generator:
+def _run_cli(args) -> Generator:
     """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
     cmd = [
         sys.executable,
@@ -222,6 +230,10 @@ def run_app_in_cloud(
     basename = app_folder.split("/")[-1]
     PR_NUMBER = os.getenv("PR_NUMBER", None)
 
+    is_editable_mode = get_dist_path_if_editable_install("lightning")
+    if not is_editable_mode and PR_NUMBER is not None:
+        raise Exception("Lightning requires to be installed in editable mode in the CI.")
+
     TEST_APP_NAME = os.getenv("TEST_APP_NAME", basename)
     os.environ["TEST_APP_NAME"] = TEST_APP_NAME
 
@@ -232,10 +244,10 @@ def run_app_in_cloud(
 
     os.environ["LIGHTNING_APP_NAME"] = name
 
-    url = Config.url
+    url = _Config.url
     if url.endswith("/"):
         url = url[:-1]
-    payload = {"apiKey": Config.api_key, "username": Config.username}
+    payload = {"apiKey": _Config.api_key, "username": _Config.username}
     res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
     if "token" not in res.json():
         raise Exception("You haven't properly setup your environment variables.")
@@ -253,29 +265,35 @@ def run_app_in_cloud(
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
-        process = Popen(
-            (
-                [
-                    sys.executable,
-                    "-m",
-                    "lightning",
-                    "run",
-                    "app",
-                    app_name,
-                    "--cloud",
-                    "--name",
-                    name,
-                    "--open-ui",
-                    "false",
-                ]
-                + extra_args
-            ),
-            cwd=tmpdir,
-            env=env_copy,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        process.wait()
+        stdout_path = get_logfile(f"run_app_in_cloud_{name}")
+        with open(stdout_path, "w") as stdout:
+            cmd = [
+                sys.executable,
+                "-m",
+                "lightning",
+                "run",
+                "app",
+                app_name,
+                "--cloud",
+                "--name",
+                name,
+                "--open-ui",
+                "false",
+            ]
+            process = Popen((cmd + extra_args), cwd=tmpdir, env=env_copy, stdout=stdout, stderr=sys.stderr)
+            process.wait()
+
+        if is_editable_mode:
+            # Added to ensure the current code is properly uploaded.
+            # Otherwise, it could result in un-tested PRs.
+            pkg_found = False
+            with open(stdout_path) as fo:
+                for line in fo.readlines():
+                    if "Packaged Lightning with your application" in line:
+                        pkg_found = True
+                    print(line)  # TODO: use logging
+            assert pkg_found
+        os.remove(stdout_path)
 
     # 5. Print your application name
     print(f"The Lightning App Name is: [bold magenta]{name}[/bold magenta]")
@@ -288,14 +306,14 @@ def run_app_in_cloud(
             http_credentials=HttpCredentials(
                 {"username": os.getenv("LAI_USER", "").strip(), "password": os.getenv("LAI_PASS", "")}
             ),
-            record_video_dir=os.path.join(Config.video_location, TEST_APP_NAME),
-            record_har_path=Config.har_location,
+            record_video_dir=os.path.join(_Config.video_location, TEST_APP_NAME),
+            record_har_path=_Config.har_location,
         )
         admin_page = context.new_page()
         print(f"The Lightning App Token is: {token}")
-        print(f"The Lightning App user key is: {Config.key}")
-        print(f"The Lightning App user id is: {Config.id}")
-        admin_page.goto(Config.url)
+        print(f"The Lightning App user key is: {_Config.key}")
+        print(f"The Lightning App user id is: {_Config.id}")
+        admin_page.goto(_Config.url)
         admin_page.evaluate(
             """data => {
             window.localStorage.setItem('gridUserId', data[0]);
@@ -303,7 +321,7 @@ def run_app_in_cloud(
             window.localStorage.setItem('gridUserToken', data[2]);
         }
         """,
-            [Config.id, Config.key, token],
+            [_Config.id, _Config.key, token],
         )
         if LIGHTNING_CLOUD_PROJECT_ID:
             admin_page.evaluate(
@@ -313,7 +331,7 @@ def run_app_in_cloud(
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.goto(f"{Config.url}/{Config.username}/apps", timeout=60 * 1000)
+        admin_page.goto(f"{_Config.url}/{_Config.username}/apps", timeout=60 * 1000)
 
         # Closing the Complete your profile dialog
         try:
@@ -358,7 +376,7 @@ def run_app_in_cloud(
         client = LightningClient()
         project = _get_project(client)
 
-        lightning_apps = [
+        lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -366,14 +384,14 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        if not lightning_apps:
+        if not lit_apps:
             return True
 
-        assert len(lightning_apps) == 1
-        app_id = lightning_apps[0].id
+        assert len(lit_apps) == 1
+        app_id = lit_apps[0].id
 
         if debug:
-            process = Process(target=print_logs, kwargs={"app_id": app_id})
+            process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
         while True:
@@ -386,7 +404,7 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        lightning_apps = [
+        lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
                 project_id=project.project_id
@@ -394,7 +412,7 @@ def run_app_in_cloud(
             if app.name == name
         ]
 
-        app_url = lightning_apps[0].status.url
+        app_url = lit_apps[0].status.url
 
         while True:
             sleep(1)
@@ -458,6 +476,18 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(2)
 
 
+def _delete_lightning_app(client, project_id, app_id, app_name):
+    print(f"Deleting {app_name} id: {app_id}")
+    try:
+        res = client.lightningapp_instance_service_delete_lightningapp_instance(
+            project_id=project_id,
+            id=app_id,
+        )
+        assert res == {}
+    except ApiException as ex:
+        print(f"Failed to delete {app_name}. Exception {ex}")
+
+
 def delete_cloud_lightning_apps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
@@ -476,19 +506,16 @@ def delete_cloud_lightning_apps():
 
     print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
-    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
+    list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 
-    print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
-
-    for lightningapp in list_lightningapps.lightningapps:
-        if pr_number and app_name and not lightningapp.name.startswith(f"test-{pr_number}-{app_name}-"):
+    for lit_app in list_apps.lightningapps:
+        if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
-        print(f"Deleting {lightningapp.name}")
-        try:
-            res = client.lightningapp_instance_service_delete_lightningapp_instance(
-                project_id=project.project_id,
-                id=lightningapp.id,
-            )
-            assert res == {}
-        except ApiException as e:
-            print(f"Failed to delete {lightningapp.name}. Exception {e}")
+        _delete_lightning_app(client, project_id=project.project_id, app_id=lit_app.id, app_name=lit_app.name)
+
+    print("deleting apps that were created more than 1 hour ago.")
+
+    for lit_app in list_apps.lightningapps:
+
+        if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
+            _delete_lightning_app(client, project_id=project.project_id, app_id=lit_app.id, app_name=lit_app.name)

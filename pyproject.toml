@@ -28,13 +28,16 @@ exclude = '(_notebooks/.*)'
 files = [
     "src/pytorch_lightning",
     "src/lightning_lite",
-    "src/lightning_app/",
+    "src/lightning_app",
 ]
 exclude = [
-    "src/lightning_app/cli/component-template/",
-    "src/lightning_app/cli/pl-app-template/",
+    "src/lightning_app/cli/component-template",
+    "src/lightning_app/cli/pl-app-template",
     "src/lightning_app/cli/react-ui-template",
     "src/lightning_app/cli/app-template",
+    "src/lightning_app/components/database",
+    "src/lightning_app/components/multi_node",
+    "src/lightning_app/frontend/just_py/just_py",
 ]
 install_types = "True"
 non_interactive = "True"
@@ -56,19 +59,23 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
+    "lightning_app.components.multi_node.lite",
+    "lightning_app.components.multi_node.base",
+    "lightning_app.components.multi_node.pytorch_spawn",
+    "lightning_app.components.multi_node.pl",
     "lightning_app.api.http_methods",
     "lightning_app.api.request_types",
-    "lightning_app.cli.app-template.app",
-    "lightning_app.cli.app-template.placeholdername.components.component_a.component_a",
-    "lightning_app.cli.app-template.placeholdername.components.component_b.component_a",
-    "lightning_app.cli.app-template.tests.test_placeholdername_app",
     "lightning_app.cli.commands.app_commands",
     "lightning_app.cli.commands.connection",
     "lightning_app.cli.react-ui-template.example_app",
+    "lightning_app.components.database.client",
+    "lightning_app.components.database.server",
+    "lightning_app.components.database.utilities",
     "lightning_app.components.python.popen",
     "lightning_app.components.python.tracer",
     "lightning_app.components.serve.gradio",
     "lightning_app.components.serve.serve",
+    "lightning_app.components.serve.streamlit",
     "lightning_app.components.serve.types.image",
     "lightning_app.components.serve.types.type",
     "lightning_app.components.training",

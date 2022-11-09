@@ -20,7 +20,6 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
@@ -216,7 +215,6 @@ def test_logger_reset_correctly(tmpdir, extra_params):
             super().__init__()
             self.save_hyperparameters()
 
-    tutils.reset_seed()
     model = CustomModel()
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
     logger1 = trainer.logger

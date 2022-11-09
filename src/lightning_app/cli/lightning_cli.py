@@ -1,17 +1,20 @@
 import os
+import shutil
 import sys
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, Tuple, Union
 
 import arrow
 import click
+import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi.rest import ApiException
 from requests.exceptions import ConnectionError
-from rich.color import ANSI_COLOR_NAMES
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_apps import _AppManager
 from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.commands.app_commands import _run_app_command
 from lightning_app.cli.commands.connection import (
@@ -20,20 +23,26 @@ from lightning_app.cli.commands.connection import (
     connect,
     disconnect,
 )
+from lightning_app.cli.commands.logs import logs
+from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
+from lightning_app.cli.lightning_cli_remove import cli_remove
 from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cli_helpers import _arrow_time_callback, _format_input_env_variables
-from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.cli_helpers import (
+    _arrow_time_callback,
+    _check_environment_and_redirect,
+    _check_version_and_upgrade,
+    _format_input_env_variables,
+)
 from lightning_app.utilities.cluster_logs import _cluster_logs_reader
-from lightning_app.utilities.exceptions import LogLinesLimitExceeded
+from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLimitExceeded
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI, _LightningLogsSocketAPI
+from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
@@ -41,16 +50,24 @@ logger = Logger(__name__)
 
 def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
     if runtime_type == RuntimeType.CLOUD:
-        lightning_app: Externalv1LightningappInstance = args[0]
+        lit_app: Externalv1LightningappInstance = args[0]
         action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app.id}{action}"
+        return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
         return "http://127.0.0.1:7501/view"
 
 
 def main() -> None:
+    # Check environment and versions if not in the cloud
+    if "LIGHTNING_APP_STATE_URL" not in os.environ:
+        # Enforce running in PATH Python
+        _check_environment_and_redirect()
+
+        # Check for newer versions and upgrade
+        _check_version_and_upgrade()
+
     # 1: Handle connection to a Lightning App.
-    if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("connect", "disconnect", "logout"):
         _main()
     else:
         # 2: Collect the connection a Lightning App.
@@ -58,23 +75,30 @@ def main() -> None:
         if app_name:
             # 3: Handle development use case.
             is_local_app = app_name == "localhost"
-            if sys.argv[1:3] == ["run", "app"] or sys.argv[1:3] == ["show", "logs"]:
+            if sys.argv[1:3] == ["run", "app"] or (
+                sys.argv[1:3] == ["show", "logs"] and "show logs" not in _list_app_commands(False)
+            ):
                 _main()
             else:
                 if is_local_app:
-                    click.echo("You are connected to the local Lightning App.")
+                    message = "You are connected to the local Lightning App."
                 else:
-                    click.echo(f"You are connected to the cloud Lightning App: {app_name}.")
+                    message = f"You are connected to the cloud Lightning App: {app_name}."
 
-                if "help" in sys.argv[1]:
+                click.echo(" ")
+
+                if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
                 else:
                     _run_app_command(app_name, app_id)
+
+                click.echo()
+                click.echo(message + " Return to the primary CLI with `lightning disconnect`.")
         else:
             _main()
 
 
-@click.group()
+@click.group(cls=_ApiExceptionHandler)
 @click.version_option(ver)
 def _main() -> None:
     pass
@@ -88,98 +112,7 @@ def show() -> None:
 
 _main.command()(connect)
 _main.command()(disconnect)
-
-
-@show.command()
-@click.argument("app_name", required=False)
-@click.argument("components", nargs=-1, required=False)
-@click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show cloud application logs. By default prints logs for all currently available components.
-
-    Example uses:
-
-        Print all application logs:
-
-            $ lightning show logs my-application
-
-
-        Print logs only from the flow (no work):
-
-            $ lightning show logs my-application flow
-
-
-        Print logs only from selected works:
-
-            $ lightning show logs my-application root.work_a root.work_b
-    """
-
-    client = LightningClient()
-    project = _get_project(client)
-
-    apps = {
-        app.name: app
-        for app in client.lightningapp_instance_service_list_lightningapp_instances(
-            project_id=project.project_id
-        ).lightningapps
-    }
-
-    if not apps:
-        raise click.ClickException(
-            "You don't have any application in the cloud. Please, run an application first with `--cloud`."
-        )
-
-    if not app_name:
-        raise click.ClickException(
-            f"You have not specified any Lightning App. Please select one of available: [{', '.join(apps.keys())}]"
-        )
-
-    if app_name not in apps:
-        raise click.ClickException(
-            f"The Lightning App '{app_name}' does not exist. Please select one of following: [{', '.join(apps.keys())}]"
-        )
-
-    # Fetch all lightning works from given application
-    # 'Flow' component is somewhat implicit, only one for whole app,
-    #    and not listed in lightningwork API - so we add it directly to the list
-    works = client.lightningwork_service_list_lightningwork(
-        project_id=project.project_id, app_id=apps[app_name].id
-    ).lightningworks
-    app_component_names = ["flow"] + [f.name for f in apps[app_name].spec.flow_servers] + [w.name for w in works]
-
-    if not components:
-        components = app_component_names
-
-    else:
-
-        def add_prefix(c: str) -> str:
-            if c == "flow":
-                return c
-            if not c.startswith("root."):
-                return "root." + c
-            return c
-
-        components = [add_prefix(c) for c in components]
-
-        for component in components:
-            if component not in app_component_names:
-                raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
-
-    log_reader = _app_logs_reader(
-        logs_api_client=_LightningLogsSocketAPI(client.api_client),
-        project_id=project.project_id,
-        app_id=apps[app_name].id,
-        component_names=components,
-        follow=follow,
-    )
-
-    rich_colors = list(ANSI_COLOR_NAMES)
-    colors = {c: rich_colors[i + 1] for i, c in enumerate(components)}
-
-    for log_event in log_reader:
-        date = log_event.timestamp.strftime("%m/%d/%Y %H:%M:%S")
-        color = colors[log_event.component_name]
-        rich.print(f"[{color}]{log_event.component_name}[/{color}] {date} {log_event.message}")
+show.command()(logs)
 
 
 @show.group()
@@ -421,6 +354,89 @@ def stop() -> None:
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
+_main.add_command(cli_add)
+_main.add_command(cli_remove)
+
+
+@_main.command("ssh")
+@click.option(
+    "--app-name",
+    "app_name",
+    type=str,
+    default=None,
+    required=False,
+)
+@click.option(
+    "--component-name",
+    "component_name",
+    type=str,
+    default=None,
+    help="Specify which component to SSH into",
+)
+def ssh(app_name: str = None, component_name: str = None) -> None:
+    """SSH into a Lightning App."""
+
+    app_manager = _AppManager()
+    apps = app_manager.list_apps(phase_in=[V1LightningappInstanceState.RUNNING])
+    if len(apps) == 0:
+        raise click.ClickException("No running apps available. Start a Lightning App in the cloud to use this feature.")
+
+    available_app_names = [app.name for app in apps]
+    if app_name is None:
+        available_apps = [
+            inquirer.List(
+                "app_name",
+                message="What app to SSH into?",
+                choices=available_app_names,
+            ),
+        ]
+        app_name = inquirer.prompt(available_apps)["app_name"]
+    app_id = next((app.id for app in apps if app.name == app_name), None)
+    if app_id is None:
+        raise click.ClickException(
+            f"Unable to find a running app with name {app_name} in your account. "
+            + f"Available running apps are: {', '.join(available_app_names)}"
+        )
+    try:
+        instance = app_manager.get_app(app_id=app_id)
+    except ApiException:
+        raise click.ClickException("failed fetching app instance")
+
+    components = app_manager.list_components(app_id=app_id)
+    available_component_names = [work.name for work in components] + ["flow"]
+    if component_name is None:
+        available_components = [
+            inquirer.List(
+                "component_name",
+                message="Which component to SSH into?",
+                choices=available_component_names,
+            )
+        ]
+        component_name = inquirer.prompt(available_components)["component_name"]
+
+    component_id = None
+    if component_name == "flow":
+        component_id = f"lightningapp-{app_id}"
+    elif component_name is not None:
+        work_id = next((work.id for work in components if work.name == component_name), None)
+        if work_id is not None:
+            component_id = f"lightningwork-{work_id}"
+
+    if component_id is None:
+        raise click.ClickException(
+            f"Unable to find an app component with name {component_name}. "
+            f"Available components are: {', '.join(available_component_names)}"
+        )
+
+    app_cluster = app_manager.get_cluster(cluster_id=instance.spec.cluster_id)
+    ssh_endpoint = app_cluster.status.ssh_gateway_endpoint
+
+    ssh_path = shutil.which("ssh")
+    if ssh_path is None:
+        raise click.ClickException(
+            "Unable to find the ssh binary. You must install ssh first to use this functionality."
+        )
+    os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
 
 
 @_main.group()

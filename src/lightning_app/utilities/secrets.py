@@ -1,10 +1,10 @@
-from typing import Dict, List
+from typing import Dict, Iterable
 
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 
 
-def _names_to_ids(secret_names: List[str]) -> Dict[str, str]:
+def _names_to_ids(secret_names: Iterable[str]) -> Dict[str, str]:
     """Returns the name/ID pair for each given Secret name.
 
     Raises a `ValueError` if any of the given Secret names do not exist.

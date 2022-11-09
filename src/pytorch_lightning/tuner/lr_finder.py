@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
@@ -101,7 +101,7 @@ class _LRFinder:
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Callable[["pl.Trainer"], None]:
+    def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
         # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
@@ -217,6 +217,7 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
+    ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
 
     # Arguments we adjust during the lr finder, save for restoring
@@ -233,7 +234,7 @@ def lr_find(
     lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
     # Configure optimizer and scheduler
-    lr_finder._exchange_scheduler(trainer, model)
+    lr_finder._exchange_scheduler(trainer)
 
     # Fit, lr & loss logged in callback
     _try_loop_run(trainer, params)
@@ -252,6 +253,7 @@ def lr_find(
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
+    lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
     if update_attr:
         lr = lr_finder.suggestion()
 
@@ -311,6 +313,7 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
+    trainer.should_stop = False
 
 
 class _LRCallback(Callback):
@@ -380,9 +383,11 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.fit_loop.max_steps = current_step  # stop signal
+                trainer.should_stop = True  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
+
+        trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
@@ -404,9 +409,6 @@ class _LinearLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
-
-    last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
@@ -442,9 +444,6 @@ class _ExponentialLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
-
-    last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
