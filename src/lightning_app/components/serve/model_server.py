@@ -11,19 +11,25 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
+class InputData(BaseModel):
+    payload: str
+
+
+class OutputData(BaseModel):
+    prediction: int
+
+
 class ModelServer(LightningWork, abc.ABC):
-    def __init__(
-        self, host: str = "127.0.0.1", port: int = 7777, input_type: type = str, output_type: type = str, **kwargs
+    def __init__(  # type: ignore
+        self, host: str = "127.0.0.1", port: int = 7777, input_type: type = InputData, output_type: type = OutputData, **kwargs
     ):
         """The ModelServer Class enables to easily get your machine learning server up and running.
 
         Arguments:
             host: Address to be used for running the server.
             port: Port to be used to running the server.
-            input_type: Optional `input_type` to be provided.
-                This can either be basic python datatypes, or a pydantic BaseModel class.
-            output_type: Optional `output_type` to be provided.
-                This can either be basic python datatypes, or a pydantic BaseModel class.
+            input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class
+            output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class
 
         .. doctest::
 
@@ -45,6 +51,10 @@ class ModelServer(LightningWork, abc.ABC):
             >>> app = SimpleServer(input_type=InputData, output_type=OutputData)
         """
         super().__init__(parallel=True, host=host, port=port, **kwargs)
+        if not issubclass(input_type, BaseModel):
+            raise TypeError("input_type must be a pydantic BaseModel class")
+        if not issubclass(output_type, BaseModel):
+            raise TypeError("output_type must be a pydantic BaseModel class")
         self._input_type = input_type
         self._output_type = output_type
 
@@ -76,20 +86,12 @@ class ModelServer(LightningWork, abc.ABC):
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
-        if not issubclass(input_type, BaseModel):
-            # adding a Body() default value is necessary for FastAPI to add the request to body
-            # instead of query params
-            def predict_fn(request: input_type = Body()):  # type: ignore
-                return self.predict(request)
-
-        else:
-
-            def predict_fn(request: input_type):  # type: ignore
-                return self.predict(request)
+        def predict_fn(request: input_type):  # type: ignore
+            return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def run(self) -> None:
+    def run(self) -> None:  # type: ignore
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
 
         Normally, you don't need to override this method.
