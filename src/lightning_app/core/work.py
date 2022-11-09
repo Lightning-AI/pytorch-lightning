@@ -608,6 +608,7 @@ class LightningWork:
 
     def apply_flow_delta(self, delta: Delta):
         """Override to customize how the flow should update the work state."""
+        # TODO: Add support for thread safe locking over JSON Serializable objects.
         if any(k not in ["values_changed", "type_changed"] for k in delta.to_dict()):
             raise Exception(
                 f"A forbidden operation to update the work from the flow was detected. Found {delta.to_dict()}"
