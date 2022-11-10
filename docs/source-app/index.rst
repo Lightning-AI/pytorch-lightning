@@ -58,7 +58,7 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 ********************************
 Build self-contained, components
 ********************************
-Use Lightning, the hyper-minimalistic framework, to build machine learning components that can plug into existing ML workflows. 
+Use Lightning, the hyper-minimalistic framework, to build machine learning components that can plug into existing ML workflows.
 A Lightning component organizes arbitrary code to run on the cloud, manage its own infrastructure, cloud costs, networking, and more.
 Focus on component logic and not engineering.
 

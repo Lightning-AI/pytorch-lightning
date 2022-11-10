@@ -11,9 +11,9 @@
 ############
 Basic skills
 ############
-Learn to package your code into Lightning components which can plug into your existing ML workflows. 
+Learn to package your code into Lightning components which can plug into your existing ML workflows.
 
-A Lightning component organizes arbitrary code so it can run on the cloud, manages 
+A Lightning component organizes arbitrary code so it can run on the cloud, manages
 its own infrastructure, cloud costs, networking and more.
 
 .. join_slack::

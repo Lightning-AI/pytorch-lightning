@@ -10,9 +10,9 @@ Level 2: Explore real component implementations
 ***********************
 Real component examples
 ***********************
-Use this guide to understand what is happening in each type of component. 
+Use this guide to understand what is happening in each type of component.
 These are a few prototypical components. Since each component organizes
-Python, you can build virtually infinite components for any use-case 
+Python, you can build virtually infinite components for any use-case
 you can think of.
 
 ----

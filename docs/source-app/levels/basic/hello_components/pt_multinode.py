@@ -50,8 +50,8 @@ class PyTorchDistributed(L.LightningWork):
     def run(self, main_address: str, main_port: int, num_nodes: int, node_rank: int):
         nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
         torch.multiprocessing.spawn(
-            distributed_train, 
-            args=(main_address, main_port, num_nodes, node_rank, nprocs), 
+            distributed_train,
+            args=(main_address, main_port, num_nodes, node_rank, nprocs),
             nprocs=nprocs
         )
 
