@@ -20,6 +20,7 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import torch
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -580,6 +581,10 @@ class WandbLogger(Logger):
 
         # log iteratively all new checkpoints
         for t, p, s, tag in checkpoints:
+            if isinstance(p, torch.Tensor):
+                p = p.item()
+            if isinstance(t, torch.Tensor):
+                t = t.item()
             metadata = (
                 {
                     "score": s.item() if isinstance(s, Tensor) else s,
