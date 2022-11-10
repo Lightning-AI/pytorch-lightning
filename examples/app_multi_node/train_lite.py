@@ -6,25 +6,21 @@ from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.step = 0
-
     def run(self):
-        # 1. Create LightningLite.
-        lite = LightningLite(strategy="ddp", precision=16)
+        # 1. Prepare the model
+        model = torch.nn.Sequential(
+            torch.nn.Linear(1, 1),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1, 1),
+        )
 
-        # 2. Prepare distributed model and optimizer.
-        model = torch.nn.Linear(32, 2)
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-        model, optimizer = lite.setup(model, optimizer)
+        # 2. Create LightningLite.
+        lite = LightningLite(strategy="ddp", precision=16)
+        model, optimizer = lite.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 
-        # 3. Train the model for 50 steps.
-        for step in range(50):
-
-            self.step = step
-
+        # 3. Train the model for 1000 steps.
+        for step in range(1000):
             model.zero_grad()
             x = torch.randn(64, 32).to(lite.device)
             output = model(x)
