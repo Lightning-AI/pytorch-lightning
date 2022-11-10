@@ -352,15 +352,17 @@ class WorkRunExecutor:
         return self.work_run(*args, **kwargs)
 
     @contextmanager
-    def disable_setattr_wrapper(self):
+    def enable_spawn(self):
         setattr_fn = self.work._setattr_replacement
         self.work._setattr_replacement = None
+        backend = self.work._backend
         try:
             yield
         except Exception as e:
             self.work._setattr_replacement = setattr_fn
             raise e
         self.work._setattr_replacement = setattr_fn
+        self.work._backend = backend
 
 
 @dataclass

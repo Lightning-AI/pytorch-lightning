@@ -34,7 +34,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         import torch
 
         # Remove the wrapper.
-        with self.disable_setattr_wrapper():
+        with self.make_work_pickalable():
             nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
             torch.multiprocessing.spawn(
                 self.run,
