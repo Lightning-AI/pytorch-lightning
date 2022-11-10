@@ -24,11 +24,13 @@ from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1
 
 _log = logging.getLogger(__name__)
 
+_CLICK_AVAILABLE = RequirementCache("click")
+
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
 _SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
-if RequirementCache("click"):
+if _CLICK_AVAILABLE:
     import click
 
     @click.command(
@@ -182,7 +184,7 @@ def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
 
 
 if __name__ == "__main__":
-    if not RequirementCache("click"):
+    if not _CLICK_AVAILABLE:  # pragma: no cover
         _log.error(
             "To use the Lightning Lite CLI, you must have `click` installed."
             " Install it by running `pip install -U click`."
