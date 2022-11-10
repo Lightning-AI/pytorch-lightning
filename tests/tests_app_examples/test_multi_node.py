@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 from tests_app import _PROJECT_ROOT
@@ -48,6 +49,7 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
         # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
     ],
 )
+@pytest.mark.skipif(sys.platform == "win32", reason="flaky")
 def test_multi_node_examples(app_name, monkeypatch):
     monkeypatch.chdir(os.path.join(_PROJECT_ROOT, "examples/app_multi_node"))
     command_line = [

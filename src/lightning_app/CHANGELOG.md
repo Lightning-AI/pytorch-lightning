@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for running Lightning App with VSCode IDE debugger ([#15590](https://github.com/Lightning-AI/lightning/pull/15590))
 
+- Added `bi-directional` delta updates between the flow and the works ([#15582](https://github.com/Lightning-AI/lightning/pull/15582))
+
 
 ### Changed
 
@@ -58,7 +60,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed bug with Multi Node Component and add some examples ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 
 
+- Fixed a bug where payload would take a very long time locally ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
+
+
 - Fixed an issue with the `lightning` CLI taking a long time to error out when the cloud is not reachable ([#15412](https://github.com/Lightning-AI/lightning/pull/15412))
+
 
 
 ## [1.8.0] - 2022-11-01
