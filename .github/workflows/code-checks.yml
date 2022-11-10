@@ -10,7 +10,7 @@ on:
       - "requirements/**"
       - "src/**"
       - "pyproject.toml"   # includes mypy config
-      - "actions/**"
+      - ".actions/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
