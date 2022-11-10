@@ -7,6 +7,7 @@ import threading
 import time
 import traceback
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
@@ -349,6 +350,17 @@ class WorkRunExecutor:
 
     def __call__(self, *args, **kwargs):
         return self.work_run(*args, **kwargs)
+
+    @contextmanager
+    def disable_setattr_wrapper(self):
+        setattr_fn = self.work._setattr_replacement
+        self.work._setattr_replacement = None
+        try:
+            yield
+        except Exception as e:
+            self.work._setattr_replacement = setattr_fn
+            raise e
+        self.work._setattr_replacement = setattr_fn
 
 
 @dataclass
