@@ -180,6 +180,8 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
     Commit: f4ca56
     PR: #15300
     """
+    if "callbacks" not in checkpoint:
+        return checkpoint
 
     def new_key(old_key: str) -> str:
         if not old_key.startswith("ModelCheckpoint"):
