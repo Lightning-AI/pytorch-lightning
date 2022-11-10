@@ -511,6 +511,9 @@ def test_metrics_reset(tmpdir):
     _assert_called(model, "test", "test")
 
 
+@pytest.mark.skipif(
+    compare_version("torchmetrics", operator.lt, "0.8.0"), reason="torchmetrics>=0.8.0 required for compute groups"
+)
 @pytest.mark.parametrize("compute_groups", [True, False])
 def test_metriccollection_compute_groups(tmpdir, compute_groups):
     def assertion_calls(keep_base: bool, copy_state: bool):
