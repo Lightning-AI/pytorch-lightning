@@ -3,13 +3,12 @@ from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI
+from lightning_api_access import APIAccessFrontend
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
-
-from lightning_api_access import APIAccessFrontend
 
 logger = Logger(__name__)
 
@@ -152,20 +151,26 @@ class PythonServer(LightningWork, abc.ABC):
             datatype_parse_error = True
 
         if datatype_parse_error:
+
             @fastapi_app.get("/")
             def index() -> str:
-                return "Automatic generation of the UI is only supported for simple, " \
-                       "non-nested datatype with types string, integer, float and boolean"
+                return (
+                    "Automatic generation of the UI is only supported for simple, "
+                    "non-nested datatype with types string, integer, float and boolean"
+                )
+
             return
 
         frontend = APIAccessFrontend(
-            apis=[{
-                "name": class_name,
-                "url": url,
-                "method": "POST",
-                "request": request,
-                "response": response,
-            }]
+            apis=[
+                {
+                    "name": class_name,
+                    "url": url,
+                    "method": "POST",
+                    "request": request,
+                    "response": response,
+                }
+            ]
         )
         fastapi_app.mount("/", StaticFiles(directory=frontend.serve_dir, html=True), name="static")
 
