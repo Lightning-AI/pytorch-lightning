@@ -31,8 +31,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - `Trainer.{validate,test,predict}(ckpt_path=...)` no longer restores the `Trainer.global_step` and `trainer.current_epoch` value from the checkpoints - From now on, only `Trainer.fit` will restore this value ([#15532](https://github.com/Lightning-AI/lightning/pull/15532))
 
--
+- The `ModelCheckpoint.save_on_train_epoch_end` attribute is now computed dynamically every epoch, accounting for changes to the validation dataloaders ([#15300](https://github.com/Lightning-AI/lightning/pull/15300))
 
+### Fixed
+
+- Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 ### Deprecated
 
@@ -68,7 +71,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed model state transfer in multiprocessing launcher when running multi-node ([#15567](https://github.com/Lightning-AI/lightning/pull/15567))
 
-- Fixed manual optimization raising `AttributeError` with Bagua Strategy ([[#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534)])
+- Fixed manual optimization raising `AttributeError` with Bagua Strategy ([#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534))
+
+- Fixed the import of `pytorch_lightning` causing a warning 'Redirects are currently not supported in Windows or MacOs' ([#15610](https://github.com/PyTorchLightning/pytorch-lightning/issues/15610))
 
 
 ## [1.8.0] - 2022-11-01
