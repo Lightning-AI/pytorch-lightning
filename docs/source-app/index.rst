@@ -6,7 +6,7 @@
 #######################
 Welcome to ⚡ Lightning
 #######################
-Build models and full stack AI apps ⚡ *Lightning fast*.
+Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 
 .. join_slack::
    :align: left
@@ -22,7 +22,7 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 .. app_card::
    :title: Develop and Train
-   :description: Train an LLM (64 GPUs)
+   :description: Train a model (32 GPUs)
    :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
    :preview: https://lightning.ai
@@ -56,13 +56,14 @@ Build models and full stack AI apps ⚡ *Lightning fast*.
 
 ----
 
-****************************************
-Build self-contained, modular components
-****************************************
-Lightning is a hyper-minimalistic framework designed to maximize expressivity that
-enables you to build modular, self-contained components and plug them into your existing workflows.
-A Lightning component organizes arbitrary code so it can run on the cloud. A component can train a model, deploy, or even host a web UI.
-The component manages its own infrastructure, cloud costs, networking and more, so you can focus on application logic and not engineering.
+*******************************************
+Build self-contained, composable components
+*******************************************
+Lightning is a hyper-minimalistic framework that lets you build self-contained machine-learning components
+that you can plug into your existing ML workflows. A Lightning component organizes arbitrary code so it can run on the cloud, manages 
+its own infrastructure, cloud costs, networking and more. Focus on component logic and not engineering.
+
+Use components stand-alone or compose them with the Lightning orchestrator into full-stack AI apps.
 
 .. raw:: html
 
