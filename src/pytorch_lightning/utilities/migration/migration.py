@@ -29,10 +29,11 @@ For the Lightning developer: How to add a new migration?
    python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
 """
 import re
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union, Type
 
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
+import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -183,7 +184,10 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
     if "callbacks" not in checkpoint:
         return checkpoint
 
-    def new_key(old_key: str) -> str:
+    def new_key(old_key: Union[str, Type[pl.Callback]]) -> Union[str, Type[pl.Callback]]:
+        if not isinstance(old_key, str):
+            # this is a legacy state key (the type of the callback)
+            return old_key
         if not old_key.startswith("ModelCheckpoint"):
             return old_key
         return re.sub("'save_on_train_epoch_end': (True|False)", "'save_on_train_epoch_end': None", old_key)
