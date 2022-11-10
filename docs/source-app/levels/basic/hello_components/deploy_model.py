@@ -1,15 +1,32 @@
-# A hello world component
-# app.py
+# !pip install torchvision pydantic
 import lightning as L
+import base64, io, torchvision
+from PIL import Image
+from pydantic import BaseModel
 
 
-class YourComponent(L.LightningWork):
-   def run(self):
-      print('RUN ANY PYTHON CODE HERE')
+class ImageClassifierServe(L.app.components.serve.PythonServer):
 
+    def setup(self):
+        self._model = torchvision.models.resnet18(pretrained=True)
 
+    def predict(self, request):
+        image = base64.b64decode(request.image.encode("utf-8"))
+        image = Image.open(io.BytesIO(image))
+        transforms = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(224),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        image = transforms(image)
+        prediction = self._model(image.unsqueeze(0))
+        return {"prediction": prediction.argmax().item()}
 
-# run on a cloud machine
-compute = L.CloudCompute("cpu")
-worker = YourComponent(cloud_compute=compute)
-app = L.LightningApp(worker)
+class InputData(BaseModel):
+    image: str
+
+class OutputData(BaseModel):
+    prediction: int
+
+component = ImageClassifierServe(input_type=InputData, output_type=OutputData)
+app = L.LightningApp(component, compute=L.CloudCompute('gpu'))

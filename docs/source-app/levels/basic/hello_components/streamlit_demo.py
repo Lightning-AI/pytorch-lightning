@@ -10,7 +10,7 @@ from scipy.io.wavfile import write
 import streamlit as st
 
 
-class LitStreamlit(L.app.components.ServeStreamlit):
+class StreamlitApp(L.app.components.ServeStreamlit):
     def build_model(self):
         sample_rate = 48000
 
@@ -38,4 +38,4 @@ class LitStreamlit(L.app.components.ServeStreamlit):
             audio.seek(0)
             st.audio(audio)
 
-app = L.LightningApp(LitStreamlit())
+app = L.LightningApp(StreamlitApp())
