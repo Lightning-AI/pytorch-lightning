@@ -79,8 +79,8 @@ def test_run_input_output():
 
 
 @mock.patch("lightning_lite.strategies.ddp.DistributedDataParallel")
-@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
-def test_setup_model(ddp_mock, setup_method):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
     lite = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
     model = nn.Linear(1, 2)
@@ -104,8 +104,8 @@ def test_setup_model(ddp_mock, setup_method):
     ],
 )
 @pytest.mark.parametrize("move_to_device", [True, False])
-@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
-def test_setup_model_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, initial_device, target_device):
     """Test that `move_to_device` leads to parameters being moved to the correct device and that the device
     attributes on the wrapper are updated."""
     initial_device = torch.device(initial_device)
@@ -128,8 +128,8 @@ def test_setup_model_move_to_device(setup_method, move_to_device, accelerator, i
 
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("move_to_device", [True, False])
-@pytest.mark.parametrize("setup_method", ["setup", "setup_model"])
-def test_setup_model_parameters_on_different_devices(setup_method, move_to_device):
+@pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
+def test_setup_module_parameters_on_different_devices(setup_method, move_to_device):
     """Test that a warning is emitted when model parameters are on a different device prior to calling
     `setup()`."""
     device0 = torch.device("cpu")
@@ -156,7 +156,7 @@ def test_setup_model_parameters_on_different_devices(setup_method, move_to_devic
             setup_method(model, move_to_device=move_to_device)
 
 
-def test_setup_model_and_optimizers():
+def test_setup_module_and_optimizers():
     """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
@@ -220,18 +220,18 @@ def test_setup_twice_fails():
         lite.setup(model, lite_optimizer)
 
 
-def test_setup_model_twice_fails():
-    """Test that calling `setup_model` with a model that is already wrapped fails."""
+def test_setup_module_twice_fails():
+    """Test that calling `setup_module` with a model that is already wrapped fails."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
 
-    lite_model = lite.setup_model(model)
+    lite_model = lite.setup_module(model)
     with pytest.raises(ValueError, match="A model should be passed only once to the"):
-        lite.setup_model(lite_model)
+        lite.setup_module(lite_model)
 
 
 def test_setup_optimizers_twice_fails():
-    """Test that calling `setup_model` with a model that is already wrapped fails."""
+    """Test that calling `setup_module` with a model that is already wrapped fails."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
@@ -242,13 +242,13 @@ def test_setup_optimizers_twice_fails():
 
 
 @pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_setup_model_not_supported(strategy_cls):
-    """Test that `setup_model` validates the strategy supports setting up model and optimizers independently."""
+def test_setup_module_not_supported(strategy_cls):
+    """Test that `setup_module` validates the strategy supports setting up model and optimizers independently."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
     lite._strategy = Mock(spec=strategy_cls)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
-        lite.setup_model(model)
+        lite.setup_module(model)
 
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
@@ -276,7 +276,7 @@ def test_setup_tracks_num_models():
     lite.setup(model, optimizer)
     assert lite._models_setup == 2
 
-    lite.setup_model(model)
+    lite.setup_module(model)
     assert lite._models_setup == 3
 
 

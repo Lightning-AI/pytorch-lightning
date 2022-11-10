@@ -146,41 +146,41 @@ class LightningLite(ABC):
 
     def setup(
         self,
-        model: nn.Module,
+        module: nn.Module,
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
         """Set up a model and its optimizers for accelerated training.
 
         Args:
-            model: A model to set up
+            module: A :class:`torch.nn.Module` to set up
             *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
-            The tuple containing wrapped model and the optimizers, in the same order they were passed in.
+            The tuple containing wrapped module and the optimizers, in the same order they were passed in.
         """
-        self._validate_setup(model, optimizers)
-        original_model = model
+        self._validate_setup(module, optimizers)
+        original_module = module
 
-        model = self._precision.convert_module(model)
+        module = self._precision.convert_module(module)
 
         if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
+            module = self._move_model_to_device(model=module, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         if optimizers:
-            model, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
-                model, list(optimizers)
+            module, optimizers = self._strategy.setup_module_and_optimizers(  # type: ignore[assignment]
+                module, list(optimizers)
             )
         else:
-            model = self._strategy.setup_module(model)
+            module = self._strategy.setup_module(module)
 
-        model = _LiteModule(model, self._precision, original_module=original_model)
+        module = _LiteModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        model.to(self.device if move_to_device else next(model.parameters()).device)
+        module.to(self.device if move_to_device else next(module.parameters()).device)
 
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
@@ -188,10 +188,10 @@ class LightningLite(ABC):
 
         if optimizers:
             # join both types in a tuple for API convenience
-            return tuple((model, *optimizers))
-        return model
+            return tuple((module, *optimizers))
+        return module
 
-    def setup_model(self, model: nn.Module, move_to_device: bool = True) -> _LiteModule:
+    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _LiteModule:
         """Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -199,30 +199,30 @@ class LightningLite(ABC):
         See also :meth:`setup_optimizers`.
 
         Args:
-            model: A model to set up
+            module: A :class:`torch.nn.Module` to set up
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
         Returns:
             The wrapped model.
         """
-        self._validate_setup_model(model)
-        original_model = model
+        self._validate_setup_module(module)
+        original_module = module
 
-        model = self._precision.convert_module(model)
+        module = self._precision.convert_module(module)
 
         if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=[])
+            module = self._move_model_to_device(model=module, optimizers=[])
 
-        # Let strategy wrap and connect the model alone
-        model = self._strategy.setup_module(model)
-        model = _LiteModule(model, self._precision, original_module=original_model)
+        # Let strategy wrap and connect the module alone
+        module = self._strategy.setup_module(module)
+        module = _LiteModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
-        model.to(self.device if move_to_device else next(model.parameters()).device)
+        module.to(self.device if move_to_device else next(module.parameters()).device)
 
         self._models_setup += 1
-        return model
+        return module
 
     def setup_optimizers(self, *optimizers: Optimizer) -> Union[_LiteOptimizer, Tuple[_LiteOptimizer, ...]]:
         """Set up one or more optimizers for accelerated training.
@@ -575,16 +575,16 @@ class LightningLite(ABC):
         setattr(self, "run", partial(self._run_impl, self.run))
 
     @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(model, _LiteModule):
+    def _validate_setup(module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+        if isinstance(module, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
-    def _validate_setup_model(self, model: nn.Module) -> None:
-        if isinstance(model, _LiteModule):
-            raise ValueError("A model should be passed only once to the `setup_model` method.")
+    def _validate_setup_module(self, module: nn.Module) -> None:
+        if isinstance(module, _LiteModule):
+            raise ValueError("A model should be passed only once to the `setup_module` method.")
 
         if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
             raise RuntimeError(
