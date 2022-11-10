@@ -12,7 +12,7 @@ class LitePyTorchDistributed(L.LightningWork):
 
     def run(self):
         # 1. Create LightningLite.
-        lite = LightningLite(strategy="ddp", precision="bf16")
+        lite = LightningLite(strategy="ddp", precision=16)
 
         # 2. Prepare distributed model and optimizer.
         model = torch.nn.Linear(32, 2)
