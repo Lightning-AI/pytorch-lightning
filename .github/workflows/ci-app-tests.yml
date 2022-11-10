@@ -116,7 +116,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app/utilities/test_proxies.py::test_bi_directional_proxy --capture=no --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
