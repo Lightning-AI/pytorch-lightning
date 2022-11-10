@@ -24,8 +24,9 @@ Examples for custom iterables include `NVIDIA DALI <https://github.com/NVIDIA/DA
 Both libraries offer support for custom data loading and preprocessing (also hardware accelerated) and can be used with Lightning.
 
 
-For example taking the example from FFCV's readme, we can use it with Lightning by just replacing the hardcoded ``ToDevice(0)``
-which would always take the first GPU, no matter the actual process, with ``ToDevice(self.trainer.local_rank)`` to correctly map to the desired GPU.
+For example taking the example from FFCV's readme, we can use it with Lightning by just removing the hardcoded ``ToDevice(0)``
+as Lightning takes care of GPU placement. In case you want to use some data transformations on GPUs, change the
+``ToDevice(0)`` to ``ToDevice(self.trainer.local_rank)`` to correctly map to the desired GPU in your pipeline.
 
 .. code-block:: python
 
@@ -41,8 +42,8 @@ which would always take the first GPU, no matter the actual process, with ``ToDe
             decoder = RandomResizedCropRGBImageDecoder((224, 224))
 
             # Data decoding and augmentation
-            image_pipeline = [decoder, Cutout(), ToTensor(), ToTorchImage(), ToDevice(self.trainer.local_rank)]
-            label_pipeline = [IntDecoder(), ToTensor(), ToDevice(self.trainer.local_rank)]
+            image_pipeline = [decoder, Cutout(), ToTensor(), ToTorchImage()]
+            label_pipeline = [IntDecoder(), ToTensor()]
 
             # Pipeline for each data field
             pipelines = {"image": image_pipeline, "label": label_pipeline}
