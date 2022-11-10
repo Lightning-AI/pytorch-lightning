@@ -89,7 +89,7 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=2,
         enable_model_summary=False,
-        callbacks=[checkpoint1, checkpoint2, checkpoint3],
+        callbacks=[checkpoint3, checkpoint3],
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data, ckpt_path=name)
 
