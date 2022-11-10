@@ -7,6 +7,8 @@ API Migration Guide
 API Changes
 ***********
 
+.. tabularcolumns:: >{\raggedright}\Y{.4}>{\centering}\Y{.1}>{\sphinxcolorblend{!95!red}\centering\noindent\bfseries\color{red}}\Y{.12}>{\raggedright\arraybackslash}\Y{.38}
+
 .. list-table:: asdf
    :widths: 40 20 20 20
    :header-rows: 1
