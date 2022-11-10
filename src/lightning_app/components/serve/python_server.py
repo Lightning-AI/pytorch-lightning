@@ -126,8 +126,11 @@ class PythonServer(LightningWork, abc.ABC):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+<<<<<<< HEAD
         if hasattr(datatype, "_get_sample_data"):
             return datatype._get_sample_data()
+=======
+>>>>>>> master
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
         for k, v in datatype_props.items():
@@ -159,7 +162,11 @@ class PythonServer(LightningWork, abc.ABC):
         url = self._future_url if self._future_url else self.url
         if not url:
             # if the url is still empty, point it to localhost
+<<<<<<< HEAD
             url = f"http://127.0.0.1:{self.port}"
+=======
+            url = f"http://127.0.0.1{self.port}"
+>>>>>>> master
         url = f"{url}/predict"
         datatype_parse_error = False
         try:
