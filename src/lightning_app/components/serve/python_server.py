@@ -20,6 +20,22 @@ class _DefaultOutputData(BaseModel):
     prediction: str
 
 
+class Image(BaseModel):
+    image: str
+
+    def _get_sample_data(self) -> Dict[Any, Any]:
+        with open("cat.png", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+        return {"image": encoded_string.decode("UTF-8")}
+
+
+class Number(BaseModel):
+    prediction: int
+
+    def _get_sample_data(self) -> Dict[Any, Any]:
+        {"prediction": 1}
+
+
 class PythonServer(LightningWork, abc.ABC):
     def __init__(  # type: ignore
         self,
@@ -110,6 +126,8 @@ class PythonServer(LightningWork, abc.ABC):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if hasattr(datatype, "_get_sample_data"):
+            return datatype._get_sample_data()
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
         for k, v in datatype_props.items():
@@ -141,7 +159,7 @@ class PythonServer(LightningWork, abc.ABC):
         url = self._future_url if self._future_url else self.url
         if not url:
             # if the url is still empty, point it to localhost
-            url = f"http://127.0.0.1{self.port}"
+            url = f"http://127.0.0.1:{self.port}"
         url = f"{url}/predict"
         datatype_parse_error = False
         try:
