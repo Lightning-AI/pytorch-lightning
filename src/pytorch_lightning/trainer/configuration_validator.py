@@ -16,7 +16,6 @@ from typing import List
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Callback
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.strategies import DataParallelStrategy
