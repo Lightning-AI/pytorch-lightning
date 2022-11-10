@@ -47,6 +47,6 @@ app = L.LightningApp(
     PyTorchSpawnMultiNode(
         PyTorchDistributed,
         num_nodes=2,
-        cloud_compute=L.CloudCompute("cpu"),  # 4 x V100
+        cloud_compute=L.CloudCompute("gpu-fast-multi"),  # 4 x V100
     )
 )
