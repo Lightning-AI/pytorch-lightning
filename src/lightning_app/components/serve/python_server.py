@@ -9,8 +9,6 @@ from starlette.staticfiles import StaticFiles
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 
-from lightning_api_access import APIAccessFrontend
-
 logger = Logger(__name__)
 
 
@@ -137,7 +135,7 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
     def _attach_frontend(self, fastapi_app: FastAPI) -> None:
-        # get the class name
+        from lightning_api_access import APIAccessFrontend
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"
         datatype_parse_error = False
