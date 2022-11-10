@@ -29,7 +29,7 @@ For the Lightning developer: How to add a new migration?
    python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
 """
 import re
-from typing import Any, Callable, Dict, List, Union, Type
+from typing import Any, Callable, Dict, List, Type, Union
 
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
