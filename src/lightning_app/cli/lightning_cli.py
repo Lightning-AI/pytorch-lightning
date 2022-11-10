@@ -275,7 +275,6 @@ def _run_app(
             click.launch(get_app_url(runtime_type, *args, **kwargs))
 
     click.echo("Your Lightning App is starting. This won't take long.")
-    click.echo(f"{run_app_comment_commands=}")
 
     # TODO: Fixme when Grid utilities are available.
     # And refactor test_lightning_run_app_cloud
