@@ -68,7 +68,7 @@ jobs:
           - {type: "slow", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
           - {type: "slow", os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
 
-    timeout-minutes: 60
+    timeout-minutes: 70  # tests with macOS-11, py3.7 oldest takes much longer then expected
 
     steps:
     - uses: actions/checkout@v3
