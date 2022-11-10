@@ -278,11 +278,10 @@ class LightningWorkSetAttrProxy:
     work: "LightningWork"
     delta_queue: "BaseQueue"
     state_observer: Optional["WorkStateObserver"]
-    lock: threading.Lock
 
     def __call__(self, name: str, value: Any) -> None:
         logger.debug(f"Setting {name}: {value}")
-        with self.lock:
+        with _state_observer_lock:
             state = deepcopy(self.work.state)
             self.work._default_setattr(name, value)
             delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
@@ -656,6 +655,5 @@ def _proxy_setattr(work, delta_queue, state_observer: Optional[WorkStateObserver
             work,
             delta_queue=delta_queue,
             state_observer=state_observer,
-            lock=_state_observer_lock,
         )
     work._setattr_replacement = setattr_proxy
