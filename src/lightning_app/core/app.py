@@ -122,6 +122,7 @@ class LightningApp:
         self.copy_request_queues: Optional[Dict[str, BaseQueue]] = None
         self.copy_response_queues: Optional[Dict[str, BaseQueue]] = None
         self.caller_queues: Optional[Dict[str, BaseQueue]] = None
+        self.flow_to_work_delta_queues: Optional[Dict[str, BaseQueue]] = None
         self.work_queues: Optional[Dict[str, BaseQueue]] = None
         self.commands: Optional[List] = None
 
@@ -135,6 +136,7 @@ class LightningApp:
         self._has_updated: bool = True
         self._schedules: Dict[str, Dict] = {}
         self.threads: List[threading.Thread] = []
+        self.exception = None
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -293,6 +295,7 @@ class LightningApp:
     def check_error_queue(self) -> None:
         exception: Exception = self.get_state_changed_from_queue(self.error_queue)
         if isinstance(exception, Exception):
+            self.exception = exception
             self.stage = AppStage.FAILED
 
     @property
@@ -360,6 +363,7 @@ class LightningApp:
     def maybe_apply_changes(self) -> bool:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
+        self._send_flow_to_work_deltas(self.state)
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
@@ -610,3 +614,51 @@ class LightningApp:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
+
+    @staticmethod
+    def _extract_vars_from_component_name(component_name: str, state):
+        child = state
+        for child_name in component_name.split(".")[1:]:
+            if child_name in child["flows"]:
+                child = child["flows"][child_name]
+            elif "structures" in child and child_name in child["structures"]:
+                child = child["structures"][child_name]
+            elif child_name in child["works"]:
+                child = child["works"][child_name]
+            else:
+                return None
+
+        # Note: Remove private keys
+        return {k: v for k, v in child["vars"].items() if not k.startswith("_")}
+
+    def _send_flow_to_work_deltas(self, state) -> None:
+        if not self.flow_to_work_delta_queues:
+            return
+
+        for w in self.works:
+            if not w.has_started:
+                continue
+
+            # Don't send changes when the state has been just sent.
+            if w.run.has_sent:
+                continue
+
+            state_work = self._extract_vars_from_component_name(w.name, state)
+            last_state_work = self._extract_vars_from_component_name(w.name, self._last_state)
+
+            # Note: The work was dynamically created or deleted.
+            if state_work is None or last_state_work is None:
+                continue
+
+            # Note: The flow shouldn't update path or drive manually.
+            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: None)
+            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: None)
+
+            deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
+
+            if "unprocessed" in deep_diff:
+                deep_diff.pop("unprocessed")
+
+            if deep_diff:
+                logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
+                self.flow_to_work_delta_queues[w.name].put(deep_diff)
