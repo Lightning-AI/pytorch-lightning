@@ -60,7 +60,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed model state transfer in multiprocessing launcher when running multi-node ([#15567](https://github.com/Lightning-AI/lightning/pull/15567))
 
-- Fixed manual optimization raising `AttributeError` with Bagua Strategy ([[#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534)])
+- Fixed manual optimization raising `AttributeError` with Bagua Strategy ([#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534))
+
+- Fixed the import of `pytorch_lightning` causing a warning 'Redirects are currently not supported in Windows or MacOs' ([#15610](https://github.com/PyTorchLightning/pytorch-lightning/issues/15610))
 
 
 ## [1.8.0] - 2022-11-01
