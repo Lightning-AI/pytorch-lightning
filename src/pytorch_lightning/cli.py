@@ -294,9 +294,9 @@ class LightningCLI:
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Value for the :func:`~lightning_lite.utilities.seed.seed_everything`
-                seed argument. Set to True to automatically choose a valid seed.
-                Setting it to False will not call seed_everything.
+            seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
+                seed value. Set to True to automatically choose a seed value.
+                Setting it to False will avoid calling ``seed_everything``.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.

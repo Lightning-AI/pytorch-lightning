@@ -6,9 +6,10 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
-      - "requirements/lite/**"
+      - "requirements/lite/*"
+      - "!requirements/lite/docs.txt"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
@@ -90,11 +91,9 @@ jobs:
         python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
         cat requirements/lite/base.txt
 
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
     - name: Get pip cache dir
       id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
+      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
 
     - name: pip cache
       uses: actions/cache@v3
