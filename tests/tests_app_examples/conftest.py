@@ -11,6 +11,8 @@ from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning_app.utilities.state import AppState
 
+os.environ["LIGHTNING_DISPATCHED"] = "1"
+
 
 def pytest_sessionfinish(session, exitstatus):
     """Pytest hook that get called after whole test run finished, right before returning the exit status to the

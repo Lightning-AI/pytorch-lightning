@@ -32,7 +32,7 @@ from lightning_lite.plugins import Precision  # avoid circular imports: # isort:
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.strategies import DeepSpeedStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
-from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.strategies.strategy import _Sharded, TBroadcast
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
@@ -395,6 +395,25 @@ class LightningLite(ABC):
         with context:
             yield
 
+    @contextmanager
+    def sharded_model(self) -> Generator:
+        """Shard the parameters of the model instantly when instantiating the layers.
+
+        Use this context manager with strategies that support sharding the model parameters to save peak memory usage.
+
+        Example::
+
+            with self.sharded_model():
+                model = MyModel()
+
+        The context manager is strategy-agnostic and for the ones that don't do sharding, it is a no-op.
+        """
+        if isinstance(self._strategy, _Sharded):
+            with self._strategy.module_sharded_context():
+                yield
+        else:
+            yield
+
     def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
         """Save checkpoint contents to a file.
 
@@ -456,9 +475,9 @@ class LightningLite(ABC):
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self._strategy.module_sharded_context(), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
+        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
+            BatchSampler
+        ):
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
