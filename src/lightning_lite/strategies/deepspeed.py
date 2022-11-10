@@ -330,7 +330,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # Current limitation in Lite: The config needs to be fully determined at the time of calling the
         # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
         # won't have an effect here.
-        
+
         import deepspeed
 
         if self.zero_stage_3:
