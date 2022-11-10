@@ -18,7 +18,7 @@ import os
 import platform
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -38,7 +38,7 @@ from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
@@ -271,6 +271,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 reduce_bucket_size=reduce_bucket_size,
                 sub_group_size=sub_group_size,
             )
+
+        import deepspeed
+
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
@@ -327,6 +330,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # Current limitation in Lite: The config needs to be fully determined at the time of calling the
         # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
         # won't have an effect here.
+
+        import deepspeed
+
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -405,6 +411,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         This calls :func:`deepspeed.initialize` internally.
         """
+        import deepspeed
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -432,6 +440,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             self._config_initialized = True
 
     def _init_deepspeed_distributed(self) -> None:
+        import deepspeed
+
         assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -453,6 +463,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
+        import deepspeed
+
         assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
@@ -573,6 +585,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Args:
             ckpt: The ckpt file.
         """
+        import deepspeed
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
 
