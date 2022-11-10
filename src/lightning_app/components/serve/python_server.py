@@ -3,7 +3,6 @@ from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_api_access import APIAccessFrontend
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
