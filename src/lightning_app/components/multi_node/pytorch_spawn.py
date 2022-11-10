@@ -47,9 +47,9 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
     def dispatch_run(local_rank, cls, work, delta_queue, *args, **kwargs):
         if local_rank == 0:
             if isinstance(delta_queue, dict):
-                delta_queue = WorkRunExecutor.process_queue(delta_queue)
-                work._request_queue = WorkRunExecutor.process_queue(work._request_queue)
-                work._response_queue = WorkRunExecutor.process_queue(work._response_queue)
+                delta_queue = cls.process_queue(delta_queue)
+                work._request_queue = cls.process_queue(work._request_queue)
+                work._response_queue = cls.process_queue(work._response_queue)
 
             state_observer = WorkStateObserver(work, delta_queue=delta_queue)
             state_observer.start()
