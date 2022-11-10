@@ -1,7 +1,7 @@
 import abc
 import base64
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI
@@ -221,4 +221,3 @@ class PythonServer(LightningWork, abc.ABC):
 
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")
-
