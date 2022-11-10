@@ -1,1 +1,1 @@
-lightning run app app.py --cloud
+lightning run app app.py --setup --cloud

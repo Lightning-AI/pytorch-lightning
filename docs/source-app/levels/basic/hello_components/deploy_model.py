@@ -1,12 +1,12 @@
-# !pip install torchvision pydantic
+# !pip install torchvision
 import lightning as L
+from lightning.app.components.serve import PythonServer
 import base64, io, torchvision, torch
 from PIL import Image
 from pydantic import BaseModel
 
 
-class PyTorchServer(L.app.components.serve.PythonServer):
-
+class PyTorchServer(PythonServer):
     def setup(self):
         self._model = torchvision.models.resnet18(pretrained=True)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -28,8 +28,5 @@ class PyTorchServer(L.app.components.serve.PythonServer):
 class InputData(BaseModel):
     image: str
 
-class OutputData(BaseModel):
-    prediction: int
-
-component = PyTorchServer(input_type=InputData, output_type=OutputData)
-app = L.LightningApp(component, compute=L.CloudCompute('gpu'))
+component = PyTorchServer(input_type=InputData, cloud_compute=L.CloudCompute('gpu'))
+app = L.LightningApp(component)

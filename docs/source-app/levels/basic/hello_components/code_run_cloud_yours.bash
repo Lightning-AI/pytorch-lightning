@@ -2,4 +2,4 @@
 lightning create cluster pikachu --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc
 
 # run on that cluster
-lightning run app app.py --cloud pikachu
+lightning run app app.py --setup --cloud pikachu
