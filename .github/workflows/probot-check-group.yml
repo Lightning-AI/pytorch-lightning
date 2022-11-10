@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     # FIXME: debugging
     #if: github.event.pull_request.draft == false
-    timeout-minutes: 61  # in case something is wrong with the internal timeout
+    timeout-minutes: 3  # in case something is wrong with the internal timeout
     steps:
       - uses: Lightning-AI/probot@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           job: check-group
-          interval: 180  # seconds
-          timeout: 60  # minutes
+          interval: 30  # seconds
+          timeout: 2  # minutes
