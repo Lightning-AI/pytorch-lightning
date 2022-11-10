@@ -27,7 +27,7 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
 
     # 3. Setup distributed training
     device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
-    model = DistributedDataParallel(model.to(device), device_ids=[device.index] if torch.cuda.is_available() else None)
+    model = DistributedDataParallel(model.to(device), device_ids=[local_rank] if torch.cuda.is_available() else None)
 
     # 4. Prepare loss and optimizer
     criterion = torch.nn.MSELoss()

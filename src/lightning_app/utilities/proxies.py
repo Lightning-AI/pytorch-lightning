@@ -356,10 +356,12 @@ class WorkRunExecutor:
         setattr_fn = self.work._setattr_replacement
         self.work._setattr_replacement = None
         backend = self.work._backend
+        self.work._backend = None
         try:
             yield
         except Exception as e:
             self.work._setattr_replacement = setattr_fn
+            self.work._backend = backend
             raise e
         self.work._setattr_replacement = setattr_fn
         self.work._backend = backend
@@ -519,7 +521,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(" in p:
                     user_exception = True
 
             if used_runpy:
