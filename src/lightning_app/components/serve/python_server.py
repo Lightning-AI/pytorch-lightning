@@ -137,6 +137,7 @@ class PythonServer(LightningWork, abc.ABC):
 
     def _attach_frontend(self, fastapi_app: FastAPI) -> None:
         from lightning_api_access import APIAccessFrontend
+
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"
         datatype_parse_error = False
