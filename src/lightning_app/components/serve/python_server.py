@@ -1,7 +1,7 @@
 import abc
 import base64
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
@@ -29,7 +29,7 @@ class _DefaultOutputData(BaseModel):
 
 
 class Image(BaseModel):
-    image: str
+    image: Optional[str]
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
@@ -40,7 +40,7 @@ class Image(BaseModel):
 
 
 class Number(BaseModel):
-    prediction: int
+    prediction: Optional[int]
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
