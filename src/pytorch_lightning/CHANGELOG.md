@@ -5,63 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [unreleased] - 202Y-MM-DD
-
-
-### Added
-
--
-
--
-
--
-
-
-### Changed
-
--
-
--
-
--
-
-
-### Deprecated
-
-- Deprecated `pytorch_lightning.utilities.distributed.rank_zero_only` in favor of `pytorch_lightning.utilities.rank_zero_only` ([#15536](https://github.com/Lightning-AI/lightning/pull/15536))
-
--
-
--
-
-
-### Removed
-
--
-
--
-
--
-
+## [1.8.1] - 2022-11-10
 
 ### Fixed
 
 - Fixed `TensorBoardLogger` not validating the input array type when logging the model graph ([#15323](https://github.com/Lightning-AI/lightning/pull/15323))
-
 - Fixed an attribute error in `ColossalAIStrategy` at import time when `torch.distributed` is not available ([#15535](https://github.com/Lightning-AI/lightning/pull/15535))
-
 - Fixed an issue when calling `fs.listdir` with file URI instead of path in `CheckpointConnector` ([#15413](https://github.com/Lightning-AI/lightning/pull/15413))
-
 - Fixed an issue with the `BaseFinetuning` callback not setting the `track_running_stats` attribute for batch normaliztion layers ([#15063](https://github.com/Lightning-AI/lightning/pull/15063))
-
 - Fixed an issue with `WandbLogger(log_model=True|'all)` raising an error and not being able to serialize tensors in the metadata ([#15544](https://github.com/Lightning-AI/lightning/pull/15544))
-
 - Fixed the gradient unscaling logic when using `Trainer(precision=16)` and fused optimizers such as `Adam(..., fused=True)` ([#15544](https://github.com/Lightning-AI/lightning/pull/15544))
-
 - Fixed model state transfer in multiprocessing launcher when running multi-node ([#15567](https://github.com/Lightning-AI/lightning/pull/15567))
-
 - Fixed manual optimization raising `AttributeError` with Bagua Strategy ([#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534))
-
 - Fixed the import of `pytorch_lightning` causing a warning 'Redirects are currently not supported in Windows or MacOs' ([#15610](https://github.com/PyTorchLightning/pytorch-lightning/issues/15610))
 
 
