@@ -17,7 +17,7 @@ def test_installation_commands_app_example_cloud() -> None:
     ) as (_, _, fetch_logs, _):
         has_logs = False
         while not has_logs:
-            for log in fetch_logs(["flow"]):
+            for log in fetch_logs(["work"]):
                 if "ModuleNotFoundError: No module named 'lmdb'" in log:
                     has_logs = True
             time.sleep(1)
@@ -29,18 +29,9 @@ def test_installation_commands_app_example_cloud() -> None:
         extra_args=["--setup"],
         debug=True,
     ) as (_, _, fetch_logs, _):
-        # check installation in flow
         has_flow_logs = False
         while not has_flow_logs:
-            for log in fetch_logs(["flow"]):
-                if "lmdb successfully installed" in log:
-                    has_flow_logs = True
-            time.sleep(1)
-
-        # check installation in work
-        has_work_logs = False
-        while not has_work_logs:
             for log in fetch_logs(["work"]):
                 if "lmdb successfully installed" in log:
-                    has_work_logs = True
+                    has_flow_logs = True
             time.sleep(1)
