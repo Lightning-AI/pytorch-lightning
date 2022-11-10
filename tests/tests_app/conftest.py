@@ -20,6 +20,8 @@ GITHUB_APP_URLS = {
     "template_react_ui": "https://github.com/Lightning-AI/lightning-template-react.git",
 }
 
+os.environ["LIGHTNING_DISPATCHED"] = "1"
+
 
 def pytest_sessionstart(*_):
     """Pytest hook that get called after the Session object has been created and before performing collection and
