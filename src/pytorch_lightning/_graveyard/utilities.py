@@ -12,10 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytorch_lightning._graveyard.callbacks
-import pytorch_lightning._graveyard.core
-import pytorch_lightning._graveyard.legacy_import_unpickler
-import pytorch_lightning._graveyard.loggers
-import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type  # noqa: F401
-import pytorch_lightning._graveyard.utilities
+import sys
+from typing import Any
+
+
+def _patch_sys_modules() -> None:
+    # TODO: Remove in v2.0.0
+    self = sys.modules[__name__]
+    sys.modules["pytorch_lightning.utilities.memory"] = self
+
+
+def get_gpu_memory_map() -> None:
+    # TODO: Remove in v2.0.0
+    raise NotImplementedError(
+        "`pl.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported as of v1.9."
+        " Use `pl.accelerators.cuda.get_nvidia_gpu_stats` instead."
+    )
+
+
+_patch_sys_modules()
