@@ -175,19 +175,24 @@ def test_work_database_periodic_store():
             self.db = Database(db_filename=self._db_filename, models=[TestConfig], store_interval=1)
             self._client = None
             self._start_time = None
+            self.counter = 0
 
         def run(self):
+            self.counter += 1
+
             self.db.run()
 
             if not self.db.alive():
                 return
+
             elif not self._client:
                 self._client = DatabaseClient(self.db.db_url, None, model=TestConfig)
 
             if self._start_time is None:
                 self._client.insert(TestConfig(name="echo", secrets=[Secret(name="example", value="secret")]))
                 self._start_time = time.time()
-            elif time.time() - self._start_time > 2:
+
+            elif (time.time() - self._start_time) > 2:
                 assert os.path.exists(self._db_filename)
                 assert len(self._client.select_all()) == 1
                 self._exit()
@@ -196,5 +201,3 @@ def test_work_database_periodic_store():
 
         app = LightningApp(Flow(tmpdir))
         MultiProcessRuntime(app).dispatch()
-
-        sleep(2)

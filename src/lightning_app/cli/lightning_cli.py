@@ -10,6 +10,7 @@ import inquirer
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
+from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -29,9 +30,10 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.cli.lightning_cli_remove import cli_remove
-from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
+from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cli_helpers import (
     _arrow_time_callback,
@@ -260,6 +262,9 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
+        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands:
+            if file is not None:
+                run_app_commands(str(file))
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
@@ -362,17 +367,11 @@ def run_app(
     )
 
 
-@_main.group(hidden=True)
-def fork() -> None:
-    """Fork an application."""
-    pass
+if RequirementCache("lightning-lite"):
+    # lightning-lite may not be available when installing only standalone lightning-app package
+    from lightning_lite.cli import _run_model
 
-
-@_main.group(hidden=True)
-def stop() -> None:
-    """Stop your application."""
-    pass
-
+    run.add_command(_run_model)
 
 _main.add_command(get_list)
 _main.add_command(delete)
