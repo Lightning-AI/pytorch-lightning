@@ -1,4 +1,3 @@
 Old API,deprecated in,changed in,New API
 ``pytorch_lightning.plugins.training_type_plugin``,1.6,1.8,``pytorch_lightning.strategies``
 ``pytorch_lightning.strategies.DDP2Strategy``,1.7,1.8,N/A
-
