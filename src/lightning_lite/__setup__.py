@@ -31,13 +31,14 @@ def _prepare_extras() -> Dict[str, Any]:
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
+        "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
         "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
     extras["dev"] = extras["test"]
-    extras["all"] = extras["dev"] + extras["strategies"]
+    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]
     return extras
 
 
