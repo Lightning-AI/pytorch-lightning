@@ -110,7 +110,8 @@ if _CLICK_AVAILABLE:
 
         SCRIPT is the path to the Python script with the code to run. The script must contain a LightningLite object.
 
-        SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed there.
+        SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
+        there.
         """
         script_args = list(kwargs.pop("script_args", []))
         main(args=Namespace(**kwargs), script_args=script_args)
