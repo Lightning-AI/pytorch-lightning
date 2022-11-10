@@ -9,8 +9,12 @@ import lightning as L
 
 class YourComponent(L.LightningWork):
     def run(self):
-        print(lmdb.__version__)
+        print(lmdb.version())
         print("lmdb successfully installed")
+        print("accessing a module in a Work or Flow body works!")
+
+
+print(f"accessing an object in main code body works!: version={lmdb.version()}")
 
 
 # run on a cloud machine
