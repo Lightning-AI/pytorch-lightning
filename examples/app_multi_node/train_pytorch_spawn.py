@@ -48,6 +48,5 @@ app = L.LightningApp(
         PyTorchDistributed,
         num_nodes=2,
         cloud_compute=L.CloudCompute("cpu"),  # 4 x V100
-    ),
-    log_level="debug",
+    )
 )
