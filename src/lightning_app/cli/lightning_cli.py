@@ -29,9 +29,10 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.cli.lightning_cli_remove import cli_remove
-from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
+from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cli_helpers import (
     _arrow_time_callback,
@@ -260,6 +261,9 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
+        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands:
+            if file is not None:
+                run_app_commands(str(file))
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
