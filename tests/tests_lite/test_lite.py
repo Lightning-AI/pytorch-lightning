@@ -27,6 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
+from lightning_lite.strategies.strategy import _Sharded
 from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -624,3 +625,18 @@ def test_overridden_run_and_cli_not_allowed():
         TypeError, match=escape("Overriding `LightningLite.run()` and launching from the CLI is not allowed")
     ):
         LiteWithRun()
+
+
+def test_module_sharding_context():
+    """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
+    otherwise."""
+    lite = EmptyLite()
+    lite._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
+    with lite.sharded_model():
+        pass
+    lite._strategy.module_sharded_context.assert_not_called()
+
+    lite._strategy = MagicMock(spec=_Sharded)
+    with lite.sharded_model():
+        pass
+    lite._strategy.module_sharded_context.assert_called_once()
