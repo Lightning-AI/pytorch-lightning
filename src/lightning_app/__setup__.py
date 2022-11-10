@@ -50,6 +50,7 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include src/lightning_app *.md" + os.linesep,
+        "include src/lightning_app/components/serve/catimage.png" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
         "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
     ]
