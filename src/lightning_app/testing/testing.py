@@ -167,7 +167,7 @@ class _SingleWorkFlow(LightningFlow):
 def run_work_isolated(work, *args, start_server: bool = False, **kwargs):
     """This function is used to run a work a single time with multiprocessing runtime."""
     MultiProcessRuntime(
-        LightningApp(_SingleWorkFlow(work, args, kwargs), debug=True),
+        LightningApp(_SingleWorkFlow(work, args, kwargs), log_level="debug"),
         start_server=start_server,
     ).dispatch()
     # pop the stopped status.

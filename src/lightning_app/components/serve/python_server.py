@@ -26,7 +26,7 @@ class PythonServer(LightningWork, abc.ABC):
         port: int = 7777,
         input_type: type = InputData,
         output_type: type = OutputData,
-        **kwargs
+        **kwargs,
     ):
         """The PythonServer Class enables to easily get your machine learning server up and running.
 

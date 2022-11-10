@@ -104,28 +104,26 @@ def _retry_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-class _MethodsRetryWrapperMeta(type):
-    """This wrapper metaclass iterates through all methods of the type and all bases of it to wrap them into the
-    :func:`_retry_wrapper`. It applies to all bound callables except the ``__init__`` method.
-    """
-
-    def __new__(mcs, name, bases, dct):
-        new_class = super().__new__(mcs, name, bases, dct)
-        for base in new_class.__mro__[1:-1]:
-            for key, value in base.__dict__.items():
-                if callable(value) and value.__name__ != "__init__":
-                    setattr(new_class, key, _retry_wrapper(value))
-        return new_class
-
-
-class LightningClient(GridRestClient, metaclass=_MethodsRetryWrapperMeta):
+class LightningClient(GridRestClient):
     """The LightningClient is a wrapper around the GridRestClient.
 
     It wraps all methods to monitor connection exceptions and employs a retry strategy.
+
+    Args:
+        retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __init__(self) -> None:
+    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
+        if kwargs.get("retry", False):
+            for base_class in GridRestClient.__mro__:
+                for name, attribute in base_class.__dict__.items():
+                    if callable(attribute) and attribute.__name__ != "__init__":
+                        setattr(cls, name, _retry_wrapper(attribute))
+        return super().__new__(cls)
+
+    def __init__(self, retry: bool = False) -> None:
         super().__init__(api_client=create_swagger_client())
+        self._retry = retry
 
 
 class CustomRetryAdapter(HTTPAdapter):
