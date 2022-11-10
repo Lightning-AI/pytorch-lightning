@@ -1,1 +1,0 @@
-../../source-pytorch/advanced/strategy_registry.rst
