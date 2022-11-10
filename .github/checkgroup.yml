@@ -209,8 +209,6 @@ subprojects:
 
   - id: "lightning_lite: Tests"
     paths:
-      - "examples/lite/**"
-      - "examples/run_lite_examples.sh"
       - "tests/tests_lite/**"
     checks:
       - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
@@ -236,6 +234,8 @@ subprojects:
   - id: "lightning_lite: Azure GPU"
     paths:
       - ".azure/gpu-tests-lite.yml"
+      - "examples/lite/**"
+      - "examples/run_lite_examples.sh"
       - "tests/tests_lite/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
     checks:
