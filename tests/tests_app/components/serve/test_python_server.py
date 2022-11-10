@@ -35,7 +35,7 @@ def test_image_sample_data():
     data = Image()._get_sample_data()
     assert isinstance(data, dict)
     assert "image" in data
-    assert len(data["image"] > 100)
+    assert len(data["image"]) > 100
 
 
 def test_number_sample_data():
