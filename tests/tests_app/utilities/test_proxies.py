@@ -748,7 +748,8 @@ class FlowBi2(LightningFlow):
 
     def run(self):
         self.w.run()
-        self.w.d["self.w.counter"] = 0
+        if self.w.counter == 1:
+            self.w.d["self.w.counter"] = 0
         if not self.w.finished:
             self.w.counter += 1
 
