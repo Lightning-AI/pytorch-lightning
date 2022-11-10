@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
-import contextlib
 import json
 import logging
 import os
 import platform
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, Union
 
@@ -30,6 +30,7 @@ from lightning_lite.accelerators import Accelerator, CUDAAccelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
+from lightning_lite.strategies.strategy import _Sharded
 from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
@@ -42,7 +43,7 @@ if _DEEPSPEED_AVAILABLE:
 
 
 # TODO(lite): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
-class DeepSpeedStrategy(DDPStrategy):
+class DeepSpeedStrategy(DDPStrategy, _Sharded):
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 
     def __init__(
@@ -321,12 +322,11 @@ class DeepSpeedStrategy(DDPStrategy):
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
 
-    @contextlib.contextmanager
+    @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
         # Current limitation in Lite: The config needs to be fully determined at the time of calling the
         # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
         # won't have an effect here.
-
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -337,13 +337,11 @@ class DeepSpeedStrategy(DDPStrategy):
             else:
                 dtype = torch.float32
 
-            model_parallel_context = deepspeed.zero.Init(
+            with deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
-            )
+            ):
+                yield
         else:
-            model_parallel_context = super().module_sharded_context()
-
-        with model_parallel_context:
             yield
 
     def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
