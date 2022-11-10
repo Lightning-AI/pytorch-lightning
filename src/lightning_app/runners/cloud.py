@@ -4,6 +4,7 @@ import random
 import string
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
@@ -48,6 +49,7 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
@@ -60,6 +62,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
+from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
@@ -123,6 +126,9 @@ class CloudRuntime(Runtime):
             ]
             v1_env_vars.extend(env_vars_from_secrets)
 
+        if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
+
         if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
@@ -135,9 +141,12 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
-        work_reqs: List[V1Work] = []
+        works: List[V1Work] = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
+                if not work._start_with_flow:
+                    continue
+
                 work_requirements = "\n".join(work.cloud_build_config.requirements)
                 build_spec = V1BuildSpec(
                     commands=work.cloud_build_config.build_commands(),
@@ -150,6 +159,7 @@ class CloudRuntime(Runtime):
                     name=work.cloud_compute.name,
                     count=1,
                     disk_size=work.cloud_compute.disk_size,
+                    preemptible=work.cloud_compute.preemptible,
                     shm_size=work.cloud_compute.shm_size,
                 )
 
@@ -197,13 +207,13 @@ class CloudRuntime(Runtime):
                         )
 
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-                spec = V1LightningworkSpec(
+                work_spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     drives=drive_specs,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
-                work_reqs.append(V1Work(name=work.name, spec=spec))
+                works.append(V1Work(name=work.name, spec=work_spec))
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows
         # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
@@ -332,9 +342,6 @@ class CloudRuntime(Runtime):
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
 
-            for work_req in work_reqs:
-                work_req.spec.cluster_id = app_config.cluster_id
-
             release_body = Body8(
                 app_entrypoint_file=app_spec.app_entrypoint_file,
                 enable_app_server=app_spec.enable_app_server,
@@ -342,13 +349,13 @@ class CloudRuntime(Runtime):
                 image_spec=app_spec.image_spec,
                 cluster_id=app_config.cluster_id,
                 network_config=network_configs,
-                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
+                works=works,
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
-            # create / upload the new app release / instace
+            # create / upload the new app release
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
@@ -463,6 +470,30 @@ class CloudRuntime(Runtime):
             balance = 0  # value is missing in some tests
 
         return balance >= 1
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """This is meant to use only locally for cloud runtime."""
+        try:
+            app = load_app_from_file(filepath, raise_exception=True)
+        except ModuleNotFoundError:
+            # this is very generic exception.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            # we want to format the exception as if no frame was on top.
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            # remove the entry for the first frame
+            del listing[1]
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a mocking app.
+            app = LightningApp(EmptyFlow())
+
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            _prettifiy_exception(filepath)
+        return app
 
 
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:

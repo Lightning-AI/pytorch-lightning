@@ -2,6 +2,7 @@ import abc
 import asyncio
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -267,10 +268,12 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 
     # the name changed, so recursively update the names of the children of this child
     if isinstance(child, lightning_app.core.LightningFlow):
-        for n, c in child.flows.items():
+        for n in child._flows:
+            c = getattr(child, n)
             _set_child_name(child, c, n)
-        for n, w in child.named_works(recurse=False):
-            _set_child_name(child, w, n)
+        for n in child._works:
+            c = getattr(child, n)
+            _set_child_name(child, c, n)
         for n in child._structures:
             s = getattr(child, n)
             _set_child_name(child, s, n)
@@ -481,3 +484,20 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+def is_static_method(klass_or_instance, attr) -> bool:
+    return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
+
+
+def _debugger_is_active() -> bool:
+    """Return if the debugger is currently active."""
+    return hasattr(sys, "gettrace") and sys.gettrace() is not None
+
+
+def _should_dispatch_app() -> bool:
+    return (
+        _debugger_is_active()
+        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and "LIGHTNING_APP_STATE_URL" not in os.environ
+    )

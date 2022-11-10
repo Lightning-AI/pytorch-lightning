@@ -35,8 +35,9 @@ def _prepare_extras() -> Dict[str, Any]:
         "ui": setup_tools.load_requirements(file_name="ui.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
-    extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
-    extras["all"] = extras["cloud"] + extras["ui"]
+    extras["extra"] = extras["cloud"] + extras["ui"]
+    extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
+    extras["all"] = extras["dev"]
     return extras
 
 

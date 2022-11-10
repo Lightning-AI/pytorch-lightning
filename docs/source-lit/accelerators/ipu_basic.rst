@@ -1,1 +1,0 @@
-../../source-pytorch/accelerators/ipu_basic.rst

@@ -50,4 +50,4 @@ class FlowCommands(LightningFlow):
         ]
 
 
-app = LightningApp(FlowCommands(), debug=True)
+app = LightningApp(FlowCommands(), log_level="debug")

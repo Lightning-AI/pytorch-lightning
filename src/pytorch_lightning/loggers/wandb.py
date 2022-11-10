@@ -22,7 +22,9 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -291,10 +293,10 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: str = ".",
+        save_dir: _PATH = ".",
         version: Optional[str] = None,
         offline: bool = False,
-        dir: Optional[str] = None,
+        dir: Optional[_PATH] = None,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         project: str = "lightning_logs",
@@ -330,6 +332,13 @@ class WandbLogger(Logger):
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
         self._checkpoint_callback: Optional[Checkpoint] = None
+
+        # paths are processed as strings
+        if save_dir is not None:
+            save_dir = os.fspath(save_dir)
+        elif dir is not None:
+            dir = os.fspath(dir)
+
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
@@ -520,7 +529,7 @@ class WandbLogger(Logger):
     @rank_zero_only
     def download_artifact(
         artifact: str,
-        save_dir: Optional[str] = None,
+        save_dir: Optional[_PATH] = None,
         artifact_type: Optional[str] = None,
         use_artifact: Optional[bool] = True,
     ) -> str:
@@ -541,6 +550,7 @@ class WandbLogger(Logger):
             api = wandb.Api()
             artifact = api.artifact(artifact, type=artifact_type)
 
+        save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
     def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "wandb.Artifact":
@@ -572,7 +582,7 @@ class WandbLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = (
                 {
-                    "score": s,
+                    "score": s.item() if isinstance(s, Tensor) else s,
                     "original_filename": Path(p).name,
                     checkpoint_callback.__class__.__name__: {
                         k: getattr(checkpoint_callback, k)

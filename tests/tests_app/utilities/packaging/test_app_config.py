@@ -1,19 +1,6 @@
-import os
 import pathlib
-from contextlib import contextmanager
 
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
-
-
-@contextmanager
-def cwd(path):
-    """Utility context manager for temporarily switching the current working directory (cwd)."""
-    old_pwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(old_pwd)
 
 
 def _make_empty_config_file(folder):
@@ -23,12 +10,12 @@ def _make_empty_config_file(folder):
     return file
 
 
-def test_find_config_file(tmpdir):
-    with cwd(pathlib.Path("/")):
-        assert find_config_file() is None
+def test_find_config_file(tmpdir, monkeypatch):
+    monkeypatch.chdir(pathlib.Path("/"))
+    assert find_config_file() is None
 
-    with cwd(pathlib.Path.home()):
-        assert find_config_file() is None
+    monkeypatch.chdir(pathlib.Path.home())
+    assert find_config_file() is None
 
     _ = _make_empty_config_file(tmpdir)
     config_file1 = _make_empty_config_file(tmpdir / "a" / "b")

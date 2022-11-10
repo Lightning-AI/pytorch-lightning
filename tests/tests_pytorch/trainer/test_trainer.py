@@ -343,6 +343,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         save_top_k=save_top_k,
         save_last=save_last,
         verbose=True,
+        save_on_train_epoch_end=False,
     )
     trainer = Trainer()
     trainer.state.fn = TrainerFn.FITTING
@@ -1099,6 +1100,7 @@ def test_on_exception_hook(tmpdir):
 
 
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
+@RunIf(sklearn=True)
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     trainer = Trainer(

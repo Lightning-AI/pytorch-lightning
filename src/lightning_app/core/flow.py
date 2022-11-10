@@ -207,22 +207,19 @@ class LightningFlow:
         """Attach the backend to all flows and its children."""
         flow._backend = backend
 
-        for child_flow in flow.flows.values():
-            LightningFlow._attach_backend(child_flow, backend)
-
-        for struct_name in flow._structures:
-            structure = getattr(flow, struct_name)
-            for flow in structure.flows:
-                LightningFlow._attach_backend(flow, backend)
-            for work in structure.works:
-                backend._wrap_run_method(_LightningAppRef().get_current(), work)
-                work._backend = backend
-
         for name in flow._structures:
             getattr(flow, name)._backend = backend
 
-        for work in flow.works(recurse=False):
-            backend._wrap_run_method(_LightningAppRef().get_current(), work)
+        for child_flow in flow.flows.values():
+            child_flow._backend = backend
+            for name in child_flow._structures:
+                getattr(child_flow, name)._backend = backend
+
+        app = _LightningAppRef().get_current()
+
+        for child_work in flow.works():
+            child_work._backend = backend
+            backend._wrap_run_method(app, child_work)
 
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):
@@ -274,12 +271,15 @@ class LightningFlow:
         }
 
     @property
-    def flows(self):
+    def flows(self) -> Dict[str, "LightningFlow"]:
         """Return its children LightningFlow."""
-        flows = {el: getattr(self, el) for el in sorted(self._flows)}
+        flows = {}
+        for el in sorted(self._flows):
+            flow = getattr(self, el)
+            flows[flow.name] = flow
+            flows.update(flow.flows)
         for struct_name in sorted(self._structures):
-            for flow in getattr(self, struct_name).flows:
-                flows[flow.name] = flow
+            flows.update(getattr(self, struct_name).flows)
         return flows
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
@@ -297,28 +297,7 @@ class LightningFlow:
 
     def named_works(self, recurse: bool = True) -> List[Tuple[str, LightningWork]]:
         """Return its :class:`~lightning_app.core.work.LightningWork` with their names."""
-        named_works = [(el, getattr(self, el)) for el in sorted(self._works)]
-        if not recurse:
-            return named_works
-        for child_name in sorted(self._flows):
-            for w in getattr(self, child_name).works(recurse=recurse):
-                named_works.append(w)
-        for struct_name in sorted(self._structures):
-            for w in getattr(self, struct_name).works:
-                named_works.append((w.name, w))
-        return named_works
-
-    def get_all_children_(self, children):
-        sorted_children = sorted(self._flows)
-        children.extend([getattr(self, el) for el in sorted_children])
-        for child in sorted_children:
-            getattr(self, child).get_all_children_(children)
-        return children
-
-    def get_all_children(self):
-        children = []
-        self.get_all_children_(children)
-        return children
+        return [(w.name, w) for w in self.works(recurse=recurse)]
 
     def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and
