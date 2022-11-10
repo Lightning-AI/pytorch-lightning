@@ -270,7 +270,6 @@ def lr_find(
     # Restore initial state of model
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
-    trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
 
     return lr_finder
 
