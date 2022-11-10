@@ -43,7 +43,7 @@ def test_get_dir_size_and_count(tmpdir: Path, size):
     assert _get_dir_size_and_count(tmpdir, "a") == (size, 1)
 
 
-def test_tar_path(tmpdir: Path):
+def test_tar_path(tmpdir: Path, monkeypatch):
     source_dir, inner_dir = _create_files(tmpdir)
 
     # Test directory
@@ -76,25 +76,21 @@ def test_tar_path(tmpdir: Path):
     assert (verify_dir / "f2").exists()
 
     # Test single file (local)
-    current_path = os.getcwd()
-    try:
-        os.chdir(inner_dir)
+    monkeypatch.chdir(inner_dir)
 
-        f2_path = "f2"
+    f2_path = "f2"
 
-        target_file = tmpdir / "target_file_local.tar.gz"
-        results = _tar_path(source_path=f2_path, target_file=target_file)
-        assert results.before_size > 0
-        assert results.after_size > 0
+    target_file = tmpdir / "target_file_local.tar.gz"
+    results = _tar_path(source_path=f2_path, target_file=target_file)
+    assert results.before_size > 0
+    assert results.after_size > 0
 
-        verify_dir = tmpdir / "verify_file_local"
-        os.makedirs(verify_dir)
-        with tarfile.open(target_file) as tar:
-            tar.extractall(verify_dir)
+    verify_dir = tmpdir / "verify_file_local"
+    os.makedirs(verify_dir)
+    with tarfile.open(target_file) as tar:
+        tar.extractall(verify_dir)
 
-        assert (verify_dir / "f2").exists()
-    finally:
-        os.chdir(current_path)
+    assert (verify_dir / "f2").exists()
 
 
 def test_get_split_size():
