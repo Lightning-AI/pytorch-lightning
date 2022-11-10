@@ -17,7 +17,10 @@ import uuid
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
+import torch
+
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -299,6 +302,9 @@ def _adjust_batch_size(
             new_size = min(new_size, len(dataloaders[0].dataset))
 
     changed = new_size != batch_size
+
+    new_size, changed = _sync_new_batch_size(new_size, changed)
+
     lightning_setattr(model, batch_arg_name, new_size)
     return new_size, changed
 
@@ -341,3 +347,13 @@ def _reset_progress(trainer: "pl.Trainer") -> None:
         trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress.reset()
 
     trainer.fit_loop.epoch_progress.reset()
+
+
+def _sync_new_batch_size(trainer, new_size: int, changed: bool) -> Tuple[int, bool]:
+    # It is possible that different ranks find different batch sizes
+    # We need to take the minimum across all to ranks, so we can ensure the model fits everywhere
+    new_size = trainer.strategy.reduce(
+        torch.tensor(new_size, device=trainer.lightning_module.device), reduce_op=ReduceOp.MIN
+    ).int().item()
+    changed = trainer.strategy.reduce_boolean_decision(changed, all=False)
+    return new_size, changed
