@@ -34,6 +34,8 @@ PRETEND_N_OF_GPUS = 16
 
 
 @RunIf(min_cuda_gpus=2, sklearn=True)
+# TODO: This test is leaking env vars `KMP_DUPLICATE_LIB_OK` and `KMP_INIT_AT_FORK`
+@mock.patch.dict(os.environ, os.environ.copy())
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
     trainer_options = dict(
