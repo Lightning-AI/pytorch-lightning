@@ -16,10 +16,8 @@ class LightningTestMultiNodeApp(LightningTestApp):
 
 
 @pytest.mark.skipif(True, reason="flaky")
-def test_multi_node_example():
-    cwd = os.getcwd()
-    new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
-    os.chdir(new_cwd)
+def test_multi_node_example(monkeypatch):
+    monkeypatch.chdir(os.path.join(_PROJECT_ROOT, "examples/app_multi_node"))
     command_line = [
         "app.py",
         "--blocking",
@@ -29,7 +27,6 @@ def test_multi_node_example():
     ]
     result = application_testing(LightningTestMultiNodeApp, command_line)
     assert result.exit_code == 0
-    os.chdir(cwd)
 
 
 class LightningTestMultiNodeWorksApp(LightningTestApp):
@@ -51,10 +48,8 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
         # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
     ],
 )
-def test_multi_node_examples(app_name):
-    cwd = os.getcwd()
-    new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
-    os.chdir(new_cwd)
+def test_multi_node_examples(app_name, monkeypatch):
+    monkeypatch.chdir(os.path.join(_PROJECT_ROOT, "examples/app_multi_node"))
     command_line = [
         app_name,
         "--blocking",
@@ -64,4 +59,3 @@ def test_multi_node_examples(app_name):
     ]
     result = application_testing(LightningTestMultiNodeWorksApp, command_line)
     assert result.exit_code == 0
-    os.chdir(cwd)
