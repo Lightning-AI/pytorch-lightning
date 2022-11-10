@@ -56,21 +56,6 @@ def test_model_saves_on_gpu(tmpdir, accelerator):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(max_torch="1.10")
-def test_model_saves_with_example_output(tmpdir):
-    """Test that ONNX model saves when provided with example output."""
-    model = BoringModel()
-    trainer = Trainer(fast_dev_run=True)
-    trainer.fit(model)
-
-    file_path = os.path.join(tmpdir, "model.onnx")
-    input_sample = torch.randn((1, 32))
-    model.eval()
-    example_outputs = model.forward(input_sample)
-    model.to_onnx(file_path, input_sample, example_outputs=example_outputs)
-    assert os.path.exists(file_path) is True
-
-
 @pytest.mark.parametrize(
     ["modelclass", "input_sample"],
     [
