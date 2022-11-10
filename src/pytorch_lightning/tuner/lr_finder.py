@@ -203,7 +203,7 @@ def lr_find(
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = "exponential",
-    early_stop_threshold: float = 4.0,
+    early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
 ) -> Optional[_LRFinder]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
@@ -219,6 +219,8 @@ def lr_find(
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
     ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
+
+    start_steps = trainer.global_step
 
     # Arguments we adjust during the lr finder, save for restoring
     params = __lr_finder_dump_params(trainer)
@@ -240,7 +242,7 @@ def lr_find(
     _try_loop_run(trainer, params)
 
     # Prompt if we stopped early
-    if trainer.global_step != num_training:
+    if trainer.global_step != num_training + start_steps:
         log.info(f"LR finder stopped early after {trainer.global_step} steps due to diverging loss.")
 
     # Transfer results from callback to lr finder object
@@ -285,7 +287,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     }
 
 
-def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: Optional[float]) -> None:
     from pytorch_lightning.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
@@ -296,8 +298,8 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
     trainer.logger = DummyLogger() if trainer.logger is not None else None
-    # Max step set to number of iterations
-    trainer.fit_loop.max_steps = num_training
+    # Max step set to number of iterations starting at current number of iterations
+    trainer.fit_loop.max_steps = num_training + trainer.global_step
     trainer.limit_val_batches = num_training
 
 
@@ -336,7 +338,7 @@ class _LRCallback(Callback):
     def __init__(
         self,
         num_training: int,
-        early_stop_threshold: float = 4.0,
+        early_stop_threshold: Optional[float] = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
     ):
