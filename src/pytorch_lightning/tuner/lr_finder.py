@@ -40,7 +40,7 @@ else:
 _MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
 if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
     import matplotlib.pyplot as plt
-
+    from matplotlib.axes import Axes
 log = logging.getLogger(__name__)
 
 
@@ -130,12 +130,14 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
         _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False) -> Optional["plt.Figure"]:
+    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
+
+            ax: axes object to which the plot is to be drawn
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
@@ -147,7 +149,10 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig, ax = plt.subplots()
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
