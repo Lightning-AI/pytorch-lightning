@@ -128,7 +128,7 @@ subprojects:
       - "build-cuda (3.9, 1.10, 11.3.1)"
       - "build-cuda (3.9, 1.11, 11.3.1)"
       - "build-cuda (3.9, 1.12, 11.6.1)"
-      - "build-cuda (3.9, 1.13, 11.6.1)"
+      - "build-cuda (3.9, 1.13, 11.7)"
       - "build-hpu (1.5.0, 1.11.0)"
       - "build-ipu (3.9, 1.10)"
       - "build-NGC"
