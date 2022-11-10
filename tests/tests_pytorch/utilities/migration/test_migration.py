@@ -17,6 +17,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
@@ -132,3 +133,15 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default():
     _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
     assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # False -> None
+
+    # Simulate collision
+    # False -> None and True -> None
+    old_checkpoint = {
+        "callbacks": {legacy_state_key_false: {"dummy": 0}, legacy_state_key_true: {"dummy": 0}},
+        "global_step": 0,
+        "epoch": 1,
+    }
+    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
+    with pytest.warns(PossibleUserWarning, match="callback states in this checkpoint.* colliding with each other"):
+        updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy())
+    assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed

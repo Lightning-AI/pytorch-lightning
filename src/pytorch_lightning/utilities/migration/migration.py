@@ -31,6 +31,9 @@ For the Lightning developer: How to add a new migration?
 import re
 from typing import Any, Callable, Dict, List
 
+from lightning_utilities.core.rank_zero import rank_zero_warn
+
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
@@ -178,10 +181,22 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
     PR: #15300
     """
 
-    def new_state_key(state_key: str) -> str:
-        if not state_key.startswith("ModelCheckpoint"):
-            return state_key
-        return re.sub("'save_on_train_epoch_end': (True|False)", "'save_on_train_epoch_end': None", state_key)
+    def new_key(old_key: str) -> str:
+        if not old_key.startswith("ModelCheckpoint"):
+            return old_key
+        return re.sub("'save_on_train_epoch_end': (True|False)", "'save_on_train_epoch_end': None", old_key)
 
-    checkpoint["callbacks"] = {new_state_key(state_key): state for state_key, state in checkpoint["callbacks"].items()}
+    num_keys = len(checkpoint["callbacks"])
+    new_callback_states = {new_key(old_key): state for old_key, state in checkpoint["callbacks"].items()}
+    if len(new_callback_states) < num_keys:
+        rank_zero_warn(
+            "You have multiple `ModelCheckpoint` callback states in this checkpoint, but we found state keys"
+            " that would end up colliding with each other after an upgrade, which means we can't differentiate"
+            " which of your checkpoint callbacks needs which states. At least one of your `ModelCheckpoint`"
+            " callbacks will not be able to reloaded the state.",
+            category=PossibleUserWarning,
+        )
+        return checkpoint
+
+    checkpoint["callbacks"] = new_callback_states
     return checkpoint
