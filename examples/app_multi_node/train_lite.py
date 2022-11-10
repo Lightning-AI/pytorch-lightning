@@ -22,9 +22,10 @@ class LitePyTorchDistributed(L.LightningWork):
         # 3. Train the model for 1000 steps.
         for step in range(1000):
             model.zero_grad()
-            x = torch.randn(64, 32).to(lite.device)
+            x = torch.tensor([0.8]).to(lite.device)
+            target = torch.tensor([1.0]).to(lite.device)
             output = model(x)
-            loss = criterion(output, torch.ones_like(output))
+            loss = criterion(output, target)
             print(f"global_rank: {lite.global_rank} step: {step} loss: {loss}")
             lite.backward(loss)
             optimizer.step()
