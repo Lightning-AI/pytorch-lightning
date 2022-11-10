@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+import sys
 import time
 import traceback
 from copy import deepcopy
@@ -18,7 +19,7 @@ from lightning_app.storage.path import _artifacts_path
 from lightning_app.storage.requests import _GetRequest
 from lightning_app.testing.helpers import _MockQueue, EmptyFlow
 from lightning_app.utilities.component import _convert_paths_after_init
-from lightning_app.utilities.enum import CacheCallsKeys, WorkFailureReasons, WorkStageStatus
+from lightning_app.utilities.enum import AppStage, CacheCallsKeys, WorkFailureReasons, WorkStageStatus
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.proxies import (
     ComponentDelta,
@@ -266,7 +267,7 @@ class WorkRunnerPatch(WorkRunner):
 
 @mock.patch("lightning_app.runners.backends.mp_process.WorkRunner", WorkRunnerPatch)
 def test_proxy_timeout():
-    app = LightningApp(FlowTimeout(), debug=True)
+    app = LightningApp(FlowTimeout(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
     call_hash = app.root.work._calls[CacheCallsKeys.LATEST_CALL_HASH]
@@ -689,3 +690,74 @@ def test_work_runner_sets_internal_ip(environment, expected_ip_addr):
         except Empty:
             pass
         assert work.internal_ip == expected_ip_addr
+
+
+class WorkBi(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.finished = False
+        self.counter = 0
+        self.counter_2 = 0
+
+    def run(self):
+        while not self.finished:
+            self.counter_2 += 1
+            time.sleep(0.1)
+        self.counter = -1
+        time.sleep(1)
+
+
+class FlowBi(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkBi()
+
+    def run(self):
+        self.w.run()
+        if not self.w.finished:
+            self.w.counter += 1
+        if self.w.counter > 3:
+            self.w.finished = True
+        if self.w.counter == -1 and self.w.has_succeeded:
+            self._exit()
+
+
+def test_bi_directional_proxy():
+    app = LightningApp(FlowBi())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkBi2(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.finished = False
+        self.counter = 0
+        self.d = {}
+
+    def run(self):
+        self.counter -= 1
+        while not self.finished:
+            self.counter -= 1
+            time.sleep(1)
+
+
+class FlowBi2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkBi2()
+
+    def run(self):
+        self.w.run()
+        if self.w.counter == 1:
+            self.w.d["self.w.counter"] = 0
+        if not self.w.finished:
+            self.w.counter += 1
+
+
+def test_bi_directional_proxy_forbidden(monkeypatch):
+    mock = MagicMock()
+    monkeypatch.setattr(sys, "exit", mock)
+    app = LightningApp(FlowBi2())
+    MultiProcessRuntime(app, start_server=False).dispatch()
+    assert app.stage == AppStage.FAILED
+    assert "A forbidden operation to update the work" in str(app.exception)

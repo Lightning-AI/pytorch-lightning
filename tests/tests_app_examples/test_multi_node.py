@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 from tests_app import _PROJECT_ROOT
@@ -16,10 +17,8 @@ class LightningTestMultiNodeApp(LightningTestApp):
 
 
 @pytest.mark.skipif(True, reason="flaky")
-def test_multi_node_example():
-    cwd = os.getcwd()
-    new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
-    os.chdir(new_cwd)
+def test_multi_node_example(monkeypatch):
+    monkeypatch.chdir(os.path.join(_PROJECT_ROOT, "examples/app_multi_node"))
     command_line = [
         "app.py",
         "--blocking",
@@ -29,7 +28,6 @@ def test_multi_node_example():
     ]
     result = application_testing(LightningTestMultiNodeApp, command_line)
     assert result.exit_code == 0
-    os.chdir(cwd)
 
 
 class LightningTestMultiNodeWorksApp(LightningTestApp):
@@ -41,12 +39,21 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
         return res
 
 
-def test_multi_node_example_2():
-    cwd = os.getcwd()
-    new_cwd = os.path.join(_PROJECT_ROOT, "examples/app_multi_node")
-    os.chdir(new_cwd)
+@pytest.mark.parametrize(
+    "app_name",
+    [
+        "train_pytorch.py",
+        "train_any.py",
+        # "app_lite_work.py",
+        "train_pytorch_spawn.py",
+        # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
+    ],
+)
+@pytest.mark.skipif(sys.platform == "win32", reason="flaky")
+def test_multi_node_examples(app_name, monkeypatch):
+    monkeypatch.chdir(os.path.join(_PROJECT_ROOT, "examples/app_multi_node"))
     command_line = [
-        "app_work.py",
+        app_name,
         "--blocking",
         "False",
         "--open-ui",
@@ -54,4 +61,3 @@ def test_multi_node_example_2():
     ]
     result = application_testing(LightningTestMultiNodeWorksApp, command_line)
     assert result.exit_code == 0
-    os.chdir(cwd)
