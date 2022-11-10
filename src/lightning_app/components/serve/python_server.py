@@ -44,7 +44,7 @@ class Number(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        return {"prediction": 1}
+        return {"prediction": 463}
 
 
 class PythonServer(LightningWork, abc.ABC):
