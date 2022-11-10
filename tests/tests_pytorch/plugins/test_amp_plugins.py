@@ -241,7 +241,6 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_torch="1.10")
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
     plugin = NativeMixedPrecisionPlugin("bf16", "cpu")

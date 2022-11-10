@@ -50,8 +50,11 @@ jobs:
           - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
           - {os: "macOS-11", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           - {os: "windows-2022", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.7", pytorch-version: "1.9", requires: "oldest"}
           # "lightning" installs the monolithic package
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.9", pytorch-version: "1.13"}
