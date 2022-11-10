@@ -7,39 +7,33 @@ API Migration Guide
 API Changes
 ***********
 
-.. list-table:: API changes
+.. list-table:: asdf
    :widths: 40 20 20 20
    :header-rows: 1
 
-   * -
-     - DDP
-     - DDP Spawn
-     - DDP Notebook/Fork
-   * - Works in Jupyter notebooks / IPython environments
-     - No
-     - No
-     - Yes
-   * - Supports multi-node
-     - Yes
-     - Yes
-     - Yes
-   * - Supported platforms
-     - Linux, Mac, Win
-     - Linux, Mac, Win
-     - Linux, Mac
-   * - Requires all objects to be picklable
-     - No
-     - Yes
-     - No
-   * - Is the guard ``if __name__=="__main__"`` required?
-     - Yes
-     - Yes
-     - No
-   * - Limitations in the main process
-     - None
-     - None
-     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
-   * - Process creation time
-     - Slow
-     - Slow
-     - Fast
+   * - Old API
+     - deprecated in
+     - changed in
+     - New API
+   * - ``pytorch_lightning.plugins.training_type_plugin``
+     - 1.6
+     - 1.8
+     - ``pytorch_lightning.strategies``
+   * - ``pytorch_lightning.strategies.DDP2Strategy``
+     - 1.6
+     - 1.8
+     - N/A
+
+
+.. csv-table:: asdfasdf
+   :header: "Old API", "deprecated in", "changed in", "New API"
+   :widths: 40, 20, 20, 20
+
+   "``pytorch_lightning.plugins.training_type_plugin``", 1.6, 1.8, "``pytorch_lightning.strategies``"
+   "``pytorch_lightning.strategies.DDP2Strategy``", 1.7, 1.8, "N/A"
+
+
+.. csv-table:: asdfasdfasdf
+   :file: changed_api.csv
+   :widths: 40, 20, 20, 20
+   :header-rows: 1
