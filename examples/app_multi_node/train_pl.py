@@ -7,7 +7,7 @@ class PyTorchLightningDistributed(L.LightningWork):
     def run(self):
         model = BoringModel()
         trainer = L.Trainer(
-            max_epochs=10,
+            max_steps=1000,
             strategy="ddp",
         )
         trainer.fit(model)
