@@ -1,10 +1,10 @@
 import multiprocessing as mp
 
-from lightning_app.components.serve import python_server
+from lightning_app.components import PythonServer
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 
 
-class SimpleServer(python_server.PythonServer):
+class SimpleServer(PythonServer):
     def __init__(self, port):
         super().__init__(port=port)
         self._model = None
@@ -13,7 +13,7 @@ class SimpleServer(python_server.PythonServer):
         self._model = lambda x: x
 
     def predict(self, data):
-        return self._model(data)
+        return {"prediction": self._model(data.payload)}
 
 
 def target_fn(port):
@@ -26,6 +26,6 @@ def test_python_server_component():
     process = mp.Process(target=target_fn, args=(port,))
     process.start()
     session = _configure_session()
-    res = session.post(f"http://127.0.0.1:{port}/predict", data='"test"')
+    res = session.post(f"http://127.0.0.1:{port}/predict", json={"payload": "test"})
     process.terminate()
-    assert res.text == '"test"'
+    assert res.json()["prediction"] == "test"

@@ -11,11 +11,11 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-class InputData(BaseModel):
+class _DefaultInputData(BaseModel):
     payload: str
 
 
-class OutputData(BaseModel):
+class _DefaultOutputData(BaseModel):
     prediction: str
 
 
@@ -24,8 +24,8 @@ class PythonServer(LightningWork, abc.ABC):
         self,
         host: str = "127.0.0.1",
         port: int = 7777,
-        input_type: type = InputData,
-        output_type: type = OutputData,
+        input_type: type = _DefaultInputData,
+        output_type: type = _DefaultOutputData,
         **kwargs,
     ):
         """The PythonServer Class enables to easily get your machine learning server up and running.
