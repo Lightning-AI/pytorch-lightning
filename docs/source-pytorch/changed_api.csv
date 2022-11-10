@@ -1,3 +1,32 @@
 Old API,deprecated in,changed in,New API
-``pytorch_lightning.plugins.training_type_plugin``,1.6,1.8,``pytorch_lightning.strategies``
-``pytorch_lightning.strategies.DDP2Strategy``,1.7,1.8,N/A
+``LightningDeepSpeedModule``,1.8.0,1.10.0,N/A
+``Trainer(amp_level)``,1.8.0,1.10.0,``Trainer(plugins=SomePrecisionPlugin(amp_level=...))``
+``pytorch_lightning.utiltiies.meta``,1.8.0,1.10.0,Use `torchdistx <https://github.com/pytorch/torchdistx>`_.
+``unwrap_lightning_module``,1.8.0,1.10.0,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
+``unwrap_lightning_module_sharded``,1.8.0,1.10.0,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
+``LightningParallelModule(pl_module)``,1.8.0,1.10.0,``LightningParallelModule(forward_module)``
+``LightningDistributedModule(pl_module)``,1.8.0,1.10.0,``LightningDistributedModule(forward_module)``
+``LightningShardedDataParallel(pl_module)``,1.8.0,1.10.0,``LightningShardedDataParallel(forward_module)``
+``LightningBaguaModule(pl_module)``,1.8.0,1.10.0,``LightningBaguaModule(forward_module)``
+``LightningDeepSpeedModule(pl_module)``,1.8.0,1.10.0,``LightningDeepSpeedModule(forward_module)``
+``on_colab_kaggle``,1.8.0,1.10.0,
+``pl.core.mixins.DeviceDtypeModuleMixin``,1.8.0,1.10.0,
+``pytorch_lightning.utilities.xla_device.inner_f``,1.8.0,1.10.0,
+``pytorch_lightning.utilities.xla_device.pl_multi_process``,1.8.0,1.10.0,
+``pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available``,1.8.0,1.10.0,
+``pytorch_lightning.utilities.xla_device.XLADeviceUtils.tpu_device_exists``,1.8.0,1.10.0,``pytorch_lightning.accelerators.TPUAccelerator.is_available()``
+``pytorch_lightning.utilities.distributed.tpu_distributed``,1.8.0,1.10.0,``lightning_lite.accelerators.tpu.tpu_distributed``
+``pytorch_lightning.utilities.cloud_io``,1.8.0,1.10.0,``lightning_lite.utilities.cloud_io``
+``pytorch_lightning.utilities.apply_func``,1.8.0,1.10.0,``lightning_utilities.core.apply_func``
+``pytorch_lightning.utilities.device_parser.determine_root_gpu_device``,1.8.0,1.10.0,``lightning_lite.utilities.device_parser.determine_root_gpu_device``
+``pytorch_lightning.utilities.device_parser.parse_gpu_ids``,1.8.0,1.10.0,``lightning_lite.utilities.device_parser.parse_gpu_ids``
+``pytorch_lightning.utilities.device_parser.is_cuda_available``,1.8.0,1.10.0,``lightning_lite.accelerators.cuda.is_cuda_available``
+``pytorch_lightning.utilities.device_parser.num_cuda_devices``,1.8.0,1.10.0,``lightning_lite.accelerators.cuda.num_cuda_devices``
+``pytorch_lightning.utilities.device_parser.parse_cpu_cores``,1.8.0,1.10.0,``lightning_lite.accelerators.cpu.parse_cpu_cores``
+``pytorch_lightning.utilities.device_parser.parse_tpu_cores``,1.8.0,1.10.0,``lightning_lite.accelerators.tpu.parse_tpu_cores``
+``pytorch_lightning.utilities.device_parser.parse_hpus``,1.8.0,1.10.0,``pytorch_lightning.accelerators.hpu.parse_hpus``
+"``LightningCLI(save_config_filename, save_config_overwrite, save_config_multifile)``",1.8.0,1.10.0,``LightningCLI(save_config_kwargs)``
+``TrainerFn.TUNING``,1.8.0,1.10.0,N/A
+``RunningStage.TUNING``,1.8.0,1.10.0,N/A
+``trainer.tuning``,1.8.0,1.10.0,N/A
+``pl.utilities.distributed.AllGatherGrad``,1.8.0,1.10.0,``torch.distributed.nn.functional._AllGather``
