@@ -395,7 +395,6 @@ class LightningLite(ABC):
         with context:
             yield
 
-    # TODO: Find intuitive name
     @contextmanager
     def sharded_model(self) -> Generator:
         """Shard the parameters of the model instantly when instantiating the layers.
