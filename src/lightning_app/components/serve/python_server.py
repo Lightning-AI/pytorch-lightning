@@ -1,5 +1,7 @@
 import abc
+import base64
 from typing import Any, Dict
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -10,6 +12,12 @@ from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
+
+
+def image_to_base64(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+    return encoded_string.decode("UTF-8")
 
 
 class _DefaultInputData(BaseModel):
@@ -23,8 +31,10 @@ class _DefaultOutputData(BaseModel):
 class Image(BaseModel):
     image: str
 
-    def _get_sample_data(self) -> Dict[Any, Any]:
-        with open("cat.png", "rb") as image_file:
+    @staticmethod
+    def _get_sample_data() -> Dict[Any, Any]:
+        imagepath = Path(__file__).absolute().parent / "catimage.png"
+        with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}
 
@@ -32,8 +42,9 @@ class Image(BaseModel):
 class Number(BaseModel):
     prediction: int
 
-    def _get_sample_data(self) -> Dict[Any, Any]:
-        {"prediction": 1}
+    @staticmethod
+    def _get_sample_data() -> Dict[Any, Any]:
+        return {"prediction": 1}
 
 
 class PythonServer(LightningWork, abc.ABC):
@@ -126,11 +137,9 @@ class PythonServer(LightningWork, abc.ABC):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
-<<<<<<< HEAD
         if hasattr(datatype, "_get_sample_data"):
             return datatype._get_sample_data()
-=======
->>>>>>> master
+
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
         for k, v in datatype_props.items():
@@ -162,11 +171,7 @@ class PythonServer(LightningWork, abc.ABC):
         url = self._future_url if self._future_url else self.url
         if not url:
             # if the url is still empty, point it to localhost
-<<<<<<< HEAD
             url = f"http://127.0.0.1:{self.port}"
-=======
-            url = f"http://127.0.0.1{self.port}"
->>>>>>> master
         url = f"{url}/predict"
         datatype_parse_error = False
         try:
@@ -216,3 +221,4 @@ class PythonServer(LightningWork, abc.ABC):
 
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")
+
