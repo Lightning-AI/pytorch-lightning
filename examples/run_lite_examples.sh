@@ -12,10 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+set -ex
 
-# test that a user can manually launch individual processes
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-args="--trainer.gpus 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}
+dir_path=$(dirname "${BASH_SOURCE[0]}")
+
+args="--epochs=1"
+python -m lightning_lite.cli "${dir_path}/lite/image_classifier_2_lite.py" ${args} "$@"

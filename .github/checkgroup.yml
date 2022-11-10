@@ -9,12 +9,9 @@ subprojects:
   - id: "pytorch_lightning"
     paths:
       # all examples don't need to be added because they aren't used in CI, but these are
-      - "examples/run_ddp_examples.sh"
-      - "examples/convert_from_pt_to_pl/**"
       - "examples/run_pl_examples.sh"
       - "examples/pl_basics/backbone_image_classifier.py"
       - "examples/pl_basics/autoencoder.py"
-      - "examples/pl_loops/mnist_lite.py"
       - "examples/pl_fault_tolerant/automatic.py"
       - "examples/test_pl_examples.py"
       - "examples/pl_integrations/dali_image_classifier.py"
@@ -237,6 +234,8 @@ subprojects:
   - id: "lightning_lite: Azure GPU"
     paths:
       - ".azure/gpu-tests-lite.yml"
+      - "examples/lite/**"
+      - "examples/run_lite_examples.sh"
       - "tests/tests_lite/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
     checks:
