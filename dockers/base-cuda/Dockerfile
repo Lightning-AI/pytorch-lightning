@@ -145,9 +145,8 @@ RUN \
 
 RUN \
     # install ColossalAI
-    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
     # TODO: 1.13 wheels are not released, remove skip once they are
-    if [[ "$SHOULD_INSTALL_COLOSSAL" = "1" && $PYTORCH_VERSION != "1.13" ]]; then \
+    if [[ $PYTORCH_VERSION != "1.13" ]]; then \
         PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
