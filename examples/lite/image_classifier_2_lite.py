@@ -25,7 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
 the command line. See ``lightning run model --help`` or learn more from the documentation:
-https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
+https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.lite.html.
 """
 
 import argparse
@@ -35,13 +35,13 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
+from models import Net
 from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
+from torchvision.datasets import MNIST
 
 from lightning.lite import LightningLite  # import LightningLite
 from lightning.lite import seed_everything
-from pytorch_lightning.demos.boring_classes import Net
-from pytorch_lightning.demos.mnist_datamodule import MNIST
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

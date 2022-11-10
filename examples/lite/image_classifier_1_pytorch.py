@@ -18,10 +18,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision.transforms as T
+from models import Net
 from torch.optim.lr_scheduler import StepLR
-
-from pytorch_lightning.demos.boring_classes import Net
-from pytorch_lightning.demos.mnist_datamodule import MNIST
+from torchvision.datasets import MNIST
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
