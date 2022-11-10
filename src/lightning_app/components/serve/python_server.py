@@ -139,6 +139,9 @@ class PythonServer(LightningWork, abc.ABC):
 
         class_name = self.__class__.__name__
         url = self._future_url if self._future_url else self.url
+        if not url:
+            # if the url is still empty, point it to localhost
+            url = f"http://127.0.0.1{self.port}"
         url = f"{url}/predict"
         datatype_parse_error = False
         try:
