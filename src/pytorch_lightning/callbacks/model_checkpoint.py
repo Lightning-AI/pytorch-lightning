@@ -252,7 +252,6 @@ class ModelCheckpoint(Checkpoint):
             every_n_train_steps=self._every_n_train_steps,
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
-            save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:

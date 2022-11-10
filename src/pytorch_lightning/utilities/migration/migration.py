@@ -167,6 +167,7 @@ _FIT_LOOP_INITIAL_STATE_1_6_0 = {
 }
 
 
+# TODO: update docstring
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     """Changes the value of `save_on_train_epoch_end` inside the state key of ``ModelCheckpoint`` callbacks.
 
@@ -184,16 +185,16 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
     if "callbacks" not in checkpoint:
         return checkpoint
 
-    def new_key(old_key: Union[str, Type[pl.Callback]]) -> Union[str, Type[pl.Callback]]:
-        if not isinstance(old_key, str):
-            # this is a legacy state key (the type of the callback)
-            return old_key
+    def new_key(old_key: str) -> str:
         if not old_key.startswith("ModelCheckpoint"):
             return old_key
-        return re.sub("'save_on_train_epoch_end': (True|False)", "'save_on_train_epoch_end': None", old_key)
+        return re.sub(", 'save_on_train_epoch_end': (True|False)", "", old_key)
 
     num_keys = len(checkpoint["callbacks"])
-    new_callback_states = {new_key(old_key): state for old_key, state in checkpoint["callbacks"].items()}
+    # Note: only iterate over keys that are strings. The legacy state key was the type of the callback.
+    new_callback_states = {
+        new_key(old_key): state for old_key, state in checkpoint["callbacks"].items() if isinstance(old_key, str)
+    }
     if len(new_callback_states) < num_keys:
         rank_zero_warn(
             "You have multiple `ModelCheckpoint` callback states in this checkpoint, but we found state keys"
