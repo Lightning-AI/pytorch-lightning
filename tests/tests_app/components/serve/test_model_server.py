@@ -4,7 +4,7 @@ from lightning_app.components.serve import model_server
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 
 
-class SimpleServer(model_server.ModelServer):
+class SimpleServer(model_server.PythonServer):
     def __init__(self, port):
         super().__init__(port=port)
         self._model = None

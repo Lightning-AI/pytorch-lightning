@@ -2,7 +2,7 @@ import abc
 from typing import Any
 
 import uvicorn
-from fastapi import Body, FastAPI
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 from lightning_app.core.work import LightningWork
@@ -16,39 +16,65 @@ class InputData(BaseModel):
 
 
 class OutputData(BaseModel):
-    prediction: int
+    prediction: str
 
 
-class ModelServer(LightningWork, abc.ABC):
+class PythonServer(LightningWork, abc.ABC):
     def __init__(  # type: ignore
-        self, host: str = "127.0.0.1", port: int = 7777, input_type: type = InputData, output_type: type = OutputData, **kwargs
+        self,
+        host: str = "127.0.0.1",
+        port: int = 7777,
+        input_type: type = InputData,
+        output_type: type = OutputData,
+        **kwargs
     ):
-        """The ModelServer Class enables to easily get your machine learning server up and running.
+        """The PythonServer Class enables to easily get your machine learning server up and running.
 
         Arguments:
             host: Address to be used for running the server.
             port: Port to be used to running the server.
-            input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class
-            output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class
+            input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class.
+                The default data type is good enough for the basic usecases and it expects the data
+                to be a json object that has one key called `payload`
+
+                ```
+                input_data = {"payload": "some data"}
+                ```
+
+                and this can be accessed as `request.payload` in the `predict` method.
+
+                ```
+                def predict(self, request):
+                    data = request.payload
+                ```
+
+            output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class.
+                The default data type is good enough for the basic usecases. It expects the return value of
+                the `predict` method to be a dictionary with one key called `prediction`.
+
+                ```
+                def predict(self, request):
+                    # some code
+                    return {"prediction": "some data"}
+                ```
+
+                and this can be accessed as `response.json()["prediction"]` in the client if
+                you are using requests library
 
         .. doctest::
 
-            >>> from lightning_app.components.serve.model_server import ModelServer
+            >>> from lightning_app.components.serve.python_server import PythonServer
+            >>> from lightning_app import LightningApp
             >>> from pydantic import BaseModel
             >>>
-            >>> class InputData(BaseModel):
-            ...     image: str
             ...
-            >>> class OutputData(BaseModel):
-            ...     prediction: str
-            ...
-            >>> class SimpleServer(ModelServer):
+            >>> class SimpleServer(PythonServer):
             ...     def setup(self):
             ...         self._model = lambda x: x + " " + x
             ...     def predict(self, request):
             ...         return {"prediction": self._model(request.image)}
             ...
-            >>> app = SimpleServer(input_type=InputData, output_type=OutputData)
+            >>> app = LightningApp(SimpleServer())
         """
         super().__init__(parallel=True, host=host, port=port, **kwargs)
         if not issubclass(input_type, BaseModel):
