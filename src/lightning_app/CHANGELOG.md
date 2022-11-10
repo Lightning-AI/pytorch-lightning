@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `bi-directional` delta updates between the flow and the works ([#15582](https://github.com/Lightning-AI/lightning/pull/15582))
 
+- Added `--setup` flag to `lightning run app` CLI command allowing for dependency installation via app comments ([#15577](https://github.com/Lightning-AI/lightning/pull/15577))
+
 
 ### Changed
 
