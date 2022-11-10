@@ -1,9 +1,8 @@
 # !pip install torchvision
 import lightning as L
-from lightning.app.components.serve import PythonServer
+from lightning.app.components.serve import PythonServer, Image, Number
 import base64, io, torchvision, torch
-from PIL import Image
-from pydantic import BaseModel
+from PIL import Image as PILImage
 
 
 class PyTorchServer(PythonServer):
@@ -14,7 +13,7 @@ class PyTorchServer(PythonServer):
 
     def predict(self, request):
         image = base64.b64decode(request.image.encode("utf-8"))
-        image = Image.open(io.BytesIO(image))
+        image = PILImage.open(io.BytesIO(image))
         transforms = torchvision.transforms.Compose([
             torchvision.transforms.Resize(224),
             torchvision.transforms.ToTensor(),
@@ -25,8 +24,8 @@ class PyTorchServer(PythonServer):
         prediction = self._model(image.unsqueeze(0))
         return {"prediction": prediction.argmax().item()}
 
-class InputData(BaseModel):
-    image: str
 
-component = PyTorchServer(input_type=InputData, cloud_compute=L.CloudCompute('gpu'))
+component = PyTorchServer(
+   input_type=Image, output_type=Number, cloud_compute=L.CloudCompute('gpu')
+)
 app = L.LightningApp(component)

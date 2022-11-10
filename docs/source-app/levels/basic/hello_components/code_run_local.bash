@@ -1,1 +1,1 @@
-lightning run app app.py --setup
+lightning run app app.py

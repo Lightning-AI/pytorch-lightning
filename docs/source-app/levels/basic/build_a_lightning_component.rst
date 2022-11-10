@@ -118,12 +118,7 @@ A Lightning component organizes arbitrary code so it can run on the cloud, manag
 
 Components run the same on the cloud and locally on your choice of hardware.
 
-.. lit_tabs::
-   :titles: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
-   :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_cloud_yours.bash; ./hello_components/code_run_local.bash
-   :tab_rows: 4
-   :highlights: ; 5; 0
-   :height: 195px
+.. include:: /levels/basic/hero_run_setup.rst
 
 ----
 

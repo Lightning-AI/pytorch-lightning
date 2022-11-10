@@ -25,20 +25,19 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
    :description: Train a model (32 GPUs)
    :width: 280
    :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
-   :preview: https://lightning.ai
-   :deploy: https://lightning.ai
-   :target: https://apple.com
-   :tags: Model
+   :target: levels/basic/real_lightning_component_implementations.html#ex-pytorch-lightning-trainer
+   :preview: levels/basic/real_lightning_component_implementations.html#ex-pytorch-lightning-trainer
+   :tags: Training
 
 .. app_card::
    :title: Serve and deploy
-   :description: Production-ready stable diffusion server (<2s latency)
+   :description: Production diffusion server (<2s latency)
    :width: 280
    :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
    :deploy: https://lightning.ai
    :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
-   :tags: App
+   :tags: Serving
 
 .. app_card::
    :title: Scale and build a product
@@ -47,7 +46,7 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
    :app_id: HvUwbEG90E
    :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
    :target: https://lightning.ai/muse
-   :tags: App
+   :tags: AI App
 
 .. raw:: html
 
@@ -56,14 +55,14 @@ Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 
 ----
 
-*******************************************
-Build self-contained, composable components
-*******************************************
-Lightning is a hyper-minimalistic framework that lets you build self-contained machine-learning components
-that you can plug into your existing ML workflows. A Lightning component organizes arbitrary code so it can run on the cloud, manages 
-its own infrastructure, cloud costs, networking and more. Focus on component logic and not engineering.
+********************************
+Build self-contained, components
+********************************
+Use Lightning, the hyper-minimalistic framework, to build machine learning components that can plug into existing ML workflows. 
+A Lightning component organizes arbitrary code to run on the cloud, manage its own infrastructure, cloud costs, networking, and more.
+Focus on component logic and not engineering.
 
-Use components stand-alone or compose them with the Lightning orchestrator into full-stack AI apps.
+Use components on their own, or compose them into full-stack AI apps with our next-generation Lightning orchestrator.
 
 .. raw:: html
 
