@@ -10,6 +10,7 @@ import inquirer
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
+from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -366,17 +367,11 @@ def run_app(
     )
 
 
-@_main.group(hidden=True)
-def fork() -> None:
-    """Fork an application."""
-    pass
+if RequirementCache("lightning-lite"):
+    # lightning-lite may not be available when installing only standalone lightning-app package
+    from lightning_lite.cli import _run_model
 
-
-@_main.group(hidden=True)
-def stop() -> None:
-    """Stop your application."""
-    pass
-
+    run.add_command(_run_model)
 
 _main.add_command(get_list)
 _main.add_command(delete)
