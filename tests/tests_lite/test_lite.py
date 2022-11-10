@@ -30,6 +30,7 @@ from lightning_lite.plugins import Precision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
+    DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
