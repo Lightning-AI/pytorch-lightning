@@ -1,10 +1,10 @@
 import multiprocessing as mp
 
-from lightning_app.components.serve import model_server
+from lightning_app.components.serve import python_server
 from lightning_app.utilities.network import _configure_session, find_free_network_port
 
 
-class SimpleServer(model_server.PythonServer):
+class SimpleServer(python_server.PythonServer):
     def __init__(self, port):
         super().__init__(port=port)
         self._model = None
@@ -21,7 +21,7 @@ def target_fn(port):
     image_server.run()
 
 
-def test_model_server_component():
+def test_python_server_component():
     port = find_free_network_port()
     process = mp.Process(target=target_fn, args=(port,))
     process.start()

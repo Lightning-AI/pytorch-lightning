@@ -65,7 +65,6 @@ class PythonServer(LightningWork, abc.ABC):
 
             >>> from lightning_app.components.serve.python_server import PythonServer
             >>> from lightning_app import LightningApp
-            >>> from pydantic import BaseModel
             >>>
             ...
             >>> class SimpleServer(PythonServer):
@@ -117,7 +116,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def run(self) -> None:  # type: ignore
+    def run(self) -> None:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
 
         Normally, you don't need to override this method.
