@@ -138,7 +138,8 @@ class PythonServer(LightningWork, abc.ABC):
         from lightning_api_access import APIAccessFrontend
 
         class_name = self.__class__.__name__
-        url = f"{self.url}/predict"
+        url = self._future_url if self._future_url else self.url
+        url = f"{url}/predict"
         datatype_parse_error = False
         try:
             request = self._get_sample_dict_from_datatype(self.configure_input_type())
