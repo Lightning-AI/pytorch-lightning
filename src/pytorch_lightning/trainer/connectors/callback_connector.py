@@ -14,6 +14,7 @@
 
 import logging
 import os
+from collections import defaultdict
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -82,6 +83,7 @@ class CallbackConnector:
             self._configure_fault_tolerance_callbacks()
 
         self.trainer.callbacks.extend(_configure_external_callbacks())
+        _validate_callbacks_list(self.trainer.callbacks)
 
         # push all model checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -290,3 +292,18 @@ def _configure_external_callbacks() -> List[Callback]:
         )
         external_callbacks.extend(callbacks_list)
     return external_callbacks
+
+
+def _validate_callbacks_list(callbacks: List[Callback]) -> None:
+    stateful_callbacks = [c for c in callbacks if c.state_dict()]
+    seen_callbacks = defaultdict(list)
+    for callback in stateful_callbacks:
+        if callback.state_key in seen_callbacks:
+            raise RuntimeError(
+                f"Found more than one stateful callback of type `{type(callback).__name__}`. In the current"
+                " configuration, this callback does not support being saved alongside other instances of the same type."
+                f" Please consult the documentation of `{type(callback).__name__}` regarding valid settings for"
+                " the callback state to be checkpointable."
+                " HINT: The `callback.state_key` must be unique among all callbacks in the Trainer."
+            )
+        seen_callbacks[callback.state_key].append(callback)
