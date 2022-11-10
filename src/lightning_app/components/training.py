@@ -111,7 +111,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         return "LIGHTNING_APP_STATE_URL" in os.environ
 
 
-class LightningTrainingComponent(LightningFlow):
+class LightningTrainerScript(LightningFlow):
     def __init__(
         self,
         script_path: str,
@@ -127,11 +127,11 @@ class LightningTrainingComponent(LightningFlow):
         Example::
 
             from lightning_app import LightningApp
-            from lightning_app.components.training import LightningTrainingComponent
+            from lightning_app.components.training import LightningTrainerScript
             from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
             app = LightningApp(
-                LightningTrainingComponent(
+                LightningTrainerScript(
                     "train.py",
                     num_nodes=2,
                     cloud_compute=CloudCompute("gpu"),
