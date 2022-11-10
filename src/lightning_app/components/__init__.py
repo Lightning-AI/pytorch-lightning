@@ -1,9 +1,9 @@
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
 from lightning_app.components.multi_node import (
+    LightningTrainerMultiNode,
     LiteMultiNode,
     MultiNode,
-    PyTorchLightningMultiNode,
     PyTorchSpawnMultiNode,
 )
 from lightning_app.components.python.popen import PopenPythonScript
@@ -29,5 +29,5 @@ __all__ = [
     "LightningTrainingComponent",
     "PyTorchLightningScriptRunner",
     "PyTorchSpawnMultiNode",
-    "PyTorchLightningMultiNode",
+    "LightningTrainerMultiNode",
 ]
