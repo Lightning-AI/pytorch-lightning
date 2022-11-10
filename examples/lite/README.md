@@ -27,5 +27,5 @@ lightning run model image_classifier_2_lite.py
 lightning run model image_classifier_2_lite.py --accelerator=gpu
 
 # Multiple GPUs
-lightning run model image_classifier_2_lite.py --accelerator=gpu --devices 4
+lightning run model image_classifier_2_lite.py --accelerator=gpu --devices=4
 ```
