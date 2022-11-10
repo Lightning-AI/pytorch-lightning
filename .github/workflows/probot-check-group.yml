@@ -11,7 +11,8 @@ concurrency:
 jobs:
   required-jobs:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    # FIXME: debugging
+    #if: github.event.pull_request.draft == false
     timeout-minutes: 61  # in case something is wrong with the internal timeout
     steps:
       - uses: Lightning-AI/probot@v2
