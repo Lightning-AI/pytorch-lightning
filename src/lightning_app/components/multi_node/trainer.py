@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Any, Type
+from typing import Any, Callable, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
@@ -8,7 +8,6 @@ from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkStateObserver
 from lightning_app.utilities.tracer import Tracer
 
 
@@ -24,20 +23,13 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
-        work: "LightningWork",
-        delta_queue,
+        work_run: Callable,
         main_address: str,
         main_port: int,
         num_nodes: int,
         node_rank: int,
         nprocs: int,
     ):
-        if local_rank == 0:
-            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
-            state_observer.start()
-            _proxy_setattr(work, delta_queue, state_observer)
-            pass
-
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
         from lightning.pytorch import Trainer as LTrainer
         from pytorch_lightning import Trainer as PLTrainer
@@ -74,11 +66,8 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         tracer.add_traced(PLTrainer, "__init__", pre_fn=pre_fn)
         tracer.add_traced(LTrainer, "__init__", pre_fn=pre_fn)
         tracer._instrument()
-        unwrap(work.run)()
+        work_run()
         tracer._restore()
-
-        if local_rank == 0:
-            state_observer.join(0)
 
 
 class LightningTrainerMultiNode(MultiNode):

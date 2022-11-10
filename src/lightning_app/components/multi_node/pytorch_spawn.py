@@ -1,8 +1,9 @@
-from typing import Any, Type
+from typing import Any, Callable, Type
 
 from typing_extensions import Protocol, runtime_checkable
 
 from lightning_app.components.multi_node.base import MultiNode
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
@@ -35,28 +36,40 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
         with self.enable_spawn():
             nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
+            queue = self.delta_queue if isinstance(self.delta_queue, MultiProcessQueue) else self.delta_queue.to_dict()
             torch.multiprocessing.spawn(
-                self.run,
-                args=(self.work, self.delta_queue, main_address, main_port, num_nodes, node_rank, nprocs),
+                self.dispatch_run,
+                args=(self.__class__, self.work, queue, main_address, main_port, num_nodes, node_rank, nprocs),
                 nprocs=nprocs,
             )
 
     @staticmethod
+    def dispatch_run(local_rank, cls, work, delta_queue, *args, **kwargs):
+        if local_rank == 0:
+            if isinstance(delta_queue, dict):
+                delta_queue = WorkRunExecutor.process_queue(delta_queue)
+                work._request_queue = WorkRunExecutor.process_queue(work._request_queue)
+                work._response_queue = WorkRunExecutor.process_queue(work._response_queue)
+
+            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
+            state_observer.start()
+            _proxy_setattr(work, delta_queue, state_observer)
+
+        cls.run(local_rank, unwrap(work.run), *args, **kwargs)
+
+        if local_rank == 0:
+            state_observer.join(0)
+
+    @staticmethod
     def run(
         local_rank: int,
-        work: "LightningWork",
-        delta_queue,
+        work_run: Callable,
         main_address: str,
         main_port: int,
         num_nodes: int,
         node_rank: int,
         nprocs: int,
     ):
-        if local_rank == 0:
-            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
-            state_observer.start()
-            _proxy_setattr(work, delta_queue, state_observer)
-            pass
 
         import torch
 
@@ -75,10 +88,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         elif world_size > 1:
             raise Exception("Torch distributed should be available.")
 
-        unwrap(work.run)(world_size, node_rank, global_rank, local_rank)
-
-        if local_rank == 0:
-            state_observer.join(0)
+        work_run(world_size, node_rank, global_rank, local_rank)
 
 
 class PyTorchSpawnMultiNode(MultiNode):

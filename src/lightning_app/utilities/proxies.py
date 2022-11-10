@@ -12,7 +12,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -352,19 +352,28 @@ class WorkRunExecutor:
         return self.work_run(*args, **kwargs)
 
     @contextmanager
-    def enable_spawn(self):
-        setattr_fn = self.work._setattr_replacement
+    def enable_spawn(self) -> Generator:
         self.work._setattr_replacement = None
-        backend = self.work._backend
         self.work._backend = None
-        try:
-            yield
-        except Exception as e:
-            self.work._setattr_replacement = setattr_fn
-            self.work._backend = backend
-            raise e
-        self.work._setattr_replacement = setattr_fn
-        self.work._backend = backend
+        self._clean_queues()
+        yield
+
+    def _clean_queues(self):
+        if "LIGHTNING_APP_STATE_URL" in os.environ:
+            self.work._request_queue = self.work._request_queue.to_dict()
+            self.work._response_queue = self.work._response_queue.to_dict()
+
+    @staticmethod
+    def process_queue(queue):
+        from lightning_app.core.queues import HTTPQueue, RedisQueue
+
+        if isinstance(queue, dict):
+            queue_type = queue.pop("type")
+            if queue_type == "redis":
+                return RedisQueue.from_dict(queue)
+            else:
+                return HTTPQueue.from_dict(queue)
+        return queue
 
 
 @dataclass
