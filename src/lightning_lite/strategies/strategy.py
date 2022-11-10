@@ -28,7 +28,7 @@ from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.optimizer import optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device
 from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -149,16 +149,6 @@ class Strategy(ABC):
         device = device or self.root_device
         return move_data_to_device(batch, device)
 
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
-
-        Returns: Model parallel context.
-        """
-        yield
-
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
         self.precision.pre_backward(tensor, module)
@@ -221,7 +211,7 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduce a boolean decision across all processes."""
         return decision
 
@@ -273,7 +263,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
+            _optimizer_to_device(optimizer, self.root_device)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -314,3 +304,18 @@ class _BackwardSyncControl(ABC):
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.
         """
+
+
+class _Sharded(ABC):
+    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model
+    parameters."""
+
+    @abstractmethod
+    @contextmanager
+    def module_sharded_context(self) -> Generator:
+        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
+        of parameters on creation.
+
+        By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
+        """
+        yield

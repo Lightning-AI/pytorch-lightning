@@ -1,3 +1,5 @@
+:orphan:
+
 .. _app_component_tree:
 
 ###################

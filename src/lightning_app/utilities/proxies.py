@@ -7,18 +7,18 @@ import time
 import traceback
 import warnings
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
-from lightning_app.storage.copier import Copier, copy_files
+from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.storage.path import path_to_work_artifact
+from lightning_app.storage.path import _path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.component import _set_work_context
@@ -39,6 +39,13 @@ from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
+
+
+@dataclass
+class Action:
+    method: str = "run"
+    args: Tuple = field(default_factory=lambda: ())
+    kwargs: Dict = field(default_factory=lambda: {})
 
 
 def unwrap(fn):
@@ -295,6 +302,16 @@ class ComponentDelta:
 
 
 @dataclass
+class WorkRunExecutor:
+
+    work: "LightningWork"
+    work_run: Callable
+
+    def __call__(self, *args, **kwargs):
+        return self.work_run(*args, **kwargs)
+
+
+@dataclass
 class WorkRunner:
     work: "LightningWork"
     work_name: str
@@ -306,10 +323,11 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
+    run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
         self.parallel = self.work.parallel
-        self.copier: Optional[Copier] = None
+        self.copier: Optional[_Copier] = None
         self.state_observer: Optional[WorkStateObserver] = None
 
     def __call__(self):
@@ -351,7 +369,7 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        self.copier = Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
         self.copier.setDaemon(True)
         self.copier.start()
 
@@ -388,17 +406,20 @@ class WorkRunner:
         # 6. Create the state observer thread.
         self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
 
+        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
+        reference_state = deepcopy(self.work.state)
+
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
 
-        # 7. Patch the setattr method of the work. This needs to be done after step 4, so we don't
+        # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
         self._proxy_setattr()
 
-        # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        reference_state = deepcopy(self.work.state)
+        if self._is_starting(called, reference_state, call_hash):
+            return
 
         # 9. Inform the flow the work is running and add the delta to the deepcopy.
         self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
@@ -419,7 +440,7 @@ class WorkRunner:
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = work_run(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
@@ -436,7 +457,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = work_run(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
                     user_exception = True
 
             if used_runpy:
@@ -569,6 +590,21 @@ class WorkRunner:
             if path.origin_name and path.origin_name != self.work.name and path.exists_remote():
                 path.get(overwrite=True)
 
+    def _is_starting(self, called, reference_state, call_hash) -> bool:
+        if len(called["args"]) == 1 and isinstance(called["args"][0], Action):
+            action = called["args"][0]
+            if action.method == "start":
+                # 9. Inform the flow the work is running and add the delta to the deepcopy.
+                self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
+                self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.STARTED))
+                delta = Delta(DeepDiff(reference_state, self.work.state))
+                self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+                self._proxy_setattr(cleanup=True)
+                return True
+            else:
+                raise Exception("Only the `start` action is supported right now !")
+        return False
+
 
 def persist_artifacts(work: "LightningWork") -> None:
     """Copies all :class:`~lightning_app.storage.path.Path` referenced by the given LightningWork to the shared
@@ -594,8 +630,8 @@ def persist_artifacts(work: "LightningWork") -> None:
         if not artifact_path.exists():
             missing_artifacts.add(str(artifact_path))
             continue
-        destination_path = path_to_work_artifact(artifact_path, work)
-        copy_files(artifact_path, destination_path)
+        destination_path = _path_to_work_artifact(artifact_path, work)
+        _copy_files(artifact_path, destination_path)
         destination_paths.append(destination_path)
 
     if missing_artifacts:

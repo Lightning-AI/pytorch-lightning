@@ -3,7 +3,7 @@ from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
 
-from lightning_app import LightningWork
+from lightning_app.core.work import LightningWork
 from lightning_app.utilities.imports import _is_gradio_available, requires
 
 if _is_gradio_available():

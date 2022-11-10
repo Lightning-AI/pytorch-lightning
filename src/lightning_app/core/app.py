@@ -11,8 +11,9 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+import lightning_app
 from lightning_app import _console
-from lightning_app.api.request_types import APIRequest, CommandRequest, DeltaRequest
+from lightning_app.api.request_types import _APIRequest, _CommandRequest, _DeltaRequest
 from lightning_app.core.constants import (
     DEBUG_ENABLED,
     FLOW_DURATION_SAMPLES,
@@ -24,9 +25,14 @@ from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path
-from lightning_app.storage.path import storage_root_dir
+from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
+from lightning_app.utilities.app_helpers import (
+    _delta_to_app_state_delta,
+    _LightningAppRef,
+    _should_dispatch_app,
+    Logger,
+)
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -50,7 +56,8 @@ class LightningApp:
     def __init__(
         self,
         root: Union["LightningFlow", "LightningWork"],
-        debug: bool = False,
+        flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
+        log_level: str = "info",
         info: frontend.AppInfo = None,
         root_path: str = "",
     ):
@@ -67,7 +74,8 @@ class LightningApp:
         Arguments:
             root: The root ``LightningFlow`` or ``LightningWork`` component, that defines all the app's nested
                  components, running infinitely. It must define a `run()` method that the app can call.
-            debug: Whether to activate the Lightning Logger debug mode.
+            flow_cloud_compute: The default Cloud Compute used for flow, Rest API and frontend's.
+            log_level: The log level for the app, one of [`info`, `debug`].
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
@@ -100,6 +108,7 @@ class LightningApp:
 
         _validate_root_flow(root)
         self._root = root
+        self.flow_cloud_compute = flow_cloud_compute or lightning_app.CloudCompute(name="flow-lite")
 
         # queues definition.
         self.delta_queue: Optional[BaseQueue] = None
@@ -146,8 +155,11 @@ class LightningApp:
         # is only available after all Flows and Works have been instantiated.
         _convert_paths_after_init(self.root)
 
+        if log_level not in ("debug", "info"):
+            raise Exception(f"Log Level should be in ['debug', 'info']. Found {log_level}")
+
         # Lazily enable debugging.
-        if debug or DEBUG_ENABLED:
+        if log_level == "debug" or DEBUG_ENABLED:
             if not DEBUG_ENABLED:
                 os.environ["LIGHTNING_DEBUG"] = "2"
             _console.setLevel(logging.DEBUG)
@@ -157,6 +169,12 @@ class LightningApp:
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
         frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
+
+        if _should_dispatch_app():
+            os.environ["LIGHTNING_DISPATCHED"] = "1"
+            from lightning_app.runners import MultiProcessRuntime
+
+            MultiProcessRuntime(self).dispatch()
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -222,7 +240,7 @@ class LightningApp:
 
     @property
     def checkpoint_dir(self) -> str:
-        return os.path.join(storage_root_dir(), "checkpoints")
+        return os.path.join(_storage_root_dir(), "checkpoints")
 
     def remove_changes_(self, state):
         for _, child in state["flows"].items():
@@ -280,7 +298,7 @@ class LightningApp:
     @property
     def flows(self) -> List["LightningFlow"]:
         """Returns all the flows defined within this application."""
-        return [self.root] + self.root.get_all_children()
+        return [self.root] + list(self.root.flows.values())
 
     @property
     def works(self) -> List[LightningWork]:
@@ -292,7 +310,7 @@ class LightningApp:
         """Returns all the works defined within this application with their names."""
         return self.root.named_works(recurse=True)
 
-    def _collect_deltas_from_ui_and_work_queues(self) -> List[Union[Delta, APIRequest, CommandRequest]]:
+    def _collect_deltas_from_ui_and_work_queues(self) -> List[Union[Delta, _APIRequest, _CommandRequest]]:
         # The aggregation would try to get as many deltas as possible
         # from both the `api_delta_queue` and `delta_queue`
         # during the `state_accumulate_wait` time.
@@ -306,10 +324,10 @@ class LightningApp:
 
             # TODO: Fetch all available deltas at once to reduce queue calls.
             delta: Optional[
-                Union[DeltaRequest, APIRequest, CommandRequest, ComponentDelta]
+                Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
             ] = self.get_state_changed_from_queue(self.delta_queue)
             if delta:
-                if isinstance(delta, DeltaRequest):
+                if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
                 elif isinstance(delta, ComponentDelta):
                     logger.debug(f"Received from {delta.id} : {delta.delta.to_dict()}")

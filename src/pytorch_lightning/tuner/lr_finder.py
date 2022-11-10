@@ -258,7 +258,7 @@ def lr_find(
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
-    lr_finder.broadcast_results(trainer)
+    lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
     if update_attr:
         lr = lr_finder.suggestion()
 
@@ -391,6 +391,8 @@ class _LRCallback(Callback):
                 trainer.should_stop = True  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
+
+        trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:

@@ -20,10 +20,14 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import get_default_process_group_backend_for_device
+from lightning_lite.strategies.fsdp_native import _optimizer_has_flat_params
+from lightning_lite.utilities.distributed import (
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, sync_ddp_if_available
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
@@ -181,11 +185,11 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        init_dist_connection(self.cluster_environment, self._process_group_backend)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend)
         super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
+        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -212,6 +216,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             del self.kwargs["auto_wrap_policy"]
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
+
         return FullyShardedDataParallel(
             module=model,
             process_group=self.process_group,
@@ -248,9 +253,25 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.barrier()
 
         self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
 
         self.setup_precision_plugin()
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        invalid_params_error = False
+        try:
+            super().setup_optimizers(trainer)
+        except ValueError as e:
+            if "optimizer got an empty parameter list" not in str(e):
+                raise
+            invalid_params_error = True
+
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
 
     def model_to_device(self) -> None:
         pass
@@ -302,7 +323,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
