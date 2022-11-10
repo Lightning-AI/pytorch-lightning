@@ -352,8 +352,10 @@ def _reset_progress(trainer: "pl.Trainer") -> None:
 def _sync_new_batch_size(trainer, new_size: int, changed: bool) -> Tuple[int, bool]:
     # It is possible that different ranks find different batch sizes
     # We need to take the minimum across all to ranks, so we can ensure the model fits everywhere
-    new_size = trainer.strategy.reduce(
-        torch.tensor(new_size, device=trainer.lightning_module.device), reduce_op=ReduceOp.MIN
-    ).int().item()
+    new_size = (
+        trainer.strategy.reduce(torch.tensor(new_size, device=trainer.lightning_module.device), reduce_op=ReduceOp.MIN)
+        .int()
+        .item()
+    )
     changed = trainer.strategy.reduce_boolean_decision(changed, all=False)
     return new_size, changed
