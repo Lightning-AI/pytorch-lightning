@@ -189,6 +189,6 @@ if __name__ == "__main__":
             "To use the Lightning Lite CLI, you must have `click` installed."
             " Install it by running `pip install -U click`."
         )
-        exit(1)
+        raise SystemExit(1)
 
     _run_model()
