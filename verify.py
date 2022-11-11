@@ -37,7 +37,6 @@ class BoringModel(LightningModule):
         for c in self.trainer.callbacks:
             print(c.state_key, c.state_dict())
 
-
     def training_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("train_loss", loss)
