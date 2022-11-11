@@ -14,7 +14,7 @@
 import pytest
 
 
-def test_v2_0_0_rank_zero_from_distributed():
+def test_v2_0_0_get_gpu_memory_map():
     from pytorch_lightning.utilities.memory import get_gpu_memory_map
 
     with pytest.raises(
