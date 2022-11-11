@@ -12,8 +12,6 @@ VERSIONS = [
     dict(torch="1.10.2", torchvision="0.11.3"),
     dict(torch="1.10.1", torchvision="0.11.2"),
     dict(torch="1.10.0", torchvision="0.11.1"),
-    dict(torch="1.9.1", torchvision="0.10.1"),
-    dict(torch="1.9.0", torchvision="0.10.0"),
 ]
 
 
@@ -62,16 +60,16 @@ def test_check():
     torchmetrics>=0.4.1
     """
     expected = """
-    torch==1.9.1
-    torch==1.9.1
-    torch==1.9.1
-    torch==1.9.1
+    torch==1.12.1
+    torch==1.12.1
+    torch==1.12.1
+    torch==1.12.1
     future>=0.17.1
     pytorch==1.5.6+123dev0
-    torchvision==0.10.1
+    torchvision==0.13.1
     torchmetrics>=0.4.1
     """.strip()
-    actual = main(requirements, "1.9")
+    actual = main(requirements, "1.12")
     assert actual == expected, (actual, expected)
 
 
