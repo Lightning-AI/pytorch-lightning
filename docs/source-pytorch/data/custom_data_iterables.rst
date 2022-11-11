@@ -4,11 +4,11 @@
 Injecting 3rd Party Data Iterables
 ##################################
 
-When training a model with on a specific task, dataloading and preprocessing might become a bottleneck.
+When training a model on a specific task, data loading and preprocessing might become a bottleneck.
 Lightning does not enforce a specific data loading approach nor does it try to control it.
 The only assumption Lightning makes is that the data is returned as an iterable of batches.
 
-For PyTorch-based programs these iterables are typically instances of :class:`~torch.utils.data.DataLoader`.
+For PyTorch-based programs, these iterables are typically instances of :class:`~torch.utils.data.DataLoader`.
 
 However, Lightning also supports other data types such as plain list of batches, generators or other custom iterables.
 
@@ -24,7 +24,7 @@ Examples for custom iterables include `NVIDIA DALI <https://github.com/NVIDIA/DA
 Both libraries offer support for custom data loading and preprocessing (also hardware accelerated) and can be used with Lightning.
 
 
-For example taking the example from FFCV's readme, we can use it with Lightning by just removing the hardcoded ``ToDevice(0)``
+For example, taking the example from FFCV's readme, we can use it with Lightning by just removing the hardcoded ``ToDevice(0)``
 as Lightning takes care of GPU placement. In case you want to use some data transformations on GPUs, change the
 ``ToDevice(0)`` to ``ToDevice(self.trainer.local_rank)`` to correctly map to the desired GPU in your pipeline.
 
