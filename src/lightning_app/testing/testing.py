@@ -432,12 +432,17 @@ def run_app_in_cloud(
                     app_id=app_id,
                 ).lightningworks
 
+                component_names = ["flow"] + [w.name for w in works]
+            else:
+
                 def add_prefix(c: str) -> str:
+                    if c == "flow":
+                        return c
                     if not c.startswith("root."):
                         return "root." + c
                     return c
 
-                component_names = ["flow"] + [add_prefix(w.name) for w in works]
+                component_names = [add_prefix(c) for c in component_names]
 
             gen = _app_logs_reader(
                 logs_api_client=logs_api_client,
