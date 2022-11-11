@@ -14,7 +14,6 @@
 
 import logging
 import os
-from collections import defaultdict
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
@@ -298,7 +297,7 @@ def _configure_external_callbacks() -> List[Callback]:
 
 def _validate_callbacks_list(callbacks: List[Callback]) -> None:
     stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb, parent=Callback)]
-    seen_callbacks = defaultdict(list)
+    seen_callbacks = set()
     for callback in stateful_callbacks:
         if callback.state_key in seen_callbacks:
             raise RuntimeError(
@@ -308,4 +307,4 @@ def _validate_callbacks_list(callbacks: List[Callback]) -> None:
                 " the callback state to be checkpointable."
                 " HINT: The `callback.state_key` must be unique among all callbacks in the Trainer."
             )
-        seen_callbacks[callback.state_key].append(callback)
+        seen_callbacks.add(callback.state_key)
