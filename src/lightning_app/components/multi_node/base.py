@@ -62,8 +62,6 @@ class MultiNode(LightningFlow):
                 for _ in range(num_nodes)
             ]
         )
-        self.num_nodes = num_nodes
-        self.has_started = False
 
     def run(self) -> None:
         # 1. Wait for all works to be started !
@@ -71,7 +69,7 @@ class MultiNode(LightningFlow):
             return
 
         # 2. Loop over all node machines
-        for node_rank in range(self.num_nodes):
+        for node_rank in range(len(self.ws)):
 
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
