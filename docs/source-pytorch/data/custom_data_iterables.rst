@@ -103,7 +103,7 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
                 return train_data
 
 
-Limitiations
+Limitations
 ------------
 Lightning works with all kinds of custom data iterables as shown above. There are, however, a few features that cannot
 be supported this way. These restrictions come from the fact that for their support,
