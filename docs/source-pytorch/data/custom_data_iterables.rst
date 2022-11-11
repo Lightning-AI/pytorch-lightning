@@ -103,7 +103,20 @@ By just changing ``device_id=0`` to ``device_id=self.trainer.local_rank`` we can
                 return train_data
 
 
-Lightning works seamlessly with all kinds of custom data iterables,
-but unfortunately it cannot support the entire featureset with arbitrary iterables as some are specific to dataloaders.
-These features are mainly automatic replacement of the sampler and fully fault-tolerant training as these dataloaders
-typically don't expose sampling APIs to fast-forward or save and load states.
+Limitiations
+------------
+Lightning works with all kinds of custom data iterables as shown above. There are, however, a few features that cannot
+be supported this way. These restrictions come from the fact that for their support,
+Lightning needs to know a lot on the internals of these iterables.
+
+- In a distributed multi-GPU setting (ddp),
+  Lightning automatically replaces the DataLoader's sampler with its distributed counterpart.
+  This makes sure that each GPU sees a different part of the dataset.
+  As sampling can be implemented in arbitrary ways with custom iterables,
+  there is no way for Lightning to know, how to replace the sampler.
+
+- When training fails for some reason, Lightning is able to extract all of the relevant data from the model,
+  optimizers, trainer and dataloader to resume it at the exact same batch it crashed.
+  This feature is called fault-tolerance and is limited to PyTorch DataLoaders as well as
+  Lighning also needs to know a lot about sampling, fast forwarding and random number handling to enable this,
+  meaning that this cannot be supported for arbitrary iterables either.
