@@ -63,9 +63,8 @@ jobs:
         run: python -m lightning --version
 
       - name: DocTest package
+        env:
+          PY_IGNORE_IMPORTMISMATCH: 1  # needed for Python 3.7
         run: |
-          find . -name \*.pyc -delete
           PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
-        env:
-          PY_IGNORE_IMPORTMISMATCH=1  # needed for Python 3.7
