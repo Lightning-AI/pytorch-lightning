@@ -377,7 +377,7 @@ class SourceToDestFlow(LightningFlow):
 
 def test_multiprocess_path_in_work_and_flow(tmpdir):
     root = SourceToDestFlow(tmpdir)
-    app = LightningApp(root, debug=True)
+    app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
@@ -551,7 +551,7 @@ class OverwriteFolderFlow(LightningFlow):
 def test_path_get_overwrite(tmpdir):
     """Test that .get(overwrite=True) overwrites the entire directory and replaces all files."""
     root = OverwriteFolderFlow(tmpdir)
-    app = LightningApp(root, debug=True)
+    app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
