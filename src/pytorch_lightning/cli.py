@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.15.2")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.17.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -67,17 +67,27 @@ LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[Reduce
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        description: str = "pytorch-lightning trainer command line tool",
+        env_prefix: str = "PL",
+        **kwargs: Any,
+    ) -> None:
         """Initialize argument parser that supports configuration file input.
 
         For full details of accepted arguments see `ArgumentParser.__init__
-        <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
+        <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.ArgumentParser.__init__>`_.
+
+        Args:
+            description: Description of the tool shown when running ``--help``.
+            env_prefix: Prefix for environment variables. Set ``default_env=True`` to enable env parsing.
         """
         if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
             raise ModuleNotFoundError(
                 f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, description=description, env_prefix=env_prefix, **kwargs)
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
@@ -257,9 +267,6 @@ class LightningCLI:
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
         seed_everything_default: Union[bool, int] = True,
-        description: str = "pytorch-lightning trainer command line tool",
-        env_prefix: str = "PL",
-        env_parse: bool = False,
         parser_kwargs: Optional[Union[Dict[str, Any], Dict[str, Dict[str, Any]]]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
@@ -297,9 +304,6 @@ class LightningCLI:
             seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
                 seed value. Set to True to automatically choose a seed value.
                 Setting it to False will avoid calling ``seed_everything``.
-            description: Description of the tool shown when running ``--help``.
-            env_prefix: Prefix for environment variables.
-            env_parse: Whether environment variable parsing is enabled.
             parser_kwargs: Additional arguments to instantiate each ``LightningArgumentParser``.
             subclass_mode_model: Whether model can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
@@ -319,6 +323,7 @@ class LightningCLI:
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
+        self.parser_kwargs = parser_kwargs or {}  # type: ignore  # github.com/python/mypy/issues/6463
 
         self._handle_deprecated_params(kwargs)
 
@@ -336,11 +341,7 @@ class LightningCLI:
 
         _populate_registries(auto_registry)
 
-        main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
-            parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463
-            {"description": description, "env_prefix": env_prefix, "default_env": env_parse},
-        )
-        self.setup_parser(run, main_kwargs, subparser_kwargs)
+        self.setup_parser(run)
         self.parse_arguments(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
@@ -367,22 +368,22 @@ class LightningCLI:
                 key = name.replace("save_config_", "").replace("filename", "config_filename")
                 self.save_config_kwargs[key] = value
                 rank_zero_deprecation(
-                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 "
-                    "and will be removed in v1.10. Use 'save_config_kwargs' instead."
+                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
+                    f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
+                )
+
+        for name in ["description", "env_prefix", "env_parse"]:
+            if name in kwargs:
+                value = kwargs.pop(name)
+                key = name.replace("env_parse", "default_env")
+                self.parser_kwargs[key] = value
+                rank_zero_deprecation(
+                    f"LightningCLI's {name!r} init parameter is deprecated from v1.9 and will "
+                    f"be removed in v2.0. Use `parser_kwargs={{'{key}': ...}}` instead."
                 )
 
         if kwargs:
             raise ValueError(f"Unexpected keyword parameters: {kwargs}")
-
-    def _setup_parser_kwargs(
-        self, kwargs: Dict[str, Any], defaults: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        if kwargs.keys() & self.subcommands().keys():
-            # `kwargs` contains arguments per subcommand
-            return defaults, kwargs
-        main_kwargs = defaults
-        main_kwargs.update(kwargs)
-        return main_kwargs, {}
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
@@ -393,13 +394,14 @@ class LightningCLI:
         )
         return parser
 
-    def setup_parser(
-        self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
-    ) -> None:
+    def setup_parser(self, add_subcommands: bool) -> None:
         """Initialize and setup the parser, subcommands, and arguments."""
+        subcommand_names = set(self.subcommands())
+        main_kwargs = {k: v for k, v in self.parser_kwargs.items() if k not in subcommand_names}
         self.parser = self.init_parser(**main_kwargs)
         if add_subcommands:
             self._subcommand_method_arguments: Dict[str, List[str]] = {}
+            subparser_kwargs = {k: v for k, v in self.parser_kwargs.items() if k in subcommand_names}
             self._add_subcommands(self.parser, **subparser_kwargs)
         else:
             self._add_arguments(self.parser)
@@ -485,7 +487,7 @@ class LightningCLI:
         parser = self.init_parser(**kwargs)
         self._add_arguments(parser)
         # subcommand arguments
-        skip = self.subcommands()[subcommand]
+        skip: Set[Union[str, int]] = set(self.subcommands()[subcommand])
         added = parser.add_method_arguments(klass, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
