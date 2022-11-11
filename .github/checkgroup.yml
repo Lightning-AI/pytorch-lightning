@@ -148,10 +148,11 @@ subprojects:
 
   - id: "lightning_lite: CPU workflow"
     paths:
-      - "requirements/lite/**"
+      - "requirements/lite/*"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
+      - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
     checks:
       - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
