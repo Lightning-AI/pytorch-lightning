@@ -167,20 +167,14 @@ _FIT_LOOP_INITIAL_STATE_1_6_0 = {
 }
 
 
-# TODO: update docstring
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Changes the value of `save_on_train_epoch_end` inside the state key of ``ModelCheckpoint`` callbacks.
-
-    The initial value of ``ModelCheckpoint.save_on_train_epoch_end`` before training (and before loading the state)
-    has changed. After this breaking change, Lightning is no longer able to determine whether
-    ``save_on_train_epoch_end=True|False`` was set by the user or set internally (according to old logic).
-
-    Checkpoints created with ``ModelCheckpoint(..., save_on_train_epoch_end=True|False)`` will be loaded as if
-    ``save_on_train_epoch_end`` was set to ``None`` to mitigate the impact of this breaking change.
+    """The ``save_on_train_epoch_end`` was removed from the state-key of ``ModelCheckpoint`` in 1.9.0, and this
+    migration drops it from the state-keys saved in the checkpoint dict so that the keys match when the Trainer
+    loads the callback state.
 
     Version: 1.9.0
     Commit: f4ca56
-    PR: #15300
+    PR: #15300, #15606
     """
     if "callbacks" not in checkpoint:
         return checkpoint
