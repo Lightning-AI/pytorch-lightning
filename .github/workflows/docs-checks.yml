@@ -14,7 +14,6 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "setup.cfg"
       - ".github/workflows/docs-checks.yml"
 
 concurrency:

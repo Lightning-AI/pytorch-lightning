@@ -9,9 +9,9 @@ subprojects:
   - id: "pytorch_lightning: Tests workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/**"
+      - "requirements/lite/*"
       - "src/lightning_lite/**"
-      - "requirements/pytorch/**"
+      - "requirements/pytorch/*"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
@@ -51,12 +51,12 @@ subprojects:
       - "examples/pl_fault_tolerant/automatic.py"
       - "examples/test_pl_examples.py"
       - "examples/pl_integrations/dali_image_classifier.py"
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
       - ".actions/**"
     checks:
       - "pytorch-lightning (GPUs)"
@@ -72,6 +72,7 @@ subprojects:
   - id: "pytorch_lightning: Azure HPU"
     paths:
       - ".azure/hpu-tests.yml"
+      - "examples/pl_hpu/mnist_sample.py"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "requirements/pytorch/**"
@@ -101,6 +102,7 @@ subprojects:
   #    - ".github/workflows/tpu-tests.yml"
   #    - "requirements/lite/**"
   #    - "src/lightning_lite/**"
+  #    - "tests/tests_lite/**"
   #    - "requirements/pytorch/**"
   #    - "src/pytorch_lightning/**"
   #    - "tests/tests_pytorch/**"
@@ -113,9 +115,11 @@ subprojects:
     paths:
       - "src/pytorch_lightning/**"
       - "docs/source-pytorch/**"
-      - ".github/workflows/docs-*.yml"
+      - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
+      - "setup.py"
+      - ".actions/**"
     checks:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
@@ -124,11 +128,8 @@ subprojects:
     paths:
       - "dockers/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
-      - "requirements.txt"
-      - "requirements/*.txt"
       - "requirements/pytorch/*"
       - "environment.yml"
-      - ".github/workflows/*docker*.yml"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -188,10 +189,10 @@ subprojects:
   - id: "lightning_app: Tests workflow"
     paths:
       - ".github/workflows/ci-app-tests.yml"
-      - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*/**"  # some tests_app tests call examples files
+      - "examples/app_*"  # some tests_app tests call examples files
+      - "requirements/app/*"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -208,10 +209,10 @@ subprojects:
   - id: "lightning_app: Examples"
     paths:
       - ".github/workflows/ci-app-examples.yml"
-      - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app_examples/**"
-      - "examples/app_*/**"
+      - "examples/app_*"
+      - "requirements/app/*"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -231,7 +232,8 @@ subprojects:
       - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*/**"  # some tests_app tests call examples files
+      - "examples/app_*"  # some tests_app tests call examples files
+      - "tests/tests_app_examples/**"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -241,9 +243,11 @@ subprojects:
     paths:
       - "src/lightning_app/**"
       - "docs/source-app/**"
-      - ".github/workflows/docs-*.yml"
+      - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/app/**"
+      - "setup.py"
+      - ".actions/**"
     checks:
       - "make-doctest (app)"
       - "make-html (app)"

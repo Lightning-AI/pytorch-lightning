@@ -17,7 +17,6 @@ on:
       - "requirements/lite/*"
       - "src/lightning_lite/**"
       - ".actions/**"
-      - "!requirements/*/docs.txt"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

@@ -6,6 +6,7 @@ on:
     branches: ["master", "release/*"]
     paths:
       - ".github/workflows/docs-deploy.yml"
+      # FIXME: what is this job for?
 
 env:
   FREEZE_REQUIREMENTS: 1

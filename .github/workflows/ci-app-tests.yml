@@ -13,7 +13,6 @@ on:
       - "tests/tests_app/**"
       - "examples/app_*"  # some tests_app tests call examples files
       - "requirements/app/*"
-      - "!requirements/app/docs.txt"
       - "setup.py"
       - ".actions/**"
 
