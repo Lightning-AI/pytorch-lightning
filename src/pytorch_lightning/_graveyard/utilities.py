@@ -11,11 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytorch_lightning as pl
 
-import pytorch_lightning._graveyard.callbacks
-import pytorch_lightning._graveyard.core
-import pytorch_lightning._graveyard.legacy_import_unpickler
-import pytorch_lightning._graveyard.loggers
-import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type
-import pytorch_lightning._graveyard.utilities  # noqa: F401
+
+def _get_gpu_memory_map() -> None:
+    # TODO: Remove in v2.0.0
+    raise RuntimeError(
+        "`pytorch_lightning.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported"
+        " as of v1.9. Use `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` instead."
+    )
+
+
+pl.utilities.memory.get_gpu_memory_map = _get_gpu_memory_map
