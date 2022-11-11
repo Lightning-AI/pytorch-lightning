@@ -52,7 +52,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `pytorch_lightning.utilities.memory.get_gpu_memory_map` in favor of `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` ([#15617](https://github.com/Lightning-AI/lightning/pull/15617))
 
--
+- Removed deprecated `pytorch_lightning.profiler.base.AbstractProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#99999](https://github.com/Lightning-AI/lightning/pull/99999))
+
+- Removed deprecated `pytorch_lightning.profiler.base.BaseProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#99999](https://github.com/Lightning-AI/lightning/pull/99999))
 
 -
 
