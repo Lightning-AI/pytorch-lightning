@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: ["*"]  # FIXME
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 env:
-  PUSH_TO_HUB: true # FIXME ${{ github.event_name == 'schedule' }}
+  PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
 
 jobs:
   build-pl:
