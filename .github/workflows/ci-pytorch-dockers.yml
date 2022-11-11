@@ -10,6 +10,7 @@ on:
       - "dockers/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
       - "requirements/pytorch/*"
+      - "requirements/lite/*"
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
