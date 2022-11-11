@@ -15,7 +15,10 @@
 import operator
 import platform
 import sys
+from functools import wraps
+from typing import Any, Callable
 
+import pip
 import torch
 from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
 
@@ -62,3 +65,20 @@ def _fault_tolerant_training() -> bool:
     from pytorch_lightning.utilities.enums import _FaultTolerantMode
 
     return _FaultTolerantMode.detect_current_mode().is_enabled
+
+
+def deprecated(*packages: str) -> Callable:
+    def packing(wrap_func: Callable) -> Callable:
+        @wraps(wrap_func)
+        def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
+
+            for pkg in packages:
+                if not package_available(pkg):
+                    # todo: some interaction with user
+                    pip.main(["install", pkg])
+
+            return wrap_func(*args, **kwargs)
+
+        return wrapped_fn
+
+    return packing
