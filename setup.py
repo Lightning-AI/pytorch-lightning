@@ -39,15 +39,11 @@ There are considered three main scenarios for installing this project:
     b) with a parameterization build desired packages in to standard `dist/` folder
     c) validate packages and publish to PyPI
 """
-import contextlib
 import os
-import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
-from typing import Generator, Optional
 
-import setuptools
-import setuptools.command.egg_info
+from setuptools import setup
 
 _PACKAGE_NAME = os.environ.get("PACKAGE_NAME")
 _PACKAGE_MAPPING = {
@@ -73,43 +69,6 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _named_temporary_file(directory: Optional[str] = None) -> str:
-    # `tempfile.NamedTemporaryFile` has issues in Windows
-    # https://github.com/deepchem/deepchem/issues/707#issuecomment-556002823
-    if directory is None:
-        directory = tempfile.gettempdir()
-    return os.path.join(directory, os.urandom(24).hex())
-
-
-@contextlib.contextmanager
-def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
-    if aggregate:
-        # aggregate all MANIFEST.in contents into a single temporary file
-        manifest_path = _named_temporary_file(manifest_dir)
-        mapping = _PACKAGE_MAPPING.copy()
-        del mapping["lightning"]
-        lines = []
-        for pkg in mapping.values():
-            with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
-                lines.extend(fh.readlines())
-        # convert lightning_foo to lightning/foo
-        for new, old in mapping.items():
-            lines = [line.replace(old, f"lightning/{new}") for line in lines]
-        with open(manifest_path, mode="w") as fp:
-            fp.writelines(lines)
-    else:
-        manifest_path = os.path.join(manifest_dir, "MANIFEST.in")
-        assert os.path.exists(manifest_path)
-    # avoid error: setup script specifies an absolute path
-    manifest_path = os.path.relpath(manifest_path, _PATH_ROOT)
-    setuptools.command.egg_info.manifest_maker.template = manifest_path
-    yield
-    # cleanup
-    setuptools.command.egg_info.manifest_maker.template = "MANIFEST.in"
-    if aggregate:
-        os.remove(manifest_path)
-
-
 if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
@@ -129,19 +88,13 @@ if __name__ == "__main__":
     # should have included only the relevant files of the package to install
     possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
-        pkg_path = os.path.join(_PATH_SRC, pkg)
-        pkg_setup = os.path.join(pkg_path, "__setup__.py")
+        pkg_setup = os.path.join(_PATH_SRC, pkg, "__setup__.py")
         if os.path.exists(pkg_setup):
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
-            setup_args = setup_module._setup_args()
-            if _PACKAGE_NAME is None:
-                # we are installing a wheel, no need for MANIFEST.in things
-                setuptools.setup(**setup_args)
-            else:
-                # we are installing from source, set the correct manifest path
-                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
-                    setuptools.setup(**setup_args)
+            setup_module._adjust_manifest(pkg_name=pkg)
+            setup_args = setup_module._setup_args(pkg_name=pkg)
+            setup(**setup_args)
             break
     else:
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
