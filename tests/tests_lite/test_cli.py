@@ -19,18 +19,8 @@ import pytest
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.cli import _run_model
-from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
-if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
-    import torch.distributed.run
-
-
-def skip_windows_pt_1_13():
-    # https://github.com/pytorch/pytorch/issues/85427
-    return pytest.mark.skipif(
-        condition=(_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13),
-        reason="Torchelastic import bug in 1.13 affecting Windows",
-    )
+import torch.distributed.run
 
 
 @pytest.fixture
@@ -40,7 +30,6 @@ def fake_script(tmp_path):
     return str(script)
 
 
-@skip_windows_pt_1_13()
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_defaults(monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
@@ -55,7 +44,6 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
     assert os.environ["LT_PRECISION"] == "32"
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -67,7 +55,6 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -79,7 +66,6 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     assert os.environ["LT_STRATEGY"] == strategy
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -92,7 +78,6 @@ def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
 
 
 @RunIf(mps=True)
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["mps", "gpu"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
@@ -103,7 +88,6 @@ def test_cli_env_vars_devices_mps(accelerator, monkeypatch, fake_script):
     assert os.environ["LT_DEVICES"] == "1"
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("num_nodes", ["1", "2", "3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
@@ -114,7 +98,6 @@ def test_cli_env_vars_num_nodes(num_nodes, monkeypatch, fake_script):
     assert os.environ["LT_NUM_NODES"] == num_nodes
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize("precision", ["64", "32", "16", "bf16"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
@@ -125,7 +108,6 @@ def test_cli_env_vars_precision(precision, monkeypatch, fake_script):
     assert os.environ["LT_PRECISION"] == precision
 
 
-@skip_windows_pt_1_13()
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_cli_torchrun_defaults(monkeypatch, fake_script):
     torchrun_mock = Mock()
@@ -145,7 +127,6 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     )
 
 
-@skip_windows_pt_1_13()
 @pytest.mark.parametrize(
     "devices,expected",
     [
