@@ -14,13 +14,12 @@ Level 1: Package code in a lightning component
 *********************************
 Why you need Lightning components
 *********************************
-A Lightning component organizes a piece of code into a self-contained, modular component that
-can be integrated into your existing workflows or assembled to form a Lightning app.
-A Lightning component manages its own infrastructure, auto-scaling, cost management, and more, so you
-can focus on the program logic and not the cloud engineering.
+A Lightning component is a self-contained, modular machine-learning component
+that you can plug into your existing ML workflows. A Lightning component organizes arbitrary code so it can run on the cloud, manages
+its own infrastructure, cloud costs, networking and more. Connect components using your current workflow management tools or
+our `next-generation reactive orchestrator <../intermediate/index.html>`_.
 
-Components run on the cloud or your laptop without code changes 🤯🤯. Connect components using your current workflow management tools or use
-Lightning apps to build powerful sequential AND reactive workflows.
+Components run on the cloud or your laptop without code changes 🤯🤯.
 
 .. raw:: html
 
@@ -109,7 +108,7 @@ First, install Lightning.
 **************************
 Build your first component
 **************************
-A Lightning component organizes Python code into a self-contained module so it can run on the cloud.
+A Lightning component organizes arbitrary code so it can run on the cloud, manages its own infrastructure, cloud costs, networking and more
 
 **Run one of these components!**
 
@@ -119,12 +118,7 @@ A Lightning component organizes Python code into a self-contained module so it c
 
 Components run the same on the cloud and locally on your choice of hardware.
 
-.. lit_tabs::
-   :titles: Lightning Cloud (fully-managed); Your AWS account; Your own hardware
-   :code_files: ./hello_components/code_run_cloud.bash; ./hello_components/code_run_cloud_yours.bash; ./hello_components/code_run_local.bash
-   :tab_rows: 4
-   :highlights: ; 5; 0
-   :height: 195px
+.. include:: /levels/basic/hero_run_setup.rst
 
 ----
 

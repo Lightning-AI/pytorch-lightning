@@ -583,7 +583,10 @@ class ModelCheckpoint(Checkpoint):
             return self.dirpath
 
         if len(trainer.loggers) > 0:
-            save_dir = trainer.loggers[0].save_dir or trainer.default_root_dir
+            if trainer.loggers[0].save_dir is not None:
+                save_dir = trainer.loggers[0].save_dir
+            else:
+                save_dir = trainer.default_root_dir
             name = trainer.loggers[0].name
             version = trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"

@@ -24,27 +24,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 _SETUP_TOOLS = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
 
 
-def _adjust_manifest(**kwargs: Any) -> None:
-    # todo: consider rather aggregation of particular manifest adjustments
-    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
-    assert os.path.isfile(manifest_path)
-    with open(manifest_path) as fp:
-        lines = [ln.rstrip() for ln in fp.readlines()]
-    lines += [
-        "recursive-include src/lightning *.md",
-        "recursive-include requirements *.txt",
-        "recursive-include src/lightning/app/ui *",
-        "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in
-        # fixme: this is strange, this shall work with setup find package - include
-        "prune src/lightning_app",
-        "prune src/lightning_lite",
-        "prune src/pytorch_lightning",
-    ]
-    with open(manifest_path, "w") as fp:
-        fp.writelines([ln + os.linesep for ln in lines])
-
-
-def _setup_args(**kwargs: Any) -> Dict[str, Any]:
+def _setup_args() -> Dict[str, Any]:
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
     _long_description = _SETUP_TOOLS.load_readme_description(
