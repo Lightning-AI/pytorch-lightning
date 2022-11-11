@@ -253,9 +253,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
 
 
 def test_precision_selection_raises(monkeypatch):
-    with pytest.raises(
-        _ValueError, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
-    ):
+    with pytest.raises(_ValueError, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"):
         Trainer(amp_backend="apex", precision=16)
 
     import pytorch_lightning.plugins.precision.native_amp as amp

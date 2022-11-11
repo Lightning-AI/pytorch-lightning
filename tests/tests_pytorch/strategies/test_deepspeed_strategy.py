@@ -32,7 +32,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
-from pytorch_lightning.utilities.exceptions import _ValueError, _FileNotFoundError
+from pytorch_lightning.utilities.exceptions import _FileNotFoundError, _ValueError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -1170,9 +1170,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(
-        _ValueError, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
-    ):
+    with pytest.raises(_ValueError, match="DeepSpeed currently does not support different `accumulate_grad_batches`"):
         trainer.fit(model)
 
 

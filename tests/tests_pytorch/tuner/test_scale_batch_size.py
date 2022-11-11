@@ -419,9 +419,7 @@ def test_error_if_dataloaders_passed_with_fit_method():
     model = BoringModel()
     dl = model.val_dataloader()
 
-    with pytest.raises(
-        _ValueError, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"
-    ):
+    with pytest.raises(_ValueError, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"):
         trainer.tune(model, dataloaders=dl, method="fit")
 
 
@@ -431,9 +429,7 @@ def test_batch_size_finder_with_distributed_strategies():
     model = BoringModel()
     bs_finder = BatchSizeFinder()
 
-    with pytest.raises(
-        _RuntimeError, match="Batch size finder is not supported with distributed strategies."
-    ):
+    with pytest.raises(_RuntimeError, match="Batch size finder is not supported with distributed strategies."):
         bs_finder.setup(trainer, model)
 
 
@@ -447,9 +443,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
     trainer = Trainer(auto_scale_batch_size=True)
     model = CustomModel()
 
-    with pytest.raises(
-        _RuntimeError, match="Batch size finder cannot be used with multiple .* dataloaders"
-    ):
+    with pytest.raises(_RuntimeError, match="Batch size finder cannot be used with multiple .* dataloaders"):
         trainer.tune(model, method="validate")
 
 

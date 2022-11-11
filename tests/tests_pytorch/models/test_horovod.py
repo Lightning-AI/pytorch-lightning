@@ -166,8 +166,8 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
 
 @RunIf(horovod=True, skip_windows=True, min_cuda_gpus=2)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
-    """Ensure ValueError for different `accumulate_grad_batches` at different epochs for Horovod
-    Strategy on multi-gpus."""
+    """Ensure ValueError for different `accumulate_grad_batches` at different epochs for Horovod Strategy on multi-
+    gpus."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -1213,9 +1213,7 @@ def test_fault_tolerant_mode_enum():
         assert _FaultTolerantMode.MANUAL == _FaultTolerantMode.detect_current_mode()
         assert TrainerState()._fault_tolerant_mode.is_manual
 
-    with pytest.raises(
-        _ValueError, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
-    ):
+    with pytest.raises(_ValueError, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
             _FaultTolerantMode.detect_current_mode()
 

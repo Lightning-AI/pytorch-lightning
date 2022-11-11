@@ -127,9 +127,7 @@ def test_replace_loops():
 
     trainer = Trainer(min_steps=123, max_steps=321)
 
-    with pytest.raises(
-        _RuntimeError, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
-    ):
+    with pytest.raises(_RuntimeError, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"):
         trainer.fit_loop.replace(epoch_loop=TestLoop)
 
     class TestLoop(TrainingEpochLoop):

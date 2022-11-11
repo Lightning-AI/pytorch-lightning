@@ -388,9 +388,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         enable_model_summary=False,
     )
 
-    with pytest.raises(
-        _ValueError, match="A single `Optimizer` cannot have multiple parameter groups with identical"
-    ):
+    with pytest.raises(_ValueError, match="A single `Optimizer` cannot have multiple parameter groups with identical"):
         trainer.fit(TestModel())
 
 

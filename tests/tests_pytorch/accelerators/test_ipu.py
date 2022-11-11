@@ -341,9 +341,7 @@ def test_stages_correct(tmpdir):
 def test_different_accumulate_grad_batches_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, accumulate_grad_batches={1: 2})
-    with pytest.raises(
-        _RuntimeError, match="IPUs currently does not support different `accumulate_grad_batches`"
-    ):
+    with pytest.raises(_RuntimeError, match="IPUs currently does not support different `accumulate_grad_batches`"):
         trainer.fit(model)
 
 

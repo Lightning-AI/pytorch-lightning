@@ -60,7 +60,7 @@ class MisconfigurationException(Exception, metaclass=_DeprecatedException):
 
 @_add_repr
 class _FileNotFoundError(FileNotFoundError, MisconfigurationException):
-    '''Lightning FileNotFoundError.'''
+    """Lightning FileNotFoundError."""
 
 
 @_add_repr

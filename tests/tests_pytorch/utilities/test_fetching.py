@@ -130,9 +130,7 @@ def test_misconfiguration_error():
     loader = DataLoader(range(10))
     fetcher.setup(loader)
     assert fetcher.loaders == loader
-    with pytest.raises(
-        _RuntimeError, match="The `dataloader_iter` isn't available outside the __iter__ context."
-    ):
+    with pytest.raises(_RuntimeError, match="The `dataloader_iter` isn't available outside the __iter__ context."):
         fetcher.loader_iters
     iter(fetcher)
     assert fetcher.loader_iters
@@ -435,8 +433,7 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
 
 
 def test_on_train_batch_end_overridden(tmpdir) -> None:
-    """Verify that a `_RuntimeError` is raised when `on_train_batch_end` is overridden on the
-    `LightningModule`."""
+    """Verify that a `_RuntimeError` is raised when `on_train_batch_end` is overridden on the `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
         def on_train_batch_end(self, outputs, batch, batch_idx):
@@ -449,8 +446,7 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
 
 
 def test_tbptt_split_batch_overridden(tmpdir) -> None:
-    """Verify that a `_ValueError` is raised when `tbptt_split_batch` is overridden on the
-    `LightningModule`."""
+    """Verify that a `_ValueError` is raised when `tbptt_split_batch` is overridden on the `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
         def __init__(self) -> None:
