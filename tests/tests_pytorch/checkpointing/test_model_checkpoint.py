@@ -981,8 +981,8 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 def test_configure_model_checkpoint(tmpdir):
     """Test all valid and invalid ways a checkpoint callback can be passed to the Trainer."""
     kwargs = dict(default_root_dir=tmpdir)
-    callback1 = ModelCheckpoint()
-    callback2 = ModelCheckpoint()
+    callback1 = ModelCheckpoint(monitor="foo")
+    callback2 = ModelCheckpoint(monitor="bar")
 
     # no callbacks
     trainer = Trainer(enable_checkpointing=False, callbacks=[], **kwargs)
