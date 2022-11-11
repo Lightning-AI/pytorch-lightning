@@ -13,8 +13,12 @@
 # limitations under the License.
 import json
 import os
+from re import escape
+from unittest import mock
+from unittest.mock import ANY, Mock
 
 import pytest
+import torch
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators import CPUAccelerator
@@ -116,3 +120,34 @@ def test_deepspeed_config_zero_offload(deepspeed_zero_config):
     deepspeed_zero_config["zero_optimization"]["offload_optimizer"] = False
     strategy = DeepSpeedStrategy(config=deepspeed_zero_config)
     assert strategy.config["zero_optimization"]["offload_optimizer"] is False
+
+
+@RunIf(deepspeed=True)
+@mock.patch("lightning_lite.strategies.deepspeed.deepspeed.initialize")
+def test_deepspeed_setup_module(init_mock):
+    """Test that the DeepSpeed strategy can set up the model for inference (no optimizer required)."""
+    model = Mock()
+    model.parameters.return_value = []
+    strategy = DeepSpeedStrategy()
+    strategy.parallel_devices = [torch.device("cuda", 1)]
+    init_mock.return_value = [Mock()] * 4  # mock to make tuple unpacking work
+
+    strategy.setup_module(model)
+    init_mock.assert_called_with(
+        args=ANY,
+        config=strategy.config,
+        model=model,
+        model_parameters=ANY,
+        optimizer=None,
+        dist_init_required=False,
+    )
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_requires_joint_setup():
+    """Test that the DeepSpeed strategy does not support setting up model and optimizer independently."""
+    strategy = DeepSpeedStrategy()
+    with pytest.raises(
+        NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
+    ):
+        strategy.setup_optimizer(Mock())
