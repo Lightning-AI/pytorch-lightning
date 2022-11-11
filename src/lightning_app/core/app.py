@@ -24,7 +24,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
-from lightning_app.storage import Drive, Path
+from lightning_app.storage import Drive, Path, Payload
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
@@ -630,8 +630,16 @@ class LightningApp:
             else:
                 return None
 
-        # Note: Remove private keys
-        return {k: v for k, v in child["vars"].items() if not k.startswith("_")}
+        # Filter private keys and drives
+        return {
+            k: v
+            for k, v in child["vars"].items()
+            if (
+                not k.startswith("_")
+                and not (isinstance(v, dict) and v.get("type", None) == "__drive__")
+                and not (isinstance(v, (Payload, Path)))
+            )
+        }
 
     def _send_flow_to_work_deltas(self, state) -> None:
         if not self.flow_to_work_delta_queues:
@@ -651,10 +659,6 @@ class LightningApp:
             # Note: The work was dynamically created or deleted.
             if state_work is None or last_state_work is None:
                 continue
-
-            # Note: The flow shouldn't update path or drive manually.
-            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: None)
-            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: None)
 
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
