@@ -35,10 +35,10 @@ from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
     XLAStrategy,
-    FSDPStrategy,
 )
 from lightning_lite.strategies.strategy import _Sharded, TBroadcast
 from lightning_lite.utilities import move_data_to_device
