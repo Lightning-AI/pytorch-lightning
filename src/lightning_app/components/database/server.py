@@ -164,13 +164,13 @@ class Database(LightningWork):
         print("Stored the database to the Drive.")
 
     def periodic_store_database(self, store_interval):
-        try:
-            while not self._exit_event.is_set():
+        while not self._exit_event.is_set():
+            try:
                 self.store_database()
-                self._exit_event.wait(store_interval)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise e
+            except Exception:
+                print(traceback.print_exc())
+                pass
+            self._exit_event.wait(store_interval)
 
     def run(self, token: Optional[str] = None) -> None:
         """
