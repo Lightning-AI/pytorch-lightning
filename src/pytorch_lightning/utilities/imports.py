@@ -67,7 +67,7 @@ def _fault_tolerant_training() -> bool:
     return _FaultTolerantMode.detect_current_mode().is_enabled
 
 
-def deprecated(*packages: str) -> Callable:
+def requires(*packages: str) -> Callable:
     def packing(wrap_func: Callable) -> Callable:
         @wraps(wrap_func)
         def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
