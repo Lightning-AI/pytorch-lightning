@@ -112,32 +112,26 @@ def test_migrate_loop_batches_that_stepped(tmpdir, model_class):
     assert new_loop.global_step == new_loop._batches_that_stepped == 2
 
 
-def test_migrate_model_checkpoint_save_on_train_epoch_end_default():
-    # # None -> None
-    legacy_state_key_none = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': None}"  # noqa: E501
-    old_checkpoint = {"callbacks": {legacy_state_key_none: {"dummy": 0}}, "global_step": 0, "epoch": 1}
+@pytest.mark.parametrize("save_on_train_epoch_end", [None, True, False])
+def test_migrate_model_checkpoint_save_on_train_epoch_end_default(save_on_train_epoch_end):
+    """Test that the 'save_on_train_epoch_end' part of the ModelCheckpoint state key gets removed."""
+    legacy_state_key = f"ModelCheckpoint{{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': {save_on_train_epoch_end}}}"  # noqa: E501
+    new_state_key = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None}"  # noqa: E501
+
+    old_checkpoint = {"callbacks": {legacy_state_key: {"dummy": 0}}, "global_step": 0, "epoch": 1}
     _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
-    assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # None -> None
+    assert updated_checkpoint["callbacks"] == {new_state_key: {"dummy": 0}}  # None -> None
 
-    # True -> None
-    legacy_state_key_true = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"  # noqa: E501
-    old_checkpoint = {"callbacks": {legacy_state_key_true: {"dummy": 0}}, "global_step": 0, "epoch": 1}
-    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
-    assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # True -> None
 
-    # False -> None
-    legacy_state_key_false = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': False}"  # noqa: E501
-    old_checkpoint = {"callbacks": {legacy_state_key_false: {"dummy": 0}}, "global_step": 0, "epoch": 1}
-    _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
-    assert updated_checkpoint["callbacks"] == {legacy_state_key_none: {"dummy": 0}}  # False -> None
+def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
+    """Test that the migration warns about collisions that would occur if the keys were modified."""
+    # The two keys only differ in the `save_on_train_epoch_end` value
+    state_key1 = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': True}"  # noqa: E501
+    state_key2 = "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1, 'train_time_interval': None, 'save_on_train_epoch_end': False}"  # noqa: E501
 
-    # Simulate collision
-    # False -> None and True -> None
     old_checkpoint = {
-        "callbacks": {legacy_state_key_false: {"dummy": 0}, legacy_state_key_true: {"dummy": 0}},
+        "callbacks": {state_key1: {"dummy": 0}, state_key2: {"dummy": 0}},
         "global_step": 0,
         "epoch": 1,
     }
