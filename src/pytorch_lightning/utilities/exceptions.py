@@ -18,8 +18,7 @@ from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 
 def _add_repr(exception: Type):
-    """
-    Add __repr__ method for custom exceptions.
+    """Add __repr__ method for custom exceptions.
 
     Parameters
     ----------

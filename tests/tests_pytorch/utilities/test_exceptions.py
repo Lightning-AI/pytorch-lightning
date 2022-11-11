@@ -2,13 +2,13 @@
 
 import pytest
 
-from tests_pytorch.deprecated_api import no_deprecated_call
 from lightning_lite.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.exceptions import _ValueError
+from tests_pytorch.deprecated_api import no_deprecated_call
 
 
 def test_exception_deprecations():
-    '''Test deprecation of MisconfigurationException'''
+    """Test deprecation of MisconfigurationException."""
     with no_deprecated_call():
         x = _ValueError("test")
         assert isinstance(x, _ValueError)  # this needs to work for proper instantiation

@@ -87,9 +87,7 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(
-        _KeyError, match="`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
-    ):
+    with pytest.raises(_KeyError, match="`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"):
         trainer.fit(model)
 
 
@@ -538,9 +536,7 @@ def test_invalid_opt_idx_in_scheduler(tmpdir):
 
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(
-        _ValueError, match="`opt_idx` .* does not match with the index of the respective optimizer"
-    ):
+    with pytest.raises(_ValueError, match="`opt_idx` .* does not match with the index of the respective optimizer"):
         trainer.fit(model)
 
 

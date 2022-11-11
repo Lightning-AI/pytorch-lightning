@@ -60,7 +60,12 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.exceptions import _NotImplementedError, _TypeError, _ValueError, DeadlockDetectedException
+from pytorch_lightning.utilities.exceptions import (
+    _NotImplementedError,
+    _TypeError,
+    _ValueError,
+    DeadlockDetectedException,
+)
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -188,9 +193,7 @@ def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
 
 
 def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
-    with pytest.raises(
-        _ValueError, match=".*set both `accumulate_grad_batches` and passed an instance.*"
-    ):
+    with pytest.raises(_ValueError, match=".*set both `accumulate_grad_batches` and passed an instance.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
 
 
