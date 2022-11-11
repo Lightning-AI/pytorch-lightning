@@ -75,7 +75,7 @@ class MultiNode(LightningFlow):
             self.ws[node_rank].run(
                 main_address=self.ws[0].internal_ip,
                 main_port=self.ws[0].port,
-                num_nodes=self.num_nodes,
+                num_nodes=len(self.ws),
                 node_rank=node_rank,
             )
 
