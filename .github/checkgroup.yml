@@ -9,9 +9,9 @@ subprojects:
   - id: "pytorch_lightning: Tests workflow"
     paths:
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
@@ -50,13 +50,13 @@ subprojects:
       - "examples/pl_fault_tolerant/automatic.py"
       - "examples/test_pl_examples.py"
       - "examples/pl_integrations/dali_image_classifier.py"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "pytorch-lightning (GPUs)"
 
@@ -64,7 +64,7 @@ subprojects:
     paths:
       - ".azure/gpu-benchmark.yml"
       - "tests/tests_pytorch/benchmarks/**"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
     checks:
       - "pytorch-lightning.Benchmark"
 
@@ -72,26 +72,26 @@ subprojects:
     paths:
       - ".azure/hpu-tests.yml"
       - "examples/pl_hpu/mnist_sample.py"
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "pytorch-lightning (HPUs)"
 
   - id: "pytorch_lightning: Azure IPU"
     paths:
       - ".azure/ipu-tests.yml"
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "pytorch-lightning (IPUs)"
 
@@ -116,7 +116,7 @@ subprojects:
       - "docs/source-pytorch/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
@@ -128,8 +128,8 @@ subprojects:
     paths:
       - "dockers/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
-      - "requirements/pytorch/*"
-      - "requirements/lite/*"
+      - "requirements/pytorch/**"
+      - "requirements/lite/**"
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
@@ -149,7 +149,7 @@ subprojects:
 
   - id: "lightning_lite: CPU workflow"
     paths:
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
@@ -178,11 +178,11 @@ subprojects:
       - "examples/run_lite_examples.sh"
       - "tests/tests_lite/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "lightning-lite (GPUs)"
 
@@ -194,7 +194,7 @@ subprojects:
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "examples/app_*/**"  # some tests_app tests call examples files
-      - "requirements/app/*"
+      - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -214,7 +214,7 @@ subprojects:
       - "src/lightning_app/**"
       - "tests/tests_app_examples/**"
       - "examples/app_*"
-      - "requirements/app/*"
+      - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
     checks:
@@ -231,13 +231,13 @@ subprojects:
   - id: "lightning_app: Azure"
     paths:
       - ".azure/app-cloud-e2e.yml"
-      - "requirements/app/*"
+      - "requirements/app/**"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "examples/app_*/**"  # some tests_app tests call examples files
       - "tests/tests_app_examples/**"
       - "setup.py"
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "App.cloud-e2e"
 
@@ -250,7 +250,7 @@ subprojects:
       - "requirements/app/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
-      - ".actions/*"
+      - ".actions/**"
     checks:
       - "make-doctest (app)"
       - "make-html (app)"

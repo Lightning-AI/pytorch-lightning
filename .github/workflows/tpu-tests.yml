@@ -11,7 +11,7 @@ on:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
