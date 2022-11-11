@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import tempfile
 import threading
+import traceback
 from typing import List, Optional, Type, Union
 
 import uvicorn
@@ -34,6 +35,9 @@ class _DatabaseUvicornServer(uvicorn.Server):
 
     def install_signal_handlers(self):
         """Ignore Uvicorn Signal Handlers."""
+
+
+_lock = threading.Lock()
 
 
 class Database(LightningWork):
@@ -146,25 +150,29 @@ class Database(LightningWork):
         self._exit_event = None
 
     def store_database(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_db_filename = os.path.join(tmpdir, os.path.basename(self.db_filename))
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmp_db_filename = os.path.join(tmpdir, os.path.basename(self.db_filename))
 
-            source = sqlite3.connect(self.db_filename)
-            dest = sqlite3.connect(tmp_db_filename)
+                source = sqlite3.connect(self.db_filename)
+                dest = sqlite3.connect(tmp_db_filename)
 
-            source.backup(dest)
+                source.backup(dest)
 
-            source.close()
-            dest.close()
+                source.close()
+                dest.close()
 
-            drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
-            drive.put(os.path.basename(tmp_db_filename))
+                drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
+                drive.put(os.path.basename(tmp_db_filename))
 
-        print("Stored the database to the Drive.")
+            print("Stored the database to the Drive.")
+        except Exception:
+            print(traceback.print_exc())
 
     def periodic_store_database(self, store_interval):
         while not self._exit_event.is_set():
-            self.store_database()
+            with _lock:
+                self.store_database()
             self._exit_event.wait(store_interval)
 
     def run(self, token: Optional[str] = None) -> None:
@@ -210,4 +218,5 @@ class Database(LightningWork):
 
     def on_exit(self):
         self._exit_event.set()
-        self.store_database()
+        with _lock:
+            self.store_database()
