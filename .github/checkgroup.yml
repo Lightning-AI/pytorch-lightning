@@ -128,7 +128,8 @@ subprojects:
     paths:
       - "dockers/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
+      - "requirements/lite/**"
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
@@ -192,7 +193,7 @@ subprojects:
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*"  # some tests_app tests call examples files
+      - "examples/app_*/**"  # some tests_app tests call examples files
       - "requirements/app/*"
       - "setup.py"
       - ".actions/**"
