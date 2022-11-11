@@ -37,6 +37,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `params` argument in `TracerPythonScript.run` no longer prepends `--` automatically to parameters ([#15518](https://github.com/Lightning-AI/lightning/pull/15518))
 
 
+- Changed the root directory of the app (which gets uploaded) to be the folder containing the app file, rather than any parent folder containing a `.lightning` file ([#15654](https://github.com/Lightning-AI/lightning/pull/15654))
+
 
 ### Deprecated
 
@@ -73,6 +75,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed bi-directional queues sending delta with Drive Component name changes ([#15642](https://github.com/Lightning-AI/lightning/pull/15642))
 
+
+- Fixed CloudRuntime works collection with structures and accelerated multi node startup time ([#15650](https://github.com/Lightning-AI/lightning/pull/15650))
 
 
 ## [1.8.0] - 2022-11-01
