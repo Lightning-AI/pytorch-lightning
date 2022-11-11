@@ -63,7 +63,7 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
-from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
+from lightning_app.utilities.packaging.app_config import _get_config_file, AppConfig
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
 
@@ -95,9 +95,9 @@ class CloudRuntime(Runtime):
 
         # TODO: verify lightning version
         # _verify_lightning_version()
-        config_file = find_config_file(self.entrypoint_file)
-        app_config = AppConfig.load_from_file(config_file) if config_file else AppConfig()
-        root = config_file.parent if config_file else Path(self.entrypoint_file).absolute().parent
+        config_file = _get_config_file(self.entrypoint_file)
+        app_config = AppConfig.load_from_file(config_file) if config_file.exists() else AppConfig()
+        root = Path(self.entrypoint_file).absolute().parent
         cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
         self.app._update_index_file()
         repo = LocalSourceCodeDir(path=root)
