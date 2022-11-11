@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError
 from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -71,12 +71,12 @@ def test_error_iterable_dataloaders_passed_to_fit(
         predict_dataloaders=predict_dataloaders,
     )
 
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
+    with pytest.raises(_TypeError, match="TPUs do not currently support"):
         TPUSpawnStrategy(MagicMock()).connect(model)
 
 
 def test_error_process_iterable_dataloader(xla_available):
-    with pytest.raises(MisconfigurationException, match="TPUs do not currently support"):
+    with pytest.raises(_TypeError, match="TPUs do not currently support"):
         TPUSpawnStrategy(MagicMock()).process_dataloader(_loader_no_len)
 
 

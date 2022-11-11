@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
-from pytorch_lightning.utilities.exceptions import _RuntimeError
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 # might be supported in later releases, see https://github.com/python/mypy/pull/13297
@@ -232,7 +232,7 @@ def _get_dataloader_init_args_and_kwargs(
         sorted_required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
         missing_args_message = ", ".join(f"`self.{arg_name}`" for arg_name in sorted_required_args)
-        raise _RuntimeError(
+        raise _AttributeError(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {sorted_required_args}. If you instantiate your `{dataloader_cls_name}` "

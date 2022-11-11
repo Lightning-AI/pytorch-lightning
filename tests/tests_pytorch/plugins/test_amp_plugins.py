@@ -21,7 +21,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -254,7 +254,7 @@ def test_cpu_amp_precision_context_manager(tmpdir):
 
 def test_precision_selection_raises(monkeypatch):
     with pytest.raises(
-        MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
+        _ValueError, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
     ):
         Trainer(amp_backend="apex", precision=16)
 
@@ -263,17 +263,17 @@ def test_precision_selection_raises(monkeypatch):
     monkeypatch.setattr(amp, "_TORCH_GREATER_EQUAL_1_10", False)
     with pytest.warns(
         UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
-    ), pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
+    ), pytest.raises(_RuntimeError, match="must install torch greater or equal to 1.10"):
         Trainer(precision=16)
 
-    with pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
+    with pytest.raises(_RuntimeError, match="must install torch greater or equal to 1.10"):
         Trainer(precision="bf16")
 
-    with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
+    with pytest.raises(_ValueError, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
         Trainer(amp_backend="apex", precision="bf16")
 
     mock_cuda_count(monkeypatch, 1)
-    with pytest.raises(MisconfigurationException, match="Sharded plugins are not supported with apex"):
+    with pytest.raises(_ValueError, match="Sharded plugins are not supported with apex"):
         with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
@@ -281,6 +281,6 @@ def test_precision_selection_raises(monkeypatch):
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
     with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
-        MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
+        _ModuleNotFoundError, match="asked for Apex AMP but `apex` is not installed"
     ):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

@@ -28,7 +28,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -222,13 +222,13 @@ def test_swa_warns(tmpdir, caplog):
 
 
 def test_swa_raises():
-    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
+    with pytest.raises(_ValueError, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=0, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
+    with pytest.raises(_ValueError, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=1.5, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match=">0 integer or a float between 0 and 1"):
+    with pytest.raises(_ValueError, match=">0 integer or a float between 0 and 1"):
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
-    with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
+    with pytest.raises(_ValueError, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
 
 
@@ -379,7 +379,7 @@ def test_misconfiguration_error_with_sharded_model(tmpdir, strategy: str):
         accelerator="gpu",
         devices=1,
     )
-    with pytest.raises(MisconfigurationException, match="SWA does not currently support sharded models"):
+    with pytest.raises(_ValueError, match="SWA does not currently support sharded models"):
         trainer.fit(model)
 
 

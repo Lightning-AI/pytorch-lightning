@@ -33,7 +33,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -146,7 +146,7 @@ class ColossalAIStrategy(DDPStrategy):
         precision_plugin: Optional[ColossalAIPrecisionPlugin] = None,
     ) -> None:
         if not _COLOSSALAI_AVAILABLE:
-            raise MisconfigurationException(
+            raise _ModuleNotFoundError(
                 "To use the `ColossalAIStrategy`, please install `colossalai` first. "
                 "Download `colossalai` by consulting `https://colossalai.org/download`."
             )

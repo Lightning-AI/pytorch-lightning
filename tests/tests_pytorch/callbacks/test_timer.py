@@ -22,7 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -70,7 +70,7 @@ def test_timer_parse_duration(duration, expected):
 def test_timer_interval_choice():
     Timer(duration=timedelta(), interval="step")
     Timer(duration=timedelta(), interval="epoch")
-    with pytest.raises(MisconfigurationException, match="Unsupported parameter value"):
+    with pytest.raises(_ValueError, match="Unsupported parameter value"):
         Timer(duration=timedelta(), interval="invalid")
 
 

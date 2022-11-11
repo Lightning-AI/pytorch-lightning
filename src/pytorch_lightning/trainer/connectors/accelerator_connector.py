@@ -529,7 +529,7 @@ class AcceleratorConnector:
                 for acc_str in self._accelerator_types
                 if AcceleratorRegistry[acc_str]["accelerator"].is_available()
             ]
-            raise _ValueError(
+            raise _RuntimeError(
                 f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"

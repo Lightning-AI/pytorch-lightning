@@ -25,7 +25,7 @@ from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -82,8 +82,8 @@ def test_single_gpu_model(tmpdir, devices):
     ],
 )
 def test_root_gpu_property_0_raising(mps_count_0, cuda_count_0, devices):
-    """Test that asking for a GPU when none are available will result in a MisconfigurationException."""
-    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
+    """Test that asking for a GPU when none are available will result in a _RuntimeError."""
+    with pytest.raises(_RuntimeError, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu", devices=devices, strategy="ddp")
 
 

@@ -25,7 +25,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
@@ -128,11 +128,11 @@ def test_fx_validator():
         if allowed:
             validator.check_logging_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="must be one of"):
+                with pytest.raises(_RuntimeError, match="must be one of"):
                     validator.check_logging_levels(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
-            with pytest.raises(MisconfigurationException, match="You can't"):
+            with pytest.raises(_RuntimeError, match="You can't"):
                 validator.check_logging(fx_name=func_name)
 
     with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
@@ -150,7 +150,7 @@ class HookedCallback(Callback):
             lightning_module = trainer.lightning_module or model
 
             if hook in not_supported:
-                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                with pytest.raises(_RuntimeError, match=not_supported[hook]):
                     lightning_module.log("anything", 1)
             else:
                 lightning_module.log(hook, 1)
@@ -172,7 +172,7 @@ class HookedModel(BoringModel):
             out = fn(*args, **kwargs)
 
             if hook in not_supported:
-                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                with pytest.raises(_RuntimeError, match=not_supported[hook]):
                     self.log("anything", 1)
             else:
                 self.log(hook, 1)
@@ -536,7 +536,7 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         logger=logger,
                     )
                     if not on_step and not on_epoch:
-                        with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
+                        with pytest.raises(_RuntimeError, match="on_step=False, on_epoch=False"):
                             result_collection.log(**log_kwargs)
                     else:
                         result_collection.log(**log_kwargs)

@@ -23,14 +23,14 @@ from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampl
 
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning import Trainer
+from pytorch_lightning import trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import RunningStage, trainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -92,7 +92,7 @@ def test_replace_distributed_sampler(tmpdir, mode):
     model = TestModel(2, mode)
     model.test_epoch_end = None
 
-    trainer = Trainer(
+    trainer = trainer(
         default_root_dir=tmpdir,
         limit_test_batches=2,
         accelerator="cpu",
@@ -138,7 +138,7 @@ class TestSpawnBoringModel(BoringModel):
 @RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
+    trainer = trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     trainer.fit(TestSpawnBoringModel(num_workers))
 
@@ -158,10 +158,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     loader = TestDataLoader(ds)
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler', 'shuffle']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_ValueError, match=match):
         _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler', 'shuffle']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_ValueError, match=match):
         _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
@@ -190,10 +190,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     loader = TestDataLoader(1, ds)
     sampler = SequentialSampler(ds)
     match = escape("missing arguments are ['batch_sampler', 'sampler']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_ValueError, match=match):
         _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing arguments are ['batch_sampler', 'batch_size', 'drop_last', 'sampler']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_ValueError, match=match):
         _update_dataloader(loader, sampler, mode="predict")
 
     class TestDataLoader(DataLoader):
@@ -204,10 +204,10 @@ def test_dataloaders_with_missing_keyword_arguments():
     loader = TestDataLoader(1, ds)
     sampler = SequentialSampler(ds)
     match = escape("missing attributes are ['num_feat']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_AttributeError, match=match):
         _update_dataloader(loader, sampler, mode="fit")
     match = escape("missing attributes are ['num_feat']")
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises(_AttributeError, match=match):
         _update_dataloader(loader, sampler, mode="predict")
 
 
@@ -253,7 +253,7 @@ def test_dataloader_reinit_for_subclass():
             self.dummy_kwarg = dummy_kwarg
             self.something_unrelated = 1
 
-    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp_spawn")
+    trainer = trainer(accelerator="cpu", devices=2, strategy="ddp_spawn")
 
     class CustomDummyObj:
         sampler = None
@@ -324,7 +324,7 @@ def test_loader_detaching():
     assert len(model.predict_dataloader()) == 64
     assert len(model.test_dataloader()) == 64
 
-    trainer = Trainer(fast_dev_run=1)
+    trainer = trainer(fast_dev_run=1)
     trainer.fit(model, loader, loader)
 
     assert len(model.train_dataloader()) == 64
@@ -357,7 +357,7 @@ def test_loader_detaching():
 def test_pre_made_batches():
     """Check that loader works with pre-made batches."""
     loader = DataLoader(RandomDataset(32, 10), batch_size=None)
-    trainer = Trainer(fast_dev_run=1)
+    trainer = trainer(fast_dev_run=1)
     trainer.predict(LoaderTestModel(), loader)
 
 
@@ -367,10 +367,10 @@ def test_error_raised_with_float_limited_eval_batches():
     model = BoringModel()
     dl_size = len(model.val_dataloader())
     limit_val_batches = 1 / (dl_size + 2)
-    trainer = Trainer(limit_val_batches=limit_val_batches)
+    trainer = trainer(limit_val_batches=limit_val_batches)
     trainer._data_connector.attach_data(model)
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=rf"{limit_val_batches} \* {dl_size} < 1. Please increase the `limit_val_batches`",
     ):
         trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
@@ -400,7 +400,7 @@ def test_error_raised_with_float_limited_eval_batches():
     ],
 )
 def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, warns):
-    trainer = Trainer()
+    trainer = trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
     context = pytest.warns if warns else no_warning_call
@@ -445,7 +445,7 @@ def test_dataloader_source_direct_access():
 def test_dataloader_source_request_from_module():
     """Test requesting a dataloader from a module works."""
     module = BoringModel()
-    trainer = Trainer()
+    trainer = trainer()
     module.trainer = trainer
     module.foo = Mock(return_value=module.train_dataloader())
 
@@ -465,7 +465,7 @@ class TestDataHookSelector:
 
     def reset_instances(self):
         warning_cache.clear()
-        return BoringDataModule(), BoringModel(), Trainer()
+        return BoringDataModule(), BoringModel(), trainer()
 
     def test_no_datamodule_no_overridden(self, hook_name):
         model, _, trainer = self.reset_instances()
@@ -531,14 +531,14 @@ def test_eval_distributed_sampler_warning(devices, warn_context):
     """Test that a warning is raised when `DistributedSampler` is used with evaluation."""
 
     model = BoringModel()
-    trainer = Trainer(strategy="ddp", devices=devices, accelerator="cpu")
+    trainer = trainer(strategy="ddp", devices=devices, accelerator="cpu")
     trainer._data_connector.attach_data(model)
 
-    trainer.state.fn = TrainerFn.VALIDATING
+    trainer.state.fn = trainerFn.VALIDATING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_val_dataloader(model)
 
-    trainer.state.fn = TrainerFn.TESTING
+    trainer.state.fn = trainerFn.TESTING
     with warn_context(PossibleUserWarning, match="multi-device settings use `DistributedSampler`"):
         trainer.reset_test_dataloader(model)
 
@@ -551,7 +551,7 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
         def val_dataloader(self):
             return DataLoader(RandomDataset(32, 64), shuffle=shuffle)
 
-    trainer = Trainer(accelerator="cpu", devices=2, strategy="ddp")
+    trainer = trainer(accelerator="cpu", devices=2, strategy="ddp")
     model = CustomModel()
     trainer._data_connector.attach_data(model)
     trainer.reset_val_dataloader(model)
@@ -561,12 +561,12 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
 def test_error_raised_with_insufficient_float_limit_train_dataloader():
     batch_size = 16
     dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)
-    trainer = Trainer(limit_train_batches=0.1)
+    trainer = trainer(limit_train_batches=0.1)
     model = BoringModel()
 
     trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match="Please increase the `limit_train_batches` argument. Try at least",
     ):
         trainer.reset_train_dataloader(model)
@@ -582,9 +582,9 @@ def test_error_raised_with_insufficient_float_limit_train_dataloader():
     ],
 )
 def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, dataloader_name, tmpdir):
-    """Test that passing `Trainer.method(x_dataloader=None)` with no module-method implementations available raises
+    """Test that passing `trainer.method(x_dataloader=None)` with no module-method implementations available raises
     an error."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = trainer(default_root_dir=tmpdir, fast_dev_run=True)
     model = BoringModel()
     datamodule = BoringDataModule()
     trainer_fn = getattr(trainer, trainer_fn_name)
@@ -600,8 +600,8 @@ def test_attach_data_input_validation_with_none_dataloader(trainer_fn_name, data
     datamodule.test_dataloader = None
     datamodule.predict_dataloader = None
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=datamodule)
 
-    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `Trainer.{trainer_fn_name}"):
+    with pytest.raises(ValueError, match=f"An invalid .*dataloader was passed to `trainer.{trainer_fn_name}"):
         trainer_fn(model, **{dataloader_name: None}, datamodule=None)

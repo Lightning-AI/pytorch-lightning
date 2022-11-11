@@ -43,7 +43,7 @@ from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
@@ -490,7 +490,7 @@ def test_lightning_cli_link_arguments(tmpdir):
 
 class EarlyExitTestModel(BoringModel):
     def on_fit_start(self):
-        raise MisconfigurationException("Error on fit start")
+        raise _RuntimeError("Error on fit start")
 
 
 # mps not yet supported by distributed
@@ -501,7 +501,7 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
 
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
+        (_RuntimeError, ProcessRaisedException), match=r"Error on fit start"
     ):
         LightningCLI(
             EarlyExitTestModel,

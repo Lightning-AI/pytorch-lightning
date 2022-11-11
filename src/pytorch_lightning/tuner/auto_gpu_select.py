@@ -16,7 +16,7 @@ from typing import List
 import torch
 
 from lightning_lite.accelerators.cuda import num_cuda_devices
-from pytorch_lightning.utilities.exceptions import _OSError, _ValueError
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 def pick_multiple_gpus(nb: int) -> List[int]:
@@ -34,7 +34,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
 
     num_gpus = num_cuda_devices()
     if nb > num_gpus:
-        raise _OSError(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
+        raise _ValueError(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
     nb = num_gpus if nb == -1 else nb
 
     picked: List[int] = []

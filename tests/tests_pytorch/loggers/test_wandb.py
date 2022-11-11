@@ -22,7 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.utils import no_warning_call
 
 
@@ -359,7 +359,7 @@ def test_wandb_log_media(wandb, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
     """Test that log_model=True raises an error in offline mode."""
-    with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
+    with pytest.raises(_ValueError, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)
 
 

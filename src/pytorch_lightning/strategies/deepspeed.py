@@ -43,7 +43,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError, _FileNotFoundError
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
@@ -340,7 +340,7 @@ class DeepSpeedStrategy(DDPStrategy):
             config = os.environ[self.DEEPSPEED_ENV_VAR]
         if isinstance(config, (str, Path)):
             if not os.path.isfile(config):
-                raise _ValueError(f"You passed in a path to a DeepSpeed config but the path does not exist: {config}")
+                raise _FileNotFoundError(f"You passed in a path to a DeepSpeed config but the path does not exist: {config}")
             with open(config) as f:
                 config = json.load(f)
         assert isinstance(config, dict) or config is None

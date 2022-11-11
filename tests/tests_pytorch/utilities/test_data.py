@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.data import (
     has_len_all_ranks,
     warning_cache,
 )
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.utils import no_warning_call
 
 
@@ -37,7 +37,7 @@ def test_extract_batch_size():
         warning_cache.clear()
 
     def _check_error_raised(data):
-        with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
+        with pytest.raises(_RuntimeError, match="We could not infer the batch_size"):
             extract_batch_size(batch)
 
     @dataclass
@@ -119,7 +119,7 @@ def test_update_dataloader_typerror_custom_exception():
             super().__init__(foo, *args, **kwargs)
 
     dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
-    with pytest.raises(MisconfigurationException, match="implementation has an error.*`dataset`"):
+    with pytest.raises(TypeError, match="implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
     with _replace_dunder_methods(DataLoader, "dataset"):
@@ -134,7 +134,7 @@ def test_update_dataloader_typerror_custom_exception():
             super().__init__(*args, shuffle=randomize, **kwargs)
 
     dataloader = BadImpl(False, [])
-    with pytest.raises(MisconfigurationException, match="implementation has an error.*`shuffle`"):
+    with pytest.raises(TypeError, match="implementation has an error.*`shuffle`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
     class GoodImpl(DataLoader):
@@ -266,7 +266,7 @@ def test_dataloader_disallow_batch_sampler():
     dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
 
     # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
-    with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
+    with pytest.raises(_RuntimeError, match="when running on multiple IPU devices"):
         _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
 
 

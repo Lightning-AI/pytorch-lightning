@@ -25,7 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomIterableDataset
 from pytorch_lightning.strategies.ipu import IPUStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
@@ -45,7 +45,7 @@ def test_num_stepping_batches_with_diff_multiple_grad_accum_factor():
     different epochs."""
     grad_scheduler = GradientAccumulationScheduler(scheduling={7: 2})
     trainer = Trainer(callbacks=[grad_scheduler])
-    with pytest.raises(MisconfigurationException, match="cannot be computed with different"):
+    with pytest.raises(_RuntimeError, match="cannot be computed with different"):
         assert trainer.estimated_stepping_batches
 
 

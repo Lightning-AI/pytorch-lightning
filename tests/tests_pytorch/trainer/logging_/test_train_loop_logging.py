@@ -30,7 +30,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProg
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -273,7 +273,7 @@ def test_log_works_in_train_callback(tmpdir):
             for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
                 fx = f"{func_name}_{idx}"
                 if not on_step and not on_epoch:
-                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                    with pytest.raises(_RuntimeError, match="is not useful"):
                         pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch)
                     continue
                 pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
@@ -641,7 +641,7 @@ def test_logging_raises(tmpdir):
         enable_model_summary=False,
     )
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match="`self.log` with the key `foo/dataloader_idx_0`"):
+    with pytest.raises(_ValueError, match="`self.log` with the key `foo/dataloader_idx_0`"):
         trainer.fit(model)
 
     class TestModel(BoringModel):
@@ -649,7 +649,7 @@ def test_logging_raises(tmpdir):
             self.log("foo", Accuracy())
 
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
+    with pytest.raises(_AttributeError, match="fix this by setting an attribute for the metric in your"):
         trainer.fit(model)
 
     class TestModel(BoringModel):
@@ -662,7 +662,7 @@ def test_logging_raises(tmpdir):
 
     model = TestModel()
     with pytest.raises(
-        MisconfigurationException,
+        _AttributeError,
         match=r"`self.log\(foo, ..., metric_attribute=name\)` where `name` is one of \['bar'\]",
     ):
         trainer.fit(model)
@@ -674,7 +674,7 @@ def test_logging_raises(tmpdir):
             return super().training_step(*args)
 
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r"self.log\(foo, ...\)` twice in `training_step`"):
+    with pytest.raises(_RuntimeError, match=r"self.log\(foo, ...\)` twice in `training_step`"):
         trainer.fit(model)
 
     class TestModel(BoringModel):
@@ -683,7 +683,7 @@ def test_logging_raises(tmpdir):
             return super().training_step(*args)
 
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
+    with pytest.raises(_RuntimeError, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
         trainer.fit(model)
 
     class TestModel(BoringModel):

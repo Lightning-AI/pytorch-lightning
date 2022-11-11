@@ -14,7 +14,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import HivemindStrategy
 from pytorch_lightning.strategies.hivemind import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
@@ -25,7 +25,7 @@ if _HIVEMIND_AVAILABLE:
 @mock.patch("pytorch_lightning.strategies.hivemind._HIVEMIND_AVAILABLE", False)
 def test_raise_exception_if_hivemind_unavailable():
     """Test that we raise an exception when Hivemind is not available."""
-    with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
+    with pytest.raises(_ModuleNotFoundError, match="you must have Hivemind installed"):
         HivemindStrategy(target_batch_size=1)
 
 
@@ -119,7 +119,7 @@ def test_raise_exception_multiple_optimizers():
     model = TestModel()
     trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
-    with pytest.raises(MisconfigurationException, match="Hivemind only supports training with one optimizer."):
+    with pytest.raises(_ValueError, match="Hivemind only supports training with one optimizer."):
         trainer.fit(model)
 
 
@@ -131,7 +131,7 @@ def test_raise_exception_no_batch_size(mock_extract_batch_size):
     model = BoringModel()
     trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
-    with pytest.raises(MisconfigurationException, match="Please provide the batch size to the Strategy."):
+    with pytest.raises(_RuntimeError, match="Please provide the batch size to the Strategy."):
         trainer.fit(model)
 
 

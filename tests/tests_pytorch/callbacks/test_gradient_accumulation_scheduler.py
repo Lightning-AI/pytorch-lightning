@@ -19,7 +19,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import GradientAccumulationScheduler
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
@@ -92,7 +92,7 @@ def test_trainer_accumulate_grad_batches_with_callback(tmpdir):
     ],
 )
 def test_invalid_keys_for_grad_accum_scheduler(scheduling):
-    with pytest.raises(MisconfigurationException, match="Epoch should be an int"):
+    with pytest.raises(_ValueError, match="Epoch should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)
 
 
@@ -104,5 +104,5 @@ def test_invalid_keys_for_grad_accum_scheduler(scheduling):
     ],
 )
 def test_invalid_values_for_grad_accum_scheduler(scheduling):
-    with pytest.raises(MisconfigurationException, match="Accumulation factor should be an int"):
+    with pytest.raises(_ValueError, match="Accumulation factor should be an int"):
         _ = GradientAccumulationScheduler(scheduling=scheduling)

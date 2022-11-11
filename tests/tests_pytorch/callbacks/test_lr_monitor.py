@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -194,7 +194,7 @@ def test_lr_monitor_no_logger(tmpdir):
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
 
-    with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
+    with pytest.raises(_RuntimeError, match="`Trainer` that has no logger"):
         trainer.fit(model)
 
 
@@ -389,7 +389,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
     )
 
     with pytest.raises(
-        MisconfigurationException, match="A single `Optimizer` cannot have multiple parameter groups with identical"
+        _ValueError, match="A single `Optimizer` cannot have multiple parameter groups with identical"
     ):
         trainer.fit(TestModel())
 

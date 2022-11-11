@@ -20,7 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.strategies import BaguaStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -109,7 +109,7 @@ def test_configuration(algorithm, tmpdir):
         "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__", return_value=None
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         if algorithm == "qadam":
-            with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
+            with pytest.raises(_ValueError, match="Bagua QAdam can only accept one QAdamOptimizer"):
                 trainer.strategy._configure_bagua_model(trainer)
         else:
             trainer.strategy._configure_bagua_model(trainer)
@@ -141,5 +141,5 @@ def test_bagua_not_available(cuda_count_1, monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
+    with pytest.raises(_ModuleNotFoundError, match="you must have `Bagua` installed"):
         Trainer(strategy="bagua", accelerator="gpu", devices=1)

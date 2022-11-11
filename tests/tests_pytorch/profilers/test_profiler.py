@@ -28,7 +28,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBorin
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profilers import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profilers.pytorch import RegisterRecordFunction, warning_cache
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -570,7 +570,7 @@ def test_trainer_profiler_correct_args(profiler, expected):
 
 def test_trainer_profiler_incorrect_str_arg():
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=r"When passing string value for the `profiler` parameter of `Trainer`, it can only be one of.*",
     ):
         Trainer(profiler="unknown_profiler")

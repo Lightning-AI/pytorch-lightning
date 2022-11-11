@@ -17,7 +17,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.manual_loop import ManualResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 
 def test_manual_result():
@@ -41,5 +41,5 @@ def test_warning_invalid_trainstep_output(tmpdir):
     model = InvalidTrainStepModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
-    with pytest.raises(MisconfigurationException, match="return a Tensor, a dict with extras .* or have no return"):
+    with pytest.raises(_RuntimeError, match="return a Tensor, a dict with extras .* or have no return"):
         trainer.fit(model)

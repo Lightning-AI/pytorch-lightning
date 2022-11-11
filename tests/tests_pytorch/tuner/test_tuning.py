@@ -15,7 +15,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError
 
 
 def test_tuner_with_distributed_strategies():
@@ -23,5 +23,5 @@ def test_tuner_with_distributed_strategies():
     trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
+    with pytest.raises(_NotImplementedError, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
         trainer.tune(model)

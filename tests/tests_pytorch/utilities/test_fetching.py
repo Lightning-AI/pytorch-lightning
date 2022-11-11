@@ -24,7 +24,7 @@ from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
@@ -131,7 +131,7 @@ def test_misconfiguration_error():
     fetcher.setup(loader)
     assert fetcher.loaders == loader
     with pytest.raises(
-        MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
+        _RuntimeError, match="The `dataloader_iter` isn't available outside the __iter__ context."
     ):
         fetcher.loader_iters
     iter(fetcher)
@@ -284,7 +284,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
             self.count += 2
             if self.automatic_optimization:
                 loss = super().training_step(batch, 0)
-                with pytest.raises(MisconfigurationException, match="dataloader_iter"):
+                with pytest.raises(_RuntimeError, match="dataloader_iter"):
                     self.log("train_loss", loss["loss"])
                 self.log("train_loss", loss["loss"], batch_size=1)
             else:
@@ -421,7 +421,7 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
 
 
 def test_on_train_batch_start_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_start` is overridden on the
+    """Verify that a `_RuntimeError` is raised when `on_train_batch_start` is overridden on the
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
@@ -430,12 +430,12 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
+    with pytest.raises(_RuntimeError, match="The model hook `on_train_batch_start` is not compatible with"):
         trainer.fit(m)
 
 
 def test_on_train_batch_end_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `on_train_batch_end` is overridden on the
+    """Verify that a `_RuntimeError` is raised when `on_train_batch_end` is overridden on the
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
@@ -444,12 +444,12 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
+    with pytest.raises(_RuntimeError, match="The model hook `on_train_batch_end` is not compatible with"):
         trainer.fit(m)
 
 
 def test_tbptt_split_batch_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `tbptt_split_batch` is overridden on the
+    """Verify that a `_ValueError` is raised when `tbptt_split_batch` is overridden on the
     `LightningModule`."""
 
     class InvalidModel(AsyncBoringModel):
@@ -459,7 +459,7 @@ def test_tbptt_split_batch_overridden(tmpdir) -> None:
 
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
+    with pytest.raises(_ValueError, match="is incompatible with `truncated_bptt_steps > 0`."):
         trainer.fit(m)
 
 

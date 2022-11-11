@@ -25,7 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
@@ -302,7 +302,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+    with pytest.raises(_RuntimeError, match="Error while merging hparams"):
         trainer.fit(model, dm)
 
     tensor_params = deepcopy(same_params)
@@ -319,7 +319,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
+    with pytest.raises(_RuntimeError, match="Error while merging hparams"):
         trainer.fit(model, dm)
 
 

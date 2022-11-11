@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 
 def test_extract_hiddens():
@@ -34,10 +34,10 @@ def test_extract_hiddens():
     assert not hiddens.requires_grad
 
     # tbptt not enabled, hiddens return
-    with pytest.raises(MisconfigurationException, match='returned "hiddens" .* but `truncated_bptt_steps` is disabled'):
+    with pytest.raises(_RuntimeError, match='returned "hiddens" .* but `truncated_bptt_steps` is disabled'):
         _extract_hiddens(training_step_output, 0)
     # tbptt enabled, no hiddens return
-    with pytest.raises(MisconfigurationException, match="enabled `truncated_bptt_steps` but did not `return"):
+    with pytest.raises(_RuntimeError, match="enabled `truncated_bptt_steps` but did not `return"):
         _extract_hiddens(None, 1)
 
 

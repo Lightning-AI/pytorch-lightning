@@ -23,7 +23,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _TypeError, _ValueError
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests_pytorch.helpers.datamodules import RegressDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -119,25 +119,25 @@ def test_quantize_torchscript(tmpdir):
 @RunIf(quantization=True, sklearn=True)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers."""
-    with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
+    with pytest.raises(_ValueError, match="Unsupported qconfig"):
         QuantizationAwareTraining(qconfig=["abc"])
 
-    with pytest.raises(MisconfigurationException, match="Unsupported observer type"):
+    with pytest.raises(_ValueError, match="Unsupported observer type"):
         QuantizationAwareTraining(observer_type="abc")
 
-    with pytest.raises(MisconfigurationException, match="Unsupported `collect_quantization`"):
+    with pytest.raises(_TypeError, match="Unsupported `collect_quantization`"):
         QuantizationAwareTraining(collect_quantization="abc")
 
-    with pytest.raises(MisconfigurationException, match="Unsupported `collect_quantization`"):
+    with pytest.raises(_TypeError, match="Unsupported `collect_quantization`"):
         QuantizationAwareTraining(collect_quantization=1.2)
 
-    with pytest.raises(MisconfigurationException, match="Unsupported stages"):
+    with pytest.raises(_ValueError, match="Unsupported stages"):
         QuantizationAwareTraining(observer_enabled_stages=("abc",))
 
     fusing_layers = [(f"layers.mlp_{i}", f"layers.NONE-mlp_{i}a") for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match="one or more of them is not your model attributes"):
+    with pytest.raises(_AttributeError, match="one or more of them is not your model attributes"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
 

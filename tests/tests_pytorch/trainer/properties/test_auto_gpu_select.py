@@ -19,14 +19,14 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["nb", "expected_gpu_idxs", "expected_error"],
-    [(0, [], MisconfigurationException), (-1, list(range(torch.cuda.device_count())), None), (1, [0], None)],
+    [(0, [], _ValueError), (-1, list(range(torch.cuda.device_count())), None), (1, [0], None)],
 )
 def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
     if expected_error:
@@ -43,7 +43,7 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
 
 
 def test_pick_multiple_gpus_more_than_available(cuda_count_1):
-    with pytest.raises(MisconfigurationException, match="You requested 3 GPUs but your machine only has 1 GPUs"):
+    with pytest.raises(_ValueError, match="You requested 3 GPUs but your machine only has 1 GPUs"):
         pick_multiple_gpus(3)
 
 

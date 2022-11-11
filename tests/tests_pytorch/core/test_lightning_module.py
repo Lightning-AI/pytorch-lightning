@@ -23,7 +23,7 @@ from torch.optim import Adam, SGD
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
@@ -392,7 +392,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0, gradient_clip_val=1e-4
     )
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=r"gradient_clip_val=0.0001\)` and have passed `clip_gradients\(gradient_clip_val=0.01",
     ):
         trainer.fit(model)
@@ -412,7 +412,7 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         gradient_clip_algorithm="norm",
     )
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=r"gradient_clip_algorithm='norm'\)` and have passed `clip_gradients\(gradient_clip_algorithm='foo'",
     ):
         trainer.fit(model)

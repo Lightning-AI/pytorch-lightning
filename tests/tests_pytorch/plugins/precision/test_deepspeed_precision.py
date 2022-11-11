@@ -16,7 +16,7 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError
 
 
 def test_invalid_precision_with_deepspeed_precision():
@@ -28,7 +28,7 @@ def test_deepspeed_precision_apex_not_installed(monkeypatch):
     import pytorch_lightning.plugins.precision.deepspeed as deepspeed_apex
 
     monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
-    with pytest.raises(MisconfigurationException, match="You have asked for Apex AMP but `apex` is not installed."):
+    with pytest.raises(_ModuleNotFoundError, match="You have asked for Apex AMP but `apex` is not installed."):
         DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
 
 

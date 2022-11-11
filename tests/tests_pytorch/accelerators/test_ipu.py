@@ -28,7 +28,7 @@ from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -103,7 +103,7 @@ def test_auto_device_count():
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(_, tmpdir):
-    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+    with pytest.raises(_RuntimeError, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
 
 
@@ -342,7 +342,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, accumulate_grad_batches={1: 2})
     with pytest.raises(
-        MisconfigurationException, match="IPUs currently does not support different `accumulate_grad_batches`"
+        _RuntimeError, match="IPUs currently does not support different `accumulate_grad_batches`"
     ):
         trainer.fit(model)
 
@@ -351,7 +351,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
 def test_clip_gradients_fails(tmpdir):
     model = IPUModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, gradient_clip_val=10)
-    with pytest.raises(MisconfigurationException, match="IPUs currently do not support clipping gradients."):
+    with pytest.raises(_RuntimeError, match="IPUs currently do not support clipping gradients."):
         trainer.fit(model)
 
 
@@ -554,7 +554,7 @@ def test_multi_optimizers_fails(tmpdir):
     model = TestModel()
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
-    with pytest.raises(MisconfigurationException, match="IPUs currently only support one optimizer."):
+    with pytest.raises(_RuntimeError, match="IPUs currently only support one optimizer."):
         trainer.fit(model)
 
 

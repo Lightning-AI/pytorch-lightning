@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.supporters import (
 )
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -104,7 +104,7 @@ def test_combined_dataset(dataset_1, dataset_2):
 
 def test_combined_dataset_length_mode_error():
     dset = CombinedDataset([range(10)])
-    with pytest.raises(MisconfigurationException, match="Invalid Mode"):
+    with pytest.raises(_ValueError, match="Invalid Mode"):
         dset._calc_num_data([range(10)], "test")
 
 
@@ -127,7 +127,7 @@ def test_combined_loader_iterator_dict_min_size():
 
 def test_combined_loader_init_mode_error():
     """Test the ValueError when constructing `CombinedLoader`"""
-    with pytest.raises(MisconfigurationException, match="Invalid Mode"):
+    with pytest.raises(_ValueError, match="Invalid Mode"):
         CombinedLoader([range(10)], "testtt")
 
 

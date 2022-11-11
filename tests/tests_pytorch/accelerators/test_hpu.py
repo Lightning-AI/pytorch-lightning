@@ -23,7 +23,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _TypeError, _ValueError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -48,7 +48,7 @@ def test_device_name():
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus():
-    with pytest.raises(MisconfigurationException, match="HPUAccelerator` can not run on your system"):
+    with pytest.raises(_RuntimeError, match="HPUAccelerator` can not run on your system"):
         Trainer(accelerator="hpu", devices=1)
 
 
@@ -253,7 +253,7 @@ def test_hpu_auto_device_count():
 
 @RunIf(hpu=True)
 def test_hpu_unsupported_device_type():
-    with pytest.raises(MisconfigurationException, match="`devices` for `HPUAccelerator` must be int, string or None."):
+    with pytest.raises(_TypeError, match="`devices` for `HPUAccelerator` must be int, string or None."):
         Trainer(accelerator="hpu", devices=[1])
 
 

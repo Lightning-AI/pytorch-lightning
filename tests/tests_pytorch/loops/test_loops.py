@@ -27,7 +27,7 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -128,7 +128,7 @@ def test_replace_loops():
     trainer = Trainer(min_steps=123, max_steps=321)
 
     with pytest.raises(
-        MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
+        _RuntimeError, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
     ):
         trainer.fit_loop.replace(epoch_loop=TestLoop)
 

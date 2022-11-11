@@ -34,7 +34,7 @@ from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -876,7 +876,7 @@ def test_colliding_hparams(tmpdir):
     data = DataModuleWithHparams({"data_dir": "foo"})
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
+    with pytest.raises(_RuntimeError, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
 
 

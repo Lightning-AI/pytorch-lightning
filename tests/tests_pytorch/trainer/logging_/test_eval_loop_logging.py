@@ -30,7 +30,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests_pytorch.helpers.runif import RunIf
 
@@ -295,7 +295,7 @@ def test_log_works_in_val_callback(tmpdir):
             for idx, (on_step, on_epoch, prog_bar) in enumerate(itertools.product(on_steps, on_epochs, prob_bars)):
                 fx = f"{func_name}_{idx}"
                 if not on_step and not on_epoch:
-                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                    with pytest.raises(_RuntimeError, match="is not useful"):
                         pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch)
                     continue
                 pl_module.log(fx, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
@@ -394,7 +394,7 @@ def test_log_works_in_test_callback(tmpdir):
                 custom_func_name = f"{idx}_{func_name}"
 
                 if not on_step and not on_epoch:
-                    with pytest.raises(MisconfigurationException, match="is not useful"):
+                    with pytest.raises(_RuntimeError, match="is not useful"):
                         pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch)
                     continue
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)

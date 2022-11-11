@@ -25,7 +25,7 @@ from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
@@ -142,7 +142,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         enable_progress_bar=False,
     )
 
-    with pytest.raises(MisconfigurationException, match="Cannot use `DeviceStatsMonitor` callback."):
+    with pytest.raises(_ValueError, match="Cannot use `DeviceStatsMonitor` callback."):
         trainer.fit(model)
 
 

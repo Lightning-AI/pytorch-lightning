@@ -32,7 +32,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError, _FileNotFoundError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -180,7 +180,7 @@ def test_deepspeed_with_invalid_config_path():
     """Test to ensure if we pass an invalid config path we throw an exception."""
 
     with pytest.raises(
-        MisconfigurationException, match="You passed in a path to a DeepSpeed config but the path does not exist"
+        _FileNotFoundError, match="You passed in a path to a DeepSpeed config but the path does not exist"
     ):
         DeepSpeedStrategy(config="invalid_path.json")
 
@@ -546,7 +546,7 @@ def test_deepspeed_multigpu_single_file(tmpdir):
     strategy = trainer.strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     assert not strategy.load_full_weights
-    with pytest.raises(MisconfigurationException, match="DeepSpeed was unable to load the checkpoint."):
+    with pytest.raises(_RuntimeError, match="DeepSpeed was unable to load the checkpoint."):
         trainer.test(model, ckpt_path=checkpoint_path)
 
     trainer = Trainer(
@@ -1034,7 +1034,7 @@ def test_deepspeed_skip_backward_raises(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="returning `None` .* is not supported"):
+    with pytest.raises(_RuntimeError, match="returning `None` .* is not supported"):
         trainer.fit(model)
 
 
@@ -1154,7 +1154,7 @@ def test_deepspeed_gradient_clip_by_value(tmpdir):
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-    with pytest.raises(MisconfigurationException, match="does not support clipping gradients by value"):
+    with pytest.raises(_ValueError, match="does not support clipping gradients by value"):
         trainer.fit(model)
 
 
@@ -1171,7 +1171,7 @@ def test_different_accumulate_grad_batches_fails(tmpdir):
         enable_model_summary=False,
     )
     with pytest.raises(
-        MisconfigurationException, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
+        _ValueError, match="DeepSpeed currently does not support different `accumulate_grad_batches`"
     ):
         trainer.fit(model)
 
@@ -1288,7 +1288,7 @@ def test_error_with_invalid_accelerator(tmpdir):
         fast_dev_run=True,
     )
     model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
+    with pytest.raises(_ValueError, match="DeepSpeed strategy is only supported on GPU"):
         trainer.fit(model)
 
 

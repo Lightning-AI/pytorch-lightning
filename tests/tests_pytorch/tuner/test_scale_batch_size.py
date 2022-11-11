@@ -23,7 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import AMPType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
 
@@ -241,7 +241,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
     fit_options = dict(train_dataloaders=model.train_dataloader())
 
     with pytest.raises(
-        MisconfigurationException,
+        _RuntimeError,
         match="Batch size finder cannot be used with dataloaders passed directly",
     ):
         trainer.tune(model, **fit_options)
@@ -395,7 +395,7 @@ def test_if_batch_size_finder_callback_already_configured():
     trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+    with pytest.raises(_ValueError, match="Trainer is already configured with a .* callback"):
         trainer.tune(model)
 
 
@@ -406,10 +406,10 @@ def test_error_if_train_or_val_dataloaders_passed_with_eval_method():
     model = BoringModel()
     dl = model.train_dataloader()
 
-    with pytest.raises(MisconfigurationException, match="please consider setting `dataloaders` instead"):
+    with pytest.raises(_ValueError, match="please consider setting `dataloaders` instead"):
         trainer.tune(model, train_dataloaders=dl, method="validate")
 
-    with pytest.raises(MisconfigurationException, match="please consider setting `dataloaders` instead"):
+    with pytest.raises(_ValueError, match="please consider setting `dataloaders` instead"):
         trainer.tune(model, val_dataloaders=dl, method="validate")
 
 
@@ -420,7 +420,7 @@ def test_error_if_dataloaders_passed_with_fit_method():
     dl = model.val_dataloader()
 
     with pytest.raises(
-        MisconfigurationException, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"
+        _ValueError, match="please consider setting `train_dataloaders` and `val_dataloaders` instead"
     ):
         trainer.tune(model, dataloaders=dl, method="fit")
 
@@ -432,7 +432,7 @@ def test_batch_size_finder_with_distributed_strategies():
     bs_finder = BatchSizeFinder()
 
     with pytest.raises(
-        MisconfigurationException, match="Batch size finder is not supported with distributed strategies."
+        _RuntimeError, match="Batch size finder is not supported with distributed strategies."
     ):
         bs_finder.setup(trainer, model)
 
@@ -448,7 +448,7 @@ def test_batch_size_finder_with_multiple_eval_dataloaders(tmpdir):
     model = CustomModel()
 
     with pytest.raises(
-        MisconfigurationException, match="Batch size finder cannot be used with multiple .* dataloaders"
+        _RuntimeError, match="Batch size finder cannot be used with multiple .* dataloaders"
     ):
         trainer.tune(model, method="validate")
 

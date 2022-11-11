@@ -23,7 +23,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError, _ValueError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -48,7 +48,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(MisconfigurationException, match="only works with single optimizer"):
+    with pytest.raises(_RuntimeError, match="only works with single optimizer"):
         trainer.tuner.lr_find(model)
 
 
@@ -292,7 +292,7 @@ def test_suggestion_with_non_finite_values(tmpdir):
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """Test that tune fails if the model does not have a lr BEFORE running lr find."""
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, auto_lr_find=True)
-    with pytest.raises(MisconfigurationException, match="should have one of these fields"):
+    with pytest.raises(_AttributeError, match="should have one of these fields"):
         trainer.tune(BoringModel())
 
 
@@ -437,7 +437,7 @@ def test_if_lr_finder_callback_already_configured():
     trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+    with pytest.raises(_ValueError, match="Trainer is already configured with a .* callback"):
         trainer.tune(model)
 
 

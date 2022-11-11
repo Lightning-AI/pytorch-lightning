@@ -11,11 +11,32 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn import FullyShardedDataParallel, wrap
+
+
+def test_invalid_on_cpu(tmpdir):
+    """Test to ensure that to raise _RuntimeError for FSDP on CPU."""
+    with pytest.raises(
+        _RuntimeError, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
+        assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+        trainer.strategy.setup_environment()
+
+
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
+@RunIf(fairscale=True)
+def test_fsdp_with_sharded_amp(cuda_count_1, tmpdir):
+    """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", accelerator="gpu", devices=1, precision=16
+    )
+    assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
 
 class TestFSDPModelManualWrapped(BoringModel):
@@ -233,7 +254,7 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         enable_model_summary=False,
     )
     with pytest.raises(
-        MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
+        _ValueError, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
     ):
         trainer.fit(model)
 
@@ -252,7 +273,7 @@ def test_fsdp_rewrap_limitation(tmpdir):
     model = TestFSDPModelAutoWrapped()
     trainer.fit(model)
 
-    with pytest.raises(MisconfigurationException, match="Using the same instance of model .* not supported"):
+    with pytest.raises(_ValueError, match="Using the same instance of model .* not supported"):
         trainer.test(model)
 
 

@@ -25,7 +25,7 @@ from torch.nn import Sequential
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _TypeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -93,11 +93,11 @@ def train_with_pruning_callback(
 
     # Misconfiguration checks
     if isinstance(pruning_fn, str) and pruning_fn.endswith("_structured") and use_global_unstructured:
-        with pytest.raises(MisconfigurationException, match="is supported with `use_global_unstructured=True`"):
+        with pytest.raises(_TypeError, match="is supported with `use_global_unstructured=True`"):
             ModelPruning(**pruning_kwargs)
         return
     if ModelPruning._is_pruning_method(pruning_fn) and not use_global_unstructured:
-        with pytest.raises(MisconfigurationException, match="currently only supported with"):
+        with pytest.raises(_NotImplementedError, match="currently only supported with"):
             ModelPruning(**pruning_kwargs)
         return
 
@@ -126,15 +126,15 @@ def train_with_pruning_callback(
 
 
 def test_pruning_misconfiguration():
-    with pytest.raises(MisconfigurationException, match=r"chocolate isn't in \('weight', 'bias'\)"):
+    with pytest.raises(_ValueError, match=r"chocolate isn't in \('weight', 'bias'\)"):
         ModelPruning(pruning_fn="l1_unstructured", parameter_names=["chocolate"])
-    with pytest.raises(MisconfigurationException, match=r"expected to be a str in \["):
+    with pytest.raises(_ValueError, match=r"expected to be a str in \["):
         ModelPruning(pruning_fn={})
-    with pytest.raises(MisconfigurationException, match="should be provided"):
+    with pytest.raises(_ValueError, match="should be provided"):
         ModelPruning(pruning_fn="random_structured")
-    with pytest.raises(MisconfigurationException, match=r"must be any of \(0, 1, 2\)"):
+    with pytest.raises(_ValueError, match=r"must be any of \(0, 1, 2\)"):
         ModelPruning(pruning_fn="l1_unstructured", verbose=3)
-    with pytest.raises(MisconfigurationException, match="requesting `ln_structured` pruning, the `pruning_norm`"):
+    with pytest.raises(_ValueError, match="requesting `ln_structured` pruning, the `pruning_norm`"):
         ModelPruning(pruning_fn="ln_structured", pruning_dim=0)
 
 

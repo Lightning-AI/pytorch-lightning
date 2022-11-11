@@ -27,7 +27,7 @@ import torch
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
@@ -97,7 +97,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         callbacks=[early_stop_callback],
     )
 
-    with pytest.raises(MisconfigurationException, match=r"You restored a checkpoint with current_epoch"):
+    with pytest.raises(_ValueError, match=r"You restored a checkpoint with current_epoch"):
         new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
@@ -329,7 +329,7 @@ def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epoch
 
 
 def test_early_stopping_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be .* got unknown_option"):
+    with pytest.raises(_ValueError, match="`mode` can be .* got unknown_option"):
         EarlyStopping(monitor="foo", mode="unknown_option")
 
 

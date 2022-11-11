@@ -28,7 +28,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -245,7 +245,7 @@ def test_tpu_misconfiguration(tpu_cores, tpu_available):
 @pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
 def test_exception_when_no_tpu_found(xla_available):
     """Test if exception is thrown when xla devices are not available."""
-    with pytest.raises(MisconfigurationException, match="TPUAccelerator` can not run on your system"):
+    with pytest.raises(_RuntimeError, match="TPUAccelerator` can not run on your system"):
         Trainer(accelerator="tpu", devices=8)
 
 

@@ -36,7 +36,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -501,15 +501,15 @@ def test_model_checkpoint_save_last(tmpdir):
 
 
 def test_invalid_top_k(tmpdir):
-    """Make sure that a MisconfigurationException is raised for a negative save_top_k argument."""
-    with pytest.raises(MisconfigurationException, match=r".*Must be >= -1"):
+    """Make sure that a _ValueError is raised for a negative save_top_k argument."""
+    with pytest.raises(_ValueError, match=r".*Must be >= -1"):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=-3)
 
 
 def test_none_monitor_top_k(tmpdir):
     """Test that a warning appears for positive top_k with monitor=None."""
     with pytest.raises(
-        MisconfigurationException, match=r"ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*"
+        _ValueError, match=r"ModelCheckpoint\(save_top_k=3, monitor=None\) is not a valid*"
     ):
         ModelCheckpoint(dirpath=tmpdir, save_top_k=3)
     # These should not fail
@@ -519,8 +519,8 @@ def test_none_monitor_top_k(tmpdir):
 
 
 def test_invalid_every_n_epochs(tmpdir):
-    """Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument."""
-    with pytest.raises(MisconfigurationException, match=r".*Must be >= 0"):
+    """Make sure that a _ValueError is raised for a negative every_n_epochs argument."""
+    with pytest.raises(_ValueError, match=r".*Must be >= 0"):
         ModelCheckpoint(dirpath=tmpdir, every_n_epochs=-3)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=0)
@@ -529,8 +529,8 @@ def test_invalid_every_n_epochs(tmpdir):
 
 
 def test_invalid_every_n_train_steps(tmpdir):
-    """Make sure that a MisconfigurationException is raised for a negative every_n_epochs argument."""
-    with pytest.raises(MisconfigurationException, match=r".*Must be >= 0"):
+    """Make sure that a _ValueError is raised for a negative every_n_epochs argument."""
+    with pytest.raises(_ValueError, match=r".*Must be >= 0"):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=-3)
     # These should not fail
     ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0)
@@ -539,13 +539,13 @@ def test_invalid_every_n_train_steps(tmpdir):
 
 
 def test_invalid_trigger_combination(tmpdir):
-    """Test that a MisconfigurationException is raised if more than one of every_n_epochs, every_n_train_steps, and
+    """Test that a _ValueError is raised if more than one of every_n_epochs, every_n_train_steps, and
     train_time_interval are enabled together."""
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
+    with pytest.raises(_ValueError, match=r".*Combination of parameters every_n_train_steps"):
         ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_epochs=2)
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
+    with pytest.raises(_ValueError, match=r".*Combination of parameters every_n_train_steps"):
         ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_epochs=2)
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
+    with pytest.raises(_ValueError, match=r".*Combination of parameters every_n_train_steps"):
         ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
 
     # These should not fail
@@ -1004,7 +1004,7 @@ def test_configure_model_checkpoint(tmpdir):
     assert trainer.checkpoint_callback == callback1
     assert trainer.checkpoint_callbacks == [callback1, callback2]
 
-    with pytest.raises(MisconfigurationException, match="`enable_checkpointing=False` but found `ModelCheckpoint`"):
+    with pytest.raises(_ValueError, match="`enable_checkpointing=False` but found `ModelCheckpoint`"):
         Trainer(enable_checkpointing=False, callbacks=[callback1], **kwargs)
 
 
@@ -1170,7 +1170,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
 
 
 def test_model_checkpoint_mode_options():
-    with pytest.raises(MisconfigurationException, match="`mode` can be .* but got unknown_option"):
+    with pytest.raises(_ValueError, match="`mode` can be .* but got unknown_option"):
         ModelCheckpoint(mode="unknown_option")
 
 

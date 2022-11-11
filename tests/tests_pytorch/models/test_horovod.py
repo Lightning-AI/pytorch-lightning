@@ -29,7 +29,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.advanced_models import BasicGAN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -167,7 +166,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
 
 @RunIf(horovod=True, skip_windows=True, min_cuda_gpus=2)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
-    """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
+    """Ensure ValueError for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
     model = BoringModel()
     trainer = Trainer(
@@ -178,7 +177,7 @@ def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
         devices=2,
         strategy="horovod",
     )
-    with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
+    with pytest.raises(ValueError, match="Horovod.*does not support.*accumulate_grad_batches"):
         trainer.fit(model)
 
 

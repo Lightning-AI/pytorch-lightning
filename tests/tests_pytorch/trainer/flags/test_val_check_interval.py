@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _TypeError
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -119,7 +119,7 @@ def test_val_check_interval_float_with_none_check_val_every_n_epoch():
     """Test that an exception is raised when `val_check_interval` is set to float with
     `check_val_every_n_epoch=None`"""
     with pytest.raises(
-        MisconfigurationException, match="`val_check_interval` should be an integer when `check_val_every_n_epoch=None`"
+        _TypeError, match="`val_check_interval` should be an integer when `check_val_every_n_epoch=None`"
     ):
         Trainer(
             val_check_interval=0.5,

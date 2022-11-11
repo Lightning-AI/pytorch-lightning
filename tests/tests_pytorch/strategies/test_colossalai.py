@@ -26,7 +26,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies import ColossalAIStrategy
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ModuleNotFoundError
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -39,7 +39,7 @@ def test_invalid_colosalai(monkeypatch):
 
     monkeypatch.setattr(colossal_strategy, "_COLOSSALAI_AVAILABLE", False)
     with pytest.raises(
-        MisconfigurationException,
+        _ModuleNotFoundError,
         match="To use the `ColossalAIStrategy`, please install `colossalai` first. "
         "Download `colossalai` by consulting `https://colossalai.org/download`.",
     ):

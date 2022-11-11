@@ -16,7 +16,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _RuntimeError
 
 
 def test_optimizer_step_no_closure_raises(tmpdir):
@@ -29,7 +29,7 @@ def test_optimizer_step_no_closure_raises(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
+    with pytest.raises(_RuntimeError, match="The closure hasn't been executed"):
         trainer.fit(model)
 
     class TestModel(BoringModel):
@@ -43,5 +43,5 @@ def test_optimizer_step_no_closure_raises(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
-    with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
+    with pytest.raises(_RuntimeError, match="The closure hasn't been executed"):
         trainer.fit(model)

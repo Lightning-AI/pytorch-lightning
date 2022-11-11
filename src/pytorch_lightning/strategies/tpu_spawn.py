@@ -37,7 +37,7 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.exceptions import _RuntimeError
+from pytorch_lightning.utilities.exceptions import _TypeError
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
@@ -101,7 +101,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
         def check_has_len(dataloader: DataLoader) -> None:
             if not has_len(dataloader):
-                raise _RuntimeError(
+                raise _TypeError(
                     "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
                     " HINT: You can mock the length on your dataset to bypass this Error."
                 )

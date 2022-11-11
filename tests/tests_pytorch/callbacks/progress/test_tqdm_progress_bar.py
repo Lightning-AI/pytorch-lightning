@@ -29,7 +29,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMPr
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -100,10 +100,10 @@ def test_tqdm_progress_bar_misconfiguration():
     """Test that Trainer doesn't accept multiple progress bars."""
     # Trainer supports only a single progress bar callback at the moment
     callbacks = [TQDMProgressBar(), TQDMProgressBar(), ModelCheckpoint(dirpath="../trainer")]
-    with pytest.raises(MisconfigurationException, match=r"^You added multiple progress bar callbacks"):
+    with pytest.raises(_ValueError, match=r"^You added multiple progress bar callbacks"):
         Trainer(callbacks=callbacks)
 
-    with pytest.raises(MisconfigurationException, match=r"enable_progress_bar=False` but found `TQDMProgressBar"):
+    with pytest.raises(_ValueError, match=r"enable_progress_bar=False` but found `TQDMProgressBar"):
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 

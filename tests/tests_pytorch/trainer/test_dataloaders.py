@@ -34,7 +34,7 @@ from pytorch_lightning.demos.boring_classes import (
 )
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
 from tests_pytorch.helpers.runif import RunIf
 
@@ -123,7 +123,7 @@ def test_dataloader_config_errors_runtime(tmpdir, dataloader_options):
     ],
 )
 def test_dataloader_config_errors_init(tmpdir, dataloader_options):
-    with pytest.raises(MisconfigurationException, match="passed invalid value"):
+    with pytest.raises(_ValueError, match="passed invalid value"):
         Trainer(default_root_dir=tmpdir, max_epochs=1, **dataloader_options)
 
 
@@ -472,7 +472,7 @@ def test_dataloaders_with_fast_dev_run(tmpdir, fast_dev_run):
     trainer_options = dict(default_root_dir=tmpdir, max_epochs=2, fast_dev_run=fast_dev_run)
 
     if fast_dev_run == -1:
-        with pytest.raises(MisconfigurationException, match="should be >= 0"):
+        with pytest.raises(_ValueError, match="should be >= 0"):
             Trainer(**trainer_options)
     else:
         trainer = Trainer(**trainer_options)
@@ -901,7 +901,7 @@ def test_inf_dataloader_raise_error_with_partial_batch_limits(tmpdir, stage, dat
     trainer = Trainer(**trainer_kwargs)
     trainer_fn = "fit" if stage == RunningStage.TRAINING else stage.value
 
-    with pytest.raises(MisconfigurationException, match=r"IterableDataset`.*limit_.*_batches\)`.*`1.0` or an int"):
+    with pytest.raises(_ValueError, match=r"IterableDataset`.*limit_.*_batches\)`.*`1.0` or an int"):
         getattr(trainer, trainer_fn)(model)
 
 
@@ -1079,7 +1079,7 @@ def test_dataloaders_load_every_n_epochs_frequent_val(tmpdir):
 @pytest.mark.parametrize("n", ["test", -1])
 def test_dataloaders_load_every_n_epochs_exception(tmpdir, n):
 
-    with pytest.raises(MisconfigurationException, match="should be an int >"):
+    with pytest.raises(_ValueError, match="should be an int >"):
         Trainer(default_root_dir=tmpdir, reload_dataloaders_every_n_epochs=n)
 
 

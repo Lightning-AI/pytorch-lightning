@@ -20,7 +20,7 @@ from torch import tensor
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CometLogger
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 
 
 def _patch_comet_atexit(monkeypatch):
@@ -76,7 +76,7 @@ def test_comet_logger_online(comet):
 @patch("pytorch_lightning.loggers.comet.comet_ml")
 def test_comet_logger_no_api_key_given(comet):
     """Test that CometLogger fails to initialize if both api key and save_dir are missing."""
-    with pytest.raises(MisconfigurationException, match="requires either api_key or save_dir"):
+    with pytest.raises(_ValueError, match="requires either api_key or save_dir"):
         comet.config.get_api_key.return_value = None
         CometLogger(workspace="dummy-test", project_name="general")
 

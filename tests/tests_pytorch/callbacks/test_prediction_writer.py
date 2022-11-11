@@ -21,7 +21,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -35,7 +35,7 @@ class DummyPredictionWriter(BasePredictionWriter):
 
 def test_prediction_writer_invalid_write_interval():
     """Test that configuring an unknown interval name raises an error."""
-    with pytest.raises(MisconfigurationException, match=r"`write_interval` should be one of \['batch"):
+    with pytest.raises(_ValueError, match=r"`write_interval` should be one of \['batch"):
         DummyPredictionWriter("something")
 
 

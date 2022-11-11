@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _AttributeError, _RuntimeError, _ValueError
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests_pytorch.core.test_results import spawn_launch
@@ -335,15 +335,15 @@ class MetaLearningDataset(IterableDataset):
         self.debugging = debugging
 
         if labels is None:
-            raise MisconfigurationException(f"Provided {self.dataset} should have an attribute labels.")
+            raise _AttributeError(f"Provided {self.dataset} should have an attribute labels.")
 
         if len(labels) != len(dataset):
-            raise MisconfigurationException("Found provided ``labels`` don't match the dataset length.")
+            raise _RuntimeError("Found provided ``labels`` don't match the dataset length.")
 
         if (isinstance(global_rank, int) and world_size is None) or (
             isinstance(world_size, int) and global_rank is None
         ):
-            raise MisconfigurationException("Both ``world_size`` and ``global_rank`` should be provided !")
+            raise _RuntimeError("Both ``world_size`` and ``global_rank`` should be provided !")
 
         self.unique_labels = np.unique(self.labels)
 
@@ -1193,10 +1193,10 @@ def test_rotate_worker_indices():
     assert _rotate_worker_indices(state_dict, 0, 2) == {0: 1, 1: 0}
     assert _rotate_worker_indices(state_dict, 1, 2) == {0: 0, 1: 1}
 
-    with pytest.raises(MisconfigurationException, match="The `latest_worker_id` should be within"):
+    with pytest.raises(_RuntimeError, match="The `latest_worker_id` should be within"):
         _rotate_worker_indices(state_dict, 2, 2)
 
-    with pytest.raises(MisconfigurationException, match="The `state` should contain"):
+    with pytest.raises(_RuntimeError, match="The `state` should contain"):
         _rotate_worker_indices(state_dict, 2, 3)
 
 
@@ -1214,7 +1214,7 @@ def test_fault_tolerant_mode_enum():
         assert TrainerState()._fault_tolerant_mode.is_manual
 
     with pytest.raises(
-        MisconfigurationException, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
+        _ValueError, match="The environment flag `PL_FAULT_TOLERANT_TRAINING` should be either"
     ):
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "3"}):
             _FaultTolerantMode.detect_current_mode()
@@ -1272,7 +1272,7 @@ def test_stateful_workers(num_workers):
     dataset = StatefulRandomDataset(1, 64)
     dataloader = DataLoader(dataset, sampler=StatefulRandomSampler(dataset), num_workers=num_workers)
 
-    with pytest.raises(MisconfigurationException, match="A stateful iterator should be used"):
+    with pytest.raises(_RuntimeError, match="A stateful iterator should be used"):
         iter(dataloader)
 
     # This would attach the `data_fetcher` to the DataLoader.

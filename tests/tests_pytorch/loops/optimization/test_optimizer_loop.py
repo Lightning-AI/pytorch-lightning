@@ -23,7 +23,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _KeyError, _TypeError
 
 
 def test_closure_result_deepcopy():
@@ -62,7 +62,7 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
     model = InvalidTrainStepModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
-    with pytest.raises(MisconfigurationException, match=match):
+    with pytest.raises((_TypeError, _KeyError), match=match):
         trainer.fit(model)
 
 

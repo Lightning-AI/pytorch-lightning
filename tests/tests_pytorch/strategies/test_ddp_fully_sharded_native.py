@@ -9,13 +9,53 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _ValueError
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import wrap
+
+
+def custom_auto_wrap_policy(
+    module,
+    recurse,
+    unwrapped_params: int,
+    min_num_params: int = int(1e8),
+) -> bool:
+    return unwrapped_params >= 2
+
+
+@RunIf(min_torch="1.12")
+def test_invalid_on_cpu(tmpdir):
+    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
+    with pytest.raises(
+        _ValueError,
+        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+        "but GPU accelerator is not used.",
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
+        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
+        trainer.strategy.setup_environment()
+
+
+@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
+def test_precision_plugin_config(precision, expected):
+    plugin = FullyShardedNativeNativeMixedPrecisionPlugin(precision=precision, device="cuda")
+    config = plugin.mixed_precision_config
+    assert config.param_dtype == expected
+    assert config.buffer_dtype == expected
+    assert config.reduce_dtype == expected
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_custom_mixed_precision(tmpdir):
+    """Test to ensure that passing a custom mixed precision config works."""
+    config = MixedPrecision()
+    strategy = DDPFullyShardedNativeStrategy(mixed_precision=config)
+    assert strategy.mixed_precision_config == config
 
 
 class TestFSDPModel(BoringModel):

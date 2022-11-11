@@ -47,7 +47,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _RuntimeError, _TypeError, _ValueError
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -213,18 +213,18 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+def test_ipython_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+    with pytest.raises(_RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
+    with pytest.raises(_RuntimeError, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+    with pytest.raises(_RuntimeError, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
+    with pytest.raises(_RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
         Trainer(strategy="dp")
 
@@ -271,14 +271,14 @@ def test_accelerator_cpu(cuda_count_0):
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(
-        MisconfigurationException,
+        _RuntimeError,
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
             Trainer(gpus=1)
 
     with pytest.raises(
-        MisconfigurationException,
+        _RuntimeError,
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         Trainer(accelerator="cuda")
@@ -290,7 +290,7 @@ def test_accelerator_cpu(cuda_count_0):
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
 def test_accelererator_invalid_type_devices(cuda_count_2, device_count):
     with pytest.raises(
-        MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
+        _TypeError, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
         _ = Trainer(accelerator="gpu", devices=device_count)
 
@@ -345,9 +345,9 @@ def test_unsupported_strategy_types_on_cpu_and_fallback():
 
 
 def test_exception_invalid_strategy():
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_cpu'\)` is not a valid"):
+    with pytest.raises(_ValueError, match=r"strategy='ddp_cpu'\)` is not a valid"):
         Trainer(strategy="ddp_cpu")
-    with pytest.raises(MisconfigurationException, match=r"strategy='tpu_spawn'\)` is not a valid"):
+    with pytest.raises(_ValueError, match=r"strategy='tpu_spawn'\)` is not a valid"):
         Trainer(strategy="tpu_spawn")
 
 
@@ -409,14 +409,14 @@ def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
 def test_validate_precision_type(precision):
 
-    with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
+    with pytest.raises(_ValueError, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
 
 
 def test_amp_level_raises_error_with_native():
     with pytest.deprecated_call(
         match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"
-    ), pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
+    ), pytest.raises(_ValueError, match="O2'` but it's only supported with `amp_backend='apex'`"):
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
@@ -600,7 +600,7 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 @RunIf(min_torch="1.12")
 def test_check_native_fsdp_strategy_and_fallback():
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
         "but GPU accelerator is not used.",
     ):
@@ -608,7 +608,7 @@ def test_check_native_fsdp_strategy_and_fallback():
 
 
 def test_unsupported_tpu_choice(tpu_available):
-    with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
+    with pytest.raises(_NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
@@ -663,7 +663,7 @@ def test_devices_auto_choice_mps():
     [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], "tpu")],
 )
 def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
-    with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
+    with pytest.raises(_ValueError, match=r"parallel_devices set through"):
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
@@ -697,7 +697,7 @@ def test_sync_batchnorm_invalid_choice(tmpdir):
     """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
     custom = Mock(spec=LayerSync)
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=r"You set `Trainer\(sync_batchnorm=True\)` and provided a `LayerSync` plugin, but this is not allowed",
     ):
         Trainer(sync_batchnorm=True, plugins=[custom])
@@ -731,14 +731,14 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     ],
 )
 def test_plugin_only_one_instance_for_one_type(plugins, expected):
-    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
+    with pytest.raises(_ValueError, match=f"Received multiple values for {expected}"):
         Trainer(plugins=plugins)
 
 
 @pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
-    with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
+    with pytest.raises(_ValueError, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
 
 
@@ -771,7 +771,7 @@ def test_gpu_accelerator_backend_choice_mps(mps_count_1):
 @mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 @mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
 def test_gpu_accelerator_misconfiguration_exception(*_):
-    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
+    with pytest.raises(_RuntimeError, match="No supported gpu backend found!"):
         Trainer(accelerator="gpu")
 
 
