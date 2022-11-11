@@ -3,7 +3,6 @@ from typing import Any, Type
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
@@ -65,8 +64,8 @@ class MultiNode(LightningFlow):
         )
 
     def run(self) -> None:
-        # 1. Wait for all works to be started ! The works started with the flow.
-        if not all(w.status.stage == WorkStageStatus.STARTED for w in self.ws):
+        # 1. Wait for all works to be started !
+        if not all(w.internal_ip for w in self.ws):
             return
 
         # 2. Loop over all node machines
