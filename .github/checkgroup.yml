@@ -118,6 +118,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
+      - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
     checks:
       - "make-doctest (pytorch)"
@@ -247,6 +248,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"
+      - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
     checks:
       - "make-doctest (app)"
