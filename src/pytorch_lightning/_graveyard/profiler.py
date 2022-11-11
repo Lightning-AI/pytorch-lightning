@@ -14,7 +14,7 @@
 import pytorch_lightning.profiler.base as base
 
 
-class AbstractProfiler:
+class _AbstractProfiler:
     # TODO: Remove in v2.0.0
     def __init__(self, *_, **__):
         raise NotImplementedError(
@@ -23,7 +23,7 @@ class AbstractProfiler:
         )
 
 
-class BaseProfiler:
+class _BaseProfiler:
     # TODO: Remove in v2.0.0
     def __init__(self, *_, **__):
         raise RuntimeError(
@@ -32,5 +32,5 @@ class BaseProfiler:
         )
 
 
-base.AbstractProfiler = AbstractProfiler
-base.BaseProfiler = BaseProfiler
+base.AbstractProfiler = _AbstractProfiler
+base.BaseProfiler = _BaseProfiler
