@@ -141,7 +141,6 @@ class CloudRuntime(Runtime):
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
         works: List[V1Work] = []
-        dict_works = []
         for flow in self.app.flows:
             for work in flow.works(recurse=False):
                 if not work._start_with_flow:
@@ -214,18 +213,6 @@ class CloudRuntime(Runtime):
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
                 works.append(V1Work(name=work.name, spec=work_spec))
-
-                dict_works.append(
-                    {
-                        "name": work.name,
-                        "spec": {
-                            "build_spec": build_spec.to_dict(),
-                            "drives": [spec.to_dict() for spec in drive_specs],
-                            "user_requested_compute_config": user_compute_config.to_dict(),
-                            "network_config": [{"name": random_name, "port": work.port}],
-                        },
-                    }
-                )
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows
         # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
@@ -353,10 +340,6 @@ class CloudRuntime(Runtime):
 
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
-
-            import json
-
-            print(json.dumps(dict_works))
 
             release_body = Body8(
                 app_entrypoint_file=app_spec.app_entrypoint_file,
