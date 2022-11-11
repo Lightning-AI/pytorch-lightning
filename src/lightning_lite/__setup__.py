@@ -31,36 +31,18 @@ def _prepare_extras() -> Dict[str, Any]:
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
+        "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
         "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
     extras["dev"] = extras["test"]
-    extras["all"] = extras["dev"] + extras["strategies"]
+    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]
     return extras
 
 
-def _adjust_manifest(**__: Any) -> None:
-    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
-    assert os.path.isfile(manifest_path)
-    with open(manifest_path) as fp:
-        lines = fp.readlines()
-    lines += [
-        "recursive-exclude src *.md" + os.linesep,
-        "recursive-exclude requirements *.txt" + os.linesep,
-        "recursive-include requirements/lite *.txt" + os.linesep,
-        "recursive-include src/lightning_lite *.md" + os.linesep,
-    ]
-
-    # TODO: remove this once lightning-ui package is ready as a dependency
-    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
-
-    with open(manifest_path, "w") as fp:
-        fp.writelines(lines)
-
-
-def _setup_args(**__: Any) -> Dict[str, Any]:
+def _setup_args() -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))

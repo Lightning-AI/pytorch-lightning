@@ -107,7 +107,7 @@ class SimpleFlow(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 def test_simple_app(component_cls, runtime_cls, tmpdir):
     comp = component_cls()
-    app = LightningApp(comp, debug=True)
+    app = LightningApp(comp, log_level="debug")
     assert app.root == comp
     expected = {
         "app_state": ANY,
@@ -249,7 +249,7 @@ def test_get_component_by_name_raises():
 
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_nested_component(runtime_cls):
-    app = LightningApp(A(), debug=True)
+    app = LightningApp(A(), log_level="debug")
     runtime_cls(app, start_server=False).dispatch()
     assert app.root.w_a.c == 1
     assert app.root.b.w_b.c == 1
@@ -361,7 +361,7 @@ class SimpleApp2(LightningApp):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
     """Validates sending restarting move the app to blocking again."""
-    app = SimpleApp2(CounterFlow(), debug=True)
+    app = SimpleApp2(CounterFlow(), log_level="debug")
     runtime_cls(app, start_server=False).dispatch()
 
 
@@ -395,7 +395,7 @@ class AppWithFrontend(LightningApp):
 @mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
     """Test that the LightningApp captures the initial state in a separate copy when _run() gets called."""
-    app = AppWithFrontend(FlowWithFrontend(), debug=True)
+    app = AppWithFrontend(FlowWithFrontend(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.run_once_call_count == 3
 
@@ -957,7 +957,7 @@ def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root._state_sizes[0] <= 6952
-    assert app.root._state_sizes[20] <= 24896
+    assert app.root._state_sizes[20] <= 26080
 
 
 class FlowUpdated(LightningFlow):
@@ -992,7 +992,7 @@ def test_debug_mode_logging():
 
     from lightning_app.core.app import _console
 
-    app = LightningApp(A4(), debug=True)
+    app = LightningApp(A4(), log_level="debug")
     assert _console.level == logging.DEBUG
     assert os.getenv("LIGHTNING_DEBUG") == "2"
 

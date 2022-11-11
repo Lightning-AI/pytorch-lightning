@@ -4,7 +4,7 @@ from copy import deepcopy
 from functools import partial, wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from deepdiff import DeepHash
+from deepdiff import DeepHash, Delta
 
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
@@ -58,6 +58,7 @@ class LightningWork:
         cloud_build_config: Optional[BuildConfig] = None,
         cloud_compute: Optional[CloudCompute] = None,
         run_once: Optional[bool] = None,  # TODO: Remove run_once
+        start_with_flow: bool = True,
     ):
         """LightningWork, or Work in short, is a building block for long-running jobs.
 
@@ -80,6 +81,8 @@ class LightningWork:
             local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
             cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
             run_once: Deprecated in favor of cache_calls. This will be removed soon.
+            start_with_flow: Whether the work should be started at the same time as the root flow. Only applies to works
+                defined in ``__init__``.
 
         **Learn More About Lightning Work Inner Workings**
 
@@ -141,6 +144,7 @@ class LightningWork:
         self._request_queue: Optional[BaseQueue] = None
         self._response_queue: Optional[BaseQueue] = None
         self._restarting = False
+        self._start_with_flow = start_with_flow
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
@@ -605,3 +609,20 @@ class LightningWork:
         if internal_id not in _CLOUD_COMPUTE_STORE:
             _CLOUD_COMPUTE_STORE[internal_id] = _CloudComputeStore(id=internal_id, component_names=[])
         _CLOUD_COMPUTE_STORE[internal_id].add_component_name(self.name)
+
+    def apply_flow_delta(self, delta: Delta):
+        """Override to customize how the flow should update the work state."""
+        # TODO: Add support for thread safe locking over JSON Serializable objects.
+        if any(k not in ["values_changed", "type_changed"] for k in delta.to_dict()):
+            raise Exception(
+                "A forbidden operation to update the work from the flow was detected."
+                f" Found {delta.to_dict()}, only `values_changed` and `type_changes` are currently allowed."
+            )
+
+        vars = self.state["vars"] + delta
+        for name, value in vars.items():
+            property_object = self._get_property_if_exists(name)
+            if property_object is not None and property_object.fset is not None:
+                property_object.fset(self, value)
+            else:
+                self._default_setattr(name, value)

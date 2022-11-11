@@ -45,6 +45,7 @@ ORCHESTRATOR_COPY_REQUEST_CONSTANT = "ORCHESTRATOR_COPY_REQUEST"
 ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
 API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
+FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT = "FLOW_TO_WORKS_DELTA_QUEUE"
 
 
 class QueuingSystem(Enum):
@@ -133,6 +134,14 @@ class QueuingSystem(Enum):
     def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
+        )
+        return self.get_queue(queue_name)
+
+    def get_flow_to_work_delta_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = (
+            f"{queue_id}_{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
+            if queue_id
+            else f"{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
         )
         return self.get_queue(queue_name)
 
@@ -226,12 +235,12 @@ class RedisQueue(BaseQueue):
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
-        host = host or REDIS_HOST
-        port = port or REDIS_PORT
-        password = password or REDIS_PASSWORD
+        self.host = host or REDIS_HOST
+        self.port = port or REDIS_PORT
+        self.password = password or REDIS_PASSWORD
         self.name = name
         self.default_timeout = default_timeout
-        self.redis = redis.Redis(host=host, port=port, password=password)
+        self.redis = redis.Redis(host=self.host, port=self.port, password=self.password)
 
     def put(self, item: Any) -> None:
         from lightning_app import LightningWork
@@ -320,6 +329,20 @@ class RedisQueue(BaseQueue):
         except redis.exceptions.ConnectionError:
             return False
 
+    def to_dict(self):
+        return {
+            "type": "redis",
+            "name": self.name,
+            "default_timeout": self.default_timeout,
+            "host": self.host,
+            "port": self.port,
+            "password": self.password,
+        }
+
+    @classmethod
+    def from_dict(cls, state):
+        return cls(**state)
+
 
 class HTTPQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
@@ -404,6 +427,17 @@ class HTTPQueue(BaseQueue):
             return "", queue_name
         app_id, queue_name = queue_name.split("_", 1)
         return app_id, queue_name
+
+    def to_dict(self):
+        return {
+            "type": "http",
+            "name": self.name,
+            "default_timeout": self.default_timeout,
+        }
+
+    @classmethod
+    def from_dict(cls, state):
+        return cls(**state)
 
 
 def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:
