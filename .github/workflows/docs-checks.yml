@@ -14,7 +14,7 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "setup.cfg"
+      - "setup.cfg"  # includes metadata used in the package creation
       - ".github/workflows/docs-checks.yml"
 
 concurrency:
