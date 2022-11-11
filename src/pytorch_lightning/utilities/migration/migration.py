@@ -193,7 +193,7 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
             "You have multiple `ModelCheckpoint` callback states in this checkpoint, but we found state keys"
             " that would end up colliding with each other after an upgrade, which means we can't differentiate"
             " which of your checkpoint callbacks needs which states. At least one of your `ModelCheckpoint`"
-            " callbacks will not be able to reloaded the state.",
+            " callbacks will not be able to reload the state.",
             category=PossibleUserWarning,
         )
         return checkpoint
