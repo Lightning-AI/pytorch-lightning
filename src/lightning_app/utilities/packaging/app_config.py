@@ -47,7 +47,7 @@ class AppConfig:
         return cls.load_from_file(pathlib.Path(directory, _APP_CONFIG_FILENAME))
 
 
-def _get_config_file(source_path: pathlib.Path) -> Optional[pathlib.Path]:
+def _get_config_file(source_path: Union[str, pathlib.Path]) -> Optional[pathlib.Path]:
     """Get the Lightning app config file '.lightning' at the given source path.
 
     Args:
