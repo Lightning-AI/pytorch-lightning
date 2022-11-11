@@ -5,11 +5,9 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
-from lightning_app.core.constants import ENABLE_APP_COMMENT_COMMAND_EXECUTION
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.commands.base import _commands_to_api, _prepare_commands
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
@@ -30,15 +28,13 @@ class MultiProcessRuntime(Runtime):
 
     def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
-        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or self.run_app_comment_commands:
-            if self.entrypoint_file is not None:
-                run_app_commands(str(self.entrypoint_file))
-
         try:
             _set_flow_context()
+
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
             self.backend.resolve_url(self.app, "http://127.0.0.1")
+            self.app._update_index_file()
 
             # set env variables
             os.environ.update(self.env_vars)
