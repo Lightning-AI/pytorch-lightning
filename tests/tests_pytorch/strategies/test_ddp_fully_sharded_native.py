@@ -29,7 +29,7 @@ def custom_auto_wrap_policy(
 
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
+    """Test to ensure that we raise ValueError for Native FSDP on CPU."""
     with pytest.raises(
         _ValueError,
         match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
@@ -199,9 +199,9 @@ def custom_auto_wrap_policy(
 
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
+    """Test to ensure that we raise ValueError for Native FSDP on CPU."""
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
         "but GPU accelerator is not used.",
     ):

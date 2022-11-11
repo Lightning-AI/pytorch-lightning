@@ -150,7 +150,7 @@ class ModelCheckpoint(Checkpoint):
         only ``best_model_path`` will be reloaded and a warning will be issued.
 
     Raises:
-        MisconfigurationException:
+        RuntimeError:
             If ``save_top_k`` is smaller than ``-1``,
             if ``monitor`` is ``None`` and ``save_top_k`` is none of ``None``, ``-1``, and ``0``, or
             if ``mode`` is none of ``"min"`` or ``"max"``.

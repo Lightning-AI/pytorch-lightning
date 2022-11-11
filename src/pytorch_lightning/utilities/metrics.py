@@ -26,7 +26,7 @@ def metrics_to_scalars(metrics: Any) -> Any:
     """Recursively walk through a collection and convert single-item tensors to scalar values.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 

@@ -60,7 +60,7 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _TypeError, _ValueError, DeadlockDetectedException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -183,13 +183,13 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
 
 
 def test_trainer_accumulate_grad_batches_incorrect_value(tmpdir):
-    with pytest.raises(MisconfigurationException, match=".*should be an int or a dict.*"):
+    with pytest.raises(_TypeError, match=".*should be an int or a dict.*"):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=(2, 5))
 
 
 def test_trainer_accumulate_grad_batches_with_grad_acc_callback(tmpdir):
     with pytest.raises(
-        MisconfigurationException, match=".*set both `accumulate_grad_batches` and passed an instance.*"
+        _ValueError, match=".*set both `accumulate_grad_batches` and passed an instance.*"
     ):
         Trainer(default_root_dir=tmpdir, accumulate_grad_batches=7, callbacks=[GradientAccumulationScheduler({0: 2})])
 
@@ -530,7 +530,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrect_variable):
     """Don't allow max_epochs or max_steps to be less than -1 or a float."""
     with pytest.raises(
-        MisconfigurationException,
+        _ValueError,
         match=f"`{incorrect_variable}` must be a non-negative integer or -1",
     ):
         Trainer(max_epochs=max_epochs, max_steps=max_steps)
@@ -1049,7 +1049,7 @@ def test_disabled_validation(tmpdir):
 
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
 def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
-    with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
+    with pytest.raises(_ValueError, match="`track_grad_norm` must be a positive number or 'inf'"):
         Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
 
 
@@ -1066,7 +1066,7 @@ def test_on_exception_hook(tmpdir):
             raise KeyboardInterrupt
 
         def on_test_start(self, trainer, pl_module):
-            raise MisconfigurationException
+            raise _NotImplementedError
 
     class HandleInterruptCallback(Callback):
         def __init__(self):
@@ -1093,10 +1093,10 @@ def test_on_exception_hook(tmpdir):
     trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(_NotImplementedError):
         trainer.test(model)
     assert trainer.interrupted
-    assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
+    assert isinstance(handle_interrupt_callback.exception, _NotImplementedError)
 
 
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
@@ -1163,7 +1163,7 @@ def test_invalid_gradient_clip_value(tmpdir):
 
 
 def test_invalid_gradient_clip_algo(tmpdir):
-    with pytest.raises(MisconfigurationException, match="`gradient_clip_algorithm` norm2 is invalid"):
+    with pytest.raises(_ValueError, match="`gradient_clip_algorithm` norm2 is invalid"):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
@@ -1172,7 +1172,7 @@ def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
     Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
+    with pytest.raises(_ValueError, match=r".*but your machine only has.*"):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
@@ -1528,7 +1528,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 def test_spawn_predict_return_predictions(tmpdir):
-    """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
+    """Test that `return_predictions=True` raise an Exception with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -1700,7 +1700,7 @@ def test_train_loop_system(tmpdir):
 
 def test_check_val_every_n_epoch_exception(tmpdir):
 
-    with pytest.raises(MisconfigurationException, match="should be an integer."):
+    with pytest.raises(_TypeError, match="should be an integer."):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
 
 
@@ -1803,11 +1803,11 @@ def test_module_current_fx_attributes_reset(tmpdir):
 def test_exception_when_lightning_module_is_not_set_on_trainer():
     trainer = Trainer()
 
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*validate"):
+    with pytest.raises(_ValueError, match=r"`model` must be provided.*validate"):
         trainer.validate()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*test"):
+    with pytest.raises(_ValueError, match=r"`model` must be provided.*test"):
         trainer.test()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
+    with pytest.raises(_ValueError, match=r"`model` must be provided.*predict"):
         trainer.predict()
 
 

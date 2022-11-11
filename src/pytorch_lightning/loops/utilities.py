@@ -51,7 +51,7 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
     """Get the hidden state if present from the training step output.
 
     Raises:
-        MisconfigurationException: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
+        RuntimeError: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
             not enabled and hiddens are returned or vice versa.
     """
     if not truncated_bptt_steps:

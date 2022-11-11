@@ -18,7 +18,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _NotImplementedError, _RuntimeError, _ValueError
 from tests_pytorch.conftest import mock_cuda_count
 
 
@@ -26,7 +26,7 @@ def test_wrong_train_setting(tmpdir):
     """Test that an error is raised when no `training_step()` is defined."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(MisconfigurationException, match=r"No `training_step\(\)` method defined."):
+    with pytest.raises(_NotImplementedError, match=r"No `training_step\(\)` method defined."):
         model = BoringModel()
         model.training_step = None
         trainer.fit(model)
@@ -36,7 +36,7 @@ def test_wrong_configure_optimizers(tmpdir):
     """Test that an error is thrown when no `configure_optimizers()` is defined."""
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
-    with pytest.raises(MisconfigurationException, match=r"No `configure_optimizers\(\)` method defined."):
+    with pytest.raises(_NotImplementedError, match=r"No `configure_optimizers\(\)` method defined."):
         model = BoringModel()
         model.configure_optimizers = None
         trainer.fit(model)
@@ -66,25 +66,25 @@ def test_eval_loop_config(tmpdir):
     # has test data but no val step
     model = BoringModel()
     model.validation_step = None
-    with pytest.raises(MisconfigurationException, match=r"No `validation_step\(\)` method defined"):
+    with pytest.raises(_NotImplementedError, match=r"No `validation_step\(\)` method defined"):
         trainer.validate(model)
 
     # has test data but no test step
     model = BoringModel()
     model.test_step = None
-    with pytest.raises(MisconfigurationException, match=r"No `test_step\(\)` method defined"):
+    with pytest.raises(_NotImplementedError, match=r"No `test_step\(\)` method defined"):
         trainer.test(model)
 
     # has predict data but no predict_step
     model = BoringModel()
     model.predict_step = None
-    with pytest.raises(MisconfigurationException, match=r"`predict_step` cannot be None."):
+    with pytest.raises(_NotImplementedError, match=r"`predict_step` cannot be None."):
         trainer.predict(model)
 
     # has predict data but no forward
     model = BoringModel()
     model.forward = None
-    with pytest.raises(MisconfigurationException, match=r"requires `forward` method to run."):
+    with pytest.raises(_NotImplementedError, match=r"requires `forward` method to run."):
         trainer.predict(model)
 
 
@@ -127,11 +127,11 @@ def test_trainer_manual_optimization_config():
     model.automatic_optimization = False
 
     trainer = Trainer(gradient_clip_val=1.0)
-    with pytest.raises(MisconfigurationException, match="Automatic gradient clipping is not supported"):
+    with pytest.raises(_ValueError, match="Automatic gradient clipping is not supported"):
         trainer.fit(model)
 
     trainer = Trainer(accumulate_grad_batches=2)
-    with pytest.raises(MisconfigurationException, match="Automatic gradient accumulation is not supported"):
+    with pytest.raises(_ValueError, match="Automatic gradient accumulation is not supported"):
         trainer.fit(model)
 
 
@@ -156,5 +156,5 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
     model = BoringModel()
     setattr(model, hook, custom_method)
 
-    with pytest.raises(MisconfigurationException, match=match_pattern):
+    with pytest.raises(_RuntimeError, match=match_pattern):
         trainer.fit(model)

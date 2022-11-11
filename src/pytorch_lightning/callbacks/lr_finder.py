@@ -72,7 +72,7 @@ class LearningRateFinder(Callback):
         trainer.fit(...)
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
             or if you are using more than one optimizer.
     """

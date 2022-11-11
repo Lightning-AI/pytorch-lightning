@@ -169,9 +169,9 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
 
 
 def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
+    """Test to ensure that to raise RuntimeError for FSDP on CPU."""
     with pytest.raises(
-        MisconfigurationException, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
+        _RuntimeError, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
         assert isinstance(trainer.strategy, DDPFullyShardedStrategy)

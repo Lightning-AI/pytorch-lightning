@@ -617,10 +617,10 @@ class DataHooks:
                 return batch
 
         Raises:
-            MisconfigurationException:
+            NotImplementedError:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
-            MisconfigurationException:
+            NotImplementedError:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:
@@ -686,10 +686,10 @@ class DataHooks:
                 return batch
 
         Raises:
-            MisconfigurationException:
+            NotImplementedError:
                 If using data-parallel, ``Trainer(strategy='dp')``.
 
-            MisconfigurationException:
+            NotImplementedError:
                 If using IPUs, ``Trainer(accelerator='ipu')``.
 
         See Also:

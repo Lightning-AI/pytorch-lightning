@@ -41,7 +41,7 @@ class DeviceStatsMonitor(Callback):
             If ``False``, it will not log CPU stats regardless of the accelerator.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If ``Trainer`` has no logger.
 
     Example:

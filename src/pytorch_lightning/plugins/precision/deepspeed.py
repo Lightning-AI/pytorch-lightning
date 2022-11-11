@@ -44,7 +44,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             if ``amp_type`` is set to "apex".
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If using ``bfloat16`` precision and ``deepspeed<v0.6``.
 
         ValueError:

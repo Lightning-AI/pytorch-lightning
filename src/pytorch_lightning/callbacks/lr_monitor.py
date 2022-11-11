@@ -44,7 +44,7 @@ class LearningRateMonitor(Callback):
             has the ``momentum`` or ``betas`` attribute. Defaults to ``False``.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If ``logging_interval`` is none of ``"step"``, ``"epoch"``, or ``None``.
 
     Example::
@@ -100,7 +100,7 @@ class LearningRateMonitor(Callback):
         same type or in the case of multiple parameter groups.
 
         Raises:
-            MisconfigurationException:
+            RuntimeError:
                 If ``Trainer`` has no ``logger``.
         """
         if not trainer.loggers:

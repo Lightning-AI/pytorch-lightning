@@ -26,7 +26,7 @@ from pytorch_lightning.core.optimizer import (
     _init_optimizers_and_lr_schedulers,
 )
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import _KeyError, _RuntimeError, _TypeError, _ValueError
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 from tests_pytorch.helpers.runif import RunIf
 
@@ -88,7 +88,7 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
     model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
-        MisconfigurationException, match="`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
+        _KeyError, match="`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
     ):
         trainer.fit(model)
 
@@ -102,7 +102,7 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
         "lr_scheduler": {"scheduler": optim.lr_scheduler.ReduceLROnPlateau(optimizer)},
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="must include a monitor when a `ReduceLROnPlateau`"):
+    with pytest.raises(_KeyError, match="must include a monitor when a `ReduceLROnPlateau`"):
         trainer.fit(model)
 
 
@@ -413,7 +413,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
 
     if complete_epoch:
         with pytest.raises(
-            MisconfigurationException,
+            _ValueError,
             match=r"ReduceLROnPlateau conditioned on metric .* which is not available\. Available metrics are:",
         ):
             trainer.fit(model)
@@ -442,7 +442,7 @@ def test_unknown_configure_optimizers_raises(tmpdir):
     model = BoringModel()
     model.configure_optimizers = lambda: 1
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="Unknown configuration for model optimizers"):
+    with pytest.raises(_TypeError, match="Unknown configuration for model optimizers"):
         trainer.fit(model)
 
 
@@ -484,7 +484,7 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1), "interval": "incorrect_unknown_value"},
     }
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be'):
+    with pytest.raises(_ValueError, match=r'The "interval" key in lr scheduler dict must be'):
         trainer.fit(model)
 
 
@@ -506,7 +506,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     model = BoringModel()
     model.configure_optimizers = lambda: {"optimizer": optim.Adam(model.parameters()), "lr_scheduler": {}}
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
+    with pytest.raises(_KeyError, match='The lr scheduler dict must have the key "scheduler"'):
         trainer.fit(model)
 
 
@@ -522,7 +522,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
 
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
+    with pytest.raises(_RuntimeError, match="attached with an optimizer that wasn't returned"):
         trainer.fit(model)
 
 
@@ -539,7 +539,7 @@ def test_invalid_opt_idx_in_scheduler(tmpdir):
     model = InvalidOptimizerModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
-        MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
+        _ValueError, match="`opt_idx` .* does not match with the index of the respective optimizer"
     ):
         trainer.fit(model)
 
@@ -553,7 +553,7 @@ def test_invalid_optimizer_dict_raises(tmpdir):
 
     model = DummyModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.raises(MisconfigurationException, match="Unknown configuration for model optimizers"):
+    with pytest.raises(_TypeError, match="Unknown configuration for model optimizers"):
         trainer.fit(model)
 
 
@@ -821,5 +821,5 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
         model.lr_scheduler_step = lr_scheduler_step
         _init_optimizers_and_lr_schedulers(model)
     else:
-        with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
+        with pytest.raises(_RuntimeError, match="CustomScheduler` doesn't follow"):
             _init_optimizers_and_lr_schedulers(model)

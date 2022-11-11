@@ -47,7 +47,7 @@ class Timer(Callback):
         verbose: Set this to ``False`` to suppress logging messages.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If ``interval`` is not one of the supported choices.
 
     Example::

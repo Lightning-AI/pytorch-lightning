@@ -120,7 +120,7 @@ class Loop(ABC, Generic[T]):
                 replace.
 
         Raises:
-            MisconfigurationException: When passing a ``Loop`` class, if the ``__init__`` arguments do not match those
+            RuntimeError: When passing a ``Loop`` class, if the ``__init__`` arguments do not match those
                 of the Loop class it replaces.
         """
         new_loops = {}

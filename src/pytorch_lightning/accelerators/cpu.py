@@ -28,7 +28,7 @@ class CPUAccelerator(Accelerator):
     def setup_device(self, device: torch.device) -> None:
         """
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If the selected device is not CPU.
         """
         if device.type != "cpu":

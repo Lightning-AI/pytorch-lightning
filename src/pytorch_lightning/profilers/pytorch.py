@@ -284,8 +284,9 @@ class PyTorchProfiler(Profiler):
             \**profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
 
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If arg ``sort_by_key`` is not present in ``AVAILABLE_SORT_KEYS``.
+            TypeError:
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """

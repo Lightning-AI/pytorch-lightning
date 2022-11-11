@@ -148,7 +148,7 @@ class ModelPruning(Callback):
                 If this is ``False``, then the check runs at the end of the validation epoch.
 
         Raises:
-            MisconfigurationException:
+            ValueError:
                 If ``parameter_names`` is neither ``"weight"`` nor ``"bias"``,
                 if the provided ``pruning_fn`` is not supported,
                 if ``pruning_dim`` is not provided when ``"unstructured"``,
@@ -431,7 +431,7 @@ class ModelPruning(Callback):
         ``parameters_to_prune is None``, it will be generated with all parameters of the model.
 
         Raises:
-            MisconfigurationException:
+            TypeError:
                 If ``parameters_to_prune`` doesn't exist in the model, or
                 if ``parameters_to_prune`` is neither a list nor a tuple.
         """

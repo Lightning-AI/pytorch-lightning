@@ -379,7 +379,7 @@ class BackboneFinetuning(BaseFinetuning):
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """
         Raises:
-            MisconfigurationException:
+            AttributeError:
                 If LightningModule has no nn.Module `backbone` attribute.
         """
         if hasattr(pl_module, "backbone") and isinstance(pl_module.backbone, Module):

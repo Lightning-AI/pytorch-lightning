@@ -283,7 +283,7 @@ class WandbLogger(Logger):
     Raises:
         ModuleNotFoundError:
             If required WandB package is not installed on the device.
-        MisconfigurationException:
+        ValueError:
             If both ``log_model`` and ``offline`` is set to ``True``.
 
     """

@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.exceptions import _ValueError
 def pick_multiple_gpus(nb: int) -> List[int]:
     """
     Raises:
-        MisconfigurationException:
+        ValueError:
             If ``gpus`` or ``devices`` is set to 0, when ``auto_select_gpus=True``, or when the requested number is
             higher than the number of GPUs available on the machine.
     """

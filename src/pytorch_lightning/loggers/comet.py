@@ -202,8 +202,8 @@ class CometLogger(Logger):
 
     Raises:
         ModuleNotFoundError:
-            If required Comet package is not installed on the device.
-        MisconfigurationException:
+            If required Comet package is notNotImplementedError
+        ValueError:
             If neither ``api_key`` nor ``save_dir`` are passed as arguments.
     """
 

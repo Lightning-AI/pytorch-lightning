@@ -68,7 +68,7 @@ class EarlyStopping(Callback):
         log_rank_zero_only: When set ``True``, logs the status of the early stopping callback only for rank 0 process.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If ``mode`` is none of ``"min"`` or ``"max"``.
         RuntimeError:
             If the metric ``monitor`` is not available.

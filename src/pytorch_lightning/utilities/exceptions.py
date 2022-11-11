@@ -17,18 +17,28 @@ from typing import Any, Type
 from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 
-def _add_repr(exception) -> Any:
-    """Add __repr__ method for custom exceptions.
-
-    For example, rather than _ValueError(...).__repr__() returning '_ValueError(...)', it will return 'ValueError(*args,
-    **kwargs)' (assuming it inherited from ValueError).
+def _add_repr(exception: Type):
     """
+    Add __repr__ method for custom exceptions.
 
-    def new_repr(self) -> str:
-        str_repr = self.__repr__()
-        return str_repr[1:] if str_repr.startswith("_") else str_repr
+    Parameters
+    ----------
+    exception : Type
+        Object that inherits from built-in exception and `MisconfigurationException`
 
-    exception.__repr__ = new_repr
+    Example
+    -------
+    >>> @_add_repr
+    >>> class _ValueError(ValueError, MisconfigurationException): pass
+    >>> print(_ValueError("message").__repr__())
+    ... ValueError("message")
+    """
+    # this is done to avoid recursion error
+    exception_name = exception.__name__
+    if exception_name.startswith("_"):
+        exception_name = exception_name[1:]
+
+    exception.__repr__ = lambda self: f"{exception_name}({self.args[0]})"
     return exception
 
 
@@ -54,7 +64,7 @@ class MisconfigurationException(Exception, metaclass=_DeprecatedException):
     """Exception used to inform users of misuse with PyTorch Lightning."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        rank_zero_deprecation(f"Using `{type(self).__name__}` is deprecated.", stacklevel=5)
+        rank_zero_deprecation(f"Using `{type(self).__name__}` is deprecated.")
         super().__init__(*args, **kwargs)
 
 
