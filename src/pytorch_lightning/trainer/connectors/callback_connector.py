@@ -17,7 +17,6 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
-from lightning_utilities.core.overrides import is_overridden
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
@@ -36,6 +35,7 @@ from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 _log = logging.getLogger(__name__)
@@ -296,7 +296,7 @@ def _configure_external_callbacks() -> List[Callback]:
 
 
 def _validate_callbacks_list(callbacks: List[Callback]) -> None:
-    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb, parent=Callback)]
+    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb)]
     seen_callbacks = set()
     for callback in stateful_callbacks:
         if callback.state_key in seen_callbacks:
