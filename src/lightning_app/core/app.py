@@ -630,8 +630,12 @@ class LightningApp:
             else:
                 return None
 
-        # Note: Remove private keys
-        return {k: v for k, v in child["vars"].items() if not k.startswith("_")}
+        # Filter private keys and drives
+        return {
+            k: v
+            for k, v in child["vars"].items()
+            if not k.startswith("_") and not (isinstance(v, dict) and v.get("type", None) == "__drive__")
+        }
 
     def _send_flow_to_work_deltas(self, state) -> None:
         if not self.flow_to_work_delta_queues:
