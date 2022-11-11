@@ -604,19 +604,22 @@ class CheckpointFlow(LightningFlow):
         super().__init__()
         self.depth = depth
 
+        if depth == 0:
+            self.counter = 0
+
         if depth >= 10:
             self.work = work
         else:
             self.flow = CheckpointFlow(work, depth + 1)
 
     def run(self):
+        if self.works()[0].counter == 5:
+            self._exit()
+
         if self.depth >= 10:
             self.work.run()
         else:
             self.flow.run()
-
-        if list(w for w in self.works())[0].counter == 5:
-            self._exit()
 
 
 def test_lightning_app_checkpointing_with_nested_flows():
@@ -949,7 +952,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7336
+    assert app.root._state_sizes[0] <= 7824
     assert app.root._state_sizes[20] <= 26080
 
 
