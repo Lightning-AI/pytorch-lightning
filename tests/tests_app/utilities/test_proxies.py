@@ -216,7 +216,7 @@ def _pass_path_argument_to_work_and_test_warning(path, warning_expected):
 
 class WorkTimeout(LightningWork):
     def __init__(self):
-        super().__init__(parallel=True)
+        super().__init__(parallel=True, start_with_flow=False)
         self.counter = 0
 
     def run(self):

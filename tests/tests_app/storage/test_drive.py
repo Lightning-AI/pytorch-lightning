@@ -50,7 +50,8 @@ def test_synchronization_lit_drive(tmpdir):
         os.remove("a.txt")
     app = LightningApp(SyncFlowLITDrives(tmpdir))
     MultiProcessRuntime(app, start_server=False).dispatch()
-    os.remove("a.txt")
+    if os.path.exists("a.txt"):
+        os.remove("a.txt")
 
 
 class LITDriveWork(LightningWork):
