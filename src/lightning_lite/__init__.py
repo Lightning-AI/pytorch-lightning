@@ -25,5 +25,10 @@ from lightning_lite.utilities.seed import seed_everything  # noqa: E402
 
 __all__ = ["LightningLite", "seed_everything"]
 
+__package_name__ = "lightning_lite".split(".")[0]
+
+_PACKAGE_ROOT = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(_PACKAGE_ROOT))
+
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
