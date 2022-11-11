@@ -26,7 +26,7 @@ from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
 from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
 from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.types import _PATH, ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -150,7 +150,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model

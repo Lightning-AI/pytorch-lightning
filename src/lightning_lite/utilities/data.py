@@ -117,7 +117,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not was_wrapped:
         # keep only the params whose default is different to the current attr value
-        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+        non_defaults = {name for name, p in params.items() if name in attrs and p.default is not attrs[name]}
 
         # add `dataset` as it might have been replaced with `*args`
         non_defaults.add("dataset")
@@ -327,8 +327,9 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
 
 
 def _wrap_attr_method(method: Callable, tag: _WrapAttrTag) -> Callable:
-    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
-    :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
+    """Wraps the ``__setattr__`` or ``__delattr__`` method of classes (currently
+    :class:`~torch.utils.data.DataLoader` and :class:`~torch.utils.data.BatchSampler`) in order to enable re-
+    instantiation of custom subclasses."""
 
     @functools.wraps(method)
     def wrapper(obj: Any, *args: Any) -> None:

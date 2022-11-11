@@ -36,7 +36,7 @@ import pytorch_lightning as pl
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import distributed_available, sync_ddp
+from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -75,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = (
+    __jit_unused_properties__: List[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -109,7 +109,7 @@ class LightningModule(
         self.precision: Union[int, str] = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
@@ -189,7 +189,7 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def example_input_array(self) -> Any:
+    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
@@ -203,7 +203,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
+    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
         self._example_input_array = example
 
     @property
@@ -448,8 +448,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
+            sync_dist=sync_dist and _distributed_available(),
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -597,7 +597,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -659,6 +659,10 @@ class LightningModule(
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
+
+        Note:
+            When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
+            normalized by ``accumulate_grad_batches`` internally.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 

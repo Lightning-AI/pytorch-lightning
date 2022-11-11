@@ -9,7 +9,8 @@ import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners.multiprocess import MultiProcessRuntime
-from lightning_app.storage.payload import GetRequest, Payload
+from lightning_app.storage.payload import Payload
+from lightning_app.storage.requests import _GetRequest
 
 
 def test_payload_copy():
@@ -81,7 +82,7 @@ class WorkRun(LightningWork):
         assert not source_path.exists()
         response = self.var_a._handle_get_request(
             self,
-            GetRequest(
+            _GetRequest(
                 name="var_a",
                 hash=self.var_a.hash,
                 source="root.a",
@@ -144,8 +145,8 @@ class Flow(LightningFlow):
 
 def test_payload_works(tmpdir):
     """This tests validates the payload api can be used to transfer return values from a work to another."""
-    with mock.patch("lightning_app.storage.path.storage_root_dir", lambda: pathlib.Path(tmpdir)):
-        app = LightningApp(Flow(), debug=True)
+    with mock.patch("lightning_app.storage.path._storage_root_dir", lambda: pathlib.Path(tmpdir)):
+        app = LightningApp(Flow(), log_level="debug")
         MultiProcessRuntime(app, start_server=False).dispatch()
 
     os.remove("value_all")

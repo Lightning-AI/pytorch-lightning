@@ -34,7 +34,7 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.cloud_io import _load as pl_load
 from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
@@ -343,6 +343,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         save_top_k=save_top_k,
         save_last=save_last,
         verbose=True,
+        save_on_train_epoch_end=False,
     )
     trainer = Trainer()
     trainer.state.fn = TrainerFn.FITTING
@@ -923,9 +924,9 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     """Test that a warning is raised if best ckpt callback is used for evaluation configured with multiple
     checkpoints."""
 
-    ckpt_callback1 = ModelCheckpoint()
+    ckpt_callback1 = ModelCheckpoint(monitor="foo")
     ckpt_callback1.best_model_path = "foo_best_model.ckpt"
-    ckpt_callback2 = ModelCheckpoint()
+    ckpt_callback2 = ModelCheckpoint(monitor="bar")
     ckpt_callback2.best_model_path = "bar_best_model.ckpt"
     trainer = Trainer(callbacks=[ckpt_callback1, ckpt_callback2])
     trainer.state.fn = TrainerFn.TESTING
@@ -1099,6 +1100,7 @@ def test_on_exception_hook(tmpdir):
 
 
 @pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
+@RunIf(sklearn=True)
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     trainer = Trainer(

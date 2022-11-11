@@ -28,7 +28,7 @@ from lightning_lite.plugins.io.torch_io import TorchCheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.optimizer import optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device
 from lightning_lite.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
@@ -118,7 +118,7 @@ class Strategy(ABC):
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        call :meth:`setup_module` and :meth:`setup_optimizer` on the inputs.
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
@@ -148,16 +148,6 @@ class Strategy(ABC):
         """
         device = device or self.root_device
         return move_data_to_device(batch, device)
-
-    @contextmanager
-    def module_sharded_context(self) -> Generator:
-        """Provide hook to create modules in a distributed aware context. This is useful for when we'd like to
-        shard the model instantly, which is useful for extremely large models which can save memory and
-        initialization time.
-
-        Returns: Model parallel context.
-        """
-        yield
 
     def backward(self, tensor: Tensor, module: Optional[Module], *args: Any, **kwargs: Any) -> None:
         r"""Forwards backward-calls to the precision plugin."""
@@ -221,7 +211,7 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduce a boolean decision across all processes."""
         return decision
 
@@ -273,7 +263,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
+            _optimizer_to_device(optimizer, self.root_device)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -298,6 +288,12 @@ class Strategy(ABC):
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
 
+    def _err_msg_joint_setup_required(self) -> str:
+        return (
+            f"The `{type(self).__name__}` does not support setting up the module and optimizer(s) independently."
+            " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
+        )
+
 
 class _BackwardSyncControl(ABC):
     """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
@@ -314,3 +310,18 @@ class _BackwardSyncControl(ABC):
 
         This is a context manager. It is only effective if it wraps a call to `.backward()`.
         """
+
+
+class _Sharded(ABC):
+    """Mixin-interface for any :class:`Strategy` that wants to expose functionality for sharding model
+    parameters."""
+
+    @abstractmethod
+    @contextmanager
+    def module_sharded_context(self) -> Generator:
+        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
+        of parameters on creation.
+
+        By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
+        """
+        yield

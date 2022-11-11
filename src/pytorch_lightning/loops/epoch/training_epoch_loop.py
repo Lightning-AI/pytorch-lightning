@@ -156,7 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
         self._reload_dataloader_state_dict(data_fetcher)
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -171,7 +171,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def advance(self, data_fetcher: AbstractDataFetcher) -> None:
         """Runs a single training batch.
 
         Raises:
@@ -299,8 +299,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
-        # restore global step instead to make sure logging works correctly if checkpoints <v1.6.5 used to resume
-        self._batches_that_stepped = state_dict.get("_batches_that_stepped", self.global_step)
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _run_validation(self) -> None:
         # reload dataloaders

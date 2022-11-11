@@ -262,9 +262,6 @@ Example::
         # Training with GPU Accelerator using total number of gpus available on the system
         Trainer(accelerator="gpu")
 
-.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
-    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
-
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1173,7 +1170,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     .. testcode::
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-        from pytorch_lightning.plugins.apex_amp import ApexMixedPrecisionPlugin
+        from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 
 
         apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")

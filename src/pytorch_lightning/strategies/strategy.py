@@ -27,7 +27,7 @@ from lightning_lite.plugins import CheckpointIO
 from lightning_lite.strategies.launchers.base import _Launcher
 from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.distributed import ReduceOp
-from lightning_lite.utilities.optimizer import optimizer_to_device, optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.plugins import TorchCheckpointIO
@@ -153,7 +153,7 @@ class Strategy(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
@@ -330,7 +330,7 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduce a boolean decision across all processes."""
         return decision
 
@@ -366,7 +366,7 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
-            optimizer_to_device(optimizer, self.root_device)
+            _optimizer_to_device(optimizer, self.root_device)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
@@ -489,7 +489,7 @@ class Strategy(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        optimizers_to_device(self.optimizers, torch.device("cpu"))
+        _optimizers_to_device(self.optimizers, torch.device("cpu"))
 
         if self.lightning_module is not None:
             log.detail(f"{self.__class__.__name__}: moving model to CPU")

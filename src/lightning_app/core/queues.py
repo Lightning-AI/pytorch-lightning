@@ -1,6 +1,6 @@
 import multiprocessing
 import pickle
-import queue
+import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -45,6 +45,7 @@ ORCHESTRATOR_COPY_REQUEST_CONSTANT = "ORCHESTRATOR_COPY_REQUEST"
 ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
 API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
+FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT = "FLOW_TO_WORKS_DELTA_QUEUE"
 
 
 class QueuingSystem(Enum):
@@ -133,6 +134,14 @@ class QueuingSystem(Enum):
     def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
+        )
+        return self.get_queue(queue_name)
+
+    def get_flow_to_work_delta_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = (
+            f"{queue_id}_{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
+            if queue_id
+            else f"{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
         )
         return self.get_queue(queue_name)
 
@@ -226,14 +235,26 @@ class RedisQueue(BaseQueue):
         """
         if name is None:
             raise ValueError("You must specify a name for the queue")
-        host = host or REDIS_HOST
-        port = port or REDIS_PORT
-        password = password or REDIS_PASSWORD
+        self.host = host or REDIS_HOST
+        self.port = port or REDIS_PORT
+        self.password = password or REDIS_PASSWORD
         self.name = name
         self.default_timeout = default_timeout
-        self.redis = redis.Redis(host=host, port=port, password=password)
+        self.redis = redis.Redis(host=self.host, port=self.port, password=self.password)
 
     def put(self, item: Any) -> None:
+        from lightning_app import LightningWork
+
+        is_work = isinstance(item, LightningWork)
+
+        # TODO: Be careful to handle with a lock if another thread needs
+        # to access the work backend one day.
+        # The backend isn't picklable
+        # Raises a TypeError: cannot pickle '_thread.RLock' object
+        if is_work:
+            backend = item._backend
+            item._backend = None
+
         value = pickle.dumps(item)
         queue_len = self.length()
         if queue_len >= WARNING_QUEUE_SIZE:
@@ -251,6 +272,10 @@ class RedisQueue(BaseQueue):
                 "Please try running your app again. "
                 "If the issue persists, please contact support@lightning.ai"
             )
+
+        # The backend isn't pickable.
+        if is_work:
+            item._backend = backend
 
     def get(self, timeout: int = None):
         """Returns the left most element of the redis queue.
@@ -303,6 +328,20 @@ class RedisQueue(BaseQueue):
             return self.redis.ping()
         except redis.exceptions.ConnectionError:
             return False
+
+    def to_dict(self):
+        return {
+            "type": "redis",
+            "name": self.name,
+            "default_timeout": self.default_timeout,
+            "host": self.host,
+            "port": self.port,
+            "password": self.password,
+        }
+
+    @classmethod
+    def from_dict(cls, state):
+        return cls(**state)
 
 
 class HTTPQueue(BaseQueue):
@@ -388,6 +427,17 @@ class HTTPQueue(BaseQueue):
             return "", queue_name
         app_id, queue_name = queue_name.split("_", 1)
         return app_id, queue_name
+
+    def to_dict(self):
+        return {
+            "type": "http",
+            "name": self.name,
+            "default_timeout": self.default_timeout,
+        }
+
+    @classmethod
+    def from_dict(cls, state):
+        return cls(**state)
 
 
 def debug_log_callback(message: str, *args: Any, **kwargs: Any) -> None:

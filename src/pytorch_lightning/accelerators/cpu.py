@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Union
 
 import torch
 
-from lightning_lite.accelerators.cpu import parse_cpu_cores
+from lightning_lite.accelerators.cpu import _parse_cpu_cores
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import _ValueError
@@ -44,13 +44,13 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = parse_cpu_cores(devices)
+        devices = _parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = parse_cpu_cores(devices)
+        devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod

@@ -4,16 +4,26 @@ from typing import Dict, Optional
 
 import requests
 
-from lightning_app.cli.commands.connection import _install_missing_requirements, _resolve_command_path
+from lightning_app.cli.commands.connection import (
+    _clean_lightning_connection,
+    _install_missing_requirements,
+    _resolve_command_path,
+)
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.commands.base import _download_command
 from lightning_app.utilities.enum import OpenAPITags
 
 
+def _is_running_help(argv) -> bool:
+    return argv[-1] in ["--help", "-"] if argv else False
+
+
 def _run_app_command(app_name: str, app_id: Optional[str]):
     """Execute a function in a running App from its name."""
     # 1: Collect the url and comments from the running application
-    running_help = sys.argv[-1] == "--help"
+    _clean_lightning_connection()
+
+    running_help = _is_running_help(sys.argv)
 
     retriever = _LightningAppOpenAPIRetriever(app_id, use_cache=running_help)
 
@@ -33,6 +43,13 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     for command in list(retriever.api_commands):
         if command in full_command:
             has_found = True
+            for value in sys.argv:
+                if value == command and "_" in value:
+                    print(
+                        f"The command `{value}` was provided with an underscore and it isn't allowed."
+                        f"Instead, use `lightning {value.replace('_', ' ')}`."
+                    )
+                    sys.exit(0)
             break
 
     if not has_found:
@@ -50,13 +67,13 @@ def _run_app_command(app_name: str, app_id: Optional[str]):
     except ModuleNotFoundError:
         _install_missing_requirements(retriever, fail_if_missing=True)
 
-    if sys.argv[-1] != "--help":
+    if running_help:
         print("Your command execution was successful.")
 
 
 def _handle_command_without_client(command: str, metadata: Dict, url: str) -> None:
     supported_params = list(metadata["parameters"])
-    if "--help" == sys.argv[-1]:
+    if _is_running_help(sys.argv):
         print(f"Usage: lightning {command} [ARGS]...")
         print(" ")
         print("Options")
@@ -77,6 +94,7 @@ def _handle_command_without_client(command: str, metadata: Dict, url: str) -> No
     query_parameters = "&".join(provided_params)
     resp = requests.post(url + f"/command/{command}?{query_parameters}")
     assert resp.status_code == 200, resp.json()
+    print(resp.json())
 
 
 def _handle_command_with_client(command: str, metadata: Dict, app_name: str, app_id: Optional[str], url: str):

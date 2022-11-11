@@ -19,16 +19,15 @@ import torch
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
 from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import _RuntimeError, _ValueError
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
@@ -184,20 +183,31 @@ class DDPFullyShardedStrategy(DDPStrategy):
         if not is_overridden("configure_sharded_model", self.lightning_module):
             self.model = self._setup_model(self.model)
         self.setup_optimizers(self.lightning_module.trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
         self.barrier()
 
         self.setup_precision_plugin()
+
+    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
+        invalid_params_error = False
+        try:
+            super().setup_optimizers(trainer)
+        except ValueError as e:
+            if "optimizer got an empty parameter list" not in str(e):
+                raise
+            invalid_params_error = True
+
+        if invalid_params_error or any(not _optimizer_has_flat_params(optimizer) for optimizer in self.optimizers):
+            raise ValueError(
+                "The optimizer does not seem to reference any FSDP parameters. HINT: Make sure to create the"
+                " optimizer after setting up the model by referencing `self.trainer.model.parameters()` in the"
+                " `configure_optimizers()` hook."
+            )
 
     def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
         """Wraps the model into a
         :class:`~fairscale.nn.data_parallel.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         log.detail(f"setting up `Fairscale FSDP` model with device id: {self.root_device.index}.")
-
-        rank_zero_info(
-            "When using FairScale FSDP auto-wrap, make sure to initalize your model using trainer else"
-            " you will get an error.\ntorch.optim.Optimizer(self.trainer.model.parameters(), ...)"
-        )
 
         return FullyShardedDataParallel(
             module=model,

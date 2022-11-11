@@ -21,7 +21,7 @@ import torch
 
 import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import num_cuda_devices
-from lightning_lite.utilities.device_parser import parse_gpu_ids
+from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import _ValueError
@@ -78,7 +78,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        return parse_gpu_ids(devices, include_cuda=True)
+        return _parse_gpu_ids(devices, include_cuda=True)
 
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:

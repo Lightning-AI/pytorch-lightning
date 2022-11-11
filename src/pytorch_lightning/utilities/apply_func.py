@@ -21,8 +21,8 @@ from lightning_utilities.core.apply_func import apply_to_collections as new_appl
 
 from lightning_lite.utilities import move_data_to_device as new_move_data_to_device
 from lightning_lite.utilities.apply_func import _from_numpy
+from lightning_lite.utilities.apply_func import _TransferableDataType as NewTransferableDataType
 from lightning_lite.utilities.apply_func import convert_to_tensors as new_convert_to_tensors
-from lightning_lite.utilities.apply_func import TransferableDataType as NewTransferableDataType
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import _ValueError
 
@@ -87,6 +87,6 @@ class TransferableDataType(NewTransferableDataType):
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.apply_func.TransferableDataType` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. Please use `lightning_lite.utilities.apply_func.TransferableDataType` instead."
+            " removed in v1.10.0. This function is internal but you can copy over its implementation."
         )
         super().__init__()

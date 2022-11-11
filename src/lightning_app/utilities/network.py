@@ -27,10 +27,10 @@ def find_free_network_port() -> int:
     return port
 
 
-_CONNECTION_RETRY_TOTAL = 5
+_CONNECTION_RETRY_TOTAL = 2880
 _CONNECTION_RETRY_BACKOFF_FACTOR = 0.5
-_DEFAULT_BACKOFF_MAX = 5 * 60
-_DEFAULT_REQUEST_TIMEOUT = 5
+_DEFAULT_BACKOFF_MAX = 5 * 60  # seconds
+_DEFAULT_REQUEST_TIMEOUT = 30  # seconds
 
 
 def _configure_session() -> Session:
@@ -104,31 +104,29 @@ def _retry_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-class _MethodsRetryWrapperMeta(type):
-    """This wrapper metaclass iterates through all methods of the type and all bases of it to wrap them into the
-    :func:`_retry_wrapper`. It applies to all bound callables except the ``__init__`` method.
-    """
-
-    def __new__(mcs, name, bases, dct):
-        new_class = super().__new__(mcs, name, bases, dct)
-        for base in new_class.__mro__[1:-1]:
-            for key, value in base.__dict__.items():
-                if callable(value) and value.__name__ != "__init__":
-                    setattr(new_class, key, _retry_wrapper(value))
-        return new_class
-
-
-class LightningClient(GridRestClient, metaclass=_MethodsRetryWrapperMeta):
+class LightningClient(GridRestClient):
     """The LightningClient is a wrapper around the GridRestClient.
 
     It wraps all methods to monitor connection exceptions and employs a retry strategy.
+
+    Args:
+        retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __init__(self) -> None:
+    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
+        if kwargs.get("retry", False):
+            for base_class in GridRestClient.__mro__:
+                for name, attribute in base_class.__dict__.items():
+                    if callable(attribute) and attribute.__name__ != "__init__":
+                        setattr(cls, name, _retry_wrapper(attribute))
+        return super().__new__(cls)
+
+    def __init__(self, retry: bool = False) -> None:
         super().__init__(api_client=create_swagger_client())
+        self._retry = retry
 
 
-class TimeoutHTTPAdapter(HTTPAdapter):
+class CustomRetryAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         self.timeout = kwargs.pop("timeout", _DEFAULT_REQUEST_TIMEOUT)
         super().__init__(*args, **kwargs)
@@ -158,13 +156,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
 
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
-    automatically.
-
-    TODO - exception handling on
-        1. Persistent errors after retry (we'll retry for 120 sec)
-        2. Other HTTP errors which are not handled by retry (we probably shouldn't handle it)
-        3. Connection Refused Error (we should retry for ever in this case as well)
-    """
+    automatically."""
 
     def __init__(
         self, base_url: str, auth_token: Optional[str] = None, log_callback: Optional[Callable] = None
@@ -172,6 +164,8 @@ class HTTPClient:
         self.base_url = base_url
         retry_strategy = Retry(
             # wait time between retries increases exponentially according to: backoff_factor * (2 ** (retry - 1))
+            # but the the maximum wait time is 120 secs. By setting a large value (2880), we'll make sure clients
+            # are going to be alive for a very long time (~ 4 days) but retries every 120 seconds
             total=_CONNECTION_RETRY_TOTAL,
             backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
             status_forcelist=[
@@ -183,7 +177,7 @@ class HTTPClient:
                 504,  # Gateway Timeout
             ],
         )
-        adapter = TimeoutHTTPAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
+        adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
         self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}

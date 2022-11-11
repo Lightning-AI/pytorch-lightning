@@ -64,7 +64,7 @@ class HPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
         """Accelerator device parsing logic."""
-        return parse_hpus(devices)
+        return _parse_hpus(devices)
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[torch.device]:
@@ -105,7 +105,7 @@ class HPUAccelerator(Accelerator):
         )
 
 
-def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+def _parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
     """
     Parses the hpus given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.

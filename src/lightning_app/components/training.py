@@ -1,10 +1,12 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from lightning_app import CloudCompute, LightningFlow, structures
+from lightning_app import structures
 from lightning_app.components.python import TracerPythonScript
+from lightning_app.core.flow import LightningFlow
 from lightning_app.storage.path import Path
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 _logger = Logger(__name__)
 
@@ -109,7 +111,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         return "LIGHTNING_APP_STATE_URL" in os.environ
 
 
-class LightningTrainingComponent(LightningFlow):
+class LightningTrainerScript(LightningFlow):
     def __init__(
         self,
         script_path: str,
@@ -125,11 +127,11 @@ class LightningTrainingComponent(LightningFlow):
         Example::
 
             from lightning_app import LightningApp
-            from lightning_app.components.training import LightningTrainingComponent
+            from lightning_app.components.training import LightningTrainerScript
             from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
             app = LightningApp(
-                LightningTrainingComponent(
+                LightningTrainerScript(
                     "train.py",
                     num_nodes=2,
                     cloud_compute=CloudCompute("gpu"),
