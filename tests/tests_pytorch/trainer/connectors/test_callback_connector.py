@@ -302,6 +302,7 @@ def _make_entry_point_query_mock(callback_factory):
 
 def test_validate_unique_callback_state_key():
     """Test that we raise an error if the state keys collide, leading to missing state in the checkpoint."""
+
     class MockCallback(Callback):
         @property
         def state_key(self):
