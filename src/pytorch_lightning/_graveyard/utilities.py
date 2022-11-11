@@ -17,8 +17,8 @@ import pytorch_lightning as pl
 def _get_gpu_memory_map() -> None:
     # TODO: Remove in v2.0.0
     raise RuntimeError(
-        "`pytorch_lightning.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported as of v1.9."
-        " Use `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` instead."
+        "`pytorch_lightning.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported"
+        " as of v1.9. Use `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` instead."
     )
 
 

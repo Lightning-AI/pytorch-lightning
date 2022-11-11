@@ -14,11 +14,8 @@
 """Utilities related to memory."""
 
 import gc
-import os
-import shutil
-import subprocess
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
