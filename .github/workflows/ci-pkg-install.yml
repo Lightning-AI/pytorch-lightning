@@ -64,5 +64,6 @@ jobs:
 
       - name: DocTest package
         run: |
+          find . -name \*.pyc -delete
           PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
