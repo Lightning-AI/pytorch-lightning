@@ -301,10 +301,15 @@ def _make_entry_point_query_mock(callback_factory):
 
 
 def test_validate_unique_callback_state_key():
-    """Test that we raise an error if the state keys collide leading to missing state in the checkpoint."""
-    callback1 = Mock(spec=Callback)
-    callback1.state_key = "same_key"
-    callback2 = Mock(spec=Callback)
-    callback2.state_key = "same_key"
-    with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `Mock`"):
-        Trainer(callbacks=[callback1, callback2])
+    """Test that we raise an error if the state keys collide, leading to missing state in the checkpoint."""
+    class MockCallback(Callback):
+        @property
+        def state_key(self):
+            return "same_key"
+
+        def state_dict(self):
+            # pretend these callbacks are stateful by overriding the `state_dict` hook
+            return {"state": 1}
+
+    with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `MockCallback`"):
+        Trainer(callbacks=[MockCallback(), MockCallback()])
