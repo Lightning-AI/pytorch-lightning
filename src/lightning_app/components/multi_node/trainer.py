@@ -7,20 +7,19 @@ from typing_extensions import Protocol, runtime_checkable
 from lightning_app.components.multi_node.base import MultiNode
 from lightning_app.components.multi_node.pytorch_spawn import _PyTorchSpawnRunExecutor
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.tracer import Tracer
 
 
 @runtime_checkable
-class _PyTorchLightningWorkProtocol(Protocol):
+class _LightningTrainerWorkProtocol(Protocol):
     @staticmethod
     def run() -> None:
         ...
 
 
 @dataclass
-class _PyTorchLightningRunExecutor(_PyTorchSpawnRunExecutor):
+class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
@@ -71,7 +70,7 @@ class _PyTorchLightningRunExecutor(_PyTorchSpawnRunExecutor):
         tracer._restore()
 
 
-class PyTorchLightningMultiNode(MultiNode):
+class LightningTrainerMultiNode(MultiNode):
     def __init__(
         self,
         work_cls: Type["LightningWork"],
@@ -80,16 +79,11 @@ class PyTorchLightningMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, _PyTorchLightningWorkProtocol)
-        if not is_static_method(work_cls, "run"):
-            raise TypeError(
-                f"The provided {work_cls} run method needs to be static for now."
-                "HINT: Remove `self` and add staticmethod decorator."
-            )
+        assert issubclass(work_cls, _LightningTrainerWorkProtocol)
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.
-        work_cls._run_executor_cls = _PyTorchLightningRunExecutor
+        work_cls._run_executor_cls = _LightningTrainerRunExecutor
 
         super().__init__(
             work_cls,
