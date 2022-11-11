@@ -36,7 +36,12 @@ ENV \
 RUN \
     # TODO: Remove the manual key installation once the base image is updated.
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
-    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631#issuecomment-1264715214
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    sudo cp 3bf863cc.pub /etc/apt/keyrings/ && \
+    sudo echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
+    sudo apt-get update && \
+    sudo apt-get install cuda && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
