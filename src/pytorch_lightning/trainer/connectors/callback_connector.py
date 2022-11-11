@@ -17,7 +17,6 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
-
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     Callback,
