@@ -43,6 +43,7 @@ from lightning.pytorch.trainer import Trainer  # noqa: E402
 from lightning.pytorch.utilities.seed import seed_everything  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
+import lightning.lite  # isort: skip # noqa: E402
 
 lightning.app._PROJECT_ROOT = os.path.dirname(lightning.app._PROJECT_ROOT)
 
@@ -60,7 +61,7 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
-    "storage",
     "LightningLite",
+    "storage",
     "pdb",
 ]
