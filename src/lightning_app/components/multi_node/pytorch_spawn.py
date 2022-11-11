@@ -3,10 +3,10 @@ from typing import Any, Callable, Type
 from typing_extensions import Protocol, runtime_checkable
 
 from lightning_app.components.multi_node.base import MultiNode
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.app_helpers import is_static_method
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.proxies import WorkRunExecutor
+from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 
 @runtime_checkable
@@ -22,6 +22,9 @@ class _PyTorchSpawnWorkProtocol(Protocol):
 
 
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
+
+    enable_start_observer: bool = False
+
     def __call__(
         self,
         main_address: str,
@@ -31,10 +34,31 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
     ):
         import torch
 
-        nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
-        torch.multiprocessing.spawn(
-            self.run, args=(self.work_run, main_address, main_port, num_nodes, node_rank, nprocs), nprocs=nprocs
-        )
+        with self.enable_spawn():
+            nprocs = torch.cuda.device_count() if torch.cuda.is_available() else 1
+            queue = self.delta_queue if isinstance(self.delta_queue, MultiProcessQueue) else self.delta_queue.to_dict()
+            torch.multiprocessing.spawn(
+                self.dispatch_run,
+                args=(self.__class__, self.work, queue, main_address, main_port, num_nodes, node_rank, nprocs),
+                nprocs=nprocs,
+            )
+
+    @staticmethod
+    def dispatch_run(local_rank, cls, work, delta_queue, *args, **kwargs):
+        if local_rank == 0:
+            if isinstance(delta_queue, dict):
+                delta_queue = cls.process_queue(delta_queue)
+                work._request_queue = cls.process_queue(work._request_queue)
+                work._response_queue = cls.process_queue(work._response_queue)
+
+            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
+            state_observer.start()
+            _proxy_setattr(work, delta_queue, state_observer)
+
+        cls.run(local_rank, unwrap(work.run), *args, **kwargs)
+
+        if local_rank == 0:
+            state_observer.join(0)
 
     @staticmethod
     def run(
@@ -46,6 +70,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
+
         import torch
 
         # 1. Setting distributed environment
@@ -76,11 +101,6 @@ class PyTorchSpawnMultiNode(MultiNode):
         **work_kwargs: Any,
     ) -> None:
         assert issubclass(work_cls, _PyTorchSpawnWorkProtocol)
-        if not is_static_method(work_cls, "run"):
-            raise TypeError(
-                f"The provided {work_cls} run method needs to be static for now."
-                "HINT: Remove `self` and add staticmethod decorator."
-            )
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.

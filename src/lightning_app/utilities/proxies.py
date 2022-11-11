@@ -1,16 +1,18 @@
 import os
 import pathlib
+import queue
 import signal
 import sys
 import threading
 import time
 import traceback
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -58,7 +60,11 @@ def unwrap(fn):
     return fn
 
 
-def _send_data_to_caller_queue(work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str) -> Dict:
+def _send_data_to_caller_queue(
+    proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
+) -> Dict:
+
+    proxy.has_sent = True
 
     if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
         work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
@@ -102,6 +108,8 @@ class ProxyWorkRun:
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
+        self.has_sent = False
+
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
@@ -117,18 +125,18 @@ class ProxyWorkRun:
         # for the readers.
         if self.cache_calls:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned:
                     return
         else:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned or stopped_on_sigterm:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash)
+                    _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
         if not self.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
@@ -225,10 +233,19 @@ class WorkStateObserver(Thread):
                 self.list.append(1)
     """
 
-    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 5) -> None:
+    def __init__(
+        self,
+        work: "LightningWork",
+        delta_queue: "BaseQueue",
+        flow_to_work_delta_queue: Optional["BaseQueue"] = None,
+        error_queue: Optional["BaseQueue"] = None,
+        interval: float = 1,
+    ) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
+        self._flow_to_work_delta_queue = flow_to_work_delta_queue
+        self._error_queue = error_queue
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
@@ -239,6 +256,14 @@ class WorkStateObserver(Thread):
             time.sleep(self._interval)
             # Run the thread only if active
             self.run_once()
+
+    @staticmethod
+    def get_state_changed_from_queue(q: "BaseQueue", timeout: Optional[int] = None):
+        try:
+            delta = q.get(timeout=timeout or q.default_timeout)
+            return delta
+        except queue.Empty:
+            return None
 
     def run_once(self) -> None:
         with _state_observer_lock:
@@ -254,6 +279,19 @@ class WorkStateObserver(Thread):
                 return
             self._last_state = deepcopy(self._work.state)
             self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
+
+        if self._flow_to_work_delta_queue:
+            while True:
+                deep_diff = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+                if not isinstance(deep_diff, dict):
+                    break
+                try:
+                    with _state_observer_lock:
+                        self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
+                except Exception as e:
+                    print(traceback.print_exc())
+                    self._error_queue.put(e)
+                    raise e
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -277,7 +315,7 @@ class LightningWorkSetAttrProxy:
     work_name: str
     work: "LightningWork"
     delta_queue: "BaseQueue"
-    state_observer: "WorkStateObserver"
+    state_observer: Optional["WorkStateObserver"]
 
     def __call__(self, name: str, value: Any) -> None:
         logger.debug(f"Setting {name}: {value}")
@@ -292,7 +330,8 @@ class LightningWorkSetAttrProxy:
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
             # add the delta to the buffer to let WorkStateObserver know we already sent this one to the Flow
-            self.state_observer._delta_memory.append(delta)
+            if self.state_observer:
+                self.state_observer._delta_memory.append(delta)
 
 
 @dataclass
@@ -306,9 +345,35 @@ class WorkRunExecutor:
 
     work: "LightningWork"
     work_run: Callable
+    delta_queue: "BaseQueue"
+    enable_start_observer: bool = True
 
     def __call__(self, *args, **kwargs):
         return self.work_run(*args, **kwargs)
+
+    @contextmanager
+    def enable_spawn(self) -> Generator:
+        self.work._setattr_replacement = None
+        self.work._backend = None
+        self._clean_queues()
+        yield
+
+    def _clean_queues(self):
+        if "LIGHTNING_APP_STATE_URL" in os.environ:
+            self.work._request_queue = self.work._request_queue.to_dict()
+            self.work._response_queue = self.work._response_queue.to_dict()
+
+    @staticmethod
+    def process_queue(queue):
+        from lightning_app.core.queues import HTTPQueue, RedisQueue
+
+        if isinstance(queue, dict):
+            queue_type = queue.pop("type")
+            if queue_type == "redis":
+                return RedisQueue.from_dict(queue)
+            else:
+                return HTTPQueue.from_dict(queue)
+        return queue
 
 
 @dataclass
@@ -323,6 +388,7 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
+    flow_to_work_delta_queue: Optional["BaseQueue"] = None
     run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
@@ -404,7 +470,13 @@ class WorkRunner:
         self._transfer_path_attributes()
 
         # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer = WorkStateObserver(
+                self.work,
+                delta_queue=self.delta_queue,
+                flow_to_work_delta_queue=self.flow_to_work_delta_queue,
+                error_queue=self.error_queue,
+            )
 
         # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
         reference_state = deepcopy(self.work.state)
@@ -435,12 +507,13 @@ class WorkRunner:
         # 11. Start the state observer thread. It will look for state changes and send them back to the Flow
         # The observer has to be initialized here, after the set_state call above so that the thread can start with
         # the proper initial state of the work
-        self.state_observer.start()
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.start()
 
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run, self.delta_queue)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
@@ -457,7 +530,7 @@ class WorkRunner:
                     used_runpy = True
                 if user_exception:
                     trace.append(p)
-                if "ret = self.run_executor_cls(self.work, work_run)(*args, **kwargs)" in p:
+                if "ret = self.run_executor_cls(" in p:
                     user_exception = True
 
             if used_runpy:
@@ -482,7 +555,8 @@ class WorkRunner:
             return
 
         # 13. Destroy the state observer.
-        self.state_observer.join(0)
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.join(0)
         self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
@@ -531,14 +605,7 @@ class WorkRunner:
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
-        if cleanup:
-            setattr_proxy = None
-        else:
-            assert self.state_observer
-            setattr_proxy = LightningWorkSetAttrProxy(
-                self.work_name, self.work, delta_queue=self.delta_queue, state_observer=self.state_observer
-            )
-        self.work._setattr_replacement = setattr_proxy
+        _proxy_setattr(self.work, self.delta_queue, self.state_observer, cleanup=cleanup)
 
     def _process_call_args(
         self, args: Tuple[Any, ...], kwargs: Dict[str, Any]
@@ -645,3 +712,16 @@ def persist_artifacts(work: "LightningWork") -> None:
             f"All {destination_paths} artifacts from Work {work.name} successfully "
             "stored at {artifacts_path(work.name)}."
         )
+
+
+def _proxy_setattr(work, delta_queue, state_observer: Optional[WorkStateObserver], cleanup: bool = False):
+    if cleanup:
+        setattr_proxy = None
+    else:
+        setattr_proxy = LightningWorkSetAttrProxy(
+            work.name,
+            work,
+            delta_queue=delta_queue,
+            state_observer=state_observer,
+        )
+    work._setattr_replacement = setattr_proxy

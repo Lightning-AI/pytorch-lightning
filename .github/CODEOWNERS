@@ -8,6 +8,7 @@
 * @williamfalcon @borda @tchaton @awaelchli
 
 # CI/CD and configs
+/.actions/      @borda @carmocca @akihironitta
 /.github/       @borda @carmocca @akihironitta
 /.azure/        @borda @carmocca @akihironitta
 /dockers/       @borda @carmocca @akihironitta
@@ -42,10 +43,10 @@
 /tests/tests_lite                           @awaelchli @carmocca @justusschock
 
 # Lightning App
-/src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond
-/tests/tests_app                            @tchaton @awaelchli @hhsecond
-/tests/tests_app_examples                   @tchaton @awaelchli @hhsecond
-/examples/app_*                             @tchaton @awaelchli @hhsecond
+/src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/tests/tests_app                            @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/tests/tests_app_examples                   @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/examples/app_*                             @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
 
 /.github/CODEOWNERS                  @williamfalcon
 /SECURITY.md                         @williamfalcon

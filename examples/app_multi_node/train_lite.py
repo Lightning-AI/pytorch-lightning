@@ -6,23 +6,26 @@ from lightning.lite import LightningLite
 
 
 class LitePyTorchDistributed(L.LightningWork):
-    @staticmethod
-    def run():
-        # 1. Create LightningLite.
-        lite = LightningLite(strategy="ddp", precision="bf16")
+    def run(self):
+        # 1. Prepare the model
+        model = torch.nn.Sequential(
+            torch.nn.Linear(1, 1),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1, 1),
+        )
 
-        # 2. Prepare distributed model and optimizer.
-        model = torch.nn.Linear(32, 2)
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-        model, optimizer = lite.setup(model, optimizer)
+        # 2. Create LightningLite.
+        lite = LightningLite(strategy="ddp", precision=16)
+        model, optimizer = lite.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 
-        # 3. Train the model for 50 steps.
-        for step in range(50):
+        # 3. Train the model for 1000 steps.
+        for step in range(1000):
             model.zero_grad()
-            x = torch.randn(64, 32).to(lite.device)
+            x = torch.tensor([0.8]).to(lite.device)
+            target = torch.tensor([1.0]).to(lite.device)
             output = model(x)
-            loss = criterion(output, torch.ones_like(output))
+            loss = criterion(output, target)
             print(f"global_rank: {lite.global_rank} step: {step} loss: {loss}")
             lite.backward(loss)
             optimizer.step()
