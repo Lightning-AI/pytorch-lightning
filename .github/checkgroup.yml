@@ -1,7 +1,4 @@
 custom_service_name: "Lightning CI required checker"
-# For security reasons, configuration is only loaded from the repository's default branch,
-# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
-# will only be used after they are merged.
 subprojects:
 
   # SECTION: pytorch_lightning
@@ -18,7 +15,6 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
-      # Note: updates here should be applied to the lightning_lite group
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.11)"
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.12)"
       - "pl-cpu (macOS-11, pytorch, 3.10, 1.13)"
