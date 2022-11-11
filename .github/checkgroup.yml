@@ -42,7 +42,6 @@ subprojects:
   - id: "pytorch_lightning: Azure GPU"
     paths:
       - ".azure/gpu-tests-pytorch.yml"
-      - "tests/tests_pytorch/run_standalone_*.sh"
       # only the azure GPU workflow runs the examples
       # all examples don't need to be added because they aren't used in CI, but these are
       - "examples/run_pl_examples.sh"
