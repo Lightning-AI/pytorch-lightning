@@ -99,6 +99,7 @@ subprojects:
   #- id: "pytorch-lightning: TPU workflow"
   #  paths:
   #    - ".github/workflows/tpu-tests.yml"
+  #    - "dockers/base-xla/*"
   #    - "requirements/lite/**"
   #    - "src/lightning_lite/**"
   #    - "tests/tests_lite/**"
