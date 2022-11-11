@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Auto-upgrade / detect environment mis-match from the CLI ([#15434](https://github.com/Lightning-AI/lightning/pull/15434))
 - Added Serve component ([#15609](https://github.com/Lightning-AI/lightning/pull/15609))
 
+- Enabled MultiNode Components to support state broadcasting ([#15607](https://github.com/Lightning-AI/lightning/pull/15607))
+
 
 ### Changed
 
