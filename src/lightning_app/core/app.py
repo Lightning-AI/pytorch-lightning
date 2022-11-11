@@ -24,7 +24,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
-from lightning_app.storage import Drive, Path
+from lightning_app.storage import Drive, Path, Payload
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
@@ -100,6 +100,7 @@ class LightningApp:
         """
 
         self.root_path = root_path  # when running behind a proxy
+        self.info = info
 
         from lightning_app.core.flow import _RootFlow
 
@@ -122,6 +123,7 @@ class LightningApp:
         self.copy_request_queues: Optional[Dict[str, BaseQueue]] = None
         self.copy_response_queues: Optional[Dict[str, BaseQueue]] = None
         self.caller_queues: Optional[Dict[str, BaseQueue]] = None
+        self.flow_to_work_delta_queues: Optional[Dict[str, BaseQueue]] = None
         self.work_queues: Optional[Dict[str, BaseQueue]] = None
         self.commands: Optional[List] = None
 
@@ -135,6 +137,7 @@ class LightningApp:
         self._has_updated: bool = True
         self._schedules: Dict[str, Dict] = {}
         self.threads: List[threading.Thread] = []
+        self.exception = None
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -166,9 +169,10 @@ class LightningApp:
 
         logger.debug(f"ENV: {os.environ}")
 
+    def _update_index_file(self):
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
+        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
         if _should_dispatch_app():
             os.environ["LIGHTNING_DISPATCHED"] = "1"
@@ -293,6 +297,7 @@ class LightningApp:
     def check_error_queue(self) -> None:
         exception: Exception = self.get_state_changed_from_queue(self.error_queue)
         if isinstance(exception, Exception):
+            self.exception = exception
             self.stage = AppStage.FAILED
 
     @property
@@ -360,6 +365,7 @@ class LightningApp:
     def maybe_apply_changes(self) -> bool:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
+        self._send_flow_to_work_deltas(self.state)
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
@@ -610,3 +616,55 @@ class LightningApp:
         if os.getenv("LIGHTNING_DEBUG") == "2":
             del os.environ["LIGHTNING_DEBUG"]
             _console.setLevel(logging.INFO)
+
+    @staticmethod
+    def _extract_vars_from_component_name(component_name: str, state):
+        child = state
+        for child_name in component_name.split(".")[1:]:
+            if child_name in child["flows"]:
+                child = child["flows"][child_name]
+            elif "structures" in child and child_name in child["structures"]:
+                child = child["structures"][child_name]
+            elif child_name in child["works"]:
+                child = child["works"][child_name]
+            else:
+                return None
+
+        # Filter private keys and drives
+        return {
+            k: v
+            for k, v in child["vars"].items()
+            if (
+                not k.startswith("_")
+                and not (isinstance(v, dict) and v.get("type", None) == "__drive__")
+                and not (isinstance(v, (Payload, Path)))
+            )
+        }
+
+    def _send_flow_to_work_deltas(self, state) -> None:
+        if not self.flow_to_work_delta_queues:
+            return
+
+        for w in self.works:
+            if not w.has_started:
+                continue
+
+            # Don't send changes when the state has been just sent.
+            if w.run.has_sent:
+                continue
+
+            state_work = self._extract_vars_from_component_name(w.name, state)
+            last_state_work = self._extract_vars_from_component_name(w.name, self._last_state)
+
+            # Note: The work was dynamically created or deleted.
+            if state_work is None or last_state_work is None:
+                continue
+
+            deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
+
+            if "unprocessed" in deep_diff:
+                deep_diff.pop("unprocessed")
+
+            if deep_diff:
+                logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
+                self.flow_to_work_delta_queues[w.name].put(deep_diff)
