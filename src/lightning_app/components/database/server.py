@@ -21,6 +21,9 @@ if _is_sqlmodel_available():
     from sqlmodel import SQLModel
 
 
+_lock = threading.Lock()
+
+
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
 # Discussions: https://github.com/encode/uvicorn/discussions/1708
 class _DatabaseUvicornServer(uvicorn.Server):
@@ -166,7 +169,8 @@ class Database(LightningWork):
     def periodic_store_database(self, store_interval):
         while not self._exit_event.is_set():
             try:
-                self.store_database()
+                with _lock:
+                    self.store_database()
             except Exception:
                 print(traceback.print_exc())
                 pass
@@ -215,4 +219,5 @@ class Database(LightningWork):
 
     def on_exit(self):
         self._exit_event.set()
-        self.store_database()
+        with _lock:
+            self.store_database()
