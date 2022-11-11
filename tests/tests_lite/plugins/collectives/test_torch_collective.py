@@ -66,17 +66,10 @@ def check_destroy_group():
         ),
         ("barrier", {"device_ids": [0]}, None),
         ("all_gather_object", {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT}, "object_list"),
-        pytest.param(
-            "broadcast_object_list",
-            {"object_list": [PASSED_OBJECT], "src": 0},
-            "object_list",
-            marks=RunIf(max_torch="1.10"),
-        ),
-        pytest.param(
+        (
             "broadcast_object_list",
             {"object_list": [PASSED_OBJECT], "src": 0, "device": torch.device("cpu")},
             "object_list",
-            marks=RunIf(min_torch="1.10"),
         ),
         (
             "gather_object",
@@ -145,7 +138,7 @@ def test_convert_ops():
 
     # Test RedOpType
     if _TORCH_GREATER_EQUAL_1_13:
-        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.AVG
+        assert TorchCollective._convert_to_native_op(ReduceOp.RedOpType.AVG) == ReduceOp.RedOpType.AVG
         op = torch.distributed._make_nccl_premul_sum(2.0)  # this returns a ReduceOp
         assert TorchCollective._convert_to_native_op(op) == ReduceOp.PREMUL_SUM
         assert TorchCollective._convert_to_native_op("premul_sum") == ReduceOp.PREMUL_SUM
@@ -237,6 +230,7 @@ def _test_distributed_collectives_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @pytest.mark.parametrize("n", (1, 2))
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
 def test_collectives_distributed(n):
     collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
 

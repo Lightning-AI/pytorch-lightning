@@ -1,22 +1,11 @@
-import datetime
-import glob
-import json
 import os
 import re
-import shutil
-from distutils.version import LooseVersion
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
 from pathlib import Path
 from pprint import pprint
-from types import ModuleType
-from typing import List, Optional, Sequence
-from urllib import request
-from urllib.request import Request, urlopen
+from typing import Dict, List, Optional, Sequence, Tuple
 
-import jsonargparse
 import pkg_resources
-from packaging.version import parse as version_parse
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -36,31 +25,6 @@ REQUIREMENT_FILES = {
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
-PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
-
-
-def pypi_versions(package_name: str, drop_pre: bool = True) -> List[str]:
-    """Return a list of released versions of a provided pypi name.
-
-    >>> _ = pypi_versions("lightning_app", drop_pre=False)
-    """
-    # https://stackoverflow.com/a/27239645/4521646
-    url = f"https://pypi.org/pypi/{package_name}/json"
-    data = json.load(urlopen(Request(url)))
-    versions = list(data["releases"].keys())
-    # todo: drop this line after cleaning Pypi history from invalid versions
-    versions = list(filter(lambda v: v.count(".") == 2, versions))
-    if drop_pre:
-        versions = list(filter(lambda v: all(c not in v for c in ["rc", "dev"]), versions))
-    versions.sort(key=version_parse)
-    return versions
-
-
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    py = module_from_spec(spec)
-    spec.loader.exec_module(py)
-    return py
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
@@ -73,25 +37,74 @@ def _retrieve_files(directory: str, *ext: str) -> List[str]:
     return all_files
 
 
+def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[str]:
+    """Replace imports of standalone package to lightning.
+
+    >>> lns = [
+    ...     "lightning_app",
+    ...     "delete_cloud_lightning_apps",
+    ...     "from lightning_app import",
+    ...     "lightning_apps = []",
+    ...     "lightning_app and pytorch_lightning are ours",
+    ...     "def _lightning_app():",
+    ...     ":class:`~lightning_app.core.flow.LightningFlow`"
+    ... ]
+    >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
+    >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
+    ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
+    'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
+    ':class:`~lightning.app.core.flow.LightningFlow`']
+    """
+    out = lines[:]
+    for source_import, target_import in mapping:
+        for i, ln in enumerate(out):
+            out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+    return out
+
+
+def copy_replace_imports(
+    source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
+) -> None:
+    print(f"Replacing imports: {locals()}")
+    assert len(source_imports) == len(target_imports), (
+        "source and target imports must have the same length, "
+        f"source: {len(source_imports)}, target: {len(target_imports)}"
+    )
+    if target_dir is None:
+        target_dir = source_dir
+
+    ls = _retrieve_files(source_dir)
+    for fp in ls:
+        if fp.endswith(".py") or not fp.endswith(".pyc"):
+            with open(fp, encoding="utf-8") as fo:
+                try:
+                    lines = fo.readlines()
+                except UnicodeDecodeError:
+                    # a binary file, skip
+                    print(f"Skipped replacing imports for {fp}")
+                    continue
+            lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
+            fp_new = fp.replace(source_dir, target_dir)
+            os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+            with open(fp_new, "w", encoding="utf-8") as fo:
+                fo.writelines(lines)
+
+
+def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
+    # replace imports and copy the code
+    mapping = package_mapping.copy()
+    mapping.pop("lightning", None)  # pop this key to avoid replacing `lightning` to `lightning.lightning`
+    for new, previous in mapping.items():
+        copy_replace_imports(
+            source_dir=os.path.join(source_dir, previous),
+            # pytorch_lightning uses lightning_lite, so we need to replace all imports for all directories
+            source_imports=list(mapping.values()),
+            target_imports=[f"lightning.{new}" for new in mapping],
+            target_dir=os.path.join(source_dir, "lightning", new),
+        )
+
+
 class AssistantCLI:
-    _PATH_ROOT = str(Path(__file__).parent.parent)
-    _PATH_SRC = os.path.join(_PATH_ROOT, "src")
-
-    @staticmethod
-    def prepare_nightly_version(proj_root: str = _PATH_ROOT) -> None:
-        """Replace semantic version by date."""
-        path_info = os.path.join(proj_root, "pytorch_lightning", "__about__.py")
-        # get today date
-        now = datetime.datetime.now()
-        now_date = now.strftime("%Y%m%d")
-
-        print(f"prepare init '{path_info}' - replace version by {now_date}")
-        with open(path_info, encoding="utf-8") as fp:
-            init = fp.read()
-        init = re.sub(r'__version__ = [\d\.\w\'"]+', f'__version__ = "{now_date}"', init)
-        with open(path_info, "w", encoding="utf-8") as fp:
-            fp.write(init)
-
     @staticmethod
     def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES_ALL) -> None:
         """Remove some packages from given requirement files."""
@@ -131,106 +144,16 @@ class AssistantCLI:
             AssistantCLI._replace_min(fname)
 
     @staticmethod
-    def _release_pkg(pkg: str, src_folder: str = _PATH_SRC) -> bool:
-        pypi_ver = pypi_versions(pkg)[-1]
-        _version = _load_py_module("version", os.path.join(src_folder, pkg.replace("-", "_"), "__version__.py"))
-        local_ver = _version.version
-        return "dev" not in local_ver and LooseVersion(local_ver) > LooseVersion(pypi_ver)
-
-    @staticmethod
-    def determine_releasing_pkgs(
-        src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
-    ) -> Sequence[str]:
-        """Determine version of package where the name is `lightning.<name>`."""
-        if isinstance(packages, str):
-            packages = [packages]
-        releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
-        if inverse:
-            releasing = list(filter(lambda pkg: pkg not in releasing, packages))
-        return json.dumps([{"pkg": pkg for pkg in releasing}])
-
-    @staticmethod
-    def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
-        """Download specific or latest package from PyPI where the name is `lightning.<name>`."""
-        url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
-        data = json.load(urlopen(Request(url)))
-        if not version:
-            pypi_vers = pypi_versions(PACKAGE_MAPPING[package], drop_pre=False)
-            version = pypi_vers[-1]
-        releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
-        assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
-        release = releases[0]
-        pkg_url = release["url"]
-        pkg_file = os.path.basename(pkg_url)
-        pkg_path = os.path.join(folder, pkg_file)
-        os.makedirs(folder, exist_ok=True)
-        print(f"downloading: {pkg_url}")
-        request.urlretrieve(pkg_url, pkg_path)
-
-    @staticmethod
-    def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
-        """Find all python packages with spec.
-
-        pattern in given folder, in case `src` exists dive there.
-        """
-        pkg_dirs = [d for d in glob.glob(os.path.join(folder, "*")) if os.path.isdir(d)]
-        if "src" in [os.path.basename(p) for p in pkg_dirs]:
-            return AssistantCLI._find_pkgs(os.path.join(folder, "src"), pkg_pattern)
-        pkg_dirs = list(filter(lambda p: pkg_pattern in os.path.basename(p), pkg_dirs))
-        return pkg_dirs
-
-    @staticmethod
-    def mirror_pkg2source(pypi_folder: str, src_folder: str) -> None:
-        """From extracted sdist packages overwrite the python package with given pkg pattern."""
-        pypi_dirs = [d for d in glob.glob(os.path.join(pypi_folder, "*")) if os.path.isdir(d)]
-        for pkg_dir in pypi_dirs:
-            for py_dir in AssistantCLI._find_pkgs(pkg_dir):
-                dir_name = os.path.basename(py_dir)
-                py_dir2 = os.path.join(src_folder, dir_name)
-                shutil.rmtree(py_dir2, ignore_errors=True)
-                shutil.copytree(py_dir, py_dir2)
-
-    @staticmethod
     def copy_replace_imports(
         source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
     ) -> None:
         """Recursively replace imports in given folder."""
-
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
-        assert len(source_imports) == len(target_imports), (
-            "source and target imports must have the same length, "
-            f"source: {len(source_import)}, target: {len(target_import)}"
-        )
-
-        if target_dir is None:
-            target_dir = source_dir
-
-        ls = _retrieve_files(source_dir)
-
-        for fp in ls:
-            if fp.endswith(".py"):
-                with open(fp, encoding="utf-8") as fo:
-                    py = fo.readlines()
-
-                for source_import, target_import in zip(source_imports, target_imports):
-                    for i, ln in enumerate(py):
-                        py[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
-
-                if target_dir:
-                    fp_new = fp.replace(source_dir, target_dir)
-                    os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                else:
-                    fp_new = fp
-
-                with open(fp_new, "w", encoding="utf-8") as fo:
-                    fo.writelines(py)
-            elif not fp.endswith(".pyc"):
-                fp_new = fp.replace(source_dir, target_dir)
-                os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-                if os.path.abspath(fp) != os.path.abspath(fp_new):
-                    shutil.copy2(fp, fp_new)
+        copy_replace_imports(source_dir, source_imports, target_imports, target_dir=target_dir)
 
 
 if __name__ == "__main__":
+    import jsonargparse
+
     jsonargparse.CLI(AssistantCLI, as_positional=False)

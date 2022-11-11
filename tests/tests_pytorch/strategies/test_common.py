@@ -30,6 +30,7 @@ from tests_pytorch.strategies.test_dp import CustomClassificationModelDP
         pytest.param(dict(accelerator="mps", devices=1), marks=RunIf(mps=True)),
     ),
 )
+@RunIf(sklearn=True)
 def test_evaluate(tmpdir, trainer_kwargs):
     dm = ClassifDataModule()
     model = CustomClassificationModelDP()
