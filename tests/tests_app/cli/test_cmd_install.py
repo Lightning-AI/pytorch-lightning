@@ -61,11 +61,10 @@ def test_valid_unpublished_app_name():
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
-def test_app_install(tmpdir):
+def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
 
-    cwd = os.getcwd()
-    os.chdir(tmpdir)
+    monkeypatch.chdir(tmpdir)
 
     real_app = "https://github.com/Lightning-AI/install-app"
     test_app_pip_name = "install-app"
@@ -74,8 +73,6 @@ def test_app_install(tmpdir):
     subprocess.check_output(f"lightning install app {real_app} --yes", shell=True)
     new_env_output = subprocess.check_output("pip freeze", shell=True)
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
-
-    os.chdir(cwd)
 
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())

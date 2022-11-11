@@ -45,6 +45,7 @@ ORCHESTRATOR_COPY_REQUEST_CONSTANT = "ORCHESTRATOR_COPY_REQUEST"
 ORCHESTRATOR_COPY_RESPONSE_CONSTANT = "ORCHESTRATOR_COPY_RESPONSE"
 WORK_QUEUE_CONSTANT = "WORK_QUEUE"
 API_RESPONSE_QUEUE_CONSTANT = "API_RESPONSE_QUEUE"
+FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT = "FLOW_TO_WORKS_DELTA_QUEUE"
 
 
 class QueuingSystem(Enum):
@@ -133,6 +134,14 @@ class QueuingSystem(Enum):
     def get_work_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = (
             f"{queue_id}_{WORK_QUEUE_CONSTANT}_{work_name}" if queue_id else f"{WORK_QUEUE_CONSTANT}_{work_name}"
+        )
+        return self.get_queue(queue_name)
+
+    def get_flow_to_work_delta_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":
+        queue_name = (
+            f"{queue_id}_{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
+            if queue_id
+            else f"{FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT}_{work_name}"
         )
         return self.get_queue(queue_name)
 

@@ -343,6 +343,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
         save_top_k=save_top_k,
         save_last=save_last,
         verbose=True,
+        save_on_train_epoch_end=False,
     )
     trainer = Trainer()
     trainer.state.fn = TrainerFn.FITTING
