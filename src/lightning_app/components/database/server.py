@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import tempfile
 import threading
+import traceback
 from typing import List, Optional, Type, Union
 
 import uvicorn
@@ -163,9 +164,13 @@ class Database(LightningWork):
         print("Stored the database to the Drive.")
 
     def periodic_store_database(self, store_interval):
-        while not self._exit_event.is_set():
-            self.store_database()
-            self._exit_event.wait(store_interval)
+        try:
+            while not self._exit_event.is_set():
+                self.store_database()
+                self._exit_event.wait(store_interval)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise e
 
     def run(self, token: Optional[str] = None) -> None:
         """
