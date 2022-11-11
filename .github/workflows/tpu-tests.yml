@@ -9,8 +9,10 @@ on:
     paths:
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
-      - "requirements/pytorch/*"
-      - "!requirements/pytorch/docs.txt"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
