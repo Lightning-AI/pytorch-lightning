@@ -58,7 +58,6 @@ class NativeMixedPrecisionBoringLite(BoringLite):
         assert model.layer.weight.grad.dtype == torch.float32
 
 
-@RunIf(min_torch="1.10")
 @pytest.mark.parametrize(
     "accelerator, precision, expected_dtype",
     [
