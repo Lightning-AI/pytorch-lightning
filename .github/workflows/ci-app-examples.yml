@@ -12,8 +12,7 @@ on:
       - "src/lightning_app/**"
       - "tests/tests_app_examples/**"
       - "examples/app_*"
-      - "requirements/app/*"
-      - "!requirements/app/docs.txt"
+      - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
 

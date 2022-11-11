@@ -8,16 +8,15 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
-      - "requirements/pytorch/*"
+      - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/*"
+      - "requirements/lite/**"
       - "src/lightning_lite/**"
       - ".actions/**"
-      - "!requirements/*/docs.txt"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
