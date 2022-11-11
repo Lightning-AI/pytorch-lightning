@@ -11,23 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import sys
-from typing import Any
+import pytorch_lightning as pl
 
 
-def _patch_sys_modules() -> None:
+def _get_gpu_memory_map() -> None:
     # TODO: Remove in v2.0.0
-    self = sys.modules[__name__]
-    sys.modules["pytorch_lightning.utilities.memory"] = self
-
-
-def get_gpu_memory_map() -> None:
-    # TODO: Remove in v2.0.0
-    raise NotImplementedError(
-        "`pl.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported as of v1.9."
-        " Use `pl.accelerators.cuda.get_nvidia_gpu_stats` instead."
+    raise RuntimeError(
+        "`pytorch_lightning.utilities.memory.get_gpu_memory_map` was deprecated in v1.5 and is no longer supported as of v1.9."
+        " Use `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` instead."
     )
 
 
-_patch_sys_modules()
+pl.utilities.memory.get_gpu_memory_map = _get_gpu_memory_map
