@@ -78,6 +78,7 @@ module = [
     "lightning_app.components.serve.streamlit",
     "lightning_app.components.serve.types.image",
     "lightning_app.components.serve.types.type",
+    "lightning_app.components.serve.python_server",
     "lightning_app.components.training",
     "lightning_app.core.api",
     "lightning_app.core.app",

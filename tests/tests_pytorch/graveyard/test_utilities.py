@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 
-import pytorch_lightning._graveyard.callbacks
-import pytorch_lightning._graveyard.core
-import pytorch_lightning._graveyard.legacy_import_unpickler
-import pytorch_lightning._graveyard.loggers
-import pytorch_lightning._graveyard.trainer
-import pytorch_lightning._graveyard.training_type
-import pytorch_lightning._graveyard.utilities  # noqa: F401
+
+def test_v2_0_0_get_gpu_memory_map():
+    from pytorch_lightning.utilities.memory import get_gpu_memory_map
+
+    with pytest.raises(
+        RuntimeError, match="get_gpu_memory_map` was deprecated in v1.5 and is no longer supported as of v1.9."
+    ):
+        get_gpu_memory_map()
