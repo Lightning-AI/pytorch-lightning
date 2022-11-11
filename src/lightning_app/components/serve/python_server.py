@@ -27,9 +27,8 @@ class Image(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        imagepath = Path(__file__).absolute().parent / "catimage.png"
         name = "lightning" + "_" + "app"
-        imagepath = imagepath.replace("lightning/app", name)
+        imagepath = Path(__file__.replace("lightning/app", name)).absolute().parent / "catimage.png"
         with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}
