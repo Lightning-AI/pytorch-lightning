@@ -35,7 +35,7 @@ as Lightning takes care of GPU placement. In case you want to use some data tran
     from ffcv.fields.decoders import IntDecoder, RandomResizedCropRGBImageDecoder
 
 
-    class CustomClf(LitClassifier):
+    class CustomClassifier(LitClassifier):
         def train_dataloader(self):
 
             # Random resized crop
