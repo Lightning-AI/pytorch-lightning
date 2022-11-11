@@ -46,7 +46,7 @@ RUN \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
-    MAX_ALLOWED_NCCL=2.11.4 && \
+    MAX_ALLOWED_NCCL=2.15.5 && \
     TO_INSTALL_NCCL=$(echo -e "$MAX_ALLOWED_NCCL\n$NCCL_VER" | sort -V  | head -n1)-1+cuda${CUDA_VERSION_MM} && \
     apt-get install -y --no-install-recommends --allow-downgrades --allow-change-held-packages \
         build-essential \
