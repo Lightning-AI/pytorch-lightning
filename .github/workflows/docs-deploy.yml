@@ -6,7 +6,7 @@ on:
     branches: ["master", "release/*"]
     paths:
       - ".github/workflows/docs-deploy.yml"
-      # FIXME: what is this job for?
+      # TODO: this workflow is just for debugging. extend the paths that should trigger it
 
 env:
   FREEZE_REQUIREMENTS: 1
