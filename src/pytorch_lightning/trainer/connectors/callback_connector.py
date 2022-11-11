@@ -18,6 +18,8 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
+from lightning_utilities.core.overrides import is_overridden
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     Callback,
@@ -295,7 +297,7 @@ def _configure_external_callbacks() -> List[Callback]:
 
 
 def _validate_callbacks_list(callbacks: List[Callback]) -> None:
-    stateful_callbacks = [c for c in callbacks if c.state_dict()]
+    stateful_callbacks = [cb for cb in callbacks if is_overridden("state_dict", instance=cb, parent=Callback)]
     seen_callbacks = defaultdict(list)
     for callback in stateful_callbacks:
         if callback.state_key in seen_callbacks:
