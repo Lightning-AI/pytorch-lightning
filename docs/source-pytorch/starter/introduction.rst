@@ -221,6 +221,7 @@ Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard
 
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger
 

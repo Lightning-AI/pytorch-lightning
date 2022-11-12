@@ -859,6 +859,7 @@ logger
 Pass a :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger
 

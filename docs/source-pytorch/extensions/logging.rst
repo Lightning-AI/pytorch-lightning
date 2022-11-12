@@ -62,6 +62,7 @@ To visualize tensorboard in a jupyter notebook environment, run the following co
 You can also pass a custom Logger to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE
 
     from pytorch_lightning import loggers as pl_loggers
 
@@ -79,6 +80,7 @@ Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE
     :skipif: not _COMET_AVAILABLE
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
