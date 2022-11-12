@@ -139,6 +139,12 @@ def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, A
     for arg in cls_default_params:
         arg_type = cls_default_params[arg].annotation
         arg_default = cls_default_params[arg].default
+        # TODO: remove override in v2.0.0
+        if arg == "logger":
+            from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import _NoneSentinel
+
+            arg_type.__args__ = tuple(type_ for type_ in arg_type.__args__ if type_ is not _NoneSentinel)
+            arg_default = None
         try:
             arg_types = tuple(arg_type.__args__)
         except (AttributeError, TypeError):
@@ -213,7 +219,7 @@ def add_argparse_args(
 
     ignore_arg_names = ["self", "args", "kwargs"]
 
-    allowed_types = (str, int, float, bool)
+    allowed_types = (str, int, float, bool, type(None))
 
     # Get symbols from cls or init function.
     for symbol in (cls, cls.__init__):

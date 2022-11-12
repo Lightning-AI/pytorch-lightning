@@ -88,7 +88,7 @@ def test_flatten_dict():
     params = _flatten_dict(wrapping_dict)
 
     assert type(params) == dict
-    assert params["params/logger"] is True
+    assert params["params/logger"] is None
     assert params["params/gpus"] is None
     assert "logger" not in params
     assert "gpus" not in params
