@@ -119,4 +119,4 @@ Lightning needs to know a lot on the internals of these iterables.
   optimizers, trainer and dataloader to resume it at the exact same batch it crashed.
   This feature is called fault-tolerance and is limited to PyTorch DataLoaders.
   Lighning needs to know a lot about sampling, fast forwarding and random number handling to enable fault tolerance,
-  meaning that this cannot be supported for arbitrary iterables either.
+  meaning that it cannot be supported for arbitrary iterables.
