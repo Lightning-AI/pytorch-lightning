@@ -453,7 +453,6 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
-        logger=False,
         enable_model_summary=False,
     )
     trainer.fit(model)
@@ -654,7 +653,6 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         default_root_dir=tmpdir,
         max_steps=num_train_samples + 10,
         accumulate_grad_batches=10,
-        logger=False,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -737,7 +735,6 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
         limit_val_batches=1,
         enable_model_summary=False,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
         callbacks=[mc],
     )
@@ -781,7 +778,6 @@ def test_checkpoint_find_last(tmpdir):
         limit_val_batches=0,
         enable_model_summary=False,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
         callbacks=[mc],
     )
@@ -796,7 +792,6 @@ def test_checkpoint_find_last(tmpdir):
         limit_val_batches=0,
         enable_model_summary=False,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
         callbacks=[mc],
     )
@@ -1085,7 +1080,6 @@ def test_on_exception_hook(tmpdir):
         limit_val_batches=0.1,
         limit_train_batches=0.2,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
@@ -1791,7 +1785,7 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 def test_module_current_fx_attributes_reset(tmpdir):
     """Ensure that lightning module's attributes related to current fx are reset at the end of execution."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False)
 
     trainer.fit(model)
     assert model._current_fx_name is None

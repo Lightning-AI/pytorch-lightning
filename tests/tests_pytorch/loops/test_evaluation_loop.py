@@ -61,7 +61,6 @@ def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
         max_epochs=2,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     train_dataloader = _get_dataloader()
@@ -95,7 +94,6 @@ def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):
         max_epochs=2,
         enable_model_summary=False,
         enable_checkpointing=False,
-        logger=False,
     )
 
     train_dataloader = _get_dataloader()

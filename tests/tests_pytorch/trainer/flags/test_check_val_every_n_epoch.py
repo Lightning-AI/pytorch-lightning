@@ -40,7 +40,6 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
         num_sanity_val_steps=0,
         limit_val_batches=2,
         check_val_every_n_epoch=2,
-        logger=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"

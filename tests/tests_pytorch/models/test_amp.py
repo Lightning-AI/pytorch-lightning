@@ -90,7 +90,6 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        logger=False,
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,

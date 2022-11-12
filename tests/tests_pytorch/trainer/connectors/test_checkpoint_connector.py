@@ -58,7 +58,7 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 def test_hpc_restore_attempt(_, tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False)
     trainer.fit(model)
 
     hpc_ckpt_path = tmpdir / "hpc_ckpt_3.ckpt"
@@ -70,7 +70,7 @@ def test_hpc_restore_attempt(_, tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 1: restore hpc first, no explicit resume path provided
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False, logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False)
     trainer.fit(model)
 
     for param in model.parameters():
@@ -135,7 +135,6 @@ def test_loops_restore(tmpdir):
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
-        logger=False,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
     )

@@ -40,7 +40,6 @@ def test_native_mixed_precision_fused_optimizer_parity(tmpdir):
             devices=1,
             precision=16,
             max_steps=5,
-            logger=False,
             enable_checkpointing=False,
             enable_progress_bar=False,
             enable_model_summary=False,

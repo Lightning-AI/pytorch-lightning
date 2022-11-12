@@ -100,7 +100,6 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
         default_root_dir=tmpdir,
         max_epochs=2,
         enable_model_summary=False,
-        logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model)
@@ -141,7 +140,6 @@ def test_tbptt_split_shapes(tmpdir, model_class):
         default_root_dir=tmpdir,
         max_epochs=1,
         enable_model_summary=False,
-        logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
@@ -197,7 +195,6 @@ def test_hiddens_multiple_optimizers(tmpdir):
         limit_train_batches=1,
         limit_val_batches=0,
         enable_model_summary=False,
-        logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
     )

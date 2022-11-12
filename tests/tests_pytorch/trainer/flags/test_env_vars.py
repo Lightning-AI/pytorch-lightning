@@ -16,35 +16,37 @@ from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.strategies import DDPStrategy
 
 
 def test_passing_no_env_variables():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     model = BoringModel()
-    assert trainer.logger is not None
+    assert trainer.logger is None
     assert trainer.max_steps == -1
     assert trainer.max_epochs is None
-    trainer = Trainer(logger=False, max_steps=1)
+    trainer = Trainer(logger=CSVLogger("."), max_steps=1)
     trainer.fit(model)
-    assert trainer.logger is None
+    assert isinstance(trainer.logger, CSVLogger)
     assert trainer.max_steps == 1
     assert trainer.max_epochs == -1
 
 
-@mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "False", "PL_TRAINER_MAX_STEPS": "7"})
+@mock.patch.dict(os.environ, {"PL_TRAINER_STRATEGY": "ddp", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_only():
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
-    assert trainer.logger is None
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.max_steps == 7
 
 
-@mock.patch.dict(os.environ, {"PL_TRAINER_LOGGER": "True", "PL_TRAINER_MAX_STEPS": "7"})
+@mock.patch.dict(os.environ, {"PL_TRAINER_STRATEGY": "ddp", "PL_TRAINER_MAX_STEPS": "7"})
 def test_passing_env_variables_defaults():
     """Testing overwriting trainer arguments."""
-    trainer = Trainer(False, max_steps=42)
-    assert trainer.logger is None
+    trainer = Trainer(strategy="dp", max_steps=42)
+    assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.max_steps == 42
 
 

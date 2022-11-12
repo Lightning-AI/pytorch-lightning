@@ -533,7 +533,6 @@ def test_fetching_is_profiled():
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        logger=False,
     )
     trainer.fit(model)
     trainer.test(model)
@@ -583,7 +582,6 @@ def test_fetching_is_profiled():
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
-        logger=False,
     )
     trainer.fit(model)
 

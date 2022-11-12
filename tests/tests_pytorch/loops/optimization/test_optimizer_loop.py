@@ -188,7 +188,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_train_batches=n_batches,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model)
@@ -207,7 +206,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_train_batches=n_batches,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        logger=False,
         enable_checkpointing=False,
     )
     with pytest.raises(CustomException):
@@ -227,7 +225,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
         limit_train_batches=n_batches,
         limit_val_batches=0,
         num_sanity_val_steps=0,
-        logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model, ckpt_path=str(tmpdir / ".pl_auto_save.ckpt"))

@@ -137,7 +137,6 @@ def test_device_stats_monitor_no_logger(tmpdir):
         default_root_dir=tmpdir,
         callbacks=[device_stats],
         max_epochs=1,
-        logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
     )

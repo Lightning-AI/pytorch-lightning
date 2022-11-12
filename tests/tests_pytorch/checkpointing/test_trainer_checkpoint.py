@@ -50,7 +50,6 @@ def test_finetuning_with_ckpt_path(tmpdir):
         limit_val_batches=6,
         limit_test_batches=12,
         callbacks=[checkpoint_callback],
-        logger=False,
     )
     trainer.fit(model)
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]

@@ -192,7 +192,7 @@ def test_lr_monitor_no_logger(tmpdir):
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor])
 
     with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
         trainer.fit(model)

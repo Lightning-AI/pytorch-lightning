@@ -288,7 +288,6 @@ def test_training_step_no_return_when_even(tmpdir):
         limit_val_batches=1,
         max_epochs=4,
         enable_model_summary=False,
-        logger=False,
         enable_checkpointing=False,
     )
 
@@ -337,7 +336,6 @@ def test_training_step_none_batches(tmpdir):
         limit_val_batches=1,
         max_epochs=4,
         enable_model_summary=False,
-        logger=False,
         enable_checkpointing=False,
     )
 

@@ -647,7 +647,6 @@ def test_compute_not_a_tensor_raises():
         max_epochs=1,
         enable_progress_bar=False,
         enable_checkpointing=False,
-        logger=False,
         enable_model_summary=False,
     )
     with pytest.raises(ValueError, match=r"compute\(\)` return of.*foo' must be a tensor"):

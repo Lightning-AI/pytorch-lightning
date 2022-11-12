@@ -503,7 +503,6 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
         limit_train_batches=1,
         limit_val_batches=0,
         enable_checkpointing=False,
-        logger=False,
         enable_model_summary=False,
     )
     model = TestModel()
@@ -637,7 +636,6 @@ def test_logging_raises(tmpdir):
         max_epochs=1,
         enable_progress_bar=False,
         enable_checkpointing=False,
-        logger=False,
         enable_model_summary=False,
     )
     model = TestModel()

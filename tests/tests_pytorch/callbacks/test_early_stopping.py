@@ -308,7 +308,6 @@ def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epoch
         limit_train_batches=limit_train_batches,
         min_epochs=min_epochs,
         min_steps=min_steps,
-        logger=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
         enable_model_summary=False,

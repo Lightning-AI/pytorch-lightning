@@ -694,7 +694,6 @@ def test_model_save_hyper_parameters_interpolation_with_hydra(tmpdir):
             limit_train_batches=10,
             limit_val_batches=10,
             max_epochs=epochs,
-            logger=False,
         )
         trainer.fit(model)
         _ = TestHydraModel.load_from_checkpoint(checkpoint_callback.best_model_path)

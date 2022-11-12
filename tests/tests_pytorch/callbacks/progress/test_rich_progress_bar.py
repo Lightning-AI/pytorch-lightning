@@ -189,7 +189,6 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
             limit_val_batches=0,
             max_epochs=4,
             callbacks=progress_bar,
-            logger=False,
             enable_checkpointing=False,
             enable_model_summary=False,
         )
@@ -429,7 +428,6 @@ def test_rich_progress_bar_can_be_pickled():
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        logger=False,
         enable_model_summary=False,
     )
     model = BoringModel()

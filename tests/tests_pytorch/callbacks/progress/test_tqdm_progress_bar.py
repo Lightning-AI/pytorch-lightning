@@ -315,7 +315,6 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
         limit_train_batches=1,
         limit_val_batches=limit_val_batches,
         callbacks=[pbar],
-        logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model)
@@ -371,7 +370,6 @@ def test_main_progress_bar_update_amount(
         limit_train_batches=train_batches,
         limit_val_batches=val_batches,
         callbacks=[progress_bar],
-        logger=False,
         enable_checkpointing=False,
     )
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
@@ -392,7 +390,6 @@ def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate
         max_epochs=1,
         limit_test_batches=test_batches,
         callbacks=[progress_bar],
-        logger=False,
         enable_checkpointing=False,
     )
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
@@ -410,9 +407,7 @@ def test_tensor_to_float_conversion(tmpdir):
             self.log("c", {"c1": 2}, prog_bar=True, on_epoch=False)
             return super().training_step(batch, batch_idx)
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, enable_checkpointing=False)
     trainer.fit(TestModel())
 
     torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
@@ -546,7 +541,6 @@ def test_tqdm_progress_bar_can_be_pickled():
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        logger=False,
         enable_model_summary=False,
     )
     model = BoringModel()

@@ -478,7 +478,6 @@ def test_datamodule_hooks_are_profiled():
             profiler="simple",
             enable_model_summary=False,
             enable_progress_bar=False,
-            logger=False,
         )
         return trainer
 

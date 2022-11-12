@@ -120,7 +120,6 @@ def test_v2_0_0_callback_on_save_checkpoint_hook(tmpdir):
         max_epochs=1,
         fast_dev_run=True,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     trainer.fit(model)
@@ -176,7 +175,6 @@ def test_v2_0_0_on_configure_sharded_model(tmpdir):
         max_epochs=1,
         fast_dev_run=True,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     with pytest.raises(RuntimeError, match="The `on_configure_sharded_model` callback hook was removed in v1.8."):
@@ -249,7 +247,6 @@ def test_v2_0_0_on_before_accelerator_backend_setup(tmpdir):
         max_epochs=1,
         fast_dev_run=True,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     with pytest.raises(
@@ -308,7 +305,6 @@ def test_v2_0_0_unsupported_on_init_start_end(callback_class, tmpdir):
         max_epochs=1,
         fast_dev_run=True,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     with pytest.raises(

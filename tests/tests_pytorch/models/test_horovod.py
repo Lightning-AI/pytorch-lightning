@@ -357,7 +357,6 @@ def test_result_reduce_horovod(tmpdir):
             max_epochs=1,
             log_every_n_steps=1,
             enable_model_summary=False,
-            logger=False,
         )
 
         trainer.fit(model)
@@ -384,7 +383,7 @@ def test_accuracy_metric_horovod():
     target = torch.randint(high=2, size=(num_batches, batch_size))
 
     def _compute_batch():
-        trainer = Trainer(fast_dev_run=True, strategy="horovod", logger=False)
+        trainer = Trainer(fast_dev_run=True, strategy="horovod")
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct strategy based on horovod flags

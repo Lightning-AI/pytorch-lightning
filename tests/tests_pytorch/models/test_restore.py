@@ -113,7 +113,6 @@ def test_model_properties_fit_ckpt_path(tmpdir):
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,
-        logger=False,
         callbacks=[checkpoint_callback, ModelTrainerPropertyParity()],  # this performs the assertions
     )
     trainer = Trainer(**trainer_args)
@@ -145,7 +144,6 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         limit_predict_batches=2,
-        logger=False,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
     )
@@ -266,7 +264,6 @@ def test_fit_twice(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         default_root_dir=tmpdir,
-        logger=False,
         enable_checkpointing=False,
         enable_model_summary=False,
         enable_progress_bar=False,
@@ -307,7 +304,6 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
             limit_train_batches=1,
             limit_val_batches=2,
             max_epochs=1,
-            logger=False,
             callbacks=[checkpoint, callback_capture],
         )
         assert checkpoint.best_model_path == ""

@@ -629,7 +629,6 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        logger=False,
         max_epochs=max_epochs,
         limit_train_batches=batches,
         limit_val_batches=1,
@@ -665,7 +664,6 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
-        logger=False,
         max_epochs=1,
         limit_train_batches=batches,
         limit_val_batches=1,
@@ -749,7 +747,6 @@ def test_lr_scheduler_step_hook(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         enable_checkpointing=False,
-        logger=False,
         max_epochs=max_epochs,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,

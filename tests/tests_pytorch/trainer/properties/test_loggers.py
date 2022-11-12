@@ -87,11 +87,11 @@ def test_trainer_loggers_setters():
 )
 def test_no_logger(tmpdir, logger_value):
     """Test the cases where logger=None, logger=False, logger=[] are passed to Trainer."""
-    trainer = Trainer(
-        logger=logger_value,
-        default_root_dir=tmpdir,
-        max_steps=1,
-    )
+    if logger_value is False:
+        with pytest.deprecated_call(match=r"logger=False\)` has been deprecated"):
+            trainer = Trainer(default_root_dir=tmpdir, logger=logger_value)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, logger=logger_value)
     assert trainer.logger is None
     assert trainer.loggers == []
     assert trainer.log_dir == tmpdir
