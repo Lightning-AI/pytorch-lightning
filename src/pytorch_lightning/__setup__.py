@@ -44,27 +44,7 @@ def _prepare_extras() -> Dict[str, Any]:
     return extras
 
 
-def _adjust_manifest(**__: Any) -> None:
-    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
-    assert os.path.isfile(manifest_path)
-    with open(manifest_path) as fp:
-        lines = fp.readlines()
-    lines += [
-        "recursive-exclude src *.md" + os.linesep,
-        "recursive-exclude requirements *.txt" + os.linesep,
-        "recursive-include requirements/lite *.txt" + os.linesep,
-        "recursive-include src/lightning_lite *.md" + os.linesep,
-        "include src/lightning_lite/version.info" + os.linesep,
-        "recursive-include src/pytorch_lightning *.md" + os.linesep,
-        "recursive-include requirements/pytorch *.txt" + os.linesep,
-        "include src/pytorch_lightning/version.info" + os.linesep,
-        "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
-    ]
-    with open(manifest_path, "w") as fp:
-        fp.writelines(lines)
-
-
-def _setup_args(**__: Any) -> Dict[str, Any]:
+def _setup_args() -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))

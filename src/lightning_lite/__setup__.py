@@ -42,27 +42,7 @@ def _prepare_extras() -> Dict[str, Any]:
     return extras
 
 
-def _adjust_manifest(**__: Any) -> None:
-    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
-    assert os.path.isfile(manifest_path)
-    with open(manifest_path) as fp:
-        lines = fp.readlines()
-    lines += [
-        "recursive-exclude src *.md" + os.linesep,
-        "recursive-exclude requirements *.txt" + os.linesep,
-        "recursive-include requirements/lite *.txt" + os.linesep,
-        "recursive-include src/lightning_lite *.md" + os.linesep,
-        "include src/lightning_lite/version.info" + os.linesep,
-    ]
-
-    # TODO: remove this once lightning-ui package is ready as a dependency
-    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
-
-    with open(manifest_path, "w") as fp:
-        fp.writelines(lines)
-
-
-def _setup_args(**__: Any) -> Dict[str, Any]:
+def _setup_args() -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
