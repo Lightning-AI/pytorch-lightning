@@ -50,7 +50,8 @@ runs:
     run: |
       import os, glob, pathlib, shutil
       # list folders without ending .egg-info
-      dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      ls = glob.glob(os.path.join("*", "src", "*"))
+      dirs = [d for d in ls if os.path.isdir(d) and not d.endswith(".egg-info")]
       print(dirs)
       assert len(dirs) == ${{ inputs.nb-dirs }}
       # cleaning
