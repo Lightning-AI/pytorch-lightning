@@ -113,7 +113,7 @@ class Trainer:
     def __init__(
         self,
         # TODO: Replace default for `None` in 2.0
-        logger: Optional[Union[Logger, Iterable[Logger], _NoneSentinel]] = _NoneSentinel(),  # type: ignore[assignment]
+        logger: Optional[Union[Logger, Iterable[Logger], _NoneSentinel]] = _NoneSentinel(),
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,

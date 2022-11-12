@@ -32,9 +32,6 @@ class _NoneSentinel:
     Remove this class with the deprecation.
     """
 
-    def __bool__(self) -> bool:
-        return False
-
 
 class LoggerConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
@@ -64,7 +61,7 @@ class LoggerConnector:
         return should_log or self.trainer.should_stop
 
     def configure_logger(self, logger: Optional[Union[Logger, Iterable[Logger], _NoneSentinel]]) -> None:
-        if not logger:
+        if isinstance(logger, _NoneSentinel) or not logger:
             if logger is False:
                 # TODO: remove in v2.0.0
                 rank_zero_deprecation(

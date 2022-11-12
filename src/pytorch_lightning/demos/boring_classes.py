@@ -156,7 +156,7 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.random_full = RandomDataset(32, 64 * 4)
 
