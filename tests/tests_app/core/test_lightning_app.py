@@ -107,7 +107,7 @@ class SimpleFlow(LightningFlow):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 def test_simple_app(component_cls, runtime_cls, tmpdir):
     comp = component_cls()
-    app = LightningApp(comp, debug=True)
+    app = LightningApp(comp, log_level="debug")
     assert app.root == comp
     expected = {
         "app_state": ANY,
@@ -247,10 +247,9 @@ def test_get_component_by_name_raises():
         app.get_component_by_name("root.b.w_b.c")
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_nested_component(runtime_cls):
-    app = LightningApp(A(), debug=True)
-    runtime_cls(app, start_server=False).dispatch()
+def test_nested_component():
+    app = LightningApp(A(), log_level="debug")
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.w_a.c == 1
     assert app.root.b.w_b.c == 1
     assert app.root.b.c.w_c.c == 1
@@ -361,7 +360,7 @@ class SimpleApp2(LightningApp):
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
     """Validates sending restarting move the app to blocking again."""
-    app = SimpleApp2(CounterFlow(), debug=True)
+    app = SimpleApp2(CounterFlow(), log_level="debug")
     runtime_cls(app, start_server=False).dispatch()
 
 
@@ -395,7 +394,7 @@ class AppWithFrontend(LightningApp):
 @mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
     """Test that the LightningApp captures the initial state in a separate copy when _run() gets called."""
-    app = AppWithFrontend(FlowWithFrontend(), debug=True)
+    app = AppWithFrontend(FlowWithFrontend(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.run_once_call_count == 3
 
@@ -601,9 +600,10 @@ class CheckpointCounter(LightningWork):
 
 
 class CheckpointFlow(LightningFlow):
-    def __init__(self, work: LightningWork, depth=0):
+    def __init__(self, work: CheckpointCounter, depth=0):
         super().__init__()
         self.depth = depth
+
         if depth == 0:
             self.counter = 0
 
@@ -613,10 +613,9 @@ class CheckpointFlow(LightningFlow):
             self.flow = CheckpointFlow(work, depth + 1)
 
     def run(self):
-        if hasattr(self, "counter"):
-            self.counter += 1
-            if self.counter > 5:
-                self._exit()
+        if self.works()[0].counter == 5:
+            self._exit()
+
         if self.depth >= 10:
             self.work.run()
         else:
@@ -627,19 +626,16 @@ def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
-    SingleProcessRuntime(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
-    assert app.root.counter == 6
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 5
 
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
-    assert app.root.counter == 0
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 0
 
     app.load_state_dict_from_checkpoint_dir(app.checkpoint_dir)
     # The counter was increment to 6 after the latest checkpoints was created.
-    assert app.root.counter == 5
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 5
 
 
@@ -956,8 +952,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 6952
-    assert app.root._state_sizes[20] <= 24896
+    assert app.root._state_sizes[0] <= 7824
+    assert app.root._state_sizes[20] <= 26500
 
 
 class FlowUpdated(LightningFlow):
@@ -992,7 +988,7 @@ def test_debug_mode_logging():
 
     from lightning_app.core.app import _console
 
-    app = LightningApp(A4(), debug=True)
+    app = LightningApp(A4(), log_level="debug")
     assert _console.level == logging.DEBUG
     assert os.getenv("LIGHTNING_DEBUG") == "2"
 

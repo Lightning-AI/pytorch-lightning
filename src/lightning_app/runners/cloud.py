@@ -49,6 +49,7 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
@@ -62,7 +63,7 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
-from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
+from lightning_app.utilities.packaging.app_config import _get_config_file, AppConfig
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
 
@@ -94,10 +95,11 @@ class CloudRuntime(Runtime):
 
         # TODO: verify lightning version
         # _verify_lightning_version()
-        config_file = find_config_file(self.entrypoint_file)
-        app_config = AppConfig.load_from_file(config_file) if config_file else AppConfig()
-        root = config_file.parent if config_file else Path(self.entrypoint_file).absolute().parent
+        config_file = _get_config_file(self.entrypoint_file)
+        app_config = AppConfig.load_from_file(config_file) if config_file.exists() else AppConfig()
+        root = Path(self.entrypoint_file).absolute().parent
         cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
+        self.app._update_index_file()
         repo = LocalSourceCodeDir(path=root)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
@@ -124,6 +126,9 @@ class CloudRuntime(Runtime):
             ]
             v1_env_vars.extend(env_vars_from_secrets)
 
+        if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
+
         if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
@@ -136,75 +141,78 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
-        work_reqs: List[V1Work] = []
-        for flow in self.app.flows:
-            for work in flow.works(recurse=False):
-                work_requirements = "\n".join(work.cloud_build_config.requirements)
-                build_spec = V1BuildSpec(
-                    commands=work.cloud_build_config.build_commands(),
-                    python_dependencies=V1PythonDependencyInfo(
-                        package_manager=V1PackageManager.PIP, packages=work_requirements
-                    ),
-                    image=work.cloud_build_config.image,
-                )
-                user_compute_config = V1UserRequestedComputeConfig(
-                    name=work.cloud_compute.name,
-                    count=1,
-                    disk_size=work.cloud_compute.disk_size,
-                    shm_size=work.cloud_compute.shm_size,
-                )
+        works: List[V1Work] = []
+        for work in self.app.works:
+            if not work._start_with_flow:
+                continue
 
-                drive_specs: List[V1LightningworkDrives] = []
-                for drive_attr_name, drive in [
-                    (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
-                ]:
-                    if drive.protocol == "lit://":
-                        drive_type = V1DriveType.NO_MOUNT_S3
-                        source_type = V1SourceType.S3
-                    else:
-                        raise RuntimeError(
-                            f"unknown drive protocol `{drive.protocol}`. Please verify this "
-                            f"drive type has been configured for use in the cloud dispatcher."
-                        )
+            work_requirements = "\n".join(work.cloud_build_config.requirements)
+            build_spec = V1BuildSpec(
+                commands=work.cloud_build_config.build_commands(),
+                python_dependencies=V1PythonDependencyInfo(
+                    package_manager=V1PackageManager.PIP, packages=work_requirements
+                ),
+                image=work.cloud_build_config.image,
+            )
+            user_compute_config = V1UserRequestedComputeConfig(
+                name=work.cloud_compute.name,
+                count=1,
+                disk_size=work.cloud_compute.disk_size,
+                preemptible=work.cloud_compute.preemptible,
+                shm_size=work.cloud_compute.shm_size,
+            )
 
-                    drive_specs.append(
-                        V1LightningworkDrives(
-                            drive=V1Drive(
-                                metadata=V1Metadata(
-                                    name=f"{work.name}.{drive_attr_name}",
-                                ),
-                                spec=V1DriveSpec(
-                                    drive_type=drive_type,
-                                    source_type=source_type,
-                                    source=f"{drive.protocol}{drive.id}",
-                                ),
-                                status=V1DriveStatus(),
-                            ),
-                            mount_location=str(drive.root_folder),
-                        ),
+            drive_specs: List[V1LightningworkDrives] = []
+            for drive_attr_name, drive in [
+                (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
+            ]:
+                if drive.protocol == "lit://":
+                    drive_type = V1DriveType.NO_MOUNT_S3
+                    source_type = V1SourceType.S3
+                else:
+                    raise RuntimeError(
+                        f"unknown drive protocol `{drive.protocol}`. Please verify this "
+                        f"drive type has been configured for use in the cloud dispatcher."
                     )
 
-                # TODO: Move this to the CloudCompute class and update backend
-                if work.cloud_compute.mounts is not None:
-                    mounts = work.cloud_compute.mounts
-                    if isinstance(mounts, Mount):
-                        mounts = [mounts]
-                    for mount in mounts:
-                        drive_specs.append(
-                            _create_mount_drive_spec(
-                                work_name=work.name,
-                                mount=mount,
-                            )
-                        )
-
-                random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-                spec = V1LightningworkSpec(
-                    build_spec=build_spec,
-                    drives=drive_specs,
-                    user_requested_compute_config=user_compute_config,
-                    network_config=[V1NetworkConfig(name=random_name, port=work.port)],
+                drive_specs.append(
+                    V1LightningworkDrives(
+                        drive=V1Drive(
+                            metadata=V1Metadata(
+                                name=f"{work.name}.{drive_attr_name}",
+                            ),
+                            spec=V1DriveSpec(
+                                drive_type=drive_type,
+                                source_type=source_type,
+                                source=f"{drive.protocol}{drive.id}",
+                            ),
+                            status=V1DriveStatus(),
+                        ),
+                        mount_location=str(drive.root_folder),
+                    ),
                 )
-                work_reqs.append(V1Work(name=work.name, spec=spec))
+
+            # TODO: Move this to the CloudCompute class and update backend
+            if work.cloud_compute.mounts is not None:
+                mounts = work.cloud_compute.mounts
+                if isinstance(mounts, Mount):
+                    mounts = [mounts]
+                for mount in mounts:
+                    drive_specs.append(
+                        _create_mount_drive_spec(
+                            work_name=work.name,
+                            mount=mount,
+                        )
+                    )
+
+            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+            work_spec = V1LightningworkSpec(
+                build_spec=build_spec,
+                drives=drive_specs,
+                user_requested_compute_config=user_compute_config,
+                network_config=[V1NetworkConfig(name=random_name, port=work.port)],
+            )
+            works.append(V1Work(name=work.name, spec=work_spec))
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows
         # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
@@ -333,9 +341,6 @@ class CloudRuntime(Runtime):
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
 
-            for work_req in work_reqs:
-                work_req.spec.cluster_id = app_config.cluster_id
-
             release_body = Body8(
                 app_entrypoint_file=app_spec.app_entrypoint_file,
                 enable_app_server=app_spec.enable_app_server,
@@ -343,13 +348,13 @@ class CloudRuntime(Runtime):
                 image_spec=app_spec.image_spec,
                 cluster_id=app_config.cluster_id,
                 network_config=network_configs,
-                works=[V1Work(name=work_req.name, spec=work_req.spec) for work_req in work_reqs],
+                works=works,
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
             )
 
-            # create / upload the new app release / instace
+            # create / upload the new app release
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=lit_app.id, body=release_body
             )
