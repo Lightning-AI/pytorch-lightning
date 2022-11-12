@@ -20,14 +20,14 @@ from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.strategies import DDPStrategy
 
 
-def test_passing_no_env_variables():
+def test_passing_no_env_variables(tmp_path):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     model = BoringModel()
     assert trainer.logger is None
     assert trainer.max_steps == -1
     assert trainer.max_epochs is None
-    trainer = Trainer(logger=CSVLogger("."), max_steps=1)
+    trainer = Trainer(logger=CSVLogger(tmp_path), max_steps=1)
     trainer.fit(model)
     assert isinstance(trainer.logger, CSVLogger)
     assert trainer.max_steps == 1

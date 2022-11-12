@@ -106,10 +106,9 @@ def test_simple_profiler_dirpath(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
     trainer.fit(model)
 
-    expected = tmpdir / "lightning_logs" / "version_0"
-    assert trainer.log_dir == expected
+    assert trainer.log_dir == tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
@@ -125,11 +124,10 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
     )
     trainer.fit(model)
 
-    expected = nonexisting_tmpdir / "lightning_logs" / "version_0"
-    assert expected.exists()
-    assert trainer.log_dir == expected
+    assert nonexisting_tmpdir.exists()
+    assert trainer.log_dir == nonexisting_tmpdir
     assert profiler.dirpath == trainer.log_dir
-    assert expected.join("fit-profiler.txt").exists()
+    assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
 def test_simple_profiler_with_nonexisting_dirpath(tmpdir):

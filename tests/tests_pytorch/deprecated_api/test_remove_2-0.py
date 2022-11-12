@@ -318,7 +318,7 @@ def test_v2_0_0_unsupported_on_init_start_end(callback_class, tmpdir):
         trainer.validate(model)
 
 
-def test_v2_0_0_default_tensorboard(monkeypatch):
+def test_v2_0_0_default_tensorboard(monkeypatch, tmp_path):
     with pytest.deprecated_call(match=r"logger=False\)` has been deprecated"):
         trainer = Trainer(logger=False)
     assert trainer.logger is None
@@ -330,5 +330,5 @@ def test_v2_0_0_default_tensorboard(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.loggers.tensorboard._TENSORBOARD_AVAILABLE, "available", False)
 
     with pytest.deprecated_call(match=r"tensorboard` has been removed"), mock.patch("pip.main") as pip_mock:
-        TensorBoardLogger(".")
+        TensorBoardLogger(tmp_path)
     pip_mock.assert_called_with(["install", "tensorboard>=2.9.1"])
