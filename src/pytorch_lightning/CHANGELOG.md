@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15301](https://github.com/Lightning-AI/lightning/pull/15301))
 
 
+- Added a warning when `self.log(..., logger=True)` is called without a configured logger ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
+
 ### Changed
 
 - Drop PyTorch 1.9 support ([#15347](https://github.com/Lightning-AI/lightning/pull/15347))
@@ -41,9 +43,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The Trainer now raises an error if it is given multiple stateful callbacks of the same time with colliding state keys ([#15634](https://github.com/Lightning-AI/lightning/pull/15634))
 
 
+- `trainer.logged_metrics` is no longer filled when there's no configured logger ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
+
 ### Deprecated
 
--
+- Deprecated `Trainer(logger=False)` in favor of `Trainer(logger=None)` ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
+
+
+- Deprecated `Trainer(logger=True)` in favor of `Trainer(logger=TensorBoardLogger())` ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
+
+
+- Deprecated installing `tensorboard` automatically. It's still installed programatically when `TensorBoardLogger` is used ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
 
 
 ### Removed
@@ -55,6 +65,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
+- Fixed the automatic fallback from `Trainer(strategy="ddp_spawn", ...)` to `Trainer(strategy="ddp", ...)` when on an LSF cluster ([#15103](https://github.com/PyTorchLightning/pytorch-lightning/issues/15103))
 
 -
 
@@ -79,8 +90,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed model state transfer in multiprocessing launcher when running multi-node ([#15567](https://github.com/Lightning-AI/lightning/pull/15567))
 - Fixed manual optimization raising `AttributeError` with Bagua Strategy ([#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534))
 - Fixed the import of `pytorch_lightning` causing a warning 'Redirects are currently not supported in Windows or MacOs' ([#15610](https://github.com/PyTorchLightning/pytorch-lightning/issues/15610))
-
-- Fixed the automatic fallback from `Trainer(strategy="ddp_spawn", ...)` to `Trainer(strategy="ddp", ...)` when on an LSF cluster ([#15103](https://github.com/PyTorchLightning/pytorch-lightning/issues/15103))
 
 
 ## [1.8.0] - 2022-11-01

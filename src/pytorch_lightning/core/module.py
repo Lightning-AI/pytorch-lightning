@@ -473,7 +473,7 @@ class LightningModule(
         self,
         dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
