@@ -18,7 +18,7 @@ subprojects:
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.11)"
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.12)"
       - "pl-cpu (macOS-11, pytorch, 3.10, 1.13)"
-      - "pl-cpu (macOS-11, pytorch, 3.7, 1.10, oldest)"
+      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10, oldest)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.10)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.11)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.12)"
