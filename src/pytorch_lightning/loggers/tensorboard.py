@@ -43,6 +43,8 @@ if _OMEGACONF_AVAILABLE:
 _TENSORBOARD_AVAILABLE = RequirementCache("tensorboard>=2.9.1")
 if TYPE_CHECKING and _TENSORBOARD_AVAILABLE:
     from torch.utils.tensorboard import SummaryWriter
+else:
+    SummaryWriter = Any  # type: ignore[misc,assignment]
 
 
 class TensorBoardLogger(Logger):

@@ -133,7 +133,7 @@ class CSVLogger(Logger):
         flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
-        self._save_dir = save_dir
+        self._save_dir = os.fspath(save_dir)
         self._name = name or ""
         self._version = version
         self._prefix = prefix
