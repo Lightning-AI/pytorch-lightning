@@ -72,7 +72,7 @@ from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
-from pytorch_lightning.trainer.connectors.logger_connector import LoggerConnector
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import _NoneSentinel, LoggerConnector
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _PBAR_DICT, _ResultCollection
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
@@ -112,7 +112,8 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
+        # TODO: Replace default for `None` in 2.0
+        logger: Optional[Union[Logger, Iterable[Logger]]] = _NoneSentinel(),  # type: ignore[assignment]
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
@@ -270,11 +271,10 @@ class Trainer:
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
                 Default: ``1.0``.
 
-            logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
-                the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
-                provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
-                the first logger.
-                Default: ``True``.
+            logger: Logger (or iterable collection of loggers) for experiment tracking. ``None`` will disable logging.
+                If multiple loggers are provided, local files (checkpoints, profiler traces, etc.) are saved in the
+                ``log_dir`` of the first logger.
+                Default: ``None``.
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.

@@ -19,12 +19,11 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
@@ -34,19 +33,23 @@ from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard>=2.9.1")
+if TYPE_CHECKING and _TENSORBOARD_AVAILABLE:
+    from torch.utils.tensorboard import SummaryWriter
+
 
 class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
-    Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
+    Implemented using :class:`torch.utils.tensorboard.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
 
@@ -77,7 +80,7 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
-        \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
+        \**kwargs: Additional arguments used by :class:`torch.utils.tensorboard.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
@@ -97,6 +100,17 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
+        if not _TENSORBOARD_AVAILABLE:
+            # TODO: replace this with `raise ModuleNotFoundError` in v2.0.0
+            rank_zero_deprecation(
+                "`tensorboard` has been removed as a dependency of `pytorch_lightning` in v1.9.0. Until v2.0.0 we will"
+                f" try to install it for you automatically. This deprecation is caused by {_TENSORBOARD_AVAILABLE!s}"
+            )
+            import pip
+
+            retcode = pip.main(["install", _TENSORBOARD_AVAILABLE.requirement])
+            assert retcode
+
         super().__init__()
         save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
@@ -157,7 +171,7 @@ class TensorBoardLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> SummaryWriter:
+    def experiment(self) -> "SummaryWriter":
         r"""
         Actual tensorboard object. To use TensorBoard features in your
         :class:`~pytorch_lightning.core.module.LightningModule` do the following.
@@ -173,6 +187,8 @@ class TensorBoardLogger(Logger):
         assert rank_zero_only.rank == 0, "tried to init log dirs in non global_rank=0"
         if self.root_dir:
             self._fs.makedirs(self.root_dir, exist_ok=True)
+        from torch.utils.tensorboard import SummaryWriter
+
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -209,6 +225,8 @@ class TensorBoardLogger(Logger):
 
         if metrics:
             self.log_metrics(metrics, 0)
+            from torch.utils.tensorboard.summary import hparams
+
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)

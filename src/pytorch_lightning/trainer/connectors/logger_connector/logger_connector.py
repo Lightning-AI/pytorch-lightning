@@ -22,6 +22,21 @@ from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+
+
+# TODO: remove in v2.0.0
+class _NoneSentinel:
+    """Used as a sentinel value for ``None`` in the depreaction for ``Trainer(logger=bool)``.
+
+    Remove this class with the depreaction.
+    """
+
+    def __repr__(self) -> str:
+        return "None"
+
+    def __bool__(self) -> bool:
+        return False
 
 
 class LoggerConnector:
@@ -37,7 +52,7 @@ class LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: Union[bool, Logger, Iterable[Logger]],
+        logger: Optional[Union[Logger, Iterable[Logger]]],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
@@ -51,12 +66,22 @@ class LoggerConnector:
         should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
         return should_log or self.trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
+    def configure_logger(self, logger: Optional[Union[Logger, Iterable[Logger]]]) -> None:
         if not logger:
-            # logger is None or logger is False
+            if logger is False:
+                # TODO: remove in v2.0.0
+                rank_zero_deprecation(
+                    "`Trainer(logger=False)` has been deprecated in favor of `Trainer(logger=None)` in v1.9.0 and will"
+                    " be removed in v2.0.0."
+                )
             self.trainer.loggers = []
         elif logger is True:
-            # default logger
+            # TODO: remove in v2.0.0
+            rank_zero_deprecation(
+                "`Trainer(logger=True)` has been deprecated in favor of `Trainer(logger=TensorBoardLogger())` in v1.9.0"
+                " and will be removed in v2.0.0. Additionally, the `tensorboard` dependency will not be installed"
+                " when installing `pytorch_lightning`."
+            )
             self.trainer.loggers = [
                 TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
             ]

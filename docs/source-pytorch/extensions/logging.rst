@@ -378,7 +378,7 @@ When Lightning creates a checkpoint, it stores a key ``"hyper_parameters"`` with
 
 Some loggers also allow logging the hyperparams used in the experiment. For instance,
 when using the ``TensorBoardLogger``, all hyperparams will show
-in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
+in the hparams tab at :meth:`torch.utils.tensorboard.writer.SummaryWriter.add_hparams.
 
 .. note::
     If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the examples below for setting up proper hyperparams metrics tracking within the :doc:`LightningModule <../common/lightning_module>`.
