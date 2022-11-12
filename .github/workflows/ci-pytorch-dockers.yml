@@ -8,12 +8,10 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - "dockers/**"
-      - "!dockers/README.md"
-      - "requirements.txt"
-      - "requirements/**"
-      - "!requirements/*/docs.txt"
+      - ".github/workflows/ci-pytorch-dockers.yml"
+      - "requirements/pytorch/**"
+      - "requirements/lite/**"
       - "environment.yml"
-      - ".github/workflows/*docker*.yml"
       - "setup.py"
       - ".actions/**"
   schedule:
@@ -39,6 +37,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -100,6 +99,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2

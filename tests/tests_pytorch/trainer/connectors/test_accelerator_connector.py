@@ -25,6 +25,7 @@ import pytorch_lightning
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
@@ -193,24 +194,41 @@ def test_custom_accelerator(cuda_count_0):
     assert trainer._accelerator_connector.strategy is strategy
 
 
-@mock.patch.dict(
-    os.environ,
-    {
-        "SLURM_NTASKS": "2",
-        "SLURM_NTASKS_PER_NODE": "1",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "LOCAL_RANK": "0",
-        "SLURM_PROCID": "0",
-        "SLURM_LOCALID": "0",
-    },
+@pytest.mark.parametrize(
+    "env_vars,expected_environment",
+    [
+        (
+            {
+                "SLURM_NTASKS": "2",
+                "SLURM_NTASKS_PER_NODE": "1",
+                "SLURM_JOB_NAME": "SOME_NAME",
+                "SLURM_NODEID": "0",
+                "LOCAL_RANK": "0",
+                "SLURM_PROCID": "0",
+                "SLURM_LOCALID": "0",
+            },
+            SLURMEnvironment,
+        ),
+        (
+            {
+                "LSB_JOBID": "1",
+                "LSB_DJOB_RANKFILE": "SOME_RANK_FILE",
+                "JSM_NAMESPACE_LOCAL_RANK": "1",
+                "JSM_NAMESPACE_SIZE": "20",
+                "JSM_NAMESPACE_RANK": "1",
+            },
+            LSFEnvironment,
+        ),
+    ],
 )
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-def test_dist_backend_accelerator_mapping(cuda_count_0):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
+@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
+@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
+def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
+    with mock.patch.dict(os.environ, env_vars, clear=True):
+        trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert trainer.strategy.local_rank == 0
+    assert isinstance(trainer.strategy.cluster_environment, expected_environment)
 
 
 def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):

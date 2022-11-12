@@ -28,9 +28,9 @@ lightning run app train_lite.py
 
 Using Lite, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
 
-## Multi Node with PyTorch Lightning
+## Multi Node with Lightning Trainer
 
-Lightning supports running PyTorch Lightning from a script or within a Lightning Work.
+Lightning supports running Lightning Trainer from a script or within a Lightning Work.
 
 You can either run a script directly
 
