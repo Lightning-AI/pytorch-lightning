@@ -35,7 +35,7 @@ from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -305,11 +305,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return self._deepspeed_engine
 
     def setup_module_and_optimizers(
-        self, model: Module, optimizers: List[Optimizer]
+        self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
-        """Setup a model and multiple optimizers together.
+        """Set up a model and multiple optimizers together.
 
-        Currently only a single optimizer is supported.
+        Currently, only a single optimizer is supported.
 
         Return:
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
@@ -321,9 +321,24 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f" Got {len(optimizers)} optimizers instead."
             )
 
-        self._deepspeed_engine, optimizer = self._setup_module_and_optimizer(model, optimizers[0])
+        self._deepspeed_engine, optimizer = self._initialize_engine(module, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
         return self._deepspeed_engine, [optimizer]
+
+    def setup_module(self, module: Module) -> "deepspeed.DeepSpeedEngine":
+        """Set up a module for inference (no optimizers).
+
+        For training, see :meth:`setup_module_and_optimizers`.
+        """
+        self._deepspeed_engine, _ = self._initialize_engine(module)
+        return self._deepspeed_engine
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer together.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
@@ -401,11 +416,10 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             offload_optimizer_device="nvme",
         )
 
-    def _setup_module_and_optimizer(
+    def _initialize_engine(
         self,
         model: Module,
-        optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        optimizer: Optional[Optimizer] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -420,7 +434,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
         return deepspeed_engine, deepspeed_optimizer
