@@ -144,9 +144,10 @@ class CloudRuntime(Runtime):
 
         works: List[V1Work] = []
         for work in self.app.works:
+            _validate_build_spec_and_compute(work)
+
             if not work._start_with_flow:
                 continue
-                _validate_build_spec_and_compute(work)
 
             work_requirements = "\n".join(work.cloud_build_config.requirements)
             build_spec = V1BuildSpec(
