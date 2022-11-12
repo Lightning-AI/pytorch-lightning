@@ -856,21 +856,12 @@ See Also:
 logger
 ^^^^^^
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/logger.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/logger.mp4"></video>
-
-|
-
-:doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
+Pass a :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking.
 
 .. testcode::
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
-    # default logger used by trainer
     logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
     Trainer(logger=logger)
 

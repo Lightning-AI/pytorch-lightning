@@ -58,14 +58,15 @@ TODO: need progress bar here
 
 View in the browser
 ===================
-To view metrics in the browser you need to use an *experiment manager* with these capabilities. By Default, Lightning uses Tensorboard which is free and opensource.
-
-Tensorboard is already enabled by default
+To view metrics in the browser you need to use an *experiment manager* with these capabilities.
+You can choose to pass the logger of your choice. For example, for TensorBoard:
 
 .. code-block:: python
 
-    # every trainer already has tensorboard enabled by default
-    trainer = Trainer()
+    from pytorch_lightning.loggers import TensorBoardLogger
+
+    logger = TensorBoardLogger(save_dir=os.getcwd())
+    Trainer(logger=logger)
 
 To launch the tensorboard dashboard run the following command on the commandline.
 
@@ -114,8 +115,10 @@ For other reductions, we recommend logging a :class:`torchmetrics.Metric` instan
 ******************************
 Configure the saving directory
 ******************************
-By default, anything that is logged is saved to the current working directory. To use a different directory, set the *default_root_dir* argument in the Trainer.
+By default, anything that is logged is saved to the current working directory. To use a different directory, set the *default_root_dir* argument in the Trainer
+and the ``save_dir`` argument in your logger of choice.
 
 .. code-block:: python
 
-    Trainer(default_root_dir="/your/custom/path")
+    path = "your/custom/path/"
+    Trainer(default_root_dir=path, logger=ALogger(save_dir=path))

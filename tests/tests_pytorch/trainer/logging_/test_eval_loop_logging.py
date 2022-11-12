@@ -27,7 +27,7 @@ import torch
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -64,6 +64,7 @@ def test__validation_step__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -105,6 +106,7 @@ def test__validation_step__epoch_end__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -136,6 +138,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -171,6 +174,7 @@ def test_eval_float_logging(tmpdir):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -203,6 +207,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         num_sanity_val_steps=0,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -232,6 +237,7 @@ def test_eval_epoch_only_logging(tmpdir, batches, log_interval, max_epochs):
         limit_test_batches=batches,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     results = trainer.test(model)
 
@@ -266,6 +272,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
         max_epochs=1,
         log_every_n_steps=1,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     results = trainer.test(model)
 
@@ -733,7 +740,7 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
 
     model = CustomBoringModel()
     model.test_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, logger=CSVLogger(tmpdir))
     results = trainer.test(model)
 
     assert len(results) == num_dataloaders

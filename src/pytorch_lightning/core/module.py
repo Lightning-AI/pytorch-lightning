@@ -322,7 +322,7 @@ class LightningModule(
         name: str,
         value: _METRIC_COLLECTION,
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -437,6 +437,16 @@ class LightningModule(
             raise MisconfigurationException(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
+
+        is_logger_configured = self.trainer.logger is not None
+        if logger is True and not is_logger_configured:
+            rank_zero_warn(
+                f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
+                " by doing `Trainer(logger=ALogger(...))`. Disabling it for you."
+            )
+            logger = False
+        if logger is None:
+            logger = is_logger_configured
 
         results.log(
             self._current_fx_name,

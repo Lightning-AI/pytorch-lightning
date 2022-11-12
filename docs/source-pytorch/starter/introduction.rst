@@ -139,7 +139,6 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = nn.functional.mse_loss(x_hat, x)
-            # Logging to TensorBoard by default
             self.log("train_loss", loss)
             return loss
 
@@ -185,7 +184,7 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 * ``optimizer.step()``, ``loss.backward()``, ``optimizer.zero_grad()`` calls
 * Calling of ``model.eval()``, enabling/disabling grads during evaluation
 * :doc:`Checkpoint Saving and Loading <../common/checkpointing>`
-* Tensorboard (see :doc:`loggers <../visualize/loggers>` options)
+* Multiple :doc:`loggers <../visualize/loggers>` options
 * :doc:`Multi-GPU <../accelerators/gpu>` support
 * :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <speed-amp>` support
@@ -220,7 +219,15 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 *********************
 Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard for visualizing experiments.
 
-Run this on your commandline and open your browser to **http://localhost:6006/**
+
+.. testcode::
+
+    from pytorch_lightning.loggers import TensorBoardLogger
+
+    Trainer(logger=TensorBoardLogger(save_dir="."))
+
+
+If you set the ``TensorBoardLogger``, you can run this on your commandline and open your browser to **http://localhost:6006/**
 
 .. code:: bash
 

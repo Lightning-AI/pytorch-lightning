@@ -104,7 +104,7 @@ Here's the full documentation for the :class:`~pytorch_lightning.loggers.Neptune
 
 Tensorboard
 ===========
-`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ already comes installed with Lightning. If you removed the install install the following package.
+`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ can be installed with.
 
 .. code-block:: bash
 
