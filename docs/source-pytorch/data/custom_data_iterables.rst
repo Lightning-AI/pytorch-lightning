@@ -117,6 +117,6 @@ Lightning needs to know a lot on the internals of these iterables.
 
 - When training fails for some reason, Lightning is able to extract all of the relevant data from the model,
   optimizers, trainer and dataloader to resume it at the exact same batch it crashed.
-  This feature is called fault-tolerance and is limited to PyTorch DataLoaders as well as
+  This feature is called fault-tolerance and is limited to PyTorch DataLoaders.
   Lighning also needs to know a lot about sampling, fast forwarding and random number handling to enable this,
   meaning that this cannot be supported for arbitrary iterables either.
