@@ -213,8 +213,6 @@ def test_dist_backend_accelerator_mapping(cuda_count_0):
     assert trainer.strategy.local_rank == 0
 
 
-
-
 def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
@@ -598,15 +596,16 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
     assert trainer.strategy.local_rank == 0
 
+
 @mock.patch.dict(
     os.environ,
     {
-        "LSB_JOBID" : "1",
-        "LSB_DJOB_RANKFILE" : "SOME_RANK_FILE",
-        "JSM_NAMESPACE_LOCAL_RANK" : "1",
-        "JSM_NAMESPACE_SIZE" : "20",
-        "JSM_NAMESPACE_RANK" : "1" 
-    }
+        "LSB_JOBID": "1",
+        "LSB_DJOB_RANKFILE": "SOME_RANK_FILE",
+        "JSM_NAMESPACE_LOCAL_RANK": "1",
+        "JSM_NAMESPACE_SIZE": "20",
+        "JSM_NAMESPACE_RANK": "1",
+    },
 )
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
