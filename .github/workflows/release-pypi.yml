@@ -27,7 +27,7 @@ jobs:
       # run sequential
       max-parallel: 1
       matrix:
-        pkg-name: ["", "app", "lite", "pytorch"]
+        pkg-name: ["lightning", "app", "lite", "pytorch"]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3

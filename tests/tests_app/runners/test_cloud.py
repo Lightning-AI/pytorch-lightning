@@ -402,7 +402,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         work = MyWork(start_with_flow=start_with_flow)
         monkeypatch.setattr(work, "_name", "test-work")
@@ -412,8 +411,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -575,7 +573,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -598,8 +595,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -712,7 +708,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         work = MyWork()
         monkeypatch.setattr(work, "_state", {"_port"})
@@ -723,8 +718,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -829,7 +823,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_lit_drive = MagicMock(spec=Drive)
         setattr(mocked_lit_drive, "id", "foobar")
@@ -853,8 +846,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -1034,7 +1026,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -1063,8 +1054,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "mounts", mocked_mount)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
