@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import pkg_resources
 
-_PATH_ROOT = dirname((dirname(__file__)))
+_PATH_ROOT = dirname(dirname(__file__))
 REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
@@ -89,7 +89,7 @@ def copy_replace_imports(
             if not isfile(fp_new):
                 shutil.copy(fp, fp_new)
             continue
-        elif ext in (".pyc", ):
+        elif ext in (".pyc",):
             continue
         # Try to parse everything else
         with open(fp, encoding="utf-8") as fo:
@@ -170,5 +170,6 @@ class AssistantCLI:
 
 if __name__ == "__main__":
     import jsonargparse
+
     logging.basicConfig(level=logging.INFO)
     jsonargparse.CLI(AssistantCLI, as_positional=False)
