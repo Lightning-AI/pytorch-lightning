@@ -53,7 +53,7 @@ def _adjust_manifest(**__: Any) -> None:
         "include src/lightning_app/components/serve/catimage.png" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
         "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
-        "include src/lightning_app/version.info" + os.linesep,
+        "include src/lightning_app/__version__.py" + os.linesep,
     ]
 
     # TODO: remove this once lightning-ui package is ready as a dependency

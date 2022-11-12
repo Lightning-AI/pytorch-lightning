@@ -49,7 +49,7 @@ wheels/
 .installed.cfg
 *.egg
 src/lightning/*/
-src/*/version.info
+src/*/__version__.py
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

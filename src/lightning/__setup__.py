@@ -35,7 +35,7 @@ def _adjust_manifest(**kwargs: Any) -> None:
         "recursive-include requirements *.txt",
         "recursive-include src/lightning/app/ui *",
         "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in
-        "include src/lightning/version.info" + os.linesep,
+        "include src/lightning/__version__.py" + os.linesep,
         "include src/lightning/app/components/serve/catimage.png" + os.linesep,
         # fixme: this is strange, this shall work with setup find package - include
         "prune src/lightning_app",
