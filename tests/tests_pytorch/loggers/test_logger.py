@@ -239,7 +239,12 @@ def test_log_hyperparams_being_called(log_hyperparams_mock, tmpdir, logger):
 
     model = TestModel("pytorch", "lightning")
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0.1, limit_val_batches=0.1, num_sanity_val_steps=0
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0.1,
+        limit_val_batches=0.1,
+        num_sanity_val_steps=0,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -270,6 +275,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -294,6 +300,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     dm = TestDataModule(diff_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
@@ -311,6 +318,7 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     dm = TestDataModule(tensor_params)
     trainer = Trainer(
         default_root_dir=tmpdir,
+        logger=TensorBoardLogger(tmpdir),
         max_epochs=1,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
