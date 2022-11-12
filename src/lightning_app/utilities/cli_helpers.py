@@ -300,9 +300,10 @@ def _check_environment_and_redirect():
     install lightning for them there if needed).
     """
     env_executable = os.path.realpath(shutil.which("python"))
+    sys_executable = os.path.realpath(sys.executable)
 
     # on windows, the extension might be different, where one uses `.EXE` and the other `.exe`
-    if env_executable.lower() != sys.executable.lower():
+    if env_executable.lower() != sys_executable.lower():
         logger.info(
             "Lightning is running from outside your current environment. Switching to your current environment."
         )
