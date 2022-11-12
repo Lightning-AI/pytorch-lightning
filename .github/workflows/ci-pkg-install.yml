@@ -61,9 +61,11 @@ jobs:
         if: ${{ matrix.pkg-name == 'lightning' }}
         run: python -m lightning --version
 
+      - name: Ignore import mismatch on Python 3.7
+        if: ${{ matrix.python-version == '3.7' }}
+        run: export PY_IGNORE_IMPORTMISMATCH=1
+
       - name: DocTest package
-        env:
-          PY_IGNORE_IMPORTMISMATCH: ${{ matrix.python-version == '3.7' }}
         run: |
           PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
