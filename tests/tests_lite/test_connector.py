@@ -33,8 +33,9 @@ from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precis
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
+    LSFEnvironment,
     SLURMEnvironment,
-    TorchElasticEnvironment, LSFEnvironment,
+    TorchElasticEnvironment,
 )
 from lightning_lite.plugins.io import TorchCheckpointIO
 from lightning_lite.strategies import (
@@ -201,31 +202,33 @@ def test_custom_accelerator(*_):
     assert connector.strategy is strategy
 
 
-
-@pytest.mark.parametrize("env_vars,expected_environment", [
-    (
-        {
-            "SLURM_NTASKS": "2",
-            "SLURM_NTASKS_PER_NODE": "1",
-            "SLURM_JOB_NAME": "SOME_NAME",
-            "SLURM_NODEID": "0",
-            "LOCAL_RANK": "0",
-            "SLURM_PROCID": "0",
-            "SLURM_LOCALID": "0",
-        },
-        SLURMEnvironment,
-    ),
-    (
-        {
-            "LSB_JOBID": "1",
-            "LSB_DJOB_RANKFILE": "SOME_RANK_FILE",
-            "JSM_NAMESPACE_LOCAL_RANK": "1",
-            "JSM_NAMESPACE_SIZE": "20",
-            "JSM_NAMESPACE_RANK": "1",
-        },
-        LSFEnvironment,
-    ),
-])
+@pytest.mark.parametrize(
+    "env_vars,expected_environment",
+    [
+        (
+            {
+                "SLURM_NTASKS": "2",
+                "SLURM_NTASKS_PER_NODE": "1",
+                "SLURM_JOB_NAME": "SOME_NAME",
+                "SLURM_NODEID": "0",
+                "LOCAL_RANK": "0",
+                "SLURM_PROCID": "0",
+                "SLURM_LOCALID": "0",
+            },
+            SLURMEnvironment,
+        ),
+        (
+            {
+                "LSB_JOBID": "1",
+                "LSB_DJOB_RANKFILE": "SOME_RANK_FILE",
+                "JSM_NAMESPACE_LOCAL_RANK": "1",
+                "JSM_NAMESPACE_SIZE": "20",
+                "JSM_NAMESPACE_RANK": "1",
+            },
+            LSFEnvironment,
+        ),
+    ],
+)
 @mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
 @mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
