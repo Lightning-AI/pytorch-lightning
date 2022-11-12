@@ -141,7 +141,7 @@ subprojects:
       - "build-pl (3.9, 1.10, 11.3.1)"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.6.1)"
-      # TODO: add 1.13
+      - "build-pl (3.9, 1.13, 11.6.1)"
       - "build-xla (3.7, 1.12)"
 
   # SECTION: lightning_lite
