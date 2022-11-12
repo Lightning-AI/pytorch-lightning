@@ -14,8 +14,6 @@
 /dockers/       @borda @carmocca @akihironitta
 *.yml           @borda @carmocca @akihironitta
 
-src/version.info           @borda @carmocca @lantiga @williamfalcon
-
 # Docs
 /docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                               @edenlightning @williamfalcon @borda
