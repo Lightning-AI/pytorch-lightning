@@ -14,12 +14,15 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "setup.cfg"
+      - "setup.cfg"  # includes metadata used in the package creation
       - ".github/workflows/docs-checks.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+env:
+  FREEZE_REQUIREMENTS: "1"
 
 defaults:
   run:

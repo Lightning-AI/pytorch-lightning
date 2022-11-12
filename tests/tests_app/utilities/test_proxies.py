@@ -14,7 +14,7 @@ from deepdiff import DeepDiff, Delta
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage import Path
+from lightning_app.storage import Drive, Path
 from lightning_app.storage.path import _artifacts_path
 from lightning_app.storage.requests import _GetRequest
 from lightning_app.testing.helpers import _MockQueue, EmptyFlow
@@ -216,7 +216,7 @@ def _pass_path_argument_to_work_and_test_warning(path, warning_expected):
 
 class WorkTimeout(LightningWork):
     def __init__(self):
-        super().__init__(parallel=True)
+        super().__init__(parallel=True, start_with_flow=False)
         self.counter = 0
 
     def run(self):
@@ -761,3 +761,31 @@ def test_bi_directional_proxy_forbidden(monkeypatch):
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.stage == AppStage.FAILED
     assert "A forbidden operation to update the work" in str(app.exception)
+
+
+class WorkDrive(LightningFlow):
+    def __init__(self, drive):
+        super().__init__()
+        self.drive = drive
+        self.path = Path("data")
+
+    def run(self):
+        pass
+
+
+class FlowDrive(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.data = Drive("lit://data")
+        self.counter = 0
+
+    def run(self):
+        if not hasattr(self, "w"):
+            self.w = WorkDrive(self.data)
+            self.counter += 1
+
+
+def test_bi_directional_proxy_filtering():
+    app = LightningApp(FlowDrive())
+    app.root.run()
+    assert app._extract_vars_from_component_name(app.root.w.name, app.state) == {}
