@@ -43,8 +43,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The Trainer now raises an error if it is given multiple stateful callbacks of the same time with colliding state keys ([#15634](https://github.com/Lightning-AI/lightning/pull/15634))
 
 
-- `trainer.logged_metrics` is no longer filled when there's no configured logger ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
-
 ### Deprecated
 
 - Deprecated `Trainer(logger=False)` in favor of `Trainer(logger=None)` ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
@@ -53,7 +51,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer(logger=True)` in favor of `Trainer(logger=TensorBoardLogger())` ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
 
 
-- Deprecated installing `tensorboard` automatically. It's still installed programatically when `TensorBoardLogger` is used ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
+- Deprecated installing `tensorboard` automatically. It's still installed programmatically when `TensorBoardLogger` is used ([#15662](https://github.com/Lightning-AI/lightning/pull/15662))
 
 
 ### Removed

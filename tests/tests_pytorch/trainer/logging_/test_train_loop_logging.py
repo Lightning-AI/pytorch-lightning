@@ -29,7 +29,7 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
-from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -86,7 +86,6 @@ def test__training_step__log(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
-        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -127,7 +126,6 @@ def test__training_step__epoch_end__log(tmpdir):
         max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
-        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -171,7 +169,6 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
         max_epochs=max_epochs,
         log_every_n_steps=log_interval,
         enable_model_summary=False,
-        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -213,7 +210,6 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
         limit_val_batches=batches,
         max_epochs=2,
         enable_model_summary=False,
-        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -253,7 +249,6 @@ def test_different_batch_types_for_sizing(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         fast_dev_run=True,
-        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 

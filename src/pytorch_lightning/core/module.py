@@ -438,15 +438,15 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
-        is_logger_configured = self.trainer.logger is not None
-        if logger is True and not is_logger_configured:
+        if logger and self.trainer.logger is None:
             rank_zero_warn(
                 f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
-                " by doing `Trainer(logger=ALogger(...))`. Disabling it for you."
+                " by doing `Trainer(logger=ALogger(...))`"
             )
-            logger = False
         if logger is None:
-            logger = is_logger_configured
+            # we could set false here if there's no configured logger, however, we still need to compute the "logged"
+            # metrics anyway because that's what the evaluation loops use as return value
+            logger = True
 
         results.log(
             self._current_fx_name,

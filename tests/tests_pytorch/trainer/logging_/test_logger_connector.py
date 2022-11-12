@@ -385,7 +385,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, logger=CSVLogger(tmpdir))
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -625,9 +625,7 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
         trainer.fit(model)
 
     # should not get overridden if logged manually
-    assert trainer.logged_metrics == ({"epoch": -1} if logger else {})
-    # callback metrics are unaffected by the logger logic
-    assert trainer.callback_metrics == {"epoch": -1}
+    assert trainer.logged_metrics == {"epoch": -1}
 
 
 def test_result_collection_batch_size_extraction():
