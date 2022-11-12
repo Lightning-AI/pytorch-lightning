@@ -489,7 +489,6 @@ def test_trainer_max_steps_and_epochs(tmpdir):
         "default_root_dir": tmpdir,
         "max_epochs": 3,
         "max_steps": num_train_samples + 10,
-        "logger": False,
         "enable_model_summary": False,
         "enable_progress_bar": False,
     }
@@ -584,7 +583,6 @@ def test_trainer_min_steps_and_epochs(tmpdir):
         "max_epochs": 7,
         # define less min steps than 1 epoch
         "min_steps": num_train_samples // 2,
-        "logger": False,
         "enable_model_summary": False,
         "enable_progress_bar": False,
     }
@@ -860,11 +858,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             with pytest.raises(FileNotFoundError):
                 trainer_fn(ckpt_path="random.ckpt")
         else:
-            ckpt_path = str(
-                list((Path(tmpdir) / f"lightning_logs/version_{trainer.logger.version}/checkpoints").iterdir())[
-                    0
-                ].absolute()
-            )
+            ckpt_path = str(list((Path(tmpdir) / "checkpoints").iterdir())[0].absolute())
             trainer_fn(ckpt_path=ckpt_path)
             assert trainer.ckpt_path == ckpt_path
 
@@ -1336,6 +1330,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]

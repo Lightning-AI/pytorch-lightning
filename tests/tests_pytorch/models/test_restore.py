@@ -343,7 +343,6 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
     args = {
         "default_root_dir": tmpdir,
         "max_steps": 1,
-        "logger": False,
         "limit_val_batches": 2,
         "num_sanity_val_steps": 0,
     }

@@ -7,6 +7,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyLogger
 
 
@@ -72,7 +73,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
         default_root_dir=tmpdir,
         fast_dev_run=fast_dev_run,
         val_check_interval=2,
-        logger=True,
+        logger=TensorBoardLogger(tmpdir),
         log_every_n_steps=1,
         callbacks=[checkpoint_callback, early_stopping_callback],
     )

@@ -19,6 +19,7 @@ import pytest
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.loggers import TensorBoardLogger
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
 
@@ -315,3 +316,19 @@ def test_v2_0_0_unsupported_on_init_start_end(callback_class, tmpdir):
         RuntimeError, match="callback hook was deprecated in v1.6 and is no longer supported as of v1.8"
     ):
         trainer.validate(model)
+
+
+def test_v2_0_0_default_tensorboard(monkeypatch):
+    with pytest.deprecated_call(match=r"logger=False\)` has been deprecated"):
+        trainer = Trainer(logger=False)
+    assert trainer.logger is None
+
+    with pytest.deprecated_call(match=r"logger=True\)` has been deprecated"):
+        trainer = Trainer(logger=True)
+    assert isinstance(trainer.logger, TensorBoardLogger)
+
+    monkeypatch.setattr(pytorch_lightning.loggers.tensorboard._TENSORBOARD_AVAILABLE, "available", False)
+
+    with pytest.deprecated_call(match=r"tensorboard` has been removed"), mock.patch("pip.main") as pip_mock:
+        TensorBoardLogger(".")
+    pip_mock.assert_called_with(["install", "tensorboard>=2.9.1"])

@@ -29,6 +29,7 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -796,6 +797,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -829,6 +831,7 @@ def test_log_on_train_start(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 

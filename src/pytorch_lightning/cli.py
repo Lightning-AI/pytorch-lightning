@@ -185,7 +185,7 @@ class SaveConfigCallback(Callback):
 
     Args:
         parser: The parser object used to parse the configuration.
-        config: The parsed cfonfiguration that will be saved.
+        config: The parsed configuration that will be saved.
         config_filename: Filename for the config file.
         overwrite: Whether to overwrite an existing config file.
         multifile: When input is multiple config files, saved config preserves this structure.

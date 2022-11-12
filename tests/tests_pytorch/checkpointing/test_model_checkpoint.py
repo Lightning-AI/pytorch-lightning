@@ -1250,7 +1250,6 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
         "limit_train_batches": 3,
         "limit_val_batches": 0,
         "enable_model_summary": False,
-        "logger": False,
     }
     mc_kwargs = {
         "filename": "{step}",

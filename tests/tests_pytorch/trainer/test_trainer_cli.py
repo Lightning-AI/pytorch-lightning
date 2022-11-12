@@ -20,6 +20,7 @@ import pytest
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities import argparse
 
 
@@ -179,9 +180,9 @@ def test_argparse_args_parsing_devices(cli_args, expected_parsed, cuda_count_1):
     ["cli_args", "extra_args"],
     [
         ({}, {}),
-        ({"logger": False}, {}),
-        ({"logger": False}, {"logger": True}),
-        ({"logger": False}, {"enable_checkpointing": True}),
+        ({"logger": None}, {}),
+        ({"logger": None}, {"logger": CSVLogger(".")}),
+        ({"logger": None}, {"enable_checkpointing": True}),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):

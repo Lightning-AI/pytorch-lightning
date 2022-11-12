@@ -36,7 +36,7 @@ def test_trainer_loggers_property():
     assert trainer.loggers == [logger1]
 
     # trainer.loggers should be a list of size 1 holding the default logger
-    trainer = Trainer(logger=True)
+    trainer = Trainer(logger=TensorBoardLogger("."))
 
     assert trainer.loggers == [trainer.logger]
     assert isinstance(trainer.logger, TensorBoardLogger)
@@ -47,7 +47,7 @@ def test_trainer_loggers_setters():
     logger1 = CustomLogger()
     logger2 = CustomLogger()
 
-    trainer = Trainer()
+    trainer = Trainer(logger=TensorBoardLogger("."))
     assert type(trainer.logger) == TensorBoardLogger
     assert trainer.loggers == [trainer.logger]
 

@@ -765,7 +765,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
             return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1, logger=TensorBoardLogger(tmpdir))
     results = trainer.test(model)
 
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
@@ -997,6 +997,7 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
         limit_train_batches=1,
         limit_val_batches=limit_batches,
         limit_test_batches=limit_batches,
+        logger=TensorBoardLogger(tmpdir),
     )
     model = CustomBoringModel()
 
