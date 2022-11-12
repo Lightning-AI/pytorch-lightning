@@ -51,7 +51,7 @@ def from_argparse_args(
         >>> parser = Trainer.add_argparse_args(parser)
         >>> parser.add_argument('--my_custom_arg', default='something')  # doctest: +SKIP
         >>> args = Trainer.parse_argparser(parser.parse_args(""))
-        >>> trainer = Trainer.from_argparse_args(args, logger=False)
+        >>> trainer = Trainer.from_argparse_args(args)
     """
     if isinstance(args, ArgumentParser):
         args = cls.parse_argparser(args)

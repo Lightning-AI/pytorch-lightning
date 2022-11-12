@@ -29,11 +29,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 class _NoneSentinel:
     """Used as a sentinel value for ``None`` in the depreaction for ``Trainer(logger=bool)``.
 
-    Remove this class with the depreaction.
+    Remove this class with the deprecation.
     """
-
-    def __repr__(self) -> str:
-        return "None"
 
     def __bool__(self) -> bool:
         return False
@@ -52,7 +49,7 @@ class LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: Optional[Union[Logger, Iterable[Logger]]],
+        logger: Optional[Union[Logger, Iterable[Logger], _NoneSentinel]],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
@@ -66,7 +63,7 @@ class LoggerConnector:
         should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
         return should_log or self.trainer.should_stop
 
-    def configure_logger(self, logger: Optional[Union[Logger, Iterable[Logger]]]) -> None:
+    def configure_logger(self, logger: Optional[Union[Logger, Iterable[Logger], _NoneSentinel]]) -> None:
         if not logger:
             if logger is False:
                 # TODO: remove in v2.0.0

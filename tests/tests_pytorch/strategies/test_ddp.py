@@ -66,7 +66,6 @@ def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
         strategy=DDPStrategy(process_group_backend="undefined"),
         accelerator="cuda",
         devices=2,
-        logger=False,
     )
     with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
         trainer.fit(model)

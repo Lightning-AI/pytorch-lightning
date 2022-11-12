@@ -97,7 +97,6 @@ def test_v2_0_0_callback_on_load_checkpoint_hook(tmpdir):
         max_epochs=1,
         fast_dev_run=True,
         enable_progress_bar=False,
-        logger=False,
         default_root_dir=tmpdir,
     )
     with pytest.raises(

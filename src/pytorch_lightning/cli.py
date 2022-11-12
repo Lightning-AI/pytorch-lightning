@@ -25,6 +25,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
+from pytorch_lightning.trainer.connectors.logger_connector.logger_connector import _NoneSentinel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
@@ -184,7 +185,7 @@ class SaveConfigCallback(Callback):
 
     Args:
         parser: The parser object used to parse the configuration.
-        config: The parsed configuration that will be saved.
+        config: The parsed cfonfiguration that will be saved.
         config_filename: Filename for the config file.
         overwrite: Whether to overwrite an existing config file.
         multifile: When input is multiple config files, saved config preserves this structure.
@@ -550,9 +551,17 @@ class LightningCLI:
                 value = self.trainer_defaults[key]
                 config[key] += value if isinstance(value, list) else [value]
             if self.save_config_callback and not config.get("fast_dev_run", False):
+                to_save = self.config.get(str(self.subcommand), self.config)
+                # TODO: remove this override in v2.0.0
+                if (
+                    "trainer" in to_save
+                    and "logger" in to_save.trainer
+                    and isinstance(to_save.trainer.logger, _NoneSentinel)
+                ):
+                    to_save.trainer.logger = None
                 config_callback = self.save_config_callback(
                     self._parser(self.subcommand),
-                    self.config.get(str(self.subcommand), self.config),
+                    to_save,
                     **self.save_config_kwargs,
                 )
                 config[key].append(config_callback)

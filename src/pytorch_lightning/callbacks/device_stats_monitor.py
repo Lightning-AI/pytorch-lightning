@@ -64,7 +64,7 @@ class DeviceStatsMonitor(Callback):
             return
 
         if not trainer.loggers:
-            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=None)`.")
 
         # warn in setup to warn once
         device = trainer.strategy.root_device
