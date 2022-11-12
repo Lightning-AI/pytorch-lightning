@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shutil
@@ -9,7 +8,6 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 import pkg_resources
 
-_PATH_ROOT = dirname(dirname(__file__))
 REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
@@ -68,12 +66,8 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
 def copy_replace_imports(
     source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
 ) -> None:
-    """Copy package content with import adjustments.
-
-    >>> _ = copy_replace_imports(os.path.join(
-    ...     _PATH_ROOT, "src"), ["lightning_app"], ["lightning.app"], os.path.join(_PATH_ROOT, "src", "lightning"))
-    """
-    logging.info(f"Replacing imports: {locals()}")
+    """Copy package content with import adjustments."""
+    print(f"Replacing imports: {locals()}")
     assert len(source_imports) == len(target_imports), (
         "source and target imports must have the same length, "
         f"source: {len(source_imports)}, target: {len(target_imports)}"
@@ -98,7 +92,7 @@ def copy_replace_imports(
                 lines = fo.readlines()
             except UnicodeDecodeError:
                 # a binary file, skip
-                logging.warning(f"Skipped replacing imports for {fp}")
+                print(f"Skipped replacing imports for {fp}")
                 continue
         lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
         os.makedirs(os.path.dirname(fp_new), exist_ok=True)
@@ -145,7 +139,7 @@ class AssistantCLI:
             req = list(pkg_resources.parse_requirements(ln_))[0]
             if req.name not in packages:
                 final.append(line)
-        logging.info(final)
+        print(final)
         path.write_text("\n".join(final))
 
     @staticmethod
@@ -163,7 +157,7 @@ class AssistantCLI:
     def copy_replace_imports(
         source_dir: str, source_import: str, target_import: str, target_dir: Optional[str] = None
     ) -> None:
-        """Recursively replace imports in given folder."""
+        """Copy package content with import adjustments."""
         source_imports = source_import.strip().split(",")
         target_imports = target_import.strip().split(",")
         copy_replace_imports(source_dir, source_imports, target_imports, target_dir=target_dir)
@@ -172,5 +166,4 @@ class AssistantCLI:
 if __name__ == "__main__":
     import jsonargparse
 
-    logging.basicConfig(level=logging.INFO)
     jsonargparse.CLI(AssistantCLI, as_positional=False)
