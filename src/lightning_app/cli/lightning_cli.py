@@ -10,6 +10,7 @@ import inquirer
 import rich
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
+from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -29,9 +30,10 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.cli.lightning_cli_remove import cli_remove
-from lightning_app.core.constants import DEBUG, get_lightning_cloud_url
+from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_commands import run_app_commands
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cli_helpers import (
     _arrow_time_callback,
@@ -239,6 +241,7 @@ def _run_app(
     open_ui: bool,
     env: tuple,
     secret: tuple,
+    run_app_comment_commands: bool,
 ) -> None:
     file = _prepare_file(file)
 
@@ -259,6 +262,9 @@ def _run_app(
                 "Secrets can only be used for apps running in cloud. "
                 "Using the option --secret in local execution is not supported."
             )
+        if ENABLE_APP_COMMENT_COMMAND_EXECUTION or run_app_comment_commands:
+            if file is not None:
+                run_app_commands(str(file))
 
     env_vars = _format_input_env_variables(env)
     os.environ.update(env_vars)
@@ -285,6 +291,7 @@ def _run_app(
         env_vars=env_vars,
         secrets=secrets,
         cluster_id=cluster_id,
+        run_app_comment_commands=run_app_comment_commands,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -322,6 +329,14 @@ def run() -> None:
 @click.option("--env", type=str, default=[], multiple=True, help="Environment variables to be set for the app.")
 @click.option("--secret", type=str, default=[], multiple=True, help="Secret variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
+@click.option(
+    "--setup",
+    "-s",
+    "run_app_comment_commands",
+    is_flag=True,
+    default=False,
+    help="run environment setup commands from the app comments.",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -334,22 +349,29 @@ def run_app(
     env: tuple,
     secret: tuple,
     app_args: tuple,
+    run_app_comment_commands: bool,
 ) -> None:
     """Run an app from a file."""
-    _run_app(file, cloud, cluster_id, without_server, no_cache, name, blocking, open_ui, env, secret)
+    _run_app(
+        file,
+        cloud,
+        cluster_id,
+        without_server,
+        no_cache,
+        name,
+        blocking,
+        open_ui,
+        env,
+        secret,
+        run_app_comment_commands,
+    )
 
 
-@_main.group(hidden=True)
-def fork() -> None:
-    """Fork an application."""
-    pass
+if RequirementCache("lightning-lite"):
+    # lightning-lite may not be available when installing only standalone lightning-app package
+    from lightning_lite.cli import _run_model
 
-
-@_main.group(hidden=True)
-def stop() -> None:
-    """Stop your application."""
-    pass
-
+    run.add_command(_run_model)
 
 _main.add_command(get_list)
 _main.add_command(delete)

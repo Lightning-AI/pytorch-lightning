@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -52,7 +52,7 @@ log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
@@ -319,6 +319,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 reduce_bucket_size=reduce_bucket_size,
                 sub_group_size=sub_group_size,
             )
+        import deepspeed
+
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
@@ -368,6 +370,8 @@ class DeepSpeedStrategy(DDPStrategy):
         self.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
+        import deepspeed
+
         assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -428,6 +432,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         This calls :func:`deepspeed.initialize` internally.
         """
+        import deepspeed
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -527,6 +533,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
+        import deepspeed
+
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -547,6 +555,8 @@ class DeepSpeedStrategy(DDPStrategy):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
+        import deepspeed
+
         assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
@@ -559,6 +569,8 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
+        import deepspeed
+
         assert isinstance(self.config, dict)
 
         # todo: this is required for DeepSpeed throughput timers
@@ -639,6 +651,8 @@ class DeepSpeedStrategy(DDPStrategy):
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self) -> int:
+        import deepspeed
+
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
@@ -842,6 +856,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             ckpt: The ckpt file.
         """
+        import deepspeed
 
         assert self.lightning_module is not None
 

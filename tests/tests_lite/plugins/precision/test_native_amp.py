@@ -16,7 +16,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 
@@ -41,21 +40,22 @@ def test_native_amp_precision_bf16_min_torch():
         NativeMixedPrecision(precision="bf16", device=Mock())
 
 
-@RunIf(min_torch="1.10")
 def test_native_amp_precision_forward_context():
-    """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
+    """Test to ensure that the context manager correctly is set to bfloat16 on CPU and CUDA."""
     precision = NativeMixedPrecision(precision=16, device="cuda")
     assert precision.device == "cuda"
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
     with precision.forward_context():
-        assert torch.get_autocast_gpu_dtype() == torch.float16
+        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+        assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
 
     precision = NativeMixedPrecision(precision="bf16", device="cpu")
     assert precision.device == "cpu"
     assert precision.scaler is None
     with precision.forward_context():
-        assert torch.get_autocast_cpu_dtype() == torch.bfloat16
+        # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
+        assert str(torch.get_autocast_cpu_dtype()) == str(torch.bfloat16)
 
     context_manager = precision._autocast_context_manager()
     assert isinstance(context_manager, torch.autocast)
@@ -84,7 +84,6 @@ def test_native_amp_precision_optimizer_step_with_scaler():
     precision.scaler.update.assert_called_once()
 
 
-@RunIf(min_torch="1.10")
 def test_native_amp_precision_optimizer_step_without_scaler():
     precision = NativeMixedPrecision(precision="bf16", device="cuda")
     assert precision.scaler is None
