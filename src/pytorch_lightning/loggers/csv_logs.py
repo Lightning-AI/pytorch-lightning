@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from torch import Tensor
 
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
@@ -125,7 +126,7 @@ class CSVLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
+        save_dir: _PATH,
         name: str = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",

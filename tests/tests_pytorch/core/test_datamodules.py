@@ -126,18 +126,24 @@ def test_helper_boringdatamodule_with_verbose_setup():
     dm.setup("test")
 
 
+class DataDirDataModule(BoringDataModule):
+    def __init__(self, data_dir: str):
+        super().__init__()
+        self.data_dir = data_dir
+
+
 def test_dm_add_argparse_args(tmpdir):
     parser = ArgumentParser()
-    parser = BoringDataModule.add_argparse_args(parser)
+    parser = DataDirDataModule.add_argparse_args(parser)
     args = parser.parse_args(["--data_dir", str(tmpdir)])
     assert args.data_dir == str(tmpdir)
 
 
 def test_dm_init_from_argparse_args(tmpdir):
     parser = ArgumentParser()
-    parser = BoringDataModule.add_argparse_args(parser)
+    parser = DataDirDataModule.add_argparse_args(parser)
     args = parser.parse_args(["--data_dir", str(tmpdir)])
-    dm = BoringDataModule.from_argparse_args(args)
+    dm = DataDirDataModule.from_argparse_args(args)
     dm.prepare_data()
     dm.setup("fit")
     assert dm.data_dir == args.data_dir == str(tmpdir)
