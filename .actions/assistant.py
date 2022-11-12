@@ -1,12 +1,15 @@
+import logging
 import os
 import re
+import shutil
 from itertools import chain
+from os.path import dirname, isfile
 from pathlib import Path
-from pprint import pprint
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import pkg_resources
 
+_PATH_ROOT = dirname((dirname(__file__)))
 REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
@@ -65,7 +68,11 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
 def copy_replace_imports(
     source_dir: str, source_imports: List[str], target_imports: List[str], target_dir: Optional[str] = None
 ) -> None:
-    print(f"Replacing imports: {locals()}")
+    """Copy package content with import adjustments.
+
+    >>> _ = copy_replace_imports(os.path.join(_PATH_ROOT, "src"), ["lightning_app"], ["lightning.app"], os.path.join(_PATH_ROOT, "src", "lightning"))
+    """
+    logging.info(f"Replacing imports: {locals()}")
     assert len(source_imports) == len(target_imports), (
         "source and target imports must have the same length, "
         f"source: {len(source_imports)}, target: {len(target_imports)}"
@@ -75,19 +82,27 @@ def copy_replace_imports(
 
     ls = _retrieve_files(source_dir)
     for fp in ls:
-        if fp.endswith(".py") or not fp.endswith(".pyc"):
-            with open(fp, encoding="utf-8") as fo:
-                try:
-                    lines = fo.readlines()
-                except UnicodeDecodeError:
-                    # a binary file, skip
-                    print(f"Skipped replacing imports for {fp}")
-                    continue
-            lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
-            fp_new = fp.replace(source_dir, target_dir)
-            os.makedirs(os.path.dirname(fp_new), exist_ok=True)
-            with open(fp_new, "w", encoding="utf-8") as fo:
-                fo.writelines(lines)
+        fp_new = fp.replace(source_dir, target_dir)
+        _, ext = os.path.splitext(fp)
+        if ext in (".png", ".jpg", ".ico"):
+            os.makedirs(dirname(fp_new), exist_ok=True)
+            if not isfile(fp_new):
+                shutil.copy(fp, fp_new)
+            continue
+        elif ext in (".pyc", ):
+            continue
+        # Try to parse everything else
+        with open(fp, encoding="utf-8") as fo:
+            try:
+                lines = fo.readlines()
+            except UnicodeDecodeError:
+                # a binary file, skip
+                logging.warning(f"Skipped replacing imports for {fp}")
+                continue
+        lines = _replace_imports(lines, list(zip(source_imports, target_imports)))
+        os.makedirs(os.path.dirname(fp_new), exist_ok=True)
+        with open(fp_new, "w", encoding="utf-8") as fo:
+            fo.writelines(lines)
 
 
 def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> None:
@@ -129,7 +144,7 @@ class AssistantCLI:
             req = list(pkg_resources.parse_requirements(ln_))[0]
             if req.name not in packages:
                 final.append(line)
-        pprint(final)
+        logging.info(final)
         path.write_text("\n".join(final))
 
     @staticmethod
@@ -155,5 +170,5 @@ class AssistantCLI:
 
 if __name__ == "__main__":
     import jsonargparse
-
+    logging.basicConfig(level=logging.INFO)
     jsonargparse.CLI(AssistantCLI, as_positional=False)
