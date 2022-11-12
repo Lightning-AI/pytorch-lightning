@@ -283,19 +283,13 @@ def test_mlflow_logger_finalize_when_exception(*_):
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 @pytest.mark.parametrize("log_model", ["all", True, False])
-def test_mlflow_log_model(client, mlflow, tmpdir, log_model):
+def test_mlflow_log_model(client, _, tmpdir, log_model):
     """Test that the logger creates the folders and files in the right place."""
-
-    # Reset mocks
-    client.return_value.log_artifact.reset_mock()
-    client.return_value.log_artifacts.reset_mock()
     # Get model, logger, trainer and train
     model = BoringModel()
     logger = MLFlowLogger("test", save_dir=tmpdir, log_model=log_model)
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir / "model_checkpoints")
     trainer = Trainer(
         default_root_dir=tmpdir,
-        callbacks=[checkpoint_callback],
         logger=logger,
         max_epochs=2,
         limit_train_batches=3,

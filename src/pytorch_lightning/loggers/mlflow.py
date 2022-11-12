@@ -22,11 +22,12 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, Literal, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 import torch
 import yaml
 from lightning_utilities.core.imports import module_available
+from typing_extensions import Literal
 
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
@@ -161,8 +162,8 @@ class MLFlowLogger(Logger):
         self._run_id = run_id
         self.tags = tags
         self._log_model = log_model
-        self._logged_model_time = {}
-        self._checkpoint_callback = None
+        self._logged_model_time: Dict[str, float] = {}
+        self._checkpoint_callback: Optional[Checkpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
 
