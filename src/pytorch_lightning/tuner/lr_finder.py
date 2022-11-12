@@ -38,7 +38,7 @@ else:
     from tqdm import tqdm
 
 _MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
-if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
+if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
 log = logging.getLogger(__name__)
@@ -137,7 +137,7 @@ class _LRFinder:
 
             show: if True, will show figure
 
-            ax: axes object to which the plot is to be drawn
+            ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
