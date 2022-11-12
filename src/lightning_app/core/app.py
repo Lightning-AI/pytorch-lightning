@@ -472,6 +472,8 @@ class LightningApp:
         self._original_state = deepcopy(self.state)
         done = False
 
+        self._start_with_flow_works()
+
         if self.should_publish_changes_to_api and self.api_publish_state_queue:
             logger.debug("Publishing the state with changes")
             # Push two states to optimize start in the cloud.
@@ -668,3 +670,11 @@ class LightningApp:
             if deep_diff:
                 logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)
+
+    def _start_with_flow_works(self):
+        for w in self.works:
+            if w._start_with_flow:
+                parallel = w.parallel
+                w._parallel = True
+                w.start()
+                w._parallel = parallel
