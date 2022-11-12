@@ -610,7 +610,7 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @pytest.mark.parametrize("strategy", ["ddp", DDPStrategy()])
 def test_dist_backend_accelerator_mapping(cuda_count_0, strategy):
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, acclerator="cpu", devices=2)
+    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="cpu", devices=2)
     assert isinstance(trainer.acclerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LSFEnvironment)
