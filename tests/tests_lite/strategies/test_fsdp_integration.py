@@ -30,7 +30,8 @@ class FSDPLite(LightningLite):
     manual_wrapping = False
 
     def run(self):
-        model = self.get_model()
+        with self.sharded_model():
+            model = self.get_model()
 
         dataloader = DataLoader(RandomDataset(32, 64))
 
