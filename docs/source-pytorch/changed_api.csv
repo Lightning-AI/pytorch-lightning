@@ -1,98 +1,96 @@
-Old API,deprecated in,changed in,New API
-``LightningDeepSpeedModule``,1.8.0,1.10.0,N/A
-``Trainer(amp_level)``,1.8.0,1.10.0,``Trainer(plugins=SomePrecisionPlugin(amp_level=...))``
-``pytorch_lightning.utiltiies.meta``,1.8.0,1.10.0,Use `torchdistx <https://github.com/pytorch/torchdistx>`_.
-``unwrap_lightning_module``,1.8.0,1.10.0,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
-``unwrap_lightning_module_sharded``,1.8.0,1.10.0,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
-``LightningParallelModule(pl_module)``,1.8.0,1.10.0,``LightningParallelModule(forward_module)``
-``LightningDistributedModule(pl_module)``,1.8.0,1.10.0,``LightningDistributedModule(forward_module)``
-``LightningShardedDataParallel(pl_module)``,1.8.0,1.10.0,``LightningShardedDataParallel(forward_module)``
-``LightningBaguaModule(pl_module)``,1.8.0,1.10.0,``LightningBaguaModule(forward_module)``
-``LightningDeepSpeedModule(pl_module)``,1.8.0,1.10.0,``LightningDeepSpeedModule(forward_module)``
-``on_colab_kaggle``,1.8.0,1.10.0,
-``pl.core.mixins.DeviceDtypeModuleMixin``,1.8.0,1.10.0,
-``pytorch_lightning.utilities.xla_device.inner_f``,1.8.0,1.10.0,
-``pytorch_lightning.utilities.xla_device.pl_multi_process``,1.8.0,1.10.0,
-``pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available``,1.8.0,1.10.0,
-``pytorch_lightning.utilities.xla_device.XLADeviceUtils.tpu_device_exists``,1.8.0,1.10.0,``pytorch_lightning.accelerators.TPUAccelerator.is_available()``
-``pytorch_lightning.utilities.distributed.tpu_distributed``,1.8.0,1.10.0,``lightning_lite.accelerators.tpu.tpu_distributed``
-``pytorch_lightning.utilities.cloud_io``,1.8.0,1.10.0,``lightning_lite.utilities.cloud_io``
-``pytorch_lightning.utilities.apply_func``,1.8.0,1.10.0,``lightning_utilities.core.apply_func``
-``pytorch_lightning.utilities.device_parser.determine_root_gpu_device``,1.8.0,1.10.0,``lightning_lite.utilities.device_parser.determine_root_gpu_device``
-``pytorch_lightning.utilities.device_parser.parse_gpu_ids``,1.8.0,1.10.0,``lightning_lite.utilities.device_parser.parse_gpu_ids``
-``pytorch_lightning.utilities.device_parser.is_cuda_available``,1.8.0,1.10.0,``lightning_lite.accelerators.cuda.is_cuda_available``
-``pytorch_lightning.utilities.device_parser.num_cuda_devices``,1.8.0,1.10.0,``lightning_lite.accelerators.cuda.num_cuda_devices``
-``pytorch_lightning.utilities.device_parser.parse_cpu_cores``,1.8.0,1.10.0,``lightning_lite.accelerators.cpu.parse_cpu_cores``
-``pytorch_lightning.utilities.device_parser.parse_tpu_cores``,1.8.0,1.10.0,``lightning_lite.accelerators.tpu.parse_tpu_cores``
-``pytorch_lightning.utilities.device_parser.parse_hpus``,1.8.0,1.10.0,``pytorch_lightning.accelerators.hpu.parse_hpus``
-"``LightningCLI(save_config_filename, save_config_overwrite, save_config_multifile)``",1.8.0,1.10.0,``LightningCLI(save_config_kwargs)``
-``TrainerFn.TUNING``,1.8.0,1.10.0,N/A
-``RunningStage.TUNING``,1.8.0,1.10.0,N/A
-``trainer.tuning``,1.8.0,1.10.0,N/A
-``pl.utilities.distributed.AllGatherGrad``,1.8.0,1.10.0,``torch.distributed.nn.functional._AllGather``
-``Trainer.training_type_plugin``,1.6.0,1.8.0,``Trainer.strategy``
-``pl.plugins.training_type.DDPPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.ddp.DDPStrategy`
-``pl.plugins.training_type.DDPSpawnPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.ddp_spawn.DDPSpawnStrategy`
-``pl.plugins.training_type.DeepSpeedPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.deepspeed.DeepSpeedStrategy`
-``pl.plugins.training_type.DataParallelPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.dp.DataParallelStrategy`
-``pl.plugins.training_type.DDPFullyShardedPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy`
-``pl.plugins.training_type.HorovodPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.horovod.HorovodStrategy`
-``pl.plugins.training_type.IPUPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.ipu.IPUStrategy`
-``pl.plugins.training_type.ParallelPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.parallel.ParallelStrategy`
-``pl.plugins.training_type.DDPShardedPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.sharded.DDPShardedStrategy`
-``pl.plugins.training_type.DDPSpawnShardedPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy`
-``pl.plugins.training_type.SingleDevicePlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.single_device.SingleDeviceStrategy`
-``pl.plugins.training_type.SingleTPUPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.single_tpu.SingleTPUStrategy`
-``pl.plugins.training_type.TPUSpawnPlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy`
-``pl.plugins.training_type.TrainingTypePlugin``,1.6.0,1.8.0,:class:`pytorch_lightning.strategies.strategy.Strategy`
-``pl.plugins.training_type.DDP2Plugin``,1.7.0,1.8.0,N/A
-``pl.utilities.enums.DistributedType``,1.6.0,1.8.0,``pl.utilities.enums._StrategyType``
-``pl.utilities.enums.DeviceType``,1.6.0,1.8.0,``pl.utilities.enums._AcceleratorType``
-,,,
-``on_train_batch_end(outputs)``,1.6.0,1.8.0,???
-``training_epoch_end(outputs)`` format when multiple optimizers are used and TBPTT is enabled,,,???
-``LoggerCollection``; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer
-``trainer.lr_schedulers``,,,
-"``LightningModule.{on_hpc_load,on_hpc_save}``",1.6.0,1.8.0,"``LightningModule.{on_load_checkpoint,on_save_checkpoint}``"
-``Trainer(weights_save_path)``
-```Trainer.weights_save_path``
-,,,
-``pytorch_lightning.utilities.distributed.rank_zero_only``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_only``
-``pytorch_lightning.utilities.distributed.rank_zero_debug``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_debug``
-``pytorch_lightning.utilities.distributed.rank_zero_info``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_info``
-``pytorch_lightning.utilities.warnings.rank_zero_warn``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_warn``
-``pytorch_lightning.utilities.warnings.rank_zero_deprecation``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_deprecation``
-``pytorch_lightning.utilities.warnings.LightningDeprecationWarning``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning``
-``Trainer.num_processes``,1.6.0,1.8.0,``Trainer.num_devices``
-``Trainer.data_parallel_device_ids``,1.6.0,1.8.0,``Trainer.device_ids``
-``TrainerCallbackHookMixin``,1.6.0,1.8.0,
-``Callback.on_configure_sharded_model``,1.6.0,1.8.0,``Callback.setup``
-``Callback.on_before_accelerator_backend_setup``,1.6.0,1.8.0,``Callback.setup``
-``Callback.on_batch_start`,1.6.0,1.8.0,``Callback.on_train_batch_start``
-``Callback.on_batch_end`,1.6.0,1.8.0,``Callback.on_train_batch_end``
-``Callback.on_epoch_start`,1.6.0,1.8.0,"``Callback.on_{train,validation,test}_epoch_start``"
-``Callback.on_epoch_end`,1.6.0,1.8.0,"``Callback.on_{train,validation,test}_epoch_end``"
-"``Callback.on_pretrain_routine_{start,end}``",1.6.0,1.8.0,``Callback.on_fit_start``
-"``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``",1.6.0,1.8.0,``Trainer.num_devices``
-``LightningIPUModule``1.6.0,1.8.0,
-``Logger.agg_and_log_metrics``,1.6.0,1.8.0,``Logger.log_metrics`` and ``agg_key_funcs`` and ``agg_default_func`` arguments.
-``PrecisionPlugin.on_load_checkpoint``
-``PrecisionPlugin.on_save_checkpoint``
-``Trainer.root_gpu``,1.6.0,1.8.0,``Trainer.strategy.root_device``
-``Trainer.use_amp``
-``LightningModule.use_amp``
-``Callback.on_init_start``
-``Callback.on_init_end``
-``Trainer.run_stage``,1.6.0,1.8.0,"``Trainer.{fit,validate,test,predict}``"
-``SimpleProfiler.profile_iterable``
-``AdvancedProfiler.profile_iterable``
-``Trainer.verbose_evaluate``
-``Trainer.should_rank_save_checkpoint``
-``TrainerOptimizersMixin``
-``Trainer.lightning_optimizers``
-``TrainerDataLoadingMixin``
-``Trainer.call_hook``,1.6.0,1.8.0,"``Trainer._call_callback_hooks``, ``Trainer._call_lightning_module_hook``, ``Trainer._call_ttp_hook``, and ``Trainer._call_accelerator_hook``"
-``Trainer.{validated,tested,predicted}_ckpt_path``
-``device_stats_monitor_prefix_metric_keys``
-``LightningDataModule.on_save/load_checkpoint``
-returning a value in ``Callback.on_save_checkpoint``,,`Callback.state_dict`
+Deprecated in, Changed in, Old API, New API
+1.8.0,1.10.0,``unwrap_lightning_module``,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
+1.8.0,1.10.0,``unwrap_lightning_module_sharded``,Use ``Strategy.lightning_module`` to get unwrapped ``LightningModule``.
+1.8.0,1.10.0,``trainer.tuning``,N/A
+1.8.0,1.10.0,``pytorch_lightning.utiltiies.meta``,Use `torchdistx <https://github.com/pytorch/torchdistx>`_.
+1.8.0,1.10.0,``pytorch_lightning.utilities.xla_device.pl_multi_process``,
+1.8.0,1.10.0,``pytorch_lightning.utilities.xla_device.inner_f``,
+1.8.0,1.10.0,``pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available``,
+1.8.0,1.10.0,``pytorch_lightning.utilities.xla_device.XLADeviceUtils.tpu_device_exists``,``pytorch_lightning.accelerators.TPUAccelerator.is_available()``
+1.8.0,1.10.0,``pytorch_lightning.utilities.distributed.tpu_distributed``,``lightning_lite.accelerators.tpu.tpu_distributed``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.parse_tpu_cores``,``lightning_lite.accelerators.tpu.parse_tpu_cores``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.parse_hpus``,``pytorch_lightning.accelerators.hpu.parse_hpus``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.parse_gpu_ids``,``lightning_lite.utilities.device_parser.parse_gpu_ids``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.parse_cpu_cores``,``lightning_lite.accelerators.cpu.parse_cpu_cores``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.num_cuda_devices``,``lightning_lite.accelerators.cuda.num_cuda_devices``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.is_cuda_available``,``lightning_lite.accelerators.cuda.is_cuda_available``
+1.8.0,1.10.0,``pytorch_lightning.utilities.device_parser.determine_root_gpu_device``,``lightning_lite.utilities.device_parser.determine_root_gpu_device``
+1.8.0,1.10.0,``pytorch_lightning.utilities.cloud_io``,``lightning_lite.utilities.cloud_io``
+1.8.0,1.10.0,``pytorch_lightning.utilities.apply_func``,``lightning_utilities.core.apply_func``
+1.8.0,1.10.0,``pl.utilities.distributed.AllGatherGrad``,``torch.distributed.nn.functional._AllGather``
+1.8.0,1.10.0,``pl.core.mixins.DeviceDtypeModuleMixin``,
+1.8.0,1.10.0,``on_colab_kaggle``,
+1.8.0,1.10.0,``TrainerFn.TUNING``,N/A
+1.8.0,1.10.0,``Trainer(amp_level)``,``Trainer(plugins=SomePrecisionPlugin(amp_level=...))``
+1.8.0,1.10.0,``RunningStage.TUNING``,N/A
+1.8.0,1.10.0,``LightningShardedDataParallel(pl_module)``,``LightningShardedDataParallel(forward_module)``
+1.8.0,1.10.0,``LightningParallelModule(pl_module)``,``LightningParallelModule(forward_module)``
+1.8.0,1.10.0,``LightningDistributedModule(pl_module)``,``LightningDistributedModule(forward_module)``
+1.8.0,1.10.0,``LightningDeepSpeedModule``,N/A
+1.8.0,1.10.0,``LightningDeepSpeedModule(pl_module)``,``LightningDeepSpeedModule(forward_module)``
+1.8.0,1.10.0,``LightningBaguaModule(pl_module)``,``LightningBaguaModule(forward_module)``
+1.8.0,1.10.0,"``LightningCLI(save_config_filename, save_config_overwrite, save_config_multifile)``",``LightningCLI(save_config_kwargs)``
+1.7.0,1.8.0,``pl.plugins.training_type.DDP2Plugin``,N/A
+1.6.0,1.8.0,``training_epoch_end(outputs)`` format when multiple optimizers are used and TBPTT is enabled,,,???
+1.6.0,1.8.0,``trainer.lr_schedulers``,,,
+1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.rank_zero_warn``,``pytorch_lightning.utilities.rank_zero.rank_zero_warn``
+1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.rank_zero_deprecation``,``pytorch_lightning.utilities.rank_zero.rank_zero_deprecation``
+1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.LightningDeprecationWarning``,``pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning``
+1.6.0,1.8.0,``pytorch_lightning.utilities.distributed.rank_zero_only``,``pytorch_lightning.utilities.rank_zero.rank_zero_only``
+1.6.0,1.8.0,``pytorch_lightning.utilities.distributed.rank_zero_info``,``pytorch_lightning.utilities.rank_zero.rank_zero_info``
+1.6.0,1.8.0,``pytorch_lightning.utilities.distributed.rank_zero_debug``,``pytorch_lightning.utilities.rank_zero.rank_zero_debug``
+1.6.0,1.8.0,``pl.utilities.enums.DistributedType``,``pl.utilities.enums._StrategyType``
+1.6.0,1.8.0,``pl.utilities.enums.DeviceType``,``pl.utilities.enums._AcceleratorType``
+1.6.0,1.8.0,``pl.plugins.training_type.TrainingTypePlugin``,:class:`pytorch_lightning.strategies.strategy.Strategy`
+1.6.0,1.8.0,``pl.plugins.training_type.TPUSpawnPlugin``,:class:`pytorch_lightning.strategies.tpu_spawn.TPUSpawnStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.SingleTPUPlugin``,:class:`pytorch_lightning.strategies.single_tpu.SingleTPUStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.SingleDevicePlugin``,:class:`pytorch_lightning.strategies.single_device.SingleDeviceStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.ParallelPlugin``,:class:`pytorch_lightning.strategies.parallel.ParallelStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.IPUPlugin``,:class:`pytorch_lightning.strategies.ipu.IPUStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.HorovodPlugin``,:class:`pytorch_lightning.strategies.horovod.HorovodStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DeepSpeedPlugin``,:class:`pytorch_lightning.strategies.deepspeed.DeepSpeedStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DataParallelPlugin``,:class:`pytorch_lightning.strategies.dp.DataParallelStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DDPSpawnShardedPlugin``,:class:`pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DDPSpawnPlugin``,:class:`pytorch_lightning.strategies.ddp_spawn.DDPSpawnStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DDPShardedPlugin``,:class:`pytorch_lightning.strategies.sharded.DDPShardedStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DDPPlugin``,:class:`pytorch_lightning.strategies.ddp.DDPStrategy`
+1.6.0,1.8.0,``pl.plugins.training_type.DDPFullyShardedPlugin``,:class:`pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy`
+1.6.0,1.8.0,``on_train_batch_end(outputs)``,???
+1.6.0,1.8.0,``device_stats_monitor_prefix_metric_keys``
+1.6.0,1.8.0,```Trainer.weights_save_path``
+1.6.0,1.8.0,``TrainerOptimizersMixin``
+1.6.0,1.8.0,``TrainerDataLoadingMixin``
+1.6.0,1.8.0,``TrainerCallbackHookMixin``,
+1.6.0,1.8.0,``Trainer.{validated,tested,predicted}_ckpt_path``
+1.6.0,1.8.0,``Trainer.verbose_evaluate``
+1.6.0,1.8.0,``Trainer.use_amp``
+1.6.0,1.8.0,``Trainer.training_type_plugin``,``Trainer.strategy``
+1.6.0,1.8.0,``Trainer.should_rank_save_checkpoint``
+1.6.0,1.8.0,``Trainer.run_stage``,"``Trainer.{fit,validate,test,predict}``"
+1.6.0,1.8.0,``Trainer.root_gpu``,``Trainer.strategy.root_device``
+1.6.0,1.8.0,``Trainer.num_processes``,``Trainer.num_devices``
+1.6.0,1.8.0,``Trainer.lightning_optimizers``
+1.6.0,1.8.0,``Trainer.data_parallel_device_ids``,``Trainer.device_ids``
+1.6.0,1.8.0,``Trainer.call_hook``,"``Trainer._call_callback_hooks``, ``Trainer._call_lightning_module_hook``, ``Trainer._call_ttp_hook``, and ``Trainer._call_accelerator_hook``"
+1.6.0,1.8.0,``Trainer(weights_save_path)``
+1.6.0,1.8.0,``SimpleProfiler.profile_iterable``
+1.6.0,1.8.0,``PrecisionPlugin.on_save_checkpoint``
+1.6.0,1.8.0,``PrecisionPlugin.on_load_checkpoint``
+1.6.0,1.8.0,``LoggerCollection``; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer
+1.6.0,1.8.0,``Logger.agg_and_log_metrics``,``Logger.log_metrics`` and ``agg_key_funcs`` and ``agg_default_func`` arguments.
+1.6.0,1.8.0,``LightningModule.use_amp``
+1.6.0,1.8.0,``LightningIPUModule``,
+1.6.0,1.8.0,``LightningDataModule.on_save/load_checkpoint``
+1.6.0,1.8.0,``Callback.on_save_checkpoint``,``Callback.state_dict``
+1.6.0,1.8.0,``Callback.on_init_start``
+1.6.0,1.8.0,``Callback.on_init_end``
+1.6.0,1.8.0,``Callback.on_epoch_start`,"``Callback.on_{train,validation,test}_epoch_start``"
+1.6.0,1.8.0,``Callback.on_epoch_end`,"``Callback.on_{train,validation,test}_epoch_end``"
+1.6.0,1.8.0,``Callback.on_configure_sharded_model``,``Callback.setup``
+1.6.0,1.8.0,``Callback.on_before_accelerator_backend_setup``,``Callback.setup``
+1.6.0,1.8.0,``Callback.on_batch_start`,``Callback.on_train_batch_start``
+1.6.0,1.8.0,``Callback.on_batch_end`,``Callback.on_train_batch_end``
+1.6.0,1.8.0,``AdvancedProfiler.profile_iterable``
+1.6.0,1.8.0,"``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``",``Trainer.num_devices``
+1.6.0,1.8.0,"``LightningModule.{on_hpc_load,on_hpc_save}``","``LightningModule.{on_load_checkpoint,on_save_checkpoint}``"
+1.6.0,1.8.0,"``Callback.on_pretrain_routine_{start,end}``",``Callback.on_fit_start``

@@ -9,5 +9,5 @@ API Changes
 
 .. csv-table:: API changes
    :file: changed_api.csv
-   :widths: 40, 10, 10, 40
+   :widths: 10, 10, 40, 40
    :header-rows: 1
