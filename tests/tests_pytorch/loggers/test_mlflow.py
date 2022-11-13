@@ -18,7 +18,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
@@ -288,6 +287,8 @@ def test_mlflow_log_model(client, _, tmpdir, log_model):
     # Get model, logger, trainer and train
     model = BoringModel()
     logger = MLFlowLogger("test", save_dir=tmpdir, log_model=log_model)
+    logger = mock_mlflow_run_creation(logger, experiment_id="test-id")
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         logger=logger,
