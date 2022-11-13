@@ -176,6 +176,10 @@ class EvaluationLoop(DataLoaderLoop):
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
         self.trainer._logger_connector.epoch_end_reached()
 
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
+
         # hook
         self._evaluation_epoch_end(self._outputs)
         self._outputs = []  # free memory

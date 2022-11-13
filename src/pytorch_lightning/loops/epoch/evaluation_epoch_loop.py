@@ -58,7 +58,9 @@ class EvaluationEpochLoop(Loop):
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._dl_max_batches = 0
-        self._data_fetcher = None
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         self._outputs = []
 
         if not self.restarting:
@@ -166,7 +168,9 @@ class EvaluationEpochLoop(Loop):
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
         outputs, self._outputs = self._outputs, []  # free memory
-        self._data_fetcher = None
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         return outputs
 
     def teardown(self) -> None:
