@@ -48,25 +48,21 @@ Old API,deprecated in,changed in,New API
 ``pl.plugins.training_type.DDP2Plugin``,1.7.0,1.8.0,N/A
 ``pl.utilities.enums.DistributedType``,1.6.0,1.8.0,``pl.utilities.enums._StrategyType``
 ``pl.utilities.enums.DeviceType``,1.6.0,1.8.0,``pl.utilities.enums._AcceleratorType``
-
-``on_train_batch_end(outputs)``,1.6.0,1.8.0,bled ([#14373](https://github.com/Lightning-AI/lightning/pull/14373))
-`training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#14373](https://github.com/Lightning-AI/lightning/pull/14373))
-l `pytorch_lightning.utiltiies.meta` functions in favor of built-in https://github.com/pytorch/torchdistx support ([#13868](https://github.com/Lightning-AI/lightning/pull/13868))
-`LoggerCollection`; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer ([#14283](https://github.com/Lightning-AI/lightning/pull/14283))
-the `trainer.lr_schedulers` ([#14408](https://github.com/Lightning-AI/lightning/pull/14408))
-`LightningModule.{on_hpc_load,on_hpc_save}` hooks in favor of the general purpose hooks `LightningModule.{on_load_checkpoint,on_save_checkpoint}` ([#14315](https://github.com/Lightning-AI/lightning/pull/14315))
-ort for old torchtext versions ([#14375](https://github.com/Lightning-AI/lightning/pull/14375))
-ort for the old `neptune-client` API in the `NeptuneLogger` ([#14727](https://github.com/Lightning-AI/lightning/pull/14727))
-`weights_save_path` Trainer argumnent and `Trainer.weights_save_path` property ([#14424](https://github.com/Lightning-AI/lightning/pull/14424))
-([#14471](https://github.com/Lightning-AI/lightning/pull/14471))
-
+,,,
+``on_train_batch_end(outputs)``,1.6.0,1.8.0,???
+``training_epoch_end(outputs)`` format when multiple optimizers are used and TBPTT is enabled,,,???
+``LoggerCollection``; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer
+``trainer.lr_schedulers``,,,
+"``LightningModule.{on_hpc_load,on_hpc_save}``",1.6.0,1.8.0,"``LightningModule.{on_load_checkpoint,on_save_checkpoint}``"
+``Trainer(weights_save_path)``
+```Trainer.weights_save_path``
+,,,
 ``pytorch_lightning.utilities.distributed.rank_zero_only``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_only``
 ``pytorch_lightning.utilities.distributed.rank_zero_debug``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_debug``
 ``pytorch_lightning.utilities.distributed.rank_zero_info``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_info``
 ``pytorch_lightning.utilities.warnings.rank_zero_warn``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_warn``
 ``pytorch_lightning.utilities.warnings.rank_zero_deprecation``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.rank_zero_deprecation``
 ``pytorch_lightning.utilities.warnings.LightningDeprecationWarning``,1.6.0,1.8.0,``pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning``
-
 ``Trainer.num_processes``,1.6.0,1.8.0,``Trainer.num_devices``
 ``Trainer.data_parallel_device_ids``,1.6.0,1.8.0,``Trainer.device_ids``
 ``TrainerCallbackHookMixin``,1.6.0,1.8.0,
@@ -77,18 +73,17 @@ ort for the old `neptune-client` API in the `NeptuneLogger` ([#14727](https://gi
 ``Callback.on_epoch_start`,1.6.0,1.8.0,"``Callback.on_{train,validation,test}_epoch_start``"
 ``Callback.on_epoch_end`,1.6.0,1.8.0,"``Callback.on_{train,validation,test}_epoch_end``"
 "``Callback.on_pretrain_routine_{start,end}``",1.6.0,1.8.0,``Callback.on_fit_start``
-
-``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``,1.6.0,1.8.0,``Trainer.num_devices``
-``LightningIPUModule``1.6.0,1.8.0
-``Logger.agg_and_log_metrics``,1.6.0,1.8.0,``Logger.log_metrics`` and the `agg_key_funcs` and `agg_default_func` arguments.
+"``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``",1.6.0,1.8.0,``Trainer.num_devices``
+``LightningIPUModule``1.6.0,1.8.0,
+``Logger.agg_and_log_metrics``,1.6.0,1.8.0,``Logger.log_metrics`` and ``agg_key_funcs`` and ``agg_default_func`` arguments.
 ``PrecisionPlugin.on_load_checkpoint``
 ``PrecisionPlugin.on_save_checkpoint``
-``Trainer.root_gpu``,1.6.0,1.8.0,``Trainer.strategy.root_device`
+``Trainer.root_gpu``,1.6.0,1.8.0,``Trainer.strategy.root_device``
 ``Trainer.use_amp``
 ``LightningModule.use_amp``
 ``Callback.on_init_start``
 ``Callback.on_init_end``
-``Trainer.run_stage``,1.6.0,1.8.0,``Trainer.{fit,validate,test,predict}`
+``Trainer.run_stage``,1.6.0,1.8.0,"``Trainer.{fit,validate,test,predict}``"
 ``SimpleProfiler.profile_iterable``
 ``AdvancedProfiler.profile_iterable``
 ``Trainer.verbose_evaluate``
@@ -96,8 +91,8 @@ ort for the old `neptune-client` API in the `NeptuneLogger` ([#14727](https://gi
 ``TrainerOptimizersMixin``
 ``Trainer.lightning_optimizers``
 ``TrainerDataLoadingMixin``
-``Trainer.call_hook``,1.6.0,1.8.0,``Trainer._call_callback_hooks`, `Trainer._call_lightning_module_hook`, `Trainer._call_ttp_hook`, and `Trainer._call_accelerator_hook`
-``Trainer.{validated,tested,predicted}_ckpt_path` ([#14897](https://github.com/Lightning-AI/lightning/pull/14897))
-``device_stats_monitor_prefix_metric_keys` ([#14890](https://github.com/Lightning-AI/lightning/pull/14890))
-``LightningDataModule.on_save/load_checkpoint` hooks ([#14909](https://github.com/Lightning-AI/lightning/pull/14909))
-g a value in `Callback.on_save_checkpoint` in favor of implementing `Callback.state_dict` ([#14835](https://github.com/Lightning-AI/lightning/pull/14835))
+``Trainer.call_hook``,1.6.0,1.8.0,"``Trainer._call_callback_hooks``, ``Trainer._call_lightning_module_hook``, ``Trainer._call_ttp_hook``, and ``Trainer._call_accelerator_hook``"
+``Trainer.{validated,tested,predicted}_ckpt_path``
+``device_stats_monitor_prefix_metric_keys``
+``LightningDataModule.on_save/load_checkpoint``
+returning a value in ``Callback.on_save_checkpoint``,,`Callback.state_dict`
