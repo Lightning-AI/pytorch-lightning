@@ -43,6 +43,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
@@ -143,6 +144,8 @@ class CloudRuntime(Runtime):
 
         works: List[V1Work] = []
         for work in self.app.works:
+            _validate_build_spec_and_compute(work)
+
             if not work._start_with_flow:
                 continue
 
@@ -519,3 +522,12 @@ def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDri
         ),
         mount_location=str(mount.mount_path),
     )
+
+
+def _validate_build_spec_and_compute(work: LightningWork) -> None:
+    if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
+        raise ValueError(
+            f"You requested a custom base image for the Work with name '{work.name}', but custom images are currently"
+            " not supported on the default cloud compute instance. Please choose a different configuration, for example"
+            " `CloudCompute('cpu-medium')`."
+        )
