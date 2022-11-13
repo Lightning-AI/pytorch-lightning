@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v2.0.0."""
 from unittest import mock
+from unittest.mock import ANY
 
 import pytest
 
@@ -329,6 +330,8 @@ def test_v2_0_0_default_tensorboard(monkeypatch, tmp_path):
 
     monkeypatch.setattr(pytorch_lightning.loggers.tensorboard._TENSORBOARD_AVAILABLE, "available", False)
 
-    with pytest.deprecated_call(match=r"tensorboard` has been removed"), mock.patch("pip.main") as pip_mock:
+    with pytest.deprecated_call(match=r"tensorboard` has been removed"), mock.patch(
+        "subprocess.check_call"
+    ) as install_mock:
         TensorBoardLogger(tmp_path)
-    pip_mock.assert_called_with(["install", "tensorboard>=2.9.1"])
+    install_mock.assert_called_with([ANY, "-m", "pip", "install", "tensorboard>=2.9.1"])

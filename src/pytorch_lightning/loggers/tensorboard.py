@@ -18,6 +18,8 @@ TensorBoard Logger
 
 import logging
 import os
+import subprocess
+import sys
 from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
@@ -108,10 +110,10 @@ class TensorBoardLogger(Logger):
                 "`tensorboard` has been removed as a dependency of `pytorch_lightning` in v1.9.0. Until v2.0.0 we will"
                 f" try to install it for you automatically. This deprecation is caused by {_TENSORBOARD_AVAILABLE!s}"
             )
-            import pip
-
-            retcode = pip.main(["install", _TENSORBOARD_AVAILABLE.requirement])
-            assert retcode
+            subprocess.check_call([sys.executable, "-m", "pip", "install", _TENSORBOARD_AVAILABLE.requirement])
+            delattr(_TENSORBOARD_AVAILABLE, "available")  # force re-evaluation
+            if not _TENSORBOARD_AVAILABLE:
+                raise RuntimeError("Failed to install `tensorboard` automatically.")
 
         super().__init__()
         save_dir = os.fspath(save_dir)
