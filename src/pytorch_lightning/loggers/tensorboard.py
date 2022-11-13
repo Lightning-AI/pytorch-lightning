@@ -176,6 +176,14 @@ class TensorBoardLogger(Logger):
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(
+            name=str(self._name),
+            version=str(self._version),
+            sub_dir=str(self._sub_dir),
+        )
+
     @rank_zero_only
     def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
