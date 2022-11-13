@@ -61,11 +61,11 @@ Deprecated in, Changed in, Old API, New API
 1.6.0,1.8.0,``TrainerOptimizersMixin``,
 1.6.0,1.8.0,``TrainerDataLoadingMixin``,
 1.6.0,1.8.0,``TrainerCallbackHookMixin``,
-1.6.0,1.8.0,``Trainer.{validated,tested,predicted}_ckpt_path``,
+1.6.0,1.8.0,"``Trainer.{validated,tested,predicted}_ckpt_path``",
 1.6.0,1.8.0,``Trainer.verbose_evaluate``,
 1.6.0,1.8.0,``Trainer.use_amp``,
 1.6.0,1.8.0,``Trainer.training_type_plugin``,``Trainer.strategy``
-1.6.0,1.8.0,``Trainer.should_rank_save_checkpoint``
+1.6.0,1.8.0,``Trainer.should_rank_save_checkpoint``,
 1.6.0,1.8.0,``Trainer.run_stage``,"``Trainer.{fit,validate,test,predict}``"
 1.6.0,1.8.0,``Trainer.root_gpu``,``Trainer.strategy.root_device``
 1.6.0,1.8.0,``Trainer.num_processes``,``Trainer.num_devices``
