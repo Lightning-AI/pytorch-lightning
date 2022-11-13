@@ -594,8 +594,7 @@ class LightningLite(ABC):
         # wrap the run method, so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
 
-    @staticmethod
-    def _validate_setup(module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(module, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
