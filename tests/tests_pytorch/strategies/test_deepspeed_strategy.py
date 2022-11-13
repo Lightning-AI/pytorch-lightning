@@ -299,6 +299,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
         fast_dev_run=True,
         precision=16,
         callbacks=[TestCB(), lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
