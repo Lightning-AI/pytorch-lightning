@@ -31,8 +31,8 @@ Deprecated in, Changed in, Old API, New API
 1.8.0,1.10.0,``LightningBaguaModule(pl_module)``,``LightningBaguaModule(forward_module)``
 1.8.0,1.10.0,"``LightningCLI(save_config_filename, save_config_overwrite, save_config_multifile)``",``LightningCLI(save_config_kwargs)``
 1.7.0,1.8.0,``pl.plugins.training_type.DDP2Plugin``,N/A
-1.6.0,1.8.0,``training_epoch_end(outputs)`` format when multiple optimizers are used and TBPTT is enabled,,,???
-1.6.0,1.8.0,``trainer.lr_schedulers``,,,
+1.6.0,1.8.0,``training_epoch_end(outputs)`` format when multiple optimizers are used and TBPTT is enabled,
+1.6.0,1.8.0,``trainer.lr_schedulers``,
 1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.rank_zero_warn``,``pytorch_lightning.utilities.rank_zero.rank_zero_warn``
 1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.rank_zero_deprecation``,``pytorch_lightning.utilities.rank_zero.rank_zero_deprecation``
 1.6.0,1.8.0,``pytorch_lightning.utilities.warnings.LightningDeprecationWarning``,``pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning``
@@ -56,41 +56,41 @@ Deprecated in, Changed in, Old API, New API
 1.6.0,1.8.0,``pl.plugins.training_type.DDPPlugin``,:class:`pytorch_lightning.strategies.ddp.DDPStrategy`
 1.6.0,1.8.0,``pl.plugins.training_type.DDPFullyShardedPlugin``,:class:`pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy`
 1.6.0,1.8.0,``on_train_batch_end(outputs)``,???
-1.6.0,1.8.0,``device_stats_monitor_prefix_metric_keys``
-1.6.0,1.8.0,```Trainer.weights_save_path``
-1.6.0,1.8.0,``TrainerOptimizersMixin``
-1.6.0,1.8.0,``TrainerDataLoadingMixin``
+1.6.0,1.8.0,``device_stats_monitor_prefix_metric_keys``,
+1.6.0,1.8.0,```Trainer.weights_save_path``,
+1.6.0,1.8.0,``TrainerOptimizersMixin``,
+1.6.0,1.8.0,``TrainerDataLoadingMixin``,
 1.6.0,1.8.0,``TrainerCallbackHookMixin``,
-1.6.0,1.8.0,``Trainer.{validated,tested,predicted}_ckpt_path``
-1.6.0,1.8.0,``Trainer.verbose_evaluate``
-1.6.0,1.8.0,``Trainer.use_amp``
+1.6.0,1.8.0,``Trainer.{validated,tested,predicted}_ckpt_path``,
+1.6.0,1.8.0,``Trainer.verbose_evaluate``,
+1.6.0,1.8.0,``Trainer.use_amp``,
 1.6.0,1.8.0,``Trainer.training_type_plugin``,``Trainer.strategy``
 1.6.0,1.8.0,``Trainer.should_rank_save_checkpoint``
 1.6.0,1.8.0,``Trainer.run_stage``,"``Trainer.{fit,validate,test,predict}``"
 1.6.0,1.8.0,``Trainer.root_gpu``,``Trainer.strategy.root_device``
 1.6.0,1.8.0,``Trainer.num_processes``,``Trainer.num_devices``
-1.6.0,1.8.0,``Trainer.lightning_optimizers``
+1.6.0,1.8.0,``Trainer.lightning_optimizers``,
 1.6.0,1.8.0,``Trainer.data_parallel_device_ids``,``Trainer.device_ids``
 1.6.0,1.8.0,``Trainer.call_hook``,"``Trainer._call_callback_hooks``, ``Trainer._call_lightning_module_hook``, ``Trainer._call_ttp_hook``, and ``Trainer._call_accelerator_hook``"
-1.6.0,1.8.0,``Trainer(weights_save_path)``
-1.6.0,1.8.0,``SimpleProfiler.profile_iterable``
-1.6.0,1.8.0,``PrecisionPlugin.on_save_checkpoint``
-1.6.0,1.8.0,``PrecisionPlugin.on_load_checkpoint``
+1.6.0,1.8.0,``Trainer(weights_save_path)``,
+1.6.0,1.8.0,``SimpleProfiler.profile_iterable``,
+1.6.0,1.8.0,``PrecisionPlugin.on_save_checkpoint``,
+1.6.0,1.8.0,``PrecisionPlugin.on_load_checkpoint``,
 1.6.0,1.8.0,``LoggerCollection``; `Trainer.logger` and `LightningModule.logger` now returns the first logger when more than one gets passed to the Trainer
 1.6.0,1.8.0,``Logger.agg_and_log_metrics``,``Logger.log_metrics`` and ``agg_key_funcs`` and ``agg_default_func`` arguments.
-1.6.0,1.8.0,``LightningModule.use_amp``
+1.6.0,1.8.0,``LightningModule.use_amp``,
 1.6.0,1.8.0,``LightningIPUModule``,
-1.6.0,1.8.0,``LightningDataModule.on_save/load_checkpoint``
+1.6.0,1.8.0,``LightningDataModule.on_save/load_checkpoint``,
 1.6.0,1.8.0,``Callback.on_save_checkpoint``,``Callback.state_dict``
-1.6.0,1.8.0,``Callback.on_init_start``
-1.6.0,1.8.0,``Callback.on_init_end``
+1.6.0,1.8.0,``Callback.on_init_start``,
+1.6.0,1.8.0,``Callback.on_init_end``,
 1.6.0,1.8.0,``Callback.on_epoch_start`,"``Callback.on_{train,validation,test}_epoch_start``"
 1.6.0,1.8.0,``Callback.on_epoch_end`,"``Callback.on_{train,validation,test}_epoch_end``"
 1.6.0,1.8.0,``Callback.on_configure_sharded_model``,``Callback.setup``
 1.6.0,1.8.0,``Callback.on_before_accelerator_backend_setup``,``Callback.setup``
 1.6.0,1.8.0,``Callback.on_batch_start`,``Callback.on_train_batch_start``
 1.6.0,1.8.0,``Callback.on_batch_end`,``Callback.on_train_batch_end``
-1.6.0,1.8.0,``AdvancedProfiler.profile_iterable``
+1.6.0,1.8.0,``AdvancedProfiler.profile_iterable``,
 1.6.0,1.8.0,"``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``",``Trainer.num_devices``
 1.6.0,1.8.0,"``LightningModule.{on_hpc_load,on_hpc_save}``","``LightningModule.{on_load_checkpoint,on_save_checkpoint}``"
 1.6.0,1.8.0,"``Callback.on_pretrain_routine_{start,end}``",``Callback.on_fit_start``
