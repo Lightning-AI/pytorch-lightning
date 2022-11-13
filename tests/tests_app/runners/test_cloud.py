@@ -55,8 +55,8 @@ class MyWork(LightningWork):
 
 
 class WorkWithSingleDrive(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.drive = None
 
     def run(self):
@@ -64,8 +64,8 @@ class WorkWithSingleDrive(LightningWork):
 
 
 class WorkWithTwoDrives(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lit_drive_1 = None
         self.lit_drive_2 = None
 
@@ -404,13 +404,13 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
 
-        work = MyWork(start_with_flow=start_with_flow)
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = MyWork(start_with_flow=start_with_flow, cloud_compute=CloudCompute("custom"))
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
@@ -451,7 +451,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -586,7 +586,7 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_drive.__deepcopy__.return_value = copy(mocked_drive)
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -647,7 +647,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -710,14 +710,14 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
 
-        work = MyWork()
-        monkeypatch.setattr(work, "_state", {"_port"})
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = MyWork(cloud_compute=CloudCompute("custom"))
+        work._state = {"_port"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
@@ -756,7 +756,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
+                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             cluster_id=mock.ANY,
@@ -836,16 +836,16 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_lit_drive.__deepcopy__.return_value = copy(mocked_lit_drive)
 
-        work = WorkWithTwoDrives()
-        monkeypatch.setattr(work, "lit_drive_1", mocked_lit_drive)
-        monkeypatch.setattr(work, "lit_drive_2", mocked_lit_drive)
-        monkeypatch.setattr(work, "_state", {"_port", "_name", "lit_drive_1", "lit_drive_2"})
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = WorkWithTwoDrives(cloud_compute=CloudCompute("custom"))
+        work.lit_drive_1 = mocked_lit_drive
+        work.lit_drive_2 = mocked_lit_drive
+        work._state = {"_port", "_name", "lit_drive_1", "lit_drive_2"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
         app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
@@ -915,7 +915,7 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_2_spec, lit_drive_1_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -954,7 +954,7 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_1_spec, lit_drive_2_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -1044,7 +1044,7 @@ class TestAppCreationClient:
         setattr(mocked_mount, "mount_path", "/content/foo")
         setattr(mocked_mount, "protocol", "s3://")
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -1120,7 +1120,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
