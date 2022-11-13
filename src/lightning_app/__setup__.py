@@ -53,6 +53,7 @@ def _adjust_manifest(**__: Any) -> None:
         "include src/lightning_app/components/serve/catimage.png" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
         "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
+        "include src/lightning_app/version.info" + os.linesep,
     ]
 
     # TODO: remove this once lightning-ui package is ready as a dependency
@@ -76,7 +77,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning-app",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,
