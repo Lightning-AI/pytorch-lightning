@@ -94,3 +94,150 @@ Deprecated in, Changed in, Old API, New API
 1.6.0,1.8.0,"``Trainer.{devices,gpus,num_gpus,ipus,tpu_cores}``",``Trainer.num_devices``
 1.6.0,1.8.0,"``LightningModule.{on_hpc_load,on_hpc_save}``","``LightningModule.{on_load_checkpoint,on_save_checkpoint}``"
 1.6.0,1.8.0,"``Callback.on_pretrain_routine_{start,end}``",``Callback.on_fit_start``
+1.5.0,1.7.0,Accelerator.all_gather,Strategy.all_gather
+1.5.0,1.7.0,Accelerator.barrier,Strategy.barrier
+1.5.0,1.7.0,Accelerator.broadcast,Strategy.broadcast
+1.5.0,1.7.0,AcceleratorConenctor.is_slurm_managing_tasks,
+1.5.0,1.7.0,AcceleratorConnector.configure_slurm_ddp,
+1.5.0,1.7.0,core.decorators.parameter_validation,utilities.parameter_tying.set_shared_parameters
+1.5.0,1.7.0,GPUStatsMonitor,DeviceStatsMonitor
+1.5.0,1.7.0,LearningRateMonitor.lr_sch_names,LearningRateMonitor.lrs.keys()
+1.5.0,1.7.0,LightningDataModule(dims),-
+1.5.0,1.7.0,LightningDataModule(test_transforms),-
+1.5.0,1.7.0,LightningDataModule(train_transforms),-
+1.5.0,1.7.0,LightningDataModule(val_transforms),-
+1.5.0,1.7.0,LightningDataModule.on_predict_dataloader,
+1.5.0,1.7.0,LightningDataModule.on_test_dataloader,
+1.5.0,1.7.0,LightningDataModule.on_train_dataloader,
+1.5.0,1.7.0,LightningDataModule.on_val_dataloader,
+1.5.0,1.7.0,LightningDistributed,"DDPStrategy, DDPSpawnStrategy"
+1.5.0,1.7.0,LightningLoggerBase.close,LoggerCollection.finalize
+1.5.0,1.7.0,LightningModule.add_to_queue,DDPSpawnStrategy.add_to_queue
+1.5.0,1.7.0,LightningModule.get_from_queue,DDPSpawnStrategy.get_from_queue
+1.5.0,1.7.0,LightningModule.get_progress_bar_dict,callbacks.progress.base.get_standard_metrics
+1.5.0,1.7.0,LightningModule.model_size,?
+1.5.0,1.7.0,LightningModule.on_post_move_to_device,
+1.5.0,1.7.0,LightningModule.on_predict_dataloader,
+1.5.0,1.7.0,LightningModule.on_test_dataloader,
+1.5.0,1.7.0,LightningModule.on_train_dataloader,
+1.5.0,1.7.0,LightningModule.on_val_dataloader,
+1.5.0,1.7.0,LightningModule.summarize,utilities.model_summary.summarize
+1.5.0,1.7.0,"log_gpu_memory, get_metrics",callbacks.DeviceStatsMonitor
+1.5.0,1.7.0,LoggerCollection.close,LoggerCollection.finalize
+1.5.0,1.7.0,lusterEnvironment.creates_children(),ClusterEnvironment.creates_processes_externally
+1.5.0,1.7.0,on_keyboard_interrupt,on_exception
+1.5.0,1.7.0,PrecisionPlugin.master_params,PrecisionPlugin.main_params
+1.5.0,1.7.0,ProgressBar,TQDMProgressBar
+1.5.0,1.7.0,TestTubeLogger,
+1.5.0,1.7.0,Trainer(checkpoint_callback),Trainer(enable_checkpointing)
+1.5.0,1.7.0,Trainer(flush_logs_every_n_steps),Trainer(logger=SomeLogger(…))
+1.5.0,1.7.0,Trainer(max_steps=None),Trainer(max_steps=-1)
+1.5.0,1.7.0,Trainer(prepare_data_per_node),self.prepare_data_per_node in LightningModule or LightningDataModule
+1.5.0,1.7.0,Trainer(process_position=…),Trainer(callbacks=ProgressBar(process_position=…))
+1.5.0,1.7.0,Trainer(progress_bar_refresh_rate=0),Trainer(enable_progress_bar=False)
+1.5.0,1.7.0,Trainer(progress_bar_refresh_rate=…),Trainer(callbacks=ProgressBar(refresh_rate=…))
+1.5.0,1.7.0,Trainer(resume_from_checkopint),trainer.fit(ckpt_path=…)
+1.5.0,1.7.0,Trainer(stochastic_weight_avg),Trainer(callbacks=StocasticWeightAveraging())
+1.5.0,1.7.0,Trainer(terminate_on_nan),Trainer(detect_anomaly)
+1.5.0,1.7.0,Trainer(weights_summary),Trainer(callbacks=ModelSummary(max_depth=…)
+1.5.0,1.7.0,Trainer.progress_bar_dict,callbacks.progress.base.ProgressBarBase.get_metrics
+1.5.0,1.7.0,Trainer.terminate_on_nan,?
+1.5.0,1.7.0,XLAStatsMonitor,DeviceStatsMonitor
+1.4.0,1.6.0,Checkpoint.Connector.hpc_load(),CheckpointConnector.restore()
+1.4.0,1.6.0,"DDPPlugin(num_nodes, sync_batchnorm)","Trainer(num_nodes, sync_batchnorm)"
+1.4.0,1.6.0,DDPPlugin.task_idx,DDPPlugin.local_rank
+1.4.0,1.6.0,"DDPSpawnPlugin(num_nodes, sync_batchnorm)","Trainer(num_nodes, sync_batchnorm)"
+1.4.0,1.6.0,EarlyStopping()  # monitor was optional,EarlyStopping(monitor=“early_stop_on”)
+1.4.0,1.6.0,is_overriden(model=…),is_overriden(instance=…)
+1.4.0,1.6.0,ModelSummary(mode),ModelSummary(max_depth)
+1.4.0,1.6.0,self.log(sync_dist_op),self.log(reduce_fx)
+1.4.0,1.6.0,Trainer(distributed_backend=”ddp2”),Use one of other strategies.
+1.4.0,1.6.0,Trainer(distributed_backend=”ddp_cpu”),"Trainer(strategy=”ddp”, accelerator=”cpu”)"
+1.4.0,1.6.0,Trainer(distributed_backend=”ddp”),Trainer(strategy=”ddp”)
+1.4.0,1.6.0,Trainer(distributed_backend=”dp),Trainer(strategy=”dp”)
+1.4.0,1.6.0,Trainer(reload_dataloaders_every_epoch),Trainer(reload_dataloaders_every_n_epochs=1)
+1.4.0,1.6.0,Trainer.disable_validation,not Trainer.enable_validation
+1.4.0,1.6.0,trainer.test(test_dataloaders=…),trainer.test(dataloaders=…)
+1.4.0,1.6.0,trainer.train(train_dataloader=…),trainer.train(train_dataloaders=…)
+1.4.0,1.6.0,Trainer.train_loop,Trainer.fit_loop
+1.4.0,1.6.0,trainer.tune(train_dataloader=…),trainer.tune(train_dataloaders=…)
+1.4.0,1.6.0,trainer.validate(val_dataloaders=…),trainer.validate(dataloaders=…)
+1.4.0,1.6.0,Tuner.lr_find(train_dataloader=…),Tuner.lr_find(train_dataloaders=…)
+1.4.0,1.6.0,Tuner.scale_batch_size(train_dataloader),Tuner.scale_batch_size(train_dataloaders)
+1.4.0,1.6.0,utilities.distributed.rank_zero_only,utilities.rank_zero.rank_zero_only
+1.4.0,1.4.0,trainer.accelerator_backend,trainer.accelerator
+1.3.0,1.5.0,Trainer(gpus=”3”) specified the 3rd GPU index,"Trainer(accelerator=”gpu”, devices=[3])"
+1.3.0,1.5.0,Trainer(truncated_bptt_steps=2),"class LitModule(LightningModule):
+    def __init__(self):
+        self.truncated_bptt_steps = 2"
+1.3.0,1.3.0,callbacks.swa,callbacks.stochastic_weight_avg
+1.3.0,1.3.0,lr_scheduler.step() called automatically in manual optimization,Manually call lr_scheduler.step() in your training_step when manual optimization
+1.3.0,,@auto_move_data,trainer.predict
+1.3.0,,Callback.on_load_checkpoint(checkpoint),"Callback.on_load_checkpoint(trainer, pl_module, checkpoint)"
+1.3.0,,"class LitCallback(Callback):
+    def on_train_epoch_end(self, trainer, pl_module, outputs):
+        # use outputs
+        …","class LitCallback(Callback):
+    def __init__(self):
+        self.outputs = []
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.outputs.append(
+    def on_train_epoch_end(self, trainer, pl_module):
+        # use self.outputs
+        …"
+1.3.0,,"class LitModule(LightningModule):
+    def on_train_epoch_end(self, outputs):
+        # use outputs
+        …","class LitModule(LightningModule):
+    def training_epoch_end(self, outputs):
+        # use outputs
+        …"
+1.3.0,,LightningModule.datamodule,Trainer.datamodule
+1.3.0,,LightningModule.grad_norm,utilities.grads.grad_norm
+1.3.0,,LightningModule.write_predictions,BasePredictionWriter
+1.3.0,,LightningModule.write_predictions_dict,BasePredictionWriter
+1.3.0,,ModelCheckpoint(period),ModelCheckpoint(every_n_val_epochs)
+1.3.0,,Profiler(output_filename),"Profiler(dirpath, filename)"
+1.3.0,,pytorch_lightning.metrics,torchmetrics
+1.3.0,,PyTorchProfiler(profiled_functions),PyTorchProfiler(record_functions)
+1.3.0,,Trainer.detect_nan_tensors,utilities.finite_checks.detect_nan_parameters
+1.3.0,,Trainer.print_nan_gradients,utilities.finite_checks.print_nan_gradients
+1.3.0,,Trainer.running_sanity_check,Trainer.sanity_checking
+1.2.0,1.4.0,LightningDataParallel,LightningParallelModule
+1.2.0,1.4.0,LightningDistributedDataParallel,LightningDistributedModule
+1.2.0,1.4.0,metrics.functional.classification.stat_scores_multiple_classes,torchmetrics.functional.stat_scores
+1.2.0,1.4.0,trainer.get_model(),trainer.lightning_module
+1.2.0,1.4.0,Using self.log(”val_loss”) to monitor the value with ModelCheckpoint with no monitor key,"mc = ModelCheckpoint(monitor=”val_loss”)
+Trainer(callbacks=mc)"
+1.2.0,1.4.0,utilities.argparse_utils,utilities.argparse_utils
+1.2.0,1.4.0,utilities.model_utils,utilities.model_helpers
+1.2.0,1.4.0,utilities.warning_utils,utilities.warnings
+1.2.0,1.4.0,utilities.xla_device_utils,utilities.xla_device
+1.1.0,1.4.0,Trainer.on_cpu,
+1.1.0,1.4.0,Trainer.on_gpu,
+1.1.0,1.4.0,Trainer.on_tpu,
+1.1.0,1.4.0,Trainer.use_ddp,
+1.1.0,1.4.0,Trainer.use_ddp2,
+1.1.0,1.4.0,Trainer.use_dp,
+1.1.0,1.4.0,Trainer.use_horovod,
+1.1.0,1.4.0,Trainer.use_single_gpu,
+1.1.0,1.4.0,Trainer.use_tpu,
+1.1.0,1.3.0,EarlyStopping(mode=”auto”),EarlyStopping(mode=”min”|”max”)
+1.1.0,1.3.0,metrics.functional.classification.multiclass_precision_recall_curve,torchmetrics.functional.precision_recall_curve
+1.1.0,1.3.0,metrics.functional.classification.multiclass_roc,torchmetrics.functional.roc
+1.1.0,1.3.0,ModelCheckpoint(mode=”auto”),ModelCheckpoint(mode=”min”|”max”)
+1.1.0,1.3.0,ModelCheckpoint(prefix=…),ModelCheckopint(filename=…)
+1.1.0,1.3.0,self.hparams = …,self.save_hyperparameters(…)
+1.1.0,1.3.0,Trainer(automatic_optimization=False),"class LitModule(LightningModule):
+    def __init__(self):
+        self.automatic_optimization = False"
+1.0.5,1.3.0,Trainer(checkpoint_callback=…),Trainer(callbacks=[…])
+1.0.4,1.3.0,Trainer(profiler=True|False),Trainer(profiler=”simple”|”advanced”|”pytorch”)
+1.0.4,1.2.0,ModelCheckpoint(filepath=”/path/to/file”),"ModelCheckopint(dirpath=”/path/to”, filename=”file”)"
+1.0.4,1.1.0,metrics.functional.classification.auc(reorder=True|False),n/a
+0.10.0,1.2.0,EvalResult,?
+0.10.0,1.2.0,TrainResult,?
+-,1.2.2,"Order of the hooks: backward, step, zero_grad","zero_grad, backward, step"
+,1.6.0,,
+,1.2.0,"Fbeta, f1_score, fbeta_score",?
+,1.2.0,LoggerStages,?
