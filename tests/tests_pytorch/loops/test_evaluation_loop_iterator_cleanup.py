@@ -19,7 +19,7 @@ import torch
 from torch.nn import Linear
 from torch.utils.data import DataLoader, IterDataPipe
 
-from pytorch_lightning import Trainer, LightningDataModule
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.core.module import LightningModule
 
 
@@ -38,8 +38,7 @@ class FinallyCallCountingIterDataPipe(IterDataPipe):
                 # >= is needed here to pass the check on the second epoch
                 assert dp.finally_called_n_times.value >= expected_count
         try:
-            for i in range(self._len):
-                yield i
+            yield from range(self._len)
         finally:
             with self.lock:
                 self.finally_called_n_times.value += 1
