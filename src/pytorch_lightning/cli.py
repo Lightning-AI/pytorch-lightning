@@ -72,6 +72,7 @@ class LightningArgumentParser(ArgumentParser):
         *args: Any,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
+        default_env: bool = False,
         **kwargs: Any,
     ) -> None:
         """Initialize argument parser that supports configuration file input.
@@ -82,12 +83,13 @@ class LightningArgumentParser(ArgumentParser):
         Args:
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables. Set ``default_env=True`` to enable env parsing.
+            default_env: Whether to parse environment variables.
         """
         if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
             raise ModuleNotFoundError(
                 f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
-        super().__init__(*args, description=description, env_prefix=env_prefix, **kwargs)
+        super().__init__(*args, description=description, env_prefix=env_prefix, default_env=default_env, **kwargs)
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
@@ -372,15 +374,14 @@ class LightningCLI:
                     f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
                 )
 
-        for name in ["description", "env_prefix", "env_parse"]:
-            if name in kwargs:
-                value = kwargs.pop(name)
-                key = name.replace("env_parse", "default_env")
-                self.parser_kwargs[key] = value
-                rank_zero_deprecation(
-                    f"LightningCLI's {name!r} init parameter is deprecated from v1.9 and will "
-                    f"be removed in v2.0. Use `parser_kwargs={{'{key}': ...}}` instead."
-                )
+        for name in kwargs.keys() & ["description", "env_prefix", "env_parse"]:
+            value = kwargs.pop(name)
+            key = name.replace("env_parse", "default_env")
+            self.parser_kwargs[key] = value
+            rank_zero_deprecation(
+                f"LightningCLI's {name!r} init parameter is deprecated from v1.9 and will "
+                f"be removed in v2.0. Use `parser_kwargs={{'{key}': ...}}` instead."
+            )
 
         if kwargs:
             raise ValueError(f"Unexpected keyword parameters: {kwargs}")
@@ -396,7 +397,7 @@ class LightningCLI:
 
     def setup_parser(self, add_subcommands: bool) -> None:
         """Initialize and setup the parser, subcommands, and arguments."""
-        subcommand_names = set(self.subcommands())
+        subcommand_names = self.subcommands().keys()
         main_kwargs = {k: v for k, v in self.parser_kwargs.items() if k not in subcommand_names}
         self.parser = self.init_parser(**main_kwargs)
         if add_subcommands:
