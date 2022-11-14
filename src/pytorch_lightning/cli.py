@@ -24,6 +24,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import LRScheduler
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -59,9 +60,9 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
-LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[LRScheduler], Type[ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -162,7 +163,7 @@ class LightningArgumentParser(ArgumentParser):
         """Adds arguments from a learning rate scheduler class to a nested key of the parser.
 
         Args:
-            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``. Use
+            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{LRScheduler, ReduceLROnPlateau}``. Use
                 tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.

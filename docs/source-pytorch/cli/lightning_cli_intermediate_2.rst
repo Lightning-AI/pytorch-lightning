@@ -201,7 +201,7 @@ If the scheduler you want needs other arguments, add them via the CLI (no need t
 
     python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
 
-Furthermore, any custom subclass of ``torch.optim.lr_scheduler._LRScheduler`` can be used as learning rate scheduler:
+Furthermore, any custom subclass of ``torch.optim.lr_scheduler.LRScheduler`` can be used as learning rate scheduler:
 
 .. code:: python
 

@@ -21,14 +21,13 @@ from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from pytorch_lightning.utilities.types import LRScheduler, LRSchedulerConfig, STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -124,7 +123,7 @@ class _LRFinder:
 
         args = (optimizer, self.lr_max, self.num_training)
         scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-        scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
+        scheduler = cast(LRScheduler, scheduler)
 
         trainer.strategy.optimizers = [optimizer]
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
@@ -396,7 +395,7 @@ class _LRCallback(Callback):
         self.losses.append(smoothed_loss)
 
 
-class _LinearLR(_LRScheduler):
+class _LinearLR(LRScheduler):
     """Linearly increases the learning rate between two boundaries over a number of iterations.
 
     Args:
@@ -431,7 +430,7 @@ class _LinearLR(_LRScheduler):
         return self._lr
 
 
-class _ExponentialLR(_LRScheduler):
+class _ExponentialLR(LRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of iterations.
 
     Arguments:

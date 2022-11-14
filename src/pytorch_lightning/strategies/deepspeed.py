@@ -34,7 +34,7 @@ from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -426,7 +426,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self,
         model: Module,
         optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        lr_scheduler: Optional[Union[LRScheduler, ReduceLROnPlateau]] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 

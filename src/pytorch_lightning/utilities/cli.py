@@ -24,6 +24,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 import pytorch_lightning.cli as new_cli
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.types import LRScheduler
 
 _deprecate_registry_message = (
     "`LightningCLI`'s registries were deprecated in v1.7 and will be removed "
@@ -110,7 +111,7 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
         # this will register any subclasses from all loaded modules including userland
         for cls in get_all_subclasses(torch.optim.Optimizer):
             OPTIMIZER_REGISTRY(cls, show_deprecation=False)
-        for cls in get_all_subclasses(torch.optim.lr_scheduler._LRScheduler):
+        for cls in get_all_subclasses(LRScheduler):
             LR_SCHEDULER_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.Callback):
             CALLBACK_REGISTRY(cls, show_deprecation=False)
@@ -123,12 +124,10 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     else:
         # manually register torch's subclasses and our subclasses
         OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer, show_deprecation=False)
-        LR_SCHEDULER_REGISTRY.register_classes(
-            torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler, show_deprecation=False
-        )
+        LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, LRScheduler, show_deprecation=False)
         CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback, show_deprecation=False)
         LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger, show_deprecation=False)
-    # `ReduceLROnPlateau` does not subclass `_LRScheduler`
+    # `ReduceLROnPlateau` does not subclass `LRScheduler`
     LR_SCHEDULER_REGISTRY(cls=new_cli.ReduceLROnPlateau, show_deprecation=False)
 
 

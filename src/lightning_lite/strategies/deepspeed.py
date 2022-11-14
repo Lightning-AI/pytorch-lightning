@@ -35,7 +35,7 @@ from lightning_lite.utilities.distributed import log
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.rank_zero import rank_zero_info
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -405,7 +405,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         model: Module,
         optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        lr_scheduler: Optional[Union[LRScheduler, ReduceLROnPlateau]] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 

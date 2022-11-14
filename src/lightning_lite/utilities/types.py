@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_1_14
 
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
@@ -60,18 +60,9 @@ class CollectibleGroup(Protocol):
         ...
 
 
-# Inferred from `torch.optim.lr_scheduler.pyi`
-# Missing attributes were added to improve typing
-@runtime_checkable
-class _LRScheduler(_Stateful[str], Protocol):
-    optimizer: Optimizer
-    base_lrs: List[float]
-
-    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
-        ...
-
-    def step(self, epoch: Optional[int] = None) -> None:
-        ...
+LRScheduler = (
+    torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else torch.optim.lr_scheduler._LRScheduler
+)
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`

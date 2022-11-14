@@ -253,8 +253,8 @@ def _configure_optimizers(
             " Output from `model.configure_optimizers()` should be one of:\n"
             " * `Optimizer`\n"
             " * [`Optimizer`]\n"
-            " * ([`Optimizer`], [`_LRScheduler`])\n"
-            ' * {"optimizer": `Optimizer`, (optional) "lr_scheduler": `_LRScheduler`}\n'
+            " * ([`Optimizer`], [`LRScheduler`])\n"
+            ' * {"optimizer": `Optimizer`, (optional) "lr_scheduler": `LRScheduler`}\n'
             ' * A list of the previously described dict format, with an optional "frequency" key (int)'
         )
     return optimizers, lr_schedulers, optimizer_frequencies, monitor
