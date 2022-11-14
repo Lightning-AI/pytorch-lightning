@@ -83,6 +83,10 @@ class StreamlitFrontend(Frontend):
                     self.flow.name,
                     "--server.headless",
                     "true",  # do not open the browser window when running locally
+                    "--server.enableCORS",
+                    "true",
+                    "--server.enableXsrfProtection",
+                    "false",
                 ],
                 env=env,
                 stdout=stdout,
