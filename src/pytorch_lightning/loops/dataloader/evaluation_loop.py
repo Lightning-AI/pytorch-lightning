@@ -15,22 +15,20 @@ import os
 import shutil
 import sys
 from collections import ChainMap, OrderedDict
-from functools import partial
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
-from deprecate.utils import void
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -58,7 +56,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results = _ResultCollection(training=False)
         self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
-        self._max_batches: List[int] = []
+        self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
         self._data_fetcher: Optional[AbstractDataFetcher] = None
 
@@ -125,8 +123,6 @@ class EvaluationLoop(DataLoaderLoop):
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
-        void(*args, **kwargs)
-
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
@@ -138,15 +134,16 @@ class EvaluationLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Performs evaluation on one single dataloader."""
-        void(*args, **kwargs)
-
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
+
+        def batch_to_device(batch: Any) -> Any:
+            batch = self.trainer.lightning_module._on_before_batch_transfer(batch, dataloader_idx=dataloader_idx)
+            batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=dataloader_idx)
+            return batch
+
         assert self._data_fetcher is not None
-        self._data_fetcher.setup(
-            dataloader,
-            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
-        )
+        self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         dl_max_batches = self._max_batches[dataloader_idx]
 
         kwargs = OrderedDict()
@@ -216,7 +213,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._results.cpu()
         self.epoch_loop.teardown()
 
-    def _get_max_batches(self) -> List[int]:
+    def _get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
@@ -270,10 +267,8 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
+        """Runs the ``on_{validation/test}_epoch_start`` hooks."""
         self.trainer._logger_connector.on_epoch_start()
-        self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
-        self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
         hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
         self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
@@ -298,8 +293,6 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks(hook_name)
         self.trainer._call_lightning_module_hook(hook_name)
 
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
@@ -411,7 +404,7 @@ def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher
         )
         return DataLoaderIterDataFetcher
     elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-        if not isinstance(trainer.accelerator, GPUAccelerator):
+        if not isinstance(trainer.accelerator, CUDAAccelerator):
             raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
         return InterBatchParallelDataFetcher
     return DataFetcher

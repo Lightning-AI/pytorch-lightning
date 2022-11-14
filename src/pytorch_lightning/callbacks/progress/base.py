@@ -169,8 +169,28 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
+        return sum(self.trainer.num_val_batches) if self.trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+
+    @property
+    def total_batches_current_epoch(self) -> Union[int, float]:
+        total_train_batches = self.total_train_batches
+        total_val_batches = self.total_val_batches
         assert self._trainer is not None
-        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+
+        if total_train_batches != float("inf") and total_val_batches != float("inf"):
+            # val can be checked multiple times per epoch
+            val_check_batch = self.trainer.val_check_batch
+            if self.trainer.check_val_every_n_epoch is None:
+                train_batches_processed = self.trainer.fit_loop.total_batch_idx + 1
+                val_checks_per_epoch = ((train_batches_processed + total_train_batches) // val_check_batch) - (
+                    train_batches_processed // val_check_batch
+                )
+            else:
+                val_checks_per_epoch = total_train_batches // val_check_batch
+
+            total_val_batches = total_val_batches * val_checks_per_epoch
+
+        return total_train_batches + total_val_batches
 
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
@@ -197,12 +217,14 @@ class ProgressBarBase(Callback):
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self._trainer = trainer
         if not trainer.is_global_zero:
             self.disable()
 
-    def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+    def get_metrics(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
+    ) -> Dict[str, Union[int, str, float, Dict[str, float]]]:
         r"""
         Combines progress bar metrics collected from the trainer with standard metrics from get_standard_metrics.
         Implement this to override the items displayed in the progress bar.

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from lightning_lite.strategies.registry import _StrategyRegistry
 from pytorch_lightning.strategies.bagua import BaguaStrategy  # noqa: F401
+from pytorch_lightning.strategies.colossalai import ColossalAIStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp import DDPStrategy  # noqa: F401
-from pytorch_lightning.strategies.ddp2 import DDP2Strategy  # noqa: F401
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from pytorch_lightning.strategies.dp import DataParallelStrategy  # noqa: F401
@@ -30,9 +31,9 @@ from pytorch_lightning.strategies.single_device import SingleDeviceStrategy  # n
 from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy  # noqa: F401
 from pytorch_lightning.strategies.single_tpu import SingleTPUStrategy  # noqa: F401
 from pytorch_lightning.strategies.strategy import Strategy  # noqa: F401
-from pytorch_lightning.strategies.strategy_registry import call_register_strategies, StrategyRegistry  # noqa: F401
 from pytorch_lightning.strategies.tpu_spawn import TPUSpawnStrategy  # noqa: F401
+from pytorch_lightning.strategies.utils import _call_register_strategies
 
-STRATEGIES_BASE_MODULE = "pytorch_lightning.strategies"
-
-call_register_strategies(STRATEGIES_BASE_MODULE)
+_STRATEGIES_BASE_MODULE = "pytorch_lightning.strategies"
+StrategyRegistry = _StrategyRegistry()
+_call_register_strategies(StrategyRegistry, _STRATEGIES_BASE_MODULE)

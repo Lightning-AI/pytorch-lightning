@@ -15,6 +15,7 @@ from typing import List
 
 import torch
 
+from lightning_lite.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -31,7 +32,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
             " Please select a valid number of GPU resources when using auto_select_gpus."
         )
 
-    num_gpus = torch.cuda.device_count()
+    num_gpus = num_cuda_devices()
     if nb > num_gpus:
         raise MisconfigurationException(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
     nb = num_gpus if nb == -1 else nb
@@ -51,7 +52,7 @@ def pick_single_gpu(exclude_gpus: List[int]) -> int:
     """
     previously_used_gpus = []
     unused_gpus = []
-    for i in range(torch.cuda.device_count()):
+    for i in range(num_cuda_devices()):
         if i in exclude_gpus:
             continue
 

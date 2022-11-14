@@ -65,4 +65,35 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
 
-For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`__.
+For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch/PyTorch_Mixed_Precision/PT_Mixed_Precision.html>`__.
+
+----
+
+Enabling DeviceStatsMonitor with HPUs
+----------------------------------------
+
+:class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is a callback that automatically monitors and logs device stats during the training stage.
+This callback can be passed for training with HPUs. It returns a map of the following metrics with their values in bytes of type uint64:
+
+- **Limit**: amount of total memory on HPU device.
+- **InUse**: amount of allocated memory at any instance.
+- **MaxInUse**: amount of total active memory allocated.
+- **NumAllocs**: number of allocations.
+- **NumFrees**: number of freed chunks.
+- **ActiveAllocs**: number of active allocations.
+- **MaxAllocSize**: maximum allocated size.
+- **TotalSystemAllocs**: total number of system allocations.
+- **TotalSystemFrees**: total number of system frees.
+- **TotalActiveAllocs**: total number of active allocations.
+
+The below snippet shows how DeviceStatsMonitor can be enabled.
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.callbacks import DeviceStatsMonitor
+
+    device_stats = DeviceStatsMonitor()
+    trainer = Trainer(accelerator="hpu", callbacks=[device_stats])
+
+For more details, please refer to `Memory Stats APIs <https://docs.habana.ai/en/v1.5.0/PyTorch/PyTorch_User_Guide/Python_Packages.html#memory-stats-apis>`__.

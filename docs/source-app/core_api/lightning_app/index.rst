@@ -3,6 +3,8 @@ Lightning App
 #############
 **Audience:** Users who want to know how an app works under the hood 🤯.
 
+**Lightning App:** We call workflows composed of multiple LightningWorks a **Lightning App**.
+
 ----
 
 *******************
@@ -24,26 +26,26 @@ Peek under the hood
    :tag: Basic
 
 .. displayitem::
-   :header: The App state (basic)
-   :description: Learn more about the state and its manipulation.
-   :col_css: col-md-4
-   :button_link: ../../workflows/access_app_state.html
-   :height: 180
-   :tag: basic
-
-.. displayitem::
-   :header: The event loop (basic)
+   :header: The event loop (Basic)
    :description: Learn more about the event loop.
    :col_css: col-md-4
    :button_link: ../../glossary/event_loop.html
    :height: 180
-   :tag: basic
+   :tag: Basic
 
 .. displayitem::
    :header: Communication between Flow and Works
    :description: Learn more about components communicate.
    :col_css: col-md-4
    :button_link: communication.html
+   :height: 180
+   :tag: Intermediate
+
+.. displayitem::
+   :header: Customize Flow compute resources
+   :description: Learn more about Flow customizations.
+   :col_css: col-md-4
+   :button_link: compute_content.html
    :height: 180
    :tag: Intermediate
 

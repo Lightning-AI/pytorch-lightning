@@ -13,24 +13,24 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
-from torch import FloatTensor, Tensor
-from torch.utils.data import DataLoader
+from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
+from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.cloud_io import get_filesystem
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
-from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -41,28 +41,6 @@ else:
     poptorch = None
 
 
-class LightningIPUModule(_LightningModuleWrapperBase):
-    def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
-    ) -> None:
-        super().__init__(pl_module)
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            inputs = self._move_float_tensors_to_half(inputs)
-
-        return super().forward(*inputs, **kwargs)
-
-    @staticmethod
-    def batch_to(data: Tensor) -> Tensor:
-        return data.half()
-
-    def _move_float_tensors_to_half(self, batch: Any) -> Any:
-        batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
-        return batch
-
-
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
 
@@ -70,7 +48,7 @@ class IPUStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         device_iterations: int = 1,
         autoreport: bool = False,
         autoreport_dir: Optional[str] = None,
@@ -110,12 +88,12 @@ class IPUStrategy(ParallelStrategy):
         self.device_iterations = device_iterations
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
-        self.poptorch_models = {}
+        self.poptorch_models: Dict[RunningStage, "poptorch.PoplarExecutor"] = {}
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
         if self.autoreport:
-            options = {"autoReport.all": self.autoreport}
+            options: Dict[str, Any] = {"autoReport.all": self.autoreport}
             if self.autoreport_dir:
                 self._fs = get_filesystem(str(self.autoreport_dir))
                 self._fs.makedirs(self.autoreport_dir, exist_ok=True)
@@ -137,13 +115,14 @@ class IPUStrategy(ParallelStrategy):
 
         super().setup(trainer)
 
+        assert self.lightning_module is not None
+
         # disable the `optimizer_zero_grad` function by setting it to `None`.
         # this is because the IPU zeros the gradients internally
         self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
         self._disable_zero_grad()
 
-        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
-        self.model = model
+        self.model = _LightningModuleWrapperBase(self.lightning_module)
 
         # reset the backup
         self.poptorch_models = {}
@@ -151,25 +130,27 @@ class IPUStrategy(ParallelStrategy):
         # Separate models are instantiated for different stages, but they share the same weights on host.
         # When validation/test models are run, weights are synced first.
         trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer_fn == TrainerFn.FITTING:
             # Create model for training and validation which will run on fit
             training_opts = self.training_opts
             inference_opts = self.inference_opts
             optimizer = self.lightning_module.trainer.optimizers[0]
-            model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
+            model = poptorch.trainingModel(model=self.model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
 
             if self.lightning_module.trainer.enable_validation:
-                model = poptorch.inferenceModel(model=model, options=inference_opts)
+                model = poptorch.inferenceModel(model=self.model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
+                if self.lightning_module.trainer.num_sanity_val_steps > 0:
+                    self.poptorch_models[RunningStage.SANITY_CHECKING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.VALIDATING] = model
         elif trainer_fn == TrainerFn.TESTING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.TESTING] = model
         elif trainer_fn == TrainerFn.PREDICTING:
-            model = poptorch.inferenceModel(model=model, options=self.inference_opts)
+            model = poptorch.inferenceModel(model=self.model, options=self.inference_opts)
             self.poptorch_models[RunningStage.PREDICTING] = model
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -189,12 +170,14 @@ class IPUStrategy(ParallelStrategy):
             if self._inference_opts:
                 return self._inference_opts.replication_factor
 
+            assert self.parallel_devices
             return len(self.parallel_devices)
-
         stage = self.lightning_module.trainer.state.stage
+        assert stage is not None
         return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
+        assert self.lightning_module is not None
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
@@ -217,20 +200,20 @@ class IPUStrategy(ParallelStrategy):
             self._inference_opts = self._create_opts(training=False)
         return self._inference_opts
 
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
-
     def _convert_to_poptorch_loader(
-        self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
+        self, dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
         if isinstance(dataloader, poptorch.DataLoader):
             # the user is returning the `poptorch.DataLoader` directly, don't change anything.
             return dataloader
 
-        dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
+        dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(
+            dataloader, sampler, mode, self.replication_factor > 1
+        )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
+        dataloader = _reinstantiate_wrapped_cls(
+            dataloader, opts, *dl_args, explicit_cls=poptorch.DataLoader, **dl_kwargs
+        )
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:
@@ -239,6 +222,7 @@ class IPUStrategy(ParallelStrategy):
 
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
+        assert self.lightning_module is not None
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
@@ -250,26 +234,37 @@ class IPUStrategy(ParallelStrategy):
         accumulation_scheduler.scheduling.update({0: 1})
 
     @property
-    def _n_replicate(self):
+    def _n_replicate(self) -> int:
+        assert self.lightning_module is not None
         opts = self.training_opts if self.lightning_module.training else self.inference_opts
         accumulate_grad_batches = opts.Training.gradient_accumulation
         device_iterations = opts.device_iterations
         replication_factor = opts.replication_factor
         return replication_factor * device_iterations * accumulate_grad_batches
 
-    def _prepare_input(self, args: Any):
-        def to_tuple(x):
+    def _prepare_input(self, args: Any) -> Any:
+        def to_tuple(x: Any) -> Tuple:
             return tuple(x)
 
-        def to_tensor(x):
+        def to_tensor(x: Any) -> Tensor:
             return torch.tensor(x).unsqueeze(0).repeat(self._n_replicate)
 
         args = apply_to_collection(args, dtype=list, function=to_tuple)
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        # This override is necessary because the cast must occur before the data
+        # is moved to the device to prevent wasteful host->device copies.
+        batch = apply_to_collection(batch, Tensor, function=_fp_to_half, precision=self.precision_plugin.precision)
+        # We don't call `super().batch_to_device` because `data.to(device)` is not
+        # currently necessary for IPUs. The movement of data from host<->IPU is
+        # currently handled by PopTorch.
+        return batch
+
     def _disable_zero_grad(self) -> None:
         lightning_module = self.lightning_module
+        assert lightning_module is not None
         if is_overridden("optimizer_zero_grad", lightning_module):
             assert lightning_module is not None  # `is_overridden` returns False otherwise
             rank_zero_warn(
@@ -278,27 +273,25 @@ class IPUStrategy(ParallelStrategy):
             )
         lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
-    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
+    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
         poptorch_model = self.poptorch_models[stage]
-        self.lightning_module._running_torchscript = True
-        out = poptorch_model(*args, **kwargs)
-        self.lightning_module._running_torchscript = False
-        return out
+        with pl.core.module._jit_is_scripting():
+            return poptorch_model(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self._step(RunningStage.TRAINING, *args, **kwargs)
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
             return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
@@ -307,26 +300,27 @@ class IPUStrategy(ParallelStrategy):
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
+        assert self.lightning_module is not None
         if self._optimizer_zero_grad_original is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
 
         for model in self.poptorch_models.values():
             model.destroy()
 
         super().teardown()
 
-    def _compiled(self, model: Any):
+    def _compiled(self, model: Any) -> bool:
         # Required to ensure we only attach compiled models, as they are compiled lazily.
         return model._executable is not None
 
-    def _detach_models(self):
+    def _detach_models(self) -> None:
         """Detaches all stage specific models from IPU devices."""
         for k, model in self.poptorch_models.items():
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
-    def _load_model(self, stage: str):
+    def _load_model(self, stage: RunningStage) -> None:
         """Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
 
         Args:
@@ -337,28 +331,28 @@ class IPUStrategy(ParallelStrategy):
         if self._compiled(model) and not model.isAttachedToDevice():
             model.attachToDevice()
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         self._load_model(RunningStage.TRAINING)
 
-    def on_validation_start(self):
+    def on_validation_start(self) -> None:
         self._load_model(RunningStage.VALIDATING)
 
-    def on_test_start(self):
+    def on_test_start(self) -> None:
         self._load_model(RunningStage.TESTING)
 
-    def on_predict_start(self):
+    def on_predict_start(self) -> None:
         self._load_model(RunningStage.PREDICTING)
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         self._detach_models()
 
-    def on_validation_end(self):
+    def on_validation_end(self) -> None:
         self._detach_models()
 
-    def on_test_end(self):
+    def on_test_end(self) -> None:
         self._detach_models()
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         self._detach_models()
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
@@ -386,7 +380,7 @@ class IPUStrategy(ParallelStrategy):
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         return tensor
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     @classmethod

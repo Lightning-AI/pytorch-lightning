@@ -126,9 +126,9 @@ def test_default_content_layout():
     root = TestContentComponent()
     LightningApp(root)
     assert root._layout == [
-        dict(name="component0", content="root.component0"),
-        dict(name="component1", content="root.component1"),
-        dict(name="component2", content="root.component2"),
+        dict(name="root.component0", content="root.component0"),
+        dict(name="root.component1", content="root.component1"),
+        dict(name="root.component2", content="root.component2"),
     ]
 
 
@@ -218,3 +218,21 @@ def test_dynamic_content_layout_update():
     app = LightningApp(flow)
     MultiProcessRuntime(app).dispatch()
     assert flow.configure_layout_called == 5
+
+
+@mock.patch("lightning_app.utilities.layout.is_running_in_cloud", return_value=True)
+def test_http_url_warning(*_):
+    class Root(EmptyFlow):
+        def configure_layout(self):
+            return [
+                dict(name="warning expected", content="http://github.com/very/long/link/to/display"),
+                dict(name="no warning expected", content="https://github.com"),
+            ]
+
+    root = Root()
+
+    with pytest.warns(
+        UserWarning,
+        match=escape("You configured an http link http://github.com/very/long/link... but it won't be accessible"),
+    ):
+        LightningApp(root)

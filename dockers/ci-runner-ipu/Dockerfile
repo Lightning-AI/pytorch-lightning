@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.9
+ARG PYTORCH_VERSION=1.10
 
 FROM pytorchlightning/pytorch_lightning:base-ipu-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
@@ -23,7 +23,7 @@ RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 WORKDIR /azp
 
-COPY ./dockers/ci-runner-ipu/start.sh /usr/local/bin/
+COPY ./.azure/start.sh /usr/local/bin/
 
 RUN curl -o /usr/local/bin/installdependencies.sh \
     "https://raw.githubusercontent.com/microsoft/azure-pipelines-agent/d2acd5f77c6b3914cdb6ed0e5fbea672929c7da9/src/Misc/layoutbin/installdependencies.sh" && \

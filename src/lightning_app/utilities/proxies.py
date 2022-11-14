@@ -1,37 +1,53 @@
-import logging
 import os
 import pathlib
+import queue
 import signal
 import sys
 import threading
 import time
+import traceback
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepDiff, Delta
+from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.storage import Path
-from lightning_app.storage.copier import Copier, copy_files
+from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.storage.path import path_to_work_artifact
+from lightning_app.storage.path import _path_to_work_artifact
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.apply_func import apply_to_collection
 from lightning_app.utilities.component import _set_work_context
-from lightning_app.utilities.enum import make_status, WorkFailureReasons, WorkStageStatus, WorkStopReasons
+from lightning_app.utilities.enum import (
+    CacheCallsKeys,
+    make_status,
+    WorkFailureReasons,
+    WorkStageStatus,
+    WorkStopReasons,
+)
 from lightning_app.utilities.exceptions import CacheMissException, LightningSigtermStateException
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
     from lightning_app.core.queues import BaseQueue
 
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 _state_observer_lock = threading.Lock()
+
+
+@dataclass
+class Action:
+    method: str = "run"
+    args: Tuple = field(default_factory=lambda: ())
+    kwargs: Dict = field(default_factory=lambda: {})
 
 
 def unwrap(fn):
@@ -45,18 +61,16 @@ def unwrap(fn):
 
 
 def _send_data_to_caller_queue(
-    work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str, work_run: Callable, use_args: bool
+    proxy, work: "LightningWork", caller_queue: "BaseQueue", data: Dict, call_hash: str
 ) -> Dict:
-    if work._calls["latest_call_hash"] is None:
-        work._calls["latest_call_hash"] = call_hash
+
+    proxy.has_sent = True
+
+    if work._calls[CacheCallsKeys.LATEST_CALL_HASH] is None:
+        work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
 
     if call_hash not in work._calls:
-        work._calls[call_hash] = {
-            "name": work_run.__name__,
-            "call_hash": call_hash,
-            "use_args": use_args,
-            "statuses": [],
-        }
+        work._calls[call_hash] = {"statuses": []}
     else:
         # remove ret when relaunching the work.
         work._calls[call_hash].pop("ret", None)
@@ -64,9 +78,19 @@ def _send_data_to_caller_queue(
     work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.PENDING))
 
     work_state = work.state
+
+    # There is no need to send all call hashes to the work.
+    calls = deepcopy(work_state["calls"])
+    work_state["calls"] = {
+        k: v for k, v in work_state["calls"].items() if k in (call_hash, CacheCallsKeys.LATEST_CALL_HASH)
+    }
+
     data.update({"state": work_state})
     logger.debug(f"Sending to {work.name}: {data}")
-    caller_queue.put(data)
+    caller_queue.put(deepcopy(data))
+
+    # Reset the calls entry.
+    work_state["calls"] = calls
     work._restarting = False
     return work_state
 
@@ -79,18 +103,15 @@ class ProxyWorkRun:
     caller_queue: "BaseQueue"
 
     def __post_init__(self):
-        self.cache_calls = self.work.cache_calls
-        self.parallel = self.work.parallel
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
-        provided_none = len(args) == 1 and args[0] is None
-        use_args = len(kwargs) > 0 or (len(args) > 0 and not provided_none)
+        self.has_sent = False
 
         self._validate_call_args(args, kwargs)
         args, kwargs = self._process_call_args(args, kwargs)
 
-        call_hash = self.work._call_hash(self.work_run, args, kwargs)
+        call_hash = self.work._call_hash(self.work_run, *self._convert_hashable(args, kwargs))
         entered = call_hash in self.work._calls
         returned = entered and "ret" in self.work._calls[call_hash]
         # TODO (tchaton): Handle spot instance retrieval differently from stopped work.
@@ -100,21 +121,21 @@ class ProxyWorkRun:
 
         # The if/else conditions are left un-compressed to simplify readability
         # for the readers.
-        if self.cache_calls:
+        if self.work.cache_calls:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned:
                     return
         else:
             if not entered or stopped_on_sigterm:
-                _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
+                _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
                 if returned or stopped_on_sigterm:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
-                    _send_data_to_caller_queue(self.work, self.caller_queue, data, call_hash, self.work_run, use_args)
-        if not self.parallel:
+                    _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
+        if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
@@ -168,12 +189,32 @@ class ProxyWorkRun:
 
         return apply_to_collection((args, kwargs), dtype=(Path, Drive), function=sanitize)
 
+    @staticmethod
+    def _convert_hashable(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
+        the LightningWork.
+
+        Currently, this method only applies sanitization to Hashable Objects.
+
+        Args:
+            args: The tuple of positional arguments passed to the run method.
+            kwargs: The dictionary of named arguments passed to the run method.
+
+        Returns:
+            The positional and keyword arguments in the same order they were passed in.
+        """
+        from lightning_app.utilities.types import Hashable
+
+        def sanitize(obj: Hashable) -> Union[Path, Dict]:
+            return obj.to_dict()
+
+        return apply_to_collection((args, kwargs), dtype=Hashable, function=sanitize)
+
 
 class WorkStateObserver(Thread):
-    """This thread runs alongside LightningWork and periodically checks for state changes.
-
-    If the state changed from one interval to the next, it will compute the delta and add it to the queue which is
-    connected to the Flow. This enables state changes to be captured that are not triggered through a setattr call.
+    """This thread runs alongside LightningWork and periodically checks for state changes. If the state changed
+    from one interval to the next, it will compute the delta and add it to the queue which is connected to the
+    Flow. This enables state changes to be captured that are not triggered through a setattr call.
 
     Args:
         work: The LightningWork for which the state should be monitored
@@ -190,10 +231,19 @@ class WorkStateObserver(Thread):
                 self.list.append(1)
     """
 
-    def __init__(self, work: "LightningWork", delta_queue: "BaseQueue", interval: float = 5) -> None:
+    def __init__(
+        self,
+        work: "LightningWork",
+        delta_queue: "BaseQueue",
+        flow_to_work_delta_queue: Optional["BaseQueue"] = None,
+        error_queue: Optional["BaseQueue"] = None,
+        interval: float = 1,
+    ) -> None:
         super().__init__(daemon=True)
         self._work = work
         self._delta_queue = delta_queue
+        self._flow_to_work_delta_queue = flow_to_work_delta_queue
+        self._error_queue = error_queue
         self._interval = interval
         self._exit_event = Event()
         self._delta_memory = []
@@ -205,6 +255,14 @@ class WorkStateObserver(Thread):
             # Run the thread only if active
             self.run_once()
 
+    @staticmethod
+    def get_state_changed_from_queue(q: "BaseQueue", timeout: Optional[int] = None):
+        try:
+            delta = q.get(timeout=timeout or q.default_timeout)
+            return delta
+        except queue.Empty:
+            return None
+
     def run_once(self) -> None:
         with _state_observer_lock:
             # Add all deltas the LightningWorkSetAttrProxy has processed and sent to the Flow already while
@@ -214,11 +272,24 @@ class WorkStateObserver(Thread):
             self._delta_memory.clear()
 
             # The remaining delta is the result of state updates triggered outside the setattr, e.g, by a list append
-            delta = Delta(DeepDiff(self._last_state, self._work.state))
+            delta = Delta(DeepDiff(self._last_state, self._work.state, verbose_level=2))
             if not delta.to_dict():
                 return
             self._last_state = deepcopy(self._work.state)
             self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
+
+        if self._flow_to_work_delta_queue:
+            while True:
+                deep_diff = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+                if not isinstance(deep_diff, dict):
+                    break
+                try:
+                    with _state_observer_lock:
+                        self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
+                except Exception as e:
+                    print(traceback.print_exc())
+                    self._error_queue.put(e)
+                    raise e
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -242,14 +313,14 @@ class LightningWorkSetAttrProxy:
     work_name: str
     work: "LightningWork"
     delta_queue: "BaseQueue"
-    state_observer: "WorkStateObserver"
+    state_observer: Optional["WorkStateObserver"]
 
     def __call__(self, name: str, value: Any) -> None:
         logger.debug(f"Setting {name}: {value}")
         with _state_observer_lock:
             state = deepcopy(self.work.state)
             self.work._default_setattr(name, value)
-            delta = Delta(DeepDiff(state, self.work.state))
+            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
             if not delta.to_dict():
                 return
 
@@ -257,13 +328,50 @@ class LightningWorkSetAttrProxy:
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
             # add the delta to the buffer to let WorkStateObserver know we already sent this one to the Flow
-            self.state_observer._delta_memory.append(delta)
+            if self.state_observer:
+                self.state_observer._delta_memory.append(delta)
 
 
 @dataclass
 class ComponentDelta:
     id: str
     delta: Delta
+
+
+@dataclass
+class WorkRunExecutor:
+
+    work: "LightningWork"
+    work_run: Callable
+    delta_queue: "BaseQueue"
+    enable_start_observer: bool = True
+
+    def __call__(self, *args, **kwargs):
+        return self.work_run(*args, **kwargs)
+
+    @contextmanager
+    def enable_spawn(self) -> Generator:
+        self.work._setattr_replacement = None
+        self.work._backend = None
+        self._clean_queues()
+        yield
+
+    def _clean_queues(self):
+        if "LIGHTNING_APP_STATE_URL" in os.environ:
+            self.work._request_queue = self.work._request_queue.to_dict()
+            self.work._response_queue = self.work._response_queue.to_dict()
+
+    @staticmethod
+    def process_queue(queue):
+        from lightning_app.core.queues import HTTPQueue, RedisQueue
+
+        if isinstance(queue, dict):
+            queue_type = queue.pop("type")
+            if queue_type == "redis":
+                return RedisQueue.from_dict(queue)
+            else:
+                return HTTPQueue.from_dict(queue)
+        return queue
 
 
 @dataclass
@@ -278,10 +386,12 @@ class WorkRunner:
     response_queue: "BaseQueue"
     copy_request_queue: "BaseQueue"
     copy_response_queue: "BaseQueue"
+    flow_to_work_delta_queue: Optional["BaseQueue"] = None
+    run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
 
     def __post_init__(self):
         self.parallel = self.work.parallel
-        self.copier: Optional[Copier] = None
+        self.copier: Optional[_Copier] = None
         self.state_observer: Optional[WorkStateObserver] = None
 
     def __call__(self):
@@ -323,7 +433,7 @@ class WorkRunner:
 
         # 3. Starts the Copier thread. This thread enables transfering files using
         # the Path object between works.
-        self.copier = Copier(self.work, self.copy_request_queue, self.copy_response_queue)
+        self.copier = _Copier(self.work, self.copy_request_queue, self.copy_response_queue)
         self.copier.setDaemon(True)
         self.copier.start()
 
@@ -358,54 +468,97 @@ class WorkRunner:
         self._transfer_path_attributes()
 
         # 6. Create the state observer thread.
-        self.state_observer = WorkStateObserver(self.work, delta_queue=self.delta_queue)
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer = WorkStateObserver(
+                self.work,
+                delta_queue=self.delta_queue,
+                flow_to_work_delta_queue=self.flow_to_work_delta_queue,
+                error_queue=self.error_queue,
+            )
+
+        # 7. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
+        reference_state = deepcopy(self.work.state)
 
         # Set the internal IP address.
         # Set this here after the state observer is initialized, since it needs to record it as a change and send
         # it back to the flow
         self.work._internal_ip = os.environ.get("LIGHTNING_NODE_IP", "127.0.0.1")
 
-        # 7. Patch the setattr method of the work. This needs to be done after step 4, so we don't
+        # 8. Patch the setattr method of the work. This needs to be done after step 4, so we don't
         # send delta while calling `set_state`.
         self._proxy_setattr()
 
-        # 8. Deepcopy the work state and send the first `RUNNING` status delta to the flow.
-        state = deepcopy(self.work.state)
-        self.work._calls["latest_call_hash"] = call_hash
-        self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.RUNNING))
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        if self._is_starting(called, reference_state, call_hash):
+            return
 
-        # 9. Start the state observer thread. It will look for state changes and send them back to the Flow
-        # The observer has to be initialized here, after the set_state call above so that the thread can start with
-        # the proper initial state of the work
-        self.state_observer.start()
+        # 9. Inform the flow the work is running and add the delta to the deepcopy.
+        self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
+        self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.RUNNING))
+        delta = Delta(DeepDiff(reference_state, self.work.state))
+        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # 10. Unwrap the run method if wrapped.
         work_run = self.work.run
         if hasattr(work_run, "__wrapped__"):
             work_run = work_run.__wrapped__
 
+        # 11. Start the state observer thread. It will look for state changes and send them back to the Flow
+        # The observer has to be initialized here, after the set_state call above so that the thread can start with
+        # the proper initial state of the work
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.start()
+
         # 12. Run the `work_run` method.
         # If an exception is raised, send a `FAILED` status delta to the flow and call the `on_exception` hook.
         try:
-            ret = work_run(*args, **kwargs)
+            ret = self.run_executor_cls(self.work, work_run, self.delta_queue)(*args, **kwargs)
         except LightningSigtermStateException as e:
             raise e
         except BaseException as e:
             # 10.2 Send failed delta to the flow.
+            reference_state = deepcopy(self.work.state)
+            exp, val, tb = sys.exc_info()
+            listing = traceback.format_exception(exp, val, tb)
+            user_exception = False
+            used_runpy = False
+            trace = []
+            for p in listing:
+                if "runpy.py" in p:
+                    trace = []
+                    used_runpy = True
+                if user_exception:
+                    trace.append(p)
+                if "ret = self.run_executor_cls(" in p:
+                    user_exception = True
+
+            if used_runpy:
+                trace = trace[1:]
+
             self.work._calls[call_hash]["statuses"].append(
-                make_status(WorkStageStatus.FAILED, message=str(e), reason=WorkFailureReasons.USER_EXCEPTION)
+                make_status(
+                    WorkStageStatus.FAILED,
+                    message=str("\n".join(trace)),
+                    reason=WorkFailureReasons.USER_EXCEPTION,
+                )
             )
-            self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+            self.delta_queue.put(
+                ComponentDelta(
+                    id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2))
+                )
+            )
             self.work.on_exception(e)
+            print("########## CAPTURED EXCEPTION ###########")
+            print(traceback.print_exc())
+            print("########## CAPTURED EXCEPTION ###########")
             return
+
+        # 13. Destroy the state observer.
+        if self.run_executor_cls.enable_start_observer:
+            self.state_observer.join(0)
+        self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
         persist_artifacts(work=self.work)
-
-        # 15. Destroy the state observer.
-        self.state_observer.join(0)
-        self.state_observer = None
 
         # 15. An asynchronous work shouldn't return a return value.
         if ret is not None:
@@ -414,28 +567,32 @@ class WorkRunner:
                 "HINT: Use the Payload API instead."
             )
 
-        # 16. DeepCopy the state and send the latest delta to the flow.
+        # 17. DeepCopy the state and send the latest delta to the flow.
         # use the latest state as we have already sent delta
         # during its execution.
         # inform the task has completed
-        state = deepcopy(self.work.state)
+        reference_state = deepcopy(self.work.state)
         self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.SUCCEEDED))
         self.work._calls[call_hash]["ret"] = ret
-        self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
+        self.delta_queue.put(
+            ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(reference_state, self.work.state, verbose_level=2)))
+        )
 
-        # 17. Update the work for the next delta if any.
+        # 18. Update the work for the next delta if any.
         self._proxy_setattr(cleanup=True)
 
     def _sigterm_signal_handler(self, signum, frame, call_hash: str) -> None:
         """Signal handler used to react when spot instances are being retrived."""
-        logger.debug("Received SIGTERM signal. Gracefully terminating...")
+        logger.info(f"Received SIGTERM signal. Gracefully terminating {self.work.name.replace('root.', '')}...")
         persist_artifacts(work=self.work)
         with _state_observer_lock:
+            self.work.on_exit()
+            self.work._calls[call_hash]["statuses"] = []
             state = deepcopy(self.work.state)
             self.work._calls[call_hash]["statuses"].append(
                 make_status(WorkStageStatus.STOPPED, reason=WorkStopReasons.SIGTERM_SIGNAL_HANDLER)
             )
-            delta = Delta(DeepDiff(state, self.work.state))
+            delta = Delta(DeepDiff(state, self.work.state, verbose_level=2))
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
 
         # kill the thread as the job is going to be terminated.
@@ -446,14 +603,7 @@ class WorkRunner:
         raise LightningSigtermStateException(0)
 
     def _proxy_setattr(self, cleanup: bool = False):
-        if cleanup:
-            setattr_proxy = None
-        else:
-            assert self.state_observer
-            setattr_proxy = LightningWorkSetAttrProxy(
-                self.work_name, self.work, delta_queue=self.delta_queue, state_observer=self.state_observer
-            )
-        self.work._setattr_replacement = setattr_proxy
+        _proxy_setattr(self.work, self.delta_queue, self.state_observer, cleanup=cleanup)
 
     def _process_call_args(
         self, args: Tuple[Any, ...], kwargs: Dict[str, Any]
@@ -505,6 +655,21 @@ class WorkRunner:
             if path.origin_name and path.origin_name != self.work.name and path.exists_remote():
                 path.get(overwrite=True)
 
+    def _is_starting(self, called, reference_state, call_hash) -> bool:
+        if len(called["args"]) == 1 and isinstance(called["args"][0], Action):
+            action = called["args"][0]
+            if action.method == "start":
+                # 9. Inform the flow the work is running and add the delta to the deepcopy.
+                self.work._calls[CacheCallsKeys.LATEST_CALL_HASH] = call_hash
+                self.work._calls[call_hash]["statuses"].append(make_status(WorkStageStatus.STARTED))
+                delta = Delta(DeepDiff(reference_state, self.work.state))
+                self.delta_queue.put(ComponentDelta(id=self.work_name, delta=delta))
+                self._proxy_setattr(cleanup=True)
+                return True
+            else:
+                raise Exception("Only the `start` action is supported right now !")
+        return False
+
 
 def persist_artifacts(work: "LightningWork") -> None:
     """Copies all :class:`~lightning_app.storage.path.Path` referenced by the given LightningWork to the shared
@@ -530,8 +695,8 @@ def persist_artifacts(work: "LightningWork") -> None:
         if not artifact_path.exists():
             missing_artifacts.add(str(artifact_path))
             continue
-        destination_path = path_to_work_artifact(artifact_path, work)
-        copy_files(artifact_path, destination_path)
+        destination_path = _path_to_work_artifact(artifact_path, work)
+        _copy_files(artifact_path, destination_path)
         destination_paths.append(destination_path)
 
     if missing_artifacts:
@@ -545,3 +710,16 @@ def persist_artifacts(work: "LightningWork") -> None:
             f"All {destination_paths} artifacts from Work {work.name} successfully "
             "stored at {artifacts_path(work.name)}."
         )
+
+
+def _proxy_setattr(work, delta_queue, state_observer: Optional[WorkStateObserver], cleanup: bool = False):
+    if cleanup:
+        setattr_proxy = None
+    else:
+        setattr_proxy = LightningWorkSetAttrProxy(
+            work.name,
+            work,
+            delta_queue=delta_queue,
+            state_observer=state_observer,
+        )
+    work._setattr_replacement = setattr_proxy

@@ -15,7 +15,7 @@
 import pytest
 import torch
 
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
 from tests_pytorch.helpers.runif import RunIf
 
@@ -30,7 +30,7 @@ if _FAIRSCALE_AVAILABLE:
     [
         (16, torch.cuda.amp.GradScaler(), torch.cuda.amp.GradScaler),
         (16, None, ShardedGradScaler),
-        pytest.param("bf16", None, None, marks=RunIf(min_torch="1.10")),
+        ("bf16", None, None),
         (32, None, None),
     ],
 )

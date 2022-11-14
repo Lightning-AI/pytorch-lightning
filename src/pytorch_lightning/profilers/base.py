@@ -12,56 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Profiler to check if there are any bottlenecks in your code."""
-from abc import ABC, abstractmethod
-from typing import Any
 
 from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
-
-
-class AbstractProfiler(ABC):
-    """Specification of a profiler.
-
-    See deprecation warning below
-
-    .. deprecated:: v1.6
-        `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead.
-    """
-
-    @abstractmethod
-    def start(self, action_name: str) -> None:
-        """Defines how to start recording an action."""
-
-    @abstractmethod
-    def stop(self, action_name: str) -> None:
-        """Defines how to record the duration once an action is complete."""
-
-    @abstractmethod
-    def summary(self) -> str:
-        """Create profiler summary in text format."""
-
-    @abstractmethod
-    def setup(self, **kwargs: Any) -> None:
-        """Execute arbitrary pre-profiling set-up steps as defined by subclass."""
-
-    @abstractmethod
-    def teardown(self, **kwargs: Any) -> None:
-        """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
-
-
-class BaseProfiler(Profiler):
-    """
-    .. deprecated:: v1.6
-        `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead.
-    """
-
-    def __init__(self, *args, **kwargs):
-        rank_zero_deprecation(
-            "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler` instead."
-        )
-        super().__init__(*args, **kwargs)
 
 
 class PassThroughProfiler(Profiler):

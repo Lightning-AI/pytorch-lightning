@@ -15,9 +15,10 @@ import inspect
 import os
 import shutil
 import sys
-from importlib.util import module_from_spec, spec_from_file_location
 
-import pt_lightning_sphinx_theme
+import lai_sphinx_theme
+
+import lightning_app
 
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
@@ -25,22 +26,17 @@ sys.path.insert(0, os.path.abspath(_PATH_ROOT))
 
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
 
-# alternative https://stackoverflow.com/a/67692/4521646
-spec = spec_from_file_location("lightning_app/__about__.py", os.path.join(_PATH_ROOT, "lightning_app", "__about__.py"))
-about = module_from_spec(spec)
-spec.loader.exec_module(about)
-
 # -- Project information -----------------------------------------------------
 
 # this name shall match the project name in Github as it is used for linking to code
 project = "lightning"
-copyright = about.__copyright__
-author = about.__author__
+copyright = lightning_app.__copyright__
+author = lightning_app.__author__
 
 # The short X.Y version
-version = about.__version__
+version = lightning_app.__version__
 # The full version, including alpha/beta/rc tags
-release = about.__version__
+release = lightning_app.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
@@ -83,6 +79,7 @@ extensions = [
     # 'sphinxcontrib.fulltoc',  # breaks pytorch-theme with unexpected kw argument 'titles_only'
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
+    "sphinx_toolbox.collapse",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.linkcode",
@@ -97,13 +94,17 @@ extensions = [
     "sphinx_paramlinks",
     "sphinx_togglebutton",
     "sphinx.ext.githubpages",
-    "pt_lightning_sphinx_theme.extensions.lightning",
+    "lai_sphinx_theme.extensions.lightning",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
+# myst-parser, forcing to parse all html pages with mathjax
+# https://github.com/executablebooks/MyST-Parser/issues/394
 myst_update_mathjax = False
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
 
 # https://berkeley-stat159-f17.github.io/stat159-f17/lectures/14-sphinx..html#conf.py-(cont.)
 # https://stackoverflow.com/questions/38526888/embed-ipython-notebook-in-sphinx-document
@@ -142,6 +143,9 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "_templates",
+    "code_samples/convert_pl_to_app/requirements.txt",
+    "**/_static/*"
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -152,16 +156,17 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "pt_lightning_sphinx_theme"
-html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+html_theme = "lai_sphinx_theme"
+html_theme_path = [os.environ.get('LIT_SPHINX_PATH', lai_sphinx_theme.get_html_theme_path())]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": about.__homepage__,
-    "canonical_url": about.__homepage__,
+    "pytorch_project": lightning_app.__homepage__,
+    "analytics_id": "G-D3Q2ESCTZR",
+    "canonical_url": lightning_app.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -227,7 +232,7 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        about.__docs__,
+        lightning_app.__docs__,
         "Miscellaneous",
     ),
 ]
@@ -281,6 +286,15 @@ for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, "notebooks", "*.ipynb")):
     path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
     shutil.copy(path_ipynb, path_ipynb2)
 
+# copy all examples to local folder
+path_examples = os.path.join(_PATH_HERE, "..", "examples")
+if not os.path.isdir(path_examples):
+    os.mkdir(path_examples)
+for path_app_example in glob.glob(os.path.join(_PATH_ROOT, "examples", "app_*")):
+    path_app_example2 = os.path.join(path_examples, os.path.basename(path_app_example))
+    if not os.path.isdir(path_app_example2):
+        shutil.copytree(path_app_example, path_app_example2, dirs_exist_ok=True)
+
 
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
@@ -314,7 +328,7 @@ autodoc_mock_imports = MOCK_PACKAGES
 def linkcode_resolve(domain, info):
     def find_source():
         # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+        # https://github.com/numpy/numpy/blob/master/doc/source-app/conf.py#L286
         obj = sys.modules[info["module"]]
         for part in info["fullname"].split("."):
             obj = getattr(obj, part)
@@ -381,6 +395,6 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
-import lightning_app
+import lightning as L
 """
 coverage_skip_undoc_in_source = True

@@ -24,7 +24,16 @@ def test_invalid_precision_with_deepspeed_precision():
         DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
 
 
-@mock.patch("pytorch_lightning.plugins.precision.deepspeed._DEEPSPEED_GREATER_EQUAL_0_6", False)
-def test_incompatible_bfloat16_raises_error_with_deepspeed_version():
-    with pytest.raises(MisconfigurationException, match="is not supported with `deepspeed < v0.6`"):
-        DeepSpeedPrecisionPlugin(precision="bf16", amp_type="native")
+def test_deepspeed_precision_apex_not_installed(monkeypatch):
+    import pytorch_lightning.plugins.precision.deepspeed as deepspeed_apex
+
+    monkeypatch.setattr(deepspeed_apex, "_APEX_AVAILABLE", False)
+    with pytest.raises(MisconfigurationException, match="You have asked for Apex AMP but `apex` is not installed."):
+        DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
+
+
+@mock.patch("pytorch_lightning.plugins.precision.deepspeed._APEX_AVAILABLE", return_value=True)
+def test_deepspeed_precision_apex_default_level(_):
+    precision_plugin = DeepSpeedPrecisionPlugin(precision=16, amp_type="apex")
+    assert isinstance(precision_plugin, DeepSpeedPrecisionPlugin)
+    assert precision_plugin.amp_level == "O2"

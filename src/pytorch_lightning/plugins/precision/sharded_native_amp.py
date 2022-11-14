@@ -13,9 +13,7 @@
 # limitations under the License.
 from typing import Optional, Union
 
-import torch
-
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -29,9 +27,7 @@ else:
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
     """Native AMP for Sharded Training."""
 
-    def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
-    ) -> None:
+    def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
         if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for sharded AMP but you have not installed it."

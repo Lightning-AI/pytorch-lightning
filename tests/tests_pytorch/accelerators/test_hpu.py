@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -40,9 +41,14 @@ def test_availability():
     assert HPUAccelerator.is_available()
 
 
+@RunIf(hpu=True)
+def test_device_name():
+    assert HPUAccelerator.get_device_name() == "GAUDI"
+
+
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus():
-    with pytest.raises(MisconfigurationException, match="HPUAccelerator can not run on your system"):
+    with pytest.raises(MisconfigurationException, match="HPUAccelerator` can not run on your system"):
         Trainer(accelerator="hpu", devices=1)
 
 
@@ -70,7 +76,8 @@ def test_all_stages(tmpdir, hpus):
     trainer.predict(model)
 
 
-@RunIf(hpu=True)
+@RunIf(hpu=True, sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 
@@ -239,6 +246,7 @@ def test_inference_only(tmpdir, hpus):
     trainer.predict(model)
 
 
+@RunIf(hpu=True)
 def test_hpu_auto_device_count():
     assert HPUAccelerator.auto_device_count() == 8
 
@@ -297,3 +305,23 @@ def test_multi_optimizers_with_hpu(tmpdir):
     trainer.fit(model)
 
     assert all(model.optims)
+
+
+@RunIf(hpu=True)
+def test_hpu_device_stats_monitor(tmpdir):
+
+    hpu_stats = HPUAccelerator().get_device_stats("hpu")
+    fields = [
+        "Limit",
+        "InUse",
+        "MaxInUse",
+        "NumAllocs",
+        "NumFrees",
+        "ActiveAllocs",
+        "MaxAllocSize",
+        "TotalSystemAllocs",
+        "TotalSystemFrees",
+        "TotalActiveAllocs",
+    ]
+    for f in fields:
+        assert any(f in h for h in hpu_stats.keys())

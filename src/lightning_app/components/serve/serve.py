@@ -1,6 +1,5 @@
 import abc
 import inspect
-import logging
 import os
 import pydoc
 import subprocess
@@ -13,16 +12,17 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from starlette.responses import RedirectResponse
 
-from lightning_app import LightningWork
 from lightning_app.components.serve.types import _DESERIALIZER, _SERIALIZER
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 fastapi_service = FastAPI()
 
 
-class InferenceCallable:
+class _InferenceCallable:
     def __init__(
         self,
         deserialize: Callable,
@@ -37,7 +37,7 @@ class InferenceCallable:
         return self.serialize(self.predict(self.deserialize(data)))
 
 
-async def redirect():
+async def _redirect():
     return RedirectResponse("/docs")
 
 
@@ -121,9 +121,9 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
     def _populate_app(self, fastapi_service: FastAPI):
         self._model = self.build_model()
 
-        fastapi_service.get("/")(redirect)
+        fastapi_service.get("/")(_redirect)
         fastapi_service.post("/predict", response_class=JSONResponse)(
-            InferenceCallable(
+            _InferenceCallable(
                 deserialize=_DESERIALIZER[self.input] if self.input else self.deserialize,
                 predict=self.predict,
                 serialize=_SERIALIZER[self.output] if self.output else self.serialize,
@@ -135,7 +135,7 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
         uvicorn.run(app=fastapi_service, host=self.host, port=self.port, log_level="error")
 
 
-def maybe_create_instance() -> Optional[ModelInferenceAPI]:
+def _maybe_create_instance() -> Optional[ModelInferenceAPI]:
     """This function tries to re-create the user `ModelInferenceAPI` if the environment associated with multi
     workers are present."""
     render_fn_name = os.getenv("LIGHTNING_MODEL_INFERENCE_API_CLASS_NAME", None)
@@ -149,6 +149,6 @@ def maybe_create_instance() -> Optional[ModelInferenceAPI]:
     return cls(input=input, output=output)
 
 
-instance = maybe_create_instance()
+instance = _maybe_create_instance()
 if instance:
     instance._populate_app(fastapi_service)

@@ -49,6 +49,7 @@ wheels/
 .installed.cfg
 *.egg
 src/lightning/*/
+src/*/version.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -109,6 +110,8 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env_staging
+.env_local
 
 # virtualenv
 .venv
@@ -158,3 +161,21 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
+src/lightning_app/ui/*
+*examples/template_react_ui*
+hars*
+artifacts/*
+*docs/examples*
+*docs/source-app/api*
+
+# tutorials
+our_model.tar
+test.png
+saved_models
+data/
+.shared
+.lightning
+node_modules/
+
+# instalation artifacts
+requirements/base.txt

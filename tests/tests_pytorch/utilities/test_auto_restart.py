@@ -17,27 +17,23 @@ import os
 import random
 import random as python_random
 from collections import defaultdict
-from collections.abc import Iterable
 from contextlib import suppress
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional
 from unittest import mock
 from unittest.mock import ANY
 
 import numpy as np
 import pytest
 import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.sampler import Sampler
 
-import tests_pytorch.helpers.utils as tutils
-from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from lightning_lite.utilities.seed import seed_everything
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -59,13 +55,9 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 def test_fast_forward_getattr():
@@ -251,15 +243,9 @@ def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     assert torch.equal(batches_restart[2]["data"], batches[4]["data"])
 
 
-def _setup_ddp(rank, worldsize):
-    os.environ["MASTER_ADDR"] = "localhost"
-
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=worldsize)
-
-
-def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
-    _setup_ddp(rank, worldsize)
+def fast_forward_sampler_with_distributed_sampler_fn(strategy):
+    rank = strategy.local_rank
+    worldsize = strategy.num_processes
 
     initial_seed = seed_everything(42)
 
@@ -317,10 +303,7 @@ def _test_fast_forward_sampler_with_distributed_sampler(rank, worldsize):
 
 @RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(_test_fast_forward_sampler_with_distributed_sampler, args=(worldsize,), nprocs=worldsize)
+    spawn_launch(fast_forward_sampler_with_distributed_sampler_fn, [torch.device("cpu")] * 2)
 
 
 class MetaLearningDataset(IterableDataset):
@@ -458,9 +441,9 @@ class ClassificationDataset(Dataset):
         return len(self.inputs)
 
 
-def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(rank, worldsize):
-    if worldsize > 1:
-        _setup_ddp(rank, worldsize)
+def fast_forward_sampler_iterative_dataset_fn(strategy):
+    rank = strategy.local_rank
+    worldsize = strategy.num_processes
 
     def all_gather(tensor, world_size):
         tensor_list = [torch.zeros_like(tensor, dtype=torch.int64) for _ in range(world_size)]
@@ -586,18 +569,13 @@ def _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(ra
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(slow=True)
 def test_fast_forward_sampler_iterative_dataset():
-    _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset(0, 1)
+    spawn_launch(fast_forward_sampler_iterative_dataset_fn, [torch.device("cpu")])
 
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @RunIf(skip_windows=True, slow=True)
 def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(
-        _test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset, args=(worldsize,), nprocs=worldsize
-    )
+    spawn_launch(fast_forward_sampler_iterative_dataset_fn, [torch.device("cpu")] * 2)
 
 
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
@@ -700,16 +678,8 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-# TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize(
-    "dataset_class",
-    [
-        SequentialGetItemDataset,
-        RandomGetItemDataset,
-        # RandomGeneratorGetItemDataset,
-    ],
-)
+@pytest.mark.parametrize("dataset_class", [SequentialGetItemDataset, RandomGetItemDataset])
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
@@ -732,12 +702,11 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         _ = next(prefetch_iter)
 
         state: List[MergedIteratorState] = fetcher.state
-        assert len(state) == 1
-        assert isinstance(state[0], MergedIteratorState)
+        assert isinstance(state, MergedIteratorState)
 
         assert len(fetcher.dataloader_iter.cache_states) == 1
         if num_workers == 0:
-            assert state[0].state[0].num_batches_fetched == num_batches_fetched
+            assert state.state[0].num_batches_fetched == num_batches_fetched
         return state
 
     dataset, random_sampler = create_dataset_sampler()
@@ -754,7 +723,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     # (A) capture the state after fetching 4 batches
     state = fetch(fetcher, prefetch_iter, 4)
-    state = deepcopy(state[0])
+    state = deepcopy(state)
 
     # (B) simulate 2 additional batches
     batch05 = next(prefetch_iter)
@@ -972,9 +941,9 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
     pre_fail_train_batches, pre_fail_val_batches = run(should_fail=True, resume=False)
     post_fail_train_batches, post_fail_val_batches = run(should_fail=False, resume=True)
 
-    torch_test_assert_close(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
+    torch.testing.assert_close(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
     for k in total_val_batches:
-        torch_test_assert_close(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
+        torch.testing.assert_close(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
 
 
 class TestAutoRestartModelUnderSignal(BoringModel):
@@ -1184,15 +1153,6 @@ def test_validate_fault_tolerant(tmpdir):
 
     dl = DataLoader(data(), sampler=CustomRandomSampler(data()))
     with pytest.raises(TypeError, match="RandomSampler"):
-        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
-
-    class CustomBatchSampler(BatchSampler):
-        pass
-
-    sampler = Sampler(data())
-    batch_sampler = CustomBatchSampler(sampler, 2, False)
-    dl = DataLoader(data(), batch_sampler=batch_sampler)
-    with pytest.raises(TypeError, match="BatchSampler"):
         _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
 
     class CustomIterable(IterableDataset):
@@ -1517,6 +1477,6 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     trainer.train_dataloader = None
     restart_batches = model.batches
 
-    torch_test_assert_close(total_batches, failed_batches + restart_batches)
+    torch.testing.assert_close(total_batches, failed_batches + restart_batches)
     assert not torch.equal(total_weight, failed_weight)
     assert torch.equal(total_weight, model.layer.weight)

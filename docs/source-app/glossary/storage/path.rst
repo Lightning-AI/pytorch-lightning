@@ -81,7 +81,7 @@ Convert every filesystem path you want to share with other LightningWorks to by 
             ...
 
 
-Under the hood, we convert this string to a :class:`~lightning_app.storage.path.Path` object, which is a drop-in replacement for :class:`pathlib.Path` meaning it will work with :mod:`os`, :mod:`os.path` and :mod:`pathlib` filesystem operations out of the box!
+Under the hood, we convert this string to a :class:`~lightning.app.storage.path.Path` object, which is a drop-in replacement for :class:`pathlib.Path` meaning it will work with :mod:`os`, :mod:`os.path` and :mod:`pathlib` filesystem operations out of the box!
 
 
 ----
@@ -216,7 +216,7 @@ First, define a component that saves a checkpoint:
     :emphasize-lines: 14-18
 
     from lightning_app import LightningFlow, LightningWork
-    from lightning_app.storage.path import Path
+    from lightning_app.storage import Path
     import torch
     import os
 
@@ -268,7 +268,7 @@ Link both components via a parent component:
             self.deploy.run(checkpoint_dir=self.train.checkpoint_dir)
 
 
-    app = lapp.LightningApp(Flow())
+    app = L.LightningApp(Flow())
 
 
 ----

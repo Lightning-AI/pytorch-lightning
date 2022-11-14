@@ -27,6 +27,8 @@ class MultiProcessWorkManager(WorkManager):
             response_queue=self.app.response_queues[self.work.name],
             copy_request_queue=self.app.copy_request_queues[self.work.name],
             copy_response_queue=self.app.copy_response_queues[self.work.name],
+            flow_to_work_delta_queue=self.app.flow_to_work_delta_queues[self.work.name],
+            run_executor_cls=self.work._run_executor_cls,
         )
         self._process = multiprocessing.Process(target=self._work_runner)
         self._process.start()
@@ -74,8 +76,8 @@ class MultiProcessingBackend(Backend):
                 and work._url == ""
                 and work._port
             ):
-                url = f"http://{work._host}:{work._port}"
-                if _check_service_url_is_ready(url):
+                url = work._future_url if work._future_url else f"http://{work._host}:{work._port}"
+                if _check_service_url_is_ready(url, metadata=f"Checking {work.name}"):
                     work._url = url
 
     def stop_work(self, app, work: "lightning_app.LightningWork") -> None:

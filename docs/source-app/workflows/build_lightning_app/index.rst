@@ -1,7 +1,10 @@
-#####################
-Build a Lightning app
-#####################
-A Lightning app is a collection of components interacting together. Learn how to generate a basic app template.
+:orphan:
+
+#######################
+Develop a Lightning App
+#######################
+
+A Lightning App (App) is a collection of components interacting together. Learn how to develop a basic App template.
 
 ----
 

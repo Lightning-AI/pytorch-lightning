@@ -50,14 +50,15 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
-from torchvision import models, transforms
+from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.datasets.utils import download_and_extract_archive
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.utilities.cli import LightningCLI
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.cli import LightningCLI
+from pytorch_lightning.utilities import rank_zero_info
+from pytorch_lightning.utilities.model_helpers import get_torchvision_model
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
@@ -150,7 +151,7 @@ class CatDogImageDataModule(LightningDataModule):
         return self.__dataloader(train=False)
 
 
-#  --- Pytorch-lightning module ---
+#  --- PyTorch Lightning module ---
 
 
 class TransferLearningModel(LightningModule):
@@ -193,8 +194,7 @@ class TransferLearningModel(LightningModule):
         """Define model layers & loss."""
 
         # 1. Load pre-trained network:
-        model_func = getattr(models, self.backbone)
-        backbone = model_func(pretrained=True)
+        backbone = get_torchvision_model(self.backbone, weights="DEFAULT")
 
         _layers = list(backbone.children())[:-1]
         self.feature_extractor = nn.Sequential(*_layers)

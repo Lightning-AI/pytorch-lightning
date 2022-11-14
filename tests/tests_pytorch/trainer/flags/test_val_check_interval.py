@@ -16,10 +16,9 @@ import logging
 import pytest
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
 from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.datasets import RandomIterableDataset
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -63,10 +62,12 @@ def test_val_check_interval_info_message(caplog, value):
 
 
 @pytest.mark.parametrize("use_infinite_dataset", [True, False])
-def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infinite_dataset):
+@pytest.mark.parametrize("accumulate_grad_batches", [1, 2])
+def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infinite_dataset, accumulate_grad_batches):
     data_samples_train = 4
     max_epochs = 3
     max_steps = data_samples_train * max_epochs
+    max_opt_steps = max_steps // accumulate_grad_batches
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -74,7 +75,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
             self.validation_called_at_step = set()
 
         def validation_step(self, *args):
-            self.validation_called_at_step.add(self.global_step)
+            self.validation_called_at_step.add(self.trainer.fit_loop.total_batch_idx + 1)
             return super().validation_step(*args)
 
         def train_dataloader(self):
@@ -89,16 +90,17 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
     trainer = Trainer(
         default_root_dir=tmpdir,
         limit_val_batches=1,
-        max_steps=max_steps,
+        max_steps=max_opt_steps,
         val_check_interval=3,
         check_val_every_n_epoch=None,
         num_sanity_val_steps=0,
+        accumulate_grad_batches=accumulate_grad_batches,
     )
 
     trainer.fit(model)
 
     assert trainer.current_epoch == 1 if use_infinite_dataset else max_epochs
-    assert trainer.global_step == max_steps
+    assert trainer.global_step == max_opt_steps
     assert sorted(list(model.validation_called_at_step)) == [3, 6, 9, 12]
 
 

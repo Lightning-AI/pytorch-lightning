@@ -39,16 +39,15 @@ class FileUploader:
         self.total_size = total_size
         self.name = name
 
-    @staticmethod
-    def upload_s3_data(url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
-        """Send data to s3 url.
+    def upload_data(self, url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
+        """Send data to url.
 
         Parameters
         ----------
         url: str
-            S3 url string to send data to
+            url string to send data to
         data: bytes
-             Bytes of data to send to S3
+             Bytes of data to send to url
         retries: int
             Amount of retries
         disconnect_retry_wait_seconds: int
@@ -65,15 +64,18 @@ class FileUploader:
                 retries = Retry(total=10)
                 with requests.Session() as s:
                     s.mount("https://", HTTPAdapter(max_retries=retries))
-                    response = s.put(url, data=data)
-                    if "ETag" not in response.headers:
-                        raise ValueError(f"Unexpected response from S3, response: {response.content}")
-                    return response.headers["ETag"]
+                    return self._upload_data(s, url, data)
             except BrokenPipeError:
                 time.sleep(disconnect_retry_wait_seconds)
                 disconnect_retries -= 1
 
         raise ValueError("Unable to upload file after multiple attempts")
+
+    def _upload_data(self, s: requests.Session, url: str, data: bytes):
+        resp = s.put(url, data=data)
+        if "ETag" not in resp.headers:
+            raise ValueError(f"Unexpected response from {url}, response: {resp.content}")
+        return resp.headers["ETag"]
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""
@@ -82,7 +84,7 @@ class FileUploader:
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
-            self.upload_s3_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
+            self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
             self.progress.update(task_id, advance=len(data))
         finally:
             self.progress.stop()

@@ -5,17 +5,19 @@
 # the repo. Unless a later match takes precedence,
 # @global-owner1 and @global-owner2 will be requested for
 # review when someone opens a pull request.
-* @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11 @rohitgr7
+* @williamfalcon @borda @tchaton @awaelchli
 
 # CI/CD and configs
-/.github/       @borda @carmocca @akihironitta @tchaton
-/dockers/       @borda @carmocca @akihironitta @tchaton
-*.yml           @borda @carmocca @akihironitta @tchaton
+/.actions/      @borda @carmocca @akihironitta
+/.github/       @borda @carmocca @akihironitta
+/.azure/        @borda @carmocca @akihironitta
+/dockers/       @borda @carmocca @akihironitta
+*.yml           @borda @carmocca @akihironitta
 
 # Docs
 /docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                               @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton
+/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton @awaelchli
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
@@ -25,51 +27,32 @@
 /docs/source-app/index.rst                  @williamfalcon
 /docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
 
-# Packages
-/src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
-/src/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
-/src/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
-/src/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
-/src/pytorch_lightning/loggers              @tchaton @awaelchli @borda
-/src/pytorch_lightning/loggers/wandb.py     @borisdayma
-/src/pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
-/src/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
-/src/pytorch_lightning/overrides            @tchaton @SeanNaren @borda
-/src/pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
-/src/pytorch_lightning/profilers            @williamfalcon @tchaton @borda @carmocca
-/src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng
-/src/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
-/src/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
-/src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
-/src/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
+# PyTorch Lightning
+/src/pytorch_lightning                      @williamfalcon @awaelchli @carmocca @justusschock
+/tests/tests_pytorch                        @awaelchli @carmocca @justusschock
 
-/src/lightning_app                           @tchaton @awaelchli @manskx @hhsecond
+# Core APIs
+/src/pytorch_lightning/callbacks/callback.py @williamfalcon @awaelchli @carmocca
+/src/pytorch_lightning/core/datamodule.py    @williamFalcon @awaelchli @carmocca
+/src/pytorch_lightning/trainer/trainer.py    @williamfalcon @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
-# Examples
-/examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
-# App tests
-/tests/tests_app                          @tchaton @awaelchli @manskx @hhsecond
-/tests/tests_app_examples                 @tchaton @awaelchli @manskx @hhsecond
+# Lightning Lite
+/src/lightning_lite                         @awaelchli @carmocca @justusschock
+/tests/tests_lite                           @awaelchli @carmocca @justusschock
 
-# Specifics
-/src/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
-/src/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
+# Lightning App
+/src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/tests/tests_app                            @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/tests/tests_app_examples                   @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/examples/app_*                             @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
 
-# API
-/src/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
-/src/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
-/src/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
-
-# Testing
-/tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
-
-/.github/CODEOWNERS              @williamfalcon
-/.github/approve_config.yml      @williamfalcon
-/SECURITY.md                     @williamfalcon
-/README.md                       @williamfalcon @edenlightning @borda
-/setup.py                        @williamfalcon @borda @carmocca
+/.github/CODEOWNERS                  @williamfalcon
+/SECURITY.md                         @williamfalcon
+/README.md                           @williamfalcon @edenlightning @borda
+/setup.py                            @williamfalcon @borda @carmocca
 /src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
+/src/lightning_app/__about__.py      @williamfalcon @borda
+/src/lightning_lite/__about__.py     @williamfalcon @borda @awaelchli
+/src/*/__setup__.py                  @borda @carmocca

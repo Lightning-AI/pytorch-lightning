@@ -1,8 +1,9 @@
 import pytest
 
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 @pytest.mark.parametrize(
@@ -37,7 +38,23 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
 
 
 def test_max_epochs_not_set_warning():
-    """Test that a warning is emitted when `max_epochs` was not set by the user."""
-    with pytest.warns(PossibleUserWarning, match="`max_epochs` was not set. Setting it to 1000 epochs."):
-        trainer = Trainer(max_epochs=None)
-        assert trainer.max_epochs == 1000
+    """Test that a warning is only emitted when `max_epochs` was not set by the user."""
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            self.trainer.should_stop = True
+
+    match = "`max_epochs` was not set. Setting it to 1000 epochs."
+
+    model = CustomModel()
+    model.training_epoch_end = None
+    trainer = Trainer(max_epochs=None, limit_train_batches=1)
+    with pytest.warns(PossibleUserWarning, match=match):
+        trainer.fit(model)
+
+    assert trainer.max_epochs == 1000
+    assert trainer.current_epoch == 1
+
+    with no_warning_call(expected_warning=PossibleUserWarning, match=match):
+        Trainer(fast_dev_run=True)
+        Trainer(fast_dev_run=1)

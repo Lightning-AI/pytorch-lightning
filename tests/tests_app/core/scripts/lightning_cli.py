@@ -5,9 +5,7 @@ if _is_torch_available():
     from torch.utils.data import DataLoader, Dataset
 
 if _is_pytorch_lightning_available():
-    from pytorch_lightning import LightningDataModule, LightningModule
-    from pytorch_lightning.utilities import cli
-
+    from pytorch_lightning import cli, LightningDataModule, LightningModule
 
 if __name__ == "__main__":
 

@@ -14,18 +14,18 @@
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import DataParallel, Module
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO
+from lightning_lite.utilities.distributed import ReduceOp
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.data_parallel import LightningParallelModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast, TReduce
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -38,7 +38,7 @@ class DataParallelStrategy(ParallelStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -125,7 +125,7 @@ class DataParallelStrategy(ParallelStrategy):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         return decision
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:

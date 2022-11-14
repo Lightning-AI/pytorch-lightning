@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 from datetime import timedelta
-from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
@@ -23,7 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -59,7 +59,7 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-class CustomSpawnLauncher(_SpawnLauncher):
+class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("test_val")
         return super().add_to_queue(trainer, queue)
@@ -71,7 +71,7 @@ class CustomSpawnLauncher(_SpawnLauncher):
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self):
-        self._launcher = CustomSpawnLauncher(self)
+        self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
@@ -135,29 +135,24 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
     trainer.strategy.connect(model)
     trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
-    temp_file = Path(tmpdir, ".temp.ckpt")
 
-    assert not temp_file.exists()
     spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
 
     model.state_dict.assert_called_once()
     if trainer_fn == TrainerFn.FITTING:
-        assert spawn_output.weights_path == str(temp_file)
-        assert temp_file.exists()
+        assert spawn_output.weights_path.endswith(".temp.ckpt")
+        assert os.path.isfile(spawn_output.weights_path)
     else:
         assert spawn_output.weights_path is None
-        assert not temp_file.exists()
 
     # <-- here would normally be the multiprocessing boundary
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
-    assert not temp_file.exists()
 
 
-@RunIf(min_cuda_gpus=1)
 @mock.patch("torch.distributed.init_process_group")
 def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
-    """Tests with ddp strategy."""
+    """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
     test_timedelta = timedelta(seconds=30)
     model = BoringModel()
     ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
@@ -170,7 +165,6 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
-    trainer.strategy._worker_setup(0)
 
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
@@ -178,3 +172,25 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     mock_init_process_group.assert_called_with(
         process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
+
+
+@pytest.mark.parametrize(
+    "strategy_name,expected_ddp_kwargs",
+    [
+        ("ddp_spawn", {}),
+        pytest.param("ddp_fork", {}, marks=RunIf(skip_windows=True)),
+        pytest.param("ddp_notebook", {}, marks=RunIf(skip_windows=True)),
+        ("ddp_spawn_find_unused_parameters_false", {"find_unused_parameters": False}),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false", {"find_unused_parameters": False}, marks=RunIf(skip_windows=True)
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            {"find_unused_parameters": False},
+            marks=RunIf(skip_windows=True),
+        ),
+    ],
+)
+def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
+    trainer = Trainer(strategy=strategy_name)
+    assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs

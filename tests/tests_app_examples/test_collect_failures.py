@@ -2,8 +2,8 @@ import os
 from time import sleep
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
+from lightning_app import _PROJECT_ROOT
 from lightning_app.testing.testing import run_app_in_cloud
 
 
@@ -26,6 +26,7 @@ def test_collect_failures_example_cloud() -> None:
         _,
         _,
         fetch_logs,
+        _,
     ):
         last_found_log_index = -1
         while len(expected_logs) != 0:

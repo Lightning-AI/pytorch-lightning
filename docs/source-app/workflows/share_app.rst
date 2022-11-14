@@ -30,4 +30,4 @@ Run local:
 
     lightning run app app.py
 
-then use one of the many guides to `expose a tunnel <https://medium.com/botfuel/how-to-expose-a-local-development-server-to-the-internet-c31532d741cc>`.
+And then, use one of the many guides to `expose a tunnel <https://medium.com/botfuel/how-to-expose-a-local-development-server-to-the-internet-c31532d741cc>`_.

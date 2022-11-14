@@ -3,101 +3,114 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ⚡ Lightning AI
-==========================
+#######################
+Welcome to ⚡ Lightning
+#######################
+Build models, ML components and full stack AI apps ⚡ *Lightning fast*.
 
-.. twocolumns::
-   :left:
-      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
-         :alt: Animation showing how to convert a standard training loop to a Lightning loop
-   :right:
-      PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
-      Lightning evolves with you as your projects go from idea to paper/production.
+.. join_slack::
+   :align: left
+
+**Featured examples of what you can do with Lightning:**
+
+|
 
 .. raw:: html
 
-   <div class="row" style='font-size: 14px'>
-      <div class='col-md-6'>
-      </div>
-      <div class='col-md-6'>
+   <div>
+      <div class="row" style="display:flex; align-items: center; justify-content: center; gap: 10px">
 
-.. join_slack::
-   :align: center
-   :margin: 0
+.. app_card::
+   :title: Develop and Train
+   :description: Train a model (32 GPUs)
+   :width: 280
+   :image: https://lightning-ai-docs.s3.amazonaws.com/develop_n_train_v1.jpg
+   :target: levels/basic/real_lightning_component_implementations.html#ex-pytorch-lightning-trainer
+   :preview: levels/basic/real_lightning_component_implementations.html#ex-pytorch-lightning-trainer
+   :tags: Training
+
+.. app_card::
+   :title: Serve and deploy
+   :description: Production diffusion server (<2s latency)
+   :width: 280
+   :app_id: HvUwbEG90E
+   :image: https://lightning-ai-docs.s3.amazonaws.com/serve_n_deploy_v1.jpg
+   :deploy: https://lightning.ai
+   :target: https://01gbx4m78rbkpczdf5cpz2hpbh.litng-ai-03.litng.ai/root.api_component/
+   :tags: Serving
+
+.. app_card::
+   :title: Scale and build a product
+   :description: Production-ready generative AI app
+   :width: 280
+   :app_id: HvUwbEG90E
+   :image: https://lightning-ai-docs.s3.amazonaws.com/scale_n_build_v1.jpg
+   :target: https://lightning.ai/muse
+   :tags: AI App
 
 .. raw:: html
 
       </div>
    </div>
 
+----
+
+********************************
+Build self-contained, components
+********************************
+Use Lightning, the hyper-minimalistic framework, to build machine learning components that can plug into existing ML workflows.
+A Lightning component organizes arbitrary code to run on the cloud, manage its own infrastructure, cloud costs, networking, and more.
+Focus on component logic and not engineering.
+
+Use components on their own, or compose them into full-stack AI apps with our next-generation Lightning orchestrator.
 
 .. raw:: html
 
-   <hr class="docutils" style="margin: 50px 0 50px 0">
+   <div style="display: flex; align-items: center; justify-content: center;">
+      <img src="https://lightning-ai-docs.s3.amazonaws.com/intro_components.gif" style="max-width: 800px"></img>
+   </div>
 
+|
 
-Install Lightning
------------------
+|
 
+**Run an example component on the cloud**:
 
-..
-   .. raw:: html
+.. include:: ./levels/basic/hero_components.rst
 
-      <div class="row" style='font-size: 16px'>
-         <div class='col-md-6'>
+|
 
-Make sure you use Python 3.8+
+Components run the same on the cloud and locally on your choice of hardware.
 
-.. code-block:: bash
+.. lit_tabs::
+   :code_files: landing_app_run.bash
+   :highlights: 5
+   :height: 150px
+   :code_only: True
 
-   python -m pip install -U lightning
+Explore pre-built community components in `our gallery <https://lightning.ai/components>`_.
 
-..
-   .. raw:: html
-
-         </div>
-         <div class='col-md-6'>
-
-   Conda users
-
-   .. code-block:: bash
-
-       Available after June 16th
-
-   .. raw:: html
-
-         </div>
-      </div>
+|
 
 .. raw:: html
 
-   <hr class="docutils" style="margin: 50px 0 50px 0">
-
-Get Started
------------
-
-.. raw:: html
-
-    <div class="tutorials-callout-container">
+    <div class="display-card-container" style="padding: 0 20px 0 20px">
         <div class="row">
 
 .. Add callout items below this line
 
-.. customcalloutitem::
-   :header: Build a Lightning App in 15 minutes
-   :description: Learn the 4 key steps to build a Lightning app.
-   :button_link:  pages/lightning_apps_intro.html
+.. displayitem::
+   :header: Get started
+   :description: Learn to build Lightning components step-by-step.
+   :col_css: col-md-12
+   :button_link: levels/basic/index.html
+   :height: 160
+   :tag: 10 minutes
 
 .. raw:: html
 
         </div>
     </div>
-
-.. End of callout item section
-
-.. raw:: html
-
-   <hr class="docutils" style="margin: 50px 0 50px 0">
 
 .. raw:: html
 
@@ -105,11 +118,18 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
-   :caption: Get Started
+   :caption: Home
 
-   pages/lightning_apps_intro
-   pages/installation
+   self
+   Install <install/installation>
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Get started in steps
+
+   Basic <levels/basic/index>
+   Intermediate <levels/intermediate/index>
+   Advanced <levels/advanced/index>
 
 .. toctree::
    :maxdepth: 1
@@ -130,57 +150,10 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
-   :caption: App development workflows
+   :caption: More
 
-   Access the app state <workflows/access_app_state>
-   Add a web user interface (UI) <workflows/add_web_ui/index>
-   Add a web link  <workflows/add_web_link>
-   Arrange app tabs <workflows/arrange_tabs/index>
-   Build a Lightning app <workflows/build_lightning_app/index>
-   Build a Lightning component <workflows/build_lightning_component/index>
-   Extend an existing app <workflows/extend_app>
-   Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
-   Run a server within a Lightning App <workflows/add_server/index>
-   Run an app on the cloud <workflows/run_app_on_cloud/index>
-   Run work in parallel <workflows/run_work_in_parallel>
-   Share an app  <workflows/share_app>
-   Share files between components <workflows/share_files_between_components>
-   [Docs under construction] Add a Lightning component  <workflows/add_components/index>
-   [Docs under construction] Debug a distributed cloud app locally <workflows/debug_locally>
-   [Docs under construction] Enable fault tolerance  <workflows/enable_fault_tolerance>
-   [Docs under construction] Run components on different hardware  <workflows/run_components_on_different_hardware>
-   Cache Work run calls  <workflows/run_work_once>
-   [Docs under construction] Schedule app runs  <workflows/schedule_apps>
-   [Docs under construction] Test an app  <workflows/test_an_app>
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Hands-on Examples [Docs under construction]
-
-   Build a sweeps app <tutorials/hpo/hpo.rst>
-   Build a data exploring app  <examples/data_explore_app>
-   Build a DAG  <examples/dag/dag>
-   Build a ETL app  <examples/etl_app>
-   Build a model deployment app  <examples/model_deploy_app>
-   Build a research demo app  <examples/research_demo_app>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Glossary [Docs under construction]
-
-
-   App Components Tree <glossary/app_tree>
-   Build Configuration <glossary/build_config/build_config>
-   DAG <glossary/dag>
-   Debug an app <glossary/debug_app>
-   Distributed front-ends <glossary/distributed_fe>
-   Distributed hardware <glossary/distributed_hardware>
-   Event loop <glossary/event_loop>
-   Environment Variables <glossary/environment_variables>
-   Fault tolerance <glossary/fault_tolerance>
-   Front-end <workflows/add_web_ui/glossary_front_end.rst>
-   Sharing Components <glossary/sharing_components>
-   Scheduling <glossary/scheduling.rst>
-   Storage <glossary/storage/storage.rst>
-   UI <workflows/add_web_ui/glossary_ui.rst>
+   Start from component templates <https://lightning.ai/components>
+   Start from app templates <https://lightning.ai/apps>
+   Examples <examples/index>
+   Glossary <glossary/index>
+   How-to <workflows/index>

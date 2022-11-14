@@ -259,3 +259,21 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_finalize_when_exception(*_):
+    logger = MLFlowLogger("test")
+
+    # Pretend we are on the main process and failing
+    assert logger._mlflow_client
+    assert not logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_not_called()
+
+    # Pretend we are in a worker process and failing
+    _ = logger.experiment
+    assert logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_called_once_with(logger.run_id, "FAILED")

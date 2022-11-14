@@ -15,7 +15,7 @@ import pickle
 from argparse import Namespace
 from copy import deepcopy
 from typing import Any, Dict, Optional
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -23,75 +23,12 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import Logger, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-
-
-def test_logger_collection():
-    mock1 = MagicMock()
-    mock2 = MagicMock()
-
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        logger = LoggerCollection([mock1, mock2])
-
-    assert logger[0] == mock1
-    assert logger[1] == mock2
-
-    assert logger.experiment[0] == mock1.experiment
-    assert logger.experiment[1] == mock2.experiment
-
-    assert logger.save_dir is None
-
-    logger.update_agg_funcs({"test": np.mean}, np.sum)
-    mock1.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
-    mock2.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
-
-    logger.log_metrics(metrics={"test": 2.0}, step=4)
-    mock1.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
-    mock2.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
-
-    logger.finalize("success")
-    mock1.finalize.assert_called_once()
-    mock2.finalize.assert_called_once()
-
-
-def test_logger_collection_unique_names():
-    unique_name = "name1"
-    logger1 = CustomLogger(name=unique_name)
-    logger2 = CustomLogger(name=unique_name)
-
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        logger = LoggerCollection([logger1, logger2])
-
-    assert logger.name == unique_name
-
-
-def test_logger_collection_names_order():
-    loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        logger = LoggerCollection(loggers)
-    assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
-
-
-def test_logger_collection_unique_versions():
-    unique_version = "1"
-    logger1 = CustomLogger(version=unique_version)
-    logger2 = CustomLogger(version=unique_version)
-
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        logger = LoggerCollection([logger1, logger2])
-
-    assert logger.version == unique_version
-
-
-def test_logger_collection_versions_order():
-    loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        logger = LoggerCollection(loggers)
-    assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
+from tests_pytorch.helpers.runif import RunIf
 
 
 class CustomLogger(Logger):
@@ -229,25 +166,6 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
-
-
-def test_dummyexperiment_support_indexing():
-    """Test that the DummyExperiment can imitate indexing the experiment in a LoggerCollection."""
-    experiment = DummyExperiment()
-    assert experiment[0] == experiment
-
-
-def test_dummylogger_support_indexing():
-    """Test that the DummyLogger can imitate indexing of a LoggerCollection."""
-    logger = DummyLogger()
-    assert logger[0] == logger
-
-
-def test_dummylogger_empty_iterable():
-    """Test that DummyLogger represents an empty iterable."""
-    logger = DummyLogger()
-    for _ in logger:
-        assert False
 
 
 def test_dummylogger_noop_method_calls():
@@ -403,3 +321,29 @@ def test_log_hyperparams_key_collision(log_hyperparams_mock, tmpdir):
     )
     with pytest.raises(MisconfigurationException, match="Error while merging hparams"):
         trainer.fit(model, dm)
+
+
+@RunIf(min_python="3.8")
+@pytest.mark.parametrize("save_top_k", [0, 1, 2, 5])
+@patch("pytorch_lightning.callbacks.ModelCheckpoint")
+def test_scan_checkpoints(checkpoint_callback_mock, tmpdir, save_top_k: int):
+    """Checks if the expected number of checkpoints is returned."""
+    # Test first condition of _scan_checkpoints: if c[1] not in logged_model_time.keys()
+    # Test if the returned list of checkpoints has length save_top_k
+    best_k_models = {}
+    for i in range(save_top_k):
+        ckpt_path = tmpdir / f"{i}.ckpt"
+        ckpt_path.write("")
+        best_k_models[ckpt_path] = i
+    checkpoint_callback_mock.best_k_models = best_k_models
+
+    logged_model_time = {}
+    checkpoints = _scan_checkpoints(checkpoint_callback_mock, logged_model_time)
+    assert len(checkpoints) == save_top_k
+
+    # Test second condition of _scan_checkpoints: or logged_model_time[c[1]] < c[0]]
+    # Test if the returned list of checkpoints has still size 0
+    for c in checkpoints:
+        logged_model_time[c[1]] = c[0] + 1000
+    checkpoints = _scan_checkpoints(checkpoint_callback_mock, logged_model_time)
+    assert len(checkpoints) == 0

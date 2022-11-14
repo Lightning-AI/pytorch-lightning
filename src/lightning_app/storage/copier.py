@@ -1,25 +1,27 @@
 import concurrent.futures
-import logging
 import pathlib
 import threading
 from threading import Thread
 from time import time
-from typing import Optional, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 from fsspec.implementations.local import LocalFileSystem
 
-import lightning_app
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.path import filesystem
-from lightning_app.storage.requests import ExistsRequest, GetRequest
+from lightning_app.storage.path import _filesystem
+from lightning_app.storage.requests import _ExistsRequest, _GetRequest
+from lightning_app.utilities.app_helpers import Logger
 
-_PathRequest = Union[GetRequest, ExistsRequest]
-_logger = logging.getLogger(__name__)
+_PathRequest = Union[_GetRequest, _ExistsRequest]
+
+_logger = Logger(__name__)
 
 num_workers = 8
+if TYPE_CHECKING:
+    import lightning_app
 
 
-class Copier(Thread):
+class _Copier(Thread):
     """The Copier is a thread running alongside a LightningWork.
 
     It maintains two queues that connect to the central
@@ -66,9 +68,9 @@ class Copier(Thread):
             # If it's not a path, it must be a payload
             obj: lightning_app.storage.Payload = getattr(self._work, request.name)
 
-        if isinstance(request, ExistsRequest):
+        if isinstance(request, _ExistsRequest):
             response = obj._handle_exists_request(self._work, request)
-        elif isinstance(request, GetRequest):
+        elif isinstance(request, _GetRequest):
             response = obj._handle_get_request(self._work, request)
         else:
             raise TypeError(
@@ -80,14 +82,14 @@ class Copier(Thread):
         self.copy_response_queue.put(response)
 
 
-def _find_matching_path(work, request: GetRequest) -> Optional[lightning_app.storage.Path]:
+def _find_matching_path(work, request: _GetRequest) -> Optional["lightning_app.storage.Path"]:
     for name in work._paths:
         candidate: lightning_app.storage.Path = getattr(work, name)
         if candidate.hash == request.hash:
             return candidate
 
 
-def copy_files(source_path: pathlib.Path, destination_path: pathlib.Path) -> None:
+def _copy_files(source_path: pathlib.Path, destination_path: pathlib.Path) -> None:
     """Copy files from one path to another.
 
     The source path must either be an existing file or folder. If the source is a folder, the destination path is
@@ -95,7 +97,7 @@ def copy_files(source_path: pathlib.Path, destination_path: pathlib.Path) -> Non
 
     Files in a folder are copied recursively and efficiently using multiple threads.
     """
-    fs = filesystem()
+    fs = _filesystem()
 
     def _copy(from_path: pathlib.Path, to_path: pathlib.Path) -> Optional[Exception]:
         _logger.debug(f"Copying {str(from_path)} -> {str(to_path)}")

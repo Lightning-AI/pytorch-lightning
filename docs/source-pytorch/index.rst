@@ -1,8 +1,3 @@
-.. PyTorch-Lightning documentation master file, created by
-   sphinx-quickstart on Fri Nov 15 07:48:22 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to ⚡ PyTorch Lightning
 ===============================
 
@@ -130,7 +125,7 @@ Current Lightning Users
    :button_link: tutorials.html
 
 .. customcalloutitem::
-   :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
+   :description: Learn how to do everything from hyper-parameters sweeps to cloud training to Pruning and Quantization with Lightning.
    :header: Common Workflows
    :button_link: common_usecases.html
 
@@ -192,11 +187,10 @@ Current Lightning Users
 
    Avoid overfitting <common/evaluation>
    model/build_model.rst
-   common/hyperparameters
+   cli/lightning_cli
    common/progress_bar
    deploy/production
    advanced/training_tricks
-   cli/lightning_cli
    tuning/profiler
    Manage experiments <visualize/logging_intermediate>
    Organize existing PyTorch into Lightning <starter/converting>
@@ -287,8 +281,14 @@ Current Lightning Users
    generated/CONTRIBUTING.md
    generated/BECOMING_A_CORE_CONTRIBUTOR.md
    governance
+   versioning
    generated/CHANGELOG.md
 
 .. raw:: html
 
    </div>
+
+.. PyTorch-Lightning documentation master file, created by
+   sphinx-quickstart on Fri Nov 15 07:48:22 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.

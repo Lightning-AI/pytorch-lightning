@@ -17,13 +17,16 @@ import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
+from typing import List
 
 import pytest
 import torch.distributed
 
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
+import lightning_lite
+import pytorch_lightning
+from lightning_lite.plugins.environments.lightning import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -69,17 +72,9 @@ def restore_env_variables():
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
-        # set by XLA
-        "TF2_BEHAVIOR",
-        "XRT_MESH_SERVICE_ADDRESS",
-        "XRT_TORCH_DIST_ROOT",
-        "XRT_MULTI_PROCESSING_DEVICE",
-        "XRT_SHARD_WORLD_SIZE",
-        "XRT_LOCAL_WORKER",
-        "XRT_HOST_WORLD_SIZE",
-        "XRT_SHARD_ORDINAL",
-        "XRT_SHARD_LOCAL_ORDINAL",
-        "TF_CPP_MIN_LOG_LEVEL",
+        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
+        "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
+        "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -117,6 +112,80 @@ def reset_deterministic_algorithm():
     torch.use_deterministic_algorithms(False)
 
 
+def mock_cuda_count(monkeypatch, n: int) -> None:
+    monkeypatch.setattr(lightning_lite.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
+    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_0(monkeypatch):
+    mock_cuda_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_1(monkeypatch):
+    mock_cuda_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_2(monkeypatch):
+    mock_cuda_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def cuda_count_4(monkeypatch):
+    mock_cuda_count(monkeypatch, 4)
+
+
+def mock_mps_count(monkeypatch, n: int) -> None:
+    if n > 0 and not _TORCH_GREATER_EQUAL_1_12:
+        # torch doesn't allow creation of mps devices on older versions
+        monkeypatch.setattr("torch.device", lambda *_: "mps")
+    monkeypatch.setattr(lightning_lite.accelerators.mps, "_get_all_available_mps_gpus", lambda: list(range(n)))
+    monkeypatch.setattr(lightning_lite.accelerators.mps.MPSAccelerator, "is_available", lambda *_: n > 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_0(monkeypatch):
+    mock_mps_count(monkeypatch, 0)
+
+
+@pytest.fixture(scope="function")
+def mps_count_1(monkeypatch):
+    mock_mps_count(monkeypatch, 1)
+
+
+@pytest.fixture(scope="function")
+def mps_count_2(monkeypatch):
+    mock_mps_count(monkeypatch, 2)
+
+
+@pytest.fixture(scope="function")
+def mps_count_4(monkeypatch):
+    mock_mps_count(monkeypatch, 4)
+
+
+@pytest.fixture(scope="function")
+def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.tpu_spawn, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.single_tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.plugins.precision.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(pytorch_lightning.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.io.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
+
+
+@pytest.fixture(scope="function")
+def tpu_available(xla_available, monkeypatch) -> None:
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+
+
 @pytest.fixture
 def caplog(caplog):
     """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
@@ -125,11 +194,23 @@ def caplog(caplog):
     """
     import logging
 
-    lightning_logger = logging.getLogger("pytorch_lightning")
-    propagate = lightning_logger.propagate
-    lightning_logger.propagate = True
+    root_logger = logging.getLogger()
+    root_propagate = root_logger.propagate
+    root_logger.propagate = True
+
+    propagation_dict = {
+        name: logging.getLogger(name).propagate
+        for name in logging.root.manager.loggerDict
+        if name.startswith("pytorch_lightning")
+    }
+    for name in propagation_dict.keys():
+        logging.getLogger(name).propagate = True
+
     yield caplog
-    lightning_logger.propagate = propagate
+
+    root_logger.propagate = root_propagate
+    for name, propagate in propagation_dict.items():
+        logging.getLogger(name).propagate = propagate
 
 
 @pytest.fixture
@@ -169,32 +250,64 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items):
-    # filter out special tests
-    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(standalone=True)`
-            if marker.name == "skipif" and marker.kwargs.get("standalone")
-        ]
-    elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(slow=True)`
-            if marker.name == "skipif" and marker.kwargs.get("slow")
-        ]
-    elif os.getenv("PL_RUN_IPU_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(ipu=True)`
-            if marker.name == "skipif" and marker.kwargs.get("ipu")
-        ]
+def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config) -> None:
+    initial_size = len(items)
+    conditions = []
+    filtered, skipped = 0, 0
+
+    options = dict(
+        standalone="PL_RUN_STANDALONE_TESTS",
+        min_cuda_gpus="PL_RUN_CUDA_TESTS",
+        slow="PL_RUN_SLOW_TESTS",
+        ipu="PL_RUN_IPU_TESTS",
+        tpu="PL_RUN_TPU_TESTS",
+    )
+    if os.getenv(options["standalone"], "0") == "1" and os.getenv(options["min_cuda_gpus"], "0") == "1":
+        # special case: we don't have a CPU job for standalone tests, so we shouldn't run only cuda tests.
+        # by deleting the key, we avoid filtering out the CPU tests
+        del options["min_cuda_gpus"]
+
+    for kwarg, env_var in options.items():
+        # this will compute the intersection of all tests selected per environment variable
+        if os.getenv(env_var, "0") == "1":
+            conditions.append(env_var)
+            for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
+                already_skipped = any(marker.name == "skip" for marker in test.own_markers)
+                if already_skipped:
+                    # the test was going to be skipped anyway, filter it out
+                    items.pop(i)
+                    skipped += 1
+                    continue
+                has_runif_with_kwarg = any(
+                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+                )
+                if not has_runif_with_kwarg:
+                    # the test has `@RunIf(kwarg=True)`, filter it out
+                    items.pop(i)
+                    filtered += 1
+
+    if config.option.verbose >= 0 and (filtered or skipped):
+        writer = config.get_terminal_writer()
+        writer.write(
+            f"\nThe number of tests has been filtered from {initial_size} to {initial_size - filtered} after the"
+            f" filters {conditions}.\n{skipped} tests are marked as unconditional skips.\nIn total, {len(items)} tests"
+            " will run.\n",
+            flush=True,
+            bold=True,
+            purple=True,  # oh yeah, branded pytest messages
+        )
+
+    # error out on our deprecation warnings - ensures the code and tests are kept up-to-date
+    deprecation_error = pytest.mark.filterwarnings(
+        "error::lightning_lite.utilities.rank_zero.LightningDeprecationWarning",
+    )
+    for item in items:
+        item.add_marker(deprecation_error)
+
+    apex_deprecation = pytest.mark.filterwarnings("ignore:apex.amp is deprecated:FutureWarning")
+    for item in items:
+        if any(marker.name == "skipif" and marker.kwargs.get("amp_apex", False) for marker in item.own_markers):
+            item.add_marker(apex_deprecation)
 
 
 def pytest_addoption(parser):

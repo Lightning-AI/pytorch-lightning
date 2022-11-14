@@ -8,14 +8,14 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import extract_batch_size
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _LRScheduler, ReduceLROnPlateau
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 if _HIVEMIND_AVAILABLE:
     import hivemind
@@ -172,9 +172,9 @@ class HivemindStrategy(Strategy):
     @property
     def root_device(self) -> torch.device:
         from pytorch_lightning.accelerators.cpu import CPUAccelerator
-        from pytorch_lightning.accelerators.gpu import GPUAccelerator
+        from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 
-        if isinstance(self.accelerator, GPUAccelerator):
+        if isinstance(self.accelerator, CUDAAccelerator):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")

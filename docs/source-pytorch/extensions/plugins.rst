@@ -53,12 +53,13 @@ The full list of built-in precision plugins is listed below.
     :template: classtemplate.rst
 
     ApexMixedPrecisionPlugin
+    ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
@@ -87,6 +88,7 @@ Below is a list of built-in plugins for checkpointing.
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO

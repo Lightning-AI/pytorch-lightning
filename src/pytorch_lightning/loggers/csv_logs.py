@@ -169,7 +169,7 @@ class CSVLogger(Logger):
         """
         return self._save_dir
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
@@ -195,7 +195,7 @@ class CSVLogger(Logger):
         self.experiment.log_hparams(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.log_metrics(metrics, step)
         if step is not None and (step + 1) % self._flush_logs_every_n_steps == 0:
@@ -208,6 +208,10 @@ class CSVLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        if self._experiment is None:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         self.save()
 
     @property

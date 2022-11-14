@@ -22,7 +22,7 @@ class Dict(t.Dict[str, T]):
         .. doctest::
 
             >>> from lightning_app import LightningFlow, LightningWork
-            >>> from lightning_app.core import Dict
+            >>> from lightning_app.structures import Dict
             >>> class CounterWork(LightningWork):
             ...     def __init__(self):
             ...         super().__init__()
@@ -58,7 +58,10 @@ class Dict(t.Dict[str, T]):
     def __setitem__(self, k, v):
         from lightning_app import LightningFlow, LightningWork
 
-        if "." in k:
+        if not isinstance(k, str):
+            raise Exception("The provided key should be an string")
+
+        if isinstance(k, str) and "." in k:
             raise Exception(f"The provided name {k} contains . which is forbidden.")
 
         if self._backend:
@@ -67,7 +70,7 @@ class Dict(t.Dict[str, T]):
                 _set_child_name(self, v, k)
             elif isinstance(v, LightningWork):
                 self._backend._wrap_run_method(_LightningAppRef().get_current(), v)
-            v._name = f"{self.name}.{k}"
+        v._name = f"{self.name}.{k}"
         super().__setitem__(k, v)
 
     @property
@@ -83,12 +86,17 @@ class Dict(t.Dict[str, T]):
     @property
     def flows(self):
         from lightning_app import LightningFlow
+        from lightning_app.structures import Dict, List
 
-        flows = []
-        for flow in [item for item in self.values() if isinstance(item, LightningFlow)]:
-            flows.append(flow)
-            for child_flow in flow.flows:
-                flows.append(child_flow)
+        flows = {}
+        for item in self.values():
+            if isinstance(item, LightningFlow):
+                flows[item.name] = item
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
+            if isinstance(item, (Dict, List)):
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
         return flows
 
     @property

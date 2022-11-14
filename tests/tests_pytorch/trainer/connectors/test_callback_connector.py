@@ -16,6 +16,7 @@ import logging
 from unittest import mock
 from unittest.mock import Mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Callback, LightningModule, Trainer
@@ -28,15 +29,16 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _PYTHON_GREATER_EQUAL_3_10_0
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):
     """Test that checkpoint callbacks always get moved to the end of the list, with preserved order."""
-    checkpoint1 = ModelCheckpoint(tmpdir)
-    checkpoint2 = ModelCheckpoint(tmpdir)
+    checkpoint1 = ModelCheckpoint(tmpdir, monitor="foo")
+    checkpoint2 = ModelCheckpoint(tmpdir, monitor="bar")
     model_summary = ModelSummary()
     early_stopping = EarlyStopping(monitor="foo")
     lr_monitor = LearningRateMonitor()
@@ -56,7 +58,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     # no model callbacks
     model = LightningModule()
     model.configure_callbacks = lambda: []
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -72,7 +74,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: [checkpoint1, early_stopping, model_summary, checkpoint2]
     trainer = Trainer(callbacks=[progress_bar, lr_monitor, ModelCheckpoint(tmpdir)])
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
@@ -83,6 +85,25 @@ def test_checkpoint_callbacks_are_last(tmpdir):
         model_summary,
         checkpoint1,
         checkpoint2,
+    ]
+
+    # with tuner-specific callbacks that substitute ones in Trainer
+    model = LightningModule()
+    batch_size_finder = BatchSizeFinder()
+    model.configure_callbacks = lambda: [checkpoint2, early_stopping, batch_size_finder, model_summary, checkpoint1]
+    trainer = Trainer(callbacks=[progress_bar, lr_monitor])
+    trainer.strategy._lightning_module = model
+    cb_connector = CallbackConnector(trainer)
+    cb_connector._attach_model_callbacks()
+    assert trainer.callbacks == [
+        batch_size_finder,
+        progress_bar,
+        lr_monitor,
+        trainer.accumulation_scheduler,
+        early_stopping,
+        model_summary,
+        checkpoint2,
+        checkpoint1,
     ]
 
 
@@ -137,7 +158,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     assert "content1" in state2 and state2["content1"] == "two"
     assert (
         "ModelCheckpoint{'monitor': None, 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': True}" in ckpt["callbacks"]
+        " 'train_time_interval': None}" in ckpt["callbacks"]
     )
 
 
@@ -154,12 +175,13 @@ def test_attach_model_callbacks():
             enable_model_summary=False,
             callbacks=trainer_callbacks,
         )
-        trainer.model = model
+        trainer.strategy._lightning_module = model
         cb_connector = CallbackConnector(trainer)
         cb_connector._attach_model_callbacks()
         return trainer
 
-    early_stopping = EarlyStopping(monitor="foo")
+    early_stopping1 = EarlyStopping(monitor="red")
+    early_stopping2 = EarlyStopping(monitor="blue")
     progress_bar = TQDMProgressBar()
     lr_monitor = LearningRateMonitor()
     grad_accumulation = GradientAccumulationScheduler({1: 1})
@@ -169,40 +191,40 @@ def test_attach_model_callbacks():
     assert trainer.callbacks == [trainer.accumulation_scheduler]
 
     # callbacks of different types
-    trainer = _attach_callbacks(trainer_callbacks=[early_stopping], model_callbacks=[progress_bar])
-    assert trainer.callbacks == [early_stopping, trainer.accumulation_scheduler, progress_bar]
+    trainer = _attach_callbacks(trainer_callbacks=[early_stopping1], model_callbacks=[progress_bar])
+    assert trainer.callbacks == [early_stopping1, trainer.accumulation_scheduler, progress_bar]
 
     # same callback type twice, different instance
     trainer = _attach_callbacks(
-        trainer_callbacks=[progress_bar, EarlyStopping(monitor="foo")],
-        model_callbacks=[early_stopping],
+        trainer_callbacks=[progress_bar, EarlyStopping(monitor="red")],
+        model_callbacks=[early_stopping1],
     )
-    assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping]
+    assert trainer.callbacks == [progress_bar, trainer.accumulation_scheduler, early_stopping1]
 
     # multiple callbacks of the same type in trainer
     trainer = _attach_callbacks(
         trainer_callbacks=[
             LearningRateMonitor(),
-            EarlyStopping(monitor="foo"),
+            EarlyStopping(monitor="yellow"),
             LearningRateMonitor(),
-            EarlyStopping(monitor="foo"),
+            EarlyStopping(monitor="black"),
         ],
-        model_callbacks=[early_stopping, lr_monitor],
+        model_callbacks=[early_stopping1, lr_monitor],
     )
-    assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping, lr_monitor]
+    assert trainer.callbacks == [trainer.accumulation_scheduler, early_stopping1, lr_monitor]
 
     # multiple callbacks of the same type, in both trainer and model
     trainer = _attach_callbacks(
         trainer_callbacks=[
             LearningRateMonitor(),
             progress_bar,
-            EarlyStopping(monitor="foo"),
+            EarlyStopping(monitor="yellow"),
             LearningRateMonitor(),
-            EarlyStopping(monitor="foo"),
+            EarlyStopping(monitor="black"),
         ],
-        model_callbacks=[early_stopping, lr_monitor, grad_accumulation, early_stopping],
+        model_callbacks=[early_stopping1, lr_monitor, grad_accumulation, early_stopping2],
     )
-    assert trainer.callbacks == [progress_bar, early_stopping, lr_monitor, grad_accumulation, early_stopping]
+    assert trainer.callbacks == [progress_bar, early_stopping1, lr_monitor, grad_accumulation, early_stopping2]
 
 
 def test_attach_model_callbacks_override_info(caplog):
@@ -212,7 +234,7 @@ def test_attach_model_callbacks_override_info(caplog):
     trainer = Trainer(
         enable_checkpointing=False, callbacks=[EarlyStopping(monitor="foo"), LearningRateMonitor(), TQDMProgressBar()]
     )
-    trainer.model = model
+    trainer.strategy._lightning_module = model
     cb_connector = CallbackConnector(trainer)
     with caplog.at_level(logging.INFO):
         cb_connector._attach_model_callbacks()
@@ -265,7 +287,10 @@ def _make_entry_point_query_mock(callback_factory):
     entry_point = Mock()
     entry_point.name = "mocked"
     entry_point.load.return_value = callback_factory
-    if _PYTHON_GREATER_EQUAL_3_8_0:
+    if _PYTHON_GREATER_EQUAL_3_10_0:
+        query_mock.return_value = [entry_point]
+        import_path = "importlib.metadata.entry_points"
+    elif _PYTHON_GREATER_EQUAL_3_8_0:
         query_mock().get.return_value = [entry_point]
         import_path = "importlib.metadata.entry_points"
     else:
@@ -273,3 +298,19 @@ def _make_entry_point_query_mock(callback_factory):
         import_path = "pkg_resources.iter_entry_points"
     with mock.patch(import_path, query_mock):
         yield
+
+
+def test_validate_unique_callback_state_key():
+    """Test that we raise an error if the state keys collide, leading to missing state in the checkpoint."""
+
+    class MockCallback(Callback):
+        @property
+        def state_key(self):
+            return "same_key"
+
+        def state_dict(self):
+            # pretend these callbacks are stateful by overriding the `state_dict` hook
+            return {"state": 1}
+
+    with pytest.raises(RuntimeError, match="Found more than one stateful callback of type `MockCallback`"):
+        Trainer(callbacks=[MockCallback(), MockCallback()])

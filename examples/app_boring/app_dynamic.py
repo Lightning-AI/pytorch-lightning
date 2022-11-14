@@ -1,8 +1,8 @@
 import os
 
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage.path import Path
+from lightning.app.components import TracerPythonScript
+from lightning.app.storage import Path
 from lightning.app.structures import Dict
 
 FILE_CONTENT = """
@@ -64,4 +64,4 @@ class BoringApp(L.LightningFlow):
         return {"name": "Boring Tab", "content": self.dict["dst_w"].url + "/file" if "dst_w" in self.dict else ""}
 
 
-app = L.LightningApp(BoringApp())
+app = L.LightningApp(BoringApp(), log_level="debug")

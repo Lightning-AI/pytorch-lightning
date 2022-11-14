@@ -14,16 +14,15 @@
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.11
+ARG CUDA_VERSION=11.3.1
 
-FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
+FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}-cuda${CUDA_VERSION}
 
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/lightning/
-
-ENV PACKAGE_NAME=pytorch
 
 # install dependencies
 RUN \
@@ -40,7 +39,9 @@ RUN \
     fi && \
     # otherwise there is collision with folder name ans pkg name on Pypi
     cd lightning && \
-    pip install .["extra","loggers","strategies"] --no-cache-dir && \
+    # remove colossalai from requirements since they are installed separately
+    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \
     rm -rf lightning
 

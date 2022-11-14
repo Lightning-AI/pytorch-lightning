@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
 from torch import Tensor
@@ -27,9 +27,10 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
@@ -87,29 +88,28 @@ class TensorBoardLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
+        save_dir: _PATH,
         name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = "",
-        sub_dir: Optional[str] = None,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-        **kwargs,
+        sub_dir: Optional[_PATH] = None,
+        **kwargs: Any,
     ):
-        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
+        super().__init__()
+        save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
-        self._sub_dir = sub_dir
+        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
         self._log_graph = log_graph
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
-        self._experiment = None
-        self.hparams = {}
+        self._experiment: Optional["SummaryWriter"] = None
+        self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
 
     @property
@@ -138,7 +138,7 @@ class TensorBoardLogger(Logger):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
@@ -224,7 +224,7 @@ class TensorBoardLogger(Logger):
             writer.add_summary(sei)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
@@ -244,22 +244,28 @@ class TensorBoardLogger(Logger):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array=None):
-        if self._log_graph:
-            if input_array is None:
-                input_array = model.example_input_array
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+        if not self._log_graph:
+            return
 
-            if input_array is not None:
-                input_array = model._apply_batch_transfer_handler(input_array)
-                model._running_torchscript = True
+        input_array = model.example_input_array if input_array is None else input_array
+
+        if input_array is None:
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `model.example_input_array` attribute"
+                " is not set or `input_array` was not given."
+            )
+        elif not isinstance(input_array, (Tensor, tuple)):
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `input_array` or `model.example_input_array`"
+                f" has type {type(input_array)} which can't be traced by TensorBoard. Make the input array a tuple"
+                f" representing the positional arguments to the model's `forward()` implementation."
+            )
+        else:
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            with pl.core.module._jit_is_scripting():
                 self.experiment.add_graph(model, input_array)
-                model._running_torchscript = False
-            else:
-                rank_zero_warn(
-                    "Could not log computational graph since the"
-                    " `model.example_input_array` attribute is not set"
-                    " or `input_array` was not given",
-                )
 
     @rank_zero_only
     def save(self) -> None:
@@ -282,9 +288,13 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        self.experiment.flush()
-        self.experiment.close()
-        self.save()
+        if self._experiment is not None:
+            self.experiment.flush()
+            self.experiment.close()
+
+        if status == "success":
+            # saving hparams happens independent of experiment manager
+            self.save()
 
     @property
     def name(self) -> str:
@@ -296,7 +306,7 @@ class TensorBoardLogger(Logger):
         return self._name
 
     @property
-    def version(self) -> int:
+    def version(self) -> Union[int, str]:
         """Get the experiment version.
 
         Returns:
@@ -306,7 +316,7 @@ class TensorBoardLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         try:
@@ -333,7 +343,7 @@ class TensorBoardLogger(Logger):
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state
