@@ -58,7 +58,6 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 class Logger(ABC):
     """Base class for experiment loggers."""
 
-
     @property
     def state_key(self) -> str:
         """Identifier for the state of the logger.
