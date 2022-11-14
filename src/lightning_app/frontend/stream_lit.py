@@ -62,6 +62,7 @@ class StreamlitFrontend(Frontend):
 
     def start_server(self, host: str, port: int) -> None:
         env = os.environ.copy()
+        is_localhost = "LIGHTNING_APP_STATE_URL" not in env
         env["LIGHTNING_FLOW_NAME"] = self.flow.name
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
         env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__
@@ -83,10 +84,8 @@ class StreamlitFrontend(Frontend):
                     self.flow.name,
                     "--server.headless",
                     "true",  # do not open the browser window when running locally
-                    "--server.enableCORS",
-                    "true",
                     "--server.enableXsrfProtection",
-                    "false",
+                    "false" if is_localhost else "true",
                 ],
                 env=env,
                 stdout=stdout,
