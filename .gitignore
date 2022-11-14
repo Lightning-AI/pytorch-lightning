@@ -9,9 +9,6 @@ lightning_logs/
 # Documentations
 docs/source-app/generated
 docs/source-app/*/generated
-docs/source-lit/generated
-docs/source-lit/*/generated
-docs/source-lit/api
 docs/source-pytorch/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
@@ -52,6 +49,7 @@ wheels/
 .installed.cfg
 *.egg
 src/lightning/*/
+src/*/version.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -177,3 +175,7 @@ saved_models
 data/
 .shared
 .lightning
+node_modules/
+
+# instalation artifacts
+requirements/base.txt

@@ -5,9 +5,13 @@ on:
     branches: [master, "release/*"]
   pull_request_target:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]  # add `ready_for_review` since draft is skipped
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".github/workflows/tpu-tests.yml"
+      - "dockers/base-xla/*"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
+      - "tests/tests_lite/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -30,7 +34,7 @@ jobs:
     if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
-    timeout-minutes: 100  # should match the timeout in `tpu_test_cases.jsonnet`
+    timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:
     - uses: actions/checkout@v3
@@ -61,9 +65,9 @@ jobs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       python -c "fname = 'dockers/base-xla/tpu_workflow.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
        data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
-       cat dockers/tpu-tests/tpu_test_cases.jsonnet
+       cat dockers/base-xla/tpu_workflow.jsonnet
       shell: bash
 
     - uses: google-github-actions/auth@v0
@@ -79,7 +83,7 @@ jobs:
     - name: Deploy cluster
       run: |
         export PATH=$PATH:$HOME/go/bin
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -)
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow.jsonnet | kubectl create -f -)
         job_name=${job_name#job.batch/}
         job_name=${job_name% created}
         pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
@@ -100,10 +104,15 @@ jobs:
         done
         echo "Done waiting. Job status code: $status_code"
         kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
-        grep '<?xml version="1.0" ?>' /tmp/full_output.txt  # sanity check
-        csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'
-        cat xx00  # test logs
-        mv xx01 coverage.xml
+        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt; then
+          # successful run. split the output into logs + coverage report
+          csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/';
+          cat xx00  # test logs
+          mv xx01 coverage.xml
+        else
+          # failed run, print everything
+          cat /tmp/full_output.txt;
+        fi
         exit $status_code
       shell: bash
 

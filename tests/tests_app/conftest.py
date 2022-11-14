@@ -20,6 +20,8 @@ GITHUB_APP_URLS = {
     "template_react_ui": "https://github.com/Lightning-AI/lightning-template-react.git",
 }
 
+os.environ["LIGHTNING_DISPATCHED"] = "1"
+
 
 def pytest_sessionstart(*_):
     """Pytest hook that get called after the Session object has been created and before performing collection and
@@ -39,13 +41,16 @@ def pytest_sessionfinish(session, exitstatus):
     # TODO this isn't great. We should have each tests doing it's own cleanup
     current_process = psutil.Process()
     for child in current_process.children(recursive=True):
-        params = child.as_dict() or {}
-        cmd_lines = params.get("cmdline", [])
-        # we shouldn't kill the resource tracker from multiprocessing. If we do,
-        # `atexit` will throw as it uses resource tracker to try to clean up
-        if cmd_lines and "resource_tracker" in cmd_lines[-1]:
-            continue
-        child.kill()
+        try:
+            params = child.as_dict() or {}
+            cmd_lines = params.get("cmdline", [])
+            # we shouldn't kill the resource tracker from multiprocessing. If we do,
+            # `atexit` will throw as it uses resource tracker to try to clean up
+            if cmd_lines and "resource_tracker" in cmd_lines[-1]:
+                continue
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
 
     main_thread = threading.current_thread()
     for t in threading.enumerate():
