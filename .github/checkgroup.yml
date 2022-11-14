@@ -1,7 +1,4 @@
 custom_service_name: "Lightning CI required checker"
-# For security reasons, configuration is only loaded from the repository's default branch,
-# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
-# will only be used after they are merged.
 subprojects:
 
   # SECTION: pytorch_lightning
@@ -18,26 +15,25 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
     checks:
-      # Note: updates here should be applied to the lightning_lite group
-      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
-      - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.12)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13, pre)"
+      - "pl-cpu (macOS-11, pytorch, 3.8, 1.11)"
+      - "pl-cpu (macOS-11, pytorch, 3.9, 1.12)"
+      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13)"
+      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10, oldest)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.10)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.11)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.13, pre)"
+      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.13)"
+      - "pl-cpu (ubuntu-20.04, pytorch, 3.7, 1.10, oldest)"
       - "pl-cpu (windows-2022, pytorch, 3.9, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.11)"
       - "pl-cpu (windows-2022, pytorch, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, pytorch, 3.8, 1.13, pre)"
-      - "pl-cpu (macOS-11, lightning, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
+      - "pl-cpu (windows-2022, pytorch, 3.10, 1.13)"
+      - "pl-cpu (windows-2022, pytorch, 3.7, 1.10, oldest)"
       - "pl-cpu (slow, macOS-11, pytorch, 3.7, 1.11)"
       - "pl-cpu (slow, ubuntu-20.04, pytorch, 3.7, 1.11)"
       - "pl-cpu (slow, windows-2022, pytorch, 3.7, 1.11)"
+      - "pl-cpu (macOS-11, lightning, 3.8, 1.13)"
+      - "pl-cpu (ubuntu-20.04, lightning, 3.8, 1.13)"
+      - "pl-cpu (windows-2022, lightning, 3.8, 1.13)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -145,7 +141,7 @@ subprojects:
       - "build-pl (3.9, 1.10, 11.3.1)"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.6.1)"
-      # TODO: add 1.13
+      - "build-pl (3.9, 1.13, 11.6.1)"
       - "build-xla (3.7, 1.12)"
 
   # SECTION: lightning_lite
@@ -159,20 +155,22 @@ subprojects:
       - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
     checks:
-      - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
-      - "lite-cpu (macOS-11, lite, 3.8, 1.10)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.12)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.13, pre)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.11)"
+      - "lite-cpu (macOS-11, lite, 3.8, 1.11)"
+      - "lite-cpu (macOS-11, lite, 3.9, 1.12)"
+      - "lite-cpu (macOS-11, lite, 3.10, 1.13)"
+      - "lite-cpu (macOS-11, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.10)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.11)"
       - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.13, pre)"
-      - "lite-cpu (windows-2022, lite, 3.9, 1.10)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.11)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.13)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (windows-2022, lite, 3.9, 1.11)"
       - "lite-cpu (windows-2022, lite, 3.10, 1.12)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.13, pre)"
-      - "lite-cpu (macOS-11, lightning, 3.8, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
-      - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
+      - "lite-cpu (windows-2022, lite, 3.10, 1.13)"
+      - "lite-cpu (windows-2022, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (macOS-11, lightning, 3.8, 1.13)"
+      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.13)"
+      - "lite-cpu (windows-2022, lightning, 3.8, 1.13)"
 
   - id: "lightning_lite: Azure GPU"
     paths:
