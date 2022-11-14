@@ -58,7 +58,7 @@ with ``save_config_callback=None``.
 
     .. code:: python
 
-        cli = LightningCLI(DemoModel, BoringDataModule, save_config_kwargs={"config_filename": "name.yaml"})
+        cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
 
 
 ----

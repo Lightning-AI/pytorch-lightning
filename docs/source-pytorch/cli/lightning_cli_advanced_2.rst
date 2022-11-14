@@ -113,7 +113,7 @@ The Lightning CLI can convert every possible CLI flag into an environment variab
 
 .. code:: python
 
-    cli = LightningCLI(DemoModel, parser_kwargs={"default_env": True})
+    cli = LightningCLI(..., parser_kwargs={"default_env": True})
 
 now use the ``--help`` CLI flag with any subcommand:
 
