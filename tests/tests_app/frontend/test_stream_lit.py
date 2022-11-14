@@ -54,6 +54,8 @@ def test_streamlit_frontend_start_stop_server(subprocess_mock):
         "root.my.flow",
         "--server.headless",
         "true",
+        "--server.enableXsrfProtection",
+        "false",
     ]
 
     assert env_variables["LIGHTNING_FLOW_NAME"] == "root.my.flow"
