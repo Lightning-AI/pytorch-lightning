@@ -18,6 +18,7 @@ defaults:
 jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
   build-docs-deploy:
+    if: github.repository_owner == 'Lightning-AI'
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout 🛎️
