@@ -6,6 +6,7 @@ from typing import Callable, Optional
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_logfile
 
@@ -62,7 +63,6 @@ class StreamlitFrontend(Frontend):
 
     def start_server(self, host: str, port: int) -> None:
         env = os.environ.copy()
-        is_localhost = "LIGHTNING_APP_STATE_URL" not in env
         env["LIGHTNING_FLOW_NAME"] = self.flow.name
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
         env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__
@@ -85,7 +85,7 @@ class StreamlitFrontend(Frontend):
                     "--server.headless",
                     "true",  # do not open the browser window when running locally
                     "--server.enableXsrfProtection",
-                    "false" if is_localhost else "true",
+                    "true" if is_running_in_cloud() else "false",
                 ],
                 env=env,
                 stdout=stdout,
