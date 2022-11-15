@@ -95,14 +95,6 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
             lines = [line.replace(old, f"lightning/{new}") for line in lines]
-        # prune unnecessary requirement files. they have been aggregated into a single file already via
-        # `_load_aggregate_requirements()`
-        lines += [
-            "exclude requirements/docs.txt\n",
-            "prune requirements/app\n",
-            "prune requirements/lite\n",
-            "prune requirements/pytorch\n",
-        ]
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:

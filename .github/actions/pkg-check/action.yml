@@ -44,15 +44,6 @@ runs:
     run: for file in `ls *.gz`; do tar -xzf $file; done
     shell: bash
 
-  - name: Check aggregated requirements
-    if: ${{ inputs.pkg-name == 'lightning' }}
-    working-directory: dist
-    run: |
-      import os, glob
-      ls = glob.glob(os.path.join("*", "requirements", "*"))
-      assert len(ls) == 1 and ls[0].endswith("base.txt"), ls
-    shell: python
-
   - name: Check single pkg/folder
     if: ${{ inputs.pkg-name != 'lightning' }}
     working-directory: dist
