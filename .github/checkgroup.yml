@@ -14,6 +14,9 @@ subprojects:
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pl-cpu (macOS-11, pytorch, 3.8, 1.11)"
       - "pl-cpu (macOS-11, pytorch, 3.9, 1.12)"
@@ -53,6 +56,9 @@ subprojects:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (GPUs)"
 
@@ -61,6 +67,9 @@ subprojects:
       - ".azure/gpu-benchmark.yml"
       - "tests/tests_pytorch/benchmarks/**"
       - "requirements/pytorch/**"
+      - "!requirements/pytorch/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning.Benchmark"
 
@@ -75,6 +84,9 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (HPUs)"
 
@@ -88,6 +100,9 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (IPUs)"
 
@@ -104,6 +119,9 @@ subprojects:
   #    - "tests/tests_pytorch/**"
   #    - "setup.cfg"  # includes pytest config
   #    - ".actions/**"
+  #    - "!requirements/**/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
   #  checks:
   #    - "test-on-tpus"
 
@@ -117,6 +135,8 @@ subprojects:
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
@@ -130,6 +150,9 @@ subprojects:
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "build-cuda (3.9, 1.10, 11.3.1)"
       - "build-cuda (3.9, 1.11, 11.3.1)"
@@ -154,6 +177,9 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "lite-cpu (macOS-11, lite, 3.8, 1.11)"
       - "lite-cpu (macOS-11, lite, 3.9, 1.12)"
@@ -182,6 +208,9 @@ subprojects:
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "lightning-lite (GPUs)"
 
@@ -196,6 +225,9 @@ subprojects:
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "app-pytest (macOS-11, app, 3.8, latest)"
       - "app-pytest (macOS-11, app, 3.8, oldest)"
@@ -216,6 +248,9 @@ subprojects:
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "app-examples (macOS-11, app, 3.9, latest)"
       - "app-examples (macOS-11, app, 3.9, oldest)"
@@ -237,6 +272,9 @@ subprojects:
       - "tests/tests_app_examples/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "App.cloud-e2e"
 
@@ -250,6 +288,8 @@ subprojects:
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "make-doctest (app)"
       - "make-html (app)"
@@ -263,6 +303,9 @@ subprojects:
       - "src/**"
       - "pyproject.toml"  # includes mypy config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "mypy"
 
@@ -273,6 +316,9 @@ subprojects:
       - "setup.py"
       - "src/**"
       - "requirements/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "install-pkg (ubuntu-22.04, app, 3.7)"
       - "install-pkg (ubuntu-22.04, app, 3.10)"

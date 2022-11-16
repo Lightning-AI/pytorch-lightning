@@ -14,6 +14,9 @@ on:
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
   schedule:
     - cron: "0 0 * * *"  # at the end of every day
 

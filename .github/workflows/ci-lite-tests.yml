@@ -14,6 +14,9 @@ on:
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
