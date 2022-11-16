@@ -5,8 +5,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class LightningTrainerDistributed(L.LightningWork):
-    @staticmethod
-    def run():
+    def run(self):
         model = BoringModel()
         trainer = L.Trainer(max_epochs=10, strategy="ddp")
         trainer.fit(model)
