@@ -15,23 +15,21 @@
 TensorBoard Logger
 ------------------
 """
-
 import logging
 import os
 from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, requires
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, requires, import_from_module
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -40,6 +38,8 @@ log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
+if RequirementCache("tensorboard"):
+    from torch.utils.tensorboard import SummaryWriter
 
 
 class TensorBoardLogger(Logger):
@@ -168,6 +168,9 @@ class TensorBoardLogger(Logger):
             self.logger.experiment.some_tensorboard_function()
 
         """
+        # from torch.utils.tensorboard import SummaryWriter  # for local imports importlib with caching
+        SummaryWriter = import_from_module("torch.utils.tensorboard.SummaryWriter")
+
         if self._experiment is not None:
             return self._experiment
 
@@ -189,6 +192,8 @@ class TensorBoardLogger(Logger):
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
+        # from torch.utils.tensorboard.summary import hparams  # for local imports importlib with caching
+        hparams = import_from_module("torch.utils.tensorboard.summary.hparams")
 
         params = _convert_params(params)
 
