@@ -293,7 +293,7 @@ if not os.path.isdir(path_examples):
 for path_app_example in glob.glob(os.path.join(_PATH_ROOT, "examples", "app_*")):
     path_app_example2 = os.path.join(path_examples, os.path.basename(path_app_example))
     if not os.path.isdir(path_app_example2):
-        shutil.copytree(path_app_example, path_app_example2, dirs_exist_ok=True)
+        shutil.copytree(path_app_example, path_app_example2, dirs_exist_ok=True, ignore_dangling_symlinks=True)
 
 
 # Ignoring Third-party packages
