@@ -1274,6 +1274,8 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
     assert isinstance(app, LightningApp)
     assert isinstance(app.root.work, EmptyWork)
 
+    os.remove(app_file)
+
 
 def test_incompatible_cloud_compute_and_build_config():
     """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
