@@ -1,5 +1,5 @@
 # app.py
-# !pip install sklearn xgboost
+# !pip install scikit-learn xgboost
 import lightning as L
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
