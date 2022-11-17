@@ -18,7 +18,7 @@ Lightning sends the variables across the machines for you automatically.
    :descriptions: Remember this component may live on its own machine; The flow may be on a separate machine as well; This variable is on the flow machine; When passed to the work component, it is actually sent across the network under the hood.; When it prints here, it prints on the work component machine (not the flow machine); The second string was directly created on machine 1
    :code_files: ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py; ./scripts/comms_1.py
    :highlights: 4-7; 9-16; 15; 16; 6; 7;
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 380px
 
@@ -55,7 +55,7 @@ Example Continuous deployment: Every time a model saves a checkpoint, we redeplo
    :descriptions: Define a component that simulates training; Define a component that simulates deployment; Training will happen in parallel over a long period; The deployment server also runs in parallel forever; Start training in parallel (could take months); Whenever the model has a checkpoint deploy; When the checkpoint is updated, model re-deploys
    :code_files: ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py; ./scripts/two_work_comms.py
    :highlights: 5-18; 20-22; 27; 28; 31; 32, 33; 33
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 690px
 
@@ -110,7 +110,7 @@ transfering them across components.
    :descriptions: Let's define a component to simulate generating embeddings (from a DB, feature store, etc...); This component simulates a server that will use the embeddings.; Run the component to generate the embeddings; Simulate embeddings as an array. Here you would query a DB, load from a feature store or disk or even use a neural network to extract the embedding.; Allow the embeddings to be transfered efficiently by wrapping them in the Payload object.; Pass the variable to the EmbeddingServer (just the pointer).; The data gets transfered once you use the .value attribute in the other component.
    :code_files: ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py; ./scripts/toy_payload.py;
    :highlights: 5-13; 15-19; 28; 12; 13; 29; 18
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 600px
 
