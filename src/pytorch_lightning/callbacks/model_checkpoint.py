@@ -341,8 +341,6 @@ class ModelCheckpoint(Checkpoint):
                 " therefore ModelCheckpoint state not loaded."
             )
 
-
-
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
             return
