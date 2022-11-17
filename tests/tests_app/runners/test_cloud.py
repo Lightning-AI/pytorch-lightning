@@ -43,7 +43,7 @@ from lightning_app import _PROJECT_ROOT, BuildConfig, LightningApp, LightningWor
 from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.runners.cloud import _validate_build_spec_and_compute
 from lightning_app.storage import Drive, Mount
-from lightning_app.testing.helpers import EmptyFlow
+from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
@@ -1228,6 +1228,51 @@ def test_load_app_from_file_module_error():
     empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
     assert isinstance(empty_app, LightningApp)
     assert isinstance(empty_app.root, EmptyFlow)
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.core.flow import _RootFlow",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "class MyFlow(_RootFlow):",
+            "    def configure_layout(self):",
+            "        return [{'name': 'test', 'content': this_package_is_not_real()}]",
+            "app = LightningApp(MyFlow(EmptyWork()))",
+        ],
+    ],
+)
+def test_load_app_from_file_mock_imports(tmpdir, lines):
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        f.write("\n".join(lines))
+
+    app = CloudRuntime.load_app_from_file(app_file)
+    assert isinstance(app, LightningApp)
+    assert isinstance(app.root.work, EmptyWork)
 
 
 def test_incompatible_cloud_compute_and_build_config():

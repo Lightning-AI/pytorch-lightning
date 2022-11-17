@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.utilities.app_helpers import MagicMockJsonSerializable
+from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -104,7 +104,7 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             else:
                 entry["content"] = ""
                 entry["target"] = ""
-        elif isinstance(entry["content"], MagicMockJsonSerializable):
+        elif isinstance(entry["content"], _MagicMockJsonSerializable):
             # don't do anything
             pass
         else:
