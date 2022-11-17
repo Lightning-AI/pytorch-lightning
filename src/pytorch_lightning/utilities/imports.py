@@ -15,7 +15,7 @@
 import operator
 import platform
 import sys
-from functools import wraps, lru_cache
+from functools import lru_cache, wraps
 from typing import Any, Callable
 
 import pip
@@ -86,7 +86,7 @@ def requires(*packages: str) -> Callable:
 
 @lru_cache(256)
 def import_from_module(import_path: str) -> Callable:
-    components = import_path.split('.')
+    components = import_path.split(".")
     elem = __import__(components[0])
     for comp in components[1:]:
         elem = getattr(elem, comp)
