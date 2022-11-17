@@ -334,14 +334,14 @@ class ModelCheckpoint(Checkpoint):
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+            self.best_model_path = state_dict["best_model_path"]
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
-                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
-                " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
+                " therefore ModelCheckpoint state not loaded."
             )
 
-        self.best_model_path = state_dict["best_model_path"]
+
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
