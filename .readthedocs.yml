@@ -46,9 +46,6 @@ build:
     - texlive-latex-extra
     - dvipng
     - texlive-pictures
-  jobs:
-    pre_install:
-      - export PACKAGE_NAME=pytorch
 
 # Optionally set the version of Python and requirements required to build your docs
 python:

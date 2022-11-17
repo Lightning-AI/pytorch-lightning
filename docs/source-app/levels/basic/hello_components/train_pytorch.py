@@ -1,8 +1,7 @@
 # app.py
-import torch
-
+# ! pip install torch
 import lightning as L
-
+import torch
 
 class PyTorchComponent(L.LightningWork):
    def run(self):
@@ -25,4 +24,5 @@ class PyTorchComponent(L.LightningWork):
          optimizer.step()
 
 compute = L.CloudCompute('gpu')
-app = L.LightningApp(PyTorchComponent(cloud_compute=compute))
+componet = PyTorchComponent(cloud_compute=compute)
+app = L.LightningApp(componet)

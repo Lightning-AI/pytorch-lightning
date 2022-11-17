@@ -1,1 +1,1 @@
-python -m pip install -U lightning
+pip install lightning

@@ -29,7 +29,7 @@ import tests_pytorch.helpers.utils as tutils
 from lightning_lite import seed_everything
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -187,7 +187,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
         def _test_on_val_test_predict_start(self):
             assert self.trainer.current_epoch == state_dict["epoch"]
-            assert self.trainer.global_step == state_dict["global_step"]
+            assert self.trainer.global_step == 0
             assert self._check_model_state_dict()
 
         def on_train_start(self):
@@ -252,29 +252,6 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.current_epoch == max_epochs
     assert trainer.global_step == max_epochs * train_batches
     assert trainer.fit_loop.epoch_loop._batches_that_stepped == max_epochs * train_batches
-
-
-@pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
-def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir, model_class):
-    trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
-    model = model_class()
-    trainer.fit(model)
-    ckpt_path = trainer.checkpoint_callback.best_model_path
-    ckpt = torch.load(ckpt_path)
-    # the key "_batches_that_stepped" doesn't exist in checkpoints generated with <v1.6.5
-    del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
-    torch.save(ckpt, ckpt_path)
-
-    class TestModel(model_class):
-        def on_train_start(self) -> None:
-            assert self.trainer.global_step == 1
-            assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
-
-    trainer = Trainer(max_steps=2, limit_val_batches=0, default_root_dir=tmpdir)
-    model = TestModel()
-    trainer.fit(model, ckpt_path=ckpt_path)
-    new_loop = trainer.fit_loop.epoch_loop
-    assert new_loop.global_step == new_loop._batches_that_stepped == 2
 
 
 def test_fit_twice(tmpdir):
@@ -626,8 +603,10 @@ def test_dp_resume(tmpdir):
             super().__init__()
             self.on_train_start_called = False
 
-        def on_validation_start(self):
+        def on_train_start(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
+
+        def on_validation_start(self):
             dataloader = dm.val_dataloader()
             tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
 

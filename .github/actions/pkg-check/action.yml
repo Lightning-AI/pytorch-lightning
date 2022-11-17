@@ -39,18 +39,19 @@ runs:
     shell: bash
 
   - name: Unzip packages
-    if: ${{ inputs.pkg-name != '' }}
+    if: ${{ inputs.pkg-name != 'lightning' }}
     working-directory: dist
     run: for file in `ls *.gz`; do tar -xzf $file; done
     shell: bash
 
   - name: Check single pkg/folder
-    if: ${{ inputs.pkg-name != '' }}
+    if: ${{ inputs.pkg-name != 'lightning' }}
     working-directory: dist
     run: |
       import os, glob, pathlib, shutil
       # list folders without ending .egg-info
-      dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      ls = glob.glob(os.path.join("*", "src", "*"))
+      dirs = [d for d in ls if os.path.isdir(d) and not d.endswith(".egg-info")]
       print(dirs)
       assert len(dirs) == ${{ inputs.nb-dirs }}
       # cleaning

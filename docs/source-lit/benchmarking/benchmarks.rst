@@ -1,1 +1,0 @@
-../../source-pytorch/benchmarking/benchmarks.rst
