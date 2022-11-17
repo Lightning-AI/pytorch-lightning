@@ -142,7 +142,6 @@ class CloudRuntime(Runtime):
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
         works: List[V1Work] = []
-        print(self.app.works)
         for work in self.app.works:
             _validate_build_spec_and_compute(work)
 
