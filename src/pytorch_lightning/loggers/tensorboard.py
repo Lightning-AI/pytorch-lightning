@@ -40,6 +40,8 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 if RequirementCache("tensorboard"):
     from torch.utils.tensorboard import SummaryWriter
+else:
+    SummaryWriter = ...
 
 
 class TensorBoardLogger(Logger):
