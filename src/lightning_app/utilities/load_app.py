@@ -4,6 +4,7 @@ import sys
 import traceback
 import types
 from contextlib import contextmanager
+from copy import copy
 from typing import Dict, List, TYPE_CHECKING, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
@@ -11,7 +12,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger
 
 logger = Logger(__name__)
 
@@ -30,7 +31,7 @@ def _prettifiy_exception(filepath: str):
     sys.exit(1)
 
 
-def load_app_from_file(filepath: str, raise_exception: bool = False) -> "LightningApp":
+def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
     """Load a LightningApp from a file.
 
     Arguments:
@@ -50,7 +51,11 @@ def load_app_from_file(filepath: str, raise_exception: bool = False) -> "Lightni
     module = _create_fake_main_module(filepath)
     try:
         with _patch_sys_argv():
-            exec(code, module.__dict__)
+            if mock_imports:
+                with _mock_missing_imports():
+                    exec(code, module.__dict__)
+            else:
+                exec(code, module.__dict__)
     except Exception as e:
         if raise_exception:
             raise e
@@ -140,7 +145,7 @@ def _patch_sys_argv():
     """
     from lightning_app.cli.lightning_cli import run_app
 
-    original_argv = sys.argv
+    original_argv = copy(sys.argv)
     # 1: Remove the CLI command
     if sys.argv[:3] == ["lightning", "run", "app"]:
         sys.argv = sys.argv[3:]

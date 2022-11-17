@@ -14,7 +14,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
         ("multiple_commands.txt", ['echo "foo"', 'echo "bar"'], [1, 2]),
         ("commands_with_mixed_comments_1.txt", ['echo "foo"', 'echo "bar"'], [1, 3]),
         ("commands_with_mixed_comments_2.txt", ['echo "foo"', 'echo "bar"'], [2, 4]),
-        ("command_after_first_non_comment_line.txt", ['echo "foo"'], [1]),
+        ("command_after_first_non_comment_line.txt", ['echo "foo"', 'echo "bar"'], [2, 4]),
         ("bang_not_at_start_of_line.txt", ['echo "foo"'], [2]),
         ("space_between_bang_and_command.txt", ['echo "foo"'], [1]),
         ("multiple_spaces_between_band_and_command.txt", ['echo "foo"'], [1]),
