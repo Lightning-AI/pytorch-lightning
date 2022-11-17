@@ -123,7 +123,7 @@ class LightningLite(ABC):
 
     @property
     def is_global_zero(self) -> bool:
-        """Wether this rank is rank zero."""
+        """Whether this rank is rank zero."""
         return self._strategy.is_global_zero
 
     @abstractmethod
