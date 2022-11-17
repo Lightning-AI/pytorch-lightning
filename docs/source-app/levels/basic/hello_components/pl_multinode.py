@@ -13,7 +13,7 @@ class LightningTrainerDistributed(L.LightningWork):
 # 8 GPU: (2 nodes of 4 x v100)
 component = LightningTrainerMultiNode(
     LightningTrainerDistributed,
-    num_nodes=2,
+    num_nodes=4,
     cloud_compute=L.CloudCompute("gpu-fast-multi"), # 4 x v100
 )
 app = L.LightningApp(component)
