@@ -1,6 +1,5 @@
 import abc
 import base64
-import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -28,8 +27,7 @@ class Image(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        name = "lightning" + "_" + "app"
-        imagepath = Path(__file__.replace(f"lightning{os.sep}app", name)).absolute().parent / "catimage.png"
+        imagepath = Path(__file__).parent / "catimage.png"
         with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}
