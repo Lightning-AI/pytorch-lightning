@@ -20,9 +20,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+-
+
+
 - Changed the root directory of the app (which gets uploaded) to be the folder containing the app file, rather than any parent folder containing a `.lightning` file ([#15654](https://github.com/Lightning-AI/lightning/pull/15654))
 
 - Cluster creation and deletion now waits by default [#15458](https://github.com/Lightning-AI/lightning/pull/15458)
+
 
 ### Deprecated
 
