@@ -13,6 +13,9 @@ on:
       - "setup.py"
       - "src/**"
       - "requirements/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
