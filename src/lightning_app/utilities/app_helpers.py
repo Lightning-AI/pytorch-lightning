@@ -19,7 +19,6 @@ from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
-from lightning_utilities.core.imports import module_available
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
@@ -497,10 +496,10 @@ class _MagicMockJsonSerializable(MagicMock):
 
 
 def _mock_import(*args, original_fn=None):
-    if not module_available(args[0]):
+    try:
+        return original_fn(*args)
+    except Exception:
         return _MagicMockJsonSerializable()
-
-    return original_fn(*args)
 
 
 @contextmanager

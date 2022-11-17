@@ -40,6 +40,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         # When running locally, the target will get overwritten by the dispatcher when launching the frontend servers
         # When running in the cloud, the frontend code will construct the URL based on the flow name
         return flow._layout
+    elif isinstance(layout, _MagicMockJsonSerializable):
+        # Do nothing
+        pass
     elif isinstance(layout, dict):
         layout = _collect_content_layout([layout], flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
@@ -105,7 +108,7 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                 entry["content"] = ""
                 entry["target"] = ""
         elif isinstance(entry["content"], _MagicMockJsonSerializable):
-            # don't do anything
+            # Do nothing
             pass
         else:
             m = f"""

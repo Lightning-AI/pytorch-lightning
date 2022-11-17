@@ -59,7 +59,7 @@ from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
-from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
@@ -142,6 +142,7 @@ class CloudRuntime(Runtime):
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
         works: List[V1Work] = []
+        print(self.app.works)
         for work in self.app.works:
             _validate_build_spec_and_compute(work)
 
@@ -476,18 +477,15 @@ class CloudRuntime(Runtime):
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
         try:
-            with _mock_missing_imports():
-                app = load_app_from_file(filepath, raise_exception=True)
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
             raise e
-        except Exception as e:
-            print(e)
+        except Exception:
             from lightning_app.testing.helpers import EmptyFlow
 
             # Create a generic app.
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
-
         return app
 
 

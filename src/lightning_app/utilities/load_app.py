@@ -11,7 +11,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger
 
 logger = Logger(__name__)
 
@@ -30,7 +30,7 @@ def _prettifiy_exception(filepath: str):
     sys.exit(1)
 
 
-def load_app_from_file(filepath: str, raise_exception: bool = False) -> "LightningApp":
+def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
     """Load a LightningApp from a file.
 
     Arguments:
@@ -50,7 +50,11 @@ def load_app_from_file(filepath: str, raise_exception: bool = False) -> "Lightni
     module = _create_fake_main_module(filepath)
     try:
         with _patch_sys_argv():
-            exec(code, module.__dict__)
+            if mock_imports:
+                with _mock_missing_imports():
+                    exec(code, module.__dict__)
+            else:
+                exec(code, module.__dict__)
     except Exception as e:
         if raise_exception:
             raise e
