@@ -1266,7 +1266,6 @@ def test_load_app_from_file_module_error():
     ],
 )
 def test_load_app_from_file_mock_imports(tmpdir, lines):
-    path = copy(sys.path)
     app_file = os.path.join(tmpdir, "app.py")
 
     with open(app_file, "w") as f:
@@ -1277,7 +1276,8 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
     assert isinstance(app.root.work, EmptyWork)
 
     # Cleanup PATH to prevent conflict with other tests
-    sys.path = path
+    sys.path = sys.path[:-1]
+    os.remove(app_file)
 
 
 def test_incompatible_cloud_compute_and_build_config():

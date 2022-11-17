@@ -4,6 +4,7 @@ import sys
 import traceback
 import types
 from contextlib import contextmanager
+from copy import copy
 from typing import Dict, List, TYPE_CHECKING, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
@@ -144,7 +145,7 @@ def _patch_sys_argv():
     """
     from lightning_app.cli.lightning_cli import run_app
 
-    original_argv = sys.argv
+    original_argv = copy(sys.argv)
     # 1: Remove the CLI command
     if sys.argv[:3] == ["lightning", "run", "app"]:
         sys.argv = sys.argv[3:]
