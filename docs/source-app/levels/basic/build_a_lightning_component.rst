@@ -132,7 +132,7 @@ powerful Lightning app. Here are a few key features available to super-charge yo
    :titles: 15+ accelerators; Auto-stop idle machines; Auto-timeout submitted work; Use spot machines (~70% discount); Work with massive datasets; Mount cloud storage; Use a custom container
    :code_files: ./key_features/accelerators.py; ./key_features/idle_machine.py; ./key_features/auto_timeout.py; ./key_features/spot.py; ./key_features/massive_dataset.py; ./key_features/mount_data.py; ./key_features/custom_container.py;
    :highlights: 11;11;11;11;11;2,7,10, 11; 11
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 430px
 

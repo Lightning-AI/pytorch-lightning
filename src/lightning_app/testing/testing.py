@@ -361,7 +361,7 @@ def run_app_in_cloud(
         except playwright._impl._api_types.TimeoutError:
             print("'Create Project' dialog not visible, skipping.")
 
-        admin_page.locator(f"text={name}").click()
+        admin_page.locator(f"role=link[name='{name}']").click()
         sleep(5)
         # Scroll to the bottom of the page. Used to capture all logs.
         admin_page.evaluate(
