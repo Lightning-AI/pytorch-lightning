@@ -31,7 +31,7 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TENSORBOARD_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -103,7 +103,13 @@ class TensorBoardLogger(Logger):
         self._name = name or ""
         self._version = version
         self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
-        self._log_graph = log_graph
+        self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
+
+        if log_graph and not _TENSORBOARD_AVAILABLE:
+            logging.warn(
+                "You have set log_graph=True but tensorboard is not available. Please pip install tensorboard."
+            )
+
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
