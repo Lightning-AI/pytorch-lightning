@@ -107,7 +107,7 @@ class TensorBoardLogger(Logger):
 
         if log_graph and not _TENSORBOARD_AVAILABLE:
             m = '''You set log_graph=True but Tensorboard is not available. Please run this command to install it:
-            
+
             pip install tensorboard
 
             ```
