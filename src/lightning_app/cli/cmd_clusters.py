@@ -37,7 +37,7 @@ class ClusterList(Formatable):
         return json.dumps(self.clusters)
 
     def as_table(self) -> Table:
-        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
+        table = Table("id", "type", "status", "created", show_header=True, header_style="bold green")
         phases = {
             V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
             V1ClusterState.PENDING: Text("pending", style="bold yellow"),
@@ -63,7 +63,6 @@ class ClusterList(Formatable):
 
             table.add_row(
                 cluster.id,
-                cluster.name,
                 cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
                 status,
                 created_at.strftime("%Y-%m-%d") if created_at else "",
