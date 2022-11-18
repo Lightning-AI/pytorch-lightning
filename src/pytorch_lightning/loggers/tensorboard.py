@@ -22,9 +22,9 @@ from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
+from tensorboardX import SummaryWriter
+from tensorboardX.summary import hparams
 from torch import Tensor
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
