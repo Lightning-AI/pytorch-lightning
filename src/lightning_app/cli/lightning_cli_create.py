@@ -2,7 +2,7 @@ from typing import Any
 
 import click
 
-from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
+from lightning_app.cli.cmd_clusters import _check_cluster_id_is_valid, AWSClusterManager
 
 
 @click.group("create")
@@ -12,7 +12,7 @@ def create() -> None:
 
 
 @create.command("cluster")
-@click.argument("cluster_id", callback=_check_cluster_name_is_valid)
+@click.argument("cluster_id", callback=_check_cluster_id_is_valid)
 @click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
 @click.option("--external-id", "external_id", type=str, required=True)
 @click.option(

@@ -209,7 +209,7 @@ def _wait_for_cluster_state(
         raise click.ClickException("Max wait time elapsed")
 
 
-def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
+def _check_cluster_id_is_valid(_ctx: Any, _param: Any, value: str) -> str:
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
         raise click.ClickException(
