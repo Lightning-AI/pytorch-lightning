@@ -106,9 +106,12 @@ class TensorBoardLogger(Logger):
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
 
         if log_graph and not _TENSORBOARD_AVAILABLE:
-            logging.warn(
-                "You have set log_graph=True but tensorboard is not available. Please pip install tensorboard."
-            )
+            m = '''You set log_graph=True but Tensorboard is not available. Please run this command to install it:
+            
+            pip install tensorboard
+
+            ```
+            logging.warn(m)
 
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
