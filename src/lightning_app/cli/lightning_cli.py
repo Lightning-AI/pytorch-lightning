@@ -143,7 +143,7 @@ def cluster() -> None:
 )
 @click.option("--limit", default=10000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -172,26 +172,26 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
 
-    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+    clusters = {cluster.id: cluster.id for cluster in existing_cluster_list.clusters}
 
     if not clusters:
         raise click.ClickException("You don't have any clusters.")
 
-    if not cluster_name:
+    if not cluster_id:
         raise click.ClickException(
             f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
         )
 
-    if cluster_name not in clusters:
+    if cluster_id not in clusters:
         raise click.ClickException(
-            f"The cluster '{cluster_name}' does not exist."
+            f"The cluster '{cluster_id}' does not exist."
             f" Please select one of the following: [{', '.join(clusters.keys())}]"
         )
 
     try:
         log_reader = _cluster_logs_reader(
             logs_api_client=_ClusterLogsSocketAPI(client.api_client),
-            cluster_id=clusters[cluster_name],
+            cluster_id=cluster_id,
             start=from_time.int_timestamp,
             end=to_time.int_timestamp if not follow else None,
             limit=limit,
