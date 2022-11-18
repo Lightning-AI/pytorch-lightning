@@ -110,7 +110,7 @@ class TensorBoardLogger(Logger):
 
             pip install tensorboard
 
-            ```
+            '''
             logging.warn(m)
 
         self._default_hp_metric = default_hp_metric
