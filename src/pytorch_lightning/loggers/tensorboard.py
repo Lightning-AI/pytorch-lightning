@@ -22,8 +22,6 @@ from argparse import Namespace
 from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
-from tensorboardX import SummaryWriter
-from tensorboardX.summary import hparams
 from torch import Tensor
 
 import pytorch_lightning as pl
@@ -35,6 +33,13 @@ from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TENSORBOA
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+
+if _TENSORBOARD_AVAILABLE:
+    from torch.utils.tensorboard import SummaryWriter
+    from torch.utils.tensorboard.summary import hparams
+else:
+    from tensorboardX import SummaryWriter
+    from tensorboardX.summary import hparams
 
 log = logging.getLogger(__name__)
 
