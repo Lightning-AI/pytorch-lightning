@@ -39,7 +39,7 @@ class FakeLightningClient:
 def test_create_cluster(api: mock.MagicMock):
     cluster_manager = AWSClusterManager()
     cluster_manager.create(
-        cluster_name="test-7",
+        cluster_id="test-7",
         external_id="dummy",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         region="us-west-2",

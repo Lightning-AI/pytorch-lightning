@@ -80,7 +80,7 @@ class AWSClusterManager:
     def create(
         self,
         cost_savings: bool = False,
-        cluster_name: str = None,
+        cluster_id: str = None,
         role_arn: str = None,
         region: str = "us-east-1",
         external_id: str = None,
@@ -91,7 +91,7 @@ class AWSClusterManager:
 
         Args:
             cost_savings: Specifies if the cluster uses cost savings mode
-            cluster_name: The name of the cluster to be created
+            cluster_id: The name of the cluster to be created
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
@@ -105,7 +105,7 @@ class AWSClusterManager:
             performance_profile = V1ClusterPerformanceProfile.COST_SAVING
 
         body = V1CreateClusterRequest(
-            name=cluster_name,
+            name=cluster_id,
             spec=V1ClusterSpec(
                 cluster_type=V1ClusterType.BYOC,
                 performance_profile=performance_profile,

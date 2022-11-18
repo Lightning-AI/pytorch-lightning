@@ -124,7 +124,7 @@ def cluster() -> None:
 
 
 @cluster.command(name="logs")
-@click.argument("cluster_name", required=True)
+@click.argument("cluster_id", required=True)
 @click.option(
     "--from",
     "from_time",

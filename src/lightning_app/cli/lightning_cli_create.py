@@ -12,7 +12,7 @@ def create() -> None:
 
 
 @create.command("cluster")
-@click.argument("cluster_name", callback=_check_cluster_name_is_valid)
+@click.argument("cluster_id", callback=_check_cluster_name_is_valid)
 @click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
 @click.option("--external-id", "external_id", type=str, required=True)
 @click.option(
@@ -53,7 +53,7 @@ def create() -> None:
     help="Enabling this flag makes the CLI wait until the cluster is running.",
 )
 def create_cluster(
-    cluster_name: str,
+    cluster_id: str,
     region: str,
     role_arn: str,
     external_id: str,
@@ -69,7 +69,7 @@ def create_cluster(
         return
     cluster_manager = AWSClusterManager()
     cluster_manager.create(
-        cluster_name=cluster_name,
+        cluster_id=cluster_id,
         region=region,
         role_arn=role_arn,
         external_id=external_id,

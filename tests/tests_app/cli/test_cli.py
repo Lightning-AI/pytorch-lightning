@@ -124,7 +124,7 @@ def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expecte
     )
 
     create_command.assert_called_once_with(
-        cluster_name="test-7",
+        cluster_id="test-7",
         region="us-east-1",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         external_id="dummy",
