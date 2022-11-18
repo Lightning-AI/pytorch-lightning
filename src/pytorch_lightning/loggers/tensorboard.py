@@ -116,7 +116,7 @@ class TensorBoardLogger(Logger):
         if log_graph and not _TENSORBOARD_AVAILABLE:
             rank_zero_warn(
                 "You set `log_graph=True`, but TensorBoard is not available."
-                " Please install missing dependency `pip install tensorboard`"
+                " Please install TensorBoard by running `pip install tensorboard`"
             )
 
         self._default_hp_metric = default_hp_metric
