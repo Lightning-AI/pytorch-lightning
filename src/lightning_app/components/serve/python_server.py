@@ -14,12 +14,6 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def image_to_base64(image_path):
-    with open(image_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-    return encoded_string.decode("UTF-8")
-
-
 class _DefaultInputData(BaseModel):
     payload: str
 
@@ -33,7 +27,7 @@ class Image(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        imagepath = Path(__file__).absolute().parent / "catimage.png"
+        imagepath = Path(__file__).parent / "catimage.png"
         with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}

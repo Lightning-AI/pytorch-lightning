@@ -18,29 +18,28 @@ def distributed_train(local_rank: int, main_address: str, main_port: int, num_no
             init_method=f"tcp://{main_address}:{main_port}",
         )
 
-    # 2. Prepare distributed model
-    model = torch.nn.Linear(32, 2)
+    # 2. Prepare the model
+    model = torch.nn.Sequential(
+        torch.nn.Linear(1, 1),
+        torch.nn.ReLU(),
+        torch.nn.Linear(1, 1),
+    )
 
     # 3. Setup distributed training
-    if torch.cuda.is_available():
-        device = torch.device(f"cuda:{local_rank}")
-        torch.cuda.set_device(device)
-    else:
-        device = torch.device("cpu")
-
-    model = model.to(device)
-    model = DistributedDataParallel(model, device_ids=[device.index] if torch.cuda.is_available() else None)
+    device = torch.device(f"cuda:{local_rank}") if torch.cuda.is_available() else torch.device("cpu")
+    model = DistributedDataParallel(model.to(device), device_ids=[local_rank] if torch.cuda.is_available() else None)
 
     # 4. Prepare loss and optimizer
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    # 5. Train the model for 50 steps.
-    for step in range(50):
+    # 5. Train the model for 1000 steps.
+    for step in range(1000):
         model.zero_grad()
-        x = torch.randn(64, 32).to(device)
+        x = torch.tensor([0.8]).to(device)
+        target = torch.tensor([1.0]).to(device)
         output = model(x)
-        loss = criterion(output, torch.ones_like(output))
+        loss = criterion(output, target)
         print(f"global_rank: {global_rank} step: {step} loss: {loss}")
         loss.backward()
         optimizer.step()

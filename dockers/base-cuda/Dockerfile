@@ -13,12 +13,13 @@
 # limitations under the License.
 
 ARG UBUNTU_VERSION=20.04
-ARG CUDA_VERSION=11.3.1
+ARG CUDA_VERSION=11.6.1
+
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.12
+ARG PYTORCH_VERSION=1.13
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -35,7 +36,12 @@ ENV \
 RUN \
     # TODO: Remove the manual key installation once the base image is updated.
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
-    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631#issuecomment-1264715214
+    apt-get update && apt-get install -y wget && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    mkdir -p /etc/apt/keyrings/ && mv 3bf863cc.pub /etc/apt/keyrings/ && \
+    echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
+    apt-get update && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
@@ -132,16 +138,20 @@ RUN \
 
 RUN \
     # install Bagua
-    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") && \
-    pip install "bagua-cuda$CUDA_VERSION_BAGUA" && \
-    if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then python -c "import bagua_core; bagua_core.install_deps()"; fi && \
-    python -c "import bagua; print(bagua.__version__)"
+    if [[ $PYTORCH_VERSION != "1.13" ]]; then \
+        CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") ; \
+        CUDA_VERSION_BAGUA=$(python -c "print([ver for ver in [116,113,111,102] if $CUDA_VERSION_MM >= ver][0])") ; \
+        pip install "bagua-cuda$CUDA_VERSION_BAGUA" ; \
+        if [[ "$CUDA_VERSION_MM" = "$CUDA_VERSION_BAGUA" ]]; then \
+          python -c "import bagua_core; bagua_core.install_deps()"; \
+        fi ; \
+        python -c "import bagua; print(bagua.__version__)"; \
+    fi
 
 RUN \
     # install ColossalAI
-    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
-    if [[ "$SHOULD_INSTALL_COLOSSAL" = "1" ]]; then \
+    # TODO: 1.13 wheels are not released, remove skip once they are
+    if [[ $PYTORCH_VERSION != "1.13" ]]; then \
         PYTORCH_VERSION_COLOSSALAI=$(python -c "import torch; print(torch.__version__.split('+')[0][:4])") ; \
         CUDA_VERSION_MM_COLOSSALAI=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda)))") ; \
         CUDA_VERSION_COLOSSALAI=$(python -c "print([ver for ver in [11.3, 11.1] if $CUDA_VERSION_MM_COLOSSALAI >= ver][0])") ; \
@@ -152,11 +162,8 @@ RUN \
 RUN \
     # install rest of strategies
     # remove colossalai from requirements since they are installed separately
-    SHOULD_INSTALL_COLOSSAL=$(python -c "import torch; print(1 if int(torch.__version__.split('.')[1]) > 9 else 0)") && \
-    if [[ "$SHOULD_INSTALL_COLOSSAL" = "0" ]]; then \
-        python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
-    fi && \
-    echo "$SHOULD_INSTALL_COLOSSAL" && \
+    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)" ; \
     cat requirements/pytorch/strategies.txt && \
     pip install -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html
 
@@ -170,5 +177,4 @@ RUN \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
     python requirements/pytorch/check-avail-extras.py && \
-    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/
