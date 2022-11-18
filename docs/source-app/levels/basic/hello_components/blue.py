@@ -14,25 +14,24 @@ Build your platform with Lightning and launch in weeks not months. Focus on the 
 """
 
 
-class HappyTransformer(L.LightningWork):
+class TLDR(L.LightningWork):
     def run(self):
         t5 = T5ForConditionalGeneration.from_pretrained("t5-base", return_dict=True)
         t5_tokenizer = T5Tokenizer.from_pretrained("t5-base")
 
         datamodule = TextSummarizationDataModule(t5_tokenizer)
         model = TextSummarization(model=t5, tokenizer=t5_tokenizer)
-        trainer = L.Trainer(max_steps=5, max_epochs=1)
+        trainer = L.Trainer(max_steps=5)
         trainer.fit(model, datamodule)
 
         if trainer.global_rank == 0:
             predictions = predict(model.to("cuda"), sample_text)
             print("predictions:", predictions[0])
-        trainer.strategy.barrier()
 
 
 app = L.LightningApp(
     LightningTrainerMultiNode(
-        HappyTransformer,
+        TLDR,
         num_nodes=2,
         cloud_compute=L.CloudCompute("gpu"),  # gpu-fast-multi
     )
