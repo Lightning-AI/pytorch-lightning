@@ -39,7 +39,6 @@ _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
 _PSUTIL_AVAILABLE = package_available("psutil")
 _RICH_AVAILABLE = package_available("rich") and compare_version("rich", operator.ge, "10.2.2")
-_TENSORBOARD_AVAILABLE = package_available("tensorboard")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHVISION_AVAILABLE = RequirementCache("torchvision")
 

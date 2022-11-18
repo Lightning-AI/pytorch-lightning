@@ -19,9 +19,10 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl
@@ -29,17 +30,21 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE, _TENSORBOARD_AVAILABLE
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
-if _TENSORBOARD_AVAILABLE:
-    from torch.utils.tensorboard import SummaryWriter
-    from torch.utils.tensorboard.summary import hparams
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard>=2.9.1")
+_TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX>=2.0")
+if TYPE_CHECKING:
+    # assumes at least one will be installed when type checking
+    if _TENSORBOARD_AVAILABLE:
+        from torch.utils.tensorboard import SummaryWriter
+    else:
+        from tensorboardX import SummaryWriter  # type: ignore[no-redef]
 else:
-    from tensorboardX import SummaryWriter  # type: ignore [no-redef]
-    from tensorboardX.summary import hparams  # type: ignore [no-redef]
+    SummaryWriter = Any
 
 log = logging.getLogger(__name__)
 
@@ -51,9 +56,9 @@ class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
-    Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
-    ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
-    preinstalled.
+    Implemented using :class:`torch.utils.tensorboard.SummaryWriter` if ``tensorboard`` is available. Otherwise, it uses
+    the ``tensorboardX`` implementation. Logs are saved to ``os.path.join(save_dir, name, version)``. This is the
+    default logger in Lightning, it comes preinstalled.
 
     Example:
 
@@ -82,7 +87,7 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
-        \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
+        \**kwargs: Additional arguments used by :class:`torch.utils.tensorboard.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
@@ -102,6 +107,9 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
+        if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
+            raise ModuleNotFoundError(f"{_TENSORBOARD_AVAILABLE!s}. You can also install `tensorboardX` if you prefer.")
+
         super().__init__()
         save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
@@ -109,12 +117,17 @@ class TensorBoardLogger(Logger):
         self._version = version
         self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
-
         if log_graph and not _TENSORBOARD_AVAILABLE:
-            rank_zero_warn(
-                "You set `log_graph=True`, but TensorBoard is not available."
-                " Please install TensorBoard by running `pip install tensorboard`"
-            )
+            if _TENSORBOARDX_AVAILABLE:
+                rank_zero_warn(
+                    "You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available. `tensorboardX` is"
+                    " installed but it does not support this feature."
+                )
+            else:
+                rank_zero_warn(
+                    "You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available. "
+                    + str(_TENSORBOARDX_AVAILABLE)
+                )
 
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
@@ -169,7 +182,7 @@ class TensorBoardLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> SummaryWriter:
+    def experiment(self) -> "SummaryWriter":
         r"""
         Actual tensorboard object. To use TensorBoard features in your
         :class:`~pytorch_lightning.core.module.LightningModule` do the following.
@@ -185,6 +198,12 @@ class TensorBoardLogger(Logger):
         assert rank_zero_only.rank == 0, "tried to init log dirs in non global_rank=0"
         if self.root_dir:
             self._fs.makedirs(self.root_dir, exist_ok=True)
+
+        if _TENSORBOARD_AVAILABLE:
+            from torch.utils.tensorboard import SummaryWriter
+        else:
+            from tensorboardX import SummaryWriter  # type: ignore[no-redef]
+
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -221,6 +240,12 @@ class TensorBoardLogger(Logger):
 
         if metrics:
             self.log_metrics(metrics, 0)
+
+            if _TENSORBOARD_AVAILABLE:
+                from torch.utils.tensorboard.summary import hparams
+            else:
+                from tensorboardX.summary import hparams  # type: ignore[no-redef]
+
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)
