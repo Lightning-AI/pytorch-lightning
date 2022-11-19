@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 from time import sleep
-from typing import Any, Callable, Sequence, Optional, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 import numpy as np
 from lightning_utilities.core.imports import RequirementCache
@@ -152,7 +152,7 @@ def _basic_subprocess_cmd() -> Sequence[str]:
 
 def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
-    from hydra.utils import to_absolute_path, get_original_cwd
+    from hydra.utils import get_original_cwd, to_absolute_path
 
     # when user is using hydra find the absolute path
     if __main__.__spec__ is None:  # pragma: no-cover
