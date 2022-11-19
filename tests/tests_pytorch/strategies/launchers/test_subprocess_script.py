@@ -76,19 +76,6 @@ def test_ddp_with_hydra_runjob(cleandir, subdir):
         cmd += [f"hydra.output_subdir={subdir}"]
     run_process(cmd)
 
-    # Make sure config.yaml was created for additional
-    # processes.
-    logs = list(Path.cwd().glob("**/config.yaml"))
-    assert len(logs) == devices
-
-    # Make sure the parameter was set and used
-    cfg = OmegaConf.load(logs[0])
-    assert cfg.devices == devices
-
-    # Make sure PL spawned a job that is logged by Hydra
-    logs = list(Path.cwd().glob("**/*.log"))
-    assert len(logs) == 1
-
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 @pytest.mark.skipif(not _HYDRA_WITH_RUN_PROCESS, reason=str(_HYDRA_WITH_RUN_PROCESS))
