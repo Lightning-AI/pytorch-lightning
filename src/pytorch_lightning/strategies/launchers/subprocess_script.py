@@ -117,6 +117,7 @@ class _SubprocessScriptLauncher(_Launcher):
 
                 hydra_in_use = HydraConfig.initialized()
 
+            print("hydra in use", hydra_in_use)
             if hydra_in_use:
                 command, cwd = _hydra_subprocess_cmd(local_rank)
             else:
