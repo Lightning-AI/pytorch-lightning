@@ -13,10 +13,8 @@
 # limitations under the License.
 import os
 import subprocess
-from time import sleep
 from typing import Any, Callable, Optional
 
-import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
@@ -122,11 +120,6 @@ class _SubprocessScriptLauncher(_Launcher):
                 command = _basic_subprocess_cmd()
 
             subprocess.Popen(command, env=env_copy)
-
-            # starting all processes at once can cause issues
-            # with dataloaders delay between 1-10 seconds
-            delay = np.random.uniform(1, 5, 1)[0]
-            sleep(delay)
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:
