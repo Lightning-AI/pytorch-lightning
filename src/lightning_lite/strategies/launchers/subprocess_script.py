@@ -165,5 +165,4 @@ def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     cwd = get_original_cwd()
     os_cwd = f'"{os.getcwd()}"'
     command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-    print(command)
     return command, cwd
