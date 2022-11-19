@@ -12,7 +12,7 @@ Configure hyperparameters from the CLI (legacy)
 .. warning::
 
     This is the documentation for the use of Python's ``argparse`` to implement a CLI. This approach is no longer
-    recommended, and people are encouraged to use the new `LightningCLI <cli/lightning_cli.html>`_ class instead.
+    recommended, and people are encouraged to use the new `LightningCLI <../cli/lightning_cli.html>`_ class instead.
 
 
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
