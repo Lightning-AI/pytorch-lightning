@@ -26,85 +26,53 @@ from lightning_lite.plugins import FSDPPrecision
 from lightning_lite.strategies import FSDPStrategy
 
 
-class FSDPLite(LightningLite):
-    manual_wrapping = False
-
-    def run(self):
-        with self.sharded_model():
-            model = self.get_model()
-
-        dataloader = DataLoader(RandomDataset(32, 64))
-
-        # model needs to be set up first in FSDP
-        model = self.setup_module(model)
-
-        # get parameters on the wrapped model
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-        # optimizer nees to be set up independently
-        optimizer = self.setup_optimizers(optimizer)
-
-        dataloader = self.setup_dataloaders(dataloader)
-        model.train()
-
-        data_iter = iter(dataloader)
-        batch = next(data_iter)
-        loss = self.step(model, batch)
-        self.backward(loss)
-        optimizer.step()
-        optimizer.zero_grad()
-
-        with tempfile.TemporaryFile() as ckpt_path:
-            ckpt_path = self.broadcast(str(ckpt_path))
-            self._strategy.save_checkpoint(model.state_dict(), ckpt_path)
-
-        self._assert_save_equality(model, ckpt_path)
-
-    def get_model(self):
-        model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-        if not self.manual_wrapping:
-            return model
-
-        for i, layer in enumerate(model):
-            if i % 2 == 0:
-                model[i] = wrap(layer)
-        model = wrap(model)
+def _get_model(manual_wrapping=False):
+    model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+    if not manual_wrapping:
         return model
 
-    def step(self, model, batch):
-        forward_module = model._forward_module
-        original_module = model.module
-        assert isinstance(forward_module, FullyShardedDataParallel)
-        assert isinstance(self._precision, FSDPPrecision)
-
-        precision = torch.float16 if self._precision.precision == 16 else torch.bfloat16
-        assert forward_module.mixed_precision.param_dtype == precision
-        assert forward_module.mixed_precision.reduce_dtype == precision
-        assert forward_module.mixed_precision.buffer_dtype == precision
-
-        for layer_num in [0, 2]:
-            assert isinstance(original_module[layer_num], FullyShardedDataParallel)
-            assert original_module[layer_num].mixed_precision.param_dtype == precision
-            assert original_module[layer_num].mixed_precision.reduce_dtype == precision
-            assert original_module[layer_num].mixed_precision.buffer_dtype == precision
-
-        output = model(batch)
-        loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
-        return loss
-
-    def _assert_save_equality(self, model, ckpt_path):
-        current_state_dict = self._strategy.get_module_state_dict(model)
-
-        checkpoint = self.load(ckpt_path)
-        loaded_model = self.get_model()
-        loaded_model.load_state_dict(checkpoint)
-
-        # model parameters are identical after loading
-        for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
-            assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
+    for i, layer in enumerate(model):
+        if i % 2 == 0:
+            model[i] = wrap(layer)
+    model = wrap(model)
+    return model
 
 
-def custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
+def _step(lite, model, batch):
+    forward_module = model._forward_module
+    original_module = model.module
+    assert isinstance(forward_module, FullyShardedDataParallel)
+    assert isinstance(lite._precision, FSDPPrecision)
+
+    precision = torch.float16 if lite._precision.precision == 16 else torch.bfloat16
+    assert forward_module.mixed_precision.param_dtype == precision
+    assert forward_module.mixed_precision.reduce_dtype == precision
+    assert forward_module.mixed_precision.buffer_dtype == precision
+
+    for layer_num in [0, 2]:
+        assert isinstance(original_module[layer_num], FullyShardedDataParallel)
+        assert original_module[layer_num].mixed_precision.param_dtype == precision
+        assert original_module[layer_num].mixed_precision.reduce_dtype == precision
+        assert original_module[layer_num].mixed_precision.buffer_dtype == precision
+
+    output = model(batch)
+    loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
+    return loss
+
+
+def _assert_save_equality(lite, model, ckpt_path):
+    current_state_dict = lite._strategy.get_module_state_dict(model)
+
+    checkpoint = lite.load(ckpt_path)
+    loaded_model = _get_model()
+    loaded_model.load_state_dict(checkpoint)
+
+    # model parameters are identical after loading
+    for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
+        assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
+
+
+def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
     return unwrapped_params >= 2
 
 
@@ -113,7 +81,38 @@ def custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_para
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
-    strategy = FSDPStrategy() if manual_wrapping else FSDPStrategy(auto_wrap_policy=custom_auto_wrap_policy)
-    lite = FSDPLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
+    strategy = FSDPStrategy() if manual_wrapping else FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    lite = LightningLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
+    lite.launch()
+
     lite.manual_wrapping = manual_wrapping
-    lite.run()
+
+    with lite.sharded_model():
+        model = _get_model()
+
+    dataloader = DataLoader(RandomDataset(32, 64))
+
+    # model needs to be set up first in FSDP
+    model = lite.setup_module(model)
+
+    # get parameters on the wrapped model
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+    # optimizer nees to be set up independently
+    optimizer = lite.setup_optimizers(optimizer)
+
+    dataloader = lite.setup_dataloaders(dataloader)
+    model.train()
+
+    data_iter = iter(dataloader)
+    batch = next(data_iter)
+    loss = _step(model, batch)
+    lite.backward(loss)
+    optimizer.step()
+    optimizer.zero_grad()
+
+    with tempfile.TemporaryFile() as ckpt_path:
+        ckpt_path = lite.broadcast(str(ckpt_path))
+        lite._strategy.save_checkpoint(model.state_dict(), ckpt_path)
+
+    _assert_save_equality(lite, model, ckpt_path)

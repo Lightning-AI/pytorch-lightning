@@ -26,7 +26,7 @@ from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.plugins.precision.fsdp import FSDPPrecision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import TBroadcast
+from lightning_lite.strategies.strategy import _Sharded, TBroadcast
 from lightning_lite.utilities.distributed import (
     _distributed_available,
     _get_default_process_group_backend_for_device,
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 _FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
 
 
-class FSDPStrategy(ParallelStrategy):
+class FSDPStrategy(ParallelStrategy, _Sharded):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
     .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can

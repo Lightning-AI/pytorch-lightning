@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from unittest import mock
 
 import pytest
@@ -35,16 +34,11 @@ def test_fsdp_support(*_):
 
 
 @RunIf(min_torch="1.12")
-# @mock.patch("lightning_lite.strategies.fsdp.FullyShardedDataParallel")
 def test_fsdp_custom_mixed_precision(*_):
     """Test that passing a custom mixed precision config works."""
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
     assert strategy.mixed_precision_config == config
-    #
-    #
-    # wrapped_module = strategy.setup_module(nn.Linear(3, 3))
-    # assert wrapped_module.mixed_precision == config
 
 
 def test_fsdp_setup_optimizer_validation():
