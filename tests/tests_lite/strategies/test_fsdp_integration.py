@@ -34,7 +34,6 @@ def _get_model(manual_wrapping=False):
     for i, layer in enumerate(model):
         if i % 2 == 0:
             model[i] = wrap(layer)
-    model = wrap(model)
     return model
 
 
