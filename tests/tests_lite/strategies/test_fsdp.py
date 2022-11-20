@@ -43,6 +43,7 @@ def test_fsdp_custom_mixed_precision(*_):
     assert strategy.mixed_precision_config == config
 
 
+@RunIf(min_torch="1.12")
 def test_fsdp_setup_optimizer_validation():
     """Test that `setup_optimizer()` validates the param groups and reference to FSDP parameters."""
     module = nn.Linear(2, 2)
