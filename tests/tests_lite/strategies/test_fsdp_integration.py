@@ -39,6 +39,7 @@ def _get_model(manual_wrapping=False):
 
 def _step(lite, model, batch):
     forward_module = model._forward_module
+    original_module = model.module
     assert isinstance(forward_module, FullyShardedDataParallel)
     assert isinstance(lite._precision, FSDPPrecision)
 
@@ -48,10 +49,10 @@ def _step(lite, model, batch):
     assert forward_module.mixed_precision.buffer_dtype == precision
 
     for layer_num in [0, 2]:
-        assert isinstance(forward_module[layer_num], FullyShardedDataParallel)
-        assert forward_module[layer_num].mixed_precision.param_dtype == precision
-        assert forward_module[layer_num].mixed_precision.reduce_dtype == precision
-        assert forward_module[layer_num].mixed_precision.buffer_dtype == precision
+        assert isinstance(original_module[layer_num], FullyShardedDataParallel)
+        assert original_module[layer_num].mixed_precision.param_dtype == precision
+        assert original_module[layer_num].mixed_precision.reduce_dtype == precision
+        assert original_module[layer_num].mixed_precision.buffer_dtype == precision
 
     output = model(batch)
     loss = torch.nn.functional.mse_loss(output, torch.ones_like(output))
