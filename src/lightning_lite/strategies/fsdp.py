@@ -26,7 +26,7 @@ from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.plugins.precision.fsdp import FSDPPrecision
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import _Sharded, TBroadcast
+from lightning_lite.strategies.strategy import _BackwardSyncControl, _Sharded, TBroadcast
 from lightning_lite.utilities.distributed import (
     _distributed_available,
     _get_default_process_group_backend_for_device,
@@ -109,6 +109,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._backward_sync_control = _FSDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
 
         self.cpu_offload = cpu_offload
@@ -286,3 +287,20 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
+
+
+class _FSDPBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the
+        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
+        if not isinstance(module, FullyShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():  # type: ignore[operator]
+            yield

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from unittest import mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
@@ -21,10 +22,11 @@ from tests_lite.helpers.runif import RunIf
 from torch.optim import Adam
 
 from lightning_lite.strategies import FSDPStrategy
+from lightning_lite.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
 
 
 @mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
@@ -53,3 +55,24 @@ def test_fsdp_setup_optimizer_validation():
     bad_optimizer = Adam(module.parameters())
     with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameter"):
         strategy.setup_optimizer(bad_optimizer)
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_no_backward_sync():
+    """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
+    FullyShardedDataParallel."""
+
+    strategy = FSDPStrategy()
+    assert isinstance(strategy._backward_sync_control, _FSDPBackwardSyncControl)
+
+    with pytest.raises(
+        TypeError, match="is only possible if the module passed to .* is wrapped in `FullyShardedDataParallel`"
+    ):
+        with strategy._backward_sync_control.no_backward_sync(Mock()):
+            pass
+
+    module = MagicMock(spec=FullyShardedDataParallel)
+    with strategy._backward_sync_control.no_backward_sync(module):
+        pass
+
+    module.no_sync.assert_called_once()
