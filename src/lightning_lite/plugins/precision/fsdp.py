@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Literal, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 import torch
+from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
 from lightning_lite.utilities.enums import PrecisionType
