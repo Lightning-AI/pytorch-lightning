@@ -38,11 +38,8 @@ if _TENSORBOARD_AVAILABLE:
     from torch.utils.tensorboard import SummaryWriter
     from torch.utils.tensorboard.summary import hparams
 else:
-    # type: ignore[no-redef]
-    from tensorboardX import SummaryWriter
-
-    # type: ignore[no-redef]
-    from tensorboardX.summary import hparams
+    from tensorboardX import SummaryWriter  # type: ignore [no-redef]
+    from tensorboardX.summary import hparams  # type: ignore [no-redef]
 
 log = logging.getLogger(__name__)
 
