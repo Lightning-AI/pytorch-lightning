@@ -256,6 +256,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
+        if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
+            return
         from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
 
         strategy_registry.register(
