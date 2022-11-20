@@ -68,5 +68,5 @@ def test_available_strategies_in_registry():
         "dp",
     }
     if _TORCH_GREATER_EQUAL_1_12:
-        expected += {"fsdp", "fsdp_full_shard_offload"}
+        expected |= {"fsdp", "fsdp_full_shard_offload"}
     assert set(STRATEGY_REGISTRY.available_strategies()) == expected
