@@ -46,7 +46,6 @@ if TYPE_CHECKING:
         FullyShardedDataParallel,
         MixedPrecision,
     )
-    from torch.distributed.fsdp.wrap import enable_wrap  # noqa: F401
 
 _FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
 
