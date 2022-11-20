@@ -304,5 +304,5 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
                 f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `FullyShardedDataParallel`."
                 f" Got: {module.__class__.__name__}."
             )
-        with module.no_sync():  # type: ignore[operator]
+        with module.no_sync():
             yield
