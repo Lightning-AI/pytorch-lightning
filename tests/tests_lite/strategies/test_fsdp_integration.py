@@ -106,7 +106,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
     data_iter = iter(dataloader)
     batch = next(data_iter)
-    loss = _step(model, batch)
+    loss = _step(lite, model, batch)
     lite.backward(loss)
     optimizer.step()
     optimizer.zero_grad()
