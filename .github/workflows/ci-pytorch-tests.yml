@@ -17,6 +17,9 @@ on:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -40,33 +43,31 @@ jobs:
         include:
           # assign python and pytorch version combinations to operating systems (arbitrarily)
           # note: there's no distribution of torch==1.10 for Python>=3.10
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.12"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.11"}
-          # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
           - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.10", pytorch-version: "1.12"}
+          # only run PyTorch latest with Python latest
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          # TODO: add back with 1.13
-          # release-candidate tests, mixed Python versions
-          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
-          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
-          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
+          - {os: "macOS-11", pkg-name: "pytorch", python-version: "3.8", pytorch-version: "1.10", requires: "oldest"}  # 3.7 hangs
+          - {os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
           # run test under SLOW label
           - {type: "slow", os: "macOS-11", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
           - {type: "slow", os: "ubuntu-20.04", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
           - {type: "slow", os: "windows-2022", pkg-name: "pytorch", python-version: "3.7", pytorch-version: "1.11"}
+          # "lightning" installs the monolithic package
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
 
-    timeout-minutes: 60
+    timeout-minutes: 70  # tests with macOS-11, py3.7 oldest takes much longer then expected
 
     steps:
     - uses: actions/checkout@v3
