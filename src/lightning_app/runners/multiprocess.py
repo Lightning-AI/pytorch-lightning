@@ -69,7 +69,7 @@ class MultiProcessRuntime(Runtime):
                 if check_port_already_used(self.port):
                     logger.error(
                         "A Lightning App is already running locally. "
-                        "HINT: Stop the previous App or run in the cloud with `--cloud`."
+                        "Stop the existing App or run in the cloud with `--cloud`."
                     )
                     sys.exit(0)
 
