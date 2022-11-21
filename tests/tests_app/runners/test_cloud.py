@@ -126,7 +126,7 @@ class TestAppCreationClient:
                 "other",
                 pytest.raises(
                     ValueError,
-                    match="Can not run app test-app on cluster other since it already exists on test",
+                    match="already running on cluster",
                 ),
             ),
             ("test", "test", does_not_raise()),

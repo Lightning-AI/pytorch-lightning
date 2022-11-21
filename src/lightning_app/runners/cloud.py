@@ -346,12 +346,11 @@ class CloudRuntime(Runtime):
                     raise ValueError(
                         dedent(
                             f"""\
-                            Can not run app {app_config.name} on cluster {app_config.cluster_id} since it already exists on {existing_instance.spec.cluster_id}
-                                (moving apps between clusters is not supported).
+                            An app names {app_config.name} is already running on cluster {existing_instance.spec.cluster_id}, and you requested it to run on cluster {app_config.cluster_id}.
 
-                            You can either:
+                            In order to proceed, please either:
                                 a. rename the app to run on {app_config.cluster_id} with the --name option
-                                    lightning run app script.py --name (new name) --cloud --cluster-id {app_config.cluster_id}
+                                    lightning run app {app_entrypoint_file} --name (new name) --cloud --cluster-id {app_config.cluster_id}
                                 b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
                             """  # noqa: E501
                         )
