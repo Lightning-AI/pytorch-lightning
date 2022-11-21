@@ -14,12 +14,12 @@ jobs:
     if: github.event.pull_request.draft == false
     timeout-minutes: 61  # in case something is wrong with the internal timeout
     steps:
-      - uses: Lightning-AI/probot@v3
+      - uses: Lightning-AI/probot@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           job: check-group
           interval: 180  # seconds
           timeout: 60  # minutes
-          maintainers: '@Lightning-AI/lai-frameworks'
-          owner: '@carmocca'
+          maintainers: 'Lightning-AI/lai-frameworks'
+          owner: 'carmocca'

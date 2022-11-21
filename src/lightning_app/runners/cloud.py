@@ -4,7 +4,6 @@ import random
 import string
 import sys
 import time
-import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
@@ -43,6 +42,7 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
+from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_QUEUE_TYPE,
@@ -62,7 +62,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
-from lightning_app.utilities.load_app import _prettifiy_exception, load_app_from_file
+from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.packaging.app_config import _get_config_file, AppConfig
 from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 from lightning_app.utilities.secrets import _names_to_ids
@@ -143,6 +143,8 @@ class CloudRuntime(Runtime):
 
         works: List[V1Work] = []
         for work in self.app.works:
+            _validate_build_spec_and_compute(work)
+
             if not work._start_with_flow:
                 continue
 
@@ -472,26 +474,17 @@ class CloudRuntime(Runtime):
 
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
-        """This is meant to use only locally for cloud runtime."""
+        """Load a LightningApp from a file, mocking the imports."""
         try:
-            app = load_app_from_file(filepath, raise_exception=True)
-        except ModuleNotFoundError:
-            # this is very generic exception.
-            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
-            # we want to format the exception as if no frame was on top.
-            exp, val, tb = sys.exc_info()
-            listing = traceback.format_exception(exp, val, tb)
-            # remove the entry for the first frame
-            del listing[1]
-            from lightning_app.testing.helpers import EmptyFlow
-
-            # Create a mocking app.
-            app = LightningApp(EmptyFlow())
-
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
             raise e
         except Exception:
-            _prettifiy_exception(filepath)
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a generic app.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            app = LightningApp(EmptyFlow())
         return app
 
 
@@ -519,3 +512,12 @@ def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDri
         ),
         mount_location=str(mount.mount_path),
     )
+
+
+def _validate_build_spec_and_compute(work: LightningWork) -> None:
+    if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
+        raise ValueError(
+            f"You requested a custom base image for the Work with name '{work.name}', but custom images are currently"
+            " not supported on the default cloud compute instance. Please choose a different configuration, for example"
+            " `CloudCompute('cpu-medium')`."
+        )

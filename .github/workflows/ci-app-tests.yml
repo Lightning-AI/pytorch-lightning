@@ -11,10 +11,13 @@ on:
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*"  # some tests_app tests call examples files
+      - "examples/app_*/**"  # some tests_app tests call examples files
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

@@ -1,7 +1,4 @@
 custom_service_name: "Lightning CI required checker"
-# For security reasons, configuration is only loaded from the repository's default branch,
-# changes made in pull requests from different branches or forks are ignored. This means that changes to this file
-# will only be used after they are merged.
 subprojects:
 
   # SECTION: pytorch_lightning
@@ -17,27 +14,29 @@ subprojects:
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
-      # Note: updates here should be applied to the lightning_lite group
-      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10)"
-      - "pl-cpu (macOS-11, pytorch, 3.9, 1.11)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.12)"
-      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13, pre)"
+      - "pl-cpu (macOS-11, pytorch, 3.8, 1.11)"
+      - "pl-cpu (macOS-11, pytorch, 3.9, 1.12)"
+      - "pl-cpu (macOS-11, pytorch, 3.10, 1.13)"
+      - "pl-cpu (macOS-11, pytorch, 3.8, 1.10, oldest)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.8, 1.10)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.11)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.11)"
       - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, pytorch, 3.9, 1.13, pre)"
+      - "pl-cpu (ubuntu-20.04, pytorch, 3.10, 1.13)"
+      - "pl-cpu (ubuntu-20.04, pytorch, 3.7, 1.10, oldest)"
       - "pl-cpu (windows-2022, pytorch, 3.9, 1.11)"
-      - "pl-cpu (windows-2022, pytorch, 3.10, 1.11)"
       - "pl-cpu (windows-2022, pytorch, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, pytorch, 3.8, 1.13, pre)"
-      - "pl-cpu (macOS-11, lightning, 3.10, 1.12)"
-      - "pl-cpu (ubuntu-20.04, lightning, 3.10, 1.12)"
-      - "pl-cpu (windows-2022, lightning, 3.10, 1.12)"
+      - "pl-cpu (windows-2022, pytorch, 3.10, 1.13)"
+      - "pl-cpu (windows-2022, pytorch, 3.7, 1.10, oldest)"
       - "pl-cpu (slow, macOS-11, pytorch, 3.7, 1.11)"
       - "pl-cpu (slow, ubuntu-20.04, pytorch, 3.7, 1.11)"
       - "pl-cpu (slow, windows-2022, pytorch, 3.7, 1.11)"
+      - "pl-cpu (macOS-11, lightning, 3.8, 1.13)"
+      - "pl-cpu (ubuntu-20.04, lightning, 3.8, 1.13)"
+      - "pl-cpu (windows-2022, lightning, 3.8, 1.13)"
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
@@ -57,6 +56,9 @@ subprojects:
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (GPUs)"
 
@@ -65,6 +67,9 @@ subprojects:
       - ".azure/gpu-benchmark.yml"
       - "tests/tests_pytorch/benchmarks/**"
       - "requirements/pytorch/**"
+      - "!requirements/pytorch/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning.Benchmark"
 
@@ -79,6 +84,9 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (HPUs)"
 
@@ -92,6 +100,9 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "pytorch-lightning (IPUs)"
 
@@ -108,6 +119,9 @@ subprojects:
   #    - "tests/tests_pytorch/**"
   #    - "setup.cfg"  # includes pytest config
   #    - ".actions/**"
+  #    - "!requirements/**/docs.txt"
+  #    - "!*.md"
+  #    - "!**/*.md"
   #  checks:
   #    - "test-on-tpus"
 
@@ -121,6 +135,8 @@ subprojects:
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "make-doctest (pytorch)"
       - "make-html (pytorch)"
@@ -134,6 +150,9 @@ subprojects:
       - "environment.yml"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "build-cuda (3.9, 1.10, 11.3.1)"
       - "build-cuda (3.9, 1.11, 11.3.1)"
@@ -145,7 +164,7 @@ subprojects:
       - "build-pl (3.9, 1.10, 11.3.1)"
       - "build-pl (3.9, 1.11, 11.3.1)"
       - "build-pl (3.9, 1.12, 11.6.1)"
-      # TODO: add 1.13
+      - "build-pl (3.9, 1.13, 11.6.1)"
       - "build-xla (3.7, 1.12)"
 
   # SECTION: lightning_lite
@@ -158,21 +177,26 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
-      - "lite-cpu (macOS-11, lite, 3.9, 1.11)"
-      - "lite-cpu (macOS-11, lite, 3.8, 1.10)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.12)"
-      - "lite-cpu (macOS-11, lite, 3.10, 1.13, pre)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.11)"
+      - "lite-cpu (macOS-11, lite, 3.8, 1.11)"
+      - "lite-cpu (macOS-11, lite, 3.9, 1.12)"
+      - "lite-cpu (macOS-11, lite, 3.10, 1.13)"
+      - "lite-cpu (macOS-11, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.8, 1.10)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.11)"
       - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lite, 3.9, 1.13, pre)"
-      - "lite-cpu (windows-2022, lite, 3.9, 1.10)"
-      - "lite-cpu (windows-2022, lite, 3.10, 1.11)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.10, 1.13)"
+      - "lite-cpu (ubuntu-20.04, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (windows-2022, lite, 3.9, 1.11)"
       - "lite-cpu (windows-2022, lite, 3.10, 1.12)"
-      - "lite-cpu (windows-2022, lite, 3.8, 1.13, pre)"
-      - "lite-cpu (macOS-11, lightning, 3.8, 1.12)"
-      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.12)"
-      - "lite-cpu (windows-2022, lightning, 3.8, 1.12)"
+      - "lite-cpu (windows-2022, lite, 3.10, 1.13)"
+      - "lite-cpu (windows-2022, lite, 3.7, 1.10, oldest)"
+      - "lite-cpu (macOS-11, lightning, 3.8, 1.13)"
+      - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.13)"
+      - "lite-cpu (windows-2022, lightning, 3.8, 1.13)"
 
   - id: "lightning_lite: Azure GPU"
     paths:
@@ -186,6 +210,9 @@ subprojects:
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "lightning-lite (GPUs)"
 
@@ -200,6 +227,9 @@ subprojects:
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "app-pytest (macOS-11, app, 3.8, latest)"
       - "app-pytest (macOS-11, app, 3.8, oldest)"
@@ -216,10 +246,13 @@ subprojects:
       - ".github/workflows/ci-app-examples.yml"
       - "src/lightning_app/**"
       - "tests/tests_app_examples/**"
-      - "examples/app_*"
+      - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "app-examples (macOS-11, app, 3.9, latest)"
       - "app-examples (macOS-11, app, 3.9, oldest)"
@@ -241,6 +274,9 @@ subprojects:
       - "tests/tests_app_examples/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "App.cloud-e2e"
 
@@ -254,6 +290,8 @@ subprojects:
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".actions/**"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "make-doctest (app)"
       - "make-html (app)"
@@ -267,6 +305,9 @@ subprojects:
       - "src/**"
       - "pyproject.toml"  # includes mypy config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "mypy"
 
@@ -277,6 +318,9 @@ subprojects:
       - "setup.py"
       - "src/**"
       - "requirements/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
     checks:
       - "install-pkg (ubuntu-22.04, app, 3.7)"
       - "install-pkg (ubuntu-22.04, app, 3.10)"

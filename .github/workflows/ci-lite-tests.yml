@@ -14,6 +14,9 @@ on:
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
       - ".actions/**"
+      - "!requirements/lite/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -36,25 +39,25 @@ jobs:
         include:
           # assign python and pytorch version combinations to operating systems (arbitrarily)
           # note: there's no distribution of torch==1.10 for Python>=3.10
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.10"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.11"}
-          # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.11"}
           - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.12"}
+          # only run PyTorch latest with Python latest
+          - {os: "macOS-11", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          # TODO: add back with 1.13
-          # release-candidate tests, mixed Python versions
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13", release: "pre"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.13", release: "pre"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.13", release: "pre"}
+          - {os: "macOS-11", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
           # "lightning" installs the monolithic package
-          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
 
     timeout-minutes: 15
 

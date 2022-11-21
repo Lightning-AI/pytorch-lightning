@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enabled MultiNode Components to support state broadcasting ([#15607](https://github.com/Lightning-AI/lightning/pull/15607))
 
 
+- Added a friendly error message when attempting to run the default cloud compute with a custom base image configured ([#14929](https://github.com/Lightning-AI/lightning/pull/14929))
+
+
+- Improved support for running apps when dependencies aren't installed ([#15711](https://github.com/Lightning-AI/lightning/pull/15711))
+
+
 ### Changed
 
 -
@@ -40,7 +46,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed race condition to over-write the frontend with app infos ([#15398](https://github.com/Lightning-AI/lightning/pull/15398))
 
 
--
+- Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
+
+
+- Fixed setting property to the LightningFlow ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
 
 
 
