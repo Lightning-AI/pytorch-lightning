@@ -19,7 +19,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           job: check-group
-          interval: 30  # seconds
-          timeout: 2  # minutes
-          maintainers: '@Lightning-AI/lai-frameworks'
-          owner: '@carmocca'
+          interval: 180  # seconds
+          timeout: 60  # minutes
+          maintainers: 'Lightning-AI/lai-frameworks'
+          owner: 'carmocca'
