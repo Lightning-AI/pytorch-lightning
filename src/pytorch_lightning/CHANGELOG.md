@@ -64,10 +64,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 
+
+
+
+## [1.8.2] - 2022-11-17
+
+### Fixed
+
+- Make sure save_dir can be empty str ([#15638](https://github.com/PyTorchLightning/pytorch-lightning/issues/15638))
 - Fixed the automatic fallback from `Trainer(strategy="ddp_spawn", ...)` to `Trainer(strategy="ddp", ...)` when on an LSF cluster ([#15103](https://github.com/PyTorchLightning/pytorch-lightning/issues/15103))
 
-
--
 
 ## [1.8.1] - 2022-11-10
 
