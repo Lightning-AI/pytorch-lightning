@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import shutil
 import sys
 from unittest import mock
 
@@ -120,6 +121,7 @@ def test_detect():
 
 
 @RunIf(skip_windows=True)
+@pytest.mark.skipif(shutil.which("srun") is not None, reason="must run on a machine where srun is not available")
 def test_srun_available_and_not_used(monkeypatch):
     """Test that a warning is emitted if Lightning suspects the user forgot to run their script with `srun`."""
     monkeypatch.setattr(sys, "argv", ["train.py", "--lr", "0.01"])
