@@ -5,6 +5,7 @@ from typing import List
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
     Externalv1Lightningwork,
+    V1ClusterType,
     V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
@@ -13,6 +14,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from lightning_app.cli.cmd_clusters import AWSClusterManager
 from lightning_app.cli.core import Formatable
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
@@ -62,6 +64,44 @@ class _AppManager:
     def list(self, cluster_id: str = None, limit: int = 100) -> None:
         console = Console()
         console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
+
+    def delete(self, cluster_id: str, app_id: str) -> None:
+        console = Console()
+
+        cl = AWSClusterManager()
+        default_cluster = None
+        valid_clusters = []
+        for cluster in cl.get_clusters().clusters:
+            valid_clusters.append(cluster.id)
+            if cluster.spec.cluster_type == V1ClusterType.GLOBAL and default_cluster is None:
+                default_cluster = cluster.id
+
+        if cluster_id is None:
+            cluster_id = default_cluster
+
+        if cluster_id not in valid_clusters:
+            err = ValueError(
+                f"Could not delete app {app_id} because the cluster {cluster_id} does not exist. "
+                f"Please re-run the `lightning delete app` command specifying one of the available "
+                f"clusters: {valid_clusters}"
+            )
+            print(err)
+            return
+
+        apps = self.list_apps(cluster_id=cluster_id)
+        valid_app_names = [app.name for app in apps]
+        valid_app_ids = [app.id for app in apps]
+        if (app_id not in valid_app_ids) and (app_id not in valid_app_names):
+            err = ValueError(
+                f"Could not delete app {app_id} because there is no app by that name or ID on the "
+                f"{cluster_id} cluster. Please run `lightning list apps` to view a list of valid apps which "
+                f"can be deleted on this cluster."
+            )
+            print(err)
+            return
+
+        console.print(f"App: {app_id} has been successfully deleted from cluster: {cluster_id}")
+        return
 
 
 class _AppList(Formatable):
