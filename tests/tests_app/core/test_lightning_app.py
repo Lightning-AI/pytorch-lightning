@@ -1135,7 +1135,9 @@ class FlowValue(LightningFlow):
 
 
 def test_lightning_flow_properties():
+    """Validates setting properties to the LightningFlow properly calls property.fset."""
 
     flow = FlowValue()
+    assert not flow._has_found
     flow.run()
     assert flow._has_found
