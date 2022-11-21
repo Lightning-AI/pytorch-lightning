@@ -3,6 +3,7 @@ import base64
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -12,12 +13,6 @@ from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
-
-
-def image_to_base64(image_path):
-    with open(image_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-    return encoded_string.decode("UTF-8")
 
 
 class _DefaultInputData(BaseModel):
@@ -33,7 +28,7 @@ class Image(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        imagepath = Path(__file__).absolute().parent / "catimage.png"
+        imagepath = Path(__file__).parent / "catimage.png"
         with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}
@@ -111,7 +106,7 @@ class PythonServer(LightningWork, abc.ABC):
         self._input_type = input_type
         self._output_type = output_type
 
-    def setup(self) -> None:
+    def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
         initialize the weights, setting up pipelines etc.
 
@@ -160,7 +155,8 @@ class PythonServer(LightningWork, abc.ABC):
         output_type: type = self.configure_output_type()
 
         def predict_fn(request: input_type):  # type: ignore
-            return self.predict(request)
+            with torch.inference_mode():
+                return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
@@ -213,7 +209,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         Normally, you don't need to override this method.
         """
-        self.setup()
+        self.setup(*args, **kwargs)
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)

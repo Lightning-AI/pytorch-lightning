@@ -247,10 +247,9 @@ def test_get_component_by_name_raises():
         app.get_component_by_name("root.b.w_b.c")
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_nested_component(runtime_cls):
+def test_nested_component():
     app = LightningApp(A(), log_level="debug")
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.w_a.c == 1
     assert app.root.b.w_b.c == 1
     assert app.root.b.c.w_c.c == 1
@@ -601,9 +600,10 @@ class CheckpointCounter(LightningWork):
 
 
 class CheckpointFlow(LightningFlow):
-    def __init__(self, work: LightningWork, depth=0):
+    def __init__(self, work: CheckpointCounter, depth=0):
         super().__init__()
         self.depth = depth
+
         if depth == 0:
             self.counter = 0
 
@@ -613,10 +613,9 @@ class CheckpointFlow(LightningFlow):
             self.flow = CheckpointFlow(work, depth + 1)
 
     def run(self):
-        if hasattr(self, "counter"):
-            self.counter += 1
-            if self.counter > 5:
-                self._exit()
+        if self.works()[0].counter == 5:
+            self._exit()
+
         if self.depth >= 10:
             self.work.run()
         else:
@@ -627,19 +626,16 @@ def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
-    SingleProcessRuntime(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
-    assert app.root.counter == 6
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 5
 
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
-    assert app.root.counter == 0
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 0
 
     app.load_state_dict_from_checkpoint_dir(app.checkpoint_dir)
     # The counter was increment to 6 after the latest checkpoints was created.
-    assert app.root.counter == 5
     assert app.root.flow.flow.flow.flow.flow.flow.flow.flow.flow.flow.work.counter == 5
 
 
@@ -956,8 +952,8 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 6952
-    assert app.root._state_sizes[20] <= 26080
+    assert app.root._state_sizes[0] <= 7824
+    assert app.root._state_sizes[20] <= 26500
 
 
 class FlowUpdated(LightningFlow):
@@ -1112,3 +1108,29 @@ def test_cloud_compute_binding():
 
     with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
         FlowCC()
+
+
+class FlowValue(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self._value = None
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    def run(self):
+        self.value = True
+
+
+def test_lightning_flow_properties():
+    """Validates setting properties to the LightningFlow properly calls property.fset."""
+
+    flow = FlowValue()
+    assert flow._value is None
+    flow.run()
+    assert flow._value is True

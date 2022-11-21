@@ -24,7 +24,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
-from lightning_app.storage import Drive, Path
+from lightning_app.storage import Drive, Path, Payload
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
@@ -100,6 +100,7 @@ class LightningApp:
         """
 
         self.root_path = root_path  # when running behind a proxy
+        self.info = info
 
         from lightning_app.core.flow import _RootFlow
 
@@ -168,15 +169,16 @@ class LightningApp:
 
         logger.debug(f"ENV: {os.environ}")
 
-        # update index.html,
-        # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file(FRONTEND_DIR, info=info, root_path=root_path)
-
         if _should_dispatch_app():
             os.environ["LIGHTNING_DISPATCHED"] = "1"
             from lightning_app.runners import MultiProcessRuntime
 
             MultiProcessRuntime(self).dispatch()
+
+    def _update_index_file(self):
+        # update index.html,
+        # this should happen once for all apps before the ui server starts running.
+        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -470,6 +472,8 @@ class LightningApp:
         self._original_state = deepcopy(self.state)
         done = False
 
+        self._start_with_flow_works()
+
         if self.should_publish_changes_to_api and self.api_publish_state_queue:
             logger.debug("Publishing the state with changes")
             # Push two states to optimize start in the cloud.
@@ -628,8 +632,16 @@ class LightningApp:
             else:
                 return None
 
-        # Note: Remove private keys
-        return {k: v for k, v in child["vars"].items() if not k.startswith("_")}
+        # Filter private keys and drives
+        return {
+            k: v
+            for k, v in child["vars"].items()
+            if (
+                not k.startswith("_")
+                and not (isinstance(v, dict) and v.get("type", None) == "__drive__")
+                and not (isinstance(v, (Payload, Path)))
+            )
+        }
 
     def _send_flow_to_work_deltas(self, state) -> None:
         if not self.flow_to_work_delta_queues:
@@ -650,10 +662,6 @@ class LightningApp:
             if state_work is None or last_state_work is None:
                 continue
 
-            # Note: The flow shouldn't update path or drive manually.
-            last_state_work = apply_to_collection(last_state_work, (Path, Drive), lambda x: None)
-            state_work = apply_to_collection(state_work, (Path, Drive), lambda x: None)
-
             deep_diff = DeepDiff(last_state_work, state_work, verbose_level=2).to_dict()
 
             if "unprocessed" in deep_diff:
@@ -662,3 +670,11 @@ class LightningApp:
             if deep_diff:
                 logger.debug(f"Sending deep_diff to {w.name} : {deep_diff}")
                 self.flow_to_work_delta_queues[w.name].put(deep_diff)
+
+    def _start_with_flow_works(self):
+        for w in self.works:
+            if w._start_with_flow:
+                parallel = w.parallel
+                w._parallel = True
+                w.start()
+                w._parallel = parallel
