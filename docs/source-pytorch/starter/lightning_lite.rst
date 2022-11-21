@@ -169,7 +169,7 @@ You can also easily use distributed collectives if required.
     # The index of the current node.
     lite.node_rank
 
-    # Wether this global rank is rank zero.
+    # Whether this global rank is rank zero.
     if lite.is_global_zero:
         # do something on rank 0
         ...

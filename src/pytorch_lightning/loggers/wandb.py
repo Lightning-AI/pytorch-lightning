@@ -25,7 +25,7 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 from lightning_lite.utilities.types import _PATH
-from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import (
@@ -331,7 +331,7 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional[Checkpoint] = None
+        self._checkpoint_callback: Optional[ModelCheckpoint] = None
 
         # paths are processed as strings
         if save_dir is not None:
@@ -513,14 +513,9 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
-        if (
-            self._log_model == "all"
-            or self._log_model is True
-            and hasattr(checkpoint_callback, "save_top_k")
-            and checkpoint_callback.save_top_k == -1
-        ):
+        if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
@@ -574,7 +569,7 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: Checkpoint) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
