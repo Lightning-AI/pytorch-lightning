@@ -884,3 +884,10 @@ def test_arguments_from_environment_collision():
             ValueError, match=escape("Your code has `LightningLite(precision=64, ...)` but it conflicts")
         ):
             _Connector(precision=64)
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_unsupported_on_cpu():
+    """Test that we raise an error if attempting to run FSDP without GPU."""
+    with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
+        _Connector(strategy="fsdp")
