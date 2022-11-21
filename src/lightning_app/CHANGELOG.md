@@ -6,19 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased] - 202Y-MM-DD
 
-
 ### Added
 
 - Added the CLI command `lightning run model` to launch a `LightningLite` accelerated script ([#15506](https://github.com/Lightning-AI/lightning/pull/15506))
-
-
-- Enabled MultiNode Components to support state broadcasting ([#15607](https://github.com/Lightning-AI/lightning/pull/15607))
-
-
-- Added a friendly error message when attempting to run the default cloud compute with a custom base image configured ([#14929](https://github.com/Lightning-AI/lightning/pull/14929))
-
-
-- Improved support for running apps when dependencies aren't installed ([#15711](https://github.com/Lightning-AI/lightning/pull/15711))
 
 
 ### Changed
@@ -26,13 +16,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
-- Changed the root directory of the app (which gets uploaded) to be the folder containing the app file, rather than any parent folder containing a `.lightning` file ([#15654](https://github.com/Lightning-AI/lightning/pull/15654))
-
-
 ### Deprecated
 
 -
-
 
 
 ### Removed
@@ -40,14 +26,33 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 
+### Fixed
+
+- Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
+
+
+## [1.8.2] - 2022-11-17
+
+### Added
+
+- Added title and description to ServeGradio ([#15639](https://github.com/Lightning-AI/lightning/pull/15639))
+- Added a friendly error message when attempting to run the default cloud compute with a custom base image configured ([#14929](https://github.com/Lightning-AI/lightning/pull/14929))
+
+### Changed
+
+- Improved support for running apps when dependencies aren't installed ([#15711](https://github.com/Lightning-AI/lightning/pull/15711))
+- Changed the root directory of the app (which gets uploaded) to be the folder containing the app file, rather than any parent folder containing a `.lightning` file ([#15654](https://github.com/Lightning-AI/lightning/pull/15654))
+- Enabled MultiNode Components to support state broadcasting ([#15607](https://github.com/Lightning-AI/lightning/pull/15607))
+- Prevent artefactual "running from outside your current environment" error ([#15647](https://github.com/Lightning-AI/lightning/pull/15647))
+- Rename failed -> error in tables ([#15608](https://github.com/Lightning-AI/lightning/pull/15608))
 
 ### Fixed
 
 - Fixed race condition to over-write the frontend with app infos ([#15398](https://github.com/Lightning-AI/lightning/pull/15398))
-
-
-- Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
-
+- Fixed bi-directional queues sending delta with Drive Component name changes ([#15642](https://github.com/Lightning-AI/lightning/pull/15642))
+- Fixed CloudRuntime works collection with structures and accelerated multi node startup time ([#15650](https://github.com/Lightning-AI/lightning/pull/15650))
+- Fixed catimage import ([#15712](https://github.com/Lightning-AI/lightning/pull/15712))
+- Parse all lines in app file looking for shebangs to run commands ([#15714](https://github.com/Lightning-AI/lightning/pull/15714))
 
 - Fixed setting property to the LightningFlow ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
 
