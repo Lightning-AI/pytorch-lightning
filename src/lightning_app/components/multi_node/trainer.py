@@ -1,4 +1,5 @@
 import os
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Type
 
@@ -30,8 +31,9 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
         from lightning.pytorch import Trainer as LTrainer
+        from lightning.pytorch.accelerators import MPSAccelerator
+        from lightning.pytorch.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
         from pytorch_lightning import Trainer as PLTrainer
 
         # Used to configure PyTorch progress group
@@ -50,7 +52,15 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         def pre_fn(trainer, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
-            kwargs["accelerator"] = "auto"
+            if MPSAccelerator.is_available():
+                old_acc_value = kwargs.get("accelerator", "auto")
+                kwargs["accelerator"] = "cpu"
+
+                if old_acc_value != kwargs["accelerator"]:
+                    warnings.warn(
+                        "Forcing accelerator=cpu as other accelerators (specifically MPS) are not supported "
+                        "by PyTorch for distributed training on mps capable devices"
+                    )
             strategy = kwargs.get("strategy", None)
             if strategy:
                 if isinstance(strategy, str):
@@ -59,15 +69,17 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
                 elif isinstance(strategy, (DDPSpawnStrategy, DDPSpawnShardedStrategy)):
-                    raise Exception("DDP Spawned strategies aren't supported yet.")
+                    raise ValueError("DDP Spawned strategies aren't supported yet.")
+                kwargs["strategy"] = strategy
             return {}, args, kwargs
 
         tracer = Tracer()
         tracer.add_traced(PLTrainer, "__init__", pre_fn=pre_fn)
         tracer.add_traced(LTrainer, "__init__", pre_fn=pre_fn)
         tracer._instrument()
-        work_run()
+        ret_val = work_run()
         tracer._restore()
+        return ret_val
 
 
 class LightningTrainerMultiNode(MultiNode):
