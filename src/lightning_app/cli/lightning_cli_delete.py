@@ -37,7 +37,7 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> Non
 
     Deleting a cluster also deletes all apps that were started on the cluster.
     Deletion permanently removes not only the record of all apps run on a cluster,
-    but all associated experiments, artifacts, metrics, logs, web-UIs, etc.
+    but all associated data, artifacts, metrics, logs, web-UIs, etc.
 
     WARNING: This process may take a few minutes to complete, but once started it
     CANNOT be rolled back. Deletion tears down every cloud provider resource
