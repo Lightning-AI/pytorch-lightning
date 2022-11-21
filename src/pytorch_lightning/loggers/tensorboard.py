@@ -19,6 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
+
 from typing import Any, Dict, Mapping, Optional, Union
 
 import numpy as np
@@ -85,6 +86,15 @@ class TensorBoardLogger(Logger):
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
 
+    Example:
+        >>> import shutil, tempfile
+        >>> tmp = tempfile.mkdtemp()
+        >>> tbl = TensorBoardLogger(tmp)
+        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
+        >>> tbl.log_metrics({"acc": 0.75})
+        >>> tbl.log_metrics({"acc": 0.9})
+        >>> tbl.finalize("success")
+        >>> shutil.rmtree(tmp)
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
     LOGGER_JOIN_CHAR = "-"
