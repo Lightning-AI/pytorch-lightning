@@ -117,6 +117,35 @@ DEFAULT_CLUSTER = "litng-ai-03"
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
+    def test_run_on_deleted_cluster(self):
+        app_name = "test-app"
+
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
+        )
+
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([DEFAULT_CLUSTER])
+        cloud_backend.client = mock_client
+
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+
+        existing_instance = MagicMock()
+        existing_instance.status.phase = V1LightningappInstanceState.STOPPED
+        existing_instance.spec.cluster_id = DEFAULT_CLUSTER
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[existing_instance])
+        )
+
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        with pytest.raises(ValueError, match="that cluster doesn't exist"):
+            cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
+
+
     # TODO: remove this test once there is support for multiple instances
     @pytest.mark.parametrize(
         "old_cluster,new_cluster,expected_raise",

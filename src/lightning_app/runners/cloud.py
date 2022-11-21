@@ -336,12 +336,7 @@ class CloudRuntime(Runtime):
                             f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
                             "doesn't exist anymore."
                         )
-                    click.confirm(
-                        f"{msg} Do you want to run on Lightning Cloud instead?",
-                        abort=True,
-                        default=True,
-                    )
-                    app_config.cluster_id = None
+                    raise ValueError(msg)
                 if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
                     raise ValueError(
                         dedent(
