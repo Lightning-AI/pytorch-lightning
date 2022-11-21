@@ -1128,10 +1128,10 @@ class FlowValue(LightningFlow):
         if self.value is None:
             self.value = True
 
-    def _default_setattr(self, name, value):
+    def __setattr__(self, name, value):
         if name == "_value" and value is True:
             self._has_found = True
-        super()._default_setattr(name, value)
+        super().__setattr__(name, value)
 
 
 def test_lightning_flow_properties():
