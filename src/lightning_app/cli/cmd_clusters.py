@@ -2,7 +2,7 @@ import json
 import re
 import time
 from datetime import datetime
-from enum import Enum
+from lightning_utilities.core.enums import StrEnum
 from textwrap import dedent
 from typing import Any, List, Union
 
@@ -31,7 +31,7 @@ from lightning_app.utilities.openapi import create_openapi_object, string2dict
 MAX_CLUSTER_WAIT_TIME = 5400
 
 
-class ClusterState(Enum):
+class ClusterState(StrEnum):
     UNSPECIFIED = "unspecified"
     QUEUED = "queued"
     PENDING = "pending"
@@ -45,7 +45,7 @@ class ClusterState(Enum):
     @classmethod
     def from_api(cls, status: V1ClusterState) -> "ClusterState":
         parsed = str(status).lower().split("_", maxsplit=2)[-1]
-        return cls(parsed)
+        return cls.from_str(parsed)
 
 
 class ClusterList(Formatable):
