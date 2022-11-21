@@ -27,6 +27,8 @@ jobs:
 
   mypy:
     runs-on: ubuntu-20.04
+    env:
+      PYTORCH_VERSION: '1.3.0'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -46,9 +48,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip install mypy==0.982
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt '1.13.0'
-        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt '1.13.0'
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt '1.13.0'
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt $PYTORCH_VERSION
+        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt $PYTORCH_VERSION
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt $PYTORCH_VERSION
         pip install \
           -r requirements/lite/base.txt \
           -r requirements/pytorch/base.txt \
