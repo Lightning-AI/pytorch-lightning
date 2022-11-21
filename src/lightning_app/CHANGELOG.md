@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improved support for running apps when dependencies aren't installed ([#15711](https://github.com/Lightning-AI/lightning/pull/15711))
 
 
+- Improved user error when a Lightning App is already running locally ([#15752](https://github.com/Lightning-AI/lightning/pull/15752))
+
+
+
 ### Changed
 
 -
@@ -47,7 +51,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
-
 
 
 ## [1.8.1] - 2022-11-10
