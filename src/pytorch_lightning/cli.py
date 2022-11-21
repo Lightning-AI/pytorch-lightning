@@ -280,9 +280,9 @@ class LightningCLI:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
 
-        Parsing of configuration from environment variables can be enabled by setting ``env_parse=True``.
-        A full configuration yaml would be parsed from ``PL_CONFIG`` if set.
-        Individual settings are so parsed from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
+        Parsing of configuration from environment variables can be enabled by setting ``parser_kwargs={"default_env":
+        True}``. A full configuration yaml would be parsed from ``PL_CONFIG`` if set. Individual settings are so parsed
+        from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
         For more info, read :ref:`the CLI docs <lightning-cli>`.
 
