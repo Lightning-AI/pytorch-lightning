@@ -110,18 +110,10 @@ class LightningFlow:
         """Return the current LightningFlow name."""
         return self._name or "root"
 
-    def _get_property_if_exists(self, name: str) -> Union[property, None]:
-        attr = getattr(self.__class__, name, None)
-        return attr if isinstance(attr, property) else None
-
     def __setattr__(self, name: str, value: Any) -> None:
-        property_object = self._get_property_if_exists(name)
-        if property_object is not None and property_object.fset is not None:
-            property_object.fset(self, value)
-        else:
-            self._default_setattr(name, value)
-
-    def _default_setattr(self, name, value):
+        attr = getattr(self.__class__, name, None)
+        if isinstance(attr, property) and property_object.fset is not None:
+            return property_object.fset(self, value)
         from lightning_app.structures import Dict, List
 
         if (
