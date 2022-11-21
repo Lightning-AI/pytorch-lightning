@@ -125,9 +125,11 @@ class TestAppCreationClient:
             memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
 
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
-            Externalv1Cluster(id=DEFAULT_CLUSTER),
-        ])
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [
+                Externalv1Cluster(id=DEFAULT_CLUSTER),
+            ]
+        )
         cloud_backend.client = mock_client
 
         app = mock.MagicMock()
