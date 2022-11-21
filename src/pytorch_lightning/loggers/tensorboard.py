@@ -116,9 +116,9 @@ class TensorBoardLogger(Logger):
         self._name = name or ""
         self._version = version
         self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
-        self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
         if log_graph and not _TENSORBOARD_AVAILABLE:
             rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
+        self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
 
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
