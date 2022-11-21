@@ -145,7 +145,6 @@ class TestAppCreationClient:
         with pytest.raises(ValueError, match="that cluster doesn't exist"):
             cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
 
-
     # TODO: remove this test once there is support for multiple instances
     @pytest.mark.parametrize(
         "old_cluster,new_cluster,expected_raise",
