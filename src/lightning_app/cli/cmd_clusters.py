@@ -2,7 +2,6 @@ import json
 import re
 import time
 from datetime import datetime
-from lightning_utilities.core.enums import StrEnum
 from textwrap import dedent
 from typing import Any, List, Union
 
@@ -20,6 +19,7 @@ from lightning_cloud.openapi import (
     V1GetClusterResponse,
     V1KubernetesClusterDriver,
 )
+from lightning_utilities.core.enums import StrEnum
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
