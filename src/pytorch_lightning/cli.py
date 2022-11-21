@@ -488,7 +488,7 @@ class LightningCLI:
         parser = self.init_parser(**kwargs)
         self._add_arguments(parser)
         # subcommand arguments
-        skip = self.subcommands()[subcommand]
+        skip: Set[Union[str, int]] = set(self.subcommands()[subcommand])
         added = parser.add_method_arguments(klass, subcommand, skip=skip)
         # need to save which arguments were added to pass them to the method later
         self._subcommand_method_arguments[subcommand] = added
