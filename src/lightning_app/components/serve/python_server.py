@@ -1,6 +1,9 @@
 import abc
-from typing import Any, Dict
+import base64
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -18,6 +21,25 @@ class _DefaultInputData(BaseModel):
 
 class _DefaultOutputData(BaseModel):
     prediction: str
+
+
+class Image(BaseModel):
+    image: Optional[str]
+
+    @staticmethod
+    def _get_sample_data() -> Dict[Any, Any]:
+        imagepath = Path(__file__).parent / "catimage.png"
+        with open(imagepath, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+        return {"image": encoded_string.decode("UTF-8")}
+
+
+class Number(BaseModel):
+    prediction: Optional[int]
+
+    @staticmethod
+    def _get_sample_data() -> Dict[Any, Any]:
+        return {"prediction": 463}
 
 
 class PythonServer(LightningWork, abc.ABC):
@@ -84,7 +106,7 @@ class PythonServer(LightningWork, abc.ABC):
         self._input_type = input_type
         self._output_type = output_type
 
-    def setup(self) -> None:
+    def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
         initialize the weights, setting up pipelines etc.
 
@@ -110,6 +132,9 @@ class PythonServer(LightningWork, abc.ABC):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if hasattr(datatype, "_get_sample_data"):
+            return datatype._get_sample_data()
+
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
         for k, v in datatype_props.items():
@@ -130,7 +155,8 @@ class PythonServer(LightningWork, abc.ABC):
         output_type: type = self.configure_output_type()
 
         def predict_fn(request: input_type):  # type: ignore
-            return self.predict(request)
+            with torch.inference_mode():
+                return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
@@ -141,7 +167,7 @@ class PythonServer(LightningWork, abc.ABC):
         url = self._future_url if self._future_url else self.url
         if not url:
             # if the url is still empty, point it to localhost
-            url = f"http://127.0.0.1{self.port}"
+            url = f"http://127.0.0.1:{self.port}"
         url = f"{url}/predict"
         datatype_parse_error = False
         try:
@@ -183,7 +209,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         Normally, you don't need to override this method.
         """
-        self.setup()
+        self.setup(*args, **kwargs)
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
