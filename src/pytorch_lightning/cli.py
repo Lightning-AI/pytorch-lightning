@@ -343,7 +343,8 @@ class LightningCLI:
 
         _populate_registries(auto_registry)
 
-        self.setup_parser(run)
+        main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
+        self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
@@ -386,6 +387,12 @@ class LightningCLI:
         if kwargs:
             raise ValueError(f"Unexpected keyword parameters: {kwargs}")
 
+    def _setup_parser_kwargs(self, parser_kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        subcommand_names = self.subcommands().keys()
+        main_kwargs = {k: v for k, v in parser_kwargs.items() if k not in subcommand_names}
+        subparser_kwargs = {k: v for k, v in parser_kwargs.items() if k in subcommand_names}
+        return main_kwargs, subparser_kwargs
+
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
@@ -395,14 +402,13 @@ class LightningCLI:
         )
         return parser
 
-    def setup_parser(self, add_subcommands: bool) -> None:
+    def setup_parser(
+        self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
+    ) -> None:
         """Initialize and setup the parser, subcommands, and arguments."""
-        subcommand_names = self.subcommands().keys()
-        main_kwargs = {k: v for k, v in self.parser_kwargs.items() if k not in subcommand_names}
         self.parser = self.init_parser(**main_kwargs)
         if add_subcommands:
             self._subcommand_method_arguments: Dict[str, List[str]] = {}
-            subparser_kwargs = {k: v for k, v in self.parser_kwargs.items() if k in subcommand_names}
             self._add_subcommands(self.parser, **subparser_kwargs)
         else:
             self._add_arguments(self.parser)
