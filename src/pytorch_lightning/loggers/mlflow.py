@@ -29,7 +29,7 @@ import yaml
 from lightning_utilities.core.imports import module_available
 from typing_extensions import Literal
 
-from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -163,7 +163,7 @@ class MLFlowLogger(Logger):
         self.tags = tags
         self._log_model = log_model
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional[Checkpoint] = None
+        self._checkpoint_callback: Optional[ModelCheckpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
 
@@ -317,14 +317,14 @@ class MLFlowLogger(Logger):
         """
         return self.run_id
 
-    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: Checkpoint) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
