@@ -24,7 +24,7 @@ import yaml
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE, TensorBoardLogger
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -282,10 +282,8 @@ def test_tensorboard_finalize(monkeypatch, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
     if _TENSORBOARD_AVAILABLE:
         import torch.utils.tensorboard as tb
-    elif not _TENSORBOARDX_AVAILABLE:
-        import tensorboardX as tb
     else:
-        pytest.skip("`tensorboard` not installed.")
+        import tensorboardX as tb
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
     logger = TensorBoardLogger(save_dir=tmpdir)
