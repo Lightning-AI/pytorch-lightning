@@ -1,4 +1,5 @@
 import os
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Type
 
@@ -31,6 +32,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         nprocs: int,
     ):
         from lightning.lite import LightningLite
+        from lightning.lite.accelerators import MPSAccelerator
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
 
         # Used to configure PyTorch progress group
@@ -52,7 +54,18 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         def pre_fn(lite, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
-            kwargs["accelerator"] = "auto"
+
+            if MPSAccelerator.is_available():
+                old_acc_value = kwargs.get("accelerator", "auto")
+                kwargs["accelerator"] = "cpu"
+
+                if old_acc_value != kwargs["accelerator"]:
+                    warnings.warn(
+                        "Forcing accelerator=cpu as other accelerators (specifically MPS) are not supported "
+                        "by PyTorch for distributed training on mps capable devices"
+                    )
+            else:
+                kwargs["accelerator"] = "auto"
             strategy = kwargs.get("strategy", None)
             if strategy:
                 if isinstance(strategy, str):
@@ -61,14 +74,18 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
                 elif isinstance(strategy, (DDPSpawnStrategy, DDPSpawnShardedStrategy)):
-                    raise Exception("DDP Spawned strategies aren't supported yet.")
+                    raise ValueError("DDP Spawned strategies aren't supported yet.")
+
+            kwargs["strategy"] = strategy
+
             return {}, args, kwargs
 
         tracer = Tracer()
         tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
         tracer._instrument()
-        work_run()
+        ret_val = work_run()
         tracer._restore()
+        return ret_val
 
 
 class LiteMultiNode(MultiNode):
