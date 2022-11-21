@@ -24,6 +24,7 @@ import yaml
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -220,6 +221,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger.log_graph(model, example_input_array)
 
 
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
