@@ -15,22 +15,16 @@ import contextlib
 import inspect
 import pickle
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import (
-    CometLogger,
-    CSVLogger,
-    MLFlowLogger,
-    NeptuneLogger,
-    TensorBoardLogger,
-    WandbLogger,
-)
+from pytorch_lightning.loggers import CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, WandbLogger
 from pytorch_lightning.loggers.logger import DummyExperiment
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE, TensorBoardLogger
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
@@ -300,10 +294,15 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.__getitem__().log.assert_called_once_with(1.0)
 
     # TensorBoard
-    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
-        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
+    logger.log_metrics({"test": 1.0}, step=0)
+    logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb, mock.patch(
@@ -316,7 +315,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-def test_logger_default_name(tmpdir):
+def test_logger_default_name(tmpdir, monkeypatch):
     """Test that the default logger name is lightning_logs."""
 
     # CSV
@@ -324,9 +323,14 @@ def test_logger_default_name(tmpdir):
     assert logger.name == "lightning_logs"
 
     # TensorBoard
-    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
-        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
-        assert logger.name == "lightning_logs"
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+    assert logger.name == "lightning_logs"
 
     # MLflow
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(

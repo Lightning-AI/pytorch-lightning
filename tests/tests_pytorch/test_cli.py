@@ -1330,7 +1330,9 @@ def test_tensorboard_logger_init_args():
         "TensorBoardLogger",
         {
             "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
-            "comment": "tb",  # Resolve from tensorboard.writer.SummaryWriter.__init__
+        },
+        {
+            "comment": "tb",  # Unsupported resolving from local imports
         },
     )
 
