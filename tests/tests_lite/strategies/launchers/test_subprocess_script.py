@@ -47,9 +47,8 @@ def test_subprocess_script_launcher_external_processes(popen_mock):
     popen_mock.assert_not_called()
 
 
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.sleep")
 @mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
-def test_subprocess_script_launcher_launch_processes(popen_mock, _):
+def test_subprocess_script_launcher_launch_processes(popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
     cluster_env.local_rank.return_value = 0
