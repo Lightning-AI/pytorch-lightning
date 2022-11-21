@@ -63,7 +63,7 @@ which prints out:
 
 .. code:: bash
 
-    usage: a.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
+    usage: main.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
             {fit,validate,test,predict,tune} ...
 
     pytorch-lightning trainer command line tool

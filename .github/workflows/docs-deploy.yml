@@ -18,6 +18,7 @@ defaults:
 jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
   build-docs-deploy:
+    if: github.repository_owner == 'Lightning-AI'
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout 🛎️
@@ -76,12 +77,12 @@ jobs:
 
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
-        uses: google-github-actions/auth@v0
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
 
       - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCS_PROJECT }}
 
