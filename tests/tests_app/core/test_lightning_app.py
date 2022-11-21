@@ -1108,3 +1108,36 @@ def test_cloud_compute_binding():
 
     with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
         FlowCC()
+
+
+class FlowValue(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self._value = None
+        self._has_found = False
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    def run(self):
+        if self.value is None:
+            self.value = True
+
+    def __setattr__(self, name, value):
+        if name == "_value" and value is True:
+            self._has_found = True
+        super().__setattr__(name, value)
+
+
+def test_lightning_flow_properties():
+    """Validates setting properties to the LightningFlow properly calls property.fset."""
+
+    flow = FlowValue()
+    assert not flow._has_found
+    flow.run()
+    assert flow._has_found
