@@ -295,7 +295,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
     @contextmanager
     def no_backward_sync(self, module: Module) -> Generator:
         """Blocks gradient synchronization inside the
-        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+        :class:`~torch.distributed.fsdp.FullyShardedDataParallel` wrapper."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
         if not isinstance(module, FullyShardedDataParallel):
