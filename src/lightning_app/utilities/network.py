@@ -1,3 +1,4 @@
+import errno
 import socket
 import time
 from functools import wraps
@@ -25,6 +26,22 @@ def find_free_network_port() -> int:
     port = s.getsockname()[1]
     s.close()
     return port
+
+
+def check_port_already_used(port: int) -> int:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    used = False
+
+    try:
+        s.bind(("127.0.0.1", port))
+    except OSError as e:
+        if e.errno == errno.EADDRINUSE:
+            used = True
+
+    s.close()
+
+    return used
 
 
 _CONNECTION_RETRY_TOTAL = 2880

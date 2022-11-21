@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import sys
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, Union
 
@@ -8,11 +9,13 @@ from lightning_app.core.api import start_server
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.commands.base import _commands_to_api, _prepare_commands
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
-from lightning_app.utilities.network import find_free_network_port
+from lightning_app.utilities.network import check_port_already_used, find_free_network_port
+
+logger = Logger(__name__)
 
 
 @dataclass
@@ -63,6 +66,13 @@ class MultiProcessRuntime(Runtime):
             storage_orchestrator.start()
 
             if self.start_server:
+                if check_port_already_used(self.port):
+                    logger.error(
+                        "A Lightning App is already running locally. "
+                        "HINT: Stop the previous App or run in the cloud with `--cloud`."
+                    )
+                    sys.exit(0)
+
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
 
