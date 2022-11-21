@@ -37,8 +37,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard>=2.9.1")
-_TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX>=2.0")
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
+_TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
 if TYPE_CHECKING:
     # assumes at least one will be installed when type checking
     if _TENSORBOARD_AVAILABLE:
