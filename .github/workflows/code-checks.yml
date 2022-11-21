@@ -45,10 +45,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install mypy==0.982  # TODO: pull this verion deom requirements/test.txt
-        pip install torch==1.12 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        # todo: adjust requirements for both code-bases
+        pip install mypy==0.982
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt '1.13.0'
+        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt '1.13.0'
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt '1.13.0'
         pip install \
           -r requirements/lite/base.txt \
           -r requirements/pytorch/base.txt \
