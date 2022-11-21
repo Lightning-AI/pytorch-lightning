@@ -1,6 +1,7 @@
 import click
 
 from lightning_app.cli.cmd_clusters import AWSClusterManager
+from lightning_app.cli.cmd_ssh_keys import _SSHKeyManager
 
 
 @click.group("delete")
@@ -47,3 +48,11 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> Non
     """
     cluster_manager = AWSClusterManager()
     cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
+
+
+@delete.command("ssh-key")
+@click.argument("key_id")
+def remove_ssh_key(key_id: str) -> None:
+    """Delete a ssh-key from your Lightning AI account."""
+    ssh_key_manager = _SSHKeyManager()
+    ssh_key_manager.remove_key(key_id=key_id)
