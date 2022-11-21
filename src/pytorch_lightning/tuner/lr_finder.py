@@ -38,9 +38,9 @@ else:
     from tqdm import tqdm
 
 _MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
-if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
+if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
-
+    from matplotlib.axes import Axes
 log = logging.getLogger(__name__)
 
 
@@ -130,12 +130,14 @@ class _LRFinder:
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
         _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
-    def plot(self, suggest: bool = False, show: bool = False) -> Optional["plt.Figure"]:
+    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
+
+            ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
@@ -147,7 +149,10 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig, ax = plt.subplots()
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -217,6 +222,7 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
+    ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
 
     # Arguments we adjust during the lr finder, save for restoring
@@ -252,6 +258,7 @@ def lr_find(
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
+    lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
     if update_attr:
         lr = lr_finder.suggestion()
 
@@ -311,6 +318,7 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
     loop.restarting = False
+    trainer.should_stop = False
 
 
 class _LRCallback(Callback):
@@ -380,9 +388,11 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.fit_loop.max_steps = current_step  # stop signal
+                trainer.should_stop = True  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
+
+        trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:

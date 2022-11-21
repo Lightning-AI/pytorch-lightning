@@ -22,8 +22,10 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
-from pytorch_lightning.callbacks import Checkpoint
+from lightning_lite.utilities.types import _PATH
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import (
@@ -291,10 +293,10 @@ class WandbLogger(Logger):
     def __init__(
         self,
         name: Optional[str] = None,
-        save_dir: str = ".",
+        save_dir: _PATH = ".",
         version: Optional[str] = None,
         offline: bool = False,
-        dir: Optional[str] = None,
+        dir: Optional[_PATH] = None,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         project: str = "lightning_logs",
@@ -329,7 +331,14 @@ class WandbLogger(Logger):
         self._prefix = prefix
         self._experiment = experiment
         self._logged_model_time: Dict[str, float] = {}
-        self._checkpoint_callback: Optional[Checkpoint] = None
+        self._checkpoint_callback: Optional[ModelCheckpoint] = None
+
+        # paths are processed as strings
+        if save_dir is not None:
+            save_dir = os.fspath(save_dir)
+        elif dir is not None:
+            dir = os.fspath(dir)
+
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
             name=name,
@@ -504,14 +513,9 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    def after_save_checkpoint(self, checkpoint_callback: Checkpoint) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         # log checkpoints as artifacts
-        if (
-            self._log_model == "all"
-            or self._log_model is True
-            and hasattr(checkpoint_callback, "save_top_k")
-            and checkpoint_callback.save_top_k == -1
-        ):
+        if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
@@ -520,7 +524,7 @@ class WandbLogger(Logger):
     @rank_zero_only
     def download_artifact(
         artifact: str,
-        save_dir: Optional[str] = None,
+        save_dir: Optional[_PATH] = None,
         artifact_type: Optional[str] = None,
         use_artifact: Optional[bool] = True,
     ) -> str:
@@ -541,6 +545,7 @@ class WandbLogger(Logger):
             api = wandb.Api()
             artifact = api.artifact(artifact, type=artifact_type)
 
+        save_dir = None if save_dir is None else os.fspath(save_dir)
         return artifact.download(root=save_dir)
 
     def use_artifact(self, artifact: str, artifact_type: Optional[str] = None) -> "wandb.Artifact":
@@ -564,7 +569,7 @@ class WandbLogger(Logger):
         if self._checkpoint_callback and self._experiment is not None:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: Checkpoint) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         # get checkpoints to be saved with associated score
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
@@ -572,7 +577,7 @@ class WandbLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = (
                 {
-                    "score": s,
+                    "score": s.item() if isinstance(s, Tensor) else s,
                     "original_filename": Path(p).name,
                     checkpoint_callback.__class__.__name__: {
                         k: getattr(checkpoint_callback, k)

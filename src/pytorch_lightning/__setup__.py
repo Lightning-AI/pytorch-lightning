@@ -52,12 +52,12 @@ def _adjust_manifest(**__: Any) -> None:
     lines += [
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include requirements/lite *.txt" + os.linesep,
-        # TODO: remove after the first standalone Lite release
         "recursive-include src/lightning_lite *.md" + os.linesep,
+        "include src/lightning_lite/version.info" + os.linesep,
         "recursive-include src/pytorch_lightning *.md" + os.linesep,
         "recursive-include requirements/pytorch *.txt" + os.linesep,
+        "include src/pytorch_lightning/version.info" + os.linesep,
         "include src/pytorch_lightning/py.typed" + os.linesep,  # marker file for PEP 561
     ]
     with open(manifest_path, "w") as fp:
@@ -74,7 +74,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     )
     return dict(
         name="pytorch-lightning",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,
@@ -86,8 +86,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
-                "lightning_lite",  # TODO: remove after the first standalone Lite release
-                "lightning_lite.*",  # TODO: remove after the first standalone Lite release
+                "lightning_lite",
+                "lightning_lite.*",
             ],
         ),
         package_dir={"": "src"},
@@ -98,6 +98,8 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
+        # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
+        # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
         install_requires=_setup_tools.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all"
         ),
@@ -124,5 +126,6 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
         ],
     )

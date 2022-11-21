@@ -19,29 +19,16 @@ import shutil
 import tarfile
 import tempfile
 import urllib.request
-from datetime import datetime
 from distutils.version import LooseVersion
-from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
-from types import ModuleType
-from typing import Dict, List, Sequence
+from typing import List
 
 from pkg_resources import parse_requirements
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 
 # TODO: remove this once lightning-ui package is ready as a dependency
 _LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
-
-
-def _load_py_module(name: str, location: str) -> ModuleType:
-    spec = spec_from_file_location(name, location)
-    assert spec, f"Failed to load module {name} from {location}"
-    py = module_from_spec(spec)
-    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
-    spec.loader.exec_module(py)
-    return py
 
 
 def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
@@ -55,11 +42,11 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # anything", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # my name", unfreeze="all")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    'arrow<=1.2.2,>=1.2.0  # strict'
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
     >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
     'arrow>=1.2.0, <=1.2.2  # strict'
@@ -83,7 +70,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@http" in req:
+    if not req or req.startswith("http") or "@" in req:
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -95,7 +82,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
 
     # remove version restrictions unless they are strict
     if unfreeze and "<" in req and not is_strict:
-        req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
         req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
@@ -164,91 +151,15 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def parse_version_from_file(pkg_root: str) -> str:
-    """Loading the package version from file."""
-    file_ver = os.path.join(pkg_root, "__version__.py")
-    file_about = os.path.join(pkg_root, "__about__.py")
-    if os.path.isfile(file_ver):
-        ver = _load_py_module("version", file_ver).version
-    elif os.path.isfile(file_about):
-        ver = _load_py_module("about", file_about).__version__
-    else:  # this covers case you have build only meta-package so not additional source files are present
-        ver = ""
-    return ver
-
-
-def _replace_imports_in_file(lines: List[str], pkg_lut: Dict[str, str]) -> List[str]:
-    """Replace imports of standalone package to lightning.
-
-    >>> lns = ["lightning_app",
-    ...        "delete_cloud_lightning_apps",
-    ...        "from lightning_app import",
-    ...        "lightning_apps = []",
-    ...        "lightning_app is ours",
-    ...        "def _lightning_app():",
-    ...        ":class:`~lightning_app.core.flow.LightningFlow`"]
-    >>> from pprint import pprint
-    >>> pprint(_replace_imports_in_file(lns, {"app": "lightning_app"}))
-    ['lightning.app',
-     'delete_cloud_lightning_apps',
-     'from lightning.app import',
-     'lightning_apps = []',
-     'lightning.app is ours',
-     'def _lightning_app():',
-     ':class:`~lightning.app.core.flow.LightningFlow`']
-    """
-    for n2, n1 in pkg_lut.items():
-        for i, ln in enumerate(lines):
-            lines[i] = re.sub(rf"([^_]|^){n1}([^_\w]|$)", rf"\1lightning.{n2}\2", ln)
-    return lines
-
-
-# TODO: unify usage with assistant function, such that import this function in there
-def copy_adjusted_modules(src_folder: str, pkg_name: str, lit_name: str, pkg_lut: dict) -> None:
-    """Recursively replace imports in given folder."""
-    package_dir = os.path.join(src_folder, pkg_name)
-    all_files = glob.glob(os.path.join(package_dir, "**", "*.*"), recursive=True)
-    for fname in all_files:
-        local_path = fname.replace(package_dir + os.path.sep, "")
-        new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
-        if not fname.endswith(".py"):
-            if not fname.endswith(".pyc"):
-                os.makedirs(os.path.dirname(new_file), exist_ok=True)
-                shutil.copy2(fname, new_file)
-            continue
-
-        with open(fname, encoding="utf-8") as fo:
-            py = fo.readlines()
-        py = _replace_imports_in_file(py, pkg_lut)
-        os.makedirs(os.path.dirname(new_file), exist_ok=True)
-        with open(new_file, "w", encoding="utf-8") as fo:
-            fo.writelines(py)
-
-
-def create_mirror_package(src_folder: str, lit_pkg_mapping: dict) -> None:
-    """Recursively replace imports in given folder.
-
-    >>> create_mirror_package(
-    ...     os.path.join(_PROJECT_ROOT, "src"),
-    ...     {"pytorch": "pytorch_lightning", "app": "lightning_app", "lite": "lightning_lite"}
-    ... )
-    """
-    for lit_name, pkg_name in lit_pkg_mapping.items():
-        copy_adjusted_modules(src_folder, pkg_name, lit_name, lit_pkg_mapping)
-
-
-def set_version_today(fpath: str) -> None:
-    """Replace the template date with today."""
-    with open(fpath) as fp:
-        lines = fp.readlines()
-
-    def _replace_today(ln):
-        today = datetime.now()
-        return ln.replace("YYYY.-M.-D", f"{today.year}.{today.month}.{today.day}")
-
-    lines = list(map(_replace_today, lines))
-    with open(fpath, "w") as fp:
-        fp.writelines(lines)
+def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
+    """Copy the global version to all packages."""
+    ls_ver = glob.glob(os.path.join(src_folder, "*", "__version__.py"))
+    ver_template = os.path.join(src_folder, ver_file)
+    for fpath in ls_ver:
+        fpath = os.path.join(os.path.dirname(fpath), ver_file)
+        if os.path.isfile(fpath):
+            os.remove(fpath)
+        shutil.copy2(ver_template, fpath)
 
 
 def _download_frontend(pkg_path: str):
@@ -271,27 +182,6 @@ def _download_frontend(pkg_path: str):
     # If installing from source without internet connection, we don't want to break the installation
     except Exception:
         print("The Lightning UI downloading has failed!")
-
-
-def _relax_require_versions(
-    source_dir: str = "src", req_dir: str = "requirements", strict_pkgs: Sequence[str] = ("lightning_app",)
-) -> None:
-    """Parse the base requirements and append  as version adjustments if needed `pkg>=X1.Y1.Z1,==X2.Y2.*`.
-
-    >>> _relax_require_versions("../src", "../requirements")
-    """
-    strict_pkgs = strict_pkgs or tuple()
-    reqs = load_requirements(req_dir, file_name="base.txt")
-    for i, req in enumerate(parse_requirements(reqs)):
-        ver = parse_version_from_file(os.path.join(source_dir, req.name))
-        if not ver:
-            continue
-        if req.name not in strict_pkgs:
-            ver = ".".join(ver.split(".")[:2] + ["*"])
-        reqs[i] = f"{req}, =={ver}"
-
-    with open(os.path.join(req_dir, "base.txt"), "w") as fp:
-        fp.writelines([ln + os.linesep for ln in reqs])
 
 
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:

@@ -262,9 +262,6 @@ Example::
         # Training with GPU Accelerator using total number of gpus available on the system
         Trainer(accelerator="gpu")
 
-.. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
-    and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
-
 accumulate_grad_batches
 ^^^^^^^^^^^^^^^^^^^^^^^
 

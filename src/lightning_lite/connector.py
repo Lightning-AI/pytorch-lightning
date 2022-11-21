@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 from collections import Counter
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from typing_extensions import Literal
@@ -40,6 +40,7 @@ from lightning_lite.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning_lite.plugins.precision.double import DoublePrecision
+from lightning_lite.plugins.precision.fsdp import FSDPPrecision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -53,6 +54,7 @@ from lightning_lite.strategies import (
     XLAStrategy,
 )
 from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_lite.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
 from lightning_lite.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_lite.utilities.device_parser import _determine_root_gpu_device
 from lightning_lite.utilities.imports import _IS_INTERACTIVE
@@ -101,6 +103,14 @@ class _Connector:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
     ) -> None:
+
+        # These arguments can be set through environment variables set by the CLI
+        accelerator = self._argument_from_env("accelerator", accelerator, default=None)
+        strategy = self._argument_from_env("strategy", strategy, default=None)
+        devices = self._argument_from_env("devices", devices, default=None)
+        num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
+        precision = self._argument_from_env("precision", precision, default=32)
+
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
@@ -395,7 +405,10 @@ class _Connector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or SLURMEnvironment.detect()
+            TorchElasticEnvironment.detect()
+            or KubeflowEnvironment.detect()
+            or SLURMEnvironment.detect()
+            or LSFEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":
@@ -405,6 +418,13 @@ class _Connector:
             raise ValueError(
                 f"You selected `Lite(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Lite(strategy='ddp_spawn')` instead."
+            )
+        if (
+            strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
+        ) and self._accelerator_flag not in ("cuda", "gpu"):
+            raise ValueError(
+                "You selected the FSDP strategy but FSDP is only available on GPU. Set `Lite(accelerator='gpu', ...)`"
+                " to continue or select a different strategy."
             )
         if strategy_flag:
             self._strategy_flag = strategy_flag
@@ -454,9 +474,11 @@ class _Connector:
                 if self._precision_input == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-            return NativeMixedPrecision(self._precision_input, device)
+
+            if isinstance(self.strategy, FSDPStrategy):
+                return FSDPPrecision(precision=self._precision_input, device=device)
+            return NativeMixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 
@@ -513,6 +535,27 @@ class _Connector:
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `XLAStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
+
+    @staticmethod
+    def _argument_from_env(name: str, current: Any, default: Any) -> Any:
+        env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
+
+        if env_value is None:
+            return current
+
+        if name == "precision":
+            # TODO: support precision input as string, then this special handling is not needed
+            env_value = int(env_value) if env_value in ("16", "32", "64") else env_value
+
+        if env_value is not None and env_value != current and current != default:
+            raise ValueError(
+                f"Your code has `LightningLite({name}={current!r}, ...)` but it conflicts with the value "
+                f"`--{name}={current}` set through the CLI. "
+                " Remove it either from the CLI or from the Lightning Lite object."
+            )
+        if env_value is None:
+            return current
+        return env_value
 
     @property
     def is_distributed(self) -> bool:

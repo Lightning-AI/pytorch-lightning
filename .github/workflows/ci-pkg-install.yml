@@ -6,12 +6,16 @@ on:
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
       - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
       - "src/**"
       - "requirements/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -29,10 +33,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg: ["app", "lite", "pytorch", ""]
+        pkg-name: ["app", "lite", "pytorch", "lightning"]
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -43,21 +48,25 @@ jobs:
           pip install pytest -q
           python -m pytest setup_tools.py
 
-      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+
       - uses: ./.github/actions/pkg-check
         with:
-          pkg-name: ${{ matrix.pkg }}
+          pkg-name: ${{ matrix.pkg-name }}
           nb-dirs: ${{ env.NB_DIRS }}
 
       - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: ${{ matrix.pkg-name }}
 
       - name: Run CLI
         # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg == '' }}
+        if: ${{ matrix.pkg-name == 'lightning' }}
         run: python -m lightning --version
 
       - name: DocTest package
+        env:
+          PY_IGNORE_IMPORTMISMATCH: 1
         run: |
-          pip list
-          scope=$(python -c "lut = {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'} ; print(lut.get('${{matrix.pkg}}', 'lightning'))")
-          python -m pytest src/${scope} --ignore-glob="**/cli/*-template/**"
+          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Config:
+class _Config:
     id = os.getenv("LIGHTNING_USER_ID")
     key = os.getenv("LIGHTNING_API_KEY")
     url = os.getenv("LIGHTNING_CLOUD_URL", "")

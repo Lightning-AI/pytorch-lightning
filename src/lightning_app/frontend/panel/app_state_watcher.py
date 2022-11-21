@@ -1,15 +1,15 @@
-"""The AppStateWatcher enables a Frontend to.
+"""The ``AppStateWatcher`` enables a Frontend to:
 
 - subscribe to App state changes
 - to access and change the App state.
 
-This is particularly useful for the PanelFrontend but can be used by other Frontends too.
+This is particularly useful for the ``PanelFrontend`` but can be used by other frontends too.
 """
 from __future__ import annotations
 
 import os
 
-from lightning_app.frontend.panel.app_state_comm import watch_app_state
+from lightning_app.frontend.panel.app_state_comm import _watch_app_state
 from lightning_app.frontend.utils import _get_flow_state
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_param_available, requires
@@ -26,15 +26,16 @@ else:
 
 
 class AppStateWatcher(Parameterized):
-    """The AppStateWatcher enables a Frontend to:
+    """The `AppStateWatcher` enables a Frontend to:
 
     - Subscribe to any App state changes.
     - To access and change the App state from the UI.
 
-    This is particularly useful for the PanelFrontend, but can be used by
-    other Frontend's too.
+    This is particularly useful for the `PanelFrontend , but can be used by
+    other frontends too.
 
-    Example:
+    Example
+    -------
 
     .. code-block:: python
 
@@ -54,10 +55,10 @@ class AppStateWatcher(Parameterized):
 
     This would print ``The counter was updated to 2``.
 
-    The AppStateWatcher is built on top of Param which is a framework like dataclass, attrs and
+    The ``AppStateWatcher`` is built on top of Param, which is a framework like dataclass, attrs and
     Pydantic which additionally provides powerful and unique features for building reactive apps.
 
-    Please note the AppStateWatcher is a singleton, i.e. only one instance is instantiated
+    Please note the ``AppStateWatcher`` is a singleton, i.e., only one instance is instantiated
     """
 
     state: AppState = ClassSelector(
@@ -75,7 +76,7 @@ class AppStateWatcher(Parameterized):
 
     @requires("param")
     def __init__(self):
-        # It's critical to initialize only once
+        # It is critical to initialize only once
         # See https://github.com/holoviz/param/issues/643
         if not hasattr(self, "_initialized"):
             super().__init__(name="singleton")
@@ -91,7 +92,7 @@ class AppStateWatcher(Parameterized):
 
     def _start_watching(self):
         # Create a thread listening to state changes.
-        watch_app_state(self._update_flow_state)
+        _watch_app_state(self._update_flow_state)
         self._update_flow_state()
 
     def _get_flow_state(self) -> AppState:

@@ -35,8 +35,9 @@ def _prepare_extras() -> Dict[str, Any]:
         "ui": setup_tools.load_requirements(file_name="ui.txt", **common_args),
         "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
-    extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
-    extras["all"] = extras["cloud"] + extras["ui"]
+    extras["extra"] = extras["cloud"] + extras["ui"]
+    extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
+    extras["all"] = extras["dev"]
     return extras
 
 
@@ -49,8 +50,10 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude src *.md" + os.linesep,
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include src/lightning_app *.md" + os.linesep,
+        "include src/lightning_app/components/serve/catimage.png" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
         "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
+        "include src/lightning_app/version.info" + os.linesep,
     ]
 
     # TODO: remove this once lightning-ui package is ready as a dependency
@@ -74,7 +77,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning-app",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,

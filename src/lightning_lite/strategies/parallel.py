@@ -76,19 +76,30 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        return dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
+            rank=self.global_rank,
         )
-        return distributed_sampler_kwargs
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
+        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
+        ``False``, it behaves like ``any`` instead.
+
+        Args:
+            decision: A single input decision.
+            all: Whether to logically emulate ``all`` or ``any``. Defaults to True.
+
+        Returns:
+            bool: The reduced boolean decision.
+        """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
+        decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 
     def teardown(self) -> None:

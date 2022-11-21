@@ -1,11 +1,19 @@
+:orphan:
+
 .. testsetup:: *
 
     from argparse import ArgumentParser, Namespace
 
     sys.argv = ["foo"]
 
-Configure hyperparameters from the CLI
---------------------------------------
+Configure hyperparameters from the CLI (legacy)
+-----------------------------------------------
+
+.. warning::
+
+    This is the documentation for the use of Python's ``argparse`` to implement a CLI. This approach is no longer
+    recommended, and people are encouraged to use the new `LightningCLI <../cli/lightning_cli.html>`_ class instead.
+
 
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.
@@ -102,84 +110,6 @@ Finally, make sure to start the training like so:
     # or init the model with all the key-value pairs
     dict_args = vars(args)
     model = LitModel(**dict_args)
-
-----------
-
-LightningModule hyperparameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Often times we train many versions of a model. You might share that model or come back to it a few months later
-at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
-
-Lightning has a standardized way of saving the information for you in checkpoints and YAML files. The goal here is to
-improve readability and reproducibility.
-
-save_hyperparameters
-""""""""""""""""""""
-
-Use :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters` within your
-:class:`~pytorch_lightning.core.module.LightningModule`'s ``__init__`` method.
-It will enable Lightning to store all the provided arguments under the ``self.hparams`` attribute.
-These hyperparameters will also be stored within the model checkpoint, which simplifies model re-instantiation after training.
-
-.. code-block:: python
-
-    class LitMNIST(LightningModule):
-        def __init__(self, layer_1_dim=128, learning_rate=1e-2):
-            super().__init__()
-            # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
-            self.save_hyperparameters()
-
-            # equivalent
-            self.save_hyperparameters("layer_1_dim", "learning_rate")
-
-            # Now possible to access layer_1_dim from hparams
-            self.hparams.layer_1_dim
-
-
-In addition, loggers that support it will automatically log the contents of ``self.hparams``.
-
-Excluding hyperparameters
-"""""""""""""""""""""""""
-
-By default, every parameter of the ``__init__`` method will be considered a hyperparameter to the LightningModule.
-However, sometimes some parameters need to be excluded from saving, for example when they are not serializable.
-Those parameters should be provided back when reloading the LightningModule.
-In this case, exclude them explicitly:
-
-.. code-block:: python
-
-    class LitMNIST(LightningModule):
-        def __init__(self, loss_fx, generator_network, layer_1_dim=128):
-            super().__init__()
-            self.layer_1_dim = layer_1_dim
-            self.loss_fx = loss_fx
-
-            # call this to save only (layer_1_dim=128) to the checkpoint
-            self.save_hyperparameters("layer_1_dim")
-
-            # equivalent
-            self.save_hyperparameters(ignore=["loss_fx", "generator_network"])
-
-
-load_from_checkpoint
-""""""""""""""""""""
-
-LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters`
-can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.module.LightningModule.load_from_checkpoint`:
-
-.. code-block:: python
-
-    # to load specify the other args
-    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
-
-
-If parameters were excluded, they need to be provided at the time of loading:
-
-.. code-block:: python
-
-    # the excluded parameters were `loss_fx` and `generator_network`
-    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
-
 
 ----------
 

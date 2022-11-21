@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,6 +33,7 @@ def dispatch(
     env_vars: Dict[str, str] = None,
     secrets: Dict[str, str] = None,
     cluster_id: str = None,
+    run_app_comment_commands: bool = False,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -48,15 +50,19 @@ def dispatch(
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
+        run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
+
+    # Used to indicate Lightning has been dispatched
+    os.environ["LIGHTNING_DISPATCHED"] = "1"
 
     _set_flow_context()
 
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
-    app = load_app_from_file(str(entrypoint_file))
+    app = runtime_cls.load_app_from_file(str(entrypoint_file))
 
     env_vars = {} if env_vars is None else env_vars
     secrets = {} if secrets is None else secrets
@@ -72,6 +78,7 @@ def dispatch(
         port=port,
         env_vars=env_vars,
         secrets=secrets,
+        run_app_comment_commands=run_app_comment_commands,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
@@ -92,6 +99,7 @@ class Runtime:
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
     secrets: Dict[str, str] = field(default_factory=dict)
+    run_app_comment_commands: bool = False
 
     def __post_init__(self):
         if isinstance(self.backend, str):
@@ -151,3 +159,7 @@ class Runtime:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if latest_call_hash in work._calls:
             work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        return load_app_from_file(filepath)
