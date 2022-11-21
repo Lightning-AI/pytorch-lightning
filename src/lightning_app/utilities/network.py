@@ -29,19 +29,14 @@ def find_free_network_port() -> int:
 
 
 def check_port_already_used(port: int) -> int:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sct:
+        try:
+            sct.bind(("127.0.0.1", port))
+        except OSError as ex:
+            if ex.errno == errno.EADDRINUSE:
+                return True
 
-    used = False
-
-    try:
-        s.bind(("127.0.0.1", port))
-    except OSError as e:
-        if e.errno == errno.EADDRINUSE:
-            used = True
-
-    s.close()
-
-    return used
+    return False
 
 
 _CONNECTION_RETRY_TOTAL = 2880
