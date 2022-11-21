@@ -24,7 +24,7 @@ import yaml
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE, TensorBoardLogger
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
@@ -221,6 +221,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger.log_graph(model, example_input_array)
 
 
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
@@ -279,7 +280,12 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
 
 def test_tensorboard_finalize(monkeypatch, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
-    import torch.utils.tensorboard as tb
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    elif not _TENSORBOARDX_AVAILABLE:
+        import tensorboardX as tb
+    else:
+        pytest.skip("`tensorboard` not installed.")
 
     monkeypatch.setattr(tb, "SummaryWriter", Mock())
     logger = TensorBoardLogger(save_dir=tmpdir)
