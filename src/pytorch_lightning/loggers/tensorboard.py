@@ -107,7 +107,7 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
-        if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
+        if not _TENSORBOARD_AVAILABLE:
             raise ModuleNotFoundError(f"{_TENSORBOARD_AVAILABLE!s}. You can also install `tensorboardX` if you prefer.")
 
         super().__init__()
