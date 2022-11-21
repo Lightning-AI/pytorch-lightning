@@ -117,7 +117,7 @@ DEFAULT_CLUSTER = "litng-ai-03"
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
-    def test_run_on_deleted_cluster(self):
+    def test_run_on_deleted_cluster(self, cloud_backend):
         app_name = "test-app"
 
         mock_client = mock.MagicMock()
@@ -125,7 +125,9 @@ class TestAppCreationClient:
             memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
 
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([DEFAULT_CLUSTER])
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([
+            Externalv1Cluster(id=DEFAULT_CLUSTER),
+        ])
         cloud_backend.client = mock_client
 
         app = mock.MagicMock()
