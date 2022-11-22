@@ -35,6 +35,7 @@ from lightning_lite.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
     Strategy,
     XLAStrategy,
@@ -135,7 +136,7 @@ class LightningLite(ABC):
 
     @property
     def is_global_zero(self) -> bool:
-        """Wether this rank is rank zero."""
+        """Whether this rank is rank zero."""
         return self._strategy.is_global_zero
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
@@ -593,13 +594,19 @@ class LightningLite(ABC):
         # wrap the run method, so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
 
-    @staticmethod
-    def _validate_setup(module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
+    def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
         if isinstance(module, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
         if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
+
+        if isinstance(self._strategy, FSDPStrategy):
+            raise RuntimeError(
+                f"The `{type(self).__name__}` requires the model and optimizer(s) to be set up separately."
+                " Create and set up the model first through `model = self.setup_model(model)`. Then create the"
+                " optimizer and set it up: `optimizer = self.setup_optimizer(optimizer)`."
+            )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
         if isinstance(module, _LiteModule):

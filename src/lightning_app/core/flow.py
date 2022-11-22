@@ -110,7 +110,11 @@ class LightningFlow:
         """Return the current LightningFlow name."""
         return self._name or "root"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
+        attr = getattr(self.__class__, name, None)
+        if isinstance(attr, property) and attr.fset is not None:
+            return attr.fset(self, value)
+
         from lightning_app.structures import Dict, List
 
         if (

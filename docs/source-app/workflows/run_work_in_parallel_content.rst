@@ -20,7 +20,7 @@ to wait for the first one to finish.
    :descriptions: No parallel components; Allow the train component to run in parallel; When the component runs, it will run in parallel; The next component is unblocked and can now immediately run.
    :code_files: /workflows/scripts/parallel/toy_app.py; /workflows/scripts/parallel/toy_parallel.py; /workflows/scripts/parallel/toy_parallel.py; /workflows/scripts/parallel/toy_parallel.py;
    :highlights: ; 18; 23; 24;
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 540px
 
@@ -36,6 +36,6 @@ allows the third component to run without waiting for the others to finish.
    :descriptions: No parallel components; Enable 2 components to run in parallel; Start both components together in parallel; Last component is not blocked and can start immediately.
    :code_files: /workflows/scripts/parallel/toy_two_parallel_not_started.py; /workflows/scripts/parallel/toy_two_parallel.py; /workflows/scripts/parallel/toy_two_parallel.py; /workflows/scripts/parallel/toy_two_parallel.py
    :highlights: ; 18, 19; 23, 24; 25
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 540px

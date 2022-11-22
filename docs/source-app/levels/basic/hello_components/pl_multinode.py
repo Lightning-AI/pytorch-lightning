@@ -5,8 +5,7 @@ from lightning.pytorch.demos.boring_classes import BoringModel
 
 
 class LightningTrainerDistributed(L.LightningWork):
-    @staticmethod
-    def run():
+    def run(self):
         model = BoringModel()
         trainer = L.Trainer(max_epochs=10, strategy="ddp")
         trainer.fit(model)
@@ -14,7 +13,7 @@ class LightningTrainerDistributed(L.LightningWork):
 # 8 GPU: (2 nodes of 4 x v100)
 component = LightningTrainerMultiNode(
     LightningTrainerDistributed,
-    num_nodes=2,
+    num_nodes=4,
     cloud_compute=L.CloudCompute("gpu-fast-multi"), # 4 x v100
 )
 app = L.LightningApp(component)

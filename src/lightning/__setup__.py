@@ -107,5 +107,6 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.10",
         ],  # todo: consider aggregation/union of tags from particular packages
     )
