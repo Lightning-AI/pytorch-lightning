@@ -27,12 +27,7 @@ from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path, Payload
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
-from lightning_app.utilities.app_helpers import (
-    _delta_to_app_state_delta,
-    _LightningAppRef,
-    _should_dispatch_app,
-    Logger,
-)
+from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef, Logger
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -59,6 +54,7 @@ class LightningApp:
         flow_cloud_compute: Optional["lightning_app.CloudCompute"] = None,
         log_level: str = "info",
         info: frontend.AppInfo = None,
+        debug: bool = False,
         root_path: str = "",
     ):
         """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
@@ -79,6 +75,7 @@ class LightningApp:
                 This can be helpful when reporting bugs on Lightning repo.
             info: Provide additional info about the app which will be used to update html title,
                 description and image meta tags and specify any additional tags as list of html strings.
+            debug: Whether to enable running the app in debug mode within IDE.
             root_path: Set this to `/path` if you want to run your app behind a proxy at `/path` leave empty for "/".
                 For instance, if you want to run your app at `https://customdomain.com/myapp`,
                 set `root_path` to `/myapp`.
@@ -169,7 +166,7 @@ class LightningApp:
 
         logger.debug(f"ENV: {os.environ}")
 
-        if _should_dispatch_app():
+        if debug or not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0"))):
             os.environ["LIGHTNING_DISPATCHED"] = "1"
             from lightning_app.runners import MultiProcessRuntime
 
