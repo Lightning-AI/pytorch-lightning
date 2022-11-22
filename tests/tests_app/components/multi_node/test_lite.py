@@ -68,6 +68,7 @@ def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expecte
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
 )
+@pytest.mark.skipif(not module_available("lightning.lite"), reason="Lightning.lite not available")
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
@@ -90,6 +91,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
     assert env_vars["LT_CLI_USED"] == "1"
 
 
+@pytest.mark.skipif(not module_available("lightning.lite"), reason="Lightning.lite not available")
 def test_lite_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
         _, _ = _get_args_after_tracer_injection(strategy=L.lite.strategies.DDPSpawnStrategy())
