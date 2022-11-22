@@ -166,8 +166,7 @@ def _to_clean_dict(swagger_object, map_attributes):
         return [_to_clean_dict(x, map_attributes) for x in swagger_object]
     elif isinstance(swagger_object, dict):
         return {key: _to_clean_dict(value, map_attributes) for key, value in swagger_object.items()}
-    else:
-        return swagger_object
+    return swagger_object
 
 
 def _generate_works_json(filepath: str, map_attributes: bool) -> str:
