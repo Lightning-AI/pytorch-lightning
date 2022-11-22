@@ -174,7 +174,7 @@ def _to_web_ready_dict(swagger_object):
 
 
 def _generate_works_json(filepath: str) -> str:
-    app = load_app_from_file(filepath)
+    app = CloudRuntime.load_app_from_file(filepath)
     works = _get_work_specs(app)
     works_json = json.dumps(_to_web_ready_dict(works), separators=(",", ":"))
     return works_json
