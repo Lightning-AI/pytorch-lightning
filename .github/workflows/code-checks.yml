@@ -11,6 +11,9 @@ on:
       - "src/**"
       - "pyproject.toml"   # includes mypy config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

@@ -206,6 +206,7 @@ Current Lightning Users
    Train on single or multiple TPUs <accelerators/tpu>
    Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
+   Inject Custom Data Iterables <data/custom_data_iterables>
    model/own_your_loop
 
 .. toctree::

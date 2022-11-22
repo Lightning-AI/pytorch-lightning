@@ -151,6 +151,17 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
+def distribute_version(src_folder: str, ver_file: str = "version.info") -> None:
+    """Copy the global version to all packages."""
+    ls_ver = glob.glob(os.path.join(src_folder, "*", "__version__.py"))
+    ver_template = os.path.join(src_folder, ver_file)
+    for fpath in ls_ver:
+        fpath = os.path.join(os.path.dirname(fpath), ver_file)
+        if os.path.isfile(fpath):
+            os.remove(fpath)
+        shutil.copy2(ver_template, fpath)
+
+
 def _download_frontend(pkg_path: str):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""

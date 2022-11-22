@@ -39,13 +39,15 @@ RUN \
     fi && \
     # otherwise there is collision with folder name ans pkg name on Pypi
     cd lightning && \
-    pip install .["extra","loggers","strategies"] --no-cache-dir --find-links https://release.colossalai.org && \
+    # remove colossalai from requirements since they are installed separately
+    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \
     rm -rf lightning
 
 RUN python --version && \
     pip --version && \
     pip list && \
-    python -c "import lightning as L; print(L.__version__)"
+    python -c "import pytorch_lightning as pl; print(pl.__version__)"
 
 # CMD ["/bin/bash"]

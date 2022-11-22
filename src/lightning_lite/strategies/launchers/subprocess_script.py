@@ -14,10 +14,8 @@
 import os
 import subprocess
 import sys
-from time import sleep
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Optional, Sequence, Tuple
 
-import numpy as np
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
@@ -116,20 +114,16 @@ class _SubprocessScriptLauncher(_Launcher):
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
             hydra_in_use = False
+            cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 
                 hydra_in_use = HydraConfig.initialized()
             if hydra_in_use:
-                command = _hydra_subprocess_cmd(local_rank=local_rank)
+                command, cwd = _hydra_subprocess_cmd(local_rank=local_rank)
             else:
                 command = _basic_subprocess_cmd()
-            subprocess.Popen(command, env=env_copy)
-
-            # starting all processes at once can cause issues
-            # with dataloaders delay between 1-10 seconds
-            delay = np.random.uniform(1, 5, 1)[0]
-            sleep(delay)
+            subprocess.Popen(command, env=env_copy, cwd=cwd)
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:
@@ -149,10 +143,9 @@ def _basic_subprocess_cmd() -> Sequence[str]:
         return [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
 
-def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
+def _hydra_subprocess_cmd(local_rank: int) -> Tuple[Sequence[str], str]:
     import __main__  # local import to avoid https://github.com/Lightning-AI/lightning/issues/15218
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import to_absolute_path
+    from hydra.utils import get_original_cwd, to_absolute_path
 
     # when user is using hydra find the absolute path
     if __main__.__spec__ is None:  # pragma: no-cover
@@ -160,25 +153,9 @@ def _hydra_subprocess_cmd(local_rank: int) -> Sequence[str]:
     else:
         command = [sys.executable, "-m", __main__.__spec__.name]
 
-    # extract the hydra configuration
-    hydra_cfg = HydraConfig.get()
+    command += sys.argv[1:]
 
-    # the location of the hydra configuration files saved for the current job
-    hydra_output = hydra_cfg.runtime.output_dir
-    if hydra_cfg.output_subdir is not None:
-        hydra_output = os.path.join(hydra_output, hydra_cfg.output_subdir)
-
-    # check if experimental re-run capability exists
-    # otherwise use existing config.yaml which may have issues
-    pickled_config = os.path.join(hydra_output, "config.pickle")
-    if os.path.exists(pickled_config):
-        command += ["--experimental-rerun", pickled_config]
-
-    else:
-        command += ["-cp", hydra_output, "-cn", "config.yaml"]
-        command += [
-            f"hydra.output_subdir=.pl_ddp_hydra_{local_rank}",
-            f"hydra.run.dir={hydra_cfg.runtime.output_dir}",
-        ]
-
-    return command
+    cwd = get_original_cwd()
+    os_cwd = f'"{os.getcwd()}"'
+    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
+    return command, cwd

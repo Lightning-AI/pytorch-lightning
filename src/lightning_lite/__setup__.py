@@ -52,6 +52,7 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include requirements/lite *.txt" + os.linesep,
         "recursive-include src/lightning_lite *.md" + os.linesep,
+        "include src/lightning_lite/version.info" + os.linesep,
     ]
 
     # TODO: remove this once lightning-ui package is ready as a dependency
@@ -72,7 +73,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning-lite",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,

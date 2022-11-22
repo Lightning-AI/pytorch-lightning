@@ -16,7 +16,7 @@ To enable a breakpoint, use `L.pdb.set_trace()` (note direct python pdb support 
    :descriptions: Toy app; Add a breakpoint. When the program runs, it will stop at this line.
    :code_files: ./debug_app_scripts/toy_app_1_component.py; ./debug_app_scripts/toy_app_1_component_pdb.py
    :highlights: ; 7
-   :app_id: abc123
+   :enable_run: true
    :tab_rows: 3
    :height: 350px
 
