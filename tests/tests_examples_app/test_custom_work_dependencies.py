@@ -11,7 +11,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 def test_custom_work_dependencies_example_cloud() -> None:
     # if requirements not installed, the app will fail
     with run_app_in_cloud(
-        os.path.join(_PROJECT_ROOT, "tests/tests_app_examples/custom_work_dependencies/"),
+        os.path.join(_PROJECT_ROOT, "tests/tests_examples_app/custom_work_dependencies/"),
         app_name="app.py",
     ) as (_, _, fetch_logs, _):
         has_logs = False

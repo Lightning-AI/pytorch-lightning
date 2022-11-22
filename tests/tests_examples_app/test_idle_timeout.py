@@ -9,7 +9,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 
 @pytest.mark.cloud
 def test_idle_timeout_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "tests/tests_app_examples/idle_timeout")) as (
+    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "tests/tests_examples_app/idle_timeout")) as (
         _,
         _,
         fetch_logs,

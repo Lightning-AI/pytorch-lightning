@@ -245,7 +245,7 @@ subprojects:
     paths:
       - ".github/workflows/ci-app-examples.yml"
       - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
+      - "tests/tests_examples_app/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
@@ -271,7 +271,7 @@ subprojects:
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "examples/app_*/**"  # some tests_app tests call examples files
-      - "tests/tests_app_examples/**"
+      - "tests/tests_examples_app/**"
       - "setup.py"
       - ".actions/**"
       - "!requirements/app/docs.txt"

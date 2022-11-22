@@ -12,7 +12,7 @@ def test_core_features_app_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PROJECT_ROOT, "tests/tests_app_examples/core_features_app/app.py"),
+            os.path.join(_PROJECT_ROOT, "tests/tests_examples_app/core_features_app/app.py"),
             "--blocking",
             "False",
             "--open-ui",
