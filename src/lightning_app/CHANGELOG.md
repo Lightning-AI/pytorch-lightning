@@ -30,7 +30,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
-- The header text in `lightning list ssh-keys` is now output in the correct "bold green" font colour ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
 
 
 ## [1.8.2] - 2022-11-17
