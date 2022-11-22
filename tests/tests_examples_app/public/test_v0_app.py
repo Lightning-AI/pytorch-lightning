@@ -1,12 +1,18 @@
 import os
 from time import sleep
 from typing import Tuple
+from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from tests_examples_app.public import _PATH_EXAMPLES
 
+from lightning_app import LightningApp
+from lightning_app.runners import CloudRuntime
+from lightning_app.testing import EmptyFlow
 from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
 from lightning_app.utilities.enum import AppStage
+from lightning_app.utilities.load_app import load_app_from_file
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -78,3 +84,18 @@ def test_v0_app_example_cloud() -> None:
         _,
     ):
         run_v0_app(fetch_logs, view_page)
+
+
+@mock.patch(
+    "lightning_app.runners.cloud.load_app_from_file",
+    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+)
+def test_load_app_from_file_module_error():
+    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    assert isinstance(empty_app, LightningApp)
+    assert isinstance(empty_app.root, EmptyFlow)
+
+
+def test_load_app_from_file():
+    app = load_app_from_file(os.path.join(_PATH_EXAMPLES, "app_v0", "app.py"))
+    assert isinstance(app, LightningApp)
