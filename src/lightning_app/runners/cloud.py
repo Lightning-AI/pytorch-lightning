@@ -73,7 +73,7 @@ logger = Logger(__name__)
 
 def _get_work_specs(app: LightningApp) -> List[V1Work]:
     works: List[V1Work] = []
-    for work in self.app.works:
+    for work in app.works:
         _validate_build_spec_and_compute(work)
 
         if not work._start_with_flow:
