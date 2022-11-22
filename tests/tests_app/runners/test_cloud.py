@@ -1334,6 +1334,7 @@ def test_load_app_from_file_mock_imports(tmpdir, lines):
         ),
     ],
 )
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
 def test_generate_works_json(tmpdir, generator, expected):
     path = copy(sys.path)
     app_file = os.path.join(tmpdir, "app.py")
