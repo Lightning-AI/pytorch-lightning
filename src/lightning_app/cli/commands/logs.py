@@ -71,6 +71,7 @@ def _show_logs(app_name: str, components: List[str], follow: bool) -> None:
     works = client.lightningwork_service_list_lightningwork(
         project_id=project.project_id, app_id=apps[app_name].id
     ).lightningworks
+
     app_component_names = ["flow"] + [f.name for f in apps[app_name].spec.flow_servers] + [w.name for w in works]
 
     if not components:

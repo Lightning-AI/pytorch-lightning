@@ -103,8 +103,6 @@ class ProxyWorkRun:
     caller_queue: "BaseQueue"
 
     def __post_init__(self):
-        self.cache_calls = self.work.cache_calls
-        self.parallel = self.work.parallel
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
@@ -123,7 +121,7 @@ class ProxyWorkRun:
 
         # The if/else conditions are left un-compressed to simplify readability
         # for the readers.
-        if self.cache_calls:
+        if self.work.cache_calls:
             if not entered or stopped_on_sigterm:
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
@@ -137,7 +135,7 @@ class ProxyWorkRun:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
                     _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-        if not self.parallel:
+        if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:

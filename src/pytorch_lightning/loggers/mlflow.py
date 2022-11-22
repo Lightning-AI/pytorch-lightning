@@ -18,14 +18,20 @@ MLflow Logger
 import logging
 import os
 import re
+import tempfile
 from argparse import Namespace
+from pathlib import Path
 from time import time
 from typing import Any, Dict, Mapping, Optional, Union
 
+import torch
+import yaml
 from lightning_utilities.core.imports import module_available
+from typing_extensions import Literal
 
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -108,6 +114,15 @@ class MLFlowLogger(Logger):
         save_dir: A path to a local directory where the MLflow runs get saved.
             Defaults to `./mlflow` if `tracking_uri` is not provided.
             Has no effect if `tracking_uri` is provided.
+        log_model: Log checkpoints created by :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+            as MLFlow artifacts.
+
+            * if ``log_model == 'all'``, checkpoints are logged during training.
+            * if ``log_model == True``, checkpoints are logged at the end of training, except when
+              :paramref:`~pytorch_lightning.callbacks.Checkpoint.save_top_k` ``== -1``
+              which also logs every checkpoint during training.
+            * if ``log_model == False`` (default), no checkpoint is logged.
+
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
@@ -127,6 +142,7 @@ class MLFlowLogger(Logger):
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
+        log_model: Literal[True, False, "all"] = False,
         prefix: str = "",
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
@@ -145,6 +161,9 @@ class MLFlowLogger(Logger):
         self._run_name = run_name
         self._run_id = run_id
         self.tags = tags
+        self._log_model = log_model
+        self._logged_model_time: Dict[str, float] = {}
+        self._checkpoint_callback: Optional[ModelCheckpoint] = None
         self._prefix = prefix
         self._artifact_location = artifact_location
 
@@ -261,6 +280,11 @@ class MLFlowLogger(Logger):
             status = "FINISHED"
         elif status == "failed":
             status = "FAILED"
+
+        # log checkpoints as artifacts
+        if self._checkpoint_callback:
+            self._scan_and_log_checkpoints(self._checkpoint_callback)
+
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 
@@ -292,3 +316,59 @@ class MLFlowLogger(Logger):
             The run id.
         """
         return self.run_id
+
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
+        # log checkpoints as artifacts
+        if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
+            self._scan_and_log_checkpoints(checkpoint_callback)
+        elif self._log_model is True:
+            self._checkpoint_callback = checkpoint_callback
+
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
+        # get checkpoints to be saved with associated score
+        checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
+
+        # log iteratively all new checkpoints
+        for t, p, s, tag in checkpoints:
+            metadata = {
+                # Ensure .item() is called to store Tensor contents
+                "score": s.item() if isinstance(s, torch.Tensor) else s,
+                "original_filename": Path(p).name,
+                "Checkpoint": {
+                    k: getattr(checkpoint_callback, k)
+                    for k in [
+                        "monitor",
+                        "mode",
+                        "save_last",
+                        "save_top_k",
+                        "save_weights_only",
+                        "_every_n_train_steps",
+                        "_every_n_val_epochs",
+                    ]
+                    # ensure it does not break if `Checkpoint` args change
+                    if hasattr(checkpoint_callback, k)
+                },
+            }
+            aliases = ["latest", "best"] if p == checkpoint_callback.best_model_path else ["latest"]
+
+            # Artifact path on mlflow
+            artifact_path = f"model/checkpoints/{Path(p).stem}"
+
+            # Log the checkpoint
+            self.experiment.log_artifact(self._run_id, p, artifact_path)
+
+            # Create a temporary directory to log on mlflow
+            with tempfile.TemporaryDirectory(prefix="test", suffix="test", dir=os.getcwd()) as tmp_dir:
+                # Log the metadata
+                with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
+                    yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
+
+                # Log the aliases
+                with open(f"{tmp_dir}/aliases.txt", "w") as tmp_file_aliases:
+                    tmp_file_aliases.write(str(aliases))
+
+                # Log the metadata and aliases
+                self.experiment.log_artifacts(self._run_id, tmp_dir, artifact_path)
+
+            # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
+            self._logged_model_time[p] = t

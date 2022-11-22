@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import time
+import traceback
 from pathlib import Path
 from time import sleep
 from typing import List, Optional
@@ -197,7 +198,9 @@ def test_work_database_periodic_store():
                 assert len(self._client.select_all()) == 1
                 self._exit()
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-
-        app = LightningApp(Flow(tmpdir))
-        MultiProcessRuntime(app).dispatch()
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app = LightningApp(Flow(tmpdir))
+            MultiProcessRuntime(app).dispatch()
+    except Exception:
+        print(traceback.print_exc())

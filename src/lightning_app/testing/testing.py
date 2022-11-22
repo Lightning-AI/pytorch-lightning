@@ -219,7 +219,7 @@ def _run_cli(args) -> Generator:
 def run_app_in_cloud(
     app_folder: str, app_name: str = "app.py", extra_args: List[str] = [], debug: bool = True
 ) -> Generator:
-    """This utility is used to automate testing e2e application with lightning_app.ai."""
+    """This utility is used to automate testing e2e application with lightning.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
         raise Exception("The app folder should contain an app.py file.")
@@ -361,7 +361,7 @@ def run_app_in_cloud(
         except playwright._impl._api_types.TimeoutError:
             print("'Create Project' dialog not visible, skipping.")
 
-        admin_page.locator(f"text={name}").click()
+        admin_page.locator(f"role=link[name='{name}']").click()
         sleep(5)
         # Scroll to the bottom of the page. Used to capture all logs.
         admin_page.evaluate(
@@ -431,7 +431,18 @@ def run_app_in_cloud(
                     project_id=project.project_id,
                     app_id=app_id,
                 ).lightningworks
+
                 component_names = ["flow"] + [w.name for w in works]
+            else:
+
+                def add_prefix(c: str) -> str:
+                    if c == "flow":
+                        return c
+                    if not c.startswith("root."):
+                        return "root." + c
+                    return c
+
+                component_names = [add_prefix(c) for c in component_names]
 
             gen = _app_logs_reader(
                 logs_api_client=logs_api_client,

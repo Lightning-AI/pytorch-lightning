@@ -19,6 +19,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
+          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -47,7 +48,7 @@ jobs:
       - name: Publish Latest to Docker
         uses: docker/build-push-action@v3
         # Only latest Python and PyTorch
-        if: matrix.python_version == '3.9' && matrix.pytorch_version == '1.12'
+        if: matrix.python_version == '3.9' && matrix.pytorch_version == '1.13'
         with:
           repository: pytorchlightning/pytorch_lightning
           username: ${{ secrets.DOCKER_USERNAME }}
