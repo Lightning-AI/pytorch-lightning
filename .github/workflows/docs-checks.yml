@@ -16,6 +16,8 @@ on:
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
       - ".github/workflows/docs-checks.yml"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
