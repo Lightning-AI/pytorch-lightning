@@ -2,8 +2,8 @@ import os
 
 import pytest
 from click.testing import CliRunner
-from tests_app import _PROJECT_ROOT
 
+from lightning_app import _PROJECT_ROOT
 from lightning_app.cli.lightning_cli import run_app
 from lightning_app.testing.helpers import _run_script, _RunIf
 
