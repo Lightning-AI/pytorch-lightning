@@ -1,10 +1,10 @@
 import fnmatch
+import json
 import os
 import random
 import string
 import sys
 import time
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
@@ -151,7 +151,7 @@ def _get_work_specs(app: LightningApp) -> List[V1Work]:
 
 
 def _to_web_ready_dict(swagger_object):
-    """Returns the swagger object properties as a dict with correct object names"""
+    """Returns the swagger object properties as a dict with correct object names."""
 
     if isinstance(swagger_object, list):
         return [_to_web_ready_dict(x) for x in swagger_object]
@@ -176,7 +176,7 @@ def _to_web_ready_dict(swagger_object):
 def _generate_works_json(filepath: str) -> str:
     app = load_app_from_file(filepath)
     works = _get_work_specs(app)
-    works_json = json.dumps(_to_web_ready_dict(works), separators=(',', ':'))
+    works_json = json.dumps(_to_web_ready_dict(works), separators=(",", ":"))
     return works_json
 
 
