@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional, Union
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
+from lightning_app.core.constants import APP_SERVER_HOST
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
@@ -24,6 +25,7 @@ class MultiProcessRuntime(Runtime):
     queues to enable communication between the different processes.
     """
 
+    host: str = "0.0.0.0" if "http://lightningapp" in APP_SERVER_HOST else APP_SERVER_HOST
     backend: Union[str, Backend] = "multiprocessing"
 
     def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
