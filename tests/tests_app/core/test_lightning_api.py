@@ -42,7 +42,7 @@ register_global_routes()
 
 class WorkA(LightningWork):
     def __init__(self):
-        super().__init__(parallel=True)
+        super().__init__(parallel=True, start_with_flow=False)
         self.var_a = 0
         self.drive = Drive("lit://test_app_state_api")
 

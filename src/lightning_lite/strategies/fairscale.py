@@ -18,6 +18,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import torch
 from lightning_utilities.core.imports import module_available
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
@@ -89,6 +90,20 @@ class DDPShardedStrategy(DDPStrategy):
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
+
+        Please use :meth:`setup_module_and_optimizers` instead.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -152,6 +167,20 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             optimizer._clear_cache()
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
+
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
+
+        Please use :meth:`setup_module_and_optimizers` instead.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

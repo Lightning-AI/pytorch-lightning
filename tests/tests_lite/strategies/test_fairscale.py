@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from re import escape
 from unittest import mock
 from unittest.mock import MagicMock, Mock
 
@@ -89,3 +90,18 @@ def test_fairscale_no_backward_sync(cls):
         pass
 
     module.no_sync.assert_called_once()
+
+
+@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
+def test_fairscale_requires_joint_setup(cls):
+    """Test that the fairscale sharded strategy does not support setting up model and optimizer independently."""
+    strategy = cls()
+    with pytest.raises(
+        NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
+    ):
+        strategy.setup_module(Mock())
+
+    with pytest.raises(
+        NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
+    ):
+        strategy.setup_optimizer(Mock())

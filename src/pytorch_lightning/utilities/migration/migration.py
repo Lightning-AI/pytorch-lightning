@@ -28,9 +28,12 @@ For the Lightning developer: How to add a new migration?
    cp model.ckpt model.ckpt.backup
    python -m pytorch_lightning.utilities.upgrade_checkpoint --file model.ckpt
 """
-
+import re
 from typing import Any, Callable, Dict, List
 
+from lightning_utilities.core.rank_zero import rank_zero_warn
+
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
@@ -43,6 +46,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "0.10.0": [_migrate_model_checkpoint_early_stopping],
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
         "1.6.5": [_migrate_loop_batches_that_stepped],
+        "1.9.0": [_migrate_model_checkpoint_save_on_train_epoch_end_default],
     }
 
 
@@ -160,3 +164,39 @@ _FIT_LOOP_INITIAL_STATE_1_6_0 = {
     },
     "state_dict": {},
 }
+
+
+def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """The ``save_on_train_epoch_end`` was removed from the state-key of ``ModelCheckpoint`` in 1.9.0, and this
+    migration drops it from the state-keys saved in the checkpoint dict so that the keys match when the Trainer
+    loads the callback state.
+
+    Version: 1.9.0
+    Commit: f4ca56
+    PR: #15300, #15606
+    """
+    if "callbacks" not in checkpoint:
+        return checkpoint
+
+    def new_key(old_key: str) -> str:
+        if not old_key.startswith("ModelCheckpoint"):
+            return old_key
+        return re.sub(", 'save_on_train_epoch_end': (None|True|False)", "", old_key)
+
+    num_keys = len(checkpoint["callbacks"])
+    # Note: only iterate over keys that are strings. The legacy state key was the type of the callback.
+    new_callback_states = {
+        new_key(old_key): state for old_key, state in checkpoint["callbacks"].items() if isinstance(old_key, str)
+    }
+    if len(new_callback_states) < num_keys:
+        rank_zero_warn(
+            "You have multiple `ModelCheckpoint` callback states in this checkpoint, but we found state keys"
+            " that would end up colliding with each other after an upgrade, which means we can't differentiate"
+            " which of your checkpoint callbacks needs which states. At least one of your `ModelCheckpoint`"
+            " callbacks will not be able to reload the state.",
+            category=PossibleUserWarning,
+        )
+        return checkpoint
+
+    checkpoint["callbacks"] = new_callback_states
+    return checkpoint

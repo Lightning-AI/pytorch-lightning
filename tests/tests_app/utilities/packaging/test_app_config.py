@@ -1,6 +1,6 @@
 import pathlib
 
-from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
+from lightning_app.utilities.packaging.app_config import _get_config_file, AppConfig
 
 
 def _make_empty_config_file(folder):
@@ -10,24 +10,12 @@ def _make_empty_config_file(folder):
     return file
 
 
-def test_find_config_file(tmpdir, monkeypatch):
-    monkeypatch.chdir(pathlib.Path("/"))
-    assert find_config_file() is None
-
-    monkeypatch.chdir(pathlib.Path.home())
-    assert find_config_file() is None
-
+def test_get_config_file(tmpdir):
     _ = _make_empty_config_file(tmpdir)
-    config_file1 = _make_empty_config_file(tmpdir / "a" / "b")
+    config_file1 = _make_empty_config_file(tmpdir)
 
-    assert find_config_file(tmpdir) == pathlib.Path(tmpdir, ".lightning")
-    assert find_config_file(config_file1) == pathlib.Path(tmpdir, "a", "b", ".lightning")
-    assert find_config_file(pathlib.Path(tmpdir, "a")) == pathlib.Path(tmpdir, ".lightning")
-
-    # the config must be a file, a folder of the same name gets ignored
-    fake_config_folder = pathlib.Path(tmpdir, "fake", ".lightning")
-    fake_config_folder.mkdir(parents=True)
-    assert find_config_file(tmpdir) == pathlib.Path(tmpdir, ".lightning")
+    assert _get_config_file(tmpdir) == pathlib.Path(tmpdir, ".lightning")
+    assert _get_config_file(config_file1) == pathlib.Path(tmpdir, ".lightning")
 
 
 def test_app_config_save_load(tmpdir):
