@@ -33,8 +33,7 @@ def check_port_already_used(port: int) -> int:
         try:
             sct.bind(("127.0.0.1", port))
         except OSError as ex:
-            if ex.errno == errno.EADDRINUSE:
-                return True
+            return ex.errno == errno.EADDRINUSE
 
     return False
 
