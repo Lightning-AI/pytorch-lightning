@@ -122,6 +122,8 @@ class TracerPythonScript(LightningWork):
         Arguments:
             params: A dictionary of arguments to be be added to script_args.
             restart_count: Passes an incrementing counter to enable the re-execution of LightningWorks.
+            code_dir: A path string or Path object determining where the source is extracted,
+                      default is current directory.
         """
         if restart_count:
             self.restart_count = restart_count
