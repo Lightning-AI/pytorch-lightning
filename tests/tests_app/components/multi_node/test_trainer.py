@@ -35,8 +35,10 @@ def _get_args_after_tracer_injection(**kwargs):
     return ret_val, env_vars
 
 
-@pytest.mark.skipif(not module_available("lightning.pytorch"))
-@pytest.mark.skipif(not L.pytorch.accelerators.MPSAccelerator.is_available())
+@pytest.mark.skipif(not module_available("lightning.pytorch"), reason="lightning.pytorch not available")
+@pytest.mark.skipif(
+    not L.pytorch.accelerators.MPSAccelerator.is_available(), reason="MPS not available but required for this test"
+)
 @pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
 def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
