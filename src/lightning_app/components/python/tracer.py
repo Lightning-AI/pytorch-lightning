@@ -117,7 +117,7 @@ class TracerPythonScript(LightningWork):
         self.code_name = code.get("name") if code else None
         self.restart_count = 0
 
-    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
+    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, code_dir=".", **kwargs):
         """
         Arguments:
             params: A dictionary of arguments to be be added to script_args.
@@ -137,7 +137,10 @@ class TracerPythonScript(LightningWork):
 
             if self.code_name in self.drive.list():
                 self.drive.get(self.code_name)
-                extract_tarfile(self.code_name, ".", "r:gz")
+                extract_tarfile(self.code_name, code_dir, "r:gz")
+
+        prev_cwd = os.getcwd()
+        os.chdir(code_dir)
 
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
@@ -152,6 +155,7 @@ class TracerPythonScript(LightningWork):
         if self.env:
             os.environ.update(self.env)
         res = self._run_tracer(init_globals)
+        os.chdir(prev_cwd)
         os.environ = env_copy
         return self.on_after_run(res)
 
