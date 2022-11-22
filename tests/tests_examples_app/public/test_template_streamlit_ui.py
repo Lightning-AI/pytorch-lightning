@@ -2,7 +2,7 @@ import os
 from time import sleep
 
 import pytest
-from tests_examples_app.public import _PATH_APPS
+from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
 
@@ -10,7 +10,7 @@ from lightning_app.testing.testing import run_app_in_cloud, wait_for
 @pytest.mark.cloud
 def test_template_streamlit_ui_example_cloud() -> None:
     """This test ensures streamlit works in the cloud by clicking a button and checking the logs."""
-    with run_app_in_cloud(os.path.join(_PATH_APPS, "app_template_streamlit_ui")) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_template_streamlit_ui")) as (
         _,
         view_page,
         fetch_logs,

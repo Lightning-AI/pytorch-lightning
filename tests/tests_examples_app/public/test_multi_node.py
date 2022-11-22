@@ -2,7 +2,7 @@ import os
 import sys
 
 import pytest
-from tests_examples_app.public import _PATH_APPS
+from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import application_testing, LightningTestApp
 
@@ -18,7 +18,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
 
 @pytest.mark.skip(reason="flaky")
 def test_multi_node_example(monkeypatch):
-    monkeypatch.chdir(os.path.join(_PATH_APPS, "app_multi_node"))
+    monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
     command_line = [
         "app.py",
         "--blocking",
@@ -51,7 +51,7 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="flaky")
 def test_multi_node_examples(app_name, monkeypatch):
-    monkeypatch.chdir(os.path.join(_PATH_APPS, "app_multi_node"))
+    monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
     command_line = [
         app_name,
         "--blocking",

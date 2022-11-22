@@ -2,14 +2,14 @@ import os
 from time import sleep
 
 import pytest
-from tests_examples_app.public import _PATH_APPS
+from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
 
 
 @pytest.mark.cloud
 def test_drive_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_APPS, "app_drive")) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_drive")) as (
         _,
         _,
         fetch_logs,
