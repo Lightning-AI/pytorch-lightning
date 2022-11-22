@@ -121,7 +121,6 @@ def _get_work_specs(app: LightningApp) -> List[V1Work]:
                         ),
                         status=V1DriveStatus(),
                     ),
-                    mount_location=str(drive.root_folder),
                 ),
             )
 
@@ -150,34 +149,40 @@ def _get_work_specs(app: LightningApp) -> List[V1Work]:
     return works
 
 
-def _to_web_ready_dict(swagger_object):
+def _to_clean_dict(swagger_object, map_attributes):
     """Returns the swagger object properties as a dict with correct object names."""
 
-    if isinstance(swagger_object, list):
-        return [_to_web_ready_dict(x) for x in swagger_object]
-    elif hasattr(swagger_object, "to_dict"):
-        result = {}
+    if hasattr(swagger_object, "to_dict"):
         attribute_map = swagger_object.attribute_map
-        for attribute_from, attribute_to in attribute_map.items():
-            value = getattr(swagger_object, attribute_from)
-            if value is not None:
-                result[attribute_to] = _to_web_ready_dict(value)
-        return result
-    elif isinstance(swagger_object, dict):
         result = {}
-        for key, value in swagger_object.items():
-            if value is not None:
-                result[key] = _to_web_ready_dict(value)
+        for key in attribute_map.keys():
+            value = getattr(swagger_object, key)
+            value = _to_clean_dict(value, map_attributes)
+            if value is not None and value != {}:
+                key = attribute_map[key] if map_attributes else key
+                result[key] = value
         return result
+    elif isinstance(swagger_object, list):
+        return [_to_clean_dict(x, map_attributes) for x in swagger_object]
+    elif isinstance(swagger_object, dict):
+        return {key: _to_clean_dict(value, map_attributes) for key, value in swagger_object.items()}
     else:
         return swagger_object
 
 
-def _generate_works_json(filepath: str) -> str:
+def _generate_works_json(filepath: str, map_attributes: bool) -> str:
     app = CloudRuntime.load_app_from_file(filepath)
     works = _get_work_specs(app)
-    works_json = json.dumps(_to_web_ready_dict(works), separators=(",", ":"))
+    works_json = json.dumps(_to_clean_dict(works, map_attributes), separators=(",", ":"))
     return works_json
+
+
+def _generate_works_json_web(filepath: str) -> str:
+    return _generate_works_json(filepath, True)
+
+
+def _generate_works_json_gallery(filepath: str) -> str:
+    return _generate_works_json(filepath, False)
 
 
 @dataclass
