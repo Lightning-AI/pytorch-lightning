@@ -71,7 +71,7 @@ class MultiProcessRuntime(Runtime):
                         "A Lightning App is already running locally. "
                         "Stop the existing App or run in the cloud with `--cloud`."
                     )
-                    sys.exit(0)
+                    sys.exit(1)
 
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
