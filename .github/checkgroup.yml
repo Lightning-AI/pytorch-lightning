@@ -269,7 +269,6 @@ subprojects:
       - ".azure/app-cloud-e2e.yml"
       - "requirements/app/**"
       - "src/lightning_app/**"
-      - "tests/tests_app/**"
       - "examples/app_*/**"  # some tests_app tests call examples files
       - "tests/tests_examples_app/**"
       - "setup.py"
