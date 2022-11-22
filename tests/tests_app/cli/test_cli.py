@@ -61,8 +61,6 @@ def test_main_lightning_cli_no_arguments():
     assert "create  " in res
     assert "show    " in res
     assert "ssh     " in res
-    assert "add     " in res
-    assert "remove  " in res
 
 
 def test_main_lightning_cli_help():
@@ -76,8 +74,6 @@ def test_main_lightning_cli_help():
     assert "create  " in res
     assert "show    " in res
     assert "ssh     " in res
-    assert "add     " in res
-    assert "remove  " in res
 
     res = os.popen("lightning run --help").read()
     assert "app  " in res
@@ -96,6 +92,16 @@ def test_main_lightning_cli_help():
     # inspect show cluster group
     res = os.popen("lightning show cluster --help").read()
     assert "logs " in res
+
+    # inspect create group
+    res = os.popen("lightning create --help").read()
+    assert "cluster " in res
+    assert "ssh-key " in res
+
+    # inspect delete group
+    res = os.popen("lightning delete --help").read()
+    assert "cluster " in res
+    assert "ssh-key " in res
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
