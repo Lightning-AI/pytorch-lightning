@@ -22,9 +22,16 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import CometLogger, CSVLogger, MLFlowLogger, NeptuneLogger, WandbLogger
+from pytorch_lightning.loggers import (
+    CometLogger,
+    CSVLogger,
+    MLFlowLogger,
+    NeptuneLogger,
+    TensorBoardLogger,
+    WandbLogger,
+)
 from pytorch_lightning.loggers.logger import DummyExperiment
-from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
