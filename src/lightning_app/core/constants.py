@@ -1,4 +1,6 @@
+import errno
 import os
+import socket
 from pathlib import Path
 
 import lightning_cloud.env
@@ -7,6 +9,16 @@ import lightning_cloud.env
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
+
+
+def check_port_already_used(port: int) -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sct:
+        try:
+            sct.bind(("127.0.0.1", port))
+        except OSError as ex:
+            return ex.errno == errno.EADDRINUSE
+
+    return False
 
 
 SUPPORTED_PRIMITIVE_TYPES = (type(None), str, int, float, bool)
@@ -19,7 +31,7 @@ FLOW_DURATION_THRESHOLD = 1.0
 FLOW_DURATION_SAMPLES = 5
 
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
-APP_SERVER_PORT = 7501
+APP_SERVER_PORT = 7501 if not check_port_already_used(7501) else 7500  # Supports only 2 local Apps at the same time.
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
 CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
