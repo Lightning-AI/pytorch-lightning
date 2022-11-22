@@ -75,6 +75,7 @@ def restore_env_variables():
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
         "KMP_INIT_AT_FORK",  # leaked since PyTorch 1.13
         "KMP_DUPLICATE_LIB_OK",  # leaked since PyTorch 1.13
+        "CRC32C_SW_MODE",  # leaked by tensorboardX
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

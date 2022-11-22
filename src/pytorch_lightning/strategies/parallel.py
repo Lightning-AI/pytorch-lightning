@@ -77,10 +77,10 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        return dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
+            rank=self.global_rank,
         )
-        return distributed_sampler_kwargs
 
     def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""

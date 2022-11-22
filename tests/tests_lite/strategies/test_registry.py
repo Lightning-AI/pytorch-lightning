@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from lightning_lite.strategies import STRATEGY_REGISTRY
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 def test_strategy_registry_with_new_strategy():
@@ -41,7 +42,7 @@ def test_strategy_registry_with_new_strategy():
 
 
 def test_available_strategies_in_registry():
-    assert set(STRATEGY_REGISTRY.available_strategies()) == {
+    expected = {
         "ddp_sharded_find_unused_parameters_false",
         "ddp_sharded",
         "ddp_find_unused_parameters_false",
@@ -66,3 +67,6 @@ def test_available_strategies_in_registry():
         "xla",
         "dp",
     }
+    if _TORCH_GREATER_EQUAL_1_12:
+        expected |= {"fsdp", "fsdp_full_shard_offload"}
+    assert set(STRATEGY_REGISTRY.available_strategies()) == expected
