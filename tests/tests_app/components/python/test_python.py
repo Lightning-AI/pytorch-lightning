@@ -143,7 +143,7 @@ def test_tracer_component_with_code_in_dir(tmp_path):
     os.remove("sample.tar.gz")
 
     python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
-    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0, code_dir=tmp_path)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0, code_dir=str(tmp_path))
     assert "An error" in python_script.status.message
 
-    assert os.path.exists(os.path.join(tmp_path, "file.py"))
+    assert os.path.exists(os.path.join(str(tmp_path), "file.py"))
