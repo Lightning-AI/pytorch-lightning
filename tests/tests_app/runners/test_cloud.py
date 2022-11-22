@@ -644,7 +644,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
@@ -869,7 +868,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
             lit_drive_2_spec = V1LightningworkDrives(
                 drive=V1Drive(
@@ -883,7 +881,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
 
             # order of drives in the spec is non-deterministic, so there are two options
@@ -1103,7 +1100,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                                 V1LightningworkDrives(
                                     drive=V1Drive(
