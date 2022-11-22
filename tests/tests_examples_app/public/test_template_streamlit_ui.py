@@ -2,15 +2,15 @@ import os
 from time import sleep
 
 import pytest
-from tests_app import _PROJECT_ROOT
+from tests_examples_app.public import _PATH_APPS
 
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
 
 
 @pytest.mark.cloud
-def test_template_react_ui_example_cloud() -> None:
+def test_template_streamlit_ui_example_cloud() -> None:
     """This test ensures streamlit works in the cloud by clicking a button and checking the logs."""
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_template_react_ui")) as (
+    with run_app_in_cloud(os.path.join(_PATH_APPS, "app_template_streamlit_ui")) as (
         _,
         view_page,
         fetch_logs,
@@ -18,9 +18,9 @@ def test_template_react_ui_example_cloud() -> None:
     ):
 
         def click_button(*_, **__):
-            button = view_page.frame_locator("iframe").locator('button:has-text("Start Printing")')
-            button.wait_for(timeout=3 * 1000)
-            if button.all_text_contents() == ["Start Printing"]:
+            button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
+
+            if button.all_text_contents() == ["Should print to the terminal ?"]:
                 button.click()
                 return True
 

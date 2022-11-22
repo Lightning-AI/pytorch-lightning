@@ -2,8 +2,8 @@ import os
 from time import sleep
 
 import pytest
+from tests_examples_app.local import _PATH_APPS
 
-from lightning_app import _PROJECT_ROOT
 from lightning_app.testing.testing import run_app_in_cloud
 
 
@@ -22,7 +22,7 @@ def test_collect_failures_example_cloud() -> None:
         "good_value_of_i_4",
         "invalid_value_of_i_5",
     ]
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "tests/tests_examples_app/collect_failures")) as (
+    with run_app_in_cloud(os.path.join(_PATH_APPS, "collect_failures")) as (
         _,
         _,
         fetch_logs,

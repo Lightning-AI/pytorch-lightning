@@ -1,7 +1,7 @@
 import os
 
 from click.testing import CliRunner
-from tests_app import _PROJECT_ROOT
+from tests_examples_app.public import _PATH_APPS
 
 from lightning_app.cli.lightning_cli import run_app
 
@@ -12,7 +12,7 @@ def test_layout_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PROJECT_ROOT, "examples/app_layout/app.py"),
+            os.path.join(_PATH_APPS, "app_layout", "app.py"),
             "--blocking",
             "False",
             "--open-ui",

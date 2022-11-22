@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
-from tests_app import _PROJECT_ROOT
+from tests_examples_app.public import _PATH_APPS
 
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import run_app
@@ -38,7 +38,7 @@ def test_quick_start_example(caplog, monkeypatch):
             result = runner.invoke(
                 run_app,
                 [
-                    os.path.join(_PROJECT_ROOT, "lightning-quick-start/app.py"),
+                    os.path.join(_PATH_APPS, "lightning-quick-start", "app.py"),
                     "--blocking",
                     "False",
                     "--open-ui",
@@ -51,7 +51,7 @@ def test_quick_start_example(caplog, monkeypatch):
 
 @pytest.mark.cloud
 def test_quick_start_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples", "lightning-quick-start/")) as (_, view_page, _, _):
+    with run_app_in_cloud(os.path.join(_PATH_APPS, "lightning-quick-start")) as (_, view_page, _, _):
 
         def click_gradio_demo(*_, **__):
             button = view_page.locator('button:has-text("Interactive demo")')

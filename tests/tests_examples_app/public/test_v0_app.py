@@ -3,7 +3,7 @@ from time import sleep
 from typing import Tuple
 
 import pytest
-from tests_app import _PROJECT_ROOT
+from tests_examples_app.public import _PATH_APPS
 
 from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
 from lightning_app.utilities.enum import AppStage
@@ -20,7 +20,7 @@ class LightningAppTestInt(LightningTestApp):
 
 def test_v0_app_example():
     command_line = [
-        os.path.join(_PROJECT_ROOT, "examples/app_v0/app.py"),
+        os.path.join(_PATH_APPS, "app_v0", "app.py"),
         "--blocking",
         "False",
         "--open-ui",
@@ -59,7 +59,7 @@ def run_v0_app(fetch_logs, view_page):
 )
 def test_v0_app_example_byoc_cloud() -> None:
     with run_app_in_cloud(
-        os.path.join(_PROJECT_ROOT, "examples/app_v0"),
+        os.path.join(_PATH_APPS, "app_v0"),
         extra_args=["--cluster-id", os.environ.get("LIGHTNING_BYOC_CLUSTER_ID")],
     ) as (
         _,
@@ -71,7 +71,7 @@ def test_v0_app_example_byoc_cloud() -> None:
 
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_v0")) as (
+    with run_app_in_cloud(os.path.join(_PATH_APPS, "examples", "app_v0")) as (
         _,
         view_page,
         fetch_logs,
