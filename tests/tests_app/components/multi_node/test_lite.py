@@ -7,13 +7,13 @@ import pytest
 from lightning_utilities.core.imports import module_available
 from tests_app.helpers.utils import no_warning_call
 
-import lightning as L
+import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
 
 
 def dummy_callable(**kwargs):
-    ll = L.lite.LightningLite(**kwargs)
-    return ll._all_passed_kwargs
+    lite = ll.LightningLite(**kwargs)
+    return lite._all_passed_kwargs
 
 
 def dummy_init(self, **kwargs):
@@ -21,7 +21,7 @@ def dummy_init(self, **kwargs):
 
 
 def _get_args_after_tracer_injection(**kwargs):
-    with mock.patch.object(L.lite.LightningLite, "__init__", dummy_init):
+    with mock.patch.object(ll.LightningLite, "__init__", dummy_init):
         ret_val = _LiteRunExecutor.run(
             local_rank=0,
             work_run=partial(dummy_callable, **kwargs),
@@ -37,11 +37,11 @@ def _get_args_after_tracer_injection(**kwargs):
 
 def check_lightning_lite_mps():
     if module_available("lightning_lite"):
-        return L.lite.accelerators.MPSAccelerator.is_available()
+        return ll.accelerators.MPSAccelerator.is_available()
     return False
 
 
-@pytest.mark.skipif(not check_lightning_lite_mps(), reason="Lightning.lite not available or mps not available")
+@pytest.mark.skipif(not check_lightning_lite_mps(), reason="Lightning lite not available or mps not available")
 @pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
 def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
@@ -73,11 +73,11 @@ def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expecte
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
 )
-@pytest.mark.skipif(not module_available("lightning.lite"), reason="Lightning Lite is required for this test")
+@pytest.mark.skipif(not module_available("lightning_lite"), reason="Lightning Lite is required for this test")
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
-    if L.lite.accelerators.MPSAccelerator.is_available():
+    if ll.accelerators.MPSAccelerator.is_available():
         args_expected["accelerator"] = "cpu"
 
     ret_val, env_vars = _get_args_after_tracer_injection(**args_given)
@@ -96,10 +96,10 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
     assert env_vars["LT_CLI_USED"] == "1"
 
 
-@pytest.mark.skipif(not module_available("lightning.lite"), reason="Lightning.lite not available")
+@pytest.mark.skipif(not module_available("lightning_lite"), reason="Lightning lite not available")
 def test_lite_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=L.lite.strategies.DDPSpawnStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPSpawnStrategy())
 
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=L.lite.strategies.DDPSpawnShardedStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPSpawnShardedStrategy())

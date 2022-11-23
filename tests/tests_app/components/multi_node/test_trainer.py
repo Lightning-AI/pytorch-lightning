@@ -7,12 +7,12 @@ import pytest
 from lightning_utilities.core.imports import module_available
 from tests_app.helpers.utils import no_warning_call
 
-import lightning as L
+import pytorch_lightning as pl
 from lightning_app.components.multi_node.trainer import _LightningTrainerRunExecutor
 
 
 def dummy_callable(**kwargs):
-    t = L.pytorch.Trainer(**kwargs)
+    t = pl.Trainer(**kwargs)
     return t._all_passed_kwargs
 
 
@@ -21,7 +21,7 @@ def dummy_init(self, **kwargs):
 
 
 def _get_args_after_tracer_injection(**kwargs):
-    with mock.patch.object(L.pytorch.Trainer, "__init__", dummy_init):
+    with mock.patch.object(pl.Trainer, "__init__", dummy_init):
         ret_val = _LightningTrainerRunExecutor.run(
             local_rank=0,
             work_run=partial(dummy_callable, **kwargs),
@@ -36,12 +36,12 @@ def _get_args_after_tracer_injection(**kwargs):
 
 
 def check_lightning_pytorch_and_mps():
-    if module_available("lightning.pytorch"):
-        return L.pytorch.accelerators.MPSAccelerator.is_available()
+    if module_available("pytorch_lightning"):
+        return pl.accelerators.MPSAccelerator.is_available()
     return False
 
 
-@pytest.mark.skipif(not check_lightning_pytorch_and_mps(), reason="lightning.pytorch and mps are required")
+@pytest.mark.skipif(not check_lightning_pytorch_and_mps(), reason="pytorch_lightning and mps are required")
 @pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
 def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
@@ -73,11 +73,11 @@ def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expe
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
 )
-@pytest.mark.skipif(not module_available("lightning.pytorch"))
+@pytest.mark.skipif(not module_available("pytorch_lightning"))
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
-    if L.pytorch.accelerators.MPSAccelerator.is_available():
+    if pl.accelerators.MPSAccelerator.is_available():
         args_expected["accelerator"] = "cpu"
 
     ret_val, env_vars = _get_args_after_tracer_injection(**args_given)
@@ -95,10 +95,10 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
     assert env_vars["TORCHELASTIC_RUN_ID"] == "1"
 
 
-@pytest.mark.skipif(not module_available("lightning.pytorch"), reason="lightning.pytorch not available")
+@pytest.mark.skipif(not module_available("pytorch_lightning"), reason="pytorch_lightning not available")
 def test_trainer_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=L.pytorch.strategies.DDPSpawnStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnStrategy())
 
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=L.pytorch.strategies.DDPSpawnShardedStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnShardedStrategy())
