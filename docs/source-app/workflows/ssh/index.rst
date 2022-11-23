@@ -48,7 +48,7 @@ You can add SSH keys using Lightning.ai website (Lightning.ai > Profile > Keys) 
 
 .. code:: bash
 
-   $ lightning add ssh-key --public-key ~/.ssh/id_ed25519.pub
+   $ lightning create ssh-key --public-key ~/.ssh/id_ed25519.pub
 
 You are now ready to access your Lightning Flow and Work containers.
 
