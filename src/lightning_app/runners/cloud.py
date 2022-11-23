@@ -262,17 +262,17 @@ class CloudRuntime(Runtime):
                 )
 
             network_configs: Optional[List[V1NetworkConfig]] = None
-            if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
-                network_configs = []
-                initial_port = 8080 + 1 + len(frontend_specs)
-                for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
-                    network_configs.append(
-                        V1NetworkConfig(
-                            name="w" + str(initial_port),
-                            port=initial_port,
-                        )
+
+            network_configs = []
+            initial_port = 8080 + 1 + len(frontend_specs)
+            for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+                network_configs.append(
+                    V1NetworkConfig(
+                        name="w" + str(initial_port),
+                        port=initial_port,
                     )
-                    initial_port += 1
+                )
+                initial_port += 1
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
