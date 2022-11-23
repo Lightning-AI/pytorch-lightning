@@ -101,7 +101,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 
 .. code-block:: python
 
-    from pytorch_lightning.profilers import AdvancedProfiler
+    from pytorch_lightning.profiler import AdvancedProfiler
 
     profiler = AdvancedProfiler(dirpath=".", filename="perf_logs")
     trainer = Trainer(profiler=profiler)
