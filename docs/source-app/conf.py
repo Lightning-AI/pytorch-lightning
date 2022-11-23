@@ -100,7 +100,11 @@ extensions = [
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
+# myst-parser, forcing to parse all html pages with mathjax
+# https://github.com/executablebooks/MyST-Parser/issues/394
 myst_update_mathjax = False
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html?highlight=anchor#auto-generated-header-anchors
+myst_heading_anchors = 3
 
 # https://berkeley-stat159-f17.github.io/stat159-f17/lectures/14-sphinx..html#conf.py-(cont.)
 # https://stackoverflow.com/questions/38526888/embed-ipython-notebook-in-sphinx-document

@@ -11,7 +11,10 @@
 ############
 Basic skills
 ############
-Learn to package your code into Lightning components. Every new user should start here.
+Learn to package your code into Lightning components which can plug into your existing ML workflows.
+
+A Lightning component organizes arbitrary code so it can run on the cloud, manages
+its own infrastructure, cloud costs, networking and more.
 
 .. join_slack::
    :align: left
@@ -27,7 +30,7 @@ Learn to package your code into Lightning components. Every new user should star
 
 .. displayitem::
    :header: Level 1: Package code in a Lightning component
-   :description: Learn to build a Lightning component which you can use in existing workflows or turn into a Lightning app.
+   :description: Learn to package your code into Lightning components which can plug into your existing ML workflows.
    :button_link: build_a_lightning_component.html
    :col_css: col-md-6
    :height: 170

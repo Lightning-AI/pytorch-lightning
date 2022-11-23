@@ -64,4 +64,4 @@ PyTorch Lightning follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_p
 PyTorch Support
 ***************
 
-PyTorch Lightning supports the latest four minor versions of PyTorch at the time of release. For example, PyTorch Lightning 1.7 supports PyTorch 1.9, 1.10, 1.11 and 1.12.
+PyTorch Lightning supports the latest four minor versions of PyTorch at the time of release. For example, PyTorch Lightning 1.8 supports PyTorch 1.10, 1.11, 1.12 and 1.13.

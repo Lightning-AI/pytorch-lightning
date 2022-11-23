@@ -1,6 +1,6 @@
-# pip install sklearn xgboost
-# conda install py-xgboost-gpu
 # app.py
+# !pip install sklearn xgboost
+# !conda install py-xgboost-gpu
 import lightning as L
 from sklearn import datasets
 from sklearn.model_selection import train_test_split

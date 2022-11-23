@@ -10,12 +10,14 @@ on:
     paths:
       - ".github/workflows/ci-app-examples.yml"
       - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
-      - "examples/app_*"
-      - "requirements/app/*"
-      - "!requirements/app/docs.txt"
+      - "tests/tests_examples_app/**"
+      - "examples/app_*/**"
+      - "requirements/app/**"
       - "setup.py"
       - ".actions/**"
+      - "!requirements/app/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -59,12 +61,9 @@ jobs:
         if: ${{ matrix.requires == 'oldest' }}
         run: python .actions/assistant.py replace_oldest_ver
 
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Get pip cache
+      - name: Get pip cache dir
         id: pip-cache
-        run: |
-          python -c "from pip._internal.locations import USER_CACHE_DIR; print('::set-output name=dir::' + USER_CACHE_DIR)"
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
 
       - name: Cache pip
         uses: actions/cache@v3
@@ -112,7 +111,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_examples_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

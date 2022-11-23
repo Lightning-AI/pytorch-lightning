@@ -27,6 +27,7 @@ class MultiProcessWorkManager(WorkManager):
             response_queue=self.app.response_queues[self.work.name],
             copy_request_queue=self.app.copy_request_queues[self.work.name],
             copy_response_queue=self.app.copy_response_queues[self.work.name],
+            flow_to_work_delta_queue=self.app.flow_to_work_delta_queues[self.work.name],
             run_executor_cls=self.work._run_executor_cls,
         )
         self._process = multiprocessing.Process(target=self._work_runner)

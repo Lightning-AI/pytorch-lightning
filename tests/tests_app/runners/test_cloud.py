@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import sys
 from copy import copy
 from pathlib import Path
 from unittest import mock
@@ -8,6 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
+    Body9,
     Externalv1Cluster,
     Gridv1ImageSpec,
     IdGetBody,
@@ -17,6 +20,7 @@ from lightning_cloud.openapi import (
     V1DriveSpec,
     V1DriveStatus,
     V1DriveType,
+    V1EnvVar,
     V1LightningappInstanceState,
     V1LightningappRelease,
     V1LightningworkDrives,
@@ -37,10 +41,15 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import _PROJECT_ROOT, LightningApp, LightningWork
+from lightning_app import BuildConfig, LightningApp, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
+from lightning_app.runners.cloud import (
+    _generate_works_json_gallery,
+    _generate_works_json_web,
+    _validate_build_spec_and_compute,
+)
 from lightning_app.storage import Drive, Mount
-from lightning_app.testing.helpers import EmptyFlow
+from lightning_app.testing.helpers import EmptyWork
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
@@ -52,8 +61,8 @@ class MyWork(LightningWork):
 
 
 class WorkWithSingleDrive(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.drive = None
 
     def run(self):
@@ -61,8 +70,8 @@ class WorkWithSingleDrive(LightningWork):
 
 
 class WorkWithTwoDrives(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lit_drive_1 = None
         self.lit_drive_2 = None
 
@@ -368,8 +377,11 @@ class TestAppCreationClient:
         assert body.dependency_cache_key is None
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
-    def test_call_with_work_app(self, lightningapps, monkeypatch, tmpdir):
+    @pytest.mark.parametrize(
+        "lightningapps,start_with_flow",
+        [([], False), ([MagicMock()], False), ([MagicMock()], True)],
+    )
+    def test_call_with_work_app(self, lightningapps, start_with_flow, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
         Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
@@ -397,18 +409,16 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
-        work = MyWork()
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = MyWork(start_with_flow=start_with_flow, cloud_compute=CloudCompute("custom"))
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -431,7 +441,10 @@ class TestAppCreationClient:
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
                     )
                 ),
-                works=[
+            )
+
+            if start_with_flow:
+                expected_body.works = [
                     V1Work(
                         name="test-work",
                         spec=V1LightningworkSpec(
@@ -444,14 +457,19 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="custom",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
-                ],
-            )
+                ]
+            else:
+                expected_body.works = []
+
             mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
                 project_id="test-project-id", app_id=mock.ANY, body=expected_body
             )
@@ -562,7 +580,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -575,7 +592,7 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_drive.__deepcopy__.return_value = copy(mocked_drive)
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -585,8 +602,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -633,14 +649,16 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="custom",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -660,6 +678,122 @@ class TestAppCreationClient:
         else:
             mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
                 project_id="test-project-id", app_id=mock.ANY, id=mock.ANY, body=mock.ANY
+            )
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    @mock.patch("lightning_app.core.constants.ENABLE_APP_COMMENT_COMMAND_EXECUTION", True)
+    @pytest.mark.parametrize("lightningapps", [[], [MagicMock()]])
+    def test_call_with_work_app_and_app_comment_command_execution_set(self, lightningapps, monkeypatch, tmpdir):
+        source_code_root_dir = Path(tmpdir / "src").absolute()
+        source_code_root_dir.mkdir()
+        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        requirements_file = Path(source_code_root_dir / "requirements.txt")
+        Path(requirements_file).touch()
+
+        mock_client = mock.MagicMock()
+        if lightningapps:
+            lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
+            lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=lightningapps)
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id="test"
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        lightning_app_instance = MagicMock()
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
+            return_value=lightning_app_instance
+        )
+        existing_instance = MagicMock()
+        existing_instance.status.phase = V1LightningappInstanceState.STOPPED
+        mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+        app = mock.MagicMock()
+
+        work = MyWork(cloud_compute=CloudCompute("custom"))
+        work._state = {"_port"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
+
+        app.works = [work]
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
+        monkeypatch.setattr(
+            "lightning_app.runners.cloud._get_project",
+            lambda x: V1Membership(name="test-project", project_id="test-project-id"),
+        )
+        cloud_runtime.run_app_comment_commands = True
+        cloud_runtime.dispatch()
+
+        if lightningapps:
+            expected_body = Body8(
+                description=None,
+                local_source=True,
+                app_entrypoint_file="entrypoint.py",
+                enable_app_server=True,
+                flow_servers=[],
+                dependency_cache_key=get_hash(requirements_file),
+                user_requested_flow_compute_config=mock.ANY,
+                cluster_id="test",
+                image_spec=Gridv1ImageSpec(
+                    dependency_file_info=V1DependencyFileInfo(
+                        package_manager=V1PackageManager.PIP, path="requirements.txt"
+                    )
+                ),
+                works=[
+                    V1Work(
+                        name="test-work",
+                        spec=V1LightningworkSpec(
+                            build_spec=V1BuildSpec(
+                                commands=["echo 'start'"],
+                                python_dependencies=V1PythonDependencyInfo(
+                                    package_manager=V1PackageManager.PIP, packages="torch==1.0.0\nnumpy==1.0.0"
+                                ),
+                                image="random_base_public_image",
+                            ),
+                            drives=[],
+                            user_requested_compute_config=V1UserRequestedComputeConfig(
+                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
+                            ),
+                            network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
+                            cluster_id=mock.ANY,
+                        ),
+                    )
+                ],
+            )
+
+            mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
+            )
+
+            # running dispatch with disabled dependency cache
+            mock_client.reset_mock()
+            monkeypatch.setattr(cloud, "DISABLE_DEPENDENCY_CACHE", True)
+            expected_body.dependency_cache_key = None
+            cloud_runtime.dispatch()
+            mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+                project_id="test-project-id", app_id=mock.ANY, body=expected_body
+            )
+        else:
+            mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+                project_id="test-project-id",
+                app_id=mock.ANY,
+                id=mock.ANY,
+                body=Body9(
+                    cluster_id="test",
+                    desired_state=V1LightningappInstanceState.STOPPED,
+                    name=mock.ANY,
+                    env=[V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1")],
+                    queue_server_type=mock.ANY,
+                ),
             )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -695,7 +829,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_lit_drive = MagicMock(spec=Drive)
         setattr(mocked_lit_drive, "id", "foobar")
@@ -708,19 +841,18 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_lit_drive.__deepcopy__.return_value = copy(mocked_lit_drive)
 
-        work = WorkWithTwoDrives()
-        monkeypatch.setattr(work, "lit_drive_1", mocked_lit_drive)
-        monkeypatch.setattr(work, "lit_drive_2", mocked_lit_drive)
-        monkeypatch.setattr(work, "_state", {"_port", "_name", "lit_drive_1", "lit_drive_2"})
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = WorkWithTwoDrives(cloud_compute=CloudCompute("custom"))
+        work.lit_drive_1 = mocked_lit_drive
+        work.lit_drive_2 = mocked_lit_drive
+        work._state = {"_port", "_name", "lit_drive_1", "lit_drive_2"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -741,7 +873,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
             lit_drive_2_spec = V1LightningworkDrives(
                 drive=V1Drive(
@@ -755,7 +886,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
 
             # order of drives in the spec is non-deterministic, so there are two options
@@ -788,10 +918,13 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_2_spec, lit_drive_1_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="custom",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -824,10 +957,13 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_1_spec, lit_drive_2_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="custom",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -894,7 +1030,6 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -912,7 +1047,7 @@ class TestAppCreationClient:
         setattr(mocked_mount, "mount_path", "/content/foo")
         setattr(mocked_mount, "protocol", "s3://")
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -923,8 +1058,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "mounts", mocked_mount)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -971,7 +1105,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                                 V1LightningworkDrives(
                                     drive=V1Drive(
@@ -989,10 +1122,13 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0
+                                name="custom",
+                                count=1,
+                                disk_size=0,
+                                shm_size=0,
+                                preemptible=False,
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
-                            cluster_id="test",
                         ),
                     )
                 ],
@@ -1086,11 +1222,145 @@ def test_project_has_sufficient_credits():
         assert cloud_runtime._project_has_sufficient_credits(project) is result
 
 
-@mock.patch(
-    "lightning_app.runners.cloud.load_app_from_file",
-    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+@pytest.mark.parametrize(
+    "lines",
+    [
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.core.flow import _RootFlow",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "class MyFlow(_RootFlow):",
+            "    def configure_layout(self):",
+            "        return [{'name': 'test', 'content': this_package_is_not_real()}]",
+            "app = LightningApp(MyFlow(EmptyWork()))",
+        ],
+    ],
 )
-def test_load_app_from_file_module_error():
-    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-    assert isinstance(empty_app, LightningApp)
-    assert isinstance(empty_app.root, EmptyFlow)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_load_app_from_file_mock_imports(tmpdir, lines):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        f.write("\n".join(lines))
+
+    app = CloudRuntime.load_app_from_file(app_file)
+    assert isinstance(app, LightningApp)
+    assert isinstance(app.root.work, EmptyWork)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
+
+
+@pytest.mark.parametrize(
+    "generator,expected",
+    [
+        (
+            _generate_works_json_web,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "buildSpec": {
+                            "commands": [],
+                            "pythonDependencies": {"packageManager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "networkConfig": [{"name": "*", "port": "*"}],
+                        "userRequestedComputeConfig": {
+                            "count": 1,
+                            "diskSize": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shmSize": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+        (
+            _generate_works_json_gallery,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "build_spec": {
+                            "commands": [],
+                            "python_dependencies": {"package_manager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "network_config": [{"name": "*", "port": "*"}],
+                        "user_requested_compute_config": {
+                            "count": 1,
+                            "disk_size": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shm_size": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+    ],
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_generate_works_json(tmpdir, generator, expected):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        lines = [
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ]
+        f.write("\n".join(lines))
+
+    works_string = generator(app_file)
+    expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
+    assert re.fullmatch(expected, works_string)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
+
+
+def test_incompatible_cloud_compute_and_build_config():
+    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
+    the default.
+
+    This combination is not supported by the platform.
+    """
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_compute = CloudCompute(name="default")
+            self.cloud_build_config = BuildConfig(image="custom")
+
+        def run(self):
+            pass
+
+    with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
+        _validate_build_spec_and_compute(Work())

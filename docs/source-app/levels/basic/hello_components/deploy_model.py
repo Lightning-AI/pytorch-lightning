@@ -1,15 +1,31 @@
-# A hello world component
-# app.py
+# !pip install torchvision
 import lightning as L
+from lightning.app.components.serve import PythonServer, Image, Number
+import base64, io, torchvision, torch
+from PIL import Image as PILImage
 
 
-class YourComponent(L.LightningWork):
-   def run(self):
-      print('RUN ANY PYTHON CODE HERE')
+class PyTorchServer(PythonServer):
+    def setup(self):
+        self._model = torchvision.models.resnet18(pretrained=True)
+        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self._model.to(self._device)
+
+    def predict(self, request):
+        image = base64.b64decode(request.image.encode("utf-8"))
+        image = PILImage.open(io.BytesIO(image))
+        transforms = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(224),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        image = transforms(image)
+        image = image.to(self._device)
+        prediction = self._model(image.unsqueeze(0))
+        return {"prediction": prediction.argmax().item()}
 
 
-
-# run on a cloud machine
-compute = L.CloudCompute("cpu")
-worker = YourComponent(cloud_compute=compute)
-app = L.LightningApp(worker)
+component = PyTorchServer(
+   input_type=Image, output_type=Number, cloud_compute=L.CloudCompute('gpu')
+)
+app = L.LightningApp(component)

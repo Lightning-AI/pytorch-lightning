@@ -19,7 +19,7 @@ class _SSHKeyList(Formatable):
         return json.dumps(self.ssh_keys)
 
     def as_table(self) -> Table:
-        table = Table("id", "public_key", "created", show_header=True)
+        table = Table("id", "public_key", "created", show_header=True, header_style="bold green")
         for ssh_key in self.ssh_keys:
             table.add_row(
                 ssh_key.id,

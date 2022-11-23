@@ -494,6 +494,6 @@ class FlowPayload(LightningFlow):
 
 
 def test_structures_with_payload():
-    app = LightningApp(FlowPayload(), debug=True)
+    app = LightningApp(FlowPayload(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("payload")

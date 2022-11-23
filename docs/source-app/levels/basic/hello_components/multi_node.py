@@ -1,4 +1,4 @@
-# ! pip install torch
+# !pip install torch
 import lightning as L
 from lightning.app.components import MultiNode
 

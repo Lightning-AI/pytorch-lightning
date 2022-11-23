@@ -112,7 +112,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
         pytest.param(32, None, 1, "cpu"),
         pytest.param(32, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True)),
+        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
         pytest.param(32, None, 1, "mps", marks=RunIf(mps=True)),
     ],
 )

@@ -1,3 +1,4 @@
+import os
 import threading
 import traceback
 from queue import Empty
@@ -51,7 +52,10 @@ class StorageOrchestrator(Thread):
         self.waiting_for_response: Dict[str, str] = {}
         self._validate_queues()
         self._exit_event = threading.Event()
-        self._sleep_time = 2
+
+        # Note: Use different sleep time locally and in the cloud
+        # to reduce queue calls.
+        self._sleep_time = 0.1 if "LIGHTNING_APP_STATE_URL" not in os.environ else 2
         self.fs = _filesystem()
 
     def _validate_queues(self):

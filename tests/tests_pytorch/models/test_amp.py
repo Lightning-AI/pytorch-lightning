@@ -67,7 +67,6 @@ class AMPTestModel(BoringModel):
             assert torch.is_autocast_enabled()
 
 
-@RunIf(min_torch="1.10")
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(
     ("strategy", "precision", "devices"),
@@ -102,7 +101,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.10")
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("devices", [1, 2])
@@ -229,7 +228,6 @@ def test_amp_with_apex_reload(tmpdir):
     trainer.test(model, ckpt_path="best")
 
 
-@RunIf(min_torch="1.10")
 @pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):

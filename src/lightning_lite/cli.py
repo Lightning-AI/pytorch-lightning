@@ -13,8 +13,10 @@
 # limitations under the License.
 import logging
 import os
-from argparse import ArgumentParser, Namespace
-from typing import List, Tuple
+from argparse import Namespace
+from typing import Any, List, Optional
+
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
@@ -22,29 +24,38 @@ from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1
 
 _log = logging.getLogger(__name__)
 
+_CLICK_AVAILABLE = RequirementCache("click")
+
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
-_SUPPORTED_STRATEGIES = (None, "ddp", "dp", "deepspeed")
+_SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
+if _CLICK_AVAILABLE:
+    import click
 
-def _parse_args() -> Tuple[Namespace, List[str]]:
-    parser = ArgumentParser(description="Launch your script with the Lightning Lite CLI.")
-    parser.add_argument("script", type=str, help="Path to the Python script with Lightning Lite inside.")
-    parser.add_argument(
+    @click.command(
+        "model",
+        context_settings=dict(
+            ignore_unknown_options=True,
+        ),
+    )
+    @click.argument(
+        "script",
+        type=click.Path(exists=True),
+    )
+    @click.option(
         "--accelerator",
-        type=str,
+        type=click.Choice(_SUPPORTED_ACCELERATORS),
         default="cpu",
-        choices=_SUPPORTED_ACCELERATORS,
         help="The hardware accelerator to run on.",
     )
-    parser.add_argument(
+    @click.option(
         "--strategy",
-        type=str,
+        type=click.Choice(_SUPPORTED_STRATEGIES),
         default=None,
-        choices=_SUPPORTED_STRATEGIES,
         help="Strategy for how to run across multiple devices.",
     )
-    parser.add_argument(
+    @click.option(
         "--devices",
         type=str,
         default="1",
@@ -53,14 +64,14 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
             " The value applies per node."
         ),
     )
-    parser.add_argument(
+    @click.option(
         "--num-nodes",
         "--num_nodes",
         type=int,
         default=1,
         help="Number of machines (nodes) for distributed execution.",
     )
-    parser.add_argument(
+    @click.option(
         "--node-rank",
         "--node_rank",
         type=int,
@@ -70,33 +81,40 @@ def _parse_args() -> Tuple[Namespace, List[str]]:
             " 0, ..., num_nodes - 1."
         ),
     )
-    parser.add_argument(
+    @click.option(
         "--main-address",
         "--main_address",
         type=str,
         default="127.0.0.1",
         help="The hostname or IP address of the main machine (usually the one with node_rank = 0).",
     )
-    parser.add_argument(
+    @click.option(
         "--main-port",
         "--main_port",
         type=int,
         default=29400,
         help="The main port to connect to the main machine.",
     )
-    parser.add_argument(
+    @click.option(
         "--precision",
-        type=str,
+        type=click.Choice(_SUPPORTED_PRECISION),
         default="32",
-        choices=_SUPPORTED_PRECISION,
         help=(
             "Double precision (``64``), full precision (``32``), half precision (``16``) or bfloat16 precision"
             " (``'bf16'``)"
         ),
     )
+    @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
+    def _run_model(**kwargs: Any) -> None:
+        """Run a Lightning Lite script.
 
-    args, script_args = parser.parse_known_args()
-    return args, script_args
+        SCRIPT is the path to the Python script with the code to run. The script must contain a LightningLite object.
+
+        SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
+        there.
+        """
+        script_args = list(kwargs.pop("script_args", []))
+        main(args=Namespace(**kwargs), script_args=script_args)
 
 
 def _set_env_variables(args: Namespace) -> None:
@@ -131,13 +149,13 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
 def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
 
-    if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:
+    if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:  # pragma: no cover
         # TODO: remove once import issue is resolved: https://github.com/pytorch/pytorch/issues/85427
         _log.error(
             "On the Windows platform, this launcher is currently only supported on torch < 1.13 due to a bug"
             " upstream: https://github.com/pytorch/pytorch/issues/85427"
         )
-        exit(1)
+        raise SystemExit(1)
 
     import torch.distributed.run as torchrun
 
@@ -161,11 +179,17 @@ def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     torchrun.main(torchrun_args)
 
 
-def main() -> None:
-    args, script_args = _parse_args()
+def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
     _set_env_variables(args)
-    _torchrun_launch(args, script_args)
+    _torchrun_launch(args, script_args or [])
 
 
 if __name__ == "__main__":
-    main()
+    if not _CLICK_AVAILABLE:  # pragma: no cover
+        _log.error(
+            "To use the Lightning Lite CLI, you must have `click` installed."
+            " Install it by running `pip install -U click`."
+        )
+        raise SystemExit(1)
+
+    _run_model()

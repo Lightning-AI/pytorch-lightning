@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
 import inspect
@@ -10,9 +11,11 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
@@ -486,5 +489,41 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
 
 
+class _MagicMockJsonSerializable(MagicMock):
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def _mock_import(*args, original_fn=None):
+    try:
+        return original_fn(*args)
+    except Exception:
+        return _MagicMockJsonSerializable()
+
+
+@contextmanager
+def _mock_missing_imports():
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(_mock_import, original_fn=original_fn)
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
+
+
 def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
+
+
+def _debugger_is_active() -> bool:
+    """Return if the debugger is currently active."""
+    return hasattr(sys, "gettrace") and sys.gettrace() is not None
+
+
+def _should_dispatch_app() -> bool:
+    return (
+        _debugger_is_active()
+        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and "LIGHTNING_APP_STATE_URL" not in os.environ
+    )

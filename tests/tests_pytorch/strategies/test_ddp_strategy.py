@@ -290,7 +290,7 @@ class BoringZeroRedundancyOptimizerModel(BoringModel):
         return ZeroRedundancyOptimizer(self.layer.parameters(), optimizer_class=torch.optim.Adam, lr=0.1)
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, min_torch="1.10")
+@RunIf(min_cuda_gpus=2, skip_windows=True)
 @pytest.mark.parametrize("strategy", (pytest.param("ddp", marks=RunIf(standalone=True)), "ddp_spawn"))
 def test_ddp_strategy_checkpoint_zero_redundancy_optimizer(tmpdir, strategy):
     """Test to ensure that checkpoint is saved correctly when using zero redundancy optimizer."""

@@ -25,6 +25,7 @@ from torch.distributed import is_available
 
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.utilities import _APEX_AVAILABLE, _HOROVOD_AVAILABLE, _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_imports():
@@ -153,6 +154,27 @@ def test_import_pytorch_lightning_with_torch_dist_unavailable():
         import torch
         torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
         import pytorch_lightning
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
+
+
+@RunIf(deepspeed=True)
+def test_import_deepspeed_lazily():
+    """Test that we are importing deepspeed only when necessary."""
+    code = dedent(
+        """
+        import pytorch_lightning
+        import sys
+
+        assert 'deepspeed' not in sys.modules
+        from pytorch_lightning.strategies import DeepSpeedStrategy
+        from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
+        assert 'deepspeed' not in sys.modules
+
+        import deepspeed
+        assert 'deepspeed' in sys.modules
         """
     )
     # run in complete isolation

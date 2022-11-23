@@ -59,6 +59,9 @@ ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
     int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", "0"))
 )  # This isn't used in the cloud yet.
 
+# env var trigger running setup commands in the app
+ENABLE_APP_COMMENT_COMMAND_EXECUTION = bool(int(os.getenv("ENABLE_APP_COMMENT_COMMAND_EXECUTION", "0")))
+
 
 DEBUG: bool = lightning_cloud.env.DEBUG
 DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_DEBUG", "0")))

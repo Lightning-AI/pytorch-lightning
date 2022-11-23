@@ -37,9 +37,6 @@ class FakeResponse:
 
 
 class FakeLightningClient:
-    def __init__(self, response, api_client=None):
-        self._response = response
-
     def lightningapp_instance_service_list_lightningapp_instances(self, *args, **kwargs):
         return V1ListLightningappInstancesResponse(lightningapps=[])
 
@@ -102,7 +99,7 @@ class ExceptionResponse:
 
 class FakeLightningClientCreate(FakeLightningClient):
     def __init__(self, *args, create_response, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.create_response = create_response
 
     def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
@@ -129,7 +126,7 @@ def test_start_app(create_response, monkeypatch):
     monkeypatch.setattr(
         cloud_backend,
         "LightningClient",
-        partial(FakeLightningClientCreate, response=FakeResponse(), create_response=create_response),
+        partial(FakeLightningClientCreate, create_response=create_response),
     )
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", MagicMock())
     monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", MagicMock())
@@ -182,8 +179,8 @@ class HttpHeaderDict(dict):
 
 
 class FakeLightningClientException(FakeLightningClient):
-    def __init__(self, *args, message, api_client=None, **kwargs):
-        super().__init__(*args, api_client=api_client, **kwargs)
+    def __init__(self, *args, message, **kwargs):
+        super().__init__()
         self.message = message
 
     def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
@@ -216,7 +213,7 @@ def test_start_app_exception(message, monkeypatch, caplog):
 
     runner = CliRunner()
 
-    fake_grid_rest_client = partial(FakeLightningClientException, response=FakeResponse(), message=message)
+    fake_grid_rest_client = partial(FakeLightningClientException, message=message)
     with caplog.at_level(logging.ERROR):
         with mock.patch("lightning_app.runners.backends.cloud.LightningClient", fake_grid_rest_client):
             result = runner.invoke(run_app, [_FILE_PATH, "--cloud", "--open-ui=False"], catch_exceptions=False)

@@ -187,11 +187,10 @@ Current Lightning Users
 
    Avoid overfitting <common/evaluation>
    model/build_model.rst
-   common/hyperparameters
+   cli/lightning_cli
    common/progress_bar
    deploy/production
    advanced/training_tricks
-   cli/lightning_cli
    tuning/profiler
    Manage experiments <visualize/logging_intermediate>
    Organize existing PyTorch into Lightning <starter/converting>
@@ -207,6 +206,7 @@ Current Lightning Users
    Train on single or multiple TPUs <accelerators/tpu>
    Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
+   Inject Custom Data Iterables <data/custom_data_iterables>
    model/own_your_loop
 
 .. toctree::

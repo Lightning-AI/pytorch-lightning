@@ -59,7 +59,7 @@ def _test_all_gather_uneven_tensors_multidim(strategy):
         assert (val == torch.ones_like(val)).all()
 
 
-@RunIf(min_torch="1.10", skip_windows=True)
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize(
     "process",
     [

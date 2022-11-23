@@ -334,14 +334,21 @@ def test_early_stopping_mode_options():
 
 
 class EarlyStoppingModel(BoringModel):
-    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool):
+    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool, dist_diverge_epoch: Optional[int] = None):
         super().__init__()
         self.expected_end_epoch = expected_end_epoch
         self.early_stop_on_train = early_stop_on_train
+        self.dist_diverge_epoch = dist_diverge_epoch
+
+    def _dist_diverge(self):
+        should_diverge = (
+            self.dist_diverge_epoch and self.current_epoch >= self.dist_diverge_epoch and self.trainer.global_rank == 0
+        )
+        return 10 if should_diverge else None
 
     def _epoch_end(self) -> None:
         losses = [8, 4, 2, 3, 4, 5, 8, 10]
-        loss = losses[self.current_epoch]
+        loss = self._dist_diverge() or losses[self.current_epoch]
         self.log("abc", torch.tensor(loss))
         self.log("cba", torch.tensor(0))
 
@@ -365,20 +372,28 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices, dist_diverge_epoch",
     [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
+        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1, None),
+        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1, None),
+        pytest.param(
+            [EarlyStopping("abc", patience=1), EarlyStopping("cba")], 2, False, "ddp_spawn", 2, 2, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1, None),
+        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1, None),
         pytest.param(
             [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
             3,
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
         pytest.param(
@@ -387,6 +402,7 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
     ],
@@ -398,10 +414,11 @@ def test_multiple_early_stopping_callbacks(
     check_on_train_epoch_end: bool,
     strategy: Optional[str],
     devices: int,
+    dist_diverge_epoch: Optional[int],
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
-    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end)
+    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end, dist_diverge_epoch=dist_diverge_epoch)
 
     trainer = Trainer(
         default_root_dir=tmpdir,

@@ -330,7 +330,7 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduce a boolean decision across all processes."""
         return decision
 

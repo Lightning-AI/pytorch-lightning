@@ -66,17 +66,10 @@ def check_destroy_group():
         ),
         ("barrier", {"device_ids": [0]}, None),
         ("all_gather_object", {"object_list": [PASSED_OBJECT], "obj": PASSED_OBJECT}, "object_list"),
-        pytest.param(
-            "broadcast_object_list",
-            {"object_list": [PASSED_OBJECT], "src": 0},
-            "object_list",
-            marks=RunIf(max_torch="1.10"),
-        ),
-        pytest.param(
+        (
             "broadcast_object_list",
             {"object_list": [PASSED_OBJECT], "src": 0, "device": torch.device("cpu")},
             "object_list",
-            marks=RunIf(min_torch="1.10"),
         ),
         (
             "gather_object",

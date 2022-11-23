@@ -30,9 +30,11 @@ class MultiProcessRuntime(Runtime):
         """Method to dispatch and run the LightningApp."""
         try:
             _set_flow_context()
+
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
             self.backend.resolve_url(self.app, "http://127.0.0.1")
+            self.app._update_index_file()
 
             # set env variables
             os.environ.update(self.env_vars)

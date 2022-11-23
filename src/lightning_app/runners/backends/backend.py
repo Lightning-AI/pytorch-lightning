@@ -94,6 +94,7 @@ class Backend(ABC):
         app.copy_response_queues = {}
         app.caller_queues = {}
         app.work_queues = {}
+        app.flow_to_work_delta_queues = {}
 
     def _register_queues(self, app, work):
         kw = dict(queue_id=self.queue_id, work_name=work.name)
@@ -102,6 +103,7 @@ class Backend(ABC):
         app.copy_request_queues.update({work.name: self.queues.get_orchestrator_copy_request_queue(**kw)})
         app.copy_response_queues.update({work.name: self.queues.get_orchestrator_copy_response_queue(**kw)})
         app.caller_queues.update({work.name: self.queues.get_caller_queue(**kw)})
+        app.flow_to_work_delta_queues.update({work.name: self.queues.get_flow_to_work_delta_queue(**kw)})
 
 
 class WorkManager(ABC):

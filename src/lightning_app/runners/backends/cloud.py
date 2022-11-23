@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class CloudBackend(Backend):
     def __init__(self, entrypoint_file, queue_id: Optional[str] = None, status_update_interval: int = None):
         super().__init__(entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id=queue_id)
-        self.client = LightningClient()
+        self.client = LightningClient(retry=True)
 
     def create_work(self, app: "lightning_app.LightningApp", work: "lightning_app.LightningWork") -> None:
         raise NotImplementedError
