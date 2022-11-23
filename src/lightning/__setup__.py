@@ -1,6 +1,7 @@
 import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -30,19 +31,18 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    req_files = glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))
-    reqs = [dict(dir=os.path.dirname(p), fname=os.path.basename(p)) for p in req_files]
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
     common_args = dict(unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
     reqs = [
         dict(
-            dir=r["dir"],
-            fname=r["fname"],
-            extra=os.path.splitext(r["fname"])[0],
-            group=os.path.basename(r["dir"]),
-            req=_SETUP_TOOLS.load_requirements(file_name=r["fname"], path_dir=r["dir"], **common_args),
+            dir=p.parent,
+            fname=p.name,
+            extra=p.stem,
+            group=p.parent.name,
+            req=_SETUP_TOOLS.load_requirements(file_name=p.name, path_dir=p.parent, **common_args),
         )
-        for r in reqs
-        if r["fname"] not in ("docs.txt", "devel.txt", "base.txt")
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
     ]
 
     extras = {f"{r['group']}_{r['extra']}": r["req"] for r in reqs}
