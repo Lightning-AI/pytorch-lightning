@@ -4,7 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [UnReleased] - 2022-11-DD
+## [1.8.3] - 2022-11-22
+
+### Changed
+
+- Deduplicate top level lighting CLI command groups ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
+  * `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key`
+  * `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key`
+- Set Torch inference mode for prediction ([#15719](https://github.com/Lightning-AI/lightning/pull/15719))
+- Improved `LightningTrainerScript` start-up time ([#15751](https://github.com/Lightning-AI/lightning/pull/15751))
+- Disable XSRF protection in `StreamlitFrontend` to support upload in localhost ([#15684](https://github.com/Lightning-AI/lightning/pull/15684))
+
+### Fixed
+
+- Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
+- Fixed setting property to the `LightningFlow` ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
+
+
+## [1.8.2] - 2022-11-17
 
 ### Added
 
@@ -121,18 +138,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Application storage prefix moved from `app_id` to `project_id/app_id` (#14583)
-- LightningCloud client calls to use keyword arguments instead of positional arguments (#14685)
+- Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
+- LightningCloud client calls to use keyword arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685))
 
 ### Fixed
 
-- Making `threadpool` non-default from LightningCloud client  (#14757)
-- Resolved a bug where the state change detection using DeepDiff won't work with Path, Drive objects (#14465)
-- Resolved a bug where the wrong client was passed to collect cloud logs (#14684)
-- Resolved the memory leak issue with the Lightning Cloud package and bumped the requirements to use the latest version (#14697)
-- Fixing 5000 log line limitation for Lightning AI BYOC cluster logs (#14458)
-- Fixed a bug where the uploaded command file wasn't properly parsed (#14532)
-- Resolved `LightningApp(..., debug=True)` (#14464)
+- Making `threadpool` non-default from LightningCloud client  ([#14757](https://github.com/Lightning-AI/lightning/pull/14757))
+- Resolved a bug where the state change detection using DeepDiff won't work with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
+- Resolved a bug where the wrong client was passed to collect cloud logs ([#14684](https://github.com/Lightning-AI/lightning/pull/14684))
+- Resolved the memory leak issue with the Lightning Cloud package and bumped the requirements to use the latest version ([#14697](https://github.com/Lightning-AI/lightning/pull/14697))
+- Fixing 5000 log line limitation for Lightning AI BYOC cluster logs ([#14458](https://github.com/Lightning-AI/lightning/pull/14458))
+- Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
 
 ## [0.6.0] - 2022-09-08
@@ -183,6 +200,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Resolved a bug where the `install` command was not installing the latest version of an app/component by default ([#14181](https://github.com/Lightning-AI/lightning/pull/14181))
+
+
+- Fixed the `examples/app_dag` example ([#14359](https://github.com/Lightning-AI/lightning/pull/14359))
 
 
 ## [0.5.5] - 2022-08-9

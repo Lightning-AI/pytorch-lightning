@@ -111,17 +111,18 @@ class _SubprocessScriptLauncher(_Launcher):
                 del env_copy["PL_GLOBAL_SEED"]
 
             hydra_in_use = False
+            cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
                 from hydra.core.hydra_config import HydraConfig
 
                 hydra_in_use = HydraConfig.initialized()
 
             if hydra_in_use:
-                command = _hydra_subprocess_cmd(local_rank)
+                command, cwd = _hydra_subprocess_cmd(local_rank)
             else:
                 command = _basic_subprocess_cmd()
 
-            subprocess.Popen(command, env=env_copy)
+            subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
