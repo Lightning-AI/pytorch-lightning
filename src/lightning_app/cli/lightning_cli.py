@@ -243,7 +243,7 @@ def _run_app(
 ) -> None:
     file = _prepare_file(file)
 
-    if bool(int(os.getenv("UPLOAD_CODE", "0"))):
+    if os.getenv("LIGHTNING_VSCODE_MODE", "0") == "1":
         from lightning_app.source_code.code import upload_code
 
         upload_code()
