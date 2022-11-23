@@ -98,7 +98,7 @@ def test_disable_port(monkeypatch):
     ]
 
     with pytest.raises(RuntimeError, match="The port 1 was already disabled."):
-        disable_port(1, ignore_closed=False)
+        disable_port(1, ignore_disabled=False)
 
     lit_app.spec.network_config = [
         V1NetworkConfig(host="a", port=0, enable=True),
