@@ -34,13 +34,13 @@ def _prepare_extras() -> Dict[str, Any]:
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
     common_args = dict(unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
     extras = {
-        f"{p.parent.name}_{p.stem}": _SETUP_TOOLS.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
+        f"{p.parent.name}-{p.stem}": _SETUP_TOOLS.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
         if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     extra_names = list(extras.keys())
     for extra in extra_names:
-        name = "_".join(extra.split("_")[1:])
+        name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
     # todo
     # extras["extra"] = extras["cloud"] + extras["ui"]
