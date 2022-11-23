@@ -261,9 +261,7 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id, body=app_body
                 )
 
-            network_configs: Optional[List[V1NetworkConfig]] = None
-
-            network_configs = []
+            network_configs: List[V1NetworkConfig] = []
             initial_port = 8080 + 1 + len(frontend_specs)
             for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
                 network_configs.append(
