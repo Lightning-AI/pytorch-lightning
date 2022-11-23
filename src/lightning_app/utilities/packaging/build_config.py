@@ -2,14 +2,14 @@ import inspect
 import os
 import re
 from dataclasses import asdict, dataclass, field
-from types import FrameType
-from typing import cast, List, Optional, TYPE_CHECKING
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
+from typing_extensions import Self
+
+import lightning_app as L
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-
-if TYPE_CHECKING:
-    from lightning_app import LightningWork
 
 logger = Logger(__name__)
 
@@ -49,6 +49,12 @@ def load_requirements(
 
 
 @dataclass
+class _Dockerfile:
+    path: str
+    data: List[str]
+
+
+@dataclass
 class BuildConfig:
     """The Build Configuration describes how the environment a LightningWork runs in should be set up.
 
@@ -64,20 +70,19 @@ class BuildConfig:
 
                 WORKDIR /gridai/project
                 COPY . .
-
-            Learn more by checking out:
-            https://docs.grid.ai/features/runs/running-experiments-with-a-dockerfile
         image: The base image that the work runs on. This should be a publicly accessible image from a registry that
             doesn't enforce rate limits (such as DockerHub) to pull this image, otherwise your application will not
             start.
     """
 
     requirements: List[str] = field(default_factory=list)
-    dockerfile: Optional[str] = None
+    dockerfile: Optional[Union[str, Path, _Dockerfile]] = None
     image: Optional[str] = None
 
-    def __post_init__(self):
-        self._call_dir = os.path.dirname(cast(FrameType, inspect.currentframe()).f_back.f_back.f_code.co_filename)
+    def __post_init__(self) -> None:
+        current_frame = inspect.currentframe()
+        co_filename = current_frame.f_back.f_back.f_code.co_filename  # type: ignore[union-attr]
+        self._call_dir = os.path.dirname(co_filename)
         self._prepare_requirements()
         self._prepare_dockerfile()
 
@@ -101,27 +106,37 @@ class BuildConfig:
         """
         return []
 
-    def on_work_init(self, work, cloud_compute: Optional["CloudCompute"] = None):
+    def on_work_init(self, work: "L.LightningWork", cloud_compute: Optional["CloudCompute"] = None) -> None:
         """Override with your own logic to load the requirements or dockerfile."""
-        try:
-            found_requirements = self._find_requirements(work)
-            if self.requirements:
-                if found_requirements:
-                    # notify the user of this silent behaviour
-                    logger.info(
-                        f"A `requirements.txt` exists with {found_requirements} but {self.requirements} was passed to"
-                        f" the `{type(self).__name__}`. The `requirements.txt` file will be ignored."
-                    )
-            else:
-                self.requirements = found_requirements
-            self.dockerfile = self.dockerfile or self._find_dockerfile(work)
-        except TypeError:
-            logger.debug("The provided work couldn't be found.")
+        found_requirements = self._find_requirements(work)
+        if self.requirements:
+            if found_requirements and self.requirements != found_requirements:
+                # notify the user of this silent behaviour
+                logger.info(
+                    f"A 'requirements.txt' exists with {found_requirements} but {self.requirements} was passed to"
+                    f" the `{type(self).__name__}`. The `requirements.txt` file will be ignored."
+                )
+        else:
+            self.requirements = found_requirements
+        self._prepare_requirements()
 
-    def _find_requirements(self, work: "LightningWork", filename: str = "requirements.txt") -> List[str]:
+        found_dockerfile = self._find_dockerfile(work)
+        if self.dockerfile:
+            if found_dockerfile and self.dockerfile != found_dockerfile:
+                # notify the user of this silent behaviour
+                logger.info(
+                    f"A Dockerfile exists at {found_dockerfile!r} but {self.dockerfile!r} was passed to"
+                    f" the `{type(self).__name__}`. {found_dockerfile!r}` will be ignored."
+                )
+        else:
+            self.dockerfile = found_dockerfile
+        self._prepare_dockerfile()
+
+    def _find_requirements(self, work: "L.LightningWork", filename: str = "requirements.txt") -> List[str]:
         # 1. Get work file
-        file = inspect.getfile(work.__class__)
-
+        file = _get_work_file(work)
+        if file is None:
+            return []
         # 2. Try to find a requirement file associated the file.
         dirname = os.path.dirname(file)
         try:
@@ -130,21 +145,16 @@ class BuildConfig:
             return []
         return [r for r in requirements if r != "lightning"]
 
-    def _find_dockerfile(self, work: "LightningWork") -> List[str]:
+    def _find_dockerfile(self, work: "L.LightningWork", filename: str = "Dockerfile") -> Optional[str]:
         # 1. Get work file
-        file = inspect.getfile(work.__class__)
-
+        file = _get_work_file(work)
+        if file is None:
+            return None
         # 2. Check for Dockerfile.
-        dirname = os.path.dirname(file) or "."
-        dockerfiles = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "Dockerfile"]
-
-        if not dockerfiles:
-            return []
-
-        # 3. Read the dockerfile
-        with open(dockerfiles[0]) as f:
-            dockerfile = list(f.readlines())
-        return dockerfile
+        dirname = os.path.dirname(file)
+        dockerfile = os.path.join(dirname, filename)
+        if os.path.isfile(dockerfile):
+            return dockerfile
 
     def _prepare_requirements(self) -> None:
         requirements = []
@@ -161,16 +171,25 @@ class BuildConfig:
                 requirements.append(req)
         self.requirements = requirements
 
-    def _prepare_dockerfile(self):
-        if self.dockerfile:
-            dockerfile_path = os.path.join(self._call_dir, self.dockerfile)
-            if os.path.exists(dockerfile_path):
-                with open(dockerfile_path) as f:
-                    self.dockerfile = list(f.readlines())
+    def _prepare_dockerfile(self) -> None:
+        if isinstance(self.dockerfile, (str, Path)):
+            path = os.path.join(self._call_dir, self.dockerfile)
+            if os.path.exists(path):
+                with open(path) as f:
+                    self.dockerfile = _Dockerfile(path, list(f.readlines()))
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         return {"__build_config__": asdict(self)}
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict) -> Self:  # type: ignore[valid-type]
         return cls(**d["__build_config__"])
+
+
+def _get_work_file(work: "L.LightningWork") -> Optional[str]:
+    cls = work.__class__
+    try:
+        return inspect.getfile(cls)
+    except TypeError:
+        logger.debug(f"The {cls.__name__} file couldn't be found.")
+        return None
