@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
+from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
 from lightning_app.utilities.network import LightningClient
 
@@ -42,7 +42,8 @@ def _find_lit_app_port(default_port: int) -> int:
         body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
     )
 
-    assert found_nc
+    if not found_nc:
+        raise RuntimeError("No available port was found. Please, contact the Lightning Team.")
 
     # Note: This is required for the framework to know we need to use the CloudMultiProcessRuntime.
     os.environ["APP_SERVER_HOST"] = f"https:/{found_nc.host}"
@@ -50,7 +51,7 @@ def _find_lit_app_port(default_port: int) -> int:
     return found_nc.port
 
 
-def open_port():
+def open_port() -> V1NetworkConfig:
     """Make a request to the cloud controlplane to open a port of the flow."""
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
@@ -84,7 +85,8 @@ def open_port():
         body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
     )
 
-    assert found_nc
+    if not found_nc:
+        raise RuntimeError("No available port was found. Please, contact the Lightning Team.")
 
     return found_nc
 
@@ -114,6 +116,9 @@ def close_port(port: int) -> None:
 
     for nc in lit_app.spec.network_config:
         if nc.port == port:
+            if not nc.enable:
+                raise RuntimeError(f"The port {port} was already disabled.")
+
             nc.enable = False
             found_nc = nc
             break
@@ -123,5 +128,9 @@ def close_port(port: int) -> None:
         id=lit_app.id,
         body=AppinstancesIdBody(name=lit_app.name, spec=lit_app.spec),
     )
+
+    if not found_nc:
+        ports = [nc.port for nc in lit_app.spec.network_config]
+        raise ValueError(f"The provided port doesn't exists. Available ports are {ports}.")
 
     assert found_nc
