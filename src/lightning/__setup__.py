@@ -38,8 +38,7 @@ def _prepare_extras() -> Dict[str, Any]:
         for p in req_files
         if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
-    extra_names = list(extras.keys())
-    for extra in extra_names:
+    for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
     # todo
