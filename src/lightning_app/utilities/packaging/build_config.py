@@ -1,9 +1,9 @@
 import inspect
 import os
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from types import FrameType
-from typing import cast, List, Optional, TYPE_CHECKING, Union
+from typing import cast, List, Optional, TYPE_CHECKING
 
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
@@ -19,11 +19,10 @@ def load_requirements(
 ) -> List[str]:
     """Load requirements from a file.
 
-    .. code-block:: python
-
-        path_req = os.path.join(_PROJECT_ROOT, "requirements")
-        requirements = load_requirements(path_req)
-        print(requirements)  # ['numpy...', 'torch...', ...]
+    >>> from lightning_app import _PROJECT_ROOT
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> load_requirements(path_req, "docs.txt")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['sphinx>=4.0', ...]
     """
     path = os.path.join(path_dir, file_name)
     if not os.path.isfile(path):
@@ -54,7 +53,8 @@ class BuildConfig:
     """The Build Configuration describes how the environment a LightningWork runs in should be set up.
 
     Arguments:
-        requirements: List of requirements or paths to requirement files.
+        requirements: List of requirements or list of paths to requirement files. If not passed, they will be
+            automatically extracted from a `requirements.txt` if it exists.
         dockerfile: The path to a dockerfile to be used to build your container.
             You need to add those lines to ensure your container works in the cloud.
 
@@ -72,7 +72,7 @@ class BuildConfig:
             start.
     """
 
-    requirements: Optional[Union[str, List[str]]] = None
+    requirements: List[str] = field(default_factory=list)
     dockerfile: Optional[str] = None
     image: Optional[str] = None
 
@@ -104,25 +104,30 @@ class BuildConfig:
     def on_work_init(self, work, cloud_compute: Optional["CloudCompute"] = None):
         """Override with your own logic to load the requirements or dockerfile."""
         try:
-            self.requirements = sorted(self.requirements or self._find_requirements(work) or [])
+            found_requirements = self._find_requirements(work)
+            if self.requirements:
+                if found_requirements:
+                    # notify the user of this silent behaviour
+                    logger.info(
+                        f"A `requirements.txt` exists with {found_requirements} but {self.requirements} was passed to"
+                        f" the `{type(self).__name__}`. The `requirements.txt` file will be ignored."
+                    )
+            else:
+                self.requirements = found_requirements
             self.dockerfile = self.dockerfile or self._find_dockerfile(work)
         except TypeError:
             logger.debug("The provided work couldn't be found.")
 
-    def _find_requirements(self, work: "LightningWork") -> List[str]:
+    def _find_requirements(self, work: "LightningWork", filename: str = "requirements.txt") -> List[str]:
         # 1. Get work file
         file = inspect.getfile(work.__class__)
 
         # 2. Try to find a requirement file associated the file.
-        dirname = os.path.dirname(file) or "."
-        requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements.txt"]
-        if not requirement_files:
-            return []
-        dirname, basename = os.path.dirname(requirement_files[0]), os.path.basename(requirement_files[0])
+        dirname = os.path.dirname(file)
         try:
-            requirements = load_requirements(dirname, basename)
+            requirements = load_requirements(dirname, filename)
         except NotADirectoryError:
-            requirements = []
+            return []
         return [r for r in requirements if r != "lightning"]
 
     def _find_dockerfile(self, work: "LightningWork") -> List[str]:
@@ -141,24 +146,19 @@ class BuildConfig:
             dockerfile = list(f.readlines())
         return dockerfile
 
-    def _prepare_requirements(self) -> Optional[Union[str, List[str]]]:
-        if not self.requirements:
-            return None
-
+    def _prepare_requirements(self) -> None:
         requirements = []
         for req in self.requirements:
             # 1. Check for relative path
             path = os.path.join(self._call_dir, req)
-            if os.path.exists(path):
+            if os.path.isfile(path):
                 try:
-                    requirements.extend(
-                        load_requirements(os.path.dirname(path), os.path.basename(path)),
-                    )
+                    new_requirements = load_requirements(self._call_dir, req)
                 except NotADirectoryError:
-                    pass
+                    continue
+                requirements.extend(new_requirements)
             else:
                 requirements.append(req)
-
         self.requirements = requirements
 
     def _prepare_dockerfile(self):

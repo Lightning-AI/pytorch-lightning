@@ -1,5 +1,7 @@
+import logging
 import os
 import sys
+from unittest.mock import Mock
 
 from tests_app import _TESTS_ROOT
 
@@ -79,3 +81,14 @@ def test_build_config_requirements():
     command_line = [os.path.join(_TESTS_ROOT, "utilities/packaging/projects/req/app.py")]
     application_testing(RequirementsLightningTestApp, command_line + EXTRAS_ARGS)
     sys.path = sys.path[:-1]
+
+
+def test_build_config_requirements_(monkeypatch, caplog):
+    requirements = ["foo", "bar"]
+    bc = BuildConfig(requirements=requirements)
+    monkeypatch.setattr(bc, "_find_requirements", lambda *_, **__: ["baz"])
+    work = Mock()
+    with caplog.at_level(logging.INFO):
+        bc.on_work_init(work)
+    assert "requirements.txt` exists with ['baz'] but ['foo', 'bar']" in caplog.text
+    assert bc.requirements == requirements  # they are not merged or replaced
