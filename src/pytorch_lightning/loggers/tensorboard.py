@@ -39,14 +39,12 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_ze
 
 log = logging.getLogger(__name__)
 
-if _OMEGACONF_AVAILABLE:
-    from omegaconf import Container, OmegaConf
-
-_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard>=2.9.1")
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
 if TYPE_CHECKING and _TENSORBOARD_AVAILABLE:
     from torch.utils.tensorboard import SummaryWriter
-else:
-    SummaryWriter = Any  # type: ignore[misc,assignment]
+
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import Container, OmegaConf
 
 
 class TensorBoardLogger(Logger):
@@ -89,6 +87,15 @@ class TensorBoardLogger(Logger):
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
 
+    Example:
+        >>> import shutil, tempfile
+        >>> tmp = tempfile.mkdtemp()
+        >>> tbl = TensorBoardLogger(tmp)
+        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
+        >>> tbl.log_metrics({"acc": 0.75})
+        >>> tbl.log_metrics({"acc": 0.9})
+        >>> tbl.finalize("success")
+        >>> shutil.rmtree(tmp)
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
     LOGGER_JOIN_CHAR = "-"
@@ -121,7 +128,10 @@ class TensorBoardLogger(Logger):
         self._name = name or ""
         self._version = version
         self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
-        self._log_graph = log_graph
+        if log_graph and not _TENSORBOARD_AVAILABLE:
+            rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
+        self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
+
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)

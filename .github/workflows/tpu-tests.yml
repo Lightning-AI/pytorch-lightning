@@ -17,6 +17,9 @@ on:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - ".actions/**"
+      - "!requirements/**/docs.txt"
+      - "!*.md"
+      - "!**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -70,7 +73,7 @@ jobs:
        cat dockers/base-xla/tpu_workflow.jsonnet
       shell: bash
 
-    - uses: google-github-actions/auth@v0
+    - uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
