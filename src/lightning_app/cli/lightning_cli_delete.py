@@ -57,35 +57,12 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> Non
     cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
 
 
-@delete.command("app")
-@click.argument("app-name", type=str)
-@click.option(
-    "--cluster-id",
-    type=str,
-    default=None,
-    help="Delete the Lighting App from a specific Lightning AI BYOC compute cluster",
-)
-@click.option(
-    "skip_user_confirm_prompt",
-    "--yes",
-    "-y",
-    is_flag=True,
-    default=False,
-    help="Do not prompt for confirmation.",
-)
-def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -> None:
-    """Delete a Lightning app.
-
-    Deleting an app also deletes all app websites, works, artifacts, and logs. This permanently removes any record of
-    the app as well as all any of its associated resources and data. This does not affect any resources and data
-    associated with other Lightning apps on your account.
-    """
+def _cli_delete_app_find_cluster(app_name: str, cluster_id: str) -> str:
     console = Console()
     cluster_manager = AWSClusterManager()
-    app_manager = _AppManager()
 
     default_cluster, valid_clusters = None, []
-    for cluster in cluster_manager.get_clusters().clusters:
+    for cluster in cluster_manager.list_clusters():
         valid_clusters.append(cluster.id)
         if cluster.spec.cluster_type == V1ClusterType.GLOBAL and default_cluster is None:
             default_cluster = cluster.id
@@ -109,10 +86,10 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
                 ]
                 if inquirer.prompt(ask, theme=GreenPassion(), raise_keyboard_interrupt=True)["confirm"] is False:
                     console.print("[b][red]Aborted![/b][/red]")
-                    return
+                    raise InterruptedError
             except KeyboardInterrupt:
                 console.print("[b][red]Cancelled by user![/b][/red]")
-                return
+                raise InterruptedError
             cluster_id = default_cluster
         else:
             # When there are BYOC clusters, have them select which cluster to use from all available.
@@ -128,7 +105,14 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
                 cluster_id = inquirer.prompt(ask, theme=GreenPassion(), raise_keyboard_interrupt=True)["cluster"]
             except KeyboardInterrupt:
                 console.print("[b][red]Cancelled by user![/b][/red]")
-                return
+                raise InterruptedError
+
+    return cluster_id
+
+
+def _cli_delete_app_find_selected_instance_id(app_name: str, cluster_id: str) -> str:
+    console = Console()
+    app_manager = _AppManager()
 
     all_app_names_and_ids = {}
     selected_app_instance_id = None
@@ -159,28 +143,68 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
             selected_app_instance_id = all_app_names_and_ids[app_name]
         except KeyboardInterrupt:
             console.print("[b][red]Cancelled by user![/b][/red]")
-            return
+            raise InterruptedError
 
-    if not skip_user_confirm_prompt:
-        # when the --yes / -y flags were not passed, do a final
-        # confirmation that the user wants to delete the app.
-        try:
-            ask = [
-                inquirer.Confirm(
-                    "confirm",
-                    message=f'Are you sure you want to delete app "{app_name}" on cluster "{default_cluster}"?',
-                    default=False,
-                ),
-            ]
-            if inquirer.prompt(ask, theme=GreenPassion(), raise_keyboard_interrupt=True)["confirm"] is False:
-                console.print("[b][red]Aborted![/b][/red]")
-                return
-        except KeyboardInterrupt:
-            console.print("[b][red]Cancelled by user![/b][/red]")
-            return
+    return selected_app_instance_id
+
+
+def _cli_delete_app_user_confirmation_prompt(app_name: str, cluster_id: str):
+    console = Console()
+
+    # when the --yes / -y flags were not passed, do a final
+    # confirmation that the user wants to delete the app.
+    try:
+        ask = [
+            inquirer.Confirm(
+                "confirm",
+                message=f'Are you sure you want to delete app "{app_name}" on cluster "{cluster_id}"?',
+                default=False,
+            ),
+        ]
+        if inquirer.prompt(ask, theme=GreenPassion(), raise_keyboard_interrupt=True)["confirm"] is False:
+            console.print("[b][red]Aborted![/b][/red]")
+            raise InterruptedError
+    except KeyboardInterrupt:
+        console.print("[b][red]Cancelled by user![/b][/red]")
+        raise InterruptedError
+
+
+@delete.command("app")
+@click.argument("app-name", type=str)
+@click.option(
+    "--cluster-id",
+    type=str,
+    default=None,
+    help="Delete the Lighting App from a specific Lightning AI BYOC compute cluster",
+)
+@click.option(
+    "skip_user_confirm_prompt",
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
+    help="Do not prompt for confirmation.",
+)
+def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -> None:
+    """Delete a Lightning app.
+
+    Deleting an app also deletes all app websites, works, artifacts, and logs. This permanently removes any record of
+    the app as well as all any of its associated resources and data. This does not affect any resources and data
+    associated with other Lightning apps on your account.
+    """
+    console = Console()
+
+    try:
+        cluster_id = _cli_delete_app_find_cluster(app_name=app_name, cluster_id=cluster_id)
+        selected_app_instance_id = _cli_delete_app_find_selected_instance_id(app_name=app_name, cluster_id=cluster_id)
+        if not skip_user_confirm_prompt:
+            _cli_delete_app_user_confirmation_prompt(app_name=app_name, cluster_id=cluster_id)
+    except InterruptedError:
+        return
 
     try:
         # Delete the app!
+        app_manager = _AppManager()
         app_manager.delete(app_id=selected_app_instance_id)
     except Exception as e:
         console.print(
