@@ -51,7 +51,7 @@ from lightning_app.core.constants import (
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
-    ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
+    enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
@@ -243,7 +243,7 @@ class CloudRuntime(Runtime):
         if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
             v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
 
-        if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+        if enable_multiple_works_in_default_container():
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
         if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
@@ -302,16 +302,18 @@ class CloudRuntime(Runtime):
                     project_id=project.project_id, body=app_body
                 )
 
-            network_configs: List[V1NetworkConfig] = []
-            initial_port = 8080 + 1 + len(frontend_specs)
-            for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
-                network_configs.append(
-                    V1NetworkConfig(
-                        name="w" + str(initial_port),
-                        port=initial_port,
+            network_configs: Optional[List[V1NetworkConfig]] = None
+            if enable_multiple_works_in_default_container():
+                network_configs = []
+                initial_port = 8080 + 1 + len(frontend_specs)
+                for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+                    network_configs.append(
+                        V1NetworkConfig(
+                            name="w" + str(initial_port),
+                            port=initial_port,
+                        )
                     )
-                )
-                initial_port += 1
+                    initial_port += 1
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
