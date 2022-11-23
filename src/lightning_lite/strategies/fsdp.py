@@ -181,13 +181,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         ):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._ddp_kwargs["auto_wrap_policy"]
-
         return FullyShardedDataParallel(
             module=module,
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
-            device_id=(None if self.cpu_offload else self.root_device.index),
+            device_id=self.root_device.index,
             **self._ddp_kwargs,
         )
 
