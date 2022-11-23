@@ -46,6 +46,7 @@ def _prepare_extras() -> Dict[str, Any]:
     # extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
     # extras["all"] = extras["dev"]
     extras = {name: list(set(reqs)) for name, reqs in extras.items()}
+    print("The extras are", extras)
     return extras
 
 
