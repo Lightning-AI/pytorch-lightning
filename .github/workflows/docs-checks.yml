@@ -10,12 +10,12 @@ on:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
+      - ".github/workflows/docs-checks.yml"
       - "requirements/**"
       - "docs/**"
       - "src/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
-      - ".github/workflows/docs-checks.yml"
       - "!*.md"
       - "!**/*.md"
 

@@ -7,6 +7,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
       - "requirements/lite/**"
@@ -16,8 +17,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
