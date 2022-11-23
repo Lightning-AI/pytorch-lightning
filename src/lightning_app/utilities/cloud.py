@@ -4,9 +4,9 @@ import warnings
 from lightning_cloud.openapi import V1Membership
 
 import lightning_app
+from lightning.app.utilities.network import LightningClient
 from lightning_app.core.constants import LIGHTNING_CLOUD_PROJECT_ID
 from lightning_app.utilities.enum import AppStage
-from lightning_app.utilities.network import LightningClient
 
 
 def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJECT_ID) -> V1Membership:

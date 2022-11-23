@@ -60,3 +60,157 @@ include src/lightning/app/components/serve/catimage.png
 prune src/lightning_app
 prune src/lightning_lite
 prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning
+recursive-include src/lightning *.md
+recursive-include requirements *.txt
+recursive-include src/lightning/app/ui *
+recursive-include src/lightning/cli/*-template *
+include src/lightning/version.info
+
+include src/lightning/app/components/serve/catimage.png
+
+prune src/lightning_app
+prune src/lightning_lite
+prune src/pytorch_lightning

@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 from typing import List, Optional
 
 import lightning_app
@@ -6,6 +7,7 @@ from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend, WorkManager
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.network import _check_service_url_is_ready
+from lightning_app.utilities.port import close_port, open_port
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
@@ -57,6 +59,10 @@ class MultiProcessingBackend(Backend):
     def __init__(self, entrypoint_file: str):
         super().__init__(entrypoint_file=entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id="0")
 
+        # Note: In case the runtime is used in the cloud.
+        self.should_open_ports = "http://lightningapp" in os.getenv("LIGHTNING_APP_STATE_URL", "")
+        self.ports = []
+
     def create_work(self, app, work) -> None:
         app.processes[work.name] = MultiProcessWorkManager(app, work)
         app.processes[work.name].start()
@@ -83,3 +89,24 @@ class MultiProcessingBackend(Backend):
     def stop_work(self, app, work: "lightning_app.LightningWork") -> None:
         work_manager: MultiProcessWorkManager = app.processes[work.name]
         work_manager.kill()
+
+
+class CloudMultiProcessingBackend(MultiProcessingBackend):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Note: In case the runtime is used in the cloud.
+        self.ports = []
+
+    def create_work(self, app, work) -> None:
+        work._host = "0.0.0.0"
+        nc = open_port()
+        self.ports.append(nc.port)
+        work._port = nc.port
+        work._future_url = f"https://{nc.host}"
+        return super().create_work(app, work)
+
+    def stop_work(self, app, work: "lightning_app.LightningWork") -> None:
+        close_port(work._port)
+        self.ports = [port for port in self.ports if port != work._port]
+        return super().stop_work(app, work)
