@@ -60,9 +60,19 @@ class CollectibleGroup(Protocol):
         ...
 
 
-LRScheduler = (
-    torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else torch.optim.lr_scheduler._LRScheduler
-)
+@runtime_checkable
+class _LRScheduler(_Stateful[str], Protocol):
+    optimizer: Optimizer
+    base_lrs: List[float]
+
+    def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def step(self, epoch: Optional[int] = None) -> None:
+        ...
+
+
+_TORCH_LRSCHEDULER = torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else _LRScheduler
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
