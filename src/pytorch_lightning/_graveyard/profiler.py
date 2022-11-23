@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Any
+
 import pytorch_lightning.profiler.base as base
 
 
 class _AbstractProfiler:
     # TODO: Remove in v2.0.0
-    def __init__(self, *_, **__):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise NotImplementedError(
             "`pytorch_lightning.profiler.base.AbstractProfiler` was deprecated in v1.6 and is no longer supported"
             " as of v1.9. Use `pytorch_lightning.profilers.Profiler` instead."
@@ -25,7 +27,7 @@ class _AbstractProfiler:
 
 class _BaseProfiler:
     # TODO: Remove in v2.0.0
-    def __init__(self, *_, **__):
+    def __init__(self, *_: Any, **__: Any) -> None:
         raise RuntimeError(
             "`pytorch_lightning.profiler.base.AbstractProfiler` was deprecated in v1.6 and is no longer supported"
             " as of v1.9. Use `pytorch_lightning.profilers.Profiler` instead."
