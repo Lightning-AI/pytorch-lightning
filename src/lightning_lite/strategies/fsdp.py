@@ -118,6 +118,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
     @property
     def root_device(self) -> torch.device:
+        if self.cpu_offload:
+            return torch.device("cpu")
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
 
