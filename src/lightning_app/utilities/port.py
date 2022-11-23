@@ -51,7 +51,7 @@ def _find_lit_app_port(default_port: int) -> int:
     return found_nc.port
 
 
-def open_port() -> V1NetworkConfig:
+def enable_port() -> V1NetworkConfig:
     """Make a request to the cloud controlplane to open a port of the flow."""
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
@@ -91,7 +91,7 @@ def open_port() -> V1NetworkConfig:
     return found_nc
 
 
-def close_port(port: int) -> None:
+def disable_port(port: int, ignore_closed: bool = True) -> None:
     """Make a request to the cloud controlplane to close a port of the flow."""
 
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
@@ -116,7 +116,7 @@ def close_port(port: int) -> None:
 
     for nc in lit_app.spec.network_config:
         if nc.port == port:
-            if not nc.enable:
+            if not nc.enable and not ignore_closed:
                 raise RuntimeError(f"The port {port} was already disabled.")
 
             nc.enable = False

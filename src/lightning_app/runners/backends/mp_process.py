@@ -6,7 +6,7 @@ from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend, WorkManager
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.network import _check_service_url_is_ready
-from lightning_app.utilities.port import close_port, open_port
+from lightning_app.utilities.port import disable_port, enable_port
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
@@ -95,13 +95,13 @@ class CloudMultiProcessingBackend(MultiProcessingBackend):
 
     def create_work(self, app, work) -> None:
         work._host = "0.0.0.0"
-        nc = open_port()
+        nc = enable_port()
         self.ports.append(nc.port)
         work._port = nc.port
         work._future_url = f"https://{nc.host}"
         return super().create_work(app, work)
 
     def stop_work(self, app, work: "lightning_app.LightningWork") -> None:
-        close_port(work._port)
+        disable_port(work._port)
         self.ports = [port for port in self.ports if port != work._port]
         return super().stop_work(app, work)

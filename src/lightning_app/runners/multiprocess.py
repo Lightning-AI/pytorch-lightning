@@ -14,7 +14,7 @@ from lightning_app.utilities.commands.base import _commands_to_api, _prepare_com
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.network import find_free_network_port
-from lightning_app.utilities.port import close_port
+from lightning_app.utilities.port import disable_port
 
 
 @dataclass
@@ -120,5 +120,5 @@ class MultiProcessRuntime(Runtime):
             # Close all the ports open for the App within the App.
             ports = [self.port] + self.backend.ports
             for port in ports:
-                close_port(port)
+                disable_port(port)
         super().terminate()
