@@ -3,7 +3,7 @@ from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
 
-from lightning.app.utilities.network import LightningClient
+from lightning_app.utilities.network import LightningClient
 
 
 def _find_lit_app_port(default_port: int) -> int:
