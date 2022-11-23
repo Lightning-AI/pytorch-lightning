@@ -33,7 +33,6 @@ from lightning_app.utilities.component import _convert_paths_after_init, _valida
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
 from lightning_app.utilities.layout import _collect_layout
-from lightning_app.utilities.network import find_free_network_port
 from lightning_app.utilities.proxies import ComponentDelta
 from lightning_app.utilities.scheduler import SchedulerThread
 from lightning_app.utilities.tree import breadth_first
@@ -168,7 +167,6 @@ class LightningApp:
 
         if debug and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0"))):
             os.environ["LIGHTNING_DISPATCHED"] = "1"
-            os.environ["LIGHTNING_APP_SERVER_PORT"] = str(find_free_network_port())
             from lightning.app.runners import MultiProcessRuntime
 
             MultiProcessRuntime(self).dispatch()

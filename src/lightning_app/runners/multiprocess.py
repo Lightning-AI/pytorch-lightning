@@ -32,8 +32,6 @@ class MultiProcessRuntime(Runtime):
         try:
             _set_flow_context()
 
-            self.ports = []
-
             # Note: In case the runtime is used in the cloud.
             self.should_track_port = "http://lightningapp" in self.host
             self.host = "0.0.0.0" if self.should_track_port else self.host
@@ -119,6 +117,7 @@ class MultiProcessRuntime(Runtime):
 
     def terminate(self):
         if self.should_track_port:
+            # Close all the ports open for the App within the App.
             ports = [self.port] + self.backend.ports
             for port in ports:
                 close_port(port)

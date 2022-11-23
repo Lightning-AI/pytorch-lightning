@@ -1,5 +1,4 @@
 import multiprocessing
-import os
 from typing import List, Optional
 
 import lightning_app
@@ -59,10 +58,6 @@ class MultiProcessingBackend(Backend):
     def __init__(self, entrypoint_file: str):
         super().__init__(entrypoint_file=entrypoint_file, queues=QueuingSystem.MULTIPROCESS, queue_id="0")
 
-        # Note: In case the runtime is used in the cloud.
-        self.should_open_ports = "http://lightningapp" in os.getenv("LIGHTNING_APP_STATE_URL", "")
-        self.ports = []
-
     def create_work(self, app, work) -> None:
         app.processes[work.name] = MultiProcessWorkManager(app, work)
         app.processes[work.name].start()
@@ -95,7 +90,7 @@ class CloudMultiProcessingBackend(MultiProcessingBackend):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Note: In case the runtime is used in the cloud.
+        # Note: Track the open ports to close them on termination.
         self.ports = []
 
     def create_work(self, app, work) -> None:
