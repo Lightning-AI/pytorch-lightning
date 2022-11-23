@@ -1,6 +1,6 @@
 from enum import Enum
 
-from lightning_app.core.constants import APP_SERVER_HOST
+from lightning_app.core.constants import APP_SERVER_IN_CLOUD
 from lightning_app.runners.backends.backend import Backend
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.backends.docker import DockerBackend
@@ -14,7 +14,7 @@ class BackendType(Enum):
 
     def get_backend(self, entrypoint_file: str) -> "Backend":
         if self == BackendType.MULTIPROCESSING:
-            if "http://lightningapp" in APP_SERVER_HOST:
+            if APP_SERVER_IN_CLOUD:
                 return CloudMultiProcessingBackend(entrypoint_file)
             return MultiProcessingBackend(entrypoint_file)
         elif self == BackendType.DOCKER:
