@@ -7,11 +7,13 @@ from lightning_app.utilities.network import LightningClient
 
 
 def _find_lit_app_port(default_port: int) -> int:
+    """Make a request to the cloud controlplane to find a disabled port of the flow, enable it and return it."""
 
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+    enable_multiple_works_in_default_container = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
-    if not app_id or not project_id:
+    if not app_id or not project_id or not enable_multiple_works_in_default_container:
         return default_port
 
     assert project_id
@@ -42,13 +44,14 @@ def _find_lit_app_port(default_port: int) -> int:
 
     assert found_nc
 
+    # Note: This is required for the framework to know we need to use the CloudMultiProcessRuntime.
     os.environ["APP_SERVER_HOST"] = f"https:/{found_nc.host}"
 
     return found_nc.port
 
 
 def open_port():
-
+    """Make a request to the cloud controlplane to open a port of the flow."""
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
 
@@ -87,6 +90,7 @@ def open_port():
 
 
 def close_port(port: int) -> None:
+    """Make a request to the cloud controlplane to close a port of the flow."""
 
     app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
     project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
