@@ -37,7 +37,7 @@ def _get_args_after_tracer_injection(**kwargs):
 
 def check_lightning_lite_mps():
     if module_available("lightning_lite"):
-        return L.lite.accelerators.MPSAccelerator.is_avalable()
+        return L.lite.accelerators.MPSAccelerator.is_available()
     return False
 
 
