@@ -40,7 +40,7 @@ ___________________
     ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
     ~serve.python_server.PythonServer
-    ~serve.stream_lit.ServeSteamLit
+    ~serve.streamlit.ServeSteamLit
     ~multi_node.base.MultiNode
     ~multi_node.lite.LiteMultiNode
     ~multi_node.pytorch_spawn.PyTorchSpawnMultiNode
