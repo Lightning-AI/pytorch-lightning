@@ -108,8 +108,6 @@ def disable_port(port: int, ignore_disabled: bool = True) -> None:
     if not app_id or not project_id:
         raise Exception("The app_id and project_id should be defined.")
 
-    assert project_id
-
     client = LightningClient()
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
     lit_app: Optional[Externalv1LightningappInstance] = None
