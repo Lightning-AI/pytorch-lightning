@@ -3,7 +3,14 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.utilities.imports import requires
+from lightning_app.utilities.imports import _get_extras, requires
+
+
+@mock.patch("lightning_app.utilities.imports.metadata.requires")
+def test_get_extras(mock_requires):
+    mock_requires.return_value = ["docker (>=5.0.0) ; extra == 'test'"]
+
+    assert _get_extras("test") == ["docker (>=5.0.0)"]
 
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})
