@@ -2,6 +2,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Type
+import importlib
 
 from typing_extensions import Protocol, runtime_checkable
 
@@ -31,10 +32,16 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite import LightningLite
-        from lightning.lite.accelerators import MPSAccelerator
-        from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
-        from lightning_lite import LightningLite as StandaloneLightningLite
+        lites = []
+        strategies = []
+        mps_accelerators = []
+
+        for pkg_name in ("lightning.lite", "lightning_" + "lite"):
+            pkg = importlib.import_module(pkg_name)
+            lites.append(pkg.LightningLite)
+            strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
+            strategies.append(pkg.strategies.DDPSpawnStrategy)
+            mps_accelerators.append(pkg.accelerators.MPSAccelerator)
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -56,7 +63,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
 
-            if MPSAccelerator.is_available():
+            if any(x.is_available() for x in mps_accelerators):
                 old_acc_value = kwargs.get("accelerator", "auto")
                 kwargs["accelerator"] = "cpu"
 
@@ -74,7 +81,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
                         strategy = "ddp"
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
-                elif isinstance(strategy, (DDPSpawnStrategy, DDPSpawnShardedStrategy)):
+                elif isinstance(strategy, tuple(strategies)):
                     raise ValueError("DDP Spawned strategies aren't supported yet.")
 
             kwargs["strategy"] = strategy
@@ -82,8 +89,8 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
             return {}, args, kwargs
 
         tracer = Tracer()
-        tracer.add_traced(StandaloneLightningLite, "__init__", pre_fn=pre_fn)
-        tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
+        for ll in lites:
+            tracer.add_traced(ll, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         ret_val = work_run()
         tracer._restore()

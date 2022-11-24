@@ -1,3 +1,4 @@
+import importlib
 import os
 import warnings
 from dataclasses import dataclass
@@ -31,10 +32,16 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.pytorch import Trainer as LTrainer
-        from lightning.pytorch.accelerators import MPSAccelerator
-        from lightning.pytorch.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
-        from pytorch_lightning import Trainer as PLTrainer
+        trainers = []
+        strategies = []
+        mps_accelerators = []
+
+        for pkg_name in ("lightning.pytorch", "pytorch_" + "lightning"):
+            pkg = importlib.import_module(pkg_name)
+            trainers.append(pkg.Trainer)
+            strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
+            strategies.append(pkg.strategies.DDPSpawnStrategy)
+            mps_accelerators.append(pkg.accelerators.MPSAccelerator)
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -52,7 +59,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         def pre_fn(trainer, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
-            if MPSAccelerator.is_available():
+            if any(x.is_available for x in mps_accelerators):
                 old_acc_value = kwargs.get("accelerator", "auto")
                 kwargs["accelerator"] = "cpu"
 
@@ -71,14 +78,14 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
                         strategy = "ddp"
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
-                elif isinstance(strategy, (DDPSpawnStrategy, DDPSpawnShardedStrategy)):
+                elif isinstance(strategy, tuple(strategies)):
                     raise ValueError("DDP Spawned strategies aren't supported yet.")
                 kwargs["strategy"] = strategy
             return {}, args, kwargs
 
         tracer = Tracer()
-        tracer.add_traced(PLTrainer, "__init__", pre_fn=pre_fn)
-        tracer.add_traced(LTrainer, "__init__", pre_fn=pre_fn)
+        for trainer in trainers:
+            tracer.add_traced(trainer, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         ret_val = work_run()
         tracer._restore()
