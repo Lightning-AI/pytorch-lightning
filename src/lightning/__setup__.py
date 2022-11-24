@@ -32,6 +32,7 @@ def _adjust_manifest(**kwargs: Any) -> None:
         lines = [ln.rstrip() for ln in fp.readlines()]
     lines += [
         "recursive-include src/lightning *.md",
+        "recursive-include src/lightning/requirements *.txt",
         "recursive-include requirements *.txt",
         "recursive-include src/lightning/app/ui *",
         "recursive-include src/lightning/cli/*-template *",  # Add templates as build-in

@@ -46,6 +46,8 @@ import lightning.app  # isort: skip # noqa: E402
 
 lightning.app._PROJECT_ROOT = os.path.dirname(lightning.app._PROJECT_ROOT)
 
+_REQUIREMENTS_ROOT = os.path.join(os.path.dirname(__file__), "requirements")
+
 # Enable breakpoint within forked processes.
 __builtins__["breakpoint"] = pdb.set_trace
 

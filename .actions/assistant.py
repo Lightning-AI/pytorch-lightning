@@ -113,6 +113,13 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
             target_dir=os.path.join(source_dir, "lightning", new),
         )
 
+    # Copy requirements
+    requirements_source = os.path.join(os.path.dirname(source_dir), "requirements")
+    requirements_target = os.path.join(source_dir, "lightning", "requirements")
+    if os.path.exists(requirements_target):
+        shutil.rmtree(requirements_target)
+    shutil.copytree(requirements_source, requirements_target)
+
 
 class AssistantCLI:
     @staticmethod
