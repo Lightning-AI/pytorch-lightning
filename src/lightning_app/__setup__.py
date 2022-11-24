@@ -75,16 +75,6 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     # TODO: remove this once lightning-ui package is ready as a dependency
     _setup_tools._download_frontend(_PACKAGE_ROOT)
 
-    _install_requires = _setup_tools.load_requirements(
-        _PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all"
-    )
-
-    _extras_require = _prepare_extras()
-
-    # If running in the cloud, require the cloud extras
-    if "LIGHTNING_APP_STATE_URL" in os.environ:
-        _install_requires = _install_requires + _extras_require["cloud"]
-
     return dict(
         name="lightning-app",
         version=_version.version,
@@ -108,8 +98,10 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             ],
         },
         setup_requires=["wheel"],
-        install_requires=_install_requires,
-        extras_require=_extras_require,
+        install_requires=_setup_tools.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all"
+        ),
+        extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://lightning.ai/lightning-docs",
