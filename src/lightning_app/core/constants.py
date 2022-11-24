@@ -3,6 +3,8 @@ from pathlib import Path
 
 import lightning_cloud.env
 
+from lightning_app.utilities.port import _find_lit_app_port
+
 
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
@@ -19,7 +21,8 @@ FLOW_DURATION_THRESHOLD = 1.0
 FLOW_DURATION_SAMPLES = 5
 
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
-APP_SERVER_PORT = 7501
+APP_SERVER_IN_CLOUD = "http://lightningapp" in APP_SERVER_HOST
+APP_SERVER_PORT = _find_lit_app_port(7501)
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
 CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
@@ -52,9 +55,6 @@ LIGHTNING_APPS_PUBLIC_REGISTRY = "https://lightning.ai/v1/apps"
 
 # EXPERIMENTAL: ENV VARIABLES TO ENABLE MULTIPLE WORKS IN THE SAME MACHINE
 DEFAULT_NUMBER_OF_EXPOSED_PORTS = int(os.getenv("DEFAULT_NUMBER_OF_EXPOSED_PORTS", "50"))
-ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER = bool(
-    int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0"))
-)  # Note: This is disabled for the time being.
 ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = bool(
     int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", "0"))
 )  # This isn't used in the cloud yet.
@@ -71,3 +71,7 @@ ENABLE_PUSHING_STATE_ENDPOINT = ENABLE_PULLING_STATE_ENDPOINT and bool(
 )
 ENABLE_STATE_WEBSOCKET = bool(int(os.getenv("ENABLE_STATE_WEBSOCKET", "0")))
 ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
+
+
+def enable_multiple_works_in_default_container() -> bool:
+    return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
