@@ -1,6 +1,5 @@
+import warnings
 from typing import Any, Type
-
-from lightning_utilities.core.rank_zero import rank_zero_warn
 
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
@@ -58,10 +57,10 @@ class MultiNode(LightningFlow):
         super().__init__()
         if num_nodes > 1 and not is_running_in_cloud():
             num_nodes = 1
-            rank_zero_warn(
-                f"You set `num_nodes={num_nodes}` but this app is running locally. We assume you are debugging will"
-                " ignore the `num_nodes` argument. To run on multiple nodes in the cloud, launch your app with"
-                " `--cloud`."
+            warnings.warn(
+                f"You set {type(self).__name__}(num_nodes={num_nodes}, ...)` but this app is running locally. "
+                " We assume you are debugging and will ignore the `num_nodes` argument. "
+                " To run on multiple nodes in the cloud, launch your app with `--cloud`."
             )
         self.ws = structures.List(
             *[
