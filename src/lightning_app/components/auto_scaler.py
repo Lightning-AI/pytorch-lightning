@@ -71,7 +71,7 @@ class _BatchRequestModel(BaseModel):
     inputs: List[Any]
 
 
-def create_fastapi(title: str) -> FastAPI:
+def _create_fastapi(title: str) -> FastAPI:
     fastapi_app = FastAPI(title=title)
 
     fastapi_app.add_middleware(
@@ -218,7 +218,7 @@ class LoadBalancer(LightningWork):
         self._ITER = cycle(self.servers)
         self._last_batch_sent = time.time()
 
-        fastapi_app = create_fastapi("Load Balancer")
+        fastapi_app = _create_fastapi("Load Balancer")
         fastapi_app.global_request_count = 0
         fastapi_app.num_current_requests = 0
         fastapi_app.last_process_time = 0
