@@ -21,7 +21,6 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 MIN_REPLICA = int(os.environ.get("MUSE_MIN_WORKERS", 1))
-DEVICE_TYPE = os.environ.get("MUSE_GPU_TYPE", "gpu")
 KEEP_ALIVE_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 INFERENCE_REQUEST_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 OPEN_PROMPTS = None
@@ -320,7 +319,6 @@ class AutoScaler(LightningFlow):
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
         batch_timeout_secs: float = 2,
-        device_type: str = DEVICE_TYPE,
         downscale_threshold: Optional[int] = None,
         upscale_threshold: Optional[int] = None,
         worker_url: str = None,
@@ -340,7 +338,6 @@ class AutoScaler(LightningFlow):
         self.downscale_threshold = downscale_threshold or min_replica
         self.upscale_threshold = upscale_threshold or min_replica * max_batch_size
         self.fake_trigger = 0
-        self.gpu_type = device_type
         self._last_autoscale = time.time()
 
         worker_url = worker_url or "api/predict"
