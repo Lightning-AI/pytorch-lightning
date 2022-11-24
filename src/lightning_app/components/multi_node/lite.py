@@ -31,6 +31,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
+        from lightning_lite import LightningLite as StandaloneLightningLite
         from lightning.lite import LightningLite
         from lightning.lite.accelerators import MPSAccelerator
         from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
@@ -81,6 +82,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
             return {}, args, kwargs
 
         tracer = Tracer()
+        tracer.add_traced(StandaloneLightningLite, "__init__", pre_fn=pre_fn)
         tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         ret_val = work_run()
