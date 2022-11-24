@@ -1,10 +1,10 @@
 from re import escape
 
 import pytest
-
-from lightning_app import LightningWork, CloudCompute
-from lightning_app.components import MultiNode
 from tests_app.helpers.utils import no_warning_call
+
+from lightning_app import CloudCompute, LightningWork
+from lightning_app.components import MultiNode
 
 
 def test_multi_node_warn_running_locally():
