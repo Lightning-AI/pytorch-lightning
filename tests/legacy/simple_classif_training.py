@@ -36,7 +36,6 @@ def main_train(dir_path, max_epochs: int = 20):
         max_epochs=max_epochs,
         accumulate_grad_batches=2,
         deterministic=True,
-        logger=False,
     )
 
     dm = ClassifDataModule()

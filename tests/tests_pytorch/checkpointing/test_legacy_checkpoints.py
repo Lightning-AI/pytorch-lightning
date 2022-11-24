@@ -107,7 +107,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             callbacks=[stop],
             max_epochs=21,
             accumulate_grad_batches=2,
-            logger=False,
         )
         torch.backends.cudnn.deterministic = True
         trainer.fit(model, datamodule=dm, ckpt_path=path_ckpt)
