@@ -61,6 +61,9 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
                         "Forcing accelerator=cpu as other accelerators (specifically MPS) are not supported "
                         "by PyTorch for distributed training on mps capable devices"
                     )
+            else:
+                kwargs["accelerator"] = "auto"
+
             strategy = kwargs.get("strategy", None)
             if strategy:
                 if isinstance(strategy, str):
