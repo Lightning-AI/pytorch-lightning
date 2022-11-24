@@ -29,7 +29,7 @@ logger = Logger(__name__)
 
 
 def _raise_granular_exception(exception: Exception):
-    """handle the exceptions coming from hitting the model servers."""
+    """Handle an exception from hitting the model servers."""
     if not isinstance(exception, Exception):
         return
 
@@ -263,6 +263,10 @@ class LoadBalancer(LightningWork):
         )
 
     def update_servers(self, server_works: List[LightningWork]):
+        """Updates works that load balancer distributes requests to.
+
+        AutoScaler uses this method to increase/decrease the number of works.
+        """
         old_servers = set(self.servers)
         server_urls: List[str] = [server.url for server in server_works if server.url]
         new_servers = set(server_urls)
