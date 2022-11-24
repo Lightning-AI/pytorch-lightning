@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+import signal
 import sys
 import time
 import traceback
@@ -29,6 +30,7 @@ from lightning_app.utilities.proxies import (
     WorkRunner,
     WorkStateObserver,
 )
+from lightning_app.utilities.signals import SignalHandlerCompose
 
 logger = logging.getLogger(__name__)
 
@@ -790,3 +792,27 @@ def test_bi_directional_proxy_filtering():
     app = LightningApp(FlowDrive())
     app.root.run()
     assert app._extract_vars_from_component_name(app.root.w.name, app.state) == {}
+
+
+def test_signal_handler_compose(monkeypatch):
+
+    examples = []
+
+    handler = SignalHandlerCompose(signal.signal)
+
+    monkeypatch.setattr(signal, "signal", handler)
+
+    def handler_fn(signum, handler):
+        nonlocal examples
+        examples.append("handler_fn")
+
+    def handler_fn2(signum, handler):
+        nonlocal examples
+        examples.append("handler_fn2")
+
+    signal.signal(signal.SIGTERM, handler_fn)
+    signal.signal(signal.SIGTERM, handler_fn2)
+
+    handler.run(signal.SIGTERM, None)
+
+    assert examples == ["handler_fn", "handler_fn2"]

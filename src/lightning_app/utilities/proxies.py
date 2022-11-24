@@ -32,6 +32,7 @@ from lightning_app.utilities.enum import (
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import CacheMissException, LightningSigtermStateException
+from lightning_app.utilities.signals import SignalHandlerCompose
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
@@ -419,6 +420,9 @@ class WorkRunner:
 
     def setup(self):
         from lightning_app.utilities.state import AppState
+
+        # Note: Enable to capture all signals and call them sequentially in the order they got registered
+        signal.signal = SignalHandlerCompose(signal.signal)
 
         _set_work_context()
 
