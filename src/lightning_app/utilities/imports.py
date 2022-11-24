@@ -26,11 +26,10 @@ except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
 
-def _get_extras(extras: str = "cloud") -> List[str]:
+def _get_extras(extras: str) -> List[str]:
     """Get the list of installable packages in the given extras."""
     from lightning_app import __package_name__
 
-    extras = f"app-{extras}" if __package_name__ == "lightning" else extras
     requirements = {r: Requirement(r) for r in metadata.requires(__package_name__)}
     marker = Marker(f'extra == "{extras}"')
     return [r.split(";")[0].strip() for r, req in requirements.items() if str(req.marker) == str(marker)]
