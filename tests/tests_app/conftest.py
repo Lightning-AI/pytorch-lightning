@@ -73,3 +73,30 @@ def another_tmpdir(tmp_path: Path) -> py.path.local:
     random_dir = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
     tmp_path = os.path.join(tmp_path, random_dir)
     return py.path.local(tmp_path)
+
+
+@pytest.fixture
+def caplog(caplog):
+    """Workaround for https://github.com/pytest-dev/pytest/issues/3697.
+
+    Setting ``filterwarnings`` with pytest breaks ``caplog`` when ``not logger.propagate``.
+    """
+    import logging
+
+    root_logger = logging.getLogger()
+    root_propagate = root_logger.propagate
+    root_logger.propagate = True
+
+    propagation_dict = {
+        name: logging.getLogger(name).propagate
+        for name in logging.root.manager.loggerDict
+        if name.startswith("lightning_app")
+    }
+    for name in propagation_dict.keys():
+        logging.getLogger(name).propagate = True
+
+    yield caplog
+
+    root_logger.propagate = root_propagate
+    for name, propagate in propagation_dict.items():
+        logging.getLogger(name).propagate = propagate

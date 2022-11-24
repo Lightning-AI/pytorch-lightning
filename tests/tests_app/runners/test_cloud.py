@@ -1198,13 +1198,17 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     assert caplog.messages == []
 
     mock = MagicMock()
+    mock.st_mode = 33188
     mock.st_size = 5 * 1000 * 1000
     repo.files = [str(Path("./a.png"))]
     monkeypatch.setattr(Path, "stat", MagicMock(return_value=mock))
 
+    path = Path(".")
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(Path("."), repo)
-    assert caplog.messages[0].startswith("Your application folder . is more than 2 MB. Found 5.0 MB")
+        backend._check_uploaded_folder(path, repo)
+    assert caplog.messages[0].startswith(
+        f"Your application folder '{path.absolute()}' is more than 2 MB. The total size is 5.0 MB"
+    )
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
