@@ -26,8 +26,8 @@ except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
 
-def _get_extras_install_command(extras: str) -> str:
-    """Get the pip install command for the given extras.
+def _get_extras(extras: str) -> str:
+    """Get the given extras as a space delimited string.
 
     Used by the platform to install cloud extras in the cloud.
     """
@@ -39,7 +39,7 @@ def _get_extras_install_command(extras: str) -> str:
 
     if requirements:
         requirements = [f"'{r.split(';')[0].strip()}'" for r in requirements]
-        return f"pip install {' '.join(requirements)}"
+        return " ".join(requirements)
     return ""
 
 
