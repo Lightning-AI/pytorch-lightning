@@ -59,12 +59,7 @@ class TimeoutException(HTTPException):
         super().__init__(status_code=status_code, detail=detail, *args, **kwargs)
 
 
-class LimitBacklogException(HTTPException):
-    def __init__(self, status_code=408, detail="Model Server has too much backlog.", *args, **kwargs):
-        super().__init__(status_code=status_code, detail=detail, *args, **kwargs)
-
-
-class SysInfo(BaseModel):
+class _SysInfo(BaseModel):
     num_workers: int
     servers: List[str]
     num_requests: int
@@ -243,9 +238,9 @@ class LoadBalancer(LightningWork):
             fastapi_app.SEND_TASK.cancel()
             self._server_ready = False
 
-        @fastapi_app.get("/system/info", response_model=SysInfo)
+        @fastapi_app.get("/system/info", response_model=_SysInfo)
         async def sys_info():
-            return SysInfo(
+            return _SysInfo(
                 num_workers=len(self.servers),
                 servers=self.servers,
                 num_requests=fastapi_app.num_current_requests,
