@@ -27,7 +27,10 @@ except ImportError:
 
 
 def _get_extras(extras: str) -> List[str]:
-    """Get the list of installable packages in the given extras."""
+    """Get the list of installable packages in the given extras.
+
+    Used by the platform to install cloud extras in the cloud.
+    """
     from lightning_app import __package_name__
 
     requirements = {r: Requirement(r) for r in metadata.requires(__package_name__)}
