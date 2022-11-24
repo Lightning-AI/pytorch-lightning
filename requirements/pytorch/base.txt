@@ -10,4 +10,4 @@ tensorboardX>=2.2, <=2.5.1  # min version is set by torch.onnx missing attribute
 torchmetrics>=0.7.0, <0.10.1  # needed for using fixed compare_version
 packaging>=17.0, <=21.3
 typing-extensions>=4.0.0, <=4.4.0
-lightning-utilities==0.3.*
+lightning-utilities>=0.3.0, !=0.4.0, <0.5.0
