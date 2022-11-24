@@ -11,7 +11,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
     def on_before_run_once(self):
         res = super().on_before_run_once()
         if self.works and all(w.has_stopped for w in self.works):
-            assert len([w for w in self.works]) == 2
+            assert len([w for w in self.works]) == 1
             return True
         return res
 
@@ -34,7 +34,7 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
     def on_before_run_once(self):
         res = super().on_before_run_once()
         if self.works and all(w.has_stopped for w in self.works):
-            assert len([w for w in self.works]) == 2
+            assert len([w for w in self.works]) == 1
             return True
         return res
 
