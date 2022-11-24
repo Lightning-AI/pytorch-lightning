@@ -130,7 +130,7 @@ def create_fastapi(title: str) -> FastAPI:
     async def num_requests() -> int:
         return app.num_current_requests
 
-    return
+    return app
 
 
 # FIXME: for debugging
@@ -331,10 +331,9 @@ class _LoadBalancer(LightningWork):
         response.raise_for_status()
 
 
-# TODO: accept schema as argument
-class LoadBalancer(LightningFlow):
-    """The MuseFlow is a LightningFlow component that handles all the servers and uses load balancer to spawn up
-    and shutdown based on current requests in the queue.
+class AutoScaler(LightningFlow):
+    """A LightningFlow component that handles all the servers and uses load balancer to spawn up and shutdown based
+    on current requests in the queue.
 
     Args:
         min_replica: Number of works to start when app initializes.
@@ -352,7 +351,6 @@ class LoadBalancer(LightningFlow):
 
     def __init__(
         self,
-        work_cls: type,
         min_replica: int = MIN_REPLICA,
         max_replica: int = 4,
         autoscale_interval: int = 1 * 10,
