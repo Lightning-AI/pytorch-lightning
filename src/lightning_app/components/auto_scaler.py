@@ -408,9 +408,6 @@ class AutoScaler(LightningFlow):
             self.fake_trigger += 1
             self.autoscale()
 
-            if self.load_test:
-                self.load_test.run(self.load_balancer.url)
-
     def autoscale(self):
         """Upscale and down scale model inference works based on the number of requests."""
         if time.time() - self._last_autoscale < self.autoscale_interval:
@@ -443,6 +440,4 @@ class AutoScaler(LightningFlow):
 
     def configure_layout(self):
         tabs = [{"name": "Swagger", "content": self.load_balancer.url}]
-        if self.load_test:
-            tabs.append({"name": "Load test", "content": self.load_test.url})
         return tabs
