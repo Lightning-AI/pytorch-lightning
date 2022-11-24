@@ -11,8 +11,13 @@ import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
 
 
+class DummyLite(ll.LightningLite):
+    def run(self):
+        pass
+
+
 def dummy_callable(**kwargs):
-    lite = ll.LightningLite(**kwargs)
+    lite = DummyLite(**kwargs)
     return lite._all_passed_kwargs
 
 
