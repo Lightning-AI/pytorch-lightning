@@ -1139,3 +1139,14 @@ def test_lightning_flow_properties():
     assert flow._value is None
     flow.run()
     assert flow._value is True
+
+
+class SimpleWork2(LightningWork):
+    def run(self):
+        pass
+
+
+def test_lightning_work_stopped():
+
+    app = LightningApp(SimpleWork2())
+    MultiProcessRuntime(app, start_server=False).dispatch()
