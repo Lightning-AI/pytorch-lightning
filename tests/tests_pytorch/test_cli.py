@@ -327,7 +327,9 @@ def test_lightning_cli_config_and_subclass_mode(cleandir):
     with open(config_path, "w") as f:
         f.write(yaml.dump(input_config))
 
-    with mock.patch("sys.argv", ["any.py", "--config", config_path]):
+    with mock.patch("sys.argv", ["any.py", "--config", config_path]), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ):
         cli = LightningCLI(
             BoringModel,
             BoringDataModule,
@@ -352,7 +354,6 @@ def any_model_any_data_cli():
 
 
 def test_lightning_cli_help():
-
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
@@ -372,7 +373,9 @@ def test_lightning_cli_help():
 
     cli_args = ["any.py", "fit", "--data.help=DataDirDataModule"]
     out = StringIO()
-    with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+    with mock.patch("sys.argv", cli_args), redirect_stdout(out), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
     assert "--data.init_args.data_dir" in out.getvalue()
