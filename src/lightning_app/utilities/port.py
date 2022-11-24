@@ -16,8 +16,6 @@ def _find_lit_app_port(default_port: int) -> int:
     if not app_id or not project_id or not enable_multiple_works_in_default_container:
         return default_port
 
-    assert project_id
-
     client = LightningClient()
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
     lit_app: Optional[Externalv1LightningappInstance] = None
