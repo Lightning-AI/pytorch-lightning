@@ -43,7 +43,9 @@ def _find_lit_app_port(default_port: int) -> int:
     )
 
     if not found_nc:
-        raise RuntimeError("No available port was found. Please, contact the Lightning Team.")
+        raise RuntimeError(
+            "No available port was found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
+        )
 
     # Note: This is required for the framework to know we need to use the CloudMultiProcessRuntime.
     os.environ["APP_SERVER_HOST"] = f"https://{found_nc.host}"
@@ -86,7 +88,9 @@ def enable_port() -> V1NetworkConfig:
     )
 
     if not found_nc:
-        raise RuntimeError("No available port was found. Please, contact the Lightning Team.")
+        raise RuntimeError(
+            "No available port was found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
+        )
 
     return found_nc
 

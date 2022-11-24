@@ -34,7 +34,7 @@ def test_find_lit_app_port(monkeypatch):
         V1NetworkConfig(host="a", port=1, enable=True),
     ]
 
-    with pytest.raises(RuntimeError, match="No available port was found. Please, contact the Lightning Team."):
+    with pytest.raises(RuntimeError, match="No available port was found. Please"):
         _find_lit_app_port(5701)
 
 
@@ -65,7 +65,7 @@ def test_enable_port(monkeypatch):
         V1NetworkConfig(host="a", port=1, enable=True),
     ]
 
-    with pytest.raises(RuntimeError, match="No available port was found. Please, contact the Lightning Team."):
+    with pytest.raises(RuntimeError, match="No available port was found. Please"):
         assert enable_port()
 
 
