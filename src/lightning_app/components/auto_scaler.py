@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import subprocess
 import time
 import uuid
 from itertools import cycle
@@ -19,7 +18,6 @@ from pydantic import BaseModel
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 MIN_REPLICA = int(os.environ.get("MUSE_MIN_WORKERS", 1))
@@ -27,7 +25,6 @@ DEVICE_TYPE = os.environ.get("MUSE_GPU_TYPE", "gpu")
 KEEP_ALIVE_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 INFERENCE_REQUEST_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 OPEN_PROMPTS = None
-
 
 logger = Logger(__name__)
 
@@ -121,35 +118,6 @@ def create_fastapi(title: str) -> FastAPI:
         return fastapi_app.num_current_requests
 
     return fastapi_app
-
-
-# FIXME: for debugging
-class Locust(LightningWork):
-    def __init__(self, locustfile: str, num_users: int = 10, port: int = 8089):
-        super().__init__(port=port, parallel=True, cloud_build_config=BuildConfig(requirements=["locust"]))
-        self.locustfile = locustfile
-        self.num_users = num_users
-        self.html_file = "locust_report.html"
-
-    def run(self, host: str):
-        cmd = " ".join(
-            [
-                "locust",
-                "--master-host",
-                str(self.host),
-                "--master-port",
-                str(self.port),
-                "--host",
-                str(host),
-                "-u",
-                str(self.num_users),
-                "-f",
-                str(self.locustfile),
-                "--html",
-                str(self.html_file),
-            ]
-        )
-        subprocess.Popen(cmd, shell=True).wait()
 
 
 class LoadBalancer(LightningWork):
@@ -388,10 +356,6 @@ class AutoScaler(LightningFlow):
         for _ in range(min_replica):
             work = self.create_worker()
             self.add_work(work)
-
-        self.load_test = None
-        if os.environ.get("LOAD_TEST", False):
-            self.load_test = Locust("scripts/locustfile.py")
 
         logger.info(
             f"LB initialized with min replica={min_replica}, "
