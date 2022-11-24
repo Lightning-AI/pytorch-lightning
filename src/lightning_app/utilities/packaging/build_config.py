@@ -176,7 +176,7 @@ class BuildConfig:
             path = os.path.join(self._call_dir, self.dockerfile)
             if os.path.exists(path):
                 with open(path) as f:
-                    self.dockerfile = _Dockerfile(path, list(f.readlines()))
+                    self.dockerfile = _Dockerfile(path, f.readlines())
 
     def to_dict(self) -> Dict:
         return {"__build_config__": asdict(self)}
