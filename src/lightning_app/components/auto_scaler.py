@@ -28,7 +28,7 @@ OPEN_PROMPTS = None
 logger = Logger(__name__)
 
 
-def raise_granular_exception(exception: Exception):
+def _raise_granular_exception(exception: Exception):
     """handle the exceptions coming from hitting the model servers."""
     if not isinstance(exception, Exception):
         return
@@ -67,12 +67,8 @@ class _SysInfo(BaseModel):
     global_request_count: int
 
 
-class BatchRequestModel(BaseModel):
+class _BatchRequestModel(BaseModel):
     inputs: List[Any]
-
-
-class BatchResponse(BaseModel):
-    outputs: List[Any]
 
 
 def create_fastapi(title: str) -> FastAPI:
@@ -143,11 +139,11 @@ class LoadBalancer(LightningWork):
         self._last_batch_sent = 0
         self.worker_url = worker_url
 
-    async def send_batch(self, batch: List[Tuple[str, BatchRequestModel]]):
+    async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
         # unit method
         server = next(self._ITER)
         request_data: List[LoadBalancer._input_schema] = [b[1] for b in batch]
-        batch_request_data = BatchRequestModel(inputs=request_data)
+        batch_request_data = _BatchRequestModel(inputs=request_data)
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -207,7 +203,7 @@ class LoadBalancer(LightningWork):
             if request_id in self._responses:
                 result = self._responses[request_id]
                 del self._responses[request_id]
-                raise_granular_exception(result)
+                _raise_granular_exception(result)
                 return result
 
     def run(self):
