@@ -28,7 +28,7 @@ OPEN_PROMPTS = None
 logger = Logger(__name__)
 
 
-def _raise_granular_exception(exception: Exception):
+def _raise_granular_exception(exception: Exception) -> None:
     """Handle an exception from hitting the model servers."""
     if not isinstance(exception, Exception):
         return
@@ -55,7 +55,7 @@ def _raise_granular_exception(exception: Exception):
 
 
 class TimeoutException(HTTPException):
-    def __init__(self, status_code=408, detail="Request timed out.", *args, **kwargs):
+    def __init__(self, status_code: int = 408, detail: str = "Request timed out.", *args: Any, **kwargs: Any) -> None:
         super().__init__(status_code=status_code, detail=detail, *args, **kwargs)
 
 
@@ -125,7 +125,9 @@ class LoadBalancer(LightningWork):
         \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
 
-    def __init__(self, input_schema, output_schema, worker_url: str, max_batch_size=8, batch_timeout_secs=10, **kwargs):
+    def __init__(
+        self, input_schema, output_schema, worker_url: str, max_batch_size=8, batch_timeout_secs=10, **kwargs
+    ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
         self._input_schema = input_schema
         self._output_schema = output_schema
@@ -319,7 +321,7 @@ class AutoScaler(LightningFlow):
         worker_url: str = None,
         input_schema: Any = Dict,
         output_schema: Any = Dict,
-    ):
+    ) -> None:
         super().__init__()
         self._worker_count = 0
         self._work_registry = {}
@@ -384,7 +386,7 @@ class AutoScaler(LightningFlow):
         self._worker_count -= 1
         return work_attribute
 
-    def get_work(self, index: int):
+    def get_work(self, index: int) -> LightningWork:
         work_attribute = self._work_registry[index]
         work = getattr(self, work_attribute)
         return work
