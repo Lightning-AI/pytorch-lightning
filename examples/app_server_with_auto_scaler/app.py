@@ -1,6 +1,5 @@
 import base64
 import io
-import logging
 from typing import Any, List
 
 import torch
@@ -12,12 +11,6 @@ import lightning as L
 from lightning.app.components import AutoScaler
 from lightning.app.components.serve import PythonServer
 from lightning.app.utilities.network import find_free_network_port
-
-logging.basicConfig(
-    format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
-    datefmt="%Y-%m-%d:%H:%M:%S",
-    level=logging.INFO,
-)
 
 
 class RequestModel(BaseModel):

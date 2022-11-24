@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
@@ -26,6 +27,9 @@ DEVICE_TYPE = os.environ.get("MUSE_GPU_TYPE", "gpu")
 KEEP_ALIVE_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 INFERENCE_REQUEST_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
 OPEN_PROMPTS = None
+
+
+logger = Logger(__name__)
 
 
 def raise_granular_exception(exception: Exception):
@@ -78,20 +82,6 @@ class BatchRequestModel(BaseModel):
 
 class BatchResponse(BaseModel):
     outputs: List[Any]
-
-
-class PrintOnce:
-    printed = False
-
-    def __call__(self, value):
-        if self.printed:
-            return
-        else:
-            print(value)
-            self.printed = True
-
-
-print_once = PrintOnce()
 
 
 def create_fastapi(title: str) -> FastAPI:
@@ -265,7 +255,7 @@ class _LoadBalancer(LightningWork):
         INPUT_SCHEMA = self._input_schema
         OUTPUT_SCHEMA = self._output_schema
 
-        print(self.servers)
+        logger.info(f"servers: {self.servers}")
 
         self._ITER = cycle(self.servers)
         self._last_batch_sent = time.time()
@@ -317,11 +307,11 @@ class _LoadBalancer(LightningWork):
             logging.debug("no new server added")
             return
         if new_servers - old_servers:
-            print("servers added:", new_servers - old_servers)
+            logger.info(f"servers added: {new_servers - old_servers}")
 
         deleted_servers = old_servers - new_servers
         if deleted_servers:
-            print("deleted servers:", deleted_servers)
+            logger.info(f"servers added: {deleted_servers}")
 
         headers = {
             "accept": "application/json",
@@ -396,7 +386,7 @@ class AutoScaler(LightningFlow):
         if os.environ.get("LOAD_TEST", False):
             self.load_test = Locust("scripts/locustfile.py")
 
-        print(
+        logger.info(
             f"LB initialized with min replica={min_replica}, "
             f"max_replica={max_replica}, "
             f"batch timeout={batch_timeout_secs}, "
@@ -443,7 +433,6 @@ class AutoScaler(LightningFlow):
             worker.run()
 
         if self.load_balancer.url:
-            print_once(f"load balancer = {self.load_balancer.url}")
             self.fake_trigger += 1
             self.autoscale()
 
@@ -463,19 +452,19 @@ class AutoScaler(LightningFlow):
         # upscale
         if num_requests > self.upscale_threshold and num_workers < self.max_workers:
             idx = self._worker_count
-            print(f"Upscale to {self._worker_count + 1}")
+            logger.info(f"Upscale to {self._worker_count + 1}")
             work = self.create_worker()
             new_work_id = self.add_work(work)
-            print("new work id:", new_work_id)
+            logger.info("new work id:", new_work_id)
 
         # downscale
         elif num_requests < self.downscale_threshold and num_workers > self._initial_num_workers:
             idx = self._worker_count - 1
-            print(f"Downscale to {idx}")
-            print("prev num servers:", len(self.workers))
+            logger.info(f"Downscale to {idx}")
+            logger.info("prev num servers:", len(self.workers))
             removed_id = self.remove_work(idx)
-            print("removed:", removed_id)
-            print("new num servers:", len(self.workers))
+            logger.info("removed:", removed_id)
+            logger.info("new num servers:", len(self.workers))
 
         self.load_balancer.update_servers(self.workers)
         self._last_autoscale = time.time()
