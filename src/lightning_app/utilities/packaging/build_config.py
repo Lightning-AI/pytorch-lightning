@@ -114,7 +114,7 @@ class BuildConfig:
                 # notify the user of this silent behaviour
                 logger.info(
                     f"A 'requirements.txt' exists with {found_requirements} but {self.requirements} was passed to"
-                    f" the `{type(self).__name__}`. The `requirements.txt` file will be ignored."
+                    f" the `{type(self).__name__}` in {work.name!r}. The `requirements.txt` file will be ignored."
                 )
         else:
             self.requirements = found_requirements
@@ -126,7 +126,7 @@ class BuildConfig:
                 # notify the user of this silent behaviour
                 logger.info(
                     f"A Dockerfile exists at {found_dockerfile!r} but {self.dockerfile!r} was passed to"
-                    f" the `{type(self).__name__}`. {found_dockerfile!r}` will be ignored."
+                    f" the `{type(self).__name__}` in {work.name!r}. {found_dockerfile!r}` will be ignored."
                 )
         else:
             self.dockerfile = found_dockerfile

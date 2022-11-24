@@ -488,7 +488,7 @@ class CloudRuntime(Runtime):
             largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]
             largest_paths_msg = "\n".join(f"{round(s, 5)} MB: {p}" for p, s in largest_paths)
             warning_msg = (
-                f"Your application folder {root.absolute()} is more than {CLOUD_UPLOAD_WARNING} MB. "
+                f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
                 f"The total size is {app_folder_size_in_mb} MB\n"
                 f"Here are the largest files: \n{largest_paths_msg}\n"
                 "Perhaps you should try running the app in an empty directory."
