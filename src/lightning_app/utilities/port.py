@@ -46,7 +46,7 @@ def _find_lit_app_port(default_port: int) -> int:
         raise RuntimeError("No available port was found. Please, contact the Lightning Team.")
 
     # Note: This is required for the framework to know we need to use the CloudMultiProcessRuntime.
-    os.environ["APP_SERVER_HOST"] = f"https:/{found_nc.host}"
+    os.environ["APP_SERVER_HOST"] = f"https://{found_nc.host}"
 
     return found_nc.port
 
