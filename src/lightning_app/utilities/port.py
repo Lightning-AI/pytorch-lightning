@@ -24,7 +24,10 @@ def _find_lit_app_port(default_port: int) -> int:
         if lightningapp.id == app_id:
             lit_app = lightningapp
 
-    assert lit_app
+    if not lit_app:
+        raise RuntimeError(
+            "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
+        )
 
     found_nc = None
 
