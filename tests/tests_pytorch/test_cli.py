@@ -69,12 +69,9 @@ def mock_subclasses(baseclass, *subclasses):
 
 
 @pytest.fixture
-def cleandir(tmp_path):
-    """Run function in a temporary directory."""
-    old_dir = os.getcwd()  # get current working directory (cwd)
-    os.chdir(tmp_path)  # change cwd to the temp-directory
-    yield tmp_path  # yields control to the test to be run
-    os.chdir(old_dir)
+def cleandir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    yield
 
 
 @pytest.fixture(autouse=True)
