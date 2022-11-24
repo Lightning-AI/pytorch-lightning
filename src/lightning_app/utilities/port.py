@@ -72,7 +72,10 @@ def enable_port() -> V1NetworkConfig:
         if lightningapp.id == app_id:
             lit_app = lightningapp
 
-    assert lit_app
+    if not lit_app:
+        raise RuntimeError(
+            "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
+        )
 
     found_nc = None
 
