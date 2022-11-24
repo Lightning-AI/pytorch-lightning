@@ -27,7 +27,7 @@ def test_build_config_requirements_provided():
     assert spec.requirements == [
         "dask",
         "pandas",
-        "pytorch_" + "lightning==1.5.9",  # ugly hack due to replacing `pytorch_lightning string`
+        "lightning.pytorch==1.5.9",
         "git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0",
     ]
     assert spec == BuildConfig.from_dict(spec.to_dict())
@@ -47,8 +47,7 @@ def test_build_config_invalid_requirements():
 def test_build_config_dockerfile_provided():
     spec = BuildConfig(dockerfile="./projects/Dockerfile.cpu")
     assert not spec.requirements
-    # ugly hack due to replacing `pytorch_lightning string
-    assert "pytorchlightning/pytorch_" + "lightning" in spec.dockerfile[0]
+    assert "pytorchlightning/lightning.pytorch" in spec.dockerfile[0]
 
 
 class DockerfileLightningTestApp(LightningTestApp):
