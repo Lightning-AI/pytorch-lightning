@@ -11,6 +11,8 @@ def test_get_extras_install_command():
     extras = "app-cloud" if __package_name__ == "lightning" else "cloud"
     assert "'docker (>=5.0.0)'" in _get_extras_install_command(extras)
 
+    assert _get_extras_install_command("fake-extras") == ""
+
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})
 def test_requires():
