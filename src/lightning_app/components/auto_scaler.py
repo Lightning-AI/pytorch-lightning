@@ -85,9 +85,9 @@ class BatchResponse(BaseModel):
 
 
 def create_fastapi(title: str) -> FastAPI:
-    app = FastAPI(title=title)
+    fastapi_app = FastAPI(title=title)
 
-    app.add_middleware(
+    fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_credentials=True,
@@ -95,32 +95,32 @@ def create_fastapi(title: str) -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.global_request_count = 0
-    app.num_current_requests = 0
-    app.last_process_time = 0
+    fastapi_app.global_request_count = 0
+    fastapi_app.num_current_requests = 0
+    fastapi_app.last_process_time = 0
 
-    @app.middleware("http")
+    @fastapi_app.middleware("http")
     async def current_request_counter(request: Request, call_next):
         if not request.scope["path"] == "/api/predict":
             return await call_next(request)
-        app.global_request_count += 1
-        app.num_current_requests += 1
+        fastapi_app.global_request_count += 1
+        fastapi_app.num_current_requests += 1
         start_time = time.time()
         response = await call_next(request)
         process_time = time.time() - start_time
-        app.last_process_time = process_time
-        app.num_current_requests -= 1
+        fastapi_app.last_process_time = process_time
+        fastapi_app.num_current_requests -= 1
         return response
 
-    @app.get("/", include_in_schema=False)
+    @fastapi_app.get("/", include_in_schema=False)
     async def docs():
         return RedirectResponse("/docs")
 
-    @app.get("/num-requests")
+    @fastapi_app.get("/num-requests")
     async def num_requests() -> int:
-        return app.num_current_requests
+        return fastapi_app.num_current_requests
 
-    return app
+    return fastapi_app
 
 
 # FIXME: for debugging
@@ -260,43 +260,48 @@ class LoadBalancer(LightningWork):
         self._ITER = cycle(self.servers)
         self._last_batch_sent = time.time()
 
-        app = create_fastapi("Load Balancer")
-        app.global_request_count = 0
-        app.num_current_requests = 0
-        app.last_process_time = 0
-        app.SEND_TASK = None
+        fastapi_app = create_fastapi("Load Balancer")
+        fastapi_app.global_request_count = 0
+        fastapi_app.num_current_requests = 0
+        fastapi_app.last_process_time = 0
+        fastapi_app.SEND_TASK = None
 
-        @app.on_event("startup")
+        @fastapi_app.on_event("startup")
         async def startup_event():
-            app.SEND_TASK = asyncio.create_task(self.consumer())
+            fastapi_app.SEND_TASK = asyncio.create_task(self.consumer())
             self._server_ready = True
 
-        @app.on_event("shutdown")
+        @fastapi_app.on_event("shutdown")
         def shutdown_event():
-            app.SEND_TASK.cancel()
+            fastapi_app.SEND_TASK.cancel()
             self._server_ready = False
 
-        @app.get("/system/info", response_model=SysInfo)
+        @fastapi_app.get("/system/info", response_model=SysInfo)
         async def sys_info():
             return SysInfo(
                 num_workers=len(self.servers),
                 servers=self.servers,
-                num_requests=app.num_current_requests,
-                process_time=app.last_process_time,
-                global_request_count=app.global_request_count,
+                num_requests=fastapi_app.num_current_requests,
+                process_time=fastapi_app.last_process_time,
+                global_request_count=fastapi_app.global_request_count,
             )
 
-        @app.put("/system/update-servers")
+        @fastapi_app.put("/system/update-servers")
         async def update_servers(servers: List[str]):
             self.servers = servers
             self._ITER = cycle(self.servers)
 
-        @app.post("/api/predict", response_model=OUTPUT_SCHEMA)
+        @fastapi_app.post("/api/predict", response_model=OUTPUT_SCHEMA)
         async def balance_api(inputs: INPUT_SCHEMA):
             return await self.process_request(inputs)
 
         uvicorn.run(
-            app, host=self.host, port=self.port, loop="uvloop", timeout_keep_alive=KEEP_ALIVE_TIMEOUT, access_log=False
+            fastapi_app,
+            host=self.host,
+            port=self.port,
+            loop="uvloop",
+            timeout_keep_alive=KEEP_ALIVE_TIMEOUT,
+            access_log=False,
         )
 
     def update_servers(self, server_works: List[LightningWork]):
