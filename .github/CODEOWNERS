@@ -45,7 +45,7 @@
 # Lightning App
 /src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
 /tests/tests_app                            @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
-/tests/tests_app_examples                   @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
+/tests/tests_examples_app                   @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
 /examples/app_*                             @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
 
 /.github/CODEOWNERS                  @williamfalcon
