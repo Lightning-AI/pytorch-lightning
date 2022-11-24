@@ -4,12 +4,12 @@ from unittest import mock
 import pytest
 
 from lightning_app import __package_name__
-from lightning_app.utilities.imports import _get_extras, requires
+from lightning_app.utilities.imports import _get_extras_install_command, requires
 
 
-def test_get_extras():
+def test_get_extras_install_command():
     extras = "app-cloud" if __package_name__ == "lightning" else "cloud"
-    assert "docker (>=5.0.0)" in _get_extras(extras)
+    assert "'docker (>=5.0.0)'" in _get_extras_install_command(extras)
 
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})

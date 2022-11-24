@@ -26,8 +26,8 @@ except ImportError:
     import importlib_metadata as metadata  # type: ignore
 
 
-def _get_extras(extras: str) -> List[str]:
-    """Get the list of installable packages in the given extras.
+def _get_extras_install_command(extras: str) -> List[str]:
+    """Get the pip install command for the given extras.
 
     Used by the platform to install cloud extras in the cloud.
     """
@@ -35,7 +35,9 @@ def _get_extras(extras: str) -> List[str]:
 
     requirements = {r: Requirement(r) for r in metadata.requires(__package_name__)}
     marker = Marker(f'extra == "{extras}"')
-    return [r.split(";")[0].strip() for r, req in requirements.items() if str(req.marker) == str(marker)]
+    requirements = [r for r, req in requirements.items() if str(req.marker) == str(marker)]
+    requirements = [f"'{r.split(';')[0].strip()}'" for r in requirements]
+    return f"pip install {' '.join(requirements)}"
 
 
 def requires(module_paths: Union[str, List]):
