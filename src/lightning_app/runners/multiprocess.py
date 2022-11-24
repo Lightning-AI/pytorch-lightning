@@ -118,7 +118,7 @@ class MultiProcessRuntime(Runtime):
     def terminate(self):
         if APP_SERVER_IN_CLOUD:
             # Close all the ports open for the App within the App.
-            ports = [self.port] + self.backend.ports
+            ports = [self.port] + getattr(self.backend, "ports", [])
             for port in ports:
                 disable_port(port)
         super().terminate()
