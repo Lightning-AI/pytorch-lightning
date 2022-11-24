@@ -26,6 +26,14 @@ class BatchResponse(BaseModel):
 
 
 class PyTorchServer(PythonServer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            port=find_free_network_port(),
+            input_type=BatchRequestModel,
+            output_type=BatchResponse,
+            cloud_compute=L.CloudCompute("gpu"),
+        )
+
     def setup(self):
         self._model = torchvision.models.resnet18(pretrained=True)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -52,18 +60,9 @@ class PyTorchServer(PythonServer):
         return BatchResponse(outputs=[{"prediction": e} for e in results])
 
 
-class RootFlow(AutoScaler):
-    def create_worker(self, *args, **kwargs) -> L.LightningWork:
-        return PyTorchServer(
-            port=find_free_network_port(),
-            input_type=BatchRequestModel,
-            output_type=BatchResponse,
-            cloud_compute=L.CloudCompute("gpu"),
-        )
-
-
 app = L.LightningApp(
-    RootFlow(
+    AutoScaler(
+        PyTorchServer,
         input_schema=RequestModel,
         output_schema=Any,
         batch_timeout_secs=0.1,

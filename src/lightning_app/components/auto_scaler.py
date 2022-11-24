@@ -341,6 +341,7 @@ class AutoScaler(LightningFlow):
 
     def __init__(
         self,
+        work_cls: type,
         min_replica: int = MIN_REPLICA,
         max_replica: int = 4,
         autoscale_interval: int = 1 * 10,
@@ -357,6 +358,7 @@ class AutoScaler(LightningFlow):
         self._worker_count = 0
         self._work_registry = {}
 
+        self._work_cls = work_cls
         self._input_schema = input_schema
         self._output_schema = output_schema
         self._initial_num_workers = min_replica
@@ -378,7 +380,7 @@ class AutoScaler(LightningFlow):
             cache_calls=True,
             parallel=True,
         )
-        for i in range(min_replica):
+        for _ in range(min_replica):
             work = self.create_worker()
             self.add_work(work)
 
@@ -403,6 +405,7 @@ class AutoScaler(LightningFlow):
 
     def create_worker(self, *args, **kwargs) -> LightningWork:
         """implement."""
+        return self._work_cls()
 
     def add_work(self, work) -> str:
         work_attribute = uuid.uuid4().hex
