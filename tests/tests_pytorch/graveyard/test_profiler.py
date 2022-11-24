@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.profilers.advanced import AdvancedProfiler
-from pytorch_lightning.profilers.base import PassThroughProfiler
-from pytorch_lightning.profilers.profiler import Profiler
-from pytorch_lightning.profilers.pytorch import PyTorchProfiler
-from pytorch_lightning.profilers.simple import SimpleProfiler
-from pytorch_lightning.profilers.xla import XLAProfiler
+import pytest
 
-__all__ = [
-    "Profiler",
-    "AdvancedProfiler",
-    "PassThroughProfiler",
-    "PyTorchProfiler",
-    "SimpleProfiler",
-    "XLAProfiler",
-]
+
+def test_v2_0_0_base_profilers():
+    from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler
+
+    with pytest.raises(
+        RuntimeError, match="AbstractProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
+    ):
+        AbstractProfiler()
+
+    with pytest.raises(
+        RuntimeError, match="AbstractProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
+    ):
+        BaseProfiler()
