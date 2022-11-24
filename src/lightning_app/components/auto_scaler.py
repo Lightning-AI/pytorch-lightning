@@ -152,7 +152,7 @@ class Locust(LightningWork):
         subprocess.Popen(cmd, shell=True).wait()
 
 
-class _LoadBalancer(LightningWork):
+class LoadBalancer(LightningWork):
     r"""The LoadBalancer is a LightningWork component that collects the requests and sends it to the prediciton API
     asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
@@ -184,7 +184,7 @@ class _LoadBalancer(LightningWork):
     async def send_batch(self, batch: List[Tuple[str, BatchRequestModel]]):
         # unit method
         server = next(self._ITER)
-        request_data: List[_LoadBalancer._input_schema] = [b[1] for b in batch]
+        request_data: List[LoadBalancer._input_schema] = [b[1] for b in batch]
         batch_request_data = BatchRequestModel(inputs=request_data)
 
         try:
@@ -369,7 +369,7 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
 
         worker_url = worker_url or "api/predict"
-        self.load_balancer = _LoadBalancer(
+        self.load_balancer = LoadBalancer(
             input_schema=self._input_schema,
             output_schema=self._output_schema,
             worker_url=worker_url,
