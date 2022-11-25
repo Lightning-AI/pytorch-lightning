@@ -109,6 +109,10 @@ jobs:
       - name: Switch coverage scope
         run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_app'))" >> $GITHUB_ENV
 
+      - name: Setup tmate session
+        if: ${{ matrix.pkg-name == 'lightning' && matrix.os == 'ubuntu-20.04' }}
+        uses: mxschmitt/action-tmate@v3
+
       - name: Tests
         working-directory: ./tests
         env:

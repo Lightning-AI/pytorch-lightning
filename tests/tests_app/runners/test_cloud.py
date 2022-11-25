@@ -1413,8 +1413,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
             self.lightningignore.append("baz")
             self.w.run()
 
-    root = MyFlow()
-    app = LightningApp(root)
+    app = LightningApp(MyFlow())
     monkeypatch.setattr(app, "_update_index_file", mock.MagicMock())
 
     path = Path(tmpdir)
