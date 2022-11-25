@@ -25,11 +25,9 @@ from lightning_app.cli.commands.connection import (
     disconnect,
 )
 from lightning_app.cli.commands.logs import logs
-from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.cli.lightning_cli_remove import cli_remove
 from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -56,7 +54,7 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
         action = "?action=add_credits" if need_credits else ""
         return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
-        return "http://127.0.0.1:7501/view"
+        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")
 
 
 def main() -> None:
@@ -376,8 +374,6 @@ if RequirementCache("lightning-lite"):
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
-_main.add_command(cli_add)
-_main.add_command(cli_remove)
 
 
 @_main.command("ssh")
