@@ -74,11 +74,13 @@ def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expe
     ],
 )
 @pytest.mark.skipif(not module_available("pytorch_lightning"), reason="Pytorch Lightning is not available")
-def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
+def test_trainer_run_executor_arguments_choices(
+    args_given: dict,
+    args_expected: dict,
+):
 
-    # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
     if pl.accelerators.MPSAccelerator.is_available():
-        args_expected.pop("accelerator")
+        args_expected.pop("accelerator", None)  # Cross platform tests -> MPS is tested separately
 
     ret_val, env_vars = _get_args_after_tracer_injection(**args_given)
 
