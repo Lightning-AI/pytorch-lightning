@@ -299,12 +299,11 @@ class AutoScaler(LightningFlow):
     on current requests in the queue.
 
     Args:
-        min_replica: Number of works to start when app initializes.
-        max_replica: Max numbers of works to spawn to handle the incoming requests.
+        min_replicas: Number of works to start when app initializes.
+        max_replicas: Max numbers of works to spawn to handle the incoming requests.
         autoscale_interval: Number of seconds to wait before checking whether to upscale or downscale the works.
         max_batch_size: Number of requests to process at once.
         batch_timeout_secs: Number of seconds to wait before sending the requests to process.
-        device_type: GPU type to use for the works.
         downscale_threshold: Lower limit to determine when to stop works.
         upscale_threshold: Upper limit to determine when to spawn up a new work.
         worker_url: Default=api/predict. Provide the REST API path
@@ -315,8 +314,8 @@ class AutoScaler(LightningFlow):
     def __init__(
         self,
         work_cls: type,
-        min_replica: int = 1,
-        max_replica: int = 4,
+        min_replicas: int = 1,
+        max_replicas: int = 4,
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
         batch_timeout_secs: float = 2,
@@ -327,17 +326,17 @@ class AutoScaler(LightningFlow):
         output_schema: Any = Dict,
     ) -> None:
         super().__init__()
-        self._worker_count = 0
+        self._num_replicas = 0
         self._work_registry = {}
 
         self._work_cls = work_cls
         self._input_schema = input_schema
         self._output_schema = output_schema
-        self._initial_num_workers = min_replica
         self.autoscale_interval = autoscale_interval
-        self.max_workers = max_replica
-        self.downscale_threshold = downscale_threshold or min_replica
-        self.upscale_threshold = upscale_threshold or min_replica * max_batch_size
+        self.max_replicas = max_replicas
+        self.min_replicas = min_replicas
+        self.downscale_threshold = downscale_threshold or min_replicas
+        self.upscale_threshold = upscale_threshold or min_replicas * max_batch_size
         self.fake_trigger = 0
         self._last_autoscale = time.time()
 
@@ -351,21 +350,21 @@ class AutoScaler(LightningFlow):
             cache_calls=True,
             parallel=True,
         )
-        for _ in range(min_replica):
+        for _ in range(min_replicas):
             work = self.create_worker()
             self.add_work(work)
 
         logger.info(
-            f"LB initialized with min replica={min_replica}, "
-            f"max_replica={max_replica}, "
+            f"Initialized AutoScaler(replicas={min_replicas}, "
+            f"max_replicas={max_replicas}, "
             f"batch timeout={batch_timeout_secs}, "
-            f"batch size={max_batch_size}"
+            f"batch size={max_batch_size})"
         )
 
     @property
     def workers(self) -> List[LightningWork]:
         works = []
-        for i in range(self._worker_count):
+        for i in range(self._num_replicas):
             work = self.get_work(i)
             works.append(work)
         return works
@@ -376,10 +375,10 @@ class AutoScaler(LightningFlow):
 
     def add_work(self, work) -> str:
         work_attribute = uuid.uuid4().hex
-        work_attribute = f"worker_{self._worker_count}_{str(work_attribute)}"
+        work_attribute = f"worker_{self._num_replicas}_{str(work_attribute)}"
         setattr(self, work_attribute, work)
-        self._work_registry[self._worker_count] = work_attribute
-        self._worker_count += 1
+        self._work_registry[self._num_replicas] = work_attribute
+        self._num_replicas += 1
         return work_attribute
 
     def remove_work(self, index: int) -> str:
@@ -387,7 +386,7 @@ class AutoScaler(LightningFlow):
         del self._work_registry[index]
         work = getattr(self, work_attribute)
         work.stop()
-        self._worker_count -= 1
+        self._num_replicas -= 1
         return work_attribute
 
     def get_work(self, index: int) -> LightningWork:
@@ -406,32 +405,51 @@ class AutoScaler(LightningFlow):
             self.fake_trigger += 1
             self.autoscale()
 
+    def scale(self, replicas: int, metrics) -> int:
+        """The default replication logic that users can override."""
+        # FIXME: Don't hard code number
+        # if metrics["num_requests"] > 20:
+        #     return replicas + 1
+
+        # if metrics["num_requests"] < 10:
+        #     return replicas - 1
+
+        return replicas + 1  # FIXME
+
     def autoscale(self):
         """Upscale and down scale model inference works based on the number of requests."""
         if time.time() - self._last_autoscale < self.autoscale_interval:
             return
 
+        # ??? for what?
         self.load_balancer.update_servers(self.workers)
 
+        # ??? what's this?
         num_requests = int(requests.get(f"{self.load_balancer.url}/num-requests").json())
-        num_workers = len(self.workers)
+        metrics = {
+            "num_requests": num_requests,
+        }
+        num_target_workers = max(
+            self.min_replicas,
+            min(self.max_replicas, self.scale(self._num_replicas, metrics)),
+        )
+
+        logger.info(f"Scaling from {self._num_replicas} to {num_target_workers}")
 
         # upscale
-        if num_requests > self.upscale_threshold and num_workers < self.max_workers:
-            idx = self._worker_count
-            logger.info(f"Upscale to {self._worker_count + 1}")
+        num_workers_to_add = num_target_workers - self._num_replicas
+        for _ in range(num_workers_to_add):
+            logger.info(f"Upscaling from {self._num_replicas} to {self._num_replicas + 1}")
             work = self.create_worker()
             new_work_id = self.add_work(work)
-            logger.info("new work id:", new_work_id)
+            logger.info(f"Work created: '{new_work_id}'")
 
         # downscale
-        elif num_requests < self.downscale_threshold and num_workers > self._initial_num_workers:
-            idx = self._worker_count - 1
-            logger.info(f"Downscale to {idx}")
-            logger.info("prev num servers:", len(self.workers))
-            removed_id = self.remove_work(idx)
-            logger.info("removed:", removed_id)
-            logger.info("new num servers:", len(self.workers))
+        num_workers_to_remove = self._num_replicas - num_target_workers
+        for _ in range(num_workers_to_remove):
+            logger.info(f"Downscaling from {self._num_replicas} to {self._num_replicas - 1}")
+            removed_work_id = self.remove_work(self._num_replicas - 1)
+            logger.info(f"Work removed: '{removed_work_id}'")
 
         self.load_balancer.update_servers(self.workers)
         self._last_autoscale = time.time()
