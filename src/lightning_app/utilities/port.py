@@ -1,10 +1,18 @@
-import os
+import os, socket
 from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
 from lightning_app.utilities.network import LightningClient
 
+def is_port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def get_available_port() -> int:
+    sock = socket.socket()
+    sock.bind(('', 0))
+    return sock.getsockname()[1]
 
 def _find_lit_app_port(default_port: int) -> int:
     """Make a request to the cloud controlplane to find a disabled port of the flow, enable it and return it."""
@@ -14,7 +22,11 @@ def _find_lit_app_port(default_port: int) -> int:
     enable_multiple_works_in_default_container = bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
     if not app_id or not project_id or not enable_multiple_works_in_default_container:
-        return default_port
+        # If the default port is not available, picks any other available one
+        if not is_port_in_use(default_port):
+            return default_port
+        else:
+            return get_available_port()
 
     client = LightningClient()
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
