@@ -38,12 +38,13 @@ def _extract_commands_from_file(file_name: str) -> CommandLines:
         file_lines = f.readlines()
 
     for line_number, line in enumerate(file_lines):
-        if line.strip() in APP_COMMAND_LINES_TO_IGNORE:
+        line = line.strip()
+        if line in APP_COMMAND_LINES_TO_IGNORE:
             continue
 
         # stop parsing at first non-comment line at top of file
         if not line.startswith("#"):
-            break
+            continue
 
         # remove comment marker and any leading / trailing whitespaces
         line = line.lstrip("#").strip()

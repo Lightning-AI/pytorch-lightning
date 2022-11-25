@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import sys
 from copy import copy
 from pathlib import Path
 from unittest import mock
@@ -39,11 +41,15 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import _PROJECT_ROOT, BuildConfig, LightningApp, LightningWork
+from lightning_app import BuildConfig, LightningApp, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
-from lightning_app.runners.cloud import _validate_build_spec_and_compute
+from lightning_app.runners.cloud import (
+    _generate_works_json_gallery,
+    _generate_works_json_web,
+    _validate_build_spec_and_compute,
+)
 from lightning_app.storage import Drive, Mount
-from lightning_app.testing.helpers import EmptyFlow
+from lightning_app.testing.helpers import EmptyWork
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
@@ -643,7 +649,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
@@ -868,7 +873,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
             lit_drive_2_spec = V1LightningworkDrives(
                 drive=V1Drive(
@@ -882,7 +886,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
 
             # order of drives in the spec is non-deterministic, so there are two options
@@ -1102,7 +1105,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                                 V1LightningworkDrives(
                                     drive=V1Drive(
@@ -1196,13 +1198,17 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     assert caplog.messages == []
 
     mock = MagicMock()
+    mock.st_mode = 33188
     mock.st_size = 5 * 1000 * 1000
     repo.files = [str(Path("./a.png"))]
     monkeypatch.setattr(Path, "stat", MagicMock(return_value=mock))
 
+    path = Path(".")
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(Path("."), repo)
-    assert caplog.messages[0].startswith("Your application folder . is more than 2 MB. Found 5.0 MB")
+        backend._check_uploaded_folder(path, repo)
+    assert caplog.messages[0].startswith(
+        f"Your application folder '{path.absolute()}' is more than 2 MB. The total size is 5.0 MB"
+    )
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
@@ -1220,14 +1226,128 @@ def test_project_has_sufficient_credits():
         assert cloud_runtime._project_has_sufficient_credits(project) is result
 
 
-@mock.patch(
-    "lightning_app.runners.cloud.load_app_from_file",
-    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+@pytest.mark.parametrize(
+    "lines",
+    [
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.core.flow import _RootFlow",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "class MyFlow(_RootFlow):",
+            "    def configure_layout(self):",
+            "        return [{'name': 'test', 'content': this_package_is_not_real()}]",
+            "app = LightningApp(MyFlow(EmptyWork()))",
+        ],
+    ],
 )
-def test_load_app_from_file_module_error():
-    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-    assert isinstance(empty_app, LightningApp)
-    assert isinstance(empty_app.root, EmptyFlow)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_load_app_from_file_mock_imports(tmpdir, lines):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        f.write("\n".join(lines))
+
+    app = CloudRuntime.load_app_from_file(app_file)
+    assert isinstance(app, LightningApp)
+    assert isinstance(app.root.work, EmptyWork)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
+
+
+@pytest.mark.parametrize(
+    "generator,expected",
+    [
+        (
+            _generate_works_json_web,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "buildSpec": {
+                            "commands": [],
+                            "pythonDependencies": {"packageManager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "networkConfig": [{"name": "*", "port": "*"}],
+                        "userRequestedComputeConfig": {
+                            "count": 1,
+                            "diskSize": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shmSize": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+        (
+            _generate_works_json_gallery,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "build_spec": {
+                            "commands": [],
+                            "python_dependencies": {"package_manager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "network_config": [{"name": "*", "port": "*"}],
+                        "user_requested_compute_config": {
+                            "count": 1,
+                            "disk_size": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shm_size": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+    ],
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_generate_works_json(tmpdir, generator, expected):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        lines = [
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ]
+        f.write("\n".join(lines))
+
+    works_string = generator(app_file)
+    expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
+    assert re.fullmatch(expected, works_string)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
 
 
 def test_incompatible_cloud_compute_and_build_config():
