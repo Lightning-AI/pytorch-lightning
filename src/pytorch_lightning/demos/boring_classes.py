@@ -156,11 +156,8 @@ class BoringModel(LightningModule):
 
 
 class BoringDataModule(LightningDataModule):
-    def __init__(self, data_dir: str = "./"):
+    def __init__(self) -> None:
         super().__init__()
-        self.data_dir = data_dir
-        self.non_picklable = None
-        self.checkpoint_state: Optional[str] = None
         self.random_full = RandomDataset(32, 64 * 4)
 
     def setup(self, stage: str) -> None:
