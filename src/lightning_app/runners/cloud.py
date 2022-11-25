@@ -224,11 +224,11 @@ class CloudRuntime(Runtime):
             merged = sum(lightningignores, [])
             logger.debug(f"Found the following lightningignores: {merged}")
             patterns = _parse_lightningignore(merged)
-            ignore_function = partial(_filter_ignored, root, patterns)
+            ignore_functions = [partial(_filter_ignored, root, patterns)]
         else:
-            ignore_function = None
+            ignore_functions = None
 
-        repo = LocalSourceCodeDir(path=root, ignore_functions=[ignore_function])
+        repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
         # The entry point file needs to be relative to the root of the uploaded source file directory,
