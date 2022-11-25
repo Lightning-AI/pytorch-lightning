@@ -306,3 +306,9 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
             )
         with module.no_sync():
             yield
+
+
+def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    from torch.distributed.fsdp import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
