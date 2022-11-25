@@ -383,12 +383,12 @@ def run_app_in_cloud(
             ).lightningapps
             if app.name == name
         ]
-
         if not lit_apps:
             return True
-
         assert len(lit_apps) == 1
-        app_id = lit_apps[0].id
+        app = lit_apps[0]
+        app_id = app.id
+        print(f"The Lightning App ID is: {app.id}")  # useful for Grafana
 
         if debug:
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
@@ -404,23 +404,12 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
-        lit_apps = [
-            app
-            for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id
-            ).lightningapps
-            if app.name == name
-        ]
-
-        app_url = lit_apps[0].status.url
-
+        app_url = app.status.url
         while True:
             sleep(1)
             resp = requests.get(app_url + "/openapi.json")
             if resp.status_code == 200:
                 break
-
-        print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
         logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
