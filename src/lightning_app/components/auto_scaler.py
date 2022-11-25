@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import time
 import uuid
 from itertools import cycle
@@ -19,11 +18,6 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-
-MIN_REPLICA = int(os.environ.get("MUSE_MIN_WORKERS", 1))
-KEEP_ALIVE_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
-INFERENCE_REQUEST_TIMEOUT = float(os.environ.get("KEEP_ALIVE_TIMEOUT", 60))
-OPEN_PROMPTS = None
 
 logger = Logger(__name__)
 
@@ -126,12 +120,22 @@ class LoadBalancer(LightningWork):
     """
 
     def __init__(
-        self, input_schema, output_schema, worker_url: str, max_batch_size=8, batch_timeout_secs=10, **kwargs
+        self,
+        input_schema,
+        output_schema,
+        worker_url: str,
+        max_batch_size=8,
+        batch_timeout_secs=10,
+        timeout_keep_alive=60,
+        timeout_inference_request=60,
+        **kwargs,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
         self._input_schema = input_schema
         self._output_schema = output_schema
         self._server_ready = False
+        self._timeout_keep_alive = timeout_keep_alive
+        self._timeout_inference_request = timeout_inference_request
         self.servers = []
         self.max_batch_size = max_batch_size
         self.batch_timeout_secs = batch_timeout_secs
@@ -156,7 +160,7 @@ class LoadBalancer(LightningWork):
                 async with session.post(
                     f"{server}/{self.worker_url}",
                     json=batch_request_data.dict(),
-                    timeout=INFERENCE_REQUEST_TIMEOUT,
+                    timeout=self._timeout_inference_request,
                     headers=headers,
                 ) as response:
                     if response.status == 408:
@@ -260,7 +264,7 @@ class LoadBalancer(LightningWork):
             host=self.host,
             port=self.port,
             loop="uvloop",
-            timeout_keep_alive=KEEP_ALIVE_TIMEOUT,
+            timeout_keep_alive=self._timeout_keep_alive,
             access_log=False,
         )
 
@@ -311,7 +315,7 @@ class AutoScaler(LightningFlow):
     def __init__(
         self,
         work_cls: type,
-        min_replica: int = MIN_REPLICA,
+        min_replica: int = 1,
         max_replica: int = 4,
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
