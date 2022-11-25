@@ -494,14 +494,15 @@ class CloudRuntime(Runtime):
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
         """This method is used to inform the users if their folder files are large and how to filter them."""
-        lightning_tar = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
-        files = [Path(f) for f in repo.files]
+        excludes = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
+        excludes.update(fnmatch.filter(repo.files, ".lightningignore"))
+        files = [Path(f) for f in repo.files if f not in excludes]
         file_sizes = {f: f.stat().st_size for f in files}
         mb = 1000 * 1000
-        app_folder_size_in_mb = sum(v for k, v in file_sizes.items() if k not in lightning_tar) / mb
+        app_folder_size_in_mb = sum(file_sizes.values()) / mb
         if app_folder_size_in_mb > CLOUD_UPLOAD_WARNING:
-            # filter out files under 0.01mb or special files
-            relevant_files = {f: s for f, s in file_sizes.items() if f.name != ".lightningignore" and s > 0.01 * mb}
+            # filter out files under 0.01mb
+            relevant_files = {f: s for f, s in file_sizes.items() if s > 0.01 * mb}
             if relevant_files:
                 by_largest = dict(sorted(relevant_files.items(), key=lambda x: x[1], reverse=True))
                 by_largest = dict(list(by_largest.items())[:25])  # trim
