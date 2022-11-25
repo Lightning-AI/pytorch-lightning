@@ -148,6 +148,7 @@ class LightningWork:
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
+        self._lightningignore: List[str] = []
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -246,6 +247,15 @@ class LightningWork:
             compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
             compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
+
+    @property
+    def lightningignore(self) -> List[str]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: List[str]) -> None:
+        self._lightningignore = lightningignore
 
     @property
     def status(self) -> WorkStatus:

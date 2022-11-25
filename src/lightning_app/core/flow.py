@@ -104,6 +104,7 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        self._lightningignore: List[str] = []
 
     @property
     def name(self):
@@ -285,6 +286,15 @@ class LightningFlow:
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows
+
+    @property
+    def lightningignore(self) -> List[str]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: List[str]) -> None:
+        self._lightningignore = lightningignore
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
