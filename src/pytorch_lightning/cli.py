@@ -45,6 +45,11 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 
     register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
+
+    # TODO: remove this override in v2.0.0
+    from jsonargparse.typing import register_type
+
+    register_type(_NoneSentinel, serializer=lambda v: None)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
@@ -552,13 +557,6 @@ class LightningCLI:
                 config[key] += value if isinstance(value, list) else [value]
             if self.save_config_callback and not config.get("fast_dev_run", False):
                 to_save = self.config.get(str(self.subcommand), self.config)
-                # TODO: remove this override in v2.0.0
-                if (
-                    "trainer" in to_save
-                    and "logger" in to_save.trainer
-                    and isinstance(to_save.trainer.logger, _NoneSentinel)
-                ):
-                    to_save.trainer.logger = None
                 config_callback = self.save_config_callback(
                     self._parser(self.subcommand),
                     to_save,
