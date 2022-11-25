@@ -1186,7 +1186,7 @@ def test_get_project(monkeypatch):
         assert ret.project_id == "test-project-id1"
 
 
-def tmp_file_of_size(path, size):
+def write_file_of_size(path, size):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         f.seek(size)
@@ -1204,15 +1204,18 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
         backend._check_uploaded_folder(root, repo)
     assert caplog.messages == []
 
-    tmp_file_of_size(root / "a.png", 4 * 1000 * 1000)
-    tmp_file_of_size(root / "b.txt", 5 * 1000 * 1000)
-    tmp_file_of_size(root / "c.jpg", 6 * 1000 * 1000)
+    # write some files to assert the message below.
+    write_file_of_size(root / "a.png", 4 * 1000 * 1000)
+    write_file_of_size(root / "b.txt", 5 * 1000 * 1000)
+    write_file_of_size(root / "c.jpg", 6 * 1000 * 1000)
 
     repo._non_ignored_files = None  # force reset
     with caplog.at_level(logging.WARN):
         backend._check_uploaded_folder(root, repo)
-    assert (f"Your application folder '{root.absolute()}' is more than 2 MB. The total size is 15.0 MB") in caplog.text
-    assert "6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png" in caplog.text
+    assert f"Your application folder '{root.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 15.0 MB" in caplog.text
+    assert "3 files were uploaded" in caplog.text
+    assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
     assert "create a `.lightningignore` file" in caplog.text
     assert "lightningingore` attribute in a Flow or Work" in caplog.text
 
@@ -1418,9 +1421,12 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=path / "entrypoint.py")
     monkeypatch.setattr(LocalSourceCodeDir, "upload", mock.MagicMock())
 
-    tmp_file_of_size(path / "a.txt", 5 * 1000 * 1000)
-    tmp_file_of_size(path / "foo.png", 4 * 1000 * 1000)
-    tmp_file_of_size(path / "lightning_logs" / "foo.ckpt", 6 * 1000 * 1000)
+    # write some files
+    write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
+    write_file_of_size(path / "foo.png", 4 * 1000 * 1000)
+    write_file_of_size(path / "lightning_logs" / "foo.ckpt", 6 * 1000 * 1000)
+    # also an actual .lightningignore file
+    (path / ".lightningignore").write_text("foo.png")
 
     with mock.patch(
         "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
@@ -1434,5 +1440,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     parse_mock.assert_called_once_with(["foo", "foo", "lightning_logs"])
     assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
 
-    assert (f"Your application folder '{path.absolute()}' is more than 2 MB. The total size is 9.0 MB") in caplog.text
-    assert "files:\n5.0 MB: a.txt\n4.0 MB: foo.png\nPerhaps" in caplog.text  # only these 2 files show
+    assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 5.0 MB" in caplog.text
+    assert "2 files were uploaded"  # a.txt and .lightningignore
+    assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears

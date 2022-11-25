@@ -499,16 +499,22 @@ class CloudRuntime(Runtime):
         mb = 1000 * 1000
         app_folder_size_in_mb = sum(v for k, v in file_sizes.items() if k not in lightning_tar) / mb
         if app_folder_size_in_mb > CLOUD_UPLOAD_WARNING:
-            by_largest = dict(sorted(file_sizes.items(), key=lambda x: x[1], reverse=True))
-            by_largest = dict(list(by_largest.items())[:25])  # trim
-            largest_paths_msg = "\n".join(
-                f"{round(s / mb, 5)} MB: {p.relative_to(root)}" for p, s in by_largest.items()
-            )
+            # filter out files under 0.01mb or special files
+            relevant_files = {f: s for f, s in file_sizes.items() if f.name != ".lightningignore" and s > 0.01 * mb}
+            if relevant_files:
+                by_largest = dict(sorted(relevant_files.items(), key=lambda x: x[1], reverse=True))
+                by_largest = dict(list(by_largest.items())[:25])  # trim
+                largest_paths_msg = "\n".join(
+                    f"{round(s / mb, 5)} MB: {p.relative_to(root)}" for p, s in by_largest.items()
+                )
+                largest_paths_msg = f"Here are the largest files:\n{largest_paths_msg}\n"
+            else:
+                largest_paths_msg = ""
             warning_msg = (
                 f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
-                f"The total size is {round(app_folder_size_in_mb, 5)} MB\n"
-                f"Here are the largest files:\n{largest_paths_msg}\n"
-                "Perhaps you should try running the app in an empty directory."
+                f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
+                + largest_paths_msg
+                + "Perhaps you should try running the app in an empty directory."
             )
             if not (root / DOT_IGNORE_FILENAME).is_file():
                 warning_msg += (
