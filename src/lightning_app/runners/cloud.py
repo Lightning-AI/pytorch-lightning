@@ -222,6 +222,7 @@ class CloudRuntime(Runtime):
         lightningignores = [c.lightningignore for c in children]
         if lightningignores:
             merged = sum(lightningignores, [])
+            logger.debug(f"Found the following lightningignores: {merged}")
             patterns = _parse_lightningignore(merged)
             ignore_function = partial(_filter_ignored, root, patterns)
         else:
