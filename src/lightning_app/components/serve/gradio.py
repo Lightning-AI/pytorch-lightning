@@ -1,8 +1,10 @@
 import abc
+import os
 from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
 
+from lightning_app.components.serve.python_server import _PyTorchSpawnRunExecutor, WorkRunExecutor
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.imports import _is_gradio_available, requires
 
@@ -39,6 +41,10 @@ class ServeGradio(LightningWork, abc.ABC):
         assert self.inputs
         assert self.outputs
         self._model = None
+        # Note: Enable to run inference on GPUs.
+        self._run_executor_cls = (
+            WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
+        )
 
     @property
     def model(self):
