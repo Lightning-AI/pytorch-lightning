@@ -1,18 +1,18 @@
 import abc
 import base64
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
-import os
+
 import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
-from typing import Any, Callable, Type
-from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
@@ -21,9 +21,9 @@ logger = Logger(__name__)
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
     """This Executor enables to move PyTorch tensors on GPU.
-    
+
     Without this executor, it woud raise the following expection:
-    RuntimeError: Cannot re-initialize CUDA in forked subprocess. 
+    RuntimeError: Cannot re-initialize CUDA in forked subprocess.
     To use CUDA with multiprocessing, you must use the 'spawn' start method
     """
 
@@ -86,7 +86,6 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
-
     def __init__(  # type: ignore
         self,
         host: str = "127.0.0.1",
@@ -149,9 +148,11 @@ class PythonServer(LightningWork, abc.ABC):
             raise TypeError("output_type must be a pydantic BaseModel class")
         self._input_type = input_type
         self._output_type = output_type
-        
-        # Note: Enable to run inference on GPUs. 
-        self._run_executor_cls = WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
+
+        # Note: Enable to run inference on GPUs.
+        self._run_executor_cls = (
+            WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
+        )
 
     def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
