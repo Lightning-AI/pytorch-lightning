@@ -50,7 +50,7 @@ def test_build_config_dockerfile_provided():
     spec = BuildConfig(dockerfile="./projects/Dockerfile.cpu")
     assert not spec.requirements
     # ugly hack due to replacing `pytorch_lightning string
-    assert "pytorchlightning/pytorch_" + "lightning" in spec.dockerfile.data[0]
+    assert "pytorchlightning/pytorch_lightning" in spec.dockerfile.data[0]
 
 
 class DockerfileLightningTestApp(LightningTestApp):
