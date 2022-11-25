@@ -20,8 +20,8 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
 from tests_lite.helpers.runif import RunIf
-from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 

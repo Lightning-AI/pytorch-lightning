@@ -18,6 +18,7 @@ from unittest import mock
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
@@ -70,7 +71,6 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_deprecated_amp_level():

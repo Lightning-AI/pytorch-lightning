@@ -16,6 +16,7 @@ import pickle
 from unittest import mock
 
 import pytest
+from lightning_utilities.test.warning import no_warning_call
 
 import pytorch_lightning
 from pytorch_lightning import Trainer
@@ -23,7 +24,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)

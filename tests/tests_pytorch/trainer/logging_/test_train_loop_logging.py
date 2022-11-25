@@ -22,6 +22,7 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
@@ -32,7 +33,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test__training_step__log(tmpdir):

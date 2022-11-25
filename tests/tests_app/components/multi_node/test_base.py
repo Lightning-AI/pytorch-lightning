@@ -1,7 +1,7 @@
 from re import escape
 
 import pytest
-from tests_app.helpers.utils import no_warning_call
+from lightning_utilities.test.warning import no_warning_call
 
 from lightning_app import CloudCompute, LightningWork
 from lightning_app.components import MultiNode

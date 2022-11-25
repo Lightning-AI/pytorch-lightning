@@ -25,6 +25,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -36,7 +37,6 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
