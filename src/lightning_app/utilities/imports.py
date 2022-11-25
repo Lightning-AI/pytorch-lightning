@@ -17,6 +17,30 @@ import os
 from typing import List, Union
 
 from lightning_utilities.core.imports import module_available
+from packaging.requirements import Marker, Requirement
+
+try:
+    from importlib import metadata
+except ImportError:
+    # Python < 3.8
+    import importlib_metadata as metadata  # type: ignore
+
+
+def _get_extras(extras: str) -> str:
+    """Get the given extras as a space delimited string.
+
+    Used by the platform to install cloud extras in the cloud.
+    """
+    from lightning_app import __package_name__
+
+    requirements = {r: Requirement(r) for r in metadata.requires(__package_name__)}
+    marker = Marker(f'extra == "{extras}"')
+    requirements = [r for r, req in requirements.items() if str(req.marker) == str(marker)]
+
+    if requirements:
+        requirements = [f"'{r.split(';')[0].strip()}'" for r in requirements]
+        return " ".join(requirements)
+    return ""
 
 
 def requires(module_paths: Union[str, List]):
