@@ -88,7 +88,7 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         manifest_path = _named_temporary_file(manifest_dir)
         mapping = _PACKAGE_MAPPING.copy()
         del mapping["lightning"]
-        lines = []
+        lines = ["include src/lightning/version.info\n"]
         for pkg in mapping.values():
             with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
                 lines.extend(fh.readlines())
