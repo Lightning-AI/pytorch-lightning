@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
@@ -27,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
+from tests_pytorch.helpers.utils import getattr_recursive
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
