@@ -28,7 +28,13 @@ from lightning_app.cli.commands.logs import logs
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url, APP_SERVER_PORT, APP_SERVER_HOST
+from lightning_app.core.constants import (
+    APP_SERVER_HOST,
+    APP_SERVER_PORT,
+    DEBUG,
+    ENABLE_APP_COMMENT_COMMAND_EXECUTION,
+    get_lightning_cloud_url,
+)
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_commands import run_app_commands
@@ -54,7 +60,7 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
         action = "?action=add_credits" if need_credits else ""
         return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
-        url = f"http://{APP_SERVER_HOST}:{APP_SERVER_PORT}/view"   
+        url = f"http://{APP_SERVER_HOST}:{APP_SERVER_PORT}/view"
         return url
 
 

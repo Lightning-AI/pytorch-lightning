@@ -1,18 +1,22 @@
-import os, socket
+import os
+import socket
 from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
 from lightning_app.utilities.network import LightningClient
 
+
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
+        return s.connect_ex(("localhost", port)) == 0
+
 
 def get_available_port() -> int:
     sock = socket.socket()
-    sock.bind(('', 0))
+    sock.bind(("", 0))
     return sock.getsockname()[1]
+
 
 def _find_lit_app_port(default_port: int) -> int:
     """Make a request to the cloud controlplane to find a disabled port of the flow, enable it and return it."""
