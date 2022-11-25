@@ -78,7 +78,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
     if pl.accelerators.MPSAccelerator.is_available():
-        args_expected["accelerator"] = "cpu"
+        args_expected.pop("accelerator")
 
     ret_val, env_vars = _get_args_after_tracer_injection(**args_given)
 
