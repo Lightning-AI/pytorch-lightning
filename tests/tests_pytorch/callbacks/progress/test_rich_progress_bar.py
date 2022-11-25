@@ -23,6 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning.loggers import CSVLogger
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -330,7 +331,7 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
 
     progress_bar = RichProgressBar()
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True, logger=CSVLogger(tmpdir))
 
     trainer.fit(model)
     main_progress_bar_id = progress_bar.main_progress_bar_id
@@ -384,6 +385,7 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
         enable_checkpointing=False,
         log_every_n_steps=1,
         callbacks=pbar,
+        logger=CSVLogger(tmpdir),
     )
 
     trainer.fit(model)
