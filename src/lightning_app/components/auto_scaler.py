@@ -146,8 +146,7 @@ class LoadBalancer(LightningWork):
         self.worker_url = worker_url
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
-        # unit method
-        server = next(self._ITER)
+        server = next(self._ITER)  # round-robin
         request_data: List[LoadBalancer._input_schema] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
@@ -284,7 +283,7 @@ class LoadBalancer(LightningWork):
 
         deleted_servers = old_servers - new_servers
         if deleted_servers:
-            logger.info(f"servers added: {deleted_servers}")
+            logger.info(f"servers deleted: {deleted_servers}")
 
         headers = {
             "accept": "application/json",
