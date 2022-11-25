@@ -411,8 +411,6 @@ def run_app_in_cloud(
             if resp.status_code == 200:
                 break
 
-        print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
-
         logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
         def fetch_logs(component_names: Optional[List[str]] = None) -> Generator:
