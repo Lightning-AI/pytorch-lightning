@@ -69,12 +69,9 @@ def mock_subclasses(baseclass, *subclasses):
 
 
 @pytest.fixture
-def cleandir(tmp_path):
-    """Run function in a temporary directory."""
-    old_dir = os.getcwd()  # get current working directory (cwd)
-    os.chdir(tmp_path)  # change cwd to the temp-directory
-    yield tmp_path  # yields control to the test to be run
-    os.chdir(old_dir)
+def cleandir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    yield
 
 
 @pytest.fixture(autouse=True)
@@ -234,6 +231,7 @@ def test_lightning_cli_args(cleandir):
         "--trainer.limit_train_batches=1",
         "--trainer.limit_val_batches=0",
         "--trainer.enable_model_summary=False",
+        "--trainer.logger=False",
         "--seed_everything=1234",
     ]
 
@@ -329,7 +327,9 @@ def test_lightning_cli_config_and_subclass_mode(cleandir):
     with open(config_path, "w") as f:
         f.write(yaml.dump(input_config))
 
-    with mock.patch("sys.argv", ["any.py", "--config", config_path]):
+    with mock.patch("sys.argv", ["any.py", "--config", config_path]), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ):
         cli = LightningCLI(
             BoringModel,
             BoringDataModule,
@@ -354,7 +354,6 @@ def any_model_any_data_cli():
 
 
 def test_lightning_cli_help():
-
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
@@ -374,7 +373,9 @@ def test_lightning_cli_help():
 
     cli_args = ["any.py", "fit", "--data.help=DataDirDataModule"]
     out = StringIO()
-    with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+    with mock.patch("sys.argv", cli_args), redirect_stdout(out), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
     assert "--data.init_args.data_dir" in out.getvalue()

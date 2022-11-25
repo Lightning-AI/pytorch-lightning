@@ -122,3 +122,28 @@ def test_tracer_component_with_code():
     assert python_script.script_args == ["--b=1", "--a=1"]
     os.remove("file.py")
     os.remove("sample.tar.gz")
+
+
+def test_tracer_component_with_code_in_dir(tmp_path):
+    """This test ensures the Tracer Component gets the latest code from the code object that is provided and
+    arguments are cleaned."""
+
+    drive = Drive("lit://code")
+    drive.component_name = "something"
+    code = Code(drive=drive, name="sample.tar.gz")
+
+    with open("file.py", "w") as f:
+        f.write('raise Exception("An error")')
+
+    with tarfile.open("sample.tar.gz", "w:gz") as tar:
+        tar.add("file.py")
+
+    drive.put("sample.tar.gz")
+    os.remove("file.py")
+    os.remove("sample.tar.gz")
+
+    python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0, code_dir=str(tmp_path))
+    assert "An error" in python_script.status.message
+
+    assert os.path.exists(os.path.join(str(tmp_path), "file.py"))
