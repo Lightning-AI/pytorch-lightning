@@ -325,7 +325,7 @@ class AutoScaler(LightningFlow):
         output_schema: Any = Dict,
     ) -> None:
         super().__init__()
-        self._num_replicas = 0
+        self.num_replicas = 0
         self._work_registry = {}
 
         self._work_cls = work_cls
@@ -363,7 +363,7 @@ class AutoScaler(LightningFlow):
     @property
     def workers(self) -> List[LightningWork]:
         works = []
-        for i in range(self._num_replicas):
+        for i in range(self.num_replicas):
             work = self.get_work(i)
             works.append(work)
         return works
@@ -374,10 +374,10 @@ class AutoScaler(LightningFlow):
 
     def add_work(self, work) -> str:
         work_attribute = uuid.uuid4().hex
-        work_attribute = f"worker_{self._num_replicas}_{str(work_attribute)}"
+        work_attribute = f"worker_{self.num_replicas}_{str(work_attribute)}"
         setattr(self, work_attribute, work)
-        self._work_registry[self._num_replicas] = work_attribute
-        self._num_replicas += 1
+        self._work_registry[self.num_replicas] = work_attribute
+        self.num_replicas += 1
         return work_attribute
 
     def remove_work(self, index: int) -> str:
@@ -385,7 +385,7 @@ class AutoScaler(LightningFlow):
         del self._work_registry[index]
         work = getattr(self, work_attribute)
         work.stop()
-        self._num_replicas -= 1
+        self.num_replicas -= 1
         return work_attribute
 
     def get_work(self, index: int) -> LightningWork:
@@ -430,24 +430,24 @@ class AutoScaler(LightningFlow):
         }
         num_target_workers = max(
             self.min_replicas,
-            min(self.max_replicas, self.scale(self._num_replicas, metrics)),
+            min(self.max_replicas, self.scale(self.num_replicas, metrics)),
         )
 
-        logger.info(f"Scaling from {self._num_replicas} to {num_target_workers}")
+        logger.info(f"Scaling from {self.num_replicas} to {num_target_workers}")
 
         # upscale
-        num_workers_to_add = num_target_workers - self._num_replicas
+        num_workers_to_add = num_target_workers - self.num_replicas
         for _ in range(num_workers_to_add):
-            logger.info(f"Upscaling from {self._num_replicas} to {self._num_replicas + 1}")
+            logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
             work = self.create_worker()
             new_work_id = self.add_work(work)
             logger.info(f"Work created: '{new_work_id}'")
 
         # downscale
-        num_workers_to_remove = self._num_replicas - num_target_workers
+        num_workers_to_remove = self.num_replicas - num_target_workers
         for _ in range(num_workers_to_remove):
-            logger.info(f"Downscaling from {self._num_replicas} to {self._num_replicas - 1}")
-            removed_work_id = self.remove_work(self._num_replicas - 1)
+            logger.info(f"Downscaling from {self.num_replicas} to {self.num_replicas - 1}")
+            removed_work_id = self.remove_work(self.num_replicas - 1)
             logger.info(f"Work removed: '{removed_work_id}'")
 
         self.load_balancer.update_servers(self.workers)
