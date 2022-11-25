@@ -29,7 +29,7 @@ def test_build_config_requirements_provided():
     assert spec.requirements == [
         "dask",
         "pandas",
-        "pytorch_lightning==1.5.9",
+        "pytorch_" + "lightning==1.5.9",
         "git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0",
     ]
     assert spec == BuildConfig.from_dict(spec.to_dict())
