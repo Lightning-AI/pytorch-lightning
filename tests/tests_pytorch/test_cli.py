@@ -231,7 +231,6 @@ def test_lightning_cli_args(cleandir):
         "--trainer.limit_train_batches=1",
         "--trainer.limit_val_batches=0",
         "--trainer.enable_model_summary=False",
-        "--trainer.logger=False",
         "--seed_everything=1234",
     ]
 
