@@ -303,5 +303,5 @@ def test_fsdp_activation_checkpointing():
     ) as fsdp_mock, mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
-        strategy._setup_model(Model())
+        strategy._setup_model(model)
         ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
