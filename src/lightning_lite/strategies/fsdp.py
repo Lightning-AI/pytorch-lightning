@@ -79,9 +79,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
         mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`` or BF16
             if ``precision=bf16`` unless a config is passed in. This is only available in PyTorch 1.12 and later.
-        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation checkpointing.
-            This is typically your transformer block (including attention + feed-forward). Enabling this can free up a significant
-            amount of memory at the cost of speed since activations in these layers need to be recomputed during backpropagation.
+        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
+            checkpointing. This is typically your transformer block (including attention + feed-forward).
+            Enabling this can free up a significant amount of memory at the cost of speed since activations in
+            these layers need to be recomputed during backpropagation.
         \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
             when wrapping modules.
     """
@@ -200,9 +201,11 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             device_id=self.root_device.index,
             **self._ddp_kwargs,
         )
+
         # activation checkpointing needs to be set up after wrapping the model
         if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
             _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
+
         return wrapped_module
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
