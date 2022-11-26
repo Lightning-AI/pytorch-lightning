@@ -71,7 +71,7 @@ def _assert_save_equality(lite, model, ckpt_path):
 
     # model parameters are identical after loading
     for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
-        assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
+        assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
 def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
