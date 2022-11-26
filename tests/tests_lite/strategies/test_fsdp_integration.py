@@ -133,9 +133,6 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     lite_model = lite.setup_module(model, move_to_device=move_to_device)
     lite_module_mock.assert_not_called()
 
-    current_device = lite.device
-    assert current_device.type == "cuda"
-
     assert list(param.device for param in model.parameters()) == []
     assert len(list(lite_model.parameters())) == 1
 
