@@ -22,7 +22,7 @@ about = _load_py_module("__about__.py")
 
 # load basic requirements
 with open(os.path.join(_PATH_REQUIRE, "base.txt")) as fp:
-    requirements = list(map(str, parse_requirements(fp.readline())))
+    requirements = list(map(str, parse_requirements(fp.readlines())))
 
 # make extras as automated loading
 requirements_extra = {}
