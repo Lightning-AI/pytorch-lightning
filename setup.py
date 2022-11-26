@@ -140,13 +140,8 @@ if __name__ == "__main__":
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
-            if _PACKAGE_NAME is None:
-                # we are installing a wheel, no need for MANIFEST.in things
+            with _set_manifest_path(pkg_path, aggregate=package_to_install == "lightning"):
                 setuptools.setup(**setup_args)
-            else:
-                # we are installing from source, set the correct manifest path
-                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
-                    setuptools.setup(**setup_args)
             break
     else:
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
