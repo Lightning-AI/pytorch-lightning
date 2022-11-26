@@ -115,10 +115,10 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    is_wheel_install = not os.path.exists(_PATH_SRC) or "PEP517_BUILD_BACKEND" in os.environ
+    is_wheel_install = "PEP517_BUILD_BACKEND" in os.environ
     print("is_wheel_install:", is_wheel_install)
 
-    if not is_wheel_install:
+    if os.path.exists(_PATH_SRC):
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 
