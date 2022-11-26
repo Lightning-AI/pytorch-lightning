@@ -14,7 +14,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision, CPUOffload
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import wrap
 
 
