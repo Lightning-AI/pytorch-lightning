@@ -10,6 +10,7 @@ from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
     _verify_lightning_version,
+    get_dist_path_if_editable_install,
 )
 
 
@@ -17,6 +18,8 @@ from lightning_app.utilities.packaging.lightning_utils import (
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
     package_name = "lightning"
+    if not get_dist_path_if_editable_install(package_name):
+        pytest.skip("Requires --editable install")
 
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
     assert len(os.listdir(tmpdir)) == 1
