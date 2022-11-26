@@ -18,6 +18,7 @@ import torch
 from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data import DataLoader
+from unittest import mock
 
 from lightning_lite import LightningLite
 from lightning_lite.plugins import FSDPPrecision
@@ -116,3 +117,27 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
         lite._strategy.save_checkpoint(model.state_dict(), ckpt_path)
 
     _assert_save_equality(lite, model, ckpt_path)
+
+
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("move_to_device", [True, False])
+@mock.patch("lightning_lite.wrappers._LiteModule")
+def test_setup_module_move_to_device(lite_module_mock, move_to_device):
+    """Test that `move_to_device` does nothing, FSDP decided which device parameters get moved to (sharding)."""
+    strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
+    lite.launch()
+
+    model = torch.nn.Linear(10, 10)
+    lite_model = lite.setup_module(model, move_to_device=move_to_device)
+    lite_module_mock.assert_not_called()
+
+    current_device = lite.device
+    assert current_device.type == "cuda"
+
+    # all parameters on the expected device
+    print(list(param.device for param in model.parameters()))
+    # assert all(param.device == expected_device for param in lite_model.parameters())
+
+    assert lite_model.device == torch.device("cuda", lite.local_rank)
+    assert lite.device == torch.device("cuda", lite.local_rank)
