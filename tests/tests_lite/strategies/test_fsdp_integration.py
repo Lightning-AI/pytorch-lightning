@@ -123,7 +123,8 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning_lite.wrappers._LiteModule")
 def test_setup_module_move_to_device(lite_module_mock, move_to_device):
-    """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device (sharding)."""
+    """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
+    (sharding)."""
     strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
     lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
     lite.launch()
