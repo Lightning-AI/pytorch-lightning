@@ -20,6 +20,7 @@ import torch.distributed
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from typing_extensions import Literal
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
@@ -40,6 +41,7 @@ from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
+from pytorch_lightning.utilities.distributed import distributed_available
 
 _DDP_FORK_ALIASES = (
     "ddp_fork",

@@ -43,7 +43,7 @@ class DDPSpawnStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             start_method=start_method,

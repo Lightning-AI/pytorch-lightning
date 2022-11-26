@@ -65,12 +65,11 @@ def test_fairscale_custom_kwargs_reduce_buffer_size(_, kwargs, expected_buffer_s
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_no_backward_sync(cls):
+def test_fairscale_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     ShardedDataParallel."""
 
-    strategy = cls()
+    strategy = DDPShardedStrategy()
     assert isinstance(strategy._backward_sync_control, _FairscaleBackwardSyncControl)
 
     with pytest.raises(
@@ -86,10 +85,9 @@ def test_fairscale_no_backward_sync(cls):
     module.no_sync.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_requires_joint_setup(cls):
+def test_fairscale_requires_joint_setup():
     """Test that the fairscale sharded strategy does not support setting up model and optimizer independently."""
-    strategy = cls()
+    strategy = DDPShardedStrategy()
     with pytest.raises(
         NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
     ):
