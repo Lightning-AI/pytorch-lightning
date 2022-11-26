@@ -119,20 +119,19 @@ if __name__ == "__main__":
     is_wheel_install = "sdist" not in sys.argv and "bdist_wheel" not in sys.argv
     print("is_wheel_install:", is_wheel_install, sys.argv)
 
-    package_to_install = _PACKAGE_NAME or "lightning"
-    if package_to_install not in _PACKAGE_MAPPING:
-        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
-
     if not is_wheel_install:
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 
+    package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         # replace imports and copy the code
         assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+    elif package_to_install not in _PACKAGE_MAPPING:
+        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
     # if it's a wheel, iterate over all possible packages until we find one that can be installed.
     # the wheel should have included only the relevant files of the package to install
