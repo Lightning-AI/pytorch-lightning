@@ -6,12 +6,13 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
+      - ".actions/**"
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
       - "pyproject.toml"   # includes mypy config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 

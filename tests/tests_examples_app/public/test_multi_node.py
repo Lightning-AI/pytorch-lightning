@@ -1,5 +1,6 @@
 import os
 import sys
+from unittest import mock
 
 import pytest
 from tests_examples_app.public import _PATH_EXAMPLES
@@ -17,7 +18,8 @@ class LightningTestMultiNodeApp(LightningTestApp):
 
 
 @pytest.mark.skip(reason="flaky")
-def test_multi_node_example(monkeypatch):
+@mock.patch("lightning_app.components.multi_node.base.is_running_in_cloud", return_value=True)
+def test_multi_node_example(_, monkeypatch):
     monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
     command_line = [
         "app.py",
@@ -50,7 +52,8 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
     ],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="flaky")
-def test_multi_node_examples(app_name, monkeypatch):
+@mock.patch("lightning_app.components.multi_node.base.is_running_in_cloud", return_value=True)
+def test_multi_node_examples(_, app_name, monkeypatch):
     monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
     command_line = [
         app_name,

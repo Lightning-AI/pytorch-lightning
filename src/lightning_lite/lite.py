@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import os
-from abc import ABC
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
@@ -55,7 +54,7 @@ from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
-class LightningLite(ABC):
+class LightningLite:
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.

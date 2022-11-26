@@ -29,8 +29,8 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
-    def __init__(self, data_dir, batch_size):
-        super().__init__(data_dir)
+    def __init__(self, batch_size):
+        super().__init__()
         if batch_size is not None:
             self.batch_size = batch_size
 
@@ -63,7 +63,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
 
     model = BatchSizeModel(model_bs)
-    datamodule = BatchSizeDataModule(tmpdir, dm_bs) if dm_bs != -1 else None
+    datamodule = BatchSizeDataModule(dm_bs) if dm_bs != -1 else None
 
     new_batch_size = trainer.tuner.scale_batch_size(
         model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule
@@ -170,8 +170,8 @@ def test_auto_scale_batch_size_set_datamodule_attribute(tmpdir, use_hparams):
     before_batch_size = hparams["batch_size"]
 
     class HparamsBatchSizeDataModule(BoringDataModule):
-        def __init__(self, data_dir, batch_size):
-            super().__init__(data_dir)
+        def __init__(self, batch_size):
+            super().__init__()
             self.save_hyperparameters()
 
         def train_dataloader(self):
@@ -181,7 +181,7 @@ def test_auto_scale_batch_size_set_datamodule_attribute(tmpdir, use_hparams):
             return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
     datamodule_class = HparamsBatchSizeDataModule if use_hparams else BatchSizeDataModule
-    datamodule = datamodule_class(data_dir=tmpdir, batch_size=before_batch_size)
+    datamodule = datamodule_class(batch_size=before_batch_size)
     model = BatchSizeModel(**hparams)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
