@@ -47,7 +47,7 @@ If you need to install additional system packages or run other configuration ste
     - The build config only applies when running in the cloud and gets ignored otherwise. A local build config is currently not supported.
 
 .. warning::
-     Custom base images are not supported with the default-cpu. For example:
+     Custom base images are not supported with the default CPU cloud compute. For example:
 
      .. code-block:: py
 

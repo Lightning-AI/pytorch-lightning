@@ -59,7 +59,7 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
     The build config only applies when running in the cloud and gets ignored otherwise. A local build config is currently not supported.
 
 .. warning::
-     Custom base images are not supported with the default-cpu. For example:
+     Custom base images are not supported with the default CPU cloud compute. For example:
 
      .. code-block:: py
 

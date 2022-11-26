@@ -23,7 +23,7 @@ a :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to your
     MyCustomWork(cloud_compute=L.CloudCompute("gpu-fast-multi"))
 
 .. warning::
-     Custom base images are not supported with the default-cpu. For example:
+     Custom base images are not supported with the default CPU cloud compute. For example:
 
      .. code-block:: py
 
