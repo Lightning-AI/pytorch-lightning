@@ -9,7 +9,7 @@ from optuna.distributions import CategoricalDistribution, LogUniformDistribution
 from torchmetrics import Accuracy
 
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
+from lightning.app.components import TracerPythonScript
 
 
 class ObjectiveWork(TracerPythonScript):

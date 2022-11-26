@@ -259,3 +259,59 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_finalize_when_exception(*_):
+    logger = MLFlowLogger("test")
+
+    # Pretend we are on the main process and failing
+    assert logger._mlflow_client
+    assert not logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_not_called()
+
+    # Pretend we are in a worker process and failing
+    _ = logger.experiment
+    assert logger._initialized
+    logger.finalize("failed")
+    logger.experiment.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+@pytest.mark.parametrize("log_model", ["all", True, False])
+def test_mlflow_log_model(client, _, tmpdir, log_model):
+    """Test that the logger creates the folders and files in the right place."""
+    # Get model, logger, trainer and train
+    model = BoringModel()
+    logger = MLFlowLogger("test", save_dir=tmpdir, log_model=log_model)
+    logger = mock_mlflow_run_creation(logger, experiment_id="test-id")
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
+    trainer.fit(model)
+
+    if log_model == "all":
+        # Checkpoint log
+        assert client.return_value.log_artifact.call_count == 2
+        # Metadata and aliases log
+        assert client.return_value.log_artifacts.call_count == 2
+
+    elif log_model is True:
+        # Checkpoint log
+        client.return_value.log_artifact.assert_called_once()
+        # Metadata and aliases log
+        client.return_value.log_artifacts.assert_called_once()
+
+    elif log_model is False:
+        # Checkpoint log
+        assert not client.return_value.log_artifact.called
+        # Metadata and aliases log
+        assert not client.return_value.log_artifacts.called

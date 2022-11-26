@@ -7,12 +7,12 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.cli.cmd_install import _install_app
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
+    """Valid organization name."""
     runner = CliRunner()
 
     # assert a bad app name should fail
@@ -61,11 +61,10 @@ def test_valid_unpublished_app_name():
 
 
 @pytest.mark.skip(reason="need to figure out how to authorize git clone from the private repo")
-def test_app_install(tmpdir):
+def test_app_install(tmpdir, monkeypatch):
     """Tests unpublished app install."""
 
-    cwd = os.getcwd()
-    os.chdir(tmpdir)
+    monkeypatch.chdir(tmpdir)
 
     real_app = "https://github.com/Lightning-AI/install-app"
     test_app_pip_name = "install-app"
@@ -74,8 +73,6 @@ def test_app_install(tmpdir):
     subprocess.check_output(f"lightning install app {real_app} --yes", shell=True)
     new_env_output = subprocess.check_output("pip freeze", shell=True)
     assert test_app_pip_name in str(new_env_output), f"{test_app_pip_name} should be in the env"
-
-    os.chdir(cwd)
 
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
@@ -270,14 +267,16 @@ def test_proper_url_parsing():
     assert git_sha
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_install_app_shows_error(tmpdir):
 
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
     with pytest.raises(SystemExit, match=f"Folder {str(app_folder_dir)} exists, please delete it and try again."):
-        _install_app(source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False)
+        cmd_install._install_app(
+            source_url=mock.ANY, git_url=mock.ANY, folder_name=str(app_folder_dir), overwrite=False
+        )
 
 
 # def test_env_creation(tmpdir):
@@ -361,7 +360,7 @@ def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpd
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
     app_folder_dir.mkdir()
 
-    _install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
+    cmd_install._install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
     assert subprocess_mock.check_output.call_args_list[0].args == (["git", "clone", git_url],)
     if git_sha:
         assert subprocess_mock.check_output.call_args_list[1].args == (["git", "checkout", git_sha],)

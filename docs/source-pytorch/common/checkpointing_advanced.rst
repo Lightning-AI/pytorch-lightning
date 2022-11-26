@@ -1,8 +1,8 @@
 .. _checkpointing_advanced:
 
-########################
-Checkpointing (advanced)
-########################
+##################################
+Cloud-based checkpoints (advanced)
+##################################
 
 
 *****************

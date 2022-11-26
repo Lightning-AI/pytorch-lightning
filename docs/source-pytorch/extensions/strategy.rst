@@ -75,6 +75,9 @@ The below table lists all relevant strategies available in Lightning with their 
    * - collaborative
      - :class:`~pytorch_lightning.strategies.HivemindStrategy`
      - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/hivemind:Training on unreliable mixed GPUs across the internet>`
+   * - colossalai
+     - :class:`~pytorch_lightning.strategies.ColossalAIStrategy`
+     - Colossal-AI provides a collection of parallel components for you. It aims to support you to write your distributed deep learning models just like how you write your model on your laptop. `Learn more. <https://www.colossalai.org/>`__
    * - fsdp_native
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
      - Strategy for Fully Sharded Data Parallel provided by PyTorch. :ref:`Learn more. <advanced/model_parallel:PyTorch Fully Sharded Training>`
@@ -83,10 +86,10 @@ The below table lists all relevant strategies available in Lightning with their 
      - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Fully Sharded Training>`
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
-     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
+     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
    * - ddp_sharded_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
-     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
+     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:FairScale Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
      - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`

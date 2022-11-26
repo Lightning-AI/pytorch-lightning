@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import os
-
-import numpy as np
 
 _TEST_ROOT = os.path.dirname(__file__)
 _PROJECT_ROOT = os.path.dirname(_TEST_ROOT)
@@ -27,10 +24,6 @@ if _PROJECT_ROOT not in os.getenv("PYTHONPATH", ""):
     splitter = ":" if os.environ.get("PYTHONPATH", "") else ""
     os.environ["PYTHONPATH"] = f'{_PROJECT_ROOT}{splitter}{os.environ.get("PYTHONPATH", "")}'
 
-# generate a list of random seeds for each test
-RANDOM_PORTS = list(np.random.randint(12000, 19000, 1000))
 
 if not os.path.isdir(_TEMP_PATH):
     os.mkdir(_TEMP_PATH)
-
-logging.basicConfig(level=logging.ERROR)

@@ -1,7 +1,9 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -9,23 +11,22 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
 
 import lightning_app
-from lightning_app.core.constants import APP_SERVER_PORT, APP_STATE_MAX_SIZE_BYTES, SUPPORTED_PRIMITIVE_TYPES
 from lightning_app.utilities.exceptions import LightningAppStateException
 
 if TYPE_CHECKING:
     from lightning_app.core.app import LightningApp
     from lightning_app.core.flow import LightningFlow
     from lightning_app.utilities.types import Component
-
 
 logger = logging.getLogger(__name__)
 
@@ -112,10 +113,10 @@ class InMemoryStateStore(StateStore):
 
     def set_app_state(self, k, v):
         state_size = sys.getsizeof(v)
-        if state_size > APP_STATE_MAX_SIZE_BYTES:
+        if state_size > lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES:
             raise LightningAppStateException(
                 f"App state size is {state_size} bytes, which is larger than the recommended size "
-                f"of {APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
+                f"of {lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
             )
         self.store[k].app_state = deepcopy(v)
         self.counter += 1
@@ -193,7 +194,11 @@ def target_fn():
     async def update_fn():
         server = Server.get_current()
         sessions = list(server._session_info_by_id.values())
-        url = "localhost:8080" if "LIGHTNING_APP_STATE_URL" in os.environ else f"localhost:{APP_SERVER_PORT}"
+        url = (
+            "localhost:8080"
+            if "LIGHTNING_APP_STATE_URL" in os.environ
+            else f"localhost:{lightning_app.core.constants.APP_SERVER_PORT}"
+        )
         ws_url = f"ws://{url}/api/v1/ws"
         last_updated = time.time()
         async with websockets.connect(ws_url) as websocket:
@@ -231,12 +236,9 @@ class StreamLitStatePlugin(BaseStatePlugin):
         pass
 
 
-# Adapted from
-# https://github.com/Lightning-AI/pytorch-lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         return False
-
     if parent is None:
         if isinstance(instance, lightning_app.LightningFlow):
             parent = lightning_app.LightningFlow
@@ -244,27 +246,14 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
             parent = lightning_app.LightningWork
         if parent is None:
             raise ValueError("Expected a parent")
+    from lightning_utilities.core.overrides import is_overridden
 
-    instance_attr = getattr(instance, method_name, None)
-    if instance_attr is None:
-        return False
-    # `Mock(wraps=...)` support
-    if isinstance(instance_attr, Mock):
-        # access the wrapped function
-        instance_attr = instance_attr._mock_wraps
-    if instance_attr is None:
-        return False
-
-    parent_attr = getattr(parent, method_name, None)
-    if parent_attr is None:
-        raise ValueError("The parent should define the method")
-
-    return instance_attr.__code__ != parent_attr.__code__
+    return is_overridden(method_name, instance, parent)
 
 
 def _is_json_serializable(x: Any) -> bool:
     """Test whether a variable can be encoded as json."""
-    if type(x) in SUPPORTED_PRIMITIVE_TYPES:
+    if type(x) in lightning_app.core.constants.SUPPORTED_PRIMITIVE_TYPES:
         # shortcut for primitive types that are not containers
         return True
     try:
@@ -282,10 +271,12 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 
     # the name changed, so recursively update the names of the children of this child
     if isinstance(child, lightning_app.core.LightningFlow):
-        for n, c in child.flows.items():
+        for n in child._flows:
+            c = getattr(child, n)
             _set_child_name(child, c, n)
-        for n, w in child.named_works(recurse=False):
-            _set_child_name(child, w, n)
+        for n in child._works:
+            c = getattr(child, n)
+            _set_child_name(child, c, n)
         for n in child._structures:
             s = getattr(child, n)
             _set_child_name(child, s, n)
@@ -402,3 +393,137 @@ class LightningJSONEncoder(json.JSONEncoder):
         if callable(getattr(obj, "__json__", None)):
             return obj.__json__()
         return json.JSONEncoder.default(self, obj)
+
+
+class Logger:
+
+    """This class is used to improve the debugging experience."""
+
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+        self.level = None
+
+    def info(self, msg, *args, **kwargs):
+        self.logger.info(msg, *args, **kwargs)
+
+    def warn(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.warn(msg, *args, **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.debug(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self._set_level()
+        self.logger.error(msg, *args, **kwargs)
+
+    def _set_level(self):
+        """Lazily set the level once set by the users."""
+        # Set on the first from either log, warn, debug or error call.
+        if self.level is None:
+            self.level = logging.DEBUG if bool(int(os.getenv("LIGHTNING_DEBUG", "0"))) else logging.INFO
+            self.logger.setLevel(self.level)
+
+
+def _state_dict(flow: "LightningFlow"):
+    state = {}
+    flows = [flow] + list(flow.flows.values())
+    for f in flows:
+        state[f.name] = f.state_dict()
+    for w in flow.works():
+        state[w.name] = w.state
+    return state
+
+
+def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: bool = True) -> None:
+    """This function is used to reload the state assuming dynamic components creation.
+
+    When a component isn't found but its state exists, its state is passed up to its closest existing parent.
+
+    Arguments:
+        root_flow: The flow at the top of the component tree.
+        state: The collected state dict.
+        strict: Whether to validate all components have been re-created.
+    """
+    # 1: Reload the state of the existing works
+    for w in root_flow.works():
+        w.set_state(state.pop(w.name))
+
+    # 2: Collect the existing flows
+    flows = [root_flow] + list(root_flow.flows.values())
+    flow_map = {f.name: f for f in flows}
+
+    # 3: Find the state of the all dynamic components
+    dynamic_components = {k: v for k, v in state.items() if k not in flow_map}
+
+    # 4: Propagate the state of the dynamic components to their closest parents
+    dynamic_children_state = {}
+    for name, component_state in dynamic_components.items():
+        affiliation = name.split(".")
+        for idx in range(0, len(affiliation)):
+            parent_name = ".".join(affiliation[:-idx])
+            has_matched = False
+            for flow_name, flow in flow_map.items():
+                if flow_name == parent_name:
+                    if flow_name not in dynamic_children_state:
+                        dynamic_children_state[flow_name] = {}
+
+                    dynamic_children_state[flow_name].update({name.replace(parent_name + ".", ""): component_state})
+                    has_matched = True
+                    break
+            if has_matched:
+                break
+
+    # 5: Reload the flow states
+    for flow_name, flow in flow_map.items():
+        flow.load_state_dict(state.pop(flow_name), dynamic_children_state.get(flow_name, {}), strict=strict)
+
+    # 6: Verify all dynamic components has been re-created.
+    if strict:
+        components_names = (
+            [root_flow.name] + [f.name for f in root_flow.flows.values()] + [w.name for w in root_flow.works()]
+        )
+        for component_name in dynamic_components:
+            if component_name not in components_names:
+                raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+class _MagicMockJsonSerializable(MagicMock):
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def _mock_import(*args, original_fn=None):
+    try:
+        return original_fn(*args)
+    except Exception:
+        return _MagicMockJsonSerializable()
+
+
+@contextmanager
+def _mock_missing_imports():
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(_mock_import, original_fn=original_fn)
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
+
+
+def is_static_method(klass_or_instance, attr) -> bool:
+    return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
+
+
+def _debugger_is_active() -> bool:
+    """Return if the debugger is currently active."""
+    return hasattr(sys, "gettrace") and sys.gettrace() is not None
+
+
+def _should_dispatch_app() -> bool:
+    return (
+        _debugger_is_active()
+        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and "LIGHTNING_APP_STATE_URL" not in os.environ
+    )

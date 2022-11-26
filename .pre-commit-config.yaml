@@ -43,7 +43,8 @@ repos:
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
                 src/lightning_app/cli/pl-app-template/ui/yarn.lock|
-                src/pytorch_lightning/CHANGELOG.md
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_lite/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -71,6 +72,7 @@ repos:
     hooks:
       - id: isort
         name: Format imports
+        exclude: docs/source-app
 
   - repo: https://github.com/psf/black
     rev: 22.6.0
@@ -96,13 +98,14 @@ repos:
           #- mdformat-black
           - mdformat_frontmatter
         exclude: |
-            (?x)^(
-                src/pytorch_lightning/CHANGELOG.md|
-                src/lightning_app/CHANGELOG.md
-            )$
+          (?x)^(
+              src/pytorch_lightning/CHANGELOG.md|
+              src/lightning_app/CHANGELOG.md|
+              src/lightning_lite/CHANGELOG.md
+          )$
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 6.0.0
     hooks:
       - id: flake8
         name: Check PEP8

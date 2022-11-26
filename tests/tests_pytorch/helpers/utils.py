@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import os
 import re
 from contextlib import contextmanager
@@ -18,11 +19,10 @@ from typing import Optional, Type
 
 import pytest
 
-from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests_pytorch import _TEMP_PATH, RANDOM_PORTS
+from tests_pytorch import _TEMP_PATH
 
 
 def get_default_logger(save_dir, version=None):
@@ -51,7 +51,7 @@ def get_data_path(expt_logger, path_dir=None):
     return path_expt
 
 
-def load_model_from_checkpoint(logger, root_weights_dir, module_class=BoringModel):
+def load_model_from_checkpoint(root_weights_dir, module_class=BoringModel):
     trained_model = module_class.load_from_checkpoint(root_weights_dir)
     assert trained_model is not None, "loading model failed"
     return trained_model
@@ -63,19 +63,13 @@ def assert_ok_model_acc(trainer, key="test_acc", thr=0.5):
     assert acc > thr, f"Model failed to get expected {thr} accuracy. {key} = {acc}"
 
 
-def reset_seed(seed=0):
-    seed_everything(seed)
-
-
-def set_random_main_port():
-    reset_seed()
-    port = RANDOM_PORTS.pop()
-    os.environ["MASTER_PORT"] = str(port)
-
-
 def init_checkpoint_callback(logger):
     checkpoint = ModelCheckpoint(dirpath=logger.save_dir)
     return checkpoint
+
+
+def getattr_recursive(obj, attr):
+    return functools.reduce(getattr, [obj] + attr.split("."))
 
 
 @contextmanager

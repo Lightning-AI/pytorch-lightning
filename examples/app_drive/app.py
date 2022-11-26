@@ -1,7 +1,7 @@
 import os
 
 import lightning as L
-from lightning.app.storage.drive import Drive
+from lightning.app.storage import Drive
 
 
 class Work_1(L.LightningWork):

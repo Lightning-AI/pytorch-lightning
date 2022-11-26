@@ -1,0 +1,41 @@
+name: Publish package
+description: publishing whl and src to PyPI
+
+inputs:
+  pkg-pattern:
+    description: what file pattern is searched in folder, so for example `*_app*`
+    required: true
+  pypi-token:
+    description: login token for PyPI
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+  - name: filter packages
+    run: |
+      mv dist/${{ inputs.pkg-pattern }} pypi/
+      ls -l pypi/
+    shell: bash
+
+  # We do this, since failures on test.pypi aren't that bad
+  #- name: Publish to Test PyPI
+  #  uses: pypa/gh-action-pypi-publish@v1.5.1
+  #  with:
+  #    user: __token__
+  #    password: ${{ secrets.test_pypi_token_lai }}
+  #    repository_url: https://test.pypi.org/legacy/
+  #    verbose: true
+
+  - name: Publish distribution 📦 to PyPI
+    uses: pypa/gh-action-pypi-publish@v1.5.1
+    with:
+      user: __token__
+      password: ${{ inputs.pypi-token }}
+      packages_dir: pypi/
+      verbose: true
+
+  - name: filter packages
+    run: rm pypi/*
+    shell: bash

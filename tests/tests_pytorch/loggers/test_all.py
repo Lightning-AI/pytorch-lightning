@@ -13,15 +13,13 @@
 # limitations under the License.
 import contextlib
 import inspect
-import os
 import pickle
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
@@ -33,6 +31,7 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
@@ -44,6 +43,7 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.mlflow"),
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
+    mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
     mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock),
 )
@@ -157,64 +157,6 @@ def _test_loggers_fit_test(tmpdir, logger_class):
         assert log_metric_names == expected
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)
-def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch, logger_class):
-    """Test the combinations of save_dir, weights_save_path and default_root_dir."""
-
-    with contextlib.ExitStack() as stack:
-        for mgr in LOGGER_CTX_MANAGERS:
-            stack.enter_context(mgr)
-        _patch_comet_atexit(monkeypatch)
-        _test_loggers_save_dir_and_weights_save_path(tmpdir, CometLogger)
-
-
-def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
-    class TestLogger(logger_class):
-        # for this test it does not matter what these attributes are
-        # so we standardize them to make testing easier
-        @property
-        def version(self):
-            return "version"
-
-        @property
-        def name(self):
-            return "name"
-
-    model = BoringModel()
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=3)
-
-    # no weights_save_path given
-    save_dir = tmpdir / "logs"
-    weights_save_path = None
-    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == trainer.default_root_dir
-    assert trainer.checkpoint_callback.dirpath == os.path.join(str(logger.save_dir), "name", "version", "checkpoints")
-    assert trainer.default_root_dir == tmpdir
-
-    # with weights_save_path given, the logger path and checkpoint path should be different
-    save_dir = tmpdir / "logs"
-    weights_save_path = tmpdir / "weights"
-    logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == weights_save_path
-    assert trainer.logger.save_dir == save_dir
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
-    assert trainer.default_root_dir == tmpdir
-
-    # no logger given
-    weights_save_path = tmpdir / "weights"
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
-        trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
-    trainer.fit(model)
-    assert trainer._weights_save_path_internal == weights_save_path
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
-    assert trainer.default_root_dir == tmpdir
-
-
 @pytest.mark.parametrize(
     "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
 )  # WandbLogger and NeptuneLogger get tested separately
@@ -274,7 +216,6 @@ def test_logger_reset_correctly(tmpdir, extra_params):
             super().__init__()
             self.save_hyperparameters()
 
-    tutils.reset_seed()
     model = CustomModel()
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
     logger1 = trainer.logger
@@ -349,7 +290,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
-    with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
+    with mock.patch("pytorch_lightning.loggers.neptune.neptune"), mock.patch(
+        "pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True
+    ):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
         assert logger.experiment.__getitem__.call_count == 2
         logger.log_metrics({"test": 1.0}, step=0)
@@ -358,10 +301,15 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.__getitem__().log.assert_called_once_with(1.0)
 
     # TensorBoard
-    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
-        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
+    logger.log_metrics({"test": 1.0}, step=0)
+    logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
 
     # WandB
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb, mock.patch(
@@ -374,7 +322,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
-def test_logger_default_name(tmpdir):
+def test_logger_default_name(tmpdir, monkeypatch):
     """Test that the default logger name is lightning_logs."""
 
     # CSV
@@ -382,9 +330,14 @@ def test_logger_default_name(tmpdir):
     assert logger.name == "lightning_logs"
 
     # TensorBoard
-    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
-        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
-        assert logger.name == "lightning_logs"
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
+    logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+    assert logger.name == "lightning_logs"
 
     # MLflow
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(

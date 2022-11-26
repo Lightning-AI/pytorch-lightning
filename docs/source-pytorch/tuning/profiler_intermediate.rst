@@ -138,9 +138,8 @@ With two ranks, it will generate a report like so:
     ---------------------  ---------------  ---------------  ---------------  ---------------  ---------------
     Self CPU time total: 1.681ms
 
-This profiler will record ``training_step``, ``backward``, ``validation_step``, ``test_step``, and ``predict_step`` by default.
-The output below shows the profiling for the action ``training_step``. The user can provide ``PyTorchProfiler(record_functions={...})``
-to extend the scope of profiled functions.
+This profiler will record ``training_step``, ``validation_step``, ``test_step``, and ``predict_step``.
+The output above shows the profiling for the action ``training_step``.
 
 .. note::
     When using the PyTorch Profiler, wall clock time will not not be representative of the true wall clock time.

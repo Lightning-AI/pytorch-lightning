@@ -1,22 +1,23 @@
-import logging
+import os
 import threading
 import traceback
 from queue import Empty
 from threading import Thread
-from typing import Dict, Optional, Set, TYPE_CHECKING, Union
+from typing import Dict, Optional, TYPE_CHECKING, Union
 
 from lightning_app.core.queues import BaseQueue
-from lightning_app.storage.path import filesystem, path_to_work_artifact
-from lightning_app.storage.requests import ExistsRequest, ExistsResponse, GetRequest, GetResponse
+from lightning_app.storage.path import _filesystem, _path_to_work_artifact
+from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import WorkStageStatus
 
 if TYPE_CHECKING:
     from lightning_app import LightningApp
 
 
-_PathRequest = Union[GetRequest, ExistsRequest]
-_PathResponse = Union[ExistsResponse, GetResponse]
-_logger = logging.getLogger(__name__)
+_PathRequest = Union[_GetRequest, _ExistsRequest]
+_PathResponse = Union[_ExistsResponse, _GetResponse]
+_logger = Logger(__name__)
 
 
 class StorageOrchestrator(Thread):
@@ -48,11 +49,14 @@ class StorageOrchestrator(Thread):
         self.response_queues = response_queues
         self.copy_request_queues = copy_request_queues
         self.copy_response_queues = copy_response_queues
-        self.waiting_for_response: Set[str] = set()
+        self.waiting_for_response: Dict[str, str] = {}
         self._validate_queues()
         self._exit_event = threading.Event()
-        self._sleep_time = 0.1
-        self.fs = filesystem()
+
+        # Note: Use different sleep time locally and in the cloud
+        # to reduce queue calls.
+        self._sleep_time = 0.1 if "LIGHTNING_APP_STATE_URL" not in os.environ else 2
+        self.fs = _filesystem()
 
     def _validate_queues(self):
         assert (
@@ -65,11 +69,11 @@ class StorageOrchestrator(Thread):
     def run(self) -> None:
         while not self._exit_event.is_set():
             for work_name in list(self.request_queues.keys()):
-                self._exit_event.wait(self._sleep_time)
                 try:
                     self.run_once(work_name)
                 except Exception:
                     _logger.error(traceback.format_exc())
+            self._exit_event.wait(self._sleep_time)
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -87,7 +91,7 @@ class StorageOrchestrator(Thread):
             else:
                 request.destination = work_name
                 source_work = self.app.get_component_by_name(request.source)
-                maybe_artifact_path = str(path_to_work_artifact(request.path, source_work))
+                maybe_artifact_path = str(_path_to_work_artifact(request.path, source_work))
 
                 if self.fs.exists(maybe_artifact_path):
                     # First check if the shared filesystem has the requested file stored as an artifact
@@ -95,16 +99,16 @@ class StorageOrchestrator(Thread):
                     # NOTE: This is NOT the right thing to do, because the Work could still be running and producing
                     # a newer version of the requested file, but we can't rely on the Work status to be accurate
                     # (at the moment)
-                    if isinstance(request, GetRequest):
-                        response = GetResponse(
+                    if isinstance(request, _GetRequest):
+                        response = _GetResponse(
                             source=request.source,
                             name=request.name,
                             path=maybe_artifact_path,
                             hash=request.hash,
                             destination=request.destination,
                         )
-                    if isinstance(request, ExistsRequest):
-                        response = ExistsResponse(
+                    if isinstance(request, _ExistsRequest):
+                        response = _ExistsResponse(
                             source=request.source,
                             path=maybe_artifact_path,
                             name=request.name,
@@ -126,18 +130,19 @@ class StorageOrchestrator(Thread):
                     # The Work is running, and we can send a request to the copier for moving the file to the
                     # shared storage
                     self.copy_request_queues[request.source].put(request)
-                    self.waiting_for_response.add(work_name)
+                    # Store a destination to source mapping.
+                    self.waiting_for_response[work_name] = request.source
                 else:
-                    if isinstance(request, GetRequest):
-                        response = GetResponse(
+                    if isinstance(request, _GetRequest):
+                        response = _GetResponse(
                             source=request.source,
                             path=request.path,
                             name=request.name,
                             hash=request.hash,
                             destination=request.destination,
                         )
-                    if isinstance(request, ExistsRequest):
-                        response = ExistsResponse(
+                    if isinstance(request, _ExistsRequest):
+                        response = _ExistsResponse(
                             source=request.source,
                             path=request.path,
                             hash=request.hash,
@@ -151,21 +156,26 @@ class StorageOrchestrator(Thread):
                     response_queue = self.response_queues[response.destination]
                     response_queue.put(response)
 
-        # check if the current work has responses for file transfers to other works.
-        copy_response_queue = self.copy_response_queues[work_name]
-        try:
-            # check if the share-point file manager has confirmed a copy request
-            response: _PathResponse = copy_response_queue.get(timeout=0)  # this should not block
-        except Empty:
-            pass
-        else:
-            _logger.debug(
-                f"Received confirmation of a completed file copy request from {work_name}:{response}."
-                f" Sending the confirmation back to {response.destination}."
-            )
-            destination = response.destination
-            assert response.source == work_name
-            response_queue = self.response_queues[destination]
-            response_queue.put(response)
-            # the request has been processed, allow new requests to come in for the destination work
-            self.waiting_for_response.remove(destination)
+        # Check the current work is within the sources.
+        # It is possible to have multiple destination targeting
+        # the same source concurrently.
+        if work_name in self.waiting_for_response.values():
+
+            # check if the current work has responses for file transfers to other works.
+            copy_response_queue = self.copy_response_queues[work_name]
+            try:
+                # check if the share-point file manager has confirmed a copy request
+                response: _PathResponse = copy_response_queue.get(timeout=0)  # this should not block
+            except Empty:
+                pass
+            else:
+                _logger.debug(
+                    f"Received confirmation of a completed file copy request from {work_name}:{response}."
+                    f" Sending the confirmation back to {response.destination}."
+                )
+                destination = response.destination
+                assert response.source == work_name
+                response_queue = self.response_queues[destination]
+                response_queue.put(response)
+                # the request has been processed, allow new requests to come in for the destination work
+                del self.waiting_for_response[destination]

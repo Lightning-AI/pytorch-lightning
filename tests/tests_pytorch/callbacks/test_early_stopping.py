@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import math
+import os
 import pickle
 from typing import List, Optional
 from unittest import mock
@@ -56,6 +57,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
         self.saved_states.append(self.state_dict().copy())
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """Prevent regressions to bugs:
 
@@ -98,6 +101,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
         new_trainer.fit(model, datamodule=dm, ckpt_path=checkpoint_filepath)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_extraneous_invocations(tmpdir):
     """Test to ensure that callback methods aren't being invoked outside of the callback handler."""
     model = ClassificationModel()
@@ -195,6 +199,7 @@ def test_pickling(tmpdir):
     assert vars(early_stopping) == vars(early_stopping_loaded)
 
 
+@RunIf(sklearn=True)
 def test_early_stopping_no_val_step(tmpdir):
     """Test that early stopping callback falls back to training metrics when no validation defined."""
 
@@ -265,25 +270,28 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     assert early_stopping.stopped_epoch == expected_stop_epoch
 
 
-@pytest.mark.parametrize("limit_train_batches", (3, 5))
 @pytest.mark.parametrize(
-    ["min_epochs", "min_steps"],
+    "limit_train_batches,min_epochs,min_steps,stop_step",
     [
         # IF `min_steps` was set to a higher value than the `trainer.global_step` when `early_stopping` is being
         # triggered, THEN the trainer should continue until reaching `trainer.global_step == min_steps` and stop
-        (0, 10),
+        (3, 0, 10, 10),
+        (5, 0, 10, 10),
         # IF `min_epochs` resulted in a higher number of steps than the `trainer.global_step` when `early_stopping` is
         # being triggered, THEN the trainer should continue until reaching
         # `trainer.global_step` == `min_epochs * len(train_dataloader)`
-        (2, 0),
+        (3, 2, 0, 6),
+        (5, 2, 0, 10),
         # IF both `min_epochs` and `min_steps` are provided and higher than the `trainer.global_step` when
         # `early_stopping` is being triggered, THEN the highest between `min_epochs * len(train_dataloader)` and
         # `min_steps` would be reached
-        (1, 10),
-        (3, 10),
+        (3, 1, 10, 10),
+        (5, 1, 10, 10),
+        (3, 3, 10, 10),
+        (5, 3, 10, 15),
     ],
 )
-def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epochs, min_steps):
+def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epochs, min_steps, stop_step):
     if min_steps:
         assert limit_train_batches < min_steps
 
@@ -317,8 +325,7 @@ def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epoch
     # epochs continue until min steps are reached
     assert trainer.current_epoch == expected_epochs
     # steps continue until min steps are reached AND the epoch is exhausted
-    # stopping mid-epoch is not supported
-    assert trainer.global_step == limit_train_batches * expected_epochs
+    assert trainer.global_step == stop_step
 
 
 def test_early_stopping_mode_options():
@@ -327,14 +334,21 @@ def test_early_stopping_mode_options():
 
 
 class EarlyStoppingModel(BoringModel):
-    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool):
+    def __init__(self, expected_end_epoch: int, early_stop_on_train: bool, dist_diverge_epoch: Optional[int] = None):
         super().__init__()
         self.expected_end_epoch = expected_end_epoch
         self.early_stop_on_train = early_stop_on_train
+        self.dist_diverge_epoch = dist_diverge_epoch
+
+    def _dist_diverge(self):
+        should_diverge = (
+            self.dist_diverge_epoch and self.current_epoch >= self.dist_diverge_epoch and self.trainer.global_rank == 0
+        )
+        return 10 if should_diverge else None
 
     def _epoch_end(self) -> None:
         losses = [8, 4, 2, 3, 4, 5, 8, 10]
-        loss = losses[self.current_epoch]
+        loss = self._dist_diverge() or losses[self.current_epoch]
         self.log("abc", torch.tensor(loss))
         self.log("cba", torch.tensor(0))
 
@@ -358,20 +372,28 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(
-    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices",
+    "callbacks, expected_stop_epoch, check_on_train_epoch_end, strategy, devices, dist_diverge_epoch",
     [
-        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1),
-        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1),
-        pytest.param([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        pytest.param([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, **_SPAWN_MARK),
-        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1),
-        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1),
+        ([EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, None, 1, None),
+        ([EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, None, 1, None),
+        pytest.param(
+            [EarlyStopping("abc", patience=1), EarlyStopping("cba")], 2, False, "ddp_spawn", 2, 2, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("abc"), EarlyStopping("cba", patience=3)], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        pytest.param(
+            [EarlyStopping("cba", patience=3), EarlyStopping("abc")], 3, False, "ddp_spawn", 2, None, **_SPAWN_MARK
+        ),
+        ([EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)], 3, True, None, 1, None),
+        ([EarlyStopping("cba", **_ES_CHECK_P3), EarlyStopping("abc", **_ES_CHECK)], 3, True, None, 1, None),
         pytest.param(
             [EarlyStopping("abc", **_ES_CHECK), EarlyStopping("cba", **_ES_CHECK_P3)],
             3,
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
         pytest.param(
@@ -380,6 +402,7 @@ _SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
             True,
             "ddp_spawn",
             2,
+            None,
             **_SPAWN_MARK,
         ),
     ],
@@ -391,10 +414,11 @@ def test_multiple_early_stopping_callbacks(
     check_on_train_epoch_end: bool,
     strategy: Optional[str],
     devices: int,
+    dist_diverge_epoch: Optional[int],
 ):
     """Ensure when using multiple early stopping callbacks we stop if any signals we should stop."""
 
-    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end)
+    model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end, dist_diverge_epoch=dist_diverge_epoch)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -470,9 +494,8 @@ def test_early_stopping_squeezes():
         (True, 2, 1, None),
     ],
 )
-def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size, global_rank, expected_log):
-    """checks if log.info() gets called with expected message when used within EarlyStopping."""
-
+def test_early_stopping_log_info(trainer, log_rank_zero_only, world_size, global_rank, expected_log):
+    """Checks if log.info() gets called with expected message when used within EarlyStopping."""
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
     if trainer:

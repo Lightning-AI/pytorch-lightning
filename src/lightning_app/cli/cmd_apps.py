@@ -1,8 +1,11 @@
 import json
 from datetime import datetime
+from typing import List
 
 from lightning_cloud.openapi import (
     Externalv1LightningappInstance,
+    Externalv1Lightningwork,
+    V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
 )
@@ -18,37 +21,57 @@ from lightning_app.utilities.network import LightningClient
 class _AppManager:
     """_AppManager implements API calls specific to Lightning AI BYOC apps."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_client = LightningClient()
 
-    def list(self, cluster_id: str = None, limit: int = 100):
+    def get_cluster(self, cluster_id: str) -> V1GetClusterResponse:
+        return self.api_client.cluster_service_get_cluster(id=cluster_id)
+
+    def get_app(self, app_id: str) -> Externalv1LightningappInstance:
+        project = _get_project(self.api_client)
+        return self.api_client.lightningapp_instance_service_get_lightningapp_instance(
+            project_id=project.project_id, id=app_id
+        )
+
+    def list_apps(
+        self, cluster_id: str = None, limit: int = 100, phase_in: List[str] = []
+    ) -> List[Externalv1LightningappInstance]:
         project = _get_project(self.api_client)
 
-        args = {
+        kwargs = {
             "project_id": project.project_id,
             "limit": limit,
+            "phase_in": phase_in,
         }
         if cluster_id is not None:
-            args["cluster_id"] = cluster_id
+            kwargs["cluster_id"] = cluster_id
 
-        resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+        resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
         apps = resp.lightningapps
         while resp.next_page_token is not None and resp.next_page_token != "":
-            args["page_token"] = resp.next_page_token
-            resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**args)
+            kwargs["page_token"] = resp.next_page_token
+            resp = self.api_client.lightningapp_instance_service_list_lightningapp_instances(**kwargs)
             apps = apps + resp.lightningapps
+        return apps
+
+    def list_components(self, app_id: str) -> List[Externalv1Lightningwork]:
+        project = _get_project(self.api_client)
+        resp = self.api_client.lightningwork_service_list_lightningwork(project_id=project.project_id, app_id=app_id)
+        return resp.lightningworks
+
+    def list(self, cluster_id: str = None, limit: int = 100) -> None:
         console = Console()
-        console.print(_AppList(resp.lightningapps).as_table())
+        console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
 
 
 class _AppList(Formatable):
-    def __init__(self, apps: [Externalv1LightningappInstance]):
+    def __init__(self, apps: List[Externalv1LightningappInstance]) -> None:
         self.apps = apps
 
     @staticmethod
     def _textualize_state_transitions(
         desired_state: V1LightningappInstanceState, current_state: V1LightningappInstanceStatus
-    ):
+    ) -> Text:
         phases = {
             V1LightningappInstanceState.IMAGE_BUILDING: Text("building image", style="bold yellow"),
             V1LightningappInstanceState.PENDING: Text("pending", style="bold yellow"),
@@ -87,7 +110,6 @@ class _AppList(Formatable):
         table = Table("id", "name", "status", "cluster", "created", show_header=True, header_style="bold green")
 
         for app in self.apps:
-            app: Externalv1LightningappInstance
             status = self._textualize_state_transitions(desired_state=app.spec.desired_state, current_state=app.status)
 
             # this guard is necessary only until 0.3.93 releases which includes the `created_at`

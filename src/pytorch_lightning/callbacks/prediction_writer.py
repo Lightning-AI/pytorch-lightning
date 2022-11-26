@@ -19,6 +19,8 @@ Aids in saving predictions
 """
 from typing import Any, Optional, Sequence
 
+from typing_extensions import Literal
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities import LightningEnum
@@ -52,23 +54,56 @@ class BasePredictionWriter(Callback):
 
         class CustomWriter(BasePredictionWriter):
 
-            def __init__(self, output_dir: str, write_interval: str):
+            def __init__(self, output_dir, write_interval):
                 super().__init__(write_interval)
                 self.output_dir = output_dir
 
             def write_on_batch_end(
-                self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
-                batch_idx: int, dataloader_idx: int
+                self, trainer, pl_module', prediction, batch_indices, batch, batch_idx, dataloader_idx
             ):
                 torch.save(prediction, os.path.join(self.output_dir, dataloader_idx, f"{batch_idx}.pt"))
 
-            def write_on_epoch_end(
-                self, trainer, pl_module: 'LightningModule', predictions: List[Any], batch_indices: List[Any]
-            ):
+            def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
                 torch.save(predictions, os.path.join(self.output_dir, "predictions.pt"))
+
+
+        pred_writer = CustomWriter(output_dir="pred_path", write_interval="epoch")
+        trainer = Trainer(callbacks=[pred_writer])
+        model = BoringModel()
+        trainer.predict(model, return_predictions=False)
+
+    Example::
+
+        # multi-device inference example
+
+        import torch
+        from pytorch_lightning.callbacks import BasePredictionWriter
+
+        class CustomWriter(BasePredictionWriter):
+
+            def __init__(self, output_dir, write_interval):
+                super().__init__(write_interval)
+                self.output_dir = output_dir
+
+            def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
+                # this will create N (num processes) files in `output_dir` each containing
+                # the predictions of it's respective rank
+                torch.save(predictions, os.path.join(self.output_dir, f"predictions_{trainer.global_rank}.pt"))
+
+                # optionally, you can also save `batch_indices` to get the information about the data index
+                # from your prediction data
+                torch.save(batch_indices, os.path.join(self.output_dir, f"batch_indices_{trainer.global_rank}.pt"))
+
+
+        # or you can set `writer_interval="batch"` and override `write_on_batch_end` to save
+        # predictions at batch level
+        pred_writer = CustomWriter(output_dir="pred_path", write_interval="epoch")
+        trainer = Trainer(accelerator="gpu", strategy="ddp", devices=8, callbacks=[pred_writer])
+        model = BoringModel()
+        trainer.predict(model, return_predictions=False)
     """
 
-    def __init__(self, write_interval: str = "batch") -> None:
+    def __init__(self, write_interval: Literal["batch", "epoch", "batch_and_epoch"] = "batch") -> None:
         if write_interval not in list(WriteInterval):
             raise MisconfigurationException(f"`write_interval` should be one of {[i.value for i in WriteInterval]}.")
         self.interval = WriteInterval(write_interval)

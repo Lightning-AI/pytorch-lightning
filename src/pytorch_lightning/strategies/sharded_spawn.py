@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Dict, Generator, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
+from lightning_lite.utilities.optimizer import _optimizers_to_device
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -56,7 +56,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         self.model, self.optimizers = self._setup_model_and_optimizers(
             model=_LightningModuleWrapperBase(self.model), optimizers=self.optimizers
         )
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
@@ -69,26 +69,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
         model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    def _reinit_optimizers_with_oss(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        for x, optimizer in enumerate(optimizers):
-            if not isinstance(optimizer, OSS):
-                optim_class = type(optimizer)
-                zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-                optimizers[x] = zero_optimizer
-                del optimizer
-        return optimizers
-
     def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
         assert self.lightning_module
         if self.model is not None and self.lightning_module.trainer.state.fn != TrainerFn.FITTING:
             return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
-
-    def optimizer_state(self, optimizer: "OSS") -> Dict[str, Any]:
-        if isinstance(optimizer, OSS):
-            optimizer.consolidate_state_dict()
-        return self._optim_state_dict(optimizer)
+        optimizers = [o._optimizer if isinstance(o, LightningOptimizer) else o for o in optimizers]
+        return _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
 
     @contextmanager
     def block_backward_sync(self) -> Generator:
@@ -102,14 +88,6 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
                 yield None
         else:
             yield None
-
-    @rank_zero_only
-    def _optim_state_dict(self, optimizer: Optimizer) -> Dict[str, Any]:
-        """
-        Retrieves state dict only on rank 0, which contains the entire optimizer state after calling
-        :meth:`consolidate_state_dict`.
-        """
-        return optimizer.state_dict()
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         pass

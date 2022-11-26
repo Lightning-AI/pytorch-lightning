@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import tempfile
 from collections import UserList
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
@@ -21,18 +22,19 @@ import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.multiprocessing as mp
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.strategies.strategy import Strategy
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.strategies.launchers.multiprocessing import _check_bad_cuda_fork
+from lightning_lite.utilities import move_data_to_device
+from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
-from pytorch_lightning.utilities.types import _PATH
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -58,7 +60,9 @@ class _MultiProcessingLauncher(_Launcher):
             - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
+    def __init__(
+        self, strategy: "pl.strategies.DDPSpawnStrategy", start_method: Literal["spawn", "fork", "forkserver"] = "spawn"
+    ) -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method not in mp.get_all_start_methods():
@@ -88,10 +92,15 @@ class _MultiProcessingLauncher(_Launcher):
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         self._check_torchdistx_support()
+        if self._start_method in ("fork", "forkserver"):
+            _check_bad_cuda_fork()
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
+        assert self._strategy.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
+
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
 
@@ -126,13 +135,13 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._worker_setup(process_idx)
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
     def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
@@ -164,13 +173,14 @@ class _MultiProcessingLauncher(_Launcher):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
 
-        if self._strategy.global_rank != 0:
+        if self._strategy.local_rank != 0:
             return None
 
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
-            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
+            # use tempdir here to avoid race conditions because the filesystem may be shared between nodes
+            weights_path = os.path.join(tempfile.mkdtemp(), ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # adds the `callback_metrics` to the queue

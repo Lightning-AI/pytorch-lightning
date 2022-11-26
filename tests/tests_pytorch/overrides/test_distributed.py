@@ -16,9 +16,9 @@ from typing import Iterable
 import pytest
 from torch.utils.data import BatchSampler, SequentialSampler
 
+from lightning_lite.utilities.data import has_len
 from pytorch_lightning import seed_everything
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.utilities.data import has_len
 
 
 @pytest.mark.parametrize("shuffle", [False, True])

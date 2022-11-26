@@ -20,14 +20,14 @@ from pytorch_lightning import LightningModule
 
 
 class ClassificationModel(LightningModule):
-    def __init__(self, lr=0.01):
+    def __init__(self, num_features=32, num_classes=3, lr=0.01):
         super().__init__()
 
         self.lr = lr
         for i in range(3):
-            setattr(self, f"layer_{i}", nn.Linear(32, 32))
+            setattr(self, f"layer_{i}", nn.Linear(num_features, num_features))
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
-        setattr(self, "layer_end", nn.Linear(32, 3))
+        setattr(self, "layer_end", nn.Linear(num_features, 3))
 
         self.train_acc = Accuracy()
         self.valid_acc = Accuracy()

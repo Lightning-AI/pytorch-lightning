@@ -3,16 +3,17 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.utilities.imports import _module_available, requires
+from lightning_app import __package_name__
+from lightning_app.utilities.imports import _get_extras, requires
 
 
-def test_module_available():
-    """Test if the 3rd party libs are available."""
-    assert _module_available("deepdiff")
-    assert _module_available("deepdiff.deephash")
-    assert not _module_available("torch.nn.asdf")
-    assert not _module_available("asdf")
-    assert not _module_available("asdf.bla.asdf")
+def test_get_extras():
+    extras = "app-cloud" if __package_name__ == "lightning" else "cloud"
+    extras = _get_extras(extras)
+    assert "docker" in extras
+    assert "redis" in extras
+
+    assert _get_extras("fake-extras") == ""
 
 
 @mock.patch.dict(os.environ, {"LIGHTING_TESTING": "0"})

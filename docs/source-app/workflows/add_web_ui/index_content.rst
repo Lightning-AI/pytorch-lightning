@@ -13,7 +13,7 @@ Web UIs for non Javascript Developers
    :header: Dash
    :description: Learn how to add a web UI built in Python with Dash.
    :col_css: col-md-4
-   :button_link: dash/index.html
+   :button_link: ../../workflows/add_web_ui/dash/index.html
    :height: 150
    :tag: basic
 
@@ -21,7 +21,15 @@ Web UIs for non Javascript Developers
    :header: Gradio
    :description: Learn how to add a web UI built in Python with Gradio.
    :col_css: col-md-4
-   :button_link: gradio/index.html
+   :button_link: ../../workflows/add_web_ui/gradio/index.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: Panel
+   :description: Learn how to add a web UI built in Python with Panel.
+   :col_css: col-md-4
+   :button_link: ../../workflows/add_web_ui/panel/index.html
    :height: 150
    :tag: basic
 
@@ -29,7 +37,7 @@ Web UIs for non Javascript Developers
    :header: Jupyter Notebook
    :description: Learn how to enable a web UI that is a Jupyter Notebook.
    :col_css: col-md-4
-   :button_link: jupyter_basic.html
+   :button_link: ../../workflows/add_web_ui/jupyter_basic.html
    :height: 150
    :tag: [docs coming soon]
 
@@ -37,7 +45,15 @@ Web UIs for non Javascript Developers
    :header: Streamlit
    :description: Learn how to add a web UI built in Python with Streamlit.
    :col_css: col-md-4
-   :button_link: streamlit/index.html
+   :button_link: ../../workflows/add_web_ui/streamlit/index.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: JustPy
+   :description: Learn how to add a web UI built in Python with JustPy.
+   :col_css: col-md-4
+   :button_link: ../../workflows/add_web_ui/justpy/index.html
    :height: 150
    :tag: basic
 
@@ -63,7 +79,7 @@ Web UIs for Javascript Developers
    :header: Any javascript framework
    :description: Learn how to link up any javascript framework to a Lightning app.
    :col_css: col-md-4
-   :button_link: integrate_any_javascript_framework.html
+   :button_link: ../../workflows/add_web_ui/integrate_any_javascript_framework.html
    :height: 150
    :tag: advanced
 
@@ -71,7 +87,7 @@ Web UIs for Javascript Developers
    :header: Angular.js
    :description: Learn how to add a web UI built in Javascript with Angular.js
    :col_css: col-md-4
-   :button_link: angular_js_intermediate.html
+   :button_link: ../../workflows/add_web_ui/angular_js_intermediate.html
    :height: 150
    :tag: [Docs coming soon]
 
@@ -79,7 +95,7 @@ Web UIs for Javascript Developers
    :header: HTML
    :description: Learn how to add a web UI built with html.
    :col_css: col-md-4
-   :button_link: html/index.html
+   :button_link: ../../workflows/add_web_ui/html/index.html
    :height: 150
    :tag: basic
 
@@ -87,7 +103,7 @@ Web UIs for Javascript Developers
    :header: React.js
    :description: Learn how to add a web UI built in Javascript with React.js
    :col_css: col-md-4
-   :button_link: react/index.html
+   :button_link: ../../workflows/add_web_ui/react/index.html
    :height: 150
    :tag: intermediate
 
@@ -95,7 +111,7 @@ Web UIs for Javascript Developers
    :header: Vue.js
    :description: Learn how to add a web UI built in Javascript with Vue.js
    :col_css: col-md-4
-   :button_link: vue_js_intermediate.html
+   :button_link: ../../workflows/add_web_ui/vue_js_intermediate.html
    :height: 150
    :tag: [Docs coming soon]
 

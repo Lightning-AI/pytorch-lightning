@@ -11,11 +11,9 @@ from tests_app import _PROJECT_ROOT
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.testing.helpers import RunIf
 from lightning_app.utilities.app_helpers import convert_print_to_logger_info
 
 
-@RunIf(skip_linux=True)
 @mock.patch("click.launch")
 @pytest.mark.parametrize("open_ui", (True, False))
 def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):
@@ -33,7 +31,6 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
 
     with caplog.at_level(logging.INFO):
         with mock.patch("lightning_app.LightningApp._run", _lightning_app_run_and_logging):
-
             runner = CliRunner()
             result = runner.invoke(
                 run_app,
@@ -52,7 +49,7 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             else:
                 lauch_mock.assert_not_called()
         assert result.exit_code == 0
-    assert len(caplog.messages) == 2
+    assert len(caplog.messages) == 4
     assert bool(int(caplog.messages[0])) is open_ui
 
 
@@ -70,6 +67,8 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
             open_ui=False,
             no_cache=True,
             env=("FOO=bar",),
+            secret=(),
+            run_app_comment_commands=False,
         )
 
 
@@ -80,7 +79,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
     """This test validates the command has ran properly when --cloud argument is passed.
 
     It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
-    call to `dispatch` for the right arguments
+    call to `dispatch` for the right arguments.
     """
     monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
 
@@ -95,6 +94,8 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             open_ui=open_ui,
             no_cache=True,
             env=("FOO=bar",),
+            secret=("BAR=my-secret",),
+            run_app_comment_commands=False,
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -108,5 +109,70 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         name="",
         no_cache=True,
         env_vars={"FOO": "bar"},
+        secrets={"BAR": "my-secret"},
         cluster_id="",
+        run_app_comment_commands=False,
     )
+
+
+@mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
+@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+@pytest.mark.parametrize("open_ui", (True, False))
+def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
+    """This test validates the command has ran properly when --cloud argument is passed.
+
+    It tests it by checking if the click.launch is called with the right url if --open-ui was true and also checks the
+    call to `dispatch` for the right arguments.
+    """
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+
+    with caplog.at_level(logging.INFO):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=True,
+            cluster_id="",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=open_ui,
+            no_cache=True,
+            env=("FOO=bar",),
+            secret=("BAR=my-secret",),
+            run_app_comment_commands=True,
+        )
+    # capture logs.
+    # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
+    #  page is being opened
+    mock_dispatch.assert_called_with(
+        Path(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")),
+        RuntimeType.CLOUD,
+        start_server=True,
+        blocking=False,
+        on_before_run=mock.ANY,
+        name="",
+        no_cache=True,
+        env_vars={"FOO": "bar"},
+        secrets={"BAR": "my-secret"},
+        cluster_id="",
+        run_app_comment_commands=True,
+    )
+
+
+def test_lightning_run_app_secrets(monkeypatch):
+    """Validates that running apps only supports the `--secrets` argument if the `--cloud` argument is passed."""
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+
+    with pytest.raises(click.exceptions.ClickException):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=False,
+            cluster_id="test-cluster",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=False,
+            no_cache=True,
+            env=(),
+            secret=("FOO=my-secret"),
+            run_app_comment_commands=False,
+        )

@@ -4,16 +4,18 @@ from unittest.mock import MagicMock
 import click
 import pytest
 from lightning_cloud.openapi import (
+    Externalv1Cluster,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
     V1ClusterSpec,
+    V1ClusterState,
+    V1ClusterStatus,
     V1ClusterType,
     V1CreateClusterRequest,
-    V1InstanceSpec,
     V1KubernetesClusterDriver,
+    V1ListClustersResponse,
 )
-from lightning_cloud.openapi.models import Externalv1Cluster, V1ClusterState, V1ClusterStatus, V1ListClustersResponse
 
 from lightning_app.cli import cmd_clusters
 from lightning_app.cli.cmd_clusters import AWSClusterManager
@@ -40,7 +42,6 @@ def test_create_cluster(api: mock.MagicMock):
         cluster_name="test-7",
         external_id="dummy",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
-        instance_types=["t2.small"],
         region="us-west-2",
     )
 
@@ -56,7 +57,6 @@ def test_create_cluster(api: mock.MagicMock):
                             region="us-west-2",
                             role_arn="arn:aws:iam::1234567890:role/lai-byoc",
                             external_id="dummy",
-                            instance_types=[V1InstanceSpec(name="t2.small")],
                         )
                     )
                 ),

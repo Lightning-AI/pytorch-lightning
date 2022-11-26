@@ -25,22 +25,22 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 from weakref import proxy
 
 import numpy as np
 import torch
 import yaml
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _name, _version
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
@@ -67,8 +67,7 @@ class ModelCheckpoint(Checkpoint):
 
             By default, dirpath is ``None`` and will be set at runtime to the location
             specified by :class:`~pytorch_lightning.trainer.trainer.Trainer`'s
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` or
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.weights_save_path` arguments,
+            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.default_root_dir` argument,
             and if the Trainer uses a logger, the path will also contain logger name and version.
 
         filename: checkpoint filename. Can contain named formatting options to be auto-filled.
@@ -195,7 +194,7 @@ class ModelCheckpoint(Checkpoint):
     .. tip:: Saving and restoring multiple checkpoint callbacks at the same time is supported under variation in the
         following arguments:
 
-        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
+        *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval*
 
         Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
     """
@@ -239,6 +238,7 @@ class ModelCheckpoint(Checkpoint):
         self.last_model_path = ""
 
         self.kth_value: Tensor
+        self.dirpath: Optional[_PATH]
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
         self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
@@ -252,21 +252,14 @@ class ModelCheckpoint(Checkpoint):
             every_n_train_steps=self._every_n_train_steps,
             every_n_epochs=self._every_n_epochs,
             train_time_interval=self._train_time_interval,
-            save_on_train_epoch_end=self._save_on_train_epoch_end,
         )
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        self.__resolve_ckpt_dir(trainer)
-        assert self.dirpath is not None
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
+        dirpath = self.__resolve_ckpt_dir(trainer)
+        dirpath = trainer.strategy.broadcast(dirpath)
+        self.dirpath = dirpath
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
-
-        # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
-        # because the attributes are part of the state_key which needs to be fully defined before reloading.
-        if self._save_on_train_epoch_end is None:
-            # if the user runs validation multiple times per training epoch or multiple training epochs without
-            # validation, then we run after validation instead of on train epoch end
-            self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
@@ -305,7 +298,7 @@ class ModelCheckpoint(Checkpoint):
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        if not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end:
+        if not self._should_skip_saving_checkpoint(trainer) and self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
@@ -313,7 +306,7 @@ class ModelCheckpoint(Checkpoint):
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
-        if not self._should_skip_saving_checkpoint(trainer) and not self._save_on_train_epoch_end:
+        if not self._should_skip_saving_checkpoint(trainer) and not self._should_save_on_train_epoch_end(trainer):
             monitor_candidates = self._monitor_candidates(trainer)
             if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
                 self._save_topk_checkpoint(trainer, monitor_candidates)
@@ -349,20 +342,6 @@ class ModelCheckpoint(Checkpoint):
             )
 
         self.best_model_path = state_dict["best_model_path"]
-
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
-        """Performs the main logic around saving a checkpoint.
-
-        This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
-        behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
-            " Instead, you can use `trainer.save_checkpoint()` to manually save a checkpoint."
-        )
-        monitor_candidates = self._monitor_candidates(trainer)
-        self._save_topk_checkpoint(trainer, monitor_candidates)
-        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         if self.save_top_k == 0:
@@ -402,6 +381,23 @@ class ModelCheckpoint(Checkpoint):
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
         )
+
+    def _should_save_on_train_epoch_end(self, trainer: "pl.Trainer") -> bool:
+        if self._save_on_train_epoch_end is not None:
+            return self._save_on_train_epoch_end
+
+        # if `check_val_every_n_epoch != 1`, we can't say when the validation dataloader will be loaded
+        # so let's not enforce saving at every training epoch end
+        if trainer.check_val_every_n_epoch != 1:
+            return False
+
+        # no validation means save on train epoch end
+        if sum(trainer.num_val_batches) == 0:
+            return True
+
+        # if the user runs validation multiple times per training epoch, then we run after validation
+        # instead of on train epoch end
+        return trainer.val_check_interval == 1.0
 
     def __validate_init_configuration(self) -> None:
         if self.save_top_k < -1:
@@ -572,44 +568,45 @@ class ModelCheckpoint(Checkpoint):
         ckpt_name = f"{filename}{self.FILE_EXTENSION}"
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
-    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
+    def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> _PATH:
         """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
         determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
-        2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
-        3.  The ``Logger``'s ``log_dir`` if the trainer has loggers
-        4.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
+        2.  The ``Logger``'s ``log_dir`` if the trainer has loggers
+        3.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
         """
         if self.dirpath is not None:
             # short circuit if dirpath was passed to ModelCheckpoint
-            return
+            return self.dirpath
 
-        # TODO: Remove weights_save_path logic here in v1.8
-        if trainer._weights_save_path_internal != trainer.default_root_dir:
-            # the user has changed weights_save_path
-            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
-        elif trainer.loggers:
-            if len(trainer.loggers) == 1:
-                assert trainer.logger is not None
-                save_dir = trainer.logger.save_dir or trainer.default_root_dir
+        if len(trainer.loggers) > 0:
+            if trainer.loggers[0].save_dir is not None:
+                save_dir = trainer.loggers[0].save_dir
             else:
                 save_dir = trainer.default_root_dir
-
-            name = _name(trainer.loggers)
-            version = _version(trainer.loggers)
+            name = trainer.loggers[0].name
+            version = trainer.loggers[0].version
             version = version if isinstance(version, str) else f"version_{version}"
-
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             # if no loggers, use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
-        ckpt_path = trainer.strategy.broadcast(ckpt_path)
+        return ckpt_path
 
-        self.dirpath = ckpt_path
+    def _find_last_checkpoints(self, trainer: "pl.Trainer") -> Set[str]:
+        # find all checkpoints in the folder
+        ckpt_path = self.__resolve_ckpt_dir(trainer)
+        if self._fs.exists(ckpt_path):
+            return {
+                os.path.normpath(p)
+                for p in self._fs.ls(ckpt_path, detail=False)
+                if self.CHECKPOINT_NAME_LAST in os.path.split(p)[1]
+            }
+        return set()
 
     def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:

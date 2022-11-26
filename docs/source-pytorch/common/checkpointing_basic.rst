@@ -2,9 +2,9 @@
 
 .. _checkpointing_basic:
 
-#####################
-Checkpointing (basic)
-#####################
+######################################
+Saving and loading checkpoints (basic)
+######################################
 **Audience:** All users
 
 ----

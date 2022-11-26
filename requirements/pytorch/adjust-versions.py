@@ -5,14 +5,13 @@ from typing import Dict, Optional
 
 # IMPORTANT: this list needs to be sorted in reverse
 VERSIONS = [
-    dict(torch="1.12.1", torchvision="0.13.1", torchtext="0.13.1"),  # stable
-    dict(torch="1.12.0", torchvision="0.13.0", torchtext="0.13.0"),
-    dict(torch="1.11.0", torchvision="0.12.0", torchtext="0.12.0"),
-    dict(torch="1.10.2", torchvision="0.11.3", torchtext="0.11.2"),
-    dict(torch="1.10.1", torchvision="0.11.2", torchtext="0.11.1"),
-    dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),
-    dict(torch="1.9.1", torchvision="0.10.1", torchtext="0.10.1"),
-    dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
+    dict(torch="1.13.0", torchvision="0.14.0"),  # stable
+    dict(torch="1.12.1", torchvision="0.13.1"),
+    dict(torch="1.12.0", torchvision="0.13.0"),
+    dict(torch="1.11.0", torchvision="0.12.0"),
+    dict(torch="1.10.2", torchvision="0.11.3"),
+    dict(torch="1.10.1", torchvision="0.11.2"),
+    dict(torch="1.10.0", torchvision="0.11.1"),
 ]
 
 
@@ -61,16 +60,16 @@ def test_check():
     torchmetrics>=0.4.1
     """
     expected = """
-    torch==1.9.1
-    torch==1.9.1
-    torch==1.9.1
-    torch==1.9.1
+    torch==1.12.1
+    torch==1.12.1
+    torch==1.12.1
+    torch==1.12.1
     future>=0.17.1
     pytorch==1.5.6+123dev0
-    torchvision==0.10.1
+    torchvision==0.13.1
     torchmetrics>=0.4.1
     """.strip()
-    actual = main(requirements, "1.9")
+    actual = main(requirements, "1.12")
     assert actual == expected, (actual, expected)
 
 
@@ -81,6 +80,7 @@ if __name__ == "__main__":
         requirements_path, torch_version = sys.argv[1:]
     else:
         requirements_path, torch_version = sys.argv[1], None
+    print(f"requirements_path='{requirements_path}' with torch_version='{torch_version}'")
 
     with open(requirements_path) as fp:
         requirements = fp.read()

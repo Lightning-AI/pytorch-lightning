@@ -11,39 +11,55 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from functools import partial
-from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
 
-import torch
-import torch.nn as nn
-from torch import Tensor
-from torch.optim import Optimizer
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
+from abc import ABC
+from typing import List, Optional, Tuple, Union
 
-from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
-from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.data import (
-    _auto_add_worker_init_fn,
-    _replace_dunder_methods,
-    _update_dataloader,
-    has_iterable_dataset,
-)
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import seed_everything
+from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
+
+from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
+from lightning_lite.connector import _PRECISION_INPUT
+from lightning_lite.lite import LightningLite as _NewLightningLite
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
+from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
+from lightning_lite.plugins import NativeMixedPrecision as LiteNativeMixedPrecision
+from lightning_lite.plugins import Precision as LitePrecision
+from lightning_lite.plugins import TPUBf16Precision as LiteTPUBf16Precision
+from lightning_lite.plugins import TPUPrecision as LiteTPUPrecision
+from lightning_lite.strategies import DataParallelStrategy as LiteDataParallelStrategy
+from lightning_lite.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
+from lightning_lite.strategies import DDPSpawnShardedStrategy as LiteDDPSpawnShardedStrategy
+from lightning_lite.strategies import DDPSpawnStrategy as LiteDDPSpawnStrategy
+from lightning_lite.strategies import DDPStrategy as LiteDDPStrategy
+from lightning_lite.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
+from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
+from lightning_lite.strategies import SingleTPUStrategy as LiteSingleTPUStrategy
+from lightning_lite.strategies import Strategy as LiteStrategy
+from lightning_lite.strategies import XLAStrategy
+from pytorch_lightning.accelerators import Accelerator as PLAccelerator
+from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin as PLDeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin
+from pytorch_lightning.plugins import NativeMixedPrecisionPlugin as PLNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import PrecisionPlugin as PLPrecisionPlugin
+from pytorch_lightning.plugins import TPUBf16PrecisionPlugin as PLTPUBf16PrecisionPlugin
+from pytorch_lightning.plugins import TPUPrecisionPlugin as PLTPUPrecisionPlugin
+from pytorch_lightning.strategies import DataParallelStrategy as PLDataParallelStrategy
+from pytorch_lightning.strategies import DDPShardedStrategy as PLDDPShardedStrategy
+from pytorch_lightning.strategies import DDPSpawnShardedStrategy as PLDDPSpawnShardedStrategy
+from pytorch_lightning.strategies import DDPSpawnStrategy as PLDDPSpawnStrategy
+from pytorch_lightning.strategies import DDPStrategy as PLDDPStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy as PLDeepSpeedStrategy
+from pytorch_lightning.strategies import SingleDeviceStrategy as PLSingleDeviceStrategy
+from pytorch_lightning.strategies import SingleTPUStrategy as PLSingleTPUStrategy
+from pytorch_lightning.strategies import Strategy as PLStrategy
+from pytorch_lightning.strategies import TPUSpawnStrategy as PLTPUSpawnStrategy
+
+_PL_PLUGIN = Union[PLPrecisionPlugin, ClusterEnvironment, CheckpointIO]
+_PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
 
 
-class LightningLite(ABC):
+class LightningLite(_NewLightningLite, ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.
@@ -65,430 +81,233 @@ class LightningLite(ABC):
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
+
+            .. deprecated:: v1.8.0
+                ``gpus`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
+
+            .. deprecated:: v1.8.0
+                ``tpu_cores`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                Please use ``accelerator='tpu'`` and ``devices=x`` instead.
     """
 
     def __init__(
         self,
-        accelerator: Optional[Union[str, Accelerator]] = None,
-        strategy: Optional[Union[str, Strategy]] = None,
+        accelerator: Optional[Union[str, PLAccelerator]] = None,
+        strategy: Optional[Union[str, PLStrategy]] = None,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
-        precision: Union[int, str] = 32,
-        plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        precision: _PRECISION_INPUT = 32,
+        plugins: Optional[Union[_PL_PLUGIN_INPUT, List[_PL_PLUGIN_INPUT]]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
-        self._check_accelerator_support(accelerator)
-        self._check_strategy_support(strategy)
-        self._accelerator_connector = AcceleratorConnector(
-            num_processes=None,
-            devices=devices,
-            tpu_cores=tpu_cores,
-            ipus=None,
+
+        if gpus is not None or tpu_cores is not None:
+            devices, accelerator = _convert_deprecated_device_flags(
+                accelerator=accelerator,
+                devices=devices,
+                gpus=gpus,
+                tpu_cores=tpu_cores,
+            )
+
+        lite_plugins: Optional[Union[_LITE_PLUGIN_INPUT, List[_LITE_PLUGIN_INPUT]]]
+        if isinstance(plugins, PLPrecisionPlugin):
+            lite_plugins = _to_lite_precision(plugins)
+        elif isinstance(plugins, list):
+            lite_plugins = [
+                _to_lite_precision(plugin) if isinstance(plugin, PLPrecisionPlugin) else plugin for plugin in plugins
+            ]
+        else:
+            lite_plugins = plugins
+
+        super().__init__(
             accelerator=accelerator,
-            strategy=strategy,
-            gpus=gpus,
+            strategy=(_to_lite_strategy(strategy) if isinstance(strategy, PLStrategy) else strategy),
+            devices=devices,
             num_nodes=num_nodes,
-            sync_batchnorm=False,  # TODO: add support?
-            benchmark=False,
-            replace_sampler_ddp=True,
-            deterministic=False,
             precision=precision,
-            amp_type="native",
-            amp_level=None,
-            plugins=plugins,
-            auto_select_gpus=False,
-        )
-        self._strategy = self._accelerator_connector.strategy
-        self._accelerator = self._strategy.accelerator
-        self._precision_plugin = self._strategy.precision_plugin
-        self._models_setup: int = 0
-
-        # wrap the run method so we can inject setup logic or spawn processes for the user
-        setattr(self, "run", partial(self._run_impl, self.run))
-
-    @property
-    def device(self) -> torch.device:
-        """The current device this process runs on.
-
-        Use this to create tensors directly on the device if needed.
-        """
-        return self._strategy.root_device
-
-    @property
-    def global_rank(self) -> int:
-        """The global index of the current process across all devices and nodes."""
-        return getattr(self._strategy, "global_rank", 0)
-
-    @property
-    def local_rank(self) -> int:
-        """The index of the current process among the processes running on the local node."""
-        return getattr(self._strategy, "local_rank", 0)
-
-    @property
-    def node_rank(self) -> int:
-        """The index of the current node."""
-        return getattr(self._strategy, "node_rank", 0)
-
-    @property
-    def world_size(self) -> int:
-        """The total number of processes running across all devices and nodes."""
-        return getattr(self._strategy, "world_size", 1)
-
-    @property
-    def is_global_zero(self) -> bool:
-        """Wether this rank is rank zero."""
-        return self._strategy.is_global_zero
-
-    @abstractmethod
-    def run(self, *args: Any, **kwargs: Any) -> Any:
-        """All the code inside this run method gets accelerated by Lite.
-
-        You can pass arbitrary arguments to this function when overriding it.
-        """
-
-    def setup(
-        self,
-        model: nn.Module,
-        *optimizers: Optimizer,
-        move_to_device: bool = True,
-    ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
-        """Set up a model and its optimizers for accelerated training.
-
-        Args:
-            model: A model to set up
-            *optimizers: The optimizer(s) to set up (no optimizers is also possible)
-            move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
-                and alternatively use :meth:`to_device` manually.
-
-        Returns:
-            The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
-        """
-        self._validate_setup(model, optimizers)
-        original_model = model
-
-        if move_to_device:
-            model = self._move_model_to_device(model=model, optimizers=list(optimizers))
-
-        # Let accelerator/plugin wrap and connect the models and optimizers
-        model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
-        self._models_setup += 1
-        if optimizers:
-            # join both types in a list for API convenience
-            return [model] + optimizers  # type: ignore
-        return model
-
-    def setup_dataloaders(
-        self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> Union[DataLoader, List[DataLoader]]:
-        """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
-        dataloader, call this method individually for each one.
-
-        Args:
-            *dataloaders: A single dataloader or a sequence of dataloaders.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
-                the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
-                returned data.
-
-        Returns:
-            The wrapped dataloaders, in the same order they were passed in.
-        """
-        self._validate_setup_dataloaders(dataloaders)
-        dataloaders = [
-            self._setup_dataloader(dataloader, replace_sampler=replace_sampler, move_to_device=move_to_device)
-            for dataloader in dataloaders
-        ]
-        dataloaders = dataloaders[0] if len(dataloaders) == 1 else dataloaders
-        return dataloaders  # type: ignore[return-value]
-
-    def _setup_dataloader(
-        self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
-    ) -> DataLoader:
-        """Set up a single dataloader for accelerated training.
-
-        Args:
-            dataloader: The dataloader to accelerate.
-            replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
-                for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
-                the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
-                returned data.
-
-        Returns:
-            The wrapped dataloader.
-        """
-        sampler = dataloader.sampler
-        if replace_sampler and self._requires_distributed_sampler(dataloader):
-            sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
-
-        # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
-        dataloader = _update_dataloader(dataloader, sampler)
-
-        # add worker_init_fn for correct seeding in worker processes
-        _auto_add_worker_init_fn(dataloader, self.global_rank)
-
-        dataloader = self._strategy.process_dataloader(dataloader)
-        device = self.device if move_to_device and not isinstance(self._strategy, TPUSpawnStrategy) else None
-        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
-        lite_dataloader = cast(DataLoader, lite_dataloader)
-        return lite_dataloader
-
-    def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
-        """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
-
-        Args:
-            tensor: The tensor (loss) to back-propagate gradients from.
-            *args: Optional positional arguments passed to the underlying backward function.
-            model: Optional model instance for plugins that require the model for backward().
-            **kwargs: Optional named keyword arguments passed to the underlying backward function.
-
-        Note:
-            When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
-            model as argument here.
-        """
-        module = model._forward_module if model is not None else model
-        if isinstance(self._strategy, DeepSpeedStrategy):
-            if model is None:
-                if self._models_setup == 0:
-                    raise MisconfigurationException(
-                        "No models were setup for backward. Did you forget to call `self.setup()`?"
-                    )
-                if self._models_setup > 1:
-                    raise MisconfigurationException(
-                        "When using multiple models + deepspeed, please provide the model used to perform"
-                        " the optimization: `self.backward(loss, model=model)`"
-                    )
-                module = self._strategy.model
-            else:
-                # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
-                self._strategy.model = module
-
-        self._precision_plugin._run_backward(tensor, module, *args, **kwargs)
-
-    @contextmanager
-    def autocast(self) -> Generator[None, None, None]:
-        """A context manager to automatically convert operations for the chosen precision.
-
-        Use this only if the `forward` method of your model does not cover all operations you wish to run with the
-        chosen precision setting.
-        """
-        with self._precision_plugin.forward_context():
-            yield
-
-    @overload
-    def to_device(self, obj: nn.Module) -> nn.Module:
-        ...
-
-    @overload
-    def to_device(self, obj: Tensor) -> Tensor:
-        ...
-
-    @overload
-    def to_device(self, obj: Any) -> Any:
-        ...
-
-    def to_device(self, obj: Union[nn.Module, Tensor, Any]) -> Union[nn.Module, Tensor, Any]:
-        """Move a :class:`torch.nn.Module` or a collection of tensors to the current device, if it is not already
-        on that device.
-
-        Args:
-            obj: An object to move to the device. Can be an instance of :class:`torch.nn.Module`, a tensor, or a
-                 (nested) collection of tensors (e.g., a dictionary).
-
-        Returns:
-            A reference to the object that was moved to the new device.
-        """
-        if isinstance(obj, nn.Module):
-            if self.device.type == "cuda":
-                # need to call this manually here again in case we spawned with DDPSpawnStrategy
-                # TODO: refactor to let plugin handle this cleanly
-                torch.cuda.set_device(self.device)
-            return obj.to(self.device)
-        return move_data_to_device(obj, device=self.device)
-
-    def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print something only on the first process.
-
-        Arguments passed to this method are forwarded to the Python built-in :func:`print` function.
-        """
-        if self.local_rank == 0:
-            print(*args, **kwargs)
-
-    def barrier(self, name: Optional[str] = None) -> None:
-        """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
-        necessary, otherwise the overhead of synchronization will cause your program to slow down.
-
-        Example::
-
-            if self.global_rank == 0:
-                # let process 0 download the dataset
-                dataset.download_files()
-
-            # let all processes wait before reading the dataset
-            self.barrier()
-
-            # now all processes can read the files and start training
-        """
-        self._strategy.barrier(name=name)
-
-    def all_gather(
-        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Gather tensors or collections of tensors from multiple processes.
-
-        Args:
-            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
-            group: the process group to gather results from. Defaults to all processes (world)
-            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
-
-        Return:
-            A tensor of shape (world_size, batch, ...), or if the input was a collection
-            the output will also be a collection with tensors of this shape.
-        """
-        group = group if group is not None else torch.distributed.group.WORLD
-        data = convert_to_tensors(data, device=self.device)
-        return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
-
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        return self._strategy.broadcast(obj, src=src)
-
-    def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
-        """Save checkpoint contents to a file.
-
-        How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
-        saves checkpoints only on process 0.
-
-        Args:
-            content: A dictionary with contents, i.e., the state dict of your model
-            filepath: A path to where the file should be saved
-        """
-        self._strategy.save_checkpoint(content, filepath)
-
-    def load(self, filepath: Union[str, Path]) -> Any:
-        """Load a checkpoint from a file.
-
-        How and which processes load gets determined by the `strategy`
-
-        Args:
-            filepath: A path to where the file is located
-        """
-        return self._strategy.load_checkpoint(filepath)
-
-    @staticmethod
-    def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
-        """Helper function to seed everything without explicitly importing Lightning.
-
-        See :func:`pytorch_lightning.seed_everything` for more details.
-        """
-        if workers is None:
-            # Lightning sets `workers=False` by default to avoid breaking reproducibility, but since this is a new
-            # release, we can afford to do it.
-            workers = True
-        return seed_everything(seed=seed, workers=workers)
-
-    def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_strategy_setup, run_method)
-
-        if self._strategy.launcher is not None:
-            return self._strategy.launcher.launch(run_method, *args, **kwargs)
-        else:
-            return run_method(*args, **kwargs)
-
-    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_dunder_methods(
-            DataLoader, "dataset"
-        ), _replace_dunder_methods(BatchSampler):
-            return run_method(*args, **kwargs)
-
-    def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
-        if isinstance(self._strategy, TPUSpawnStrategy):
-            # When the user creates the optimizer, they reference the parameters on the CPU.
-            # However, when running with TPU the parameters get copied and the reference in the optimizer
-            # remains invalid. We need to update the references to point to the parameter tensors on the device.
-            params_before_move = dict(model.named_parameters())
-            model = self.to_device(model)
-            # XLA makes a copy on the parameters, so the device is not the same before and after to_device.
-            params_on_device = dict(model.named_parameters())
-
-            mapping = {param: params_on_device[name] for name, param in params_before_move.items()}
-            for optimizer in optimizers:
-                for param_group in optimizer.param_groups:
-                    param_group["params"] = [mapping.get(p, p) for p in param_group["params"]]
-        else:
-            model = self.to_device(model)
-        return model
-
-    def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
-        return (
-            self._accelerator_connector.is_distributed
-            and not isinstance(dataloader.sampler, DistributedSampler)
-            and not has_iterable_dataset(dataloader)
+            plugins=lite_plugins,
         )
 
-    @staticmethod
-    def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
-        kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
-    def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["gpu", "auto"]
-        valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
-        if not valid:
-            raise MisconfigurationException(
-                f"`accelerator={repr(accelerator)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `Accelerator` instance."
+def _convert_deprecated_device_flags(
+    accelerator: Optional[Union[str, PLAccelerator]],
+    devices: Optional[Union[List[int], str, int]],
+    gpus: Optional[Union[List[int], str, int]],
+    tpu_cores: Optional[Union[List[int], str, int]],
+) -> Tuple[Optional[Union[List[int], str, int]], Optional[Union[str, PLAccelerator]]]:
+    """Emit deprecation warnings for gpus and tpu_cores and translate them into the new accelerator and devices.
+
+    Similar implementation as in ``pytorch_lightning.trainer.connectors.accelerator_connector``.
+    """
+    if gpus is not None:
+        rank_zero_deprecation(
+            f"Setting `Lite(gpus={gpus!r})` is deprecated in v1.8.0 and will be removed"
+            f" in v1.10.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
+        )
+    if tpu_cores is not None:
+        rank_zero_deprecation(
+            f"Setting `Lite(tpu_cores={tpu_cores!r})` is deprecated in v1.8.0 and will be removed"
+            f" in v1.10.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
+        )
+    deprecated_devices_specific_flag = gpus or tpu_cores
+    if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
+        if devices:
+            rank_zero_warn(
+                f"The option `devices={devices}` will be ignored and the device specific number"
+                f"{deprecated_devices_specific_flag} will be used instead."
             )
 
-    def _check_strategy_support(self, strategy: Optional[Union[str, Strategy]]) -> None:
-        supported = [t.lower() for t in self._supported_strategy_types()]
-        valid = strategy is None or isinstance(strategy, Strategy) or strategy in supported
-        if not valid:
-            raise MisconfigurationException(
-                f"`strategy={repr(strategy)}` is not a valid choice."
-                f" Choose one of {supported} or pass in a `Strategy` instance."
+        if gpus is not None and tpu_cores is not None:
+            rank_zero_warn(
+                f"Both `Lite(gpus={gpus!r}, tpu_cores={tpu_cores!r})` were specified. Please choose only one of"
+                " the two."
             )
 
-    @staticmethod
-    def _supported_device_types() -> Sequence[_AcceleratorType]:
-        return (
-            _AcceleratorType.CPU,
-            _AcceleratorType.CUDA,
-            _AcceleratorType.TPU,
-            _AcceleratorType.MPS,
+        if accelerator is None:
+            if tpu_cores:
+                accelerator = "tpu"
+            if gpus:
+                accelerator = "cuda"
+
+    return deprecated_devices_specific_flag, accelerator
+
+
+def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
+    """Re-instantiates a PL-Strategy as the corresponding Lite-Strategy."""
+    strategy_cls = type(strategy)
+    if strategy_cls is PLDDPStrategy:
+        return LiteDDPStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            cluster_environment=strategy.cluster_environment,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+            process_group_backend=strategy.process_group_backend,
+            timeout=strategy._timeout,
+            **strategy._ddp_kwargs,
         )
 
-    @staticmethod
-    def _supported_strategy_types() -> Sequence[_StrategyType]:
-        return (
-            _StrategyType.DP,
-            _StrategyType.DDP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP_FORK,
-            _StrategyType.DEEPSPEED,
-            _StrategyType.DDP_SHARDED,
-            _StrategyType.DDP_SHARDED_SPAWN,
+    if strategy_cls is PLDDPSpawnStrategy:
+        return LiteDDPSpawnStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            cluster_environment=strategy.cluster_environment,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+            process_group_backend=strategy.process_group_backend,
+            timeout=strategy._timeout,
+            start_method=strategy._start_method,
+            **strategy._ddp_kwargs,
         )
 
-    @staticmethod
-    def _validate_setup(model: nn.Module, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(model, _LiteModule):
-            raise MisconfigurationException("A model should be passed only once to the `setup` method.")
+    if strategy_cls is PLTPUSpawnStrategy:
+        return XLAStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+        )
 
-        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
-            raise MisconfigurationException("An optimizer should be passed only once to the `setup` method.")
+    if strategy_cls is PLDeepSpeedStrategy:
+        return LiteDeepSpeedStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            cluster_environment=strategy.cluster_environment,
+            precision=_to_lite_precision(strategy.precision_plugin),
+            process_group_backend=strategy.process_group_backend,
+            config=strategy.config,
+            remote_device=strategy.remote_device,
+            load_full_weights=strategy.load_full_weights,
+            loss_scale=strategy.loss_scale,
+            initial_scale_power=strategy.initial_scale_power,
+            loss_scale_window=strategy.loss_scale_window,
+            hysteresis=strategy.hysteresis,
+            min_loss_scale=strategy.min_loss_scale,
+        )
 
-    @staticmethod
-    def _validate_setup_dataloaders(dataloaders: Sequence[DataLoader]) -> None:
-        if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
-            raise MisconfigurationException("A dataloader should be passed only once to the `setup_dataloaders` method")
+    if strategy_cls is PLDataParallelStrategy:
+        return LiteDataParallelStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+        )
 
-        if any(not isinstance(dl, DataLoader) for dl in dataloaders):
-            raise MisconfigurationException("Only PyTorch DataLoader are currently supported in `setup_dataloaders`.")
+    if strategy_cls is PLDDPShardedStrategy:
+        return LiteDDPShardedStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            cluster_environment=strategy.cluster_environment,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+            process_group_backend=strategy.process_group_backend,
+            timeout=strategy._timeout,
+            **strategy._ddp_kwargs,
+        )
+
+    if strategy_cls is PLDDPSpawnShardedStrategy:
+        return LiteDDPSpawnShardedStrategy(
+            accelerator=strategy.accelerator,
+            parallel_devices=strategy.parallel_devices,
+            cluster_environment=strategy.cluster_environment,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+            process_group_backend=strategy.process_group_backend,
+            timeout=strategy._timeout,
+            start_method=strategy._start_method,
+            **strategy._ddp_kwargs,
+        )
+
+    if strategy_cls is PLSingleDeviceStrategy:
+        return LiteSingleDeviceStrategy(
+            device=strategy.root_device,
+            accelerator=strategy.accelerator,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+        )
+
+    if strategy_cls is PLSingleTPUStrategy:
+        return LiteSingleTPUStrategy(
+            device=strategy.root_device.index,
+            accelerator=strategy.accelerator,
+            checkpoint_io=strategy.checkpoint_io,
+            precision=_to_lite_precision(strategy.precision_plugin),
+        )
+    raise NotImplementedError(f"Unsupported strategy: `{strategy_cls.__name__}`")
+
+
+def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
+    """Re-instantiates a PL-PrecisionPlugin as the corresponding Lite-Precision plugin."""
+
+    if type(plugin) is PLPrecisionPlugin:
+        return LitePrecision()
+
+    if type(plugin) is PLNativeMixedPrecisionPlugin:
+        return LiteNativeMixedPrecision(
+            precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
+        )
+
+    if type(plugin) is PLDoublePrecisionPlugin:
+        return LiteDoublePrecision()
+
+    if type(plugin) is PLDeepSpeedPrecisionPlugin:
+        return LiteDeepSpeedPrecision(
+            precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level  # type: ignore[arg-type]
+        )
+
+    if type(plugin) is PLTPUPrecisionPlugin:
+        return LiteTPUPrecision()
+
+    if type(plugin) is PLTPUBf16PrecisionPlugin:
+        return LiteTPUBf16Precision()
+
+    # No backward compatibility for custom plugins / subclasses, as we can't re-instantiate these plugins
+    raise TypeError(
+        "You passed an unsupported plugin as input to Lite(plugins=...) or to a strategy. If you built a custom plugin,"
+        " please change it to subclass the `lightning_lite.plugins.precision.Precision` class. Otherwise, please open"
+        " an issue on the Lightning GitHub repository with your use case."
+    )

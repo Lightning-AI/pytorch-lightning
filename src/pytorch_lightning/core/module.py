@@ -18,13 +18,14 @@ import logging
 import numbers
 import os
 import tempfile
-import warnings
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -32,20 +33,22 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.apply_func import convert_to_tensors
+from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
+from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger, LoggerCollection
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,
@@ -54,7 +57,6 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     STEP_OUTPUT,
 )
-from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
@@ -63,7 +65,7 @@ MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[L
 
 
 class LightningModule(
-    DeviceDtypeModuleMixin,
+    _DeviceDtypeModuleMixin,
     HyperparametersMixin,
     ModelIO,
     ModelHooks,
@@ -73,7 +75,7 @@ class LightningModule(
 ):
     # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
-    __jit_unused_properties__ = (
+    __jit_unused_properties__: List[str] = (
         [
             "example_input_array",
             "on_gpu",
@@ -85,12 +87,13 @@ class LightningModule(
             "loggers",
             "automatic_optimization",
             "truncated_bptt_steps",
-            "use_amp",
             "trainer",
+            "use_amp",  # from graveyard
         ]
-        + DeviceDtypeModuleMixin.__jit_unused_properties__
+        + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
     )
+    _jit_is_scripting = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -102,22 +105,17 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        self._use_amp: bool = False
-
         # the precision used
-        self.precision: int = 32
+        self.precision: Union[int, str] = 32
 
         # optionally can be set by user
-        self._example_input_array = None
+        self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        # TODO: remove in 1.8
-        self._running_torchscript = False
-
         self._register_sharded_tensor_state_dict_hooks_if_available()
 
     @overload
@@ -177,7 +175,7 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if not self._running_torchscript and self._trainer is None:
+        if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
 
@@ -191,7 +189,7 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def example_input_array(self) -> Any:
+    def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
 
@@ -205,7 +203,7 @@ class LightningModule(
         return self._example_input_array
 
     @example_input_array.setter
-    def example_input_array(self, example: Any) -> None:
+    def example_input_array(self, example: Optional[Union[Tensor, Tuple, Dict]]) -> None:
         self._example_input_array = example
 
     @property
@@ -265,26 +263,7 @@ class LightningModule(
     @property
     def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        # this should match the implementation of `trainer.logger`
-        # we don't reuse it so we can properly set the deprecation stacklevel
-        if self._trainer is None:
-            return None
-        loggers = self.trainer.loggers
-        if len(loggers) == 0:
-            return None
-        if len(loggers) == 1:
-            return loggers[0]
-        else:
-            if not self._running_torchscript:
-                rank_zero_deprecation(
-                    "Using `lightning_module.logger` when multiple loggers are configured."
-                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
-                    " `lightning_module.logger` will return the first logger available.",
-                    stacklevel=5,
-                )
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                return LoggerCollection(loggers)
+        return self._trainer.logger if self._trainer is not None else None
 
     @property
     def loggers(self) -> List[Logger]:
@@ -294,6 +273,7 @@ class LightningModule(
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
             datahook_selector = self._trainer._data_connector._datahook_selector
+            assert datahook_selector is not None
             obj = datahook_selector.get_instance(hook_name)
             if isinstance(obj, self.__class__):
                 trainer_method = self._trainer._call_lightning_module_hook
@@ -342,7 +322,7 @@ class LightningModule(
         name: str,
         value: _METRIC_COLLECTION,
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -422,8 +402,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        value = apply_to_collection(value, numbers.Number, self.__to_tensor)
-        apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
+        value = apply_to_collection(value, (torch.Tensor, numbers.Number), self.__to_tensor, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -459,6 +438,16 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
+        if logger and self.trainer.logger is None:
+            rank_zero_warn(
+                f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
+                " by doing `Trainer(logger=ALogger(...))`"
+            )
+        if logger is None:
+            # we could set false here if there's no configured logger, however, we still need to compute the "logged"
+            # metrics anyway because that's what the evaluation loops use as return value
+            logger = True
+
         results.log(
             self._current_fx_name,
             name,
@@ -471,8 +460,8 @@ class LightningModule(
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
-            sync_dist=sync_dist and distributed_available(),
-            sync_dist_fn=self.trainer.strategy.reduce or sync_ddp,
+            sync_dist=sync_dist and _distributed_available(),
+            sync_dist_fn=self.trainer.strategy.reduce or _sync_ddp,
             sync_dist_group=sync_dist_group,
             metric_attribute=metric_attribute,
             rank_zero_only=rank_zero_only,
@@ -484,7 +473,7 @@ class LightningModule(
         self,
         dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -555,16 +544,19 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: numbers.Number) -> Tensor:
-        return torch.tensor(value, device=self.device)
-
-    @staticmethod
-    def __check_numel_1(value: Tensor, name: str) -> None:
+    def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
+        value = (
+            value.clone().detach().to(self.device)
+            if isinstance(value, torch.Tensor)
+            else torch.tensor(value, device=self.device)
+        )
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."
                 f" You can try doing `self.log({name}, {value}.mean())`"
             )
+        value = value.squeeze()
+        return value
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
@@ -606,7 +598,7 @@ class LightningModule(
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
-        Same as :meth:`torch.nn.Module.forward()`.
+        Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -617,7 +609,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -679,6 +671,10 @@ class LightningModule(
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
             so it differs from the actual loss returned in train/validation step.
+
+        Note:
+            When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
+            normalized by ``accumulate_grad_batches`` internally.
         """
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
@@ -1199,10 +1195,6 @@ class LightningModule(
                 early_stop = EarlyStopping(monitor="val_acc", mode="max")
                 checkpoint = ModelCheckpoint(monitor="val_loss")
                 return [early_stop, checkpoint]
-
-        Note:
-            Certain callback methods like :meth:`~pytorch_lightning.callbacks.base.Callback.on_init_start`
-            will never be invoked on the new callbacks returned here.
         """
         return []
 
@@ -1405,7 +1397,7 @@ class LightningModule(
         self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
-        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
+        self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
     ) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
         own implementation if you need to.
@@ -1895,10 +1887,9 @@ class LightningModule(
         """
         mode = self.training
 
-        self._running_torchscript = True
-
         if method == "script":
-            torchscript_module = torch.jit.script(self.eval(), **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.script(self.eval(), **kwargs)
         elif method == "trace":
             # if no example inputs are provided, try to see if model has example_input_array set
             if example_inputs is None:
@@ -1912,7 +1903,8 @@ class LightningModule(
             # automatically send example inputs to the right device and use trace
             example_inputs = self._on_before_batch_transfer(example_inputs)
             example_inputs = self._apply_batch_transfer_handler(example_inputs)
-            torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
+            with _jit_is_scripting():
+                torchscript_module = torch.jit.trace(func=self.eval(), example_inputs=example_inputs, **kwargs)
         else:
             raise ValueError(f"The 'method' parameter only supports 'script' or 'trace', but value given was: {method}")
 
@@ -1923,39 +1915,7 @@ class LightningModule(
             with fs.open(file_path, "wb") as f:
                 torch.jit.save(torchscript_module, f)
 
-        self._running_torchscript = False
-
         return torchscript_module
-
-    @property
-    def use_amp(self) -> bool:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        return self._use_amp
-
-    @use_amp.setter
-    def use_amp(self, use_amp: bool) -> None:
-        r"""
-        .. deprecated:: v1.6.
-
-            This property was deprecated in v1.6 and will be removed in v1.8.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-                " Please use `Trainer.amp_backend`.",
-                stacklevel=5,
-            )
-        self._use_amp = use_amp
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
@@ -1996,3 +1956,13 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
+
+
+@contextmanager
+def _jit_is_scripting() -> Generator:
+    """Workaround for https://github.com/pytorch/pytorch/issues/67146."""
+    LightningModule._jit_is_scripting = True
+    try:
+        yield
+    finally:
+        LightningModule._jit_is_scripting = False

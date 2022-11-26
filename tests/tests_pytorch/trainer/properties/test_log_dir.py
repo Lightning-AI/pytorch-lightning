@@ -113,13 +113,14 @@ def test_logdir_multiple_loggers(tmpdir):
     """Tests that the logdir equals the default_root_dir when trainer has multiple loggers."""
     default_root_dir = tmpdir / "default_root_dir"
     save_dir = tmpdir / "save_dir"
-    model = TestModel(default_root_dir)
+    expected = os.path.join(tmpdir, "save_dir", "custom_logs", "version_0")
+    model = TestModel(expected)
     trainer = Trainer(
         default_root_dir=default_root_dir,
         max_steps=2,
         logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
     )
-    assert trainer.log_dir == default_root_dir
 
+    assert trainer.log_dir == expected
     trainer.fit(model)
-    assert trainer.log_dir == default_root_dir
+    assert trainer.log_dir == expected

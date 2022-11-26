@@ -21,8 +21,8 @@ import os
 from typing import Any
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.types import _PATH
 
 
 class _FaultToleranceCheckpoint(Checkpoint):

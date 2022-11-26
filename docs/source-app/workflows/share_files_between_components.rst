@@ -28,7 +28,7 @@ To write a file, first create a reference to the file with the :class:`~lightnin
 
 .. code:: python
 
-    from lightning_app.storage.path import Path
+    from lightning_app.storage import Path
 
     # file reference
     boring_file_reference = Path("boring_file.txt")
@@ -105,7 +105,7 @@ For example, here we save a file on one component and use it in another componen
 
 .. code:: python
 
-    from lightning_app.storage.path import Path
+    from lightning_app.storage import Path
 
 
     class ComponentA(LightningWork):

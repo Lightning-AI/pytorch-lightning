@@ -7,7 +7,7 @@ from tests_app import _PROJECT_ROOT
 from lightning_app.components.python import PopenPythonScript, TracerPythonScript
 from lightning_app.components.python.tracer import Code
 from lightning_app.storage.drive import Drive
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import run_work_isolated
 from lightning_app.utilities.component import _set_work_context
 from lightning_app.utilities.enum import CacheCallsKeys
@@ -46,7 +46,7 @@ def test_simple_popen_python_script_with_kwargs():
     assert python_script.has_succeeded
 
 
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_popen_python_script_failure():
     python_script = PopenPythonScript(
         COMPONENTS_SCRIPTS_FOLDER + "c.py",
@@ -55,7 +55,7 @@ def test_popen_python_script_failure():
     )
     run_work_isolated(python_script)
     assert python_script.has_failed
-    assert python_script.status.message == "1"
+    assert "Exception(self.exit_code)" in python_script.status.message
 
 
 def test_tracer_python_script_with_kwargs():
@@ -95,8 +95,8 @@ def test_tracer_component_with_code():
     os.remove("sample.tar.gz")
 
     python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
-    run_work_isolated(python_script, params={"a": "1"}, restart_count=0)
-    assert python_script.status.message == "An error"
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0)
+    assert "An error" in python_script.status.message
 
     with open("file.py", "w") as f:
         f.write("import sys\n")
@@ -117,8 +117,33 @@ def test_tracer_component_with_code():
     python_script._calls[call_hash]["statuses"].pop(-1)
     python_script._calls[call_hash]["statuses"].pop(-1)
 
-    run_work_isolated(python_script, params={"a": "1"}, restart_count=1)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=1)
     assert python_script.has_succeeded
     assert python_script.script_args == ["--b=1", "--a=1"]
     os.remove("file.py")
     os.remove("sample.tar.gz")
+
+
+def test_tracer_component_with_code_in_dir(tmp_path):
+    """This test ensures the Tracer Component gets the latest code from the code object that is provided and
+    arguments are cleaned."""
+
+    drive = Drive("lit://code")
+    drive.component_name = "something"
+    code = Code(drive=drive, name="sample.tar.gz")
+
+    with open("file.py", "w") as f:
+        f.write('raise Exception("An error")')
+
+    with tarfile.open("sample.tar.gz", "w:gz") as tar:
+        tar.add("file.py")
+
+    drive.put("sample.tar.gz")
+    os.remove("file.py")
+    os.remove("sample.tar.gz")
+
+    python_script = TracerPythonScript("file.py", script_args=["--b=1"], raise_exception=False, code=code)
+    run_work_isolated(python_script, params={"--a": "1"}, restart_count=0, code_dir=str(tmp_path))
+    assert "An error" in python_script.status.message
+
+    assert os.path.exists(os.path.join(str(tmp_path), "file.py"))

@@ -39,6 +39,7 @@ First **create a file named app.py** with the app content:
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
     import streamlit as st
 
     def your_streamlit_app(lightning_app_state):
@@ -46,12 +47,15 @@ First **create a file named app.py** with the app content:
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
+
+        def run(self):
+            self.lit_streamlit.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
@@ -114,10 +118,11 @@ Link this function to the Lightning App by using the ``StreamlitFrontend`` class
 the ``configure_layout`` method of the Lightning component you want to connect to Streamlit.
 
 .. code:: python
-    :emphasize-lines: 8-10
+    :emphasize-lines: 9-11
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
     import streamlit as st
 
     def your_streamlit_app(lightning_app_state):
@@ -125,12 +130,15 @@ the ``configure_layout`` method of the Lightning component you want to connect t
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
+
+        def run(self):
+            self.lit_streamlit.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
@@ -149,10 +157,11 @@ The second step, is to tell the Root component in which tab to render this compo
 In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the application.
 
 .. code:: python
-    :emphasize-lines: 18
+    :emphasize-lines: 22
 
     # app.py
     import lightning as L
+    import lightning.app.frontend as frontend
     import streamlit as st
 
     def your_streamlit_app(lightning_app_state):
@@ -160,12 +169,15 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
 
     class LitStreamlit(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
+
+        def run(self):
+            self.lit_streamlit.run()
 
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}

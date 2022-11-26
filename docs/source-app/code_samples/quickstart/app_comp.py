@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.app.testing.helpers import EmptyFlow, EmptyWork
+from lightning.app.testing import EmptyFlow, EmptyWork
 
 
 class FlowB(L.LightningFlow):

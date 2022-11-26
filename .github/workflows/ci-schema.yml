@@ -1,10 +1,15 @@
 name: Check Schema
 
 on:
-  push: {}
+  push:
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
 jobs:
   check:
-    uses: ./.github/workflows/_check-schema.yml
+    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@v0.4.1
+    with:
+      # skip azure due to the wrong schema file by MSFT
+      # https://github.com/Lightning-AI/lightning-flash/pull/1455#issuecomment-1244793607
+      azure-dir: ''

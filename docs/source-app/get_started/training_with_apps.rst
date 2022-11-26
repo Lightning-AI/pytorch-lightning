@@ -108,13 +108,6 @@ Next Steps
    :height: 180
 
 .. displayitem::
-   :header: Add Hyper Parameter Optimization
-   :description: Add a HPO to optimize your models
-   :col_css: col-md-4
-   :button_link: ../examples/hpo/hpo.html
-   :height: 180
-
-.. displayitem::
    :header: Add Model Serving
    :description: Serve and load testing with MLServer and Locust
    :col_css: col-md-4

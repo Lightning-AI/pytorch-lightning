@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import time
-from functools import wraps
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Optional
 
 import torch.multiprocessing as mp
-from torch.multiprocessing import ProcessContext
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
+from lightning_lite.strategies.launchers.xla import _rank_teardown
+from lightning_lite.utilities import move_data_to_device
 from pytorch_lightning.strategies.launchers.multiprocessing import (
     _FakeQueue,
     _GlobalStateSnapshot,
@@ -28,18 +28,7 @@ from pytorch_lightning.strategies.launchers.multiprocessing import (
     _WorkerOutput,
 )
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
-
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-else:
-    xm, xmp = None, None
-
-if TYPE_CHECKING:
-    from pytorch_lightning.strategies import Strategy
 
 
 class _XLALauncher(_MultiProcessingLauncher):
@@ -58,7 +47,9 @@ class _XLALauncher(_MultiProcessingLauncher):
         strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def __init__(self, strategy: "Strategy") -> None:
+    def __init__(self, strategy: "pl.strategies.TPUSpawnStrategy") -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(strategy=strategy, start_method="fork")
 
     @property
@@ -80,10 +71,12 @@ class _XLALauncher(_MultiProcessingLauncher):
         """
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        _save_spawn(
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
+        xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            nprocs=len(self._strategy.parallel_devices),
+            nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
         worker_output = return_queue.get()
@@ -103,14 +96,16 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._worker_setup(process_idx)
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
             results = self._collect_rank_zero_results(trainer, results)
 
-        if self._strategy.local_rank == 0:
+        if process_idx == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
+
+        _rank_teardown(process_idx)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
         rank_zero_debug("Collecting results from rank 0 process.")
@@ -139,30 +134,3 @@ class _XLALauncher(_MultiProcessingLauncher):
         self.add_to_queue(trainer, extra)
 
         return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
-
-
-def _save_spawn(
-    fn: Callable,
-    args: Tuple = (),
-    nprocs: Optional[int] = None,
-    join: bool = True,
-    daemon: bool = False,
-    start_method: str = "spawn",
-) -> Optional[ProcessContext]:
-    """Wraps the :func:`torch_xla.distributed.xla_multiprocessing.spawn` with added teardown logic for the worker
-    processes."""
-
-    @wraps(fn)
-    def wrapped(rank: int, *_args: Any) -> None:
-        fn(rank, *_args)
-
-        # Make all processes wait for each other before joining
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-
-        # Ensure that the rank 0 process is the one exiting last
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
-
-    return xmp.spawn(wrapped, args=args, nprocs=nprocs, join=join, daemon=daemon, start_method=start_method)

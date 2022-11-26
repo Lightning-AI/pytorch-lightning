@@ -6,6 +6,7 @@ from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends.backend import Backend, WorkManager
 from lightning_app.utilities.enum import WorkStageStatus
 from lightning_app.utilities.network import _check_service_url_is_ready
+from lightning_app.utilities.port import disable_port, enable_port
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
 
 
@@ -27,6 +28,8 @@ class MultiProcessWorkManager(WorkManager):
             response_queue=self.app.response_queues[self.work.name],
             copy_request_queue=self.app.copy_request_queues[self.work.name],
             copy_response_queue=self.app.copy_response_queues[self.work.name],
+            flow_to_work_delta_queue=self.app.flow_to_work_delta_queues[self.work.name],
+            run_executor_cls=self.work._run_executor_cls,
         )
         self._process = multiprocessing.Process(target=self._work_runner)
         self._process.start()
@@ -74,10 +77,31 @@ class MultiProcessingBackend(Backend):
                 and work._url == ""
                 and work._port
             ):
-                url = f"http://{work._host}:{work._port}"
-                if _check_service_url_is_ready(url):
+                url = work._future_url if work._future_url else f"http://{work._host}:{work._port}"
+                if _check_service_url_is_ready(url, metadata=f"Checking {work.name}"):
                     work._url = url
 
     def stop_work(self, app, work: "lightning_app.LightningWork") -> None:
         work_manager: MultiProcessWorkManager = app.processes[work.name]
         work_manager.kill()
+
+
+class CloudMultiProcessingBackend(MultiProcessingBackend):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Note: Track the open ports to close them on termination.
+        self.ports = []
+
+    def create_work(self, app, work) -> None:
+        work._host = "0.0.0.0"
+        nc = enable_port()
+        self.ports.append(nc.port)
+        work._port = nc.port
+        work._future_url = f"https://{nc.host}"
+        return super().create_work(app, work)
+
+    def stop_work(self, app, work: "lightning_app.LightningWork") -> None:
+        disable_port(work._port)
+        self.ports = [port for port in self.ports if port != work._port]
+        return super().stop_work(app, work)

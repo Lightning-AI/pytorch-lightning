@@ -1,0 +1,4 @@
+# install all mandatory dependencies
+-r ./base.txt
+
+-r ./test.txt

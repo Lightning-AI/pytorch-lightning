@@ -58,7 +58,7 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
-    model = TestModel(TrainerFn.TUNING, RunningStage.TRAINING)
+    model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
     trainer.tune(model)
     assert trainer.state.finished
 

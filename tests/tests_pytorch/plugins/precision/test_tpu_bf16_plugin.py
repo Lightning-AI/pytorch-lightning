@@ -17,7 +17,7 @@ from unittest.mock import Mock
 from pytorch_lightning.plugins import TPUBf16PrecisionPlugin
 
 
-def test_teardown():
+def test_teardown(xla_available):
     plugin = TPUBf16PrecisionPlugin()
     plugin.connect(Mock(), Mock(), Mock())
     assert os.environ.get("XLA_USE_BF16") == "1"

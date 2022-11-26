@@ -17,9 +17,8 @@ import copy
 import inspect
 import pickle
 import types
-from argparse import Namespace
 from dataclasses import fields, is_dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, MutableMapping, Optional, Sequence, Tuple, Type, Union
 
 from torch import nn
 from typing_extensions import Literal
@@ -94,18 +93,13 @@ def is_picklable(obj: object) -> bool:
         return False
 
 
-def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
+def clean_namespace(hparams: MutableMapping) -> None:
     """Removes all unpicklable entries from hparams."""
-
-    hparams_dict = hparams
-    if isinstance(hparams, Namespace):
-        hparams_dict = hparams.__dict__
-
-    del_attrs = [k for k, v in hparams_dict.items() if not is_picklable(v)]
+    del_attrs = [k for k, v in hparams.items() if not is_picklable(v)]
 
     for k in del_attrs:
         rank_zero_warn(f"attribute '{k}' removed from hparams because it cannot be pickled")
-        del hparams_dict[k]
+        del hparams[k]
 
 
 def parse_class_init_keys(
@@ -262,8 +256,6 @@ def save_hyperparameters(
 
     # `hparams` are expected here
     obj._set_hparams(hp)
-    # make deep copy so there is not other runtime changes reflected
-    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
     for k, v in obj._hparams.items():
         if isinstance(v, nn.Module):
@@ -271,6 +263,9 @@ def save_hyperparameters(
                 f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
                 f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k!r}])`."
             )
+
+    # make a deep copy so there are no other runtime changes reflected
+    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
 class AttributeDict(Dict):
@@ -321,14 +316,17 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
         holders.append(model)
 
     # Check if attribute in model.hparams, either namespace or dict
-    if hasattr(model, "hparams"):
-        if attribute in model.hparams:
-            holders.append(model.hparams)
+    if hasattr(model, "hparams") and attribute in model.hparams:
+        holders.append(model.hparams)
 
     trainer = model._trainer
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
-    if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
-        holders.append(trainer.datamodule)
+    if trainer is not None and trainer.datamodule is not None:
+        if hasattr(trainer.datamodule, attribute):
+            holders.append(trainer.datamodule)
+
+        if hasattr(trainer.datamodule, "hparams") and attribute in trainer.datamodule.hparams:
+            holders.append(trainer.datamodule.hparams)
 
     return holders
 

@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.profilers.advanced import AdvancedProfiler
-from pytorch_lightning.profilers.base import AbstractProfiler, BaseProfiler, PassThroughProfiler
+from pytorch_lightning.profilers.base import PassThroughProfiler
 from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.profilers.pytorch import PyTorchProfiler
 from pytorch_lightning.profilers.simple import SimpleProfiler
 from pytorch_lightning.profilers.xla import XLAProfiler
 
 __all__ = [
-    "AbstractProfiler",
-    "BaseProfiler",
     "Profiler",
     "AdvancedProfiler",
     "PassThroughProfiler",

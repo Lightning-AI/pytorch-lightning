@@ -45,4 +45,4 @@ class HelloWorld(LightningFlow):
         return [{"name": "StreamLitUI", "content": self.streamlit_ui}]
 
 
-app = LightningApp(HelloWorld())
+app = LightningApp(HelloWorld(), log_level="debug")

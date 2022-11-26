@@ -19,43 +19,40 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import ClusterEnvironment
+from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    get_default_process_group_backend_for_device,
-    log,
-)
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
+log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
-if _DEEPSPEED_AVAILABLE:
+_DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
@@ -88,16 +85,8 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
         return super().forward(*inputs, **kwargs)
-
-    def _batch_to(self, batch: Tensor) -> Tensor:
-        if torch.is_floating_point(batch):
-            if self.precision == PrecisionType.HALF:
-                return batch.half()
-            elif self.precision == PrecisionType.BFLOAT:
-                return batch.bfloat16()
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -106,7 +95,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         zero_optimization: bool = True,
         stage: int = 2,
         remote_device: str = "cpu",
@@ -330,6 +319,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 reduce_bucket_size=reduce_bucket_size,
                 sub_group_size=sub_group_size,
             )
+        import deepspeed
+
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
@@ -359,12 +350,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup_distributed(self) -> None:
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
-
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True
@@ -377,11 +365,13 @@ class DeepSpeedStrategy(DDPStrategy):
         self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
+        import deepspeed
+
         assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -393,13 +383,6 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         self._process_group_backend = self._get_process_group_backend()
         deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
-
-    def _get_process_group_backend(self) -> str:
-        return (
-            self._process_group_backend
-            or _get_process_group_backend_from_env()
-            or get_default_process_group_backend_for_device(self.root_device)
-        )
 
     def _set_node_environment_variables(self) -> None:
         assert self.cluster_environment is not None
@@ -449,6 +432,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         This calls :func:`deepspeed.initialize` internally.
         """
+        import deepspeed
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -548,6 +533,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
+        import deepspeed
+
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -568,6 +555,8 @@ class DeepSpeedStrategy(DDPStrategy):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
+        import deepspeed
+
         assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
@@ -580,17 +569,10 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        import deepspeed
+
         assert isinstance(self.config, dict)
-        optimizer, scheduler = None, None
-        if "optimizer" not in self.config:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
-            optimizer, lr_scheduler, _ = self._init_optimizers()
-            if lr_scheduler is not None:
-                scheduler = lr_scheduler.scheduler
+
         # todo: this is required for DeepSpeed throughput timers
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
@@ -608,8 +590,8 @@ class DeepSpeedStrategy(DDPStrategy):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
+            optimizer=None,
+            lr_scheduler=None,
             model_parameters=[],
             dist_init_required=False,
         )
@@ -617,8 +599,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
-        return distributed_sampler_kwargs
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -626,7 +607,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer.state.fn != TrainerFn.FITTING:
             return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
@@ -669,6 +650,8 @@ class DeepSpeedStrategy(DDPStrategy):
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self) -> int:
+        import deepspeed
+
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
@@ -872,6 +855,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             ckpt: The ckpt file.
         """
+        import deepspeed
 
         assert self.lightning_module is not None
 

@@ -1,6 +1,5 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Union
 
-from deprecate.utils import void
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
@@ -53,7 +52,7 @@ class PredictionLoop(DataLoaderLoop):
         return length
 
     @property
-    def max_batches(self) -> List[int]:
+    def max_batches(self) -> List[Union[int, float]]:
         """The max number of batches this loop will run for each dataloader."""
         return self.trainer.num_predict_batches
 
@@ -82,7 +81,7 @@ class PredictionLoop(DataLoaderLoop):
         if self.done:
             self.dataloader_progress.reset_on_run()
 
-    def on_run_start(self) -> None:  # type: ignore[override]
+    def on_run_start(self) -> None:
         """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
         self.trainer._call_lightning_module_hook("on_predict_model_eval")
         self.trainer.lightning_module.zero_grad()
@@ -91,7 +90,6 @@ class PredictionLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
-        void(*args, **kwargs)
         dataloader = self.current_dataloader
         if dataloader is not None:
             _set_sampler_epoch(dataloader, self.trainer.fit_loop.epoch_progress.current.processed)

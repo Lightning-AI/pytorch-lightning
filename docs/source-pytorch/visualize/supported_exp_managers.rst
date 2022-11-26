@@ -8,7 +8,8 @@ To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
 
 Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. code-block:: python
+.. testcode::
+    :skipif: not _COMET_AVAILABLE
 
     from pytorch_lightning.loggers import CometLogger
 
@@ -39,14 +40,15 @@ To use `MLflow <https://mlflow.org/>`_ first install the MLflow package:
 
 Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. code-block:: python
+.. testcode::
+    :skipif: not _MLFLOW_AVAILABLE
 
     from pytorch_lightning.loggers import MLFlowLogger
 
     mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
-Access the comet logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
+Access the mlflow logger from any function (except the LightningModule *init*) to use its API for tracking advanced artifacts
 
 .. code-block:: python
 
@@ -76,7 +78,8 @@ or with conda:
 
 Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. code-block:: python
+.. testcode::
+    :skipif: not _NEPTUNE_AVAILABLE
 
     from pytorch_lightning.loggers import NeptuneLogger
 
@@ -140,7 +143,8 @@ To use `Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ (wa
 
 Configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. code-block:: python
+.. testcode::
+    :skipif: not _WANDB_AVAILABLE
 
     from pytorch_lightning.loggers import WandbLogger
 
@@ -174,7 +178,8 @@ Use multiple exp managers
 =========================
 To use multiple experiment managers at the same time, pass a list to the *logger* :class:`~pytorch_lightning.trainer.trainer.Trainer` argument.
 
-.. code-block:: python
+.. testcode::
+    :skipif: not _WANDB_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 

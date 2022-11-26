@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import Optional, Union
 
+from lightning_lite.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 

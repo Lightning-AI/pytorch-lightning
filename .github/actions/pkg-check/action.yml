@@ -5,6 +5,11 @@ inputs:
   pkg-name:
     description: package name inside lightning.*
     required: true
+    default: ""
+  nb-dirs:
+    description: nb of packages in the wrap/distribution
+    required: false
+    default: "1"
 
 runs:
   using: "composite"
@@ -17,10 +22,7 @@ runs:
   - name: Source check
     env:
       PACKAGE_NAME: ${{ inputs.pkg-name }}
-    run: |
-      python setup.py check --metadata --strict
-      # TODO: fix reimporting (F811) which is aftefact after rplacing var assigne with import in meta package
-      flake8 src/lightning/ --ignore E402,F401,E501,W391,E303,F811
+    run: python setup.py check --metadata --strict
     shell: bash
 
   - name: Create package
@@ -36,25 +38,22 @@ runs:
       # python setup.py clean
     shell: bash
 
-  - name: copy/export pkg
-    run: cp dist/* pypi/
-    shell: bash
-
   - name: Unzip packages
-    if: ${{ inputs.pkg-name != '' }}
+    if: ${{ inputs.pkg-name != 'lightning' }}
     working-directory: dist
     run: for file in `ls *.gz`; do tar -xzf $file; done
     shell: bash
 
   - name: Check single pkg/folder
-    if: ${{ inputs.pkg-name != '' }}
+    if: ${{ inputs.pkg-name != 'lightning' }}
     working-directory: dist
     run: |
       import os, glob, pathlib, shutil
       # list folders without ending .egg-info
-      dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      ls = glob.glob(os.path.join("*", "src", "*"))
+      dirs = [d for d in ls if os.path.isdir(d) and not d.endswith(".egg-info")]
       print(dirs)
-      assert len(dirs) == 1
+      assert len(dirs) == ${{ inputs.nb-dirs }}
       # cleaning
       shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
     shell: python

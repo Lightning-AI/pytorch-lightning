@@ -3,7 +3,7 @@
 <div align="center">
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
-**Build PyTorch models and lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.**
+**Build and train PyTorch models and connect them to the ML lifecycle using Lightning App templates, without handling DIY infrastructure, cost management, scaling, and other headaches.**
 
 ______________________________________________________________________
 
@@ -14,6 +14,7 @@ ______________________________________________________________________
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
+  <a href="https://pytorch-lightning.readthedocs.io/en/stable/generated/CONTRIBUTING.html">Contribute</a> •
   <a href="#license">License</a>
 </p>
 
@@ -89,17 +90,15 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 
 <center>
 
-|   System / PyTorch ver.    |                                                                                                               1.9                                                                                                               |                                                                                                              1.10                                                                                                               |                                                                                                       1.12 (latest)                                                                                                        |
-| :------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|  Linux py3.7 \[GPUs\*\*\]  |                                                                                                                -                                                                                                                |                                                                                                                -                                                                                                                |                                                                                                             -                                                                                                              |
-| Linux py3.7 \[TPUs\*\*\*\] |                                       [![CircleCI](https://circleci.com/gh/Lightning-AI/lightning/tree/master.svg?style=svg)](https://circleci.com/gh/Lightning-AI/lightning/tree/master)                                       |                                                                                                                -                                                                                                                |                                                                                                             -                                                                                                              |
-|    Linux py3.8 \[IPUs\]    | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(IPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=25&branchName=master) |                                                                                                                -                                                                                                                |                                                                                                             -                                                                                                              |
-|    Linux py3.8 \[HPUs\]    |                                                                                                                -                                                                                                                | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=master) |                                                                                                             -                                                                                                              |
-|  Linux py3.8 (with Conda)  |   [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml)    |   [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml)    |                                                                                                             -                                                                                                              |
-|  Linux py3.9 (with Conda)  |                                                                                                                -                                                                                                                |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml) |
-|      Linux py3.{7,9}       |                                                                                                                -                                                                                                                |                                                                                                                -                                                                                                                |  [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml)  |
-|       OSX py3.{7,9}        |                                                                                                                -                                                                                                                |                                                                                                                -                                                                                                                |  [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml)  |
-|     Windows py3.{7,9}      |                                                                                                                -                                                                                                                |                                                                                                                -                                                                                                                |  [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml)  |
+|   System / PyTorch ver.    |                                                                                                              1.10                                                                                                               |                                                                                                       1.12                                                                                                       |
+| :------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|  Linux py3.7 \[GPUs\*\*\]  |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
+| Linux py3.7 \[TPUs\*\*\*\] |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
+|    Linux py3.8 \[IPUs\]    |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
+|    Linux py3.8 \[HPUs\]    | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=master) |                                                                                                        -                                                                                                         |
+|      Linux py3.{7,9}       |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
+|       OSX py3.{7,9}        |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
+|     Windows py3.{7,9}      |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
 
 - _\*\* tests run on two NVIDIA P100_
 - _\*\*\* tests run on Google GKE TPUv2/3. TPU py3.7 means we support Colab and Kaggle env._
@@ -137,22 +136,15 @@ pip install pytorch-lightning['extra']
 conda install pytorch-lightning -c conda-forge
 ```
 
-#### Install stable 1.7.x
-
-The actual status of 1.7 \[stable\] is the following:
-
-[![Test PyTorch full](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-full.yml?query=branch%3Arelease%2Fpytorch)
-[![Test PyTorch with Conda](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-test-conda.yml?query=branch%3Arelease%2Fpytorch)
-[![TPU tests](https://dl.circleci.com/status-badge/img/gh/Lightning-AI/lightning/tree/release%2Fpytorch.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/Lightning-AI/lightning/tree/release%2Fpytorch)
-[![Check Docs](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml/badge.svg?branch=release%2Fpytorch&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml?query=branch%3Arelease%2Fpytorch)
+#### Install stable version
 
 Install future release from the source
 
 ```bash
-pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/stable.zip -U
 ```
 
-#### Install bleeding-edge - future 1.6
+#### Install bleeding-edge
 
 Install nightly from the source (no guarantees)
 
@@ -415,7 +407,7 @@ The lightning community is maintained by
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 590+ active community contributors.
 
-Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
+Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://pytorch-lightning.readthedocs.io/en/stable/generated/CONTRIBUTING.html)
 
 Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 

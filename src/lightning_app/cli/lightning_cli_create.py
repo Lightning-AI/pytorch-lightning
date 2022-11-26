@@ -1,10 +1,16 @@
+import os
+from pathlib import Path
+from typing import Any, Optional, Union
+
 import click
+from lightning_cloud.openapi.rest import ApiException
 
 from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
+from lightning_app.cli.cmd_ssh_keys import _SSHKeyManager
 
 
 @click.group("create")
-def create():
+def create() -> None:
     """Create Lightning AI self-managed resources (clusters, etc…)"""
     pass
 
@@ -23,14 +29,7 @@ def create():
     required=False,
     default="us-east-1",
     help="AWS region that is used to host the associated resources.",
-)
-@click.option(
-    "--instance-types",
-    "instance_types",
-    type=str,
-    required=False,
-    default=None,
-    help="Instance types that you want to support, for computer jobs within the cluster.",
+    hidden=True,
 )
 @click.option(
     "--enable-performance",
@@ -63,12 +62,11 @@ def create_cluster(
     role_arn: str,
     external_id: str,
     provider: str,
-    instance_types: str,
     edit_before_creation: bool,
     enable_performance: bool,
     wait: bool,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
     if provider.lower() != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
@@ -79,8 +77,33 @@ def create_cluster(
         region=region,
         role_arn=role_arn,
         external_id=external_id,
-        instance_types=instance_types.split(",") if instance_types is not None else [],
         edit_before_creation=edit_before_creation,
         cost_savings=not enable_performance,
         wait=wait,
     )
+
+
+@create.command("ssh-key")
+@click.option("--name", "key_name", default=None, help="name of ssh key")
+@click.option("--comment", "comment", default="", help="comment detailing your SSH key")
+@click.option(
+    "--public-key",
+    "public_key",
+    help="public key or path to public key file",
+    required=True,
+)
+def add_ssh_key(
+    public_key: Union[str, "os.PathLike[str]"], key_name: Optional[str] = None, comment: Optional[str] = None
+) -> None:
+    """Add a new Lightning AI ssh-key to your account."""
+    ssh_key_manager = _SSHKeyManager()
+
+    new_public_key = Path(str(public_key)).read_text() if os.path.isfile(str(public_key)) else public_key
+    try:
+        ssh_key_manager.add_key(name=key_name, comment=comment, public_key=str(new_public_key))
+    except ApiException as e:
+        # if we got an exception it might be the user passed the private key file
+        if os.path.isfile(str(public_key)) and os.path.isfile(f"{public_key}.pub"):
+            ssh_key_manager.add_key(name=key_name, comment=comment, public_key=Path(f"{public_key}.pub").read_text())
+        else:
+            raise e

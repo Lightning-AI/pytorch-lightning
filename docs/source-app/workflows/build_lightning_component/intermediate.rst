@@ -9,8 +9,9 @@ Develop a Lightning Component (intermediate)
 *****************************
 Add a web user interface (UI)
 *****************************
-Every Lightning Component can have its own user interface (UI). Lightning Components support any kind
-of UI interface such as react.js, vue.js, streamlit, gradio, dash, web urls, etc...(`full list here <../add_web_ui/index.html>`_).
+Every lightning component can have its own user interface (UI). Lightning components support any kind
+of UI interface such as dash, gradio, panel, react.js, streamlit, vue.js, web urls,
+etc...(`full list here <../add_web_ui/index.html>`_).
 
 Let's say that we have a user interface defined in html:
 
@@ -31,12 +32,11 @@ To *connect* this user interface to the Component, define the configure_layout m
     :emphasize-lines: 5, 6
 
     import lightning as L
-    from lightning_app.frontend.web import StaticWebFrontend
 
 
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 Finally, route the Component's UI through the root Component's **configure_layout** method:
 
@@ -49,7 +49,7 @@ Finally, route the Component's UI through the root Component's **configure_layou
 
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.app.frontend.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
 
 
     class LitApp(L.LightningFlow):

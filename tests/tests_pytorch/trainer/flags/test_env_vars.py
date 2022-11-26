@@ -49,9 +49,7 @@ def test_passing_env_variables_defaults():
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_DEVICES": "2"})
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-def test_passing_env_variables_devices(cuda_available_mock, device_count_mock):
+def test_passing_env_variables_devices(cuda_count_2):
     """Testing overwriting trainer arguments."""
     trainer = Trainer()
     assert trainer.num_devices == 2

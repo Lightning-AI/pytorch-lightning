@@ -4,7 +4,7 @@ from datetime import datetime
 from time import sleep
 
 import lightning as L
-from lightning.app.frontend.web import StaticWebFrontend
+from lightning.app.frontend import StaticWebFrontend
 
 
 class Word(L.LightningFlow):
@@ -46,4 +46,4 @@ class V0App(L.LightningFlow):
         return [tab1, tab2, tab3]
 
 
-app = L.LightningApp(V0App())
+app = L.LightningApp(V0App(), log_level="debug")

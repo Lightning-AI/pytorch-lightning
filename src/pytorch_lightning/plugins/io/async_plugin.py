@@ -15,7 +15,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 
 

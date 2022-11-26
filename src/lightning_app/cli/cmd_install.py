@@ -1,19 +1,20 @@
-import logging
 import os
 import re
 import shutil
 import subprocess
 import sys
+from typing import Dict, Optional, Tuple
 
 import requests
 from packaging.version import Version
 
 from lightning_app.core.constants import LIGHTNING_APPS_PUBLIC_REGISTRY, LIGHTNING_COMPONENT_PUBLIC_REGISTRY
+from lightning_app.utilities.app_helpers import Logger
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
-def gallery_component(name, yes_arg, version_arg, cwd=None):
+def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> None:
     # make sure org/component-name name is correct
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
 
@@ -30,7 +31,7 @@ def gallery_component(name, yes_arg, version_arg, cwd=None):
     _install_component(git_url)
 
 
-def non_gallery_component(gh_url, yes_arg, cwd=None):
+def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
 
     # give the user the chance to do a manual install
     git_url = _show_non_gallery_install_component_prompt(gh_url, yes_arg)
@@ -39,7 +40,7 @@ def non_gallery_component(gh_url, yes_arg, cwd=None):
     _install_component(git_url)
 
 
-def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
+def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> None:
 
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
@@ -59,7 +60,7 @@ def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
     _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
 
-def non_gallery_app(gh_url, yes_arg, cwd=None, overwrite=False):
+def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool = False) -> None:
 
     # give the user the chance to do a manual install
     repo_url, folder_name = _show_non_gallery_install_app_prompt(gh_url, yes_arg)
@@ -68,7 +69,7 @@ def non_gallery_app(gh_url, yes_arg, cwd=None, overwrite=False):
     _install_app(repo_url, repo_url, folder_name, cwd=cwd, overwrite=overwrite)
 
 
-def _show_install_component_prompt(entry, component, org, yes_arg):
+def _show_install_component_prompt(entry: Dict[str, str], component: str, org: str, yes_arg: bool) -> str:
     git_url = entry["gitUrl"]
 
     # yes arg does not prompt the user for permission to install anything
@@ -107,7 +108,7 @@ def _show_install_component_prompt(entry, component, org, yes_arg):
         raise SystemExit(m)
 
 
-def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
+def _show_non_gallery_install_component_prompt(gh_url: str, yes_arg: bool) -> str:
     if ".git@" not in gh_url:
         m = """
         Error, your github url must be in the following format:
@@ -120,7 +121,7 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
 
     developer = gh_url.split("/")[3]
     component_name = gh_url.split("/")[4].split(".git")[0]
-    repo_url = re.search(r"git\+(.*).git", gh_url).group(1)
+    repo_url = re.search(r"git\+(.*).git", gh_url).group(1)  # type: ignore
 
     # yes arg does not prompt the user for permission to install anything
     # automatically creates env and sets up the project
@@ -162,7 +163,9 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
         raise SystemExit(m)
 
 
-def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
+def _show_install_app_prompt(
+    entry: Dict[str, str], app: str, org: str, yes_arg: bool, resource_type: str
+) -> Tuple[str, str, str, Optional[str]]:
     source_url = entry["sourceUrl"]  # This URL is used only to display the repo and extract folder name
     full_git_url = entry["gitUrl"]  # Used to clone the repo (can include tokens for private repos)
     git_url_parts = full_git_url.split("#ref=")
@@ -210,7 +213,7 @@ def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
         raise SystemExit(m)
 
 
-def _show_non_gallery_install_app_prompt(gh_url, yes_arg):
+def _show_non_gallery_install_app_prompt(gh_url: str, yes_arg: bool) -> Tuple[str, str]:
     try:
         if gh_url.endswith(".git"):
             # folder_name when it's a GH url with .git
@@ -220,7 +223,7 @@ def _show_non_gallery_install_app_prompt(gh_url, yes_arg):
             # the last part of the url is the folder name otherwise
             folder_name = gh_url.split("/")[-1]
 
-        org = re.search(r"github.com\/(.*)\/", gh_url).group(1)
+        org = re.search(r"github.com\/(.*)\/", gh_url).group(1)  # type: ignore
     except Exception as e:  # noqa
         m = """
         Your github url is not supported. Here's the supported format:
@@ -273,7 +276,7 @@ def _show_non_gallery_install_app_prompt(gh_url, yes_arg):
         raise SystemExit(m)
 
 
-def _validate_name(name, resource_type, example):
+def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, str]:
     # ensure resource identifier is properly formatted
     try:
         org, resource = name.split("/")
@@ -296,7 +299,7 @@ def _validate_name(name, resource_type, example):
     return org, resource
 
 
-def _resolve_resource(registry_url, name, version_arg, resource_type):
+def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_type: str) -> Dict[str, str]:
     gallery_entries = []
     try:
         response = requests.get(registry_url)
@@ -343,7 +346,7 @@ def _resolve_resource(registry_url, name, version_arg, resource_type):
     return entry
 
 
-def _install_with_env(repo_url, folder_name, cwd=None):
+def _install_with_env(repo_url: str, folder_name: str, cwd: str = None) -> None:
     if not cwd:
         cwd = os.getcwd()
 
@@ -379,8 +382,8 @@ def _install_with_env(repo_url, folder_name, cwd=None):
 
 
 def _install_app(
-    source_url: str, git_url: str, folder_name: str, cwd=None, overwrite: bool = False, git_sha: str = None
-):
+    source_url: str, git_url: str, folder_name: str, cwd: str = None, overwrite: bool = False, git_sha: str = None
+) -> None:
     """Installing lighting app from the `git_url`
 
     Args:
@@ -455,7 +458,7 @@ def _install_app(
     logger.info(m)
 
 
-def _install_component(git_url):
+def _install_component(git_url: str) -> None:
     logger.info("⚡ RUN: pip install")
 
     out = subprocess.check_output(["pip", "install", git_url])
@@ -479,11 +482,11 @@ def _install_component(git_url):
         logger.info(m)
 
 
-def _resolve_app_registry():
+def _resolve_app_registry() -> str:
     registry = os.environ.get("LIGHTNING_APP_REGISTRY", LIGHTNING_APPS_PUBLIC_REGISTRY)
     return registry
 
 
-def _resolve_component_registry():
+def _resolve_component_registry() -> str:
     registry = os.environ.get("LIGHTNING_COMPONENT_REGISTRY", LIGHTNING_COMPONENT_PUBLIC_REGISTRY)
     return registry

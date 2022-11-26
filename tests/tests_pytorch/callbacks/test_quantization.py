@@ -35,7 +35,7 @@ from tests_pytorch.helpers.simple_models import RegressionModel
 @pytest.mark.parametrize("observe", ["average", "histogram"])
 @pytest.mark.parametrize("fuse", [True, False])
 @pytest.mark.parametrize("convert", [True, False])
-@RunIf(quantization=True, max_torch="1.11")
+@RunIf(quantization=True, sklearn=True, max_torch="1.11")
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
     cuda_available = CUDAAccelerator.is_available()
@@ -100,7 +100,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 
-@RunIf(quantization=True)
+@RunIf(quantization=True, sklearn=True)
 def test_quantize_torchscript(tmpdir):
     """Test converting to torchscipt."""
     dm = RegressDataModule()
@@ -109,14 +109,14 @@ def test_quantize_torchscript(tmpdir):
     trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
-    batch = iter(dm.test_dataloader()).next()
+    batch = next(iter(dm.test_dataloader()))
     qmodel(qmodel.quant(batch[0]))
 
     tsmodel = qmodel.to_torchscript()
     tsmodel(tsmodel.quant(batch[0]))
 
 
-@RunIf(quantization=True)
+@RunIf(quantization=True, sklearn=True)
 def test_quantization_exceptions(tmpdir):
     """Test wrong fuse layers."""
     with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
@@ -157,7 +157,7 @@ def custom_trigger_last(trainer):
     "trigger_fn,expected_count",
     [(None, 9), (3, 3), (custom_trigger_never, 0), (custom_trigger_even, 5), (custom_trigger_last, 2)],
 )
-@RunIf(quantization=True)
+@RunIf(quantization=True, sklearn=True)
 def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], expected_count: int):
     """Test  how many times the quant is called."""
     dm = RegressDataModule()
@@ -216,7 +216,7 @@ def test_quantization_disable_observers(tmpdir, observer_enabled_stages):
         )
 
 
-@RunIf(quantization=True)
+@RunIf(quantization=True, sklearn=True)
 def test_quantization_val_test_predict(tmpdir):
     """Test the default quantization aware training not affected by validating, testing and predicting."""
     seed_everything(42)

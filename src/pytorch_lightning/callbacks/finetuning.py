@@ -141,7 +141,7 @@ class BaseFinetuning(Callback):
 
         Args:
             modules: A given module or an iterable of modules
-            train_bn: Whether to train BatchNorm module
+            train_bn: Whether not to train the BatchNorm module
             requires_grad: Whether to create a generator for trainable or non-trainable parameters.
         Returns:
             Generator
@@ -164,9 +164,24 @@ class BaseFinetuning(Callback):
         """
         modules = BaseFinetuning.flatten_modules(modules)
         for module in modules:
+            if isinstance(module, _BatchNorm):
+                module.track_running_stats = True
             # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
             for param in module.parameters(recurse=False):
                 param.requires_grad = True
+
+    @staticmethod
+    def freeze_module(module: Module) -> None:
+        """Freezes the parameters of the provided module.
+
+        Args:
+            module: A given module
+        """
+        if isinstance(module, _BatchNorm):
+            module.track_running_stats = False
+        # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
+        for param in module.parameters(recurse=False):
+            param.requires_grad = False
 
     @staticmethod
     def freeze(modules: Union[Module, Iterable[Union[Module, Iterable]]], train_bn: bool = True) -> None:
@@ -184,9 +199,7 @@ class BaseFinetuning(Callback):
             if isinstance(mod, _BatchNorm) and train_bn:
                 BaseFinetuning.make_trainable(mod)
             else:
-                # recursion could yield duplicate parameters for parent modules w/ parameters so disabling it
-                for param in mod.parameters(recurse=False):
-                    param.requires_grad = False
+                BaseFinetuning.freeze_module(mod)
 
     @staticmethod
     def filter_on_optimizer(optimizer: Optimizer, params: Iterable) -> List:
@@ -244,7 +257,7 @@ class BaseFinetuning(Callback):
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
         self.freeze_before_training(pl_module)
 
     @staticmethod

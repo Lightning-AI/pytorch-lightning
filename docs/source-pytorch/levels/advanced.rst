@@ -59,7 +59,7 @@ Configure all aspects of Lightning for advanced usecases.
 
 .. displayitem::
    :header: Level 20: Explore HPUs
-   :description: Explore Havana Gaudi Processing Unit (HPU) for model scaling.
+   :description: Explore Habana Gaudi Processing Unit (HPU) for model scaling.
    :col_css: col-md-6
    :button_link: advanced_level_20.html
    :height: 150

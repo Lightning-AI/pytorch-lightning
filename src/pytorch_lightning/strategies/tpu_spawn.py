@@ -13,42 +13,38 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
+from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
+from lightning_lite.plugins.environments import XLAEnvironment
+from lightning_lite.utilities.data import has_len
+from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_lite.utilities.types import _PATH, ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.environments import XLAEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
-from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.data import has_len
-from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.utilities.types import _PATH, EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
-if _TPU_AVAILABLE:
-    import torch_xla.core.xla_env_vars as xenv
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
-    from torch_xla.core.xla_model import rendezvous
+if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 else:
-    xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
+    MpDeviceLoader = None
 
 
 class TPUSpawnStrategy(DDPSpawnStrategy):
@@ -59,13 +55,15 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
     ) -> None:
+        if not _XLA_AVAILABLE:
+            raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -95,6 +93,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def root_device(self) -> torch.device:
         if not self._launched:
             raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
+        import torch_xla.core.xla_model as xm
+
         return xm.xla_device()
 
     @staticmethod
@@ -126,6 +126,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def connect(self, model: "pl.LightningModule") -> None:
         TPUSpawnStrategy._validate_patched_dataloaders(model)
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
@@ -148,7 +150,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         if trainer.state.fn == TrainerFn.FITTING:
             self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+            _optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:  # type: ignore
         return model
@@ -160,10 +162,14 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     @property
     def is_distributed(self) -> bool:
         # HOST_WORLD_SIZE is not set outside the xmp.spawn process
+        import torch_xla.core.xla_env_vars as xenv
+
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
-    def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
+    def process_dataloader(self, dataloader: DataLoader) -> "MpDeviceLoader":
         TPUSpawnStrategy._validate_dataloader(dataloader)
+        from torch_xla.distributed.parallel_loader import MpDeviceLoader
+
         dataloader = MpDeviceLoader(dataloader, self.root_device)
         # Mimic interface to torch.utils.data.DataLoader
         dataloader.dataset = dataloader._loader.dataset
@@ -177,7 +183,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
         if self.is_distributed:
-            rendezvous(name)
+            import torch_xla.core.xla_model as xm
+
+            xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not self.is_distributed:
@@ -186,6 +194,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         torch.save(obj, buffer)
         data = bytearray(buffer.getbuffer())
         data_tensor = torch.tensor(data, device=self.root_device, dtype=torch.float)
+        import torch_xla.core.xla_model as xm
+
         data = xm.all_gather(data_tensor)
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
@@ -205,6 +215,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 f" {reduce_op}"
             )
 
+        import torch_xla.core.xla_model as xm
+
         output = xm.mesh_reduce("reduce", output, sum)
 
         if isinstance(reduce_op, str) and reduce_op.lower() in ("avg", "mean"):
@@ -212,9 +224,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int) -> None:
+    def setup_distributed(self) -> None:
         self._launched = True
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -249,6 +261,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
+        import torch_xla.core.xla_env_vars as xenv
+
         if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
@@ -286,6 +300,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
+        import torch_xla.core.xla_model as xm
+
         return xm.all_gather(tensor)
 
     def teardown(self) -> None:

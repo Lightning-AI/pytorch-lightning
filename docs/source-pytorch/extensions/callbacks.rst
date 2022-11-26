@@ -87,11 +87,13 @@ Lightning has a few built-in callbacks.
     BackboneFinetuning
     BaseFinetuning
     BasePredictionWriter
+    BatchSizeFinder
     Callback
     DeviceStatsMonitor
     EarlyStopping
     GradientAccumulationScheduler
     LambdaCallback
+    LearningRateFinder
     LearningRateMonitor
     ModelCheckpoint
     ModelPruning
@@ -152,12 +154,6 @@ state_key
 Hooks
 =====
 
-on_configure_sharded_model
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_configure_sharded_model
-    :noindex:
-
 setup
 ^^^^^
 
@@ -168,18 +164,6 @@ teardown
 ^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.teardown
-    :noindex:
-
-on_init_start
-^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_init_start
-    :noindex:
-
-on_init_end
-^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_init_end
     :noindex:
 
 on_fit_start
@@ -264,9 +248,6 @@ on_predict_epoch_end
 ^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_predict_epoch_end
-    :noindex:
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
     :noindex:
 
 on_validation_batch_start

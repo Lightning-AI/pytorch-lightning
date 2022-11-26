@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional, TYPE_CHECKING
 
-from lightning.app import LightningFlow
+from lightning_app import LightningFlow
 
 if TYPE_CHECKING:
     import wandb

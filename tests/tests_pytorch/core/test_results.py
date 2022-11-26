@@ -11,36 +11,40 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+
 import torch
 import torch.distributed as dist
-import torch.multiprocessing as mp
 
-import tests_pytorch.helpers.utils as tutils
+from lightning_lite.plugins.environments import LightningEnvironment
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.strategies.launchers import _MultiProcessingLauncher
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities.distributed import sync_ddp_if_available
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.models.test_tpu import wrap_launch_function
 
 
-def _setup_ddp(rank, worldsize):
-    import os
+def spawn_launch(fn, parallel_devices):
+    # TODO: the accelerator and cluster_environment should be optional to just launch processes, but this requires lazy
+    # initialization to be implemented
+    device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator}
+    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
+    strategy = DDPSpawnStrategy(
+        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    )
+    launcher = _MultiProcessingLauncher(strategy=strategy)
+    wrapped = partial(wrap_launch_function, fn, strategy)
+    return launcher.launch(wrapped, strategy)
 
-    os.environ["MASTER_ADDR"] = "localhost"
 
-    # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=worldsize)
-
-
-def _ddp_test_fn(rank, worldsize):
-    _setup_ddp(rank, worldsize)
+def result_reduce_ddp_fn(strategy):
     tensor = torch.tensor([1.0])
-    sync = _Sync(sync_ddp_if_available, _should=True, _op="SUM")
+    sync = _Sync(strategy.reduce, _should=True, _op="SUM")
     actual = sync(tensor)
-    assert actual.item() == dist.get_world_size(), "Result-Log does not work properly with DDP and Tensors"
+    assert actual.item() == dist.get_world_size()
 
 
 @RunIf(skip_windows=True)
 def test_result_reduce_ddp():
-    """Make sure result logging works with DDP."""
-    tutils.set_random_main_port()
-    worldsize = 2
-    mp.spawn(_ddp_test_fn, args=(worldsize,), nprocs=worldsize)
+    spawn_launch(result_reduce_ddp_fn, [torch.device("cpu")] * 2)

@@ -1,10 +1,10 @@
 import inspect
-import logging
 import os
 import sys
 import traceback
 import types
 from contextlib import contextmanager
+from copy import copy
 from typing import Dict, List, TYPE_CHECKING, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
@@ -12,10 +12,33 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-logger = logging.getLogger(__name__)
+from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger
+
+logger = Logger(__name__)
 
 
-def load_app_from_file(filepath: str) -> "LightningApp":
+def _prettifiy_exception(filepath: str):
+    """Pretty print the exception that occurred when loading the app."""
+    # we want to format the exception as if no frame was on top.
+    exp, val, tb = sys.exc_info()
+    listing = traceback.format_exception(exp, val, tb)
+    # remove the entry for the first frame
+    del listing[1]
+    listing = [
+        f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
+    ] + listing
+    logger.error("".join(listing))
+    sys.exit(1)
+
+
+def load_app_from_file(filepath: str, raise_exception: bool = False, mock_imports: bool = False) -> "LightningApp":
+    """Load a LightningApp from a file.
+
+    Arguments:
+        filepath:  The path to the file containing the LightningApp.
+        raise_exception: If True, raise an exception if the app cannot be loaded.
+    """
+
     # Taken from StreamLit: https://github.com/streamlit/streamlit/blob/develop/lib/streamlit/script_runner.py#L313
 
     from lightning_app.core.app import LightningApp
@@ -28,18 +51,15 @@ def load_app_from_file(filepath: str) -> "LightningApp":
     module = _create_fake_main_module(filepath)
     try:
         with _patch_sys_argv():
-            exec(code, module.__dict__)
-    except Exception:
-        # we want to format the exception as if no frame was on top.
-        exp, val, tb = sys.exc_info()
-        listing = traceback.format_exception(exp, val, tb)
-        # remove the entry for the first frame
-        del listing[1]
-        listing = [
-            f"Found an exception when loading your application from {filepath}. Please, resolve it to run your app.\n\n"
-        ] + listing
-        logger.error("".join(listing))
-        sys.exit(1)
+            if mock_imports:
+                with _mock_missing_imports():
+                    exec(code, module.__dict__)
+            else:
+                exec(code, module.__dict__)
+    except Exception as e:
+        if raise_exception:
+            raise e
+        _prettifiy_exception(filepath)
 
     apps = [v for v in module.__dict__.values() if isinstance(v, LightningApp)]
     if len(apps) > 1:
@@ -125,7 +145,7 @@ def _patch_sys_argv():
     """
     from lightning_app.cli.lightning_cli import run_app
 
-    original_argv = sys.argv
+    original_argv = copy(sys.argv)
     # 1: Remove the CLI command
     if sys.argv[:3] == ["lightning", "run", "app"]:
         sys.argv = sys.argv[3:]

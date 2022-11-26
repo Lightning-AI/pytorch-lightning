@@ -20,15 +20,14 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
-from weakref import ReferenceType
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import numpy as np
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Checkpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -57,49 +56,9 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 
 
 class Logger(ABC):
-    """Base class for experiment loggers.
+    """Base class for experiment loggers."""
 
-    Args:
-        agg_key_funcs:
-            Dictionary which maps a metric name to a function, which will
-            aggregate the metric values for the same steps.
-        agg_default_func:
-            Default function to aggregate metric values. If some metric name
-            is not presented in the `agg_key_funcs` dictionary, then the
-            `agg_default_func` will be used for aggregation.
-
-        .. deprecated:: v1.6
-            The parameters `agg_key_funcs` and `agg_default_func` are deprecated
-            in v1.6 and will be removed in v1.8.
-
-    Note:
-        The `agg_key_funcs` and `agg_default_func` arguments are used only when
-        one logs metrics with the :meth:`~Logger.agg_and_log_metrics` method.
-    """
-
-    def __init__(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-    ):
-        self._prev_step: int = -1
-        self._metrics_to_agg: List[Dict[str, float]] = []
-        if agg_key_funcs:
-            self._agg_key_funcs = agg_key_funcs
-            rank_zero_deprecation(
-                "The `agg_key_funcs` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_key_funcs = {}
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-            rank_zero_deprecation(
-                "The `agg_default_func` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
-            )
-        else:
-            self._agg_default_func = np.mean
-
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -107,52 +66,9 @@ class Logger(ABC):
         """
         pass
 
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ) -> None:
-        """Update aggregation methods.
-
-        .. deprecated:: v1.6
-            `update_agg_funcs` is deprecated in v1.6 and will be removed in v1.8.
-
-        Args:
-            agg_key_funcs:
-                Dictionary which maps a metric name to a function, which will
-                aggregate the metric values for the same steps.
-            agg_default_func:
-                Default function to aggregate metric values. If some metric name
-                is not presented in the `agg_key_funcs` dictionary, then the
-                `agg_default_func` will be used for aggregation.
-        """
-        if agg_key_funcs:
-            self._agg_key_funcs.update(agg_key_funcs)
-        if agg_default_func:
-            self._agg_default_func = agg_default_func
-        rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
-
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
-        it aggregates them and logs only if metrics are ready to be logged.
-
-        .. deprecated:: v1.6
-            This method is deprecated in v1.6 and will be removed in v1.8.
-            Please use `Logger.log_metrics` instead.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-        """
-        self.log_metrics(metrics=metrics, step=step)
-
     @abstractmethod
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """
-        Records metrics.
-        This method logs metrics as as soon as it received them. If you want to aggregate
-        metrics for one specific `step`, use the
-        :meth:`~pytorch_lightning.loggers.base.Logger.agg_and_log_metrics` method.
+        """Records metrics. This method logs metrics as soon as it received them.
 
         Args:
             metrics: Dictionary with metric names as keys and measured quantities as values
@@ -212,97 +128,6 @@ class Logger(ABC):
         """Return the experiment version."""
 
 
-class LoggerCollection(Logger):
-    """The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
-
-    .. deprecated:: v1.6
-        `LoggerCollection` is deprecated in v1.6 and will be removed in v1.8.
-        Directly pass a list of loggers to the Trainer and access the list via the `trainer.loggers` attribute.
-
-    Args:
-        logger_iterable: An iterable collection of loggers
-    """
-
-    def __init__(self, logger_iterable: Iterable[Logger]):
-        super().__init__()
-        self._logger_iterable = logger_iterable
-        rank_zero_deprecation(
-            "`LoggerCollection` is deprecated in v1.6 and will be removed in v1.8. Directly pass a list of loggers"
-            " to the Trainer and access the list via the `trainer.loggers` attribute."
-        )
-
-    def __getitem__(self, index: int) -> Logger:
-        return list(self._logger_iterable)[index]
-
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
-        for logger in self._logger_iterable:
-            logger.after_save_checkpoint(checkpoint_callback)
-
-    def update_agg_funcs(
-        self,
-        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
-        agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ) -> None:
-        for logger in self._logger_iterable:
-            logger.update_agg_funcs(agg_key_funcs, agg_default_func)
-
-    @property
-    def experiment(self) -> List[Any]:
-        """Returns a list of experiment objects for all the loggers in the logger collection."""
-        return [logger.experiment for logger in self._logger_iterable]
-
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.agg_and_log_metrics(metrics=metrics, step=step)
-
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_metrics(metrics=metrics, step=step)
-
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_hyperparams(params, *args, **kwargs)
-
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        for logger in self._logger_iterable:
-            logger.log_graph(model, input_array)
-
-    def log_text(self, *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_text(*args, **kwargs)
-
-    def log_image(self, *args: Any, **kwargs: Any) -> None:
-        for logger in self._logger_iterable:
-            logger.log_image(*args, **kwargs)
-
-    def save(self) -> None:
-        for logger in self._logger_iterable:
-            logger.save()
-
-    def finalize(self, status: str) -> None:
-        for logger in self._logger_iterable:
-            logger.finalize(status)
-
-    @property
-    def save_dir(self) -> Optional[str]:
-        """Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple
-        loggers."""
-        # Checkpoints should be saved to default / chosen location when using multiple loggers
-        return None
-
-    @property
-    def name(self) -> str:
-        """Returns the unique experiment names for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.name) for logger in self._logger_iterable))
-
-    @property
-    def version(self) -> str:
-        """Returns the unique experiment versions for all the loggers in the logger collection joined by an
-        underscore."""
-        return "_".join(dict.fromkeys(str(logger.version) for logger in self._logger_iterable))
-
-
 class DummyExperiment:
     """Dummy experiment."""
 
@@ -355,10 +180,6 @@ class DummyLogger(Logger):
         # enables self.logger[0].experiment.add_image(...)
         return self
 
-    def __iter__(self) -> Generator[None, None, None]:
-        # if DummyLogger is substituting a logger collection, pretend it is empty
-        yield from ()
-
     def __getattr__(self, name: str) -> Callable:
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
 
@@ -368,7 +189,8 @@ class DummyLogger(Logger):
         return method
 
 
-def merge_dicts(
+# TODO: this should have been deprecated
+def merge_dicts(  # pragma: no cover
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,

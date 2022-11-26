@@ -19,11 +19,11 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities import rank_zero_deprecation
+from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+class _LightningPrecisionModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         """Wraps the user's LightningModule. Requires overriding all ``*_step`` methods and ``forward`` so that it
         can safely be wrapped by a ``_LightningModuleWrapperBase`` and a ``*DataParallel``.
@@ -54,7 +54,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
         raise NotImplementedError
 
 
-class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
+class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(
         self, forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]]
     ) -> None:
@@ -101,6 +101,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
                 if not pl_module.automatic_optimization:
+                    assert trainer.model is not None
                     trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:

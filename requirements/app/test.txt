@@ -1,10 +1,13 @@
-coverage>=6.4, <=6.4.2
-codecov>=2.1, <=2.1.12
-pytest>=7.0, <=7.1.2
-pytest-timeout <=2.1.0
-pytest-cov <=3.0.0
-playwright==1.22.0
-# pytest-flake8
+coverage==6.5.0
+codecov==2.1.12
+pytest==7.2.0
+pytest-timeout==2.1.0
+pytest-cov==4.0.0
+playwright==1.27.1
 httpx
-trio
+trio<0.22.0
 pympler
+psutil
+setuptools<65.6.0
+sqlmodel
+requests-mock

@@ -23,7 +23,7 @@ from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -48,7 +48,7 @@ class FitLoop(Loop[None]):
 
     def __init__(
         self,
-        min_epochs: int = 0,
+        min_epochs: Optional[int] = 0,
         max_epochs: Optional[int] = None,
     ) -> None:
         super().__init__()
@@ -91,7 +91,7 @@ class FitLoop(Loop[None]):
     @min_steps.setter
     def min_steps(self, value: Optional[int]) -> None:
         """Sets the minimum number of steps (forwards to epoch_loop)"""
-        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
         self.epoch_loop.min_steps = value
 
     @property
@@ -102,7 +102,7 @@ class FitLoop(Loop[None]):
     @max_steps.setter
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
-        # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        # TODO: This setter is required by debugging connector (fast dev run), should be avoided
         if value < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
@@ -147,13 +147,19 @@ class FitLoop(Loop[None]):
         raise RuntimeError("`FitLoop._results` property isn't defined. Accessed outside of scope")
 
     @property
+    def _should_stop_early(self) -> bool:
+        met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
+        met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
+        return met_min_epochs and met_min_steps
+
+    @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
         if self.trainer.num_training_batches == 0:
             rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
-        # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
+        # TODO: Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
         if stop_steps:
             rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
@@ -169,20 +175,10 @@ class FitLoop(Loop[None]):
             rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
             return True
 
-        if self.trainer.should_stop:
-            # early stopping
-            met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
-            if met_min_epochs and met_min_steps:
-                self.trainer.should_stop = True
-                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
-                return True
-            else:
-                rank_zero_info(
-                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
-                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
-                )
-        self.trainer.should_stop = False
+        if self.trainer.should_stop and self._should_stop_early:
+            rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
+            return True
+
         return False
 
     @property
@@ -201,7 +197,7 @@ class FitLoop(Loop[None]):
         if self.restarting:
             self.epoch_progress.reset_on_restart()
 
-    def on_run_start(self) -> None:  # type: ignore[override]
+    def on_run_start(self) -> None:
         """Calls the ``on_train_start`` hook."""
         # update the current_epoch in-case of checkpoint reload
         if not self._iteration_based_training():
@@ -222,9 +218,8 @@ class FitLoop(Loop[None]):
         self.trainer._call_lightning_module_hook("on_train_start")
         self.trainer._call_strategy_hook("on_train_start")
 
-    def on_advance_start(self) -> None:  # type: ignore[override]
-        """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
-        ``on_train_epoch_start``"""
+    def on_advance_start(self) -> None:
+        """Prepares the dataloader for training and calls the hook ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
 
         # reset train dataloader
@@ -237,6 +232,7 @@ class FitLoop(Loop[None]):
         self._outputs = []
 
         if self.trainer.train_dataloader is not None:
+            assert isinstance(self.trainer.train_dataloader, CombinedLoader)
             _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
@@ -249,15 +245,12 @@ class FitLoop(Loop[None]):
 
         self.trainer._logger_connector.on_epoch_start()
 
-        self.trainer._call_callback_hooks("on_epoch_start")
-        self.trainer._call_lightning_module_hook("on_epoch_start")
-
         self.trainer._call_callback_hooks("on_train_epoch_start")
         self.trainer._call_lightning_module_hook("on_train_epoch_start")
 
         self.epoch_progress.increment_started()
 
-    def advance(self) -> None:  # type: ignore[override]
+    def advance(self) -> None:
         """Runs one whole epoch."""
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
@@ -302,13 +295,13 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_train_epoch_end")
         self.trainer._call_lightning_module_hook("on_train_epoch_end")
 
-        self.trainer._call_callback_hooks("on_epoch_end")
-        self.trainer._call_lightning_module_hook("on_epoch_end")
-
         self.trainer._logger_connector.on_epoch_end()
 
         if self.epoch_loop._num_ready_batches_reached():
-            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
+            # if we are restarting and the above condition holds, it's because we are reloading an epoch-end checkpoint.
+            # since metric-based schedulers require access to metrics and those are not currently saved in the
+            # checkpoint, the plateau schedulers shouldn't be updated
+            self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=not self.restarting)
 
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished

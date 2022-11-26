@@ -1,44 +1,35 @@
-name: Install and check package
-description: installing and validationg the package
+name: Install and validate the package
+description: Install and validate the package
 
 inputs:
   pkg-name:
-    description: package name for import
-    required: false
-    default: ""
+    description: Package name to import
+    required: true
   pip-flags:
-    description: additional pil install flags
+    description: Additional pip install flags
     required: false
     default: ""
 
 runs:
   using: "composite"
   steps:
-  - name: Determine package name
-    if: ${{ inputs.pkg-import == '' }}
-    working-directory: ./dist
-    run: python -c "import glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
+  - name: Choose package import
+    run: |
+      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])" >> $GITHUB_ENV
     shell: bash
 
-  - name: Pass package name
-    if: ${{ inputs.pkg-import != '' }}
-    run: echo "PKG_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
-    shell: bash
-
-  - name: Install | Uninstall package - archive
+  - name: Install package - archive
     working-directory: ./dist
     run: |
       pip install *.tar.gz ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-      pip uninstall -y ${PKG_NAME}
+      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash
 
-  - name: Install | Uninstall package - wheel
+  - name: Install package - wheel
     working-directory: ./dist
     run: |
       pip install *.whl ${{ inputs.pip-flags }}
       pip list | grep lightning
-      python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-      pip uninstall -y ${PKG_NAME}
+      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash

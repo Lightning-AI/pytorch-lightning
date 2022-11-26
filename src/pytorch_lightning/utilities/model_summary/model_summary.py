@@ -20,11 +20,11 @@ from typing import Any, cast, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()

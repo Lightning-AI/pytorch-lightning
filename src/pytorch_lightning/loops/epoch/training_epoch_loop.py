@@ -17,23 +17,23 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 
 import numpy as np
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _v1_8_output_format
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.warnings import WarningCache
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
@@ -102,7 +102,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
-        return (self._is_training_done and self._is_validation_done) or self.trainer.should_stop
+        if self._is_training_done and self._is_validation_done:
+            return True
+
+        if self.trainer.should_stop:
+            # early stopping
+            min_epochs = self.trainer.fit_loop.min_epochs
+            should_stop_early = self.trainer.fit_loop._should_stop_early
+            if not should_stop_early:
+                self._warning_cache.info(
+                    f"Trainer was signaled to stop but the required `min_epochs={min_epochs!r}` or"
+                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
+                )
+            return should_stop_early
+
+        return False
 
     def connect(  # type: ignore[override]
         self,
@@ -142,7 +156,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self._outputs = []
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
         self._reload_dataloader_state_dict(data_fetcher)
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
@@ -157,7 +171,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _on_after_fetch(self) -> None:
         self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
-    def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
+    def advance(self, data_fetcher: AbstractDataFetcher) -> None:
         """Runs a single training batch.
 
         Raises:
@@ -187,9 +201,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_output = []
         else:
             # hook
-            self.trainer._call_callback_hooks("on_batch_start")
-
-            # hook
             self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
             response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx)
             self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx)
@@ -218,7 +229,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
-        self.trainer._call_callback_hooks("on_batch_end")
         self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -278,6 +288,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
             and self.batch_progress.current.ready  # did start
         ):
+            assert isinstance(trainer.train_dataloader, CombinedLoader)
             loader: CombinedLoader = trainer.train_dataloader
             state = loader.state_dict(has_completed=self._has_completed())
             if state:
@@ -288,8 +299,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict", {})
-        # restore global step instead to make sure logging works correctly if checkpoints <v1.6.5 used to resume
-        self._batches_that_stepped = state_dict.get("_batches_that_stepped", self.global_step)
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _run_validation(self) -> None:
         # reload dataloaders
@@ -342,24 +352,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
         array = np.array(batch_output, dtype=object)
-        # TODO: remove in v1.8
-        if (
-            num_optimizers > 1
-            and lightning_module.truncated_bptt_steps > 0
-            and is_overridden("on_train_batch_end", lightning_module)
-            and not _v1_8_output_format(lightning_module.on_train_batch_end)
-        ):
-            rank_zero_deprecation(
-                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
-                " The current format of the `on_train_batch_end(outputs, ...)` is a 2d list with sizes"
-                " (n_optimizers, tbptt_steps), however, this has been deprecated and will change in version v1.8 to"
-                " (tbptt_steps, n_optimizers). You can update your code by adding the following parameter to your"
-                " hook signature: `on_train_batch_end(outputs, ..., new_format=True)`."
-            )
-            # (tbptt_steps, n_opt) -> (n_opt, tbptt_steps)
-            if array.ndim == 1:
-                array = np.expand_dims(array, 1)
-            array = array.transpose((1, 0))
         # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
@@ -384,23 +376,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             )
 
         array = _recursive_pad(batch_outputs)
-        # TODO: remove in v1.8
-        if (
-            num_optimizers > 1
-            and lightning_module.truncated_bptt_steps > 0
-            and not _v1_8_output_format(lightning_module.on_train_epoch_end)
-        ):
-            rank_zero_deprecation(
-                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
-                " The current format of the `training_epoch_end(outputs)` is a 3d list with sizes"
-                " (n_optimizers, n_batches, tbptt_steps), however, this has been deprecated and will change in version"
-                " v1.8 to (n_batches, tbptt_steps, n_optimizers). You can update your code by adding the following"
-                " parameter to your hook signature: `training_epoch_end(outputs, new_format=True)`."
-            )
-            # (n_batches, tbptt_steps, n_opt) -> (n_opt, n_batches, tbptt_steps)
-            if array.ndim == 2:
-                array = np.expand_dims(array, 2)
-            array = array.transpose((2, 0, 1))
         # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
@@ -511,7 +486,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.trainer.should_stop:
             return True
 
-        # TODO(@awaelchli): let training/eval loop handle logic around limit_*_batches and val_check_batch
+        # TODO: let training/eval loop handle logic around limit_*_batches and val_check_batch
         is_val_check_batch = is_last_batch
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (self.batch_idx + 1) % self.trainer.limit_train_batches == 0

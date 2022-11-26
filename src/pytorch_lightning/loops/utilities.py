@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple
+from typing import Any, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,16 +23,18 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -69,7 +70,11 @@ def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: in
 
 
 def _parse_loop_limits(
-    min_steps: Optional[int], max_steps: int, min_epochs: Optional[int], max_epochs: int, trainer: "pl.Trainer"
+    min_steps: Optional[int],
+    max_steps: int,
+    min_epochs: Optional[int],
+    max_epochs: Optional[int],
+    trainer: "pl.Trainer",
 ) -> Tuple[int, int]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
@@ -216,19 +221,14 @@ def _reset_progress(loop: Loop) -> None:
             _reset_progress(v)
 
 
-# TODO: remove in v1.8
-def _v1_8_output_format(fx: Callable) -> bool:
-    parameters = inspect.signature(fx).parameters
-    return "new_format" in parameters and parameters["new_format"].default is True
-
-
-def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
+def _set_sampler_epoch(dataloader: Union[DataLoader, CombinedLoader], epoch: int) -> None:
     """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
 
     Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
     :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
     of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
     """
+
     for sampler_name in ("sampler", "batch_sampler"):
         sampler = getattr(dataloader, sampler_name, None)
         if sampler is not None and callable(getattr(sampler, "set_epoch", None)):

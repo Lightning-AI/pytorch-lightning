@@ -112,6 +112,7 @@ Or read the `advanced install guide <installation.html>`_
 A LightningModule enables your PyTorch nn.Module to play together in complex ways inside the training_step (there is also an optional validation_step and test_step).
 
 .. testcode::
+    :skipif: not _TORCHVISION_AVAILABLE
 
     import os
     from torch import optim, nn, utils, Tensor

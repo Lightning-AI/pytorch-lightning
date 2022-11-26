@@ -1,8 +1,9 @@
 from typing import Dict
 
+import pytest
 import torch
 
-from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.serve.servable_module_validator import ServableModule, ServableModuleValidator
 
@@ -29,14 +30,13 @@ class ServableBoringModel(BoringModel, ServableModule):
 
 
 def test_servable_module_validator():
-    seed_everything(42)
     model = ServableBoringModel()
     callback = ServableModuleValidator()
     callback.on_train_start(Trainer(), model)
 
 
+@pytest.mark.flaky(reruns=3)
 def test_servable_module_validator_with_trainer(tmpdir):
-    seed_everything(42)
     callback = ServableModuleValidator()
     trainer = Trainer(
         default_root_dir=tmpdir,

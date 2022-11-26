@@ -71,6 +71,7 @@ You can also pass a custom Logger to the :class:`~pytorch_lightning.trainer.trai
 Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 
 .. testcode::
+    :skipif: not _COMET_AVAILABLE
 
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
     trainer = Trainer(logger=comet_logger)
@@ -78,6 +79,7 @@ Choose from any of the others such as MLflow, Comet, Neptune, WandB, etc.
 To use multiple loggers, simply pass in a ``list`` or ``tuple`` of loggers.
 
 .. testcode::
+    :skipif: not _COMET_AVAILABLE
 
     tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs/")
     comet_logger = pl_loggers.CometLogger(save_dir="logs/")
@@ -231,7 +233,7 @@ Use the :func:`~pytorch_lightning.loggers.logger.rank_zero_experiment` and :func
 .. testcode::
 
     from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-    from pytorch_lightning.utilities.distributed import rank_zero_only
+    from pytorch_lightning.utilities import rank_zero_only
 
 
     class MyLogger(Logger):
@@ -324,10 +326,10 @@ if you are using a logger. These defaults can be customized by overriding the
 
 .. code-block:: python
 
-    from pytorch_lightning.callbacks.progress import Tqdm
+    from pytorch_lightning.callbacks.progress import TQDMProgressBar
 
 
-    class CustomProgressBar(Tqdm):
+    class CustomProgressBar(TQDMProgressBar):
         def get_metrics(self, *args, **kwargs):
             # don't show the version number
             items = super().get_metrics()

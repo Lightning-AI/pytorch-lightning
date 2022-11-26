@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -47,7 +48,7 @@ def test_device_name():
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus():
-    with pytest.raises(MisconfigurationException, match="HPUAccelerator can not run on your system"):
+    with pytest.raises(MisconfigurationException, match="HPUAccelerator` can not run on your system"):
         Trainer(accelerator="hpu", devices=1)
 
 
@@ -75,7 +76,8 @@ def test_all_stages(tmpdir, hpus):
     trainer.predict(model)
 
 
-@RunIf(hpu=True)
+@RunIf(hpu=True, sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 

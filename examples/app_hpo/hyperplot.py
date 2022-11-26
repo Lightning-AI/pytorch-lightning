@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.app.frontend.stream_lit import StreamlitFrontend
+from lightning.app.frontend import StreamlitFrontend
 from lightning.app.utilities.state import AppState
 
 

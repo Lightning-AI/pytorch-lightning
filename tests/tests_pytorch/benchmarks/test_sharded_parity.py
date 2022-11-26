@@ -187,7 +187,7 @@ def plugin_parity_test(
         )
 
 
-@RunIf(skip_windows=True, fairscale=True)
+@RunIf(fairscale=True)
 @pytest.mark.parametrize(
     "kwargs",
     [

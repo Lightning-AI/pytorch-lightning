@@ -1,0 +1,5 @@
+# all supported loggers. this list is here as a reference, but they are not installed in CI
+neptune-client
+comet-ml
+mlflow
+wandb

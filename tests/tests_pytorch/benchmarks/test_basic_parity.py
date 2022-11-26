@@ -57,7 +57,7 @@ def assert_parity_absolute(pl_values, pt_values, norm_by: float = 1, max_diff: f
 )
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
 def test_pytorch_parity(
-    tmpdir, cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
+    cls_model: LightningModule, max_diff_speed: float, max_diff_memory: float, num_epochs: int, num_runs: int
 ):
     """Verify that the same  pytorch and lightning models achieve the same results."""
     lightning = measure_loops(cls_model, kind="PT Lightning", num_epochs=num_epochs, num_runs=num_runs)

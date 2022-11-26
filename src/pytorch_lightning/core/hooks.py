@@ -63,32 +63,6 @@ class ModelHooks:
     def on_predict_end(self) -> None:
         """Called at the end of predicting."""
 
-    def on_pretrain_routine_start(self) -> None:
-        """Called at the beginning of the pretrain routine (between fit and train start).
-
-        - fit
-        - pretrain_routine start
-        - pretrain_routine end
-        - training_start
-
-        .. deprecated:: v1.6
-            :meth:`on_pretrain_routine_start` has been deprecated in v1.6 and will be removed in v1.8.
-            Use ``on_fit_start`` instead.
-        """
-
-    def on_pretrain_routine_end(self) -> None:
-        """Called at the end of the pretrain routine (between fit and train start).
-
-        - fit
-        - pretrain_routine start
-        - pretrain_routine end
-        - training_start
-
-        .. deprecated:: v1.6
-            :meth:`on_pretrain_routine_end` has been deprecated in v1.6 and will be removed in v1.8.
-            Use ``on_fit_start`` instead.
-        """
-
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> Optional[int]:
         """Called in the training loop before anything happens for that batch.
 
@@ -188,22 +162,6 @@ class ModelHooks:
     def on_predict_model_eval(self) -> None:
         """Sets the model to eval during the predict loop."""
         self.trainer.model.eval()
-
-    def on_epoch_start(self) -> None:
-        """Called when either of train/val/test epoch begins.
-
-        .. deprecated:: v1.6
-            :meth:`on_epoch_start` has been deprecated in v1.6 and will be removed in v1.8.
-            Use ``on_<train/validation/test>_epoch_start`` instead.
-        """
-
-    def on_epoch_end(self) -> None:
-        """Called when either of train/val/test epoch ends.
-
-        .. deprecated:: v1.6
-            :meth:`on_epoch_end` has been deprecated in v1.6 and will be removed in v1.8.
-            Use ``on_<train/validation/test>_epoch_end`` instead.
-        """
 
     def on_train_epoch_start(self) -> None:
         """Called in the training loop at the very beginning of the epoch."""
@@ -380,7 +338,7 @@ class DataHooks:
             model.predict_dataloader()
         """
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Called at the beginning of fit (train + validate), validate, test, or predict. This is a good hook when
         you need to build models dynamically or adjust something about them. This hook is called on every process
         when using DDP.
@@ -406,7 +364,7 @@ class DataHooks:
                     self.l1 = nn.Linear(28, data.num_classes)
         """
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: str) -> None:
         """Called at the end of fit (train + validate), validate, test, or predict.
 
         Args:
@@ -624,7 +582,6 @@ class DataHooks:
         - :class:`list`
         - :class:`dict`
         - :class:`tuple`
-        - :class:`torchtext.data.batch.Batch`
 
         For anything else, you need to define how the data is moved to the target device (CPU, GPU, TPU, ...).
 

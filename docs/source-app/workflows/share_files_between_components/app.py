@@ -3,7 +3,7 @@ import os
 import torch
 
 import lightning as L
-from lightning.app.storage.path import Path
+from lightning.app.storage import Path
 
 
 class ModelTraining(L.LightningWork):

@@ -15,7 +15,6 @@ import pytest
 import torch
 from torch import optim
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.callback import Callback
@@ -23,13 +22,12 @@ from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 def test_lr_monitor_single_lr(tmpdir):
     """Test that learning rates are extracted and logged for single lr scheduler."""
-    tutils.reset_seed()
-
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
@@ -109,7 +107,6 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
 
 def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
     """Test that learning rates are extracted and logged for no lr scheduler."""
-    tutils.reset_seed()
 
     class CustomBoringModel(BoringModel):
         def configure_optimizers(self):
@@ -192,8 +189,6 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
 
 
 def test_lr_monitor_no_logger(tmpdir):
-    tutils.reset_seed()
-
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
@@ -206,7 +201,6 @@ def test_lr_monitor_no_logger(tmpdir):
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
 def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi lr schedulers."""
-    tutils.reset_seed()
 
     class CustomBoringModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -251,7 +245,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
 @pytest.mark.parametrize("logging_interval", ["step", "epoch"])
 def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi optimizers but no lr scheduler."""
-    tutils.reset_seed()
 
     class CustomBoringModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -292,9 +285,9 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert all(len(lr) == expected_number_logged for lr in lr_monitor.lrs.values())
 
 
+@RunIf(sklearn=True)
 def test_lr_monitor_param_groups(tmpdir):
     """Test that learning rates are extracted and logged for single lr scheduler."""
-    tutils.reset_seed()
 
     class CustomClassificationModel(ClassificationModel):
         def configure_optimizers(self):
@@ -364,8 +357,6 @@ def test_lr_monitor_custom_pg_name(tmpdir):
 
 
 def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
-    tutils.reset_seed()
-
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()

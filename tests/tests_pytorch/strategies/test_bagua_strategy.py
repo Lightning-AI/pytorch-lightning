@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.strategies import BaguaStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -45,6 +45,29 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+@RunIf(min_cuda_gpus=1, bagua=True)
+def test_manual_optimization(tmpdir):
+    model = ManualOptimBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        strategy="bagua",
+        accelerator="gpu",
+        devices=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+
+@pytest.mark.skipif(
+    torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8,
+    reason="Async does not support this CUDA architecture",
+)
 @RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()
@@ -114,10 +137,9 @@ def test_qadam_configuration(tmpdir):
         trainer.strategy._configure_bagua_model(trainer)
 
 
-def test_bagua_not_available(monkeypatch):
+def test_bagua_not_available(cuda_count_1, monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1):
-        with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
-            Trainer(strategy="bagua", accelerator="gpu", devices=1)
+    with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
+        Trainer(strategy="bagua", accelerator="gpu", devices=1)

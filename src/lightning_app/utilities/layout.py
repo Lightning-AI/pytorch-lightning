@@ -4,6 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -39,6 +40,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         # When running locally, the target will get overwritten by the dispatcher when launching the frontend servers
         # When running in the cloud, the frontend code will construct the URL based on the flow name
         return flow._layout
+    elif isinstance(layout, _MagicMockJsonSerializable):
+        # Do nothing
+        pass
     elif isinstance(layout, dict):
         layout = _collect_content_layout([layout], flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
@@ -92,8 +96,10 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                     f"You configured an http link {url[:32]}... but it won't be accessible in the cloud."
                     f" Consider replacing 'http' with 'https' in the link above."
                 )
+
         elif isinstance(entry["content"], lightning_app.LightningFlow):
             entry["content"] = entry["content"].name
+
         elif isinstance(entry["content"], lightning_app.LightningWork):
             if entry["content"].url and not entry["content"].url.startswith("/"):
                 entry["content"] = entry["content"].url
@@ -101,6 +107,9 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             else:
                 entry["content"] = ""
                 entry["target"] = ""
+        elif isinstance(entry["content"], _MagicMockJsonSerializable):
+            # Do nothing
+            pass
         else:
             m = f"""
             A dictionary returned by `{flow.__class__.__name__}.configure_layout()` contains an unsupported entry.

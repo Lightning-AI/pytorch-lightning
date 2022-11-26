@@ -45,6 +45,15 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -68,6 +77,15 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -91,6 +109,15 @@ def test_dict():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for k in ("a", "b", "c", "d")
     )
@@ -166,6 +193,15 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
@@ -189,6 +225,15 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
@@ -207,6 +252,15 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_cloud_compute": {
+                "type": "__cloud_compute__",
+                "name": "default",
+                "disk_size": 0,
+                "idle_timeout": None,
+                "mounts": None,
+                "shm_size": 0,
+                "_internal_id": "default",
+            },
         }
         for i in range(4)
     )
@@ -440,6 +494,6 @@ class FlowPayload(LightningFlow):
 
 
 def test_structures_with_payload():
-    app = LightningApp(FlowPayload(), debug=True)
+    app = LightningApp(FlowPayload(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("payload")

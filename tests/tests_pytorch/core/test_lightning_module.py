@@ -24,7 +24,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -79,7 +79,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(loggers=[logger])
+    trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.logger == logger
 
@@ -93,6 +93,12 @@ def test_property_loggers(tmpdir):
     trainer = Trainer(logger=logger)
     model.trainer = trainer
     assert model.loggers == [logger]
+
+    logger0 = TensorBoardLogger(tmpdir)
+    logger1 = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=[logger0, logger1])
+    model.trainer = trainer
+    assert model.loggers == [logger0, logger1]
 
 
 def test_1_optimizer_toggle_model():
@@ -304,7 +310,7 @@ def test_device_placement(tmpdir, accelerator, device):
     assert_device(torch.device("cpu"))
 
 
-@RunIf(min_torch="1.10", skip_windows=True)
+@RunIf(skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
     if _TORCH_GREATER_EQUAL_1_11:
         from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
@@ -327,7 +333,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 else "sharded_tensor"
+    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)

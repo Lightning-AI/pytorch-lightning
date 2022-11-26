@@ -14,17 +14,13 @@
 """Utilities related to memory."""
 
 import gc
-import os
-import shutil
-import subprocess
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any
 
 import torch
+from lightning_utilities.core.apply_func import apply_to_collection
 from torch import Tensor
 from torch.nn import Module
-
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
@@ -95,38 +91,6 @@ def garbage_collection_cuda() -> None:
         if not is_oom_error(exception):
             # Only handle OOM errors
             raise
-
-
-def get_gpu_memory_map() -> Dict[str, float]:
-    r"""
-    .. deprecated:: v1.5
-        This function was deprecated in v1.5 in favor of
-        `pytorch_lightning.accelerators.cuda._get_nvidia_gpu_stats` and will be removed in v1.7.
-
-    Get the current gpu usage.
-
-    Return:
-        A dictionary in which the keys are device ids as integers and
-        values are memory usage as integers in MB.
-
-    Raises:
-        FileNotFoundError:
-            If nvidia-smi installation not found
-    """
-    nvidia_smi_path = shutil.which("nvidia-smi")
-    if nvidia_smi_path is None:
-        raise FileNotFoundError("nvidia-smi: command not found")
-    result = subprocess.run(
-        [nvidia_smi_path, "--query-gpu=memory.used", "--format=csv,nounits,noheader"],
-        encoding="utf-8",
-        capture_output=True,
-        check=True,
-    )
-
-    # Convert lines into a dictionary
-    gpu_memory = [float(x) for x in result.stdout.strip().split(os.linesep)]
-    gpu_memory_map = {f"gpu_id: {gpu_id}/memory.used (MB)": memory for gpu_id, memory in enumerate(gpu_memory)}
-    return gpu_memory_map
 
 
 def get_model_size_mb(model: Module) -> float:

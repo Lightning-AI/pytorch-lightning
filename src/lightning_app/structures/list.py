@@ -89,12 +89,17 @@ class List(t.List[T]):
     @property
     def flows(self):
         from lightning_app import LightningFlow
+        from lightning_app.structures import Dict, List
 
-        flows = []
-        for flow in [item for item in self if isinstance(item, LightningFlow)]:
-            flows.append(flow)
-            for child_flow in flow.flows:
-                flows.append(child_flow)
+        flows = {}
+        for item in self:
+            if isinstance(item, LightningFlow):
+                flows[item.name] = item
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
+            if isinstance(item, (Dict, List)):
+                for child_flow in item.flows.values():
+                    flows[child_flow.name] = child_flow
         return flows
 
     @property

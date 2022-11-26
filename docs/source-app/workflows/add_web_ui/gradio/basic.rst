@@ -40,7 +40,7 @@ First **create a file named app.py** with the app content:
 .. code:: python
 
     import lightning as L
-    from lightning_app.components.serve import ServeGradio
+    from lightning_app.components import ServeGradio
     import gradio as gr
 
     class LitGradio(ServeGradio):
@@ -120,7 +120,7 @@ Here's an example:
 .. code:: python
     :emphasize-lines: 4
 
-    from lightning_app.components.serve import ServeGradio
+    from lightning_app.components import ServeGradio
     import gradio as gr
 
     class LitGradio(ServeGradio):
@@ -148,7 +148,7 @@ In this case, we render the ``LitGradio`` UI in the ``home`` tab of the applicat
     :emphasize-lines: 21, 27
 
     import lightning as L
-    from lightning_app.components.serve import ServeGradio
+    from lightning_app.components import ServeGradio
     import gradio as gr
 
     class LitGradio(ServeGradio):
@@ -187,7 +187,7 @@ Finally, don't forget to call run inside the Root Flow to serve the Gradio app.
     :emphasize-lines: 24
 
     import lightning as L
-    from lightning_app.components.serve import ServeGradio
+    from lightning_app.components import ServeGradio
     import gradio as gr
 
     class LitGradio(ServeGradio):

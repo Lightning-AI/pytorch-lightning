@@ -20,11 +20,12 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.model_helpers import get_torchvision_model
 from tests_pytorch import _PATH_DATASETS
 from tests_pytorch.helpers.datasets import AverageDataset, MNIST, TrialMNIST
 
 if _TORCHVISION_AVAILABLE:
-    from torchvision import models, transforms
+    from torchvision import transforms
     from torchvision.datasets import CIFAR10
 
 
@@ -217,13 +218,13 @@ class ParityModuleMNIST(LightningModule):
 
 
 class ParityModuleCIFAR(LightningModule):
-    def __init__(self, backbone="resnet101", hidden_dim=1024, learning_rate=1e-3, pretrained=True):
+    def __init__(self, backbone="resnet101", hidden_dim=1024, learning_rate=1e-3, weights="DEFAULT"):
         super().__init__()
         self.save_hyperparameters()
 
         self.learning_rate = learning_rate
         self.num_classes = 10
-        self.backbone = getattr(models, backbone)(pretrained=pretrained)
+        self.backbone = get_torchvision_model(backbone, weights=weights)
 
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(1000, hidden_dim), torch.nn.Linear(hidden_dim, self.num_classes)

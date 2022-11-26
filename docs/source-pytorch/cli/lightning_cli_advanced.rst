@@ -1,82 +1,34 @@
 :orphan:
 
-#######################################
-Eliminate config boilerplate (Advanced)
-#######################################
+#################################################
+Configure hyperparameters from the CLI (Advanced)
+#################################################
 **Audience:** Users looking to modularize their code for a professional project.
 
-**Pre-reqs:** You must have read :doc:`(Control it all from the CLI) <lightning_cli_intermediate>`.
+**Pre-reqs:** You must have read :doc:`(Mix models and datasets) <lightning_cli_intermediate_2>`.
+
+As a project becomes more complex, the number of configurable options becomes very large, making it inconvenient to
+control through individual command line arguments. To address this, CLIs implemented using
+:class:`~pytorch_lightning.cli.LightningCLI` always support receiving input from configuration files. The default format
+used for config files is YAML.
+
+.. tip::
+
+    If you are unfamiliar with YAML, it is recommended that you first read :ref:`what-is-a-yaml-config-file`.
+
 
 ----
 
-***************************
-What is a yaml config file?
-***************************
-A yaml is a standard configuration file that describes parameters for sections of a program. It is a common tool in engineering, and it has recently started to gain popularity in machine learning.
-
-.. code:: yaml
-
-    # file.yaml
-    car:
-        max_speed:100
-        max_passengers:2
-    plane:
-        fuel_capacity: 50
-    class_3:
-        option_1: 'x'
-        option_2: 'y'
-
-----
-
-
-*********************
-Print the config used
-*********************
-Before or after you run a training routine, you can print the full training spec in yaml format using ``--print_config``:
-
-.. code:: bash
-
-    python main.py fit --print_config
-
-which generates the following config:
-
-.. code:: bash
-
-    seed_everything: null
-    trainer:
-        logger: true
-        ...
-        terminate_on_nan: null
-    model:
-        out_dim: 10
-        learning_rate: 0.02
-    data:
-        data_dir: ./
-    ckpt_path: null
-
-----
-
-********************************
-Write a config yaml from the CLI
-********************************
-To have a copy of the configuration that produced this model, save a *yaml* file from the *--print_config* outputs:
-
-.. code:: bash
-
-    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml
-
-----
-
-**********************
-Run from a single yaml
-**********************
-To run from a yaml, pass a yaml produced with ``--print_config`` to the ``--config`` argument:
+***********************
+Run using a config file
+***********************
+To run the CLI using a yaml config, do:
 
 .. code:: bash
 
     python main.py fit --config config.yaml
 
-when using a yaml to run, you can still pass in inline arguments
+Individual arguments can be given to override options in the config file:
 
 .. code:: bash
 
@@ -84,30 +36,133 @@ when using a yaml to run, you can still pass in inline arguments
 
 ----
 
-******************
-Compose yaml files
-******************
-For production or complex research projects it's advisable to have each object in its own config file. To compose all the configs, pass them all inline:
+************************
+Automatic save of config
+************************
+
+To ease experiment reporting and reproducibility, by default ``LightningCLI`` automatically saves the full YAML
+configuration in the log directory. After multiple fit runs with different hyperparameters, each one will have in its
+respective log directory a ``config.yaml`` file. These files can be used to trivially reproduce an experiment, e.g.:
+
+.. code:: bash
+
+    python main.py fit --config lightning_logs/version_7/config.yaml
+
+The automatic saving of the config is done by the special callback :class:`~pytorch_lightning.cli.SaveConfigCallback`.
+This callback is automatically added to the ``Trainer``. To disable the save of the config, instantiate ``LightningCLI``
+with ``save_config_callback=None``.
+
+----
+
+*********************************
+Prepare a config file for the CLI
+*********************************
+The ``--help`` option of the CLIs can be used to learn which configuration options are available and how to use them.
+However, writing a config from scratch can be time-consuming and error-prone. To alleviate this, the CLIs have the
+``--print_config`` argument, which prints to stdout the configuration without running the command.
+
+For a CLI implemented as ``LightningCLI(DemoModel, BoringDataModule)``, executing:
+
+.. code:: bash
+
+    python main.py fit --print_config
+
+generates a config with all default values like the following:
+
+.. code:: bash
+
+    seed_everything: null
+    trainer:
+      logger: true
+      ...
+    model:
+      out_dim: 10
+      learning_rate: 0.02
+    data:
+      data_dir: ./
+    ckpt_path: null
+
+Other command line arguments can be given and considered in the printed configuration. A use case for this is CLIs that
+accept multiple models. By default, no model is selected, meaning the printed config will not include model settings. To
+get a config with the default values of a particular model would be:
+
+.. code:: bash
+
+    python main.py fit --model DemoModel --print_config
+
+which generates a config like:
+
+.. code:: bash
+
+    seed_everything: null
+    trainer:
+      ...
+    model:
+      class_path: pytorch_lightning.demos.boring_classes.DemoModel
+      init_args:
+        out_dim: 10
+        learning_rate: 0.02
+    ckpt_path: null
+
+.. tip::
+
+    A standard procedure to run experiments can be:
+
+    .. code:: bash
+
+        # Print a configuration to have as reference
+        python main.py fit --print_config > config.yaml
+        # Modify the config to your liking - you can remove all default arguments
+        nano config.yaml
+        # Fit your model using the edited configuration
+        python main.py fit --config config.yaml
+
+----
+
+********************
+Compose config files
+********************
+Multiple config files can be provided, and they will be parsed sequentially. Let's say we have two configs with common
+settings:
+
+.. code:: yaml
+
+    # config_1.yaml
+    trainer:
+      num_epochs: 10
+      ...
+
+    # config_2.yaml
+    trainer:
+      num_epochs: 20
+      ...
+
+The value from the last config will be used, ``num_epochs = 20`` in this case:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --config trainer.yaml --config datamodules.yaml --config models.yaml ...
+    $ python main.py fit --config config_1.yaml --config config_2.yaml
 
-The configs will be parsed sequentially. Let's say we have two configs with the same args:
+----
+
+*********************
+Use groups of options
+*********************
+Groups of options can also be given as independent config files. For configs like:
 
 .. code:: yaml
 
     # trainer.yaml
-    trainer:
-        num_epochs: 10
+    num_epochs: 10
 
+    # model.yaml
+    out_dim: 7
 
-    # trainer_2.yaml
-    trainer:
-        num_epochs: 20
+    # data.yaml
+    data_dir: ./data
 
-the ones from the last config will be used (num_epochs = 20) in this case:
+a fit command can be run as:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --config trainer.yaml --config trainer_2.yaml
+    $ python main.py fit --trainer trainer.yaml --model model.yaml --data data.yaml [...]

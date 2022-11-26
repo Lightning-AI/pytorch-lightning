@@ -78,6 +78,31 @@ def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
     assert fetcher.fetched == 3
 
 
+@pytest.mark.parametrize("use_combined_loader", [False, True])
+def test_profiler_closing(use_combined_loader):
+    """Tests if the profiler terminates upon raising a StopIteration on an iterable dataset."""
+
+    class TestDataset(IterableDataset):
+        def __init__(self):
+            self.list = list(range(1))
+
+        def __iter__(self):
+            return iter(self.list)
+
+    fetcher = DataFetcher()
+    if use_combined_loader:
+        loader = CombinedLoader([DataLoader(TestDataset()), DataLoader(TestDataset())])
+    else:
+        loader = DataLoader(TestDataset())
+    fetcher.setup(loader)
+    profiler = SimpleProfiler()
+    fetcher._start_profiler = lambda: profiler.start("test")
+    fetcher._stop_profiler = lambda: profiler.stop("test")
+    iter(fetcher)  # on epoch 0 start
+    next(fetcher)  # raises StopIteration exception
+    assert not bool(profiler.current_actions)
+
+
 class EmptyIterDataset(IterableDataset):
     def __iter__(self):
         return iter([])
@@ -192,9 +217,7 @@ class RecommenderModel(BoringModel):
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
-)
+@pytest.mark.parametrize("accelerator", [pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))])
 def test_trainer_num_prefetch_batches(tmpdir, accelerator):
 
     model = RecommenderModel()

@@ -5,7 +5,7 @@ import pytest
 from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary
 from core.components.script_runner import ScriptRunner
 
-from lightning.app.storage import Path
+from lightning_app.storage import Path
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 

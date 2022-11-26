@@ -2,7 +2,7 @@ import hashlib
 from typing import List
 
 
-def get_hash(files: List[str], algorithm: str = "blake2", chunk_num_blocks: int = 128) -> str:
+def _get_hash(files: List[str], algorithm: str = "blake2", chunk_num_blocks: int = 128) -> str:
     """Hashes the contents of a list of files.
 
     Parameters

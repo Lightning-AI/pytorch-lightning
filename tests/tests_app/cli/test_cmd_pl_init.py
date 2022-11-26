@@ -1,11 +1,13 @@
 import os
+import sys
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import lightning_cli
-from lightning_app.cli.cmd_pl_init import download_frontend, pl_app
+from lightning_app.cli.cmd_pl_init import _can_encode_icon, download_frontend, pl_app
 
 
 def test_pl_app_input_paths_do_not_exist(tmp_path):
@@ -82,6 +84,19 @@ def test_pl_app_download_frontend(tmp_path):
     contents = os.listdir(build_dir)
     assert "index.html" in contents
     assert "static" in contents
+
+
+def test_pl_app_encode_icon(monkeypatch):
+    stdout_mock = Mock(wraps=sys.stdout)
+    monkeypatch.setattr(sys, "stdout", stdout_mock)
+
+    stdout_mock.encoding = "utf-8"
+    assert _can_encode_icon("📂")
+    assert _can_encode_icon("📄")
+
+    stdout_mock.encoding = "ascii"
+    assert not _can_encode_icon("📂")
+    assert not _can_encode_icon("📄")
 
 
 @pytest.mark.parametrize(

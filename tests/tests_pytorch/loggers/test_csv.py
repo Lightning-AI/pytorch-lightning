@@ -22,6 +22,7 @@ from pytorch_lightning.core.saving import load_hparams_from_yaml
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
@@ -107,6 +108,7 @@ def test_file_logger_log_hyperparams(tmpdir):
     assert all(n in params for n in hparams)
 
 
+@RunIf(sklearn=True)
 def test_fit_csv_logger(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()

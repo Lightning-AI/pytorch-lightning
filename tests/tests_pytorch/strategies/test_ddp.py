@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from typing import Optional
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 import torch
@@ -30,7 +27,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -38,7 +35,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -46,7 +43,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
     trainer.test(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_test(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()
@@ -60,49 +57,41 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir):
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.skipif(torch.cuda.is_available(), reason="test doesn't requires GPU machine")
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-def test_torch_distributed_backend_env_variables(tmpdir):
+def test_torch_distributed_backend_invalid(cuda_count_2, tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
-    _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
-    with patch.dict(os.environ, _environ), patch(
-        "pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2
-    ):
-        with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
-            with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
-                model = BoringModel()
-                trainer = Trainer(
-                    default_root_dir=tmpdir,
-                    fast_dev_run=True,
-                    strategy="ddp",
-                    accelerator="gpu",
-                    devices=2,
-                    logger=False,
-                )
-                trainer.fit(model)
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        strategy=DDPStrategy(process_group_backend="undefined"),
+        accelerator="cuda",
+        devices=2,
+        logger=False,
+    )
+    with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+        trainer.fit(model)
 
 
 @RunIf(skip_windows=True)
 @mock.patch("torch.cuda.set_device")
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("pytorch_lightning.accelerators.gpu.CUDAAccelerator.is_available", return_value=True)
-@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
-def test_ddp_torch_dist_is_available_in_setup(
-    mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
-):
+def test_ddp_torch_dist_is_available_in_setup(mock_set_device, cuda_count_1, tmpdir):
     """Test to ensure torch distributed is available within the setup hook using ddp."""
 
     class TestModel(BoringModel):
-        def setup(self, stage: Optional[str] = None) -> None:
+        def setup(self, stage: str) -> None:
             assert torch.distributed.is_initialized()
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
-    with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
-        with pytest.raises(SystemExit):
-            trainer.fit(model)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        strategy=DDPStrategy(process_group_backend="gloo"),
+        accelerator="gpu",
+        devices=1,
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
@@ -144,17 +133,15 @@ def test_ddp_wrapper(tmpdir, precision):
 
 
 @pytest.mark.parametrize(
-    ["process_group_backend", "env_var", "device_str", "expected_process_group_backend"],
+    ["process_group_backend", "device_str", "expected_process_group_backend"],
     [
-        pytest.param("foo", None, "cpu", "foo"),
-        pytest.param("foo", "BAR", "cpu", "foo"),
-        pytest.param("foo", "BAR", "cuda:0", "foo"),
-        pytest.param(None, "BAR", "cuda:0", "BAR"),
-        pytest.param(None, None, "cuda:0", "nccl"),
-        pytest.param(None, None, "cpu", "gloo"),
+        pytest.param("foo", "cpu", "foo"),
+        pytest.param("foo", "cuda:0", "foo"),
+        pytest.param(None, "cuda:0", "nccl"),
+        pytest.param(None, "cpu", "gloo"),
     ],
 )
-def test_ddp_process_group_backend(process_group_backend, env_var, device_str, expected_process_group_backend):
+def test_ddp_process_group_backend(process_group_backend, device_str, expected_process_group_backend):
     """Test settings for process group backend."""
 
     class MockDDPStrategy(DDPStrategy):
@@ -167,14 +154,7 @@ def test_ddp_process_group_backend(process_group_backend, env_var, device_str, e
             return self._root_device
 
     strategy = MockDDPStrategy(process_group_backend=process_group_backend, root_device=torch.device(device_str))
-    if not process_group_backend and env_var:
-        with mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": env_var}):
-            with pytest.deprecated_call(
-                match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"
-            ):
-                assert strategy._get_process_group_backend() == expected_process_group_backend
-    else:
-        assert strategy._get_process_group_backend() == expected_process_group_backend
+    assert strategy._get_process_group_backend() == expected_process_group_backend
 
 
 @pytest.mark.parametrize(

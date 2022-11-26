@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
@@ -12,7 +13,6 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.serve.servable_module import ServableModule
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -51,10 +51,10 @@ class ServableModuleValidator(Callback):
         exit_on_failure: bool = True,
     ):
         super().__init__()
-        fastapi_installed = _RequirementAvailable("fastapi")
+        fastapi_installed = RequirementCache("fastapi")
         if not fastapi_installed:
             raise ModuleNotFoundError(fastapi_installed.message)
-        uvicorn_installed = _RequirementAvailable("uvicorn")
+        uvicorn_installed = RequirementCache("uvicorn")
         if not uvicorn_installed:
             raise ModuleNotFoundError(uvicorn_installed.message)
 

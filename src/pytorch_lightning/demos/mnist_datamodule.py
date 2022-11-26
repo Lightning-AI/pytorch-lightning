@@ -16,7 +16,7 @@ import os
 import random
 import time
 import urllib
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Sized, Tuple, Union
 from urllib.error import HTTPError
 from warnings import warn
 
@@ -195,10 +195,11 @@ class MNISTDataModule(LightningDataModule):
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str) -> None:
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
+        assert isinstance(dataset, Sized)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 

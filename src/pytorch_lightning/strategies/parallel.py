@@ -19,18 +19,11 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
 from pytorch_lightning.plugins import LayerSync
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import (
-    _get_process_group_backend_from_env,
-    all_gather_ddp_if_available,
-    get_default_process_group_backend_for_device,
-    ReduceOp,
-)
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -38,7 +31,7 @@ class ParallelStrategy(Strategy, ABC):
 
     def __init__(
         self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -46,7 +39,7 @@ class ParallelStrategy(Strategy, ABC):
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
-        self.cluster_environment = cluster_environment
+        self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
         self._layer_sync: Optional[LayerSync] = None
 
     @property
@@ -84,33 +77,33 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        return dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
+            rank=self.global_rank,
         )
-        return distributed_sampler_kwargs
-
-    @property
-    def torch_distributed_backend(self) -> str:
-        """Deprecated property."""
-        rank_zero_deprecation(
-            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
-        )
-        pg_backend = _get_process_group_backend_from_env()
-        if pg_backend:
-            return pg_backend
-        return get_default_process_group_backend_for_device(self.root_device)
 
     def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
+        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
+        ``False``, it behaves like ``any`` instead.
+
+        Args:
+            decision: A single input decision.
+            all: Whether to logically emulate ``all`` or ``any``. Defaults to True.
+
+        Returns:
+            bool: The reduced boolean decision.
+        """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
+        decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 
     @contextmanager

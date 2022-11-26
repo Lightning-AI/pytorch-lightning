@@ -14,11 +14,14 @@
 """Utilities for loggers."""
 
 from argparse import Namespace
-from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, MutableMapping, Tuple, Union
 
 import numpy as np
 import torch
 from torch import Tensor
+
+from pytorch_lightning.callbacks import Checkpoint
 
 
 def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -66,7 +69,7 @@ def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
     return {key: _sanitize_callable(val) for key, val in params.items()}
 
 
-def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any]:
+def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent_key: str = "") -> Dict[str, Any]:
     """Flatten hierarchical dict, e.g. ``{'a': {'b': 'c'}} -> {'a/b': 'c'}``.
 
     Args:
@@ -84,23 +87,16 @@ def _flatten_dict(params: Dict[Any, Any], delimiter: str = "/") -> Dict[str, Any
         >>> _flatten_dict({5: {'a': 123}})
         {'5/a': 123}
     """
-
-    def _dict_generator(
-        input_dict: Any, prefixes: List[Optional[str]] = None
-    ) -> Generator[Any, Optional[List[str]], List[Any]]:
-        prefixes = prefixes[:] if prefixes else []
-        if isinstance(input_dict, MutableMapping):
-            for key, value in input_dict.items():
-                key = str(key)
-                if isinstance(value, (MutableMapping, Namespace)):
-                    value = vars(value) if isinstance(value, Namespace) else value
-                    yield from _dict_generator(value, prefixes + [key])
-                else:
-                    yield prefixes + [key, value if value is not None else str(None)]
+    result: Dict[str, Any] = {}
+    for k, v in params.items():
+        new_key = parent_key + delimiter + str(k) if parent_key else str(k)
+        if isinstance(v, Namespace):
+            v = vars(v)
+        if isinstance(v, MutableMapping):
+            result = {**result, **_flatten_dict(v, parent_key=new_key, delimiter=delimiter)}
         else:
-            yield prefixes + [input_dict if input_dict is None else str(input_dict)]
-
-    return {delimiter.join(keys): val for *keys, val in _dict_generator(params)}
+            result[new_key] = v
+    return result
 
 
 def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -151,17 +147,36 @@ def _add_prefix(
     return metrics
 
 
-def _name(loggers: List[Any], separator: str = "_") -> str:
-    if len(loggers) == 1:
-        return loggers[0].name
-    else:
-        # Concatenate names together, removing duplicates and preserving order
-        return separator.join(dict.fromkeys(str(logger.name) for logger in loggers))
-
-
 def _version(loggers: List[Any], separator: str = "_") -> Union[int, str]:
     if len(loggers) == 1:
         return loggers[0].version
     else:
         # Concatenate versions together, removing duplicates and preserving order
         return separator.join(dict.fromkeys(str(logger.version) for logger in loggers))
+
+
+def _scan_checkpoints(checkpoint_callback: Checkpoint, logged_model_time: dict) -> List[Tuple[float, str, float, str]]:
+    """Return the checkpoints to be logged.
+
+    Args:
+        checkpoint_callback: Checkpoint callback reference.
+        logged_model_time: dictionary containing the logged model times.
+    """
+
+    # get checkpoints to be saved with associated score
+    checkpoints = dict()
+    if hasattr(checkpoint_callback, "last_model_path") and hasattr(checkpoint_callback, "current_score"):
+        checkpoints[checkpoint_callback.last_model_path] = (checkpoint_callback.current_score, "latest")
+
+    if hasattr(checkpoint_callback, "best_model_path") and hasattr(checkpoint_callback, "best_model_score"):
+        checkpoints[checkpoint_callback.best_model_path] = (checkpoint_callback.best_model_score, "best")
+
+    if hasattr(checkpoint_callback, "best_k_models"):
+        for key, value in checkpoint_callback.best_k_models.items():
+            checkpoints[key] = (value, "best_k")
+
+    checkpoints = sorted(
+        (Path(p).stat().st_mtime, p, s, tag) for p, (s, tag) in checkpoints.items() if Path(p).is_file()
+    )
+    checkpoints = [c for c in checkpoints if c[1] not in logged_model_time.keys() or logged_model_time[c[1]] < c[0]]
+    return checkpoints

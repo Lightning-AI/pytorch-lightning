@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from torch import Tensor
 
+from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
@@ -125,14 +126,14 @@ class CSVLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
+        save_dir: _PATH,
         name: str = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
     ):
         super().__init__()
-        self._save_dir = save_dir
+        self._save_dir = os.fspath(save_dir)
         self._name = name or ""
         self._version = version
         self._prefix = prefix
@@ -169,7 +170,7 @@ class CSVLogger(Logger):
         """
         return self._save_dir
 
-    @property  # type: ignore[misc]
+    @property
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
@@ -208,6 +209,10 @@ class CSVLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
+        if self._experiment is None:
+            # When using multiprocessing, finalize() should be a no-op on the main process, as no experiment has been
+            # initialized there
+            return
         self.save()
 
     @property

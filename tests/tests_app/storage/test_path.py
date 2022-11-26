@@ -4,7 +4,7 @@ import pathlib
 import pickle
 from re import escape
 from time import sleep
-from unittest import mock
+from unittest import mock, TestCase
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -12,18 +12,18 @@ import pytest
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.path import (
-    _is_s3fs_available,
-    artifacts_path,
-    filesystem,
-    is_lit_path,
+    _artifacts_path,
+    _filesystem,
+    _is_lit_path,
+    _shared_storage_path,
+    _storage_root_dir,
     Path,
-    shared_storage_path,
-    storage_root_dir,
 )
-from lightning_app.storage.requests import ExistsResponse, GetResponse
-from lightning_app.testing.helpers import EmptyWork, MockQueue, RunIf
+from lightning_app.storage.requests import _ExistsResponse, _GetResponse
+from lightning_app.testing.helpers import _MockQueue, _RunIf, EmptyWork
 from lightning_app.utilities.app_helpers import LightningJSONEncoder
 from lightning_app.utilities.component import _context
+from lightning_app.utilities.imports import _is_s3fs_available
 
 
 def test_path_instantiation():
@@ -65,22 +65,22 @@ def test_path_instantiation():
 
 
 def test_path_instantiation_lit():
-    assert Path("lit://") == storage_root_dir()
-    assert Path("lit://a/b") == pathlib.Path(storage_root_dir(), "a/b")
-    assert Path("lit://", "a", "b") == pathlib.Path(storage_root_dir(), "a", "b")
-    assert Path("lit://", pathlib.Path("a"), pathlib.Path("b")) == pathlib.Path(storage_root_dir(), "a/b")
-    assert Path(Path(Path("lit://a/b"))) == pathlib.Path(storage_root_dir(), "a", "b")
-    assert str(Path("lit://lit-path")) == os.path.join(storage_root_dir(), "lit-path")
+    assert Path("lit://") == _storage_root_dir()
+    assert Path("lit://a/b") == pathlib.Path(_storage_root_dir(), "a/b")
+    assert Path("lit://", "a", "b") == pathlib.Path(_storage_root_dir(), "a", "b")
+    assert Path("lit://", pathlib.Path("a"), pathlib.Path("b")) == pathlib.Path(_storage_root_dir(), "a/b")
+    assert Path(Path(Path("lit://a/b"))) == pathlib.Path(_storage_root_dir(), "a", "b")
+    assert str(Path("lit://lit-path")) == os.path.join(_storage_root_dir(), "lit-path")
 
 
 def test_is_lit_path():
-    assert not is_lit_path("lit")
-    assert not is_lit_path(Path("lit"))
-    assert is_lit_path("lit://")
-    assert is_lit_path(Path("lit://"))
-    assert is_lit_path("lit://a/b/c")
-    assert is_lit_path(Path("lit://a/b/c"))
-    assert is_lit_path(storage_root_dir())
+    assert not _is_lit_path("lit")
+    assert not _is_lit_path(Path("lit"))
+    assert _is_lit_path("lit://")
+    assert _is_lit_path(Path("lit://"))
+    assert _is_lit_path("lit://a/b/c")
+    assert _is_lit_path(Path("lit://a/b/c"))
+    assert _is_lit_path(_storage_root_dir())
 
 
 def test_path_copy():
@@ -157,7 +157,7 @@ def test_path_with_replacement():
     assert rel_path._consumer == "consumer"
 
 
-@RunIf(min_python="3.9")
+@_RunIf(min_python="3.9")
 def test_path_with_stem_replacement():
     """Test that the ``Path.with_stem`` modifier keep the properties.
 
@@ -377,7 +377,7 @@ class SourceToDestFlow(LightningFlow):
 
 def test_multiprocess_path_in_work_and_flow(tmpdir):
     root = SourceToDestFlow(tmpdir)
-    app = LightningApp(root, debug=True)
+    app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
@@ -490,7 +490,6 @@ def test_path_as_argument_to_run_method():
 
 def test_path_get_errors(tmpdir):
     with _context("work"):
-
         with pytest.raises(
             RuntimeError, match="Trying to get the file .* but the path is not attached to a LightningApp"
         ):
@@ -552,7 +551,7 @@ class OverwriteFolderFlow(LightningFlow):
 def test_path_get_overwrite(tmpdir):
     """Test that .get(overwrite=True) overwrites the entire directory and replaces all files."""
     root = OverwriteFolderFlow(tmpdir)
-    app = LightningApp(root, debug=True)
+    app = LightningApp(root, log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
 
 
@@ -563,8 +562,8 @@ def test_path_get_error_in_flow_context():
 
 
 def test_path_response_with_exception(tmpdir):
-    request_queue = MockQueue()
-    response_queue = MockQueue()
+    request_queue = _MockQueue()
+    response_queue = _MockQueue()
     path = Path(tmpdir / "file.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
@@ -572,7 +571,7 @@ def test_path_response_with_exception(tmpdir):
 
     # simulate that a response will come with an exception raised
     response_queue.put(
-        GetResponse(
+        _GetResponse(
             source="origin",
             path=str(tmpdir / "file.txt"),
             hash=path.hash,
@@ -588,15 +587,15 @@ def test_path_response_with_exception(tmpdir):
 
 
 def test_path_response_not_matching_reqeuest(tmpdir):
-    request_queue = MockQueue()
-    response_queue = MockQueue()
+    request_queue = _MockQueue()
+    response_queue = _MockQueue()
     path = Path(tmpdir / "file.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
     path._consumer = "consumer"
 
     # simulate a response that has a different owner than the request had
-    response = GetResponse(
+    response = _GetResponse(
         source="other_origin", path=str(tmpdir / "file.txt"), hash=path.hash, destination="consumer", name=""
     )
 
@@ -665,19 +664,19 @@ def test_path_exists_remote(tmpdir):
         path.exists_remote()
 
     # If Path does not exist locally, ask the orchestrator
-    request_queue = MockQueue()
-    response_queue = MockQueue()
+    request_queue = _MockQueue()
+    response_queue = _MockQueue()
     path = Path(tmpdir / "not-exists.txt")
     path._attach_queues(request_queue, response_queue)
     path._origin = "origin"
     path._consumer = "consumer"
 
     # Put the response into the queue to simulate the orchestrator responding
-    response_queue.put(ExistsResponse(source=path.origin_name, path=str(path), name="", hash="123", exists=False))
+    response_queue.put(_ExistsResponse(source=path.origin_name, path=str(path), name="", hash="123", exists=False))
     assert not path.exists_remote()
     assert request_queue.get()
 
-    response_queue.put(ExistsResponse(source=path.origin_name, path=str(path), name="", hash="123", exists=True))
+    response_queue.put(_ExistsResponse(source=path.origin_name, path=str(path), name="", hash="123", exists=True))
     assert path.exists_remote()
     assert request_queue.get()
 
@@ -685,7 +684,7 @@ def test_path_exists_remote(tmpdir):
 def test_artifacts_path():
     work = Mock()
     work.name = "root.flow.work"
-    assert artifacts_path(work) == shared_storage_path() / "artifacts" / "root.flow.work"
+    assert _artifacts_path(work) == _shared_storage_path() / "artifacts" / "root.flow.work"
 
 
 @pytest.mark.skipif(not _is_s3fs_available(), reason="This test requires s3fs.")
@@ -699,8 +698,25 @@ def test_filesystem(monkeypatch):
 
     mock = MagicMock()
     monkeypatch.setattr(path, "S3FileSystem", mock)
-    fs = filesystem()
+    fs = _filesystem()
     assert fs._mock_new_parent._mock_mock_calls[0].kwargs["key"] == "c"
     assert fs._mock_new_parent._mock_mock_calls[0].kwargs["secret"] == "d"
     assert not fs._mock_new_parent._mock_mock_calls[0].kwargs["use_ssl"]
     assert fs._mock_new_parent._mock_mock_calls[0].kwargs["client_kwargs"] == {"endpoint_url": "a"}
+
+
+class TestSharedStoragePath(TestCase):
+    @mock.patch.dict(os.environ, {"LIGHTNING_STORAGE_PATH": "test-bucket/lightningapps/test-project/test-app"})
+    def test_shared_storage_path_storage_path_set(self):
+        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-project/test-app"), _shared_storage_path())
+
+    @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "test-app", "LIGHTNING_BUCKET_NAME": "test-bucket"})
+    def test_shared_storage_path_bucket_and_app_id_set(self):
+        self.assertEqual(pathlib.Path("test-bucket/lightningapps/test-app"), _shared_storage_path())
+
+    @mock.patch.dict(os.environ, {"SHARED_MOUNT_DIRECTORY": "test-app/.shared"})
+    def test_shared_storage_path_mount_directory_set(self):
+        self.assertTrue(_shared_storage_path().match("*/test-app/.shared"))
+
+    def test_shared_storage_path_no_envvars_set(self):
+        self.assertTrue(_shared_storage_path().match("*/.shared"))

@@ -14,6 +14,7 @@ from lightning_app.utilities.app_helpers import _is_json_serializable, _Lightnin
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
+from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_compute, CloudCompute
 
 
 class LightningFlow:
@@ -78,7 +79,7 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning import LightningFlow
+            >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
             ...     def __init__(self):
             ...         super().__init__()
@@ -109,7 +110,11 @@ class LightningFlow:
         """Return the current LightningFlow name."""
         return self._name or "root"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
+        attr = getattr(self.__class__, name, None)
+        if isinstance(attr, property) and attr.fset is not None:
+            return attr.fset(self, value)
+
         from lightning_app.structures import Dict, List
 
         if (
@@ -145,6 +150,8 @@ class LightningFlow:
                 # Attach the backend to the flow and its children work.
                 if self._backend:
                     LightningFlow._attach_backend(value, self._backend)
+                for work in value.works():
+                    work._register_cloud_compute()
 
             elif isinstance(value, LightningWork):
                 self._works.add(name)
@@ -153,6 +160,7 @@ class LightningFlow:
                     self._state.remove(name)
                 if self._backend:
                     self._backend._wrap_run_method(_LightningAppRef().get_current(), value)
+                value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
                 value._backend = self._backend
@@ -175,6 +183,9 @@ class LightningFlow:
             elif isinstance(value, Drive):
                 value = deepcopy(value)
                 value.component_name = self.name
+                self._state.add(name)
+
+            elif isinstance(value, CloudCompute):
                 self._state.add(name)
 
             elif _is_json_serializable(value):
@@ -200,22 +211,19 @@ class LightningFlow:
         """Attach the backend to all flows and its children."""
         flow._backend = backend
 
-        for child_flow in flow.flows.values():
-            LightningFlow._attach_backend(child_flow, backend)
-
-        for struct_name in flow._structures:
-            structure = getattr(flow, struct_name)
-            for flow in structure.flows:
-                LightningFlow._attach_backend(flow, backend)
-            for work in structure.works:
-                backend._wrap_run_method(_LightningAppRef().get_current(), work)
-                work._backend = backend
-
         for name in flow._structures:
             getattr(flow, name)._backend = backend
 
-        for work in flow.works(recurse=False):
-            backend._wrap_run_method(_LightningAppRef().get_current(), work)
+        for child_flow in flow.flows.values():
+            child_flow._backend = backend
+            for name in child_flow._structures:
+                getattr(child_flow, name)._backend = backend
+
+        app = _LightningAppRef().get_current()
+
+        for child_work in flow.works():
+            child_work._backend = backend
+            backend._wrap_run_method(app, child_work)
 
     def __getattr__(self, item):
         if item in self.__dict__.get("_paths", {}):
@@ -267,9 +275,16 @@ class LightningFlow:
         }
 
     @property
-    def flows(self):
+    def flows(self) -> Dict[str, "LightningFlow"]:
         """Return its children LightningFlow."""
-        return {el: getattr(self, el) for el in sorted(self._flows)}
+        flows = {}
+        for el in sorted(self._flows):
+            flow = getattr(self, el)
+            flows[flow.name] = flow
+            flows.update(flow.flows)
+        for struct_name in sorted(self._structures):
+            flows.update(getattr(self, struct_name).flows)
+        return flows
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
@@ -286,38 +301,28 @@ class LightningFlow:
 
     def named_works(self, recurse: bool = True) -> List[Tuple[str, LightningWork]]:
         """Return its :class:`~lightning_app.core.work.LightningWork` with their names."""
-        named_works = [(el, getattr(self, el)) for el in sorted(self._works)]
-        if not recurse:
-            return named_works
-        for child_name in sorted(self._flows):
-            for w in getattr(self, child_name).works(recurse=recurse):
-                named_works.append(w)
-        for struct_name in sorted(self._structures):
-            for w in getattr(self, struct_name).works:
-                named_works.append((w.name, w))
-        return named_works
+        return [(w.name, w) for w in self.works(recurse=recurse)]
 
-    def get_all_children_(self, children):
-        sorted_children = sorted(self._flows)
-        children.extend([getattr(self, el) for el in sorted_children])
-        for child in sorted_children:
-            getattr(self, child).get_all_children_(children)
-        return children
-
-    def get_all_children(self):
-        children = []
-        self.get_all_children_(children)
-        return children
-
-    def set_state(self, provided_state: Dict) -> None:
+    def set_state(self, provided_state: Dict, recurse: bool = True) -> None:
         """Method to set the state to this LightningFlow, its children and
-        :class:`~lightning_app.core.work.LightningWork`."""
+        :class:`~lightning_app.core.work.LightningWork`.
+
+        Arguments:
+            provided_state: The state to be reloaded
+            recurse: Whether to apply the state down children.
+        """
         for k, v in provided_state["vars"].items():
             if isinstance(v, Dict):
                 v = _maybe_create_drive(self.name, v)
+            if isinstance(v, Dict):
+                v = _maybe_create_cloud_compute(v)
             setattr(self, k, v)
         self._changes = provided_state["changes"]
         self._calls.update(provided_state["calls"])
+
+        if not recurse:
+            return
+
         for child, state in provided_state["flows"].items():
             getattr(self, child).set_state(state)
         for work, state in provided_state["works"].items():
@@ -667,3 +672,96 @@ class LightningFlow:
         under the ``/docs`` route.
         """
         raise NotImplementedError
+
+    def state_dict(self):
+        """Returns the current flow state but not its children."""
+        return {
+            "vars": _sanitize_state({el: getattr(self, el) for el in self._state}),
+            "calls": self._calls.copy(),
+            "changes": {},
+            "flows": {},
+            "works": {},
+            "structures": {},
+        }
+
+    def load_state_dict(
+        self,
+        flow_state: Dict[str, Any],
+        children_states: Dict[str, Any],
+        strict: bool = True,
+    ) -> None:
+        """Reloads the state of this flow and its children.
+
+        .. code-block:: python
+
+            import lightning as L
+
+
+            class Work(L.LightningWork):
+                def __init__(self):
+                    super().__init__()
+                    self.counter = 0
+
+                def run(self):
+                    self.counter += 1
+
+
+            class Flow(L.LightningFlow):
+                def run(self):
+                    # dynamically create a work.
+                    if not getattr(self, "w", None):
+                        self.w = WorkReload()
+
+                    self.w.run()
+
+                def load_state_dict(self, flow_state, children_states, strict) -> None:
+                    # 1: Re-instantiate the dynamic work
+                    self.w = Work()
+
+                    # 2: Make any states modification / migration.
+                    ...
+
+                    # 3: Call the parent ``load_state_dict`` to
+                    # recursively reload the states.
+                    super().load_state_dict(
+                        flow_state,
+                        children_states,
+                        strict,
+                    )
+
+        Arguments:
+            flow_state: The state of the current flow.
+            children_states: The state of the dynamic children of this flow.
+            strict: Whether to raise an exception if a dynamic
+                children hasn't been re-created.
+        """
+        self.set_state(flow_state, recurse=False)
+        direct_children_states = {k: v for k, v in children_states.items() if "." not in k}
+        for child_name, state in direct_children_states.items():
+            child = getattr(self, child_name, None)
+            if isinstance(child, LightningFlow):
+                lower_children_states = {
+                    k.replace(child_name + ".", ""): v
+                    for k, v in children_states.items()
+                    if k.startswith(child_name) and k != child_name
+                }
+                child.load_state_dict(state, lower_children_states, strict=strict)
+            elif isinstance(child, LightningWork):
+                child.set_state(state)
+            elif strict:
+                raise ValueError(f"The component {child_name} wasn't instantiated for the component {self.name}")
+
+
+class _RootFlow(LightningFlow):
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        if self.work.has_succeeded:
+            self.work.stop()
+            self._exit()
+        self.work.run()
+
+    def configure_layout(self):
+        return [{"name": "Main", "content": self.work}]

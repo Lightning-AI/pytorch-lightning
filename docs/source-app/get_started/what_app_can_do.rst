@@ -77,22 +77,6 @@ Find the `ScratchPad App <https://lightning.ai/app/hvUwbEG70B-ScratchPad%2C%20No
 
 ----
 
-******************************
-Lightning HPO Sweeper (Public)
-******************************
-
-Run a hyperparameter sweep over any model script across hundreds of cloud machines at once. This Lightning App uses Optuna to provide advanced tuning algorithms (from grid and random search to Hyperband).
-
-Find the `Lightning HPO Sweeper App <https://lightning.ai/app/8FOWcOVsdf-Lightning%20Sweeper>`_ on the App Gallery and the `Lightning HPO Sweeper codebase. <https://github.com/Lightning-AI/LAI-lightning-hpo-App>`_ on GitHub.
-
-.. raw:: html
-
-   <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/sweeper.png" width="100%">
-      <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/sweeper.mp4" type="video/mp4" width="100%">
-   </video>
-
-----
-
 ***********************
 InVideo Search (Public)
 ***********************

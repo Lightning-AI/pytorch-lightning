@@ -126,9 +126,9 @@ def test_default_content_layout():
     root = TestContentComponent()
     LightningApp(root)
     assert root._layout == [
-        dict(name="component0", content="root.component0"),
-        dict(name="component1", content="root.component1"),
-        dict(name="component2", content="root.component2"),
+        dict(name="root.component0", content="root.component0"),
+        dict(name="root.component1", content="root.component1"),
+        dict(name="root.component2", content="root.component2"),
     ]
 
 

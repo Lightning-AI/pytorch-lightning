@@ -1,4 +1,3 @@
-import logging
 import os
 import signal
 import subprocess
@@ -6,11 +5,11 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from lightning_app import LightningWork
-from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger
 from lightning_app.utilities.tracer import Tracer
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
 
 
 class PopenPythonScript(LightningWork):

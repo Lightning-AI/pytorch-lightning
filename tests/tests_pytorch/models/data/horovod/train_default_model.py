@@ -37,7 +37,6 @@ else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
 from pytorch_lightning.demos.boring_classes import BoringModel  # noqa: E402
-from tests_pytorch.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
@@ -47,9 +46,6 @@ parser.add_argument("--check-size", action="store_true", default=False)
 
 def run_test_from_config(trainer_options, on_gpu, check_size):
     """Trains the default model with the given config."""
-    set_random_main_port()
-    reset_seed()
-
     ckpt_path = trainer_options["default_root_dir"]
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 

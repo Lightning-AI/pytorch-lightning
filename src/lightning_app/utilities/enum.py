@@ -39,6 +39,7 @@ class WorkPendingReason(enum.Enum):
 
 class WorkStageStatus:
     NOT_STARTED = "not_started"
+    STARTED = "started"
     STOPPED = "stopped"
     PENDING = "pending"
     RUNNING = "running"

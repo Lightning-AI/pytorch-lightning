@@ -29,8 +29,8 @@ To track a metric, simply use the *self.log* method available inside the *Lightn
 
     class LitModel(pl.LightningModule):
         def training_step(self, batch, batch_idx):
-            value = self.global_step
-            self.log("some_value", self.global_step)
+            value = ...
+            self.log("some_value", value)
 
 To log multiple metrics at once, use *self.log_dict*
 
@@ -50,7 +50,7 @@ To view metrics in the commandline progress bar, set the *prog_bar* argument to 
 
 .. code-block:: python
 
-    self.log(prog_bar=True)
+    self.log(..., prog_bar=True)
 
 TODO: need progress bar here
 
@@ -105,36 +105,9 @@ If you don't want to average you can also choose from ``{min,max,sum}`` by passi
 .. code-block:: python
 
     # default function
-    self.log(..., reduce_fx=torch.mean)
+    self.log(..., reduce_fx="mean")
 
 For other reductions, we recommend logging a :class:`torchmetrics.Metric` instance instead.
-
-----
-
-************
-Track images
-************
-If your *experiment manager* supports image visualization, simply *log* the image with *self.log*
-
-.. code-block:: python
-
-    # (32 batch samples, 3 channels, 32 width, 32 height)
-    image = torch.Tensor(32, 3, 28, 28)
-    self.log("an_image", image)
-
-----
-
-**********
-Track text
-**********
-If your *experiment manager* supports text visualization, simply *log* the text with *self.log*
-
-.. code-block:: python
-
-    text = "hello world"
-    self.log("some_text", text)
-
-# TODO: show screenshot
 
 ----
 

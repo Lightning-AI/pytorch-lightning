@@ -14,9 +14,16 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
 from lightning_app.storage import Path
-from lightning_app.storage.path import storage_root_dir
+from lightning_app.storage.path import _storage_root_dir
+from lightning_app.structures import Dict as LDict
+from lightning_app.structures import List as LList
 from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.app_helpers import _delta_to_app_state_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import (
+    _delta_to_app_state_delta,
+    _LightningAppRef,
+    _load_state_dict,
+    _state_dict,
+)
 from lightning_app.utilities.enum import CacheCallsKeys
 from lightning_app.utilities.exceptions import ExitAppException
 
@@ -302,7 +309,7 @@ def test_lightning_flow_and_work():
                 self._exit()
 
     flow_a = Flow_A()
-    assert flow_a.named_works() == [("work_a", flow_a.work_a), ("work_b", flow_a.work_b)]
+    assert flow_a.named_works() == [("root.work_a", flow_a.work_a), ("root.work_b", flow_a.work_b)]
     assert flow_a.works() == [flow_a.work_a, flow_a.work_b]
     state = {
         "vars": {"counter": 0, "_layout": ANY, "_paths": {}},
@@ -320,6 +327,15 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "idle_timeout": None,
+                        "mounts": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -334,6 +350,15 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "idle_timeout": None,
+                        "mounts": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -364,6 +389,15 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "idle_timeout": None,
+                        "mounts": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {CacheCallsKeys.LATEST_CALL_HASH: None},
                 "changes": {},
@@ -378,6 +412,15 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_cloud_compute": {
+                        "type": "__cloud_compute__",
+                        "name": "default",
+                        "disk_size": 0,
+                        "idle_timeout": None,
+                        "mounts": None,
+                        "shm_size": 0,
+                        "_internal_id": "default",
+                    },
                 },
                 "calls": {
                     CacheCallsKeys.LATEST_CALL_HASH: None,
@@ -487,7 +530,7 @@ def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
     assert iterate_call["counter"] == 4
     assert not iterate_call["has_finished"]
 
-    checkpoint_dir = os.path.join(storage_root_dir(), "checkpoints")
+    checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     app = LightningApp(CFlow(run_once))
     app.load_state_dict_from_checkpoint_dir(checkpoint_dir)
     app.root.restarting = True
@@ -519,7 +562,7 @@ def test_lightning_flow_counter(runtime_cls, tmpdir):
     runtime_cls(app, start_server=False).dispatch()
     assert app.root.counter == 3
 
-    checkpoint_dir = os.path.join(storage_root_dir(), "checkpoints")
+    checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
     checkpoints = os.listdir(checkpoint_dir)
     assert len(checkpoints) == 4
     for checkpoint in checkpoints:
@@ -633,3 +676,186 @@ def test_lightning_flow():
             assert len(self._calls["scheduling"]) == 8
 
     Flow().run()
+
+
+class WorkReload(LightningWork):
+    def __init__(self):
+        super().__init__(cache_calls=False)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowReload(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "w", None):
+            self.w = WorkReload()
+
+        self.counter += 1
+        self.w.run()
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.w = WorkReload()
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class FlowReload2(LightningFlow):
+    def __init__(self, random_value: str):
+        super().__init__()
+        self.random_value = random_value
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "w", None):
+            self.w = WorkReload()
+        self.w.run()
+        self.counter += 1
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.w = WorkReload()
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class RootFlowReload(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = FlowReload()
+        self.counter = 0
+
+    def run(self):
+        if not getattr(self, "flow_2", None):
+            self.flow_2 = FlowReload2("something")
+        self.flow.run()
+        self.flow_2.run()
+        self.counter += 1
+
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        self.flow_2 = FlowReload2(children_states["flow_2"]["vars"]["random_value"])
+        super().load_state_dict(flow_state, children_states, strict=strict)
+
+
+class RootFlowReload2(RootFlowReload):
+    def load_state_dict(self, flow_state, children_states, strict) -> None:
+        LightningFlow.load_state_dict(self, flow_state, children_states, strict=strict)
+
+
+def test_lightning_flow_reload():
+    flow = RootFlowReload()
+
+    assert flow.counter == 0
+    assert flow.flow.counter == 0
+
+    flow.run()
+
+    assert flow.flow.w.counter == 1
+    assert flow.counter == 1
+    assert flow.flow.counter == 1
+    assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
+    state = _state_dict(flow)
+    flow = RootFlowReload()
+    _load_state_dict(flow, state)
+
+    assert flow.flow.w.counter == 1
+    assert flow.counter == 1
+    assert flow.flow.counter == 1
+    assert flow.flow_2.counter == 1
+    assert flow.flow_2.w.counter == 1
+
+    flow.run()
+
+    assert flow.flow.w.counter == 2
+    assert flow.counter == 2
+    assert flow.flow.counter == 2
+    assert flow.flow_2.counter == 2
+    assert flow.flow_2.w.counter == 2
+
+    flow = RootFlowReload2()
+    flow.run()
+    state = _state_dict(flow)
+    flow = RootFlowReload2()
+    with pytest.raises(ValueError, match="The component flow_2 wasn't instantiated for the component root"):
+        _load_state_dict(flow, state)
+
+
+class NestedFlow(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flows_dict = LDict(**{"a": EmptyFlow()})
+        self.flows_list = LList(*[EmptyFlow()])
+        self.flow = EmptyFlow()
+        assert list(self.flows) == ["root.flow", "root.flows_dict.a", "root.flows_list.0"]
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+class FlowNested2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow3 = EmptyFlow()
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+class FlowCollection(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.flow = EmptyFlow()
+        assert self.flow.name == "root.flow"
+        self.flow2 = FlowNested2()
+        assert list(self.flow2.flows) == ["root.flow2.flow3"]
+        self.flows_dict = LDict(**{"a": NestedFlow()})
+        assert list(self.flows_dict.flows) == [
+            "root.flows_dict.a",
+            "root.flows_dict.a.flow",
+            "root.flows_dict.a.flows_dict.a",
+            "root.flows_dict.a.flows_list.0",
+        ]
+        self.flows_list = LList(*[NestedFlow()])
+        assert list(self.flows_list.flows) == [
+            "root.flows_list.0",
+            "root.flows_list.0.flow",
+            "root.flows_list.0.flows_dict.a",
+            "root.flows_list.0.flows_list.0",
+        ]
+        self.w = EmptyWork()
+
+    def run(self):
+        pass
+
+
+def test_lightning_flow_flows_and_works():
+
+    flow = FlowCollection()
+    app = LightningApp(flow)
+
+    assert list(app.root.flows.keys()) == [
+        "root.flow",
+        "root.flow2",
+        "root.flow2.flow3",
+        "root.flows_dict.a",
+        "root.flows_dict.a.flow",
+        "root.flows_dict.a.flows_dict.a",
+        "root.flows_dict.a.flows_list.0",
+        "root.flows_list.0",
+        "root.flows_list.0.flow",
+        "root.flows_list.0.flows_dict.a",
+        "root.flows_list.0.flows_list.0",
+    ]
+
+    assert [w[0] for w in app.root.named_works()] == [
+        "root.w",
+        "root.flow2.w",
+        "root.flows_dict.a.w",
+        "root.flows_list.0.w",
+    ]

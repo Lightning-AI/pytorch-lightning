@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from functools import partial, update_wrapper
 from types import MethodType
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import torch
+from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.cloud_io import get_filesystem
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
-from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.12.0")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.15.2")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
@@ -45,6 +47,9 @@ if _JSONARGPARSE_SIGNATURES_AVAILABLE:
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+
+ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -73,9 +78,6 @@ class LightningArgumentParser(ArgumentParser):
                 f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
         super().__init__(*args, **kwargs)
-        self.add_argument(
-            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
-        )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
         self._optimizers: Dict[str, Tuple[Union[Type, Tuple[Type, ...]], str]] = {}
@@ -144,7 +146,7 @@ class LightningArgumentParser(ArgumentParser):
             assert all(issubclass(o, Optimizer) for o in optimizer_class)
         else:
             assert issubclass(optimizer_class, Optimizer)
-        kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
+        kwargs: Dict[str, Any] = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
             self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
         else:
@@ -169,7 +171,7 @@ class LightningArgumentParser(ArgumentParser):
             assert all(issubclass(o, LRSchedulerTypeTuple) for o in lr_scheduler_class)
         else:
             assert issubclass(lr_scheduler_class, LRSchedulerTypeTuple)
-        kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
+        kwargs: Dict[str, Any] = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
             self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
         else:
@@ -195,7 +197,7 @@ class SaveConfigCallback(Callback):
         self,
         parser: LightningArgumentParser,
         config: Namespace,
-        config_filename: str,
+        config_filename: str = "config.yaml",
         overwrite: bool = False,
         multifile: bool = False,
     ) -> None:
@@ -204,8 +206,12 @@ class SaveConfigCallback(Callback):
         self.config_filename = config_filename
         self.overwrite = overwrite
         self.multifile = multifile
+        self.already_saved = False
 
-    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        if self.already_saved:
+            return
+
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -233,6 +239,10 @@ class SaveConfigCallback(Callback):
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
+            self.already_saved = True
+
+        # broadcast so that all ranks are in sync on future calls to .setup()
+        self.already_saved = trainer.strategy.broadcast(self.already_saved)
 
 
 class LightningCLI:
@@ -243,9 +253,7 @@ class LightningCLI:
         model_class: Optional[Union[Type[LightningModule], Callable[..., LightningModule]]] = None,
         datamodule_class: Optional[Union[Type[LightningDataModule], Callable[..., LightningDataModule]]] = None,
         save_config_callback: Optional[Type[SaveConfigCallback]] = SaveConfigCallback,
-        save_config_filename: str = "config.yaml",
-        save_config_overwrite: bool = False,
-        save_config_multifile: bool = False,
+        save_config_kwargs: Optional[Dict[str, Any]] = None,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
         seed_everything_default: Union[bool, int] = True,
@@ -255,8 +263,10 @@ class LightningCLI:
         parser_kwargs: Optional[Union[Dict[str, Any], Dict[str, Dict[str, Any]]]] = None,
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
+        args: ArgsType = None,
         run: bool = True,
         auto_registry: bool = False,
+        **kwargs: Any,  # Remove with deprecations of v1.10
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -276,19 +286,17 @@ class LightningCLI:
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
                 called. If ``None``, you can pass a registered datamodule with ``--data=MyDataModule``.
-            save_config_callback: A callback class to save the training config.
-            save_config_filename: Filename for the config file.
-            save_config_overwrite: Whether to overwrite an existing config file.
-            save_config_multifile: When input is multiple config files, saved config preserves this structure.
+            save_config_callback: A callback class to save the config.
+            save_config_kwargs: Parameters that will be used to instantiate the save_config_callback.
             trainer_class: An optional subclass of the :class:`~pytorch_lightning.trainer.trainer.Trainer` class or a
                 callable which returns a :class:`~pytorch_lightning.trainer.trainer.Trainer` instance when called.
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
-                seed argument. Set to True to automatically choose a valid seed.
-                Setting it to False will not call seed_everything.
+            seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
+                seed value. Set to True to automatically choose a seed value.
+                Setting it to False will avoid calling ``seed_everything``.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -299,24 +307,20 @@ class LightningCLI:
             subclass_mode_data: Whether datamodule can be any `subclass
                 <https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes>`_
                 of the given class.
+            args: Arguments to parse. If ``None`` the arguments are taken from ``sys.argv``. Command line style
+                arguments can be given in a ``list``. Alternatively, structured config options can be given in a
+                ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
             auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
-        self.save_config_filename = save_config_filename
-        self.save_config_overwrite = save_config_overwrite
-        self.save_config_multifile = save_config_multifile
+        self.save_config_kwargs = save_config_kwargs or {}
         self.trainer_class = trainer_class
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
 
-        if self.seed_everything_default is None:
-            rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
-            )
-            self.seed_everything_default = False
+        self._handle_deprecated_params(kwargs)
 
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
@@ -337,7 +341,7 @@ class LightningCLI:
             {"description": description, "env_prefix": env_prefix, "default_env": env_parse},
         )
         self.setup_parser(run, main_kwargs, subparser_kwargs)
-        self.parse_arguments(self.parser)
+        self.parse_arguments(self.parser, args)
 
         self.subcommand = self.config["subcommand"] if run else None
 
@@ -348,6 +352,27 @@ class LightningCLI:
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
+
+    def _handle_deprecated_params(self, kwargs: dict) -> None:
+        if self.seed_everything_default is None:
+            rank_zero_deprecation(
+                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
+                "and will be removed in v1.9. Set it to `False` instead."
+            )
+            self.seed_everything_default = False
+
+        for name in ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
+            if name in kwargs:
+                value = kwargs.pop(name)
+                key = name.replace("save_config_", "").replace("filename", "config_filename")
+                self.save_config_kwargs[key] = value
+                rank_zero_deprecation(
+                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 "
+                    "and will be removed in v1.10. Use 'save_config_kwargs' instead."
+                )
+
+        if kwargs:
+            raise ValueError(f"Unexpected keyword parameters: {kwargs}")
 
     def _setup_parser_kwargs(
         self, kwargs: Dict[str, Any], defaults: Dict[str, Any]
@@ -362,7 +387,11 @@ class LightningCLI:
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
         kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
-        return LightningArgumentParser(**kwargs)
+        parser = LightningArgumentParser(**kwargs)
+        parser.add_argument(
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+        )
+        return parser
 
     def setup_parser(
         self, add_subcommands: bool, main_kwargs: Dict[str, Any], subparser_kwargs: Dict[str, Any]
@@ -435,6 +464,7 @@ class LightningCLI:
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:
         """Adds subcommands to the input parser."""
+        self._subcommand_parsers: Dict[str, LightningArgumentParser] = {}
         parser_subcommands = parser.add_subcommands()
         # the user might have passed a builder function
         trainer_class = (
@@ -442,10 +472,13 @@ class LightningCLI:
         )
         # register all subcommands in separate subcommand parsers under the main parser
         for subcommand in self.subcommands():
-            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **kwargs.get(subcommand, {}))
             fn = getattr(trainer_class, subcommand)
             # extract the first line description in the docstring for the subcommand help message
             description = _get_short_description(fn)
+            subparser_kwargs = kwargs.get(subcommand, {})
+            subparser_kwargs.setdefault("description", description)
+            subcommand_parser = self._prepare_subcommand_parser(trainer_class, subcommand, **subparser_kwargs)
+            self._subcommand_parsers[subcommand] = subcommand_parser
             parser_subcommands.add_subcommand(subcommand, subcommand_parser, help=description)
 
     def _prepare_subcommand_parser(self, klass: Type, subcommand: str, **kwargs: Any) -> LightningArgumentParser:
@@ -471,9 +504,18 @@ class LightningCLI:
                 add_class_path = _add_class_path_generator(class_type)
                 parser.link_arguments(key, link_to, compute_fn=add_class_path)
 
-    def parse_arguments(self, parser: LightningArgumentParser) -> None:
+    def parse_arguments(self, parser: LightningArgumentParser, args: ArgsType) -> None:
         """Parses command line arguments and stores it in ``self.config``."""
-        self.config = parser.parse_args()
+        if args is not None and len(sys.argv) > 1:
+            raise ValueError(
+                "LightningCLI's args parameter is intended to run from within Python like if it were from the command "
+                "line. To prevent mistakes it is not allowed to provide both args and command line arguments, got: "
+                f"sys.argv[1:]={sys.argv[1:]}, args={args}."
+            )
+        if isinstance(args, (dict, Namespace)):
+            self.config = parser.parse_object(args)
+        else:
+            self.config = parser.parse_args(args)
 
     def before_instantiate_classes(self) -> None:
         """Implement to run some code before instantiating the classes."""
@@ -511,9 +553,7 @@ class LightningCLI:
                 config_callback = self.save_config_callback(
                     self._parser(self.subcommand),
                     self.config.get(str(self.subcommand), self.config),
-                    self.save_config_filename,
-                    overwrite=self.save_config_overwrite,
-                    multifile=self.save_config_multifile,
+                    **self.save_config_kwargs,
                 )
                 config[key].append(config_callback)
         else:
@@ -527,8 +567,7 @@ class LightningCLI:
         if subcommand is None:
             return self.parser
         # return the subcommand parser for the subcommand passed
-        action_subcommand = self.parser._subcommands_action
-        return action_subcommand._name_parser_map[subcommand]
+        return self._subcommand_parsers[subcommand]
 
     @staticmethod
     def configure_optimizers(
@@ -610,7 +649,7 @@ class LightningCLI:
         # override the existing method
         self.model.configure_optimizers = MethodType(fn, self.model)
 
-    def _get(self, config: Dict[str, Any], key: str, default: Optional[Any] = None) -> Any:
+    def _get(self, config: Namespace, key: str, default: Optional[Any] = None) -> Any:
         """Utility to get a config value which might be inside a subcommand."""
         return config.get(str(self.subcommand), config).get(key, default)
 

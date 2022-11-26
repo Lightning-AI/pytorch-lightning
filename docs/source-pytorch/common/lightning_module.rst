@@ -55,7 +55,7 @@ Notice a few things.
 
         # or to init a new tensor
         new_x = torch.Tensor(2, 3)
-        new_x = new_x.type_as(x)
+        new_x = new_x.to(x)
 
 5. When running under a distributed strategy, Lightning handles the distributed sampler for you by default.
 
@@ -729,6 +729,87 @@ Check out :ref:`Inference in Production <production_inference>` guide to learn a
 -----------
 
 
+********************
+Save Hyperparameters
+********************
+
+Often times we train many versions of a model. You might share that model or come back to it a few months later at which
+point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
+
+Lightning has a standardized way of saving the information for you in checkpoints and YAML files. The goal here is to
+improve readability and reproducibility.
+
+save_hyperparameters
+====================
+
+Use :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters` within your
+:class:`~pytorch_lightning.core.module.LightningModule`'s ``__init__`` method. It will enable Lightning to store all the
+provided arguments under the ``self.hparams`` attribute. These hyperparameters will also be stored within the model
+checkpoint, which simplifies model re-instantiation after training.
+
+.. code-block:: python
+
+    class LitMNIST(LightningModule):
+        def __init__(self, layer_1_dim=128, learning_rate=1e-2):
+            super().__init__()
+            # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
+            self.save_hyperparameters()
+
+            # equivalent
+            self.save_hyperparameters("layer_1_dim", "learning_rate")
+
+            # Now possible to access layer_1_dim from hparams
+            self.hparams.layer_1_dim
+
+
+In addition, loggers that support it will automatically log the contents of ``self.hparams``.
+
+Excluding hyperparameters
+=========================
+
+By default, every parameter of the ``__init__`` method will be considered a hyperparameter to the LightningModule.
+However, sometimes some parameters need to be excluded from saving, for example when they are not serializable. Those
+parameters should be provided back when reloading the LightningModule. In this case, exclude them explicitly:
+
+.. code-block:: python
+
+    class LitMNIST(LightningModule):
+        def __init__(self, loss_fx, generator_network, layer_1_dim=128):
+            super().__init__()
+            self.layer_1_dim = layer_1_dim
+            self.loss_fx = loss_fx
+
+            # call this to save only (layer_1_dim=128) to the checkpoint
+            self.save_hyperparameters("layer_1_dim")
+
+            # equivalent
+            self.save_hyperparameters(ignore=["loss_fx", "generator_network"])
+
+
+load_from_checkpoint
+====================
+
+LightningModules that have hyperparameters automatically saved with
+:meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters` can conveniently be loaded and instantiated
+directly from a checkpoint with :meth:`~pytorch_lightning.core.module.LightningModule.load_from_checkpoint`:
+
+.. code-block:: python
+
+    # to load specify the other args
+    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
+
+
+If parameters were excluded, they need to be provided at the time of loading:
+
+.. code-block:: python
+
+    # the excluded parameters were `loss_fx` and `generator_network`
+    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
+
+
+-----------
+
+
 *************
 Child Modules
 *************
@@ -1343,18 +1424,6 @@ load_from_checkpoint
 ~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.load_from_checkpoint
-    :noindex:
-
-on_hpc_save
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_save
-    :noindex:
-
-on_hpc_load
-~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_load
     :noindex:
 
 on_train_start

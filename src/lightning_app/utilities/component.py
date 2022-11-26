@@ -3,9 +3,11 @@ from contextlib import contextmanager
 from typing import Any, Dict, Generator, Optional, TYPE_CHECKING
 
 from deepdiff.helper import NotPresent
+from lightning_utilities.core.apply_func import apply_to_collection
 
-from lightning_app.utilities.apply_func import apply_to_collection
+from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.enum import ComponentContext
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 from lightning_app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
@@ -38,31 +40,35 @@ def _sanitize_state(state: Dict[str, Any]) -> Dict[str, Any]:
     Sanitization enables the state to be deep-copied and hashed.
     """
     from lightning_app.storage import Drive, Path
-    from lightning_app.storage.payload import BasePayload
+    from lightning_app.storage.payload import _BasePayload
 
     def sanitize_path(path: Path) -> Path:
         path_copy = Path(path)
         path_copy._sanitize()
         return path_copy
 
-    def sanitize_payload(payload: BasePayload):
+    def sanitize_payload(payload: _BasePayload):
         return type(payload).from_dict(content=payload.to_dict())
 
     def sanitize_drive(drive: Drive) -> Dict:
         return drive.to_dict()
 
+    def sanitize_cloud_compute(cloud_compute: CloudCompute) -> Dict:
+        return cloud_compute.to_dict()
+
     state = apply_to_collection(state, dtype=Path, function=sanitize_path)
-    state = apply_to_collection(state, dtype=BasePayload, function=sanitize_payload)
+    state = apply_to_collection(state, dtype=_BasePayload, function=sanitize_payload)
     state = apply_to_collection(state, dtype=Drive, function=sanitize_drive)
+    state = apply_to_collection(state, dtype=CloudCompute, function=sanitize_cloud_compute)
     return state
 
 
 def _state_to_json(state: Dict[str, Any]) -> Dict[str, Any]:
     """Utility function to make sure that state dict is json serializable."""
     from lightning_app.storage import Path
-    from lightning_app.storage.payload import BasePayload
+    from lightning_app.storage.payload import _BasePayload
 
-    state_paths_cleaned = apply_to_collection(state, dtype=(Path, BasePayload), function=lambda x: x.to_dict())
+    state_paths_cleaned = apply_to_collection(state, dtype=(Path, _BasePayload), function=lambda x: x.to_dict())
     state_diff_cleaned = apply_to_collection(state_paths_cleaned, dtype=type(NotPresent), function=lambda x: None)
     return state_diff_cleaned
 
@@ -118,3 +124,13 @@ def _context(ctx: str) -> Generator[None, None, None]:
     _set_context(ctx)
     yield
     _set_context(prev)
+
+
+def _validate_root_flow(flow: "LightningFlow") -> None:
+    from lightning_app.core.flow import LightningFlow
+
+    if not is_overridden("run", instance=flow, parent=LightningFlow):
+        raise TypeError(
+            "The root flow passed to `LightningApp` does not override the `run()` method. This is required. Please"
+            f" implement `run()` in your `{flow.__class__.__name__}` class."
+        )

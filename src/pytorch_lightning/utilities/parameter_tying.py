@@ -28,10 +28,7 @@ def find_shared_parameters(module: nn.Module) -> List[str]:
 
 def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] = None, prefix: str = "") -> List[str]:
     if tied_parameters is None:
-        first_call = True
         tied_parameters = {}
-    else:
-        first_call = False
     for name, param in module._parameters.items():
         param_prefix = prefix + ("." if prefix else "") + name
         if param is None:
@@ -44,8 +41,7 @@ def _find_shared_parameters(module: nn.Module, tied_parameters: Optional[Dict] =
             continue
         submodule_prefix = prefix + ("." if prefix else "") + name
         _find_shared_parameters(m, tied_parameters, submodule_prefix)
-    if first_call:
-        return [x for x in tied_parameters.values() if len(x) > 1]
+    return [x for x in tied_parameters.values() if len(x) > 1]
 
 
 def set_shared_parameters(module: nn.Module, shared_params: list) -> nn.Module:

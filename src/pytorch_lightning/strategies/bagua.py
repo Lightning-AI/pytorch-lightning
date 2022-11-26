@@ -1,26 +1,38 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
+from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_lite.utilities.seed import reset_seed
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
-from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _package_available
-from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.seed import reset_seed
 
-_BAGUA_AVAILABLE = _package_available("bagua")
+_BAGUA_AVAILABLE = module_available("bagua.torch_api")
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua
@@ -61,6 +73,27 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         # Bagua use `bagua_module_name` to distinguish different modules
         self._bagua_module_name = f"{forward_module.__class__.__name__}{id(forward_module)}"
 
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
+        pl_module = self.lightning_module
+        trainer = pl_module._trainer
+
+        if trainer is not None:
+            if trainer.training:
+                output = self._forward_module.training_step(*inputs, **kwargs)
+                # In manual_optimization, we need to prevent DDP reducer as
+                # it is done manually in `LightningModule.manual_backward`
+                # `require_backward_grad_sync` will be reset in the
+                # ddp_strategy `post_training_step` hook
+                if not pl_module.automatic_optimization:
+                    # Using bagua strategy, the model is redefined in model.inner
+                    # and cannot be accessed directly. We need this to make manual
+                    # backward work.
+                    trainer.model.inner.require_backward_grad_sync = False  # type: ignore[union-attr]
+                return output
+            else:
+                return super().forward(*inputs, **kwargs)
+        return self._forward_module(*inputs, **kwargs)
+
 
 class BaguaStrategy(DDPStrategy):
     strategy_name = "bagua"
@@ -69,7 +102,7 @@ class BaguaStrategy(DDPStrategy):
         self,
         algorithm: str = "gradient_allreduce",
         flatten: bool = True,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        accelerator: Optional["pl.accelerators.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
@@ -170,7 +203,7 @@ class BaguaStrategy(DDPStrategy):
             # set up optimizers after the module has been moved to the device
             # but before the module has been wrapped
             self.setup_optimizers(trainer)
-            optimizers_to_device(self.optimizers, self.root_device)
+            _optimizers_to_device(self.optimizers, self.root_device)
 
             # skip wrapping the model if we are not fitting as no gradients need to be exchanged
             self._configure_bagua_model(trainer)
@@ -230,6 +263,14 @@ class BaguaStrategy(DDPStrategy):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return broadcast_object(obj, src)
+
+    def post_training_step(self) -> None:
+        assert self.lightning_module is not None
+        # Using bagua strategy, the model is redefined in model.inner
+        # and cannot be accessed directly. We need to redefine the
+        # post_training_step function to make manual backward work.
+        if not self.lightning_module.automatic_optimization:
+            self.model.inner.require_backward_grad_sync = True  # type: ignore[union-attr]
 
     def reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"

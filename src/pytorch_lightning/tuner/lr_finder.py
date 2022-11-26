@@ -15,19 +15,17 @@ import importlib
 import logging
 import os
 import uuid
-from functools import wraps
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
+from copy import deepcopy
+from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
+from lightning_utilities.core.imports import RequirementCache
 from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
-from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
@@ -39,10 +37,10 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE = _RequirementAvailable("matplotlib")
-if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
+_MATPLOTLIB_AVAILABLE = RequirementCache("matplotlib")
+if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
-
+    from matplotlib.axes import Axes
 log = logging.getLogger(__name__)
 
 
@@ -92,7 +90,7 @@ class _LRFinder:
         lr = lr_finder.suggestion()
     """
 
-    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int):
+    def __init__(self, mode: str, lr_min: float, lr_max: float, num_training: int) -> None:
         assert mode in ("linear", "exponential"), "mode should be either `linear` or `exponential`"
 
         self.mode = mode
@@ -103,46 +101,43 @@ class _LRFinder:
         self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
-    def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Callable[["pl.Trainer"], None]:
+    def _exchange_scheduler(self, trainer: "pl.Trainer") -> None:
+        # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
-        setup_optimizers = trainer.strategy.setup_optimizers
+        from pytorch_lightning.core.optimizer import _set_scheduler_opt_idx
 
-        @wraps(setup_optimizers)
-        def func(trainer: "pl.Trainer") -> None:
-            # Decide the structure of the output from _init_optimizers_and_lr_schedulers
-            optimizers, _, _ = _init_optimizers_and_lr_schedulers(trainer.lightning_module)
+        optimizers = trainer.strategy.optimizers
 
-            if len(optimizers) != 1:
-                raise MisconfigurationException(
-                    f"`model.configure_optimizers()` returned {len(optimizers)}, but"
-                    " learning rate finder only works with single optimizer"
-                )
+        if len(optimizers) != 1:
+            raise MisconfigurationException(
+                f"`model.configure_optimizers()` returned {len(optimizers)}, but"
+                " learning rate finder only works with single optimizer"
+            )
 
-            optimizer = optimizers[0]
+        optimizer = optimizers[0]
 
-            new_lrs = [self.lr_min] * len(optimizer.param_groups)
-            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
-                param_group["lr"] = new_lr
-                param_group["initial_lr"] = new_lr
+        new_lrs = [self.lr_min] * len(optimizer.param_groups)
+        for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
+            param_group["lr"] = new_lr
+            param_group["initial_lr"] = new_lr
 
-            args = (optimizer, self.lr_max, self.num_training)
-            scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-            scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
+        args = (optimizer, self.lr_max, self.num_training)
+        scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
+        scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
 
-            trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
-            trainer.strategy.optimizer_frequencies = []
-            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
+        trainer.strategy.optimizers = [optimizer]
+        trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+        _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
-        return func
-
-    def plot(self, suggest: bool = False, show: bool = False) -> Optional["plt.Figure"]:
+    def plot(self, suggest: bool = False, show: bool = False, ax: Optional["Axes"] = None) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
+
+            ax: Axes object to which the plot is to be drawn. If not provided, a new figure is created.
         """
         if not _MATPLOTLIB_AVAILABLE:
             raise MisconfigurationException(
@@ -154,7 +149,10 @@ class _LRFinder:
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
-        fig, ax = plt.subplots()
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = ax.figure
 
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
@@ -215,7 +213,7 @@ def lr_find(
 ) -> Optional[_LRFinder]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
-        rank_zero_warn("Skipping learning rate finder since fast_dev_run is enabled.")
+        rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
         return None
 
     # Determine lr attr
@@ -224,24 +222,27 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
+    ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
+
+    # Arguments we adjust during the lr finder, save for restoring
     params = __lr_finder_dump_params(trainer)
 
     # Set to values that are required by the algorithm
     __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
 
-    # Initialize lr finder object (stores results)
-    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
-
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
+    # Initialize lr finder object (stores results)
+    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
+
     # Configure optimizer and scheduler
-    trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
+    lr_finder._exchange_scheduler(trainer)
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._run(model)
+    _try_loop_run(trainer, params)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
@@ -257,6 +258,7 @@ def lr_find(
         trainer.progress_bar_callback.enable()
 
     # Update lr attr if required
+    lr_finder.results = trainer.strategy.broadcast(lr_finder.results)
     if update_attr:
         lr = lr_finder.suggestion()
 
@@ -274,29 +276,49 @@ def lr_find(
 
 def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
-        "auto_lr_find": trainer.auto_lr_find,
+        "optimizers": trainer.strategy.optimizers,
+        "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
+        "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
-        "logger": trainer.logger,
+        "loggers": trainer.loggers,
+        # TODO: check if this is required
+        "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
+        "limit_val_batches": trainer.limit_val_batches,
+        "loop_state_dict": deepcopy(trainer.fit_loop.state_dict()),
     }
 
 
 def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+    from pytorch_lightning.loggers.logger import DummyLogger
+
+    trainer.strategy.lr_scheduler_configs = []
+    trainer.strategy.optimizer_frequencies = []
     # avoid lr find being called multiple times
     trainer.auto_lr_find = False
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
-    trainer.loggers = [DummyLogger()] if trainer.loggers else []
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
+    trainer.limit_val_batches = num_training
 
 
 def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+    trainer.strategy.optimizers = params["optimizers"]
+    trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
+    trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
     trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
-    trainer.logger = params["logger"]
+    trainer.loggers = params["loggers"]
     trainer.fit_loop.max_steps = params["max_steps"]
+    trainer.limit_val_batches = params["limit_val_batches"]
+
+    loop = trainer.fit_loop
+    loop.load_state_dict(deepcopy(params["loop_state_dict"]))
+    loop.restarting = False
+    trainer.should_stop = False
 
 
 class _LRCallback(Callback):
@@ -354,7 +376,9 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        current_loss = trainer.fit_loop.running_loss.last().item()
+        loss_tensor = trainer.fit_loop.running_loss.last()
+        assert loss_tensor is not None
+        current_loss = loss_tensor.item()
         current_step = trainer.global_step
 
         # Avg loss (loss with momentum) + smoothing
@@ -364,9 +388,11 @@ class _LRCallback(Callback):
         # Check if we diverging
         if self.early_stop_threshold is not None:
             if current_step > 1 and smoothed_loss > self.early_stop_threshold * self.best_loss:
-                trainer.fit_loop.max_steps = current_step  # stop signal
+                trainer.should_stop = True  # stop signal
                 if self.progress_bar:
                     self.progress_bar.close()
+
+        trainer.should_stop = trainer.strategy.broadcast(trainer.should_stop)
 
         # Save best loss for diverging checking
         if smoothed_loss < self.best_loss or current_step == 1:
@@ -388,9 +414,6 @@ class _LinearLR(_LRScheduler):
 
         last_epoch: the index of last epoch. Default: -1.
     """
-
-    last_epoch: int
-    base_lrs: Sequence
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
@@ -427,9 +450,6 @@ class _ExponentialLR(_LRScheduler):
         last_epoch: the index of last epoch. Default: -1.
     """
 
-    last_epoch: int
-    base_lrs: Sequence
-
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
@@ -449,3 +469,10 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self) -> Union[float, List[float]]:
         return self._lr
+
+
+def _try_loop_run(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+    loop = trainer.fit_loop
+    loop.load_state_dict(deepcopy(params["loop_state_dict"]))
+    loop.restarting = False
+    loop.run()

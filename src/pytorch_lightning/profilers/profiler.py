@@ -17,10 +17,9 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
 
-from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from lightning_lite.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
 
@@ -69,28 +68,6 @@ class Profiler(ABC):
             yield action_name
         finally:
             self.stop(action_name)
-
-    def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
-        """Profiles over each value of an iterable.
-
-        See deprecation message below.
-
-        .. deprecated:: v1.6
-            `Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
-        """
-        rank_zero_deprecation(
-            f"`{self.__class__.__name__}.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
-        )
-        iterator = iter(iterable)
-        while True:
-            try:
-                self.start(action_name)
-                value = next(iterator)
-                self.stop(action_name)
-                yield value
-            except StopIteration:
-                self.stop(action_name)
-                break
 
     def _rank_zero_info(self, *args: Any, **kwargs: Any) -> None:
         if self._local_rank in (None, 0):
@@ -148,15 +125,13 @@ class Profiler(ABC):
             output.append(value)
         return os.linesep.join(output)
 
-    def setup(
-        self, stage: Optional[str] = None, local_rank: Optional[int] = None, log_dir: Optional[str] = None
-    ) -> None:
+    def setup(self, stage: str, local_rank: Optional[int] = None, log_dir: Optional[str] = None) -> None:
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
         self.dirpath = self.dirpath or log_dir
 
-    def teardown(self, stage: Optional[str] = None) -> None:
+    def teardown(self, stage: Optional[str]) -> None:
         """Execute arbitrary post-profiling tear-down steps.
 
         Closes the currently open file and stream.

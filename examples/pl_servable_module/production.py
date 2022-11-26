@@ -7,13 +7,13 @@ from typing import Dict, Optional
 import numpy as np
 import torch
 import torchvision
-import torchvision.models as models
 import torchvision.transforms as T
 from PIL import Image as PILImage
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.serve import ServableModule, ServableModuleValidator
+from pytorch_lightning.utilities.model_helpers import get_torchvision_model
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
@@ -21,7 +21,7 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 class LitModule(LightningModule):
     def __init__(self, name: str = "resnet18"):
         super().__init__()
-        self.model = getattr(models, name)(pretrained=True)
+        self.model = get_torchvision_model(name, weights="DEFAULT")
         self.model.fc = torch.nn.Linear(self.model.fc.in_features, 10)
         self.criterion = torch.nn.CrossEntropyLoss()
 

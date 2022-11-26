@@ -1,20 +1,23 @@
-import logging
 import multiprocessing
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
-import lightning_app
-from lightning_app import LightningApp
+from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
 from lightning_app.runners.backends import Backend, BackendType
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys, make_status, WorkStageStatus
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.proxies import WorkRunner
 
-logger = logging.getLogger(__name__)
+logger = Logger(__name__)
+
+if TYPE_CHECKING:
+    import lightning_app
 
 
 def dispatch(
@@ -27,8 +30,10 @@ def dispatch(
     blocking: bool = True,
     on_before_run: Optional[Callable] = None,
     name: str = "",
-    env_vars: Dict[str, str] = {},
+    env_vars: Dict[str, str] = None,
+    secrets: Dict[str, str] = None,
     cluster_id: str = None,
+    run_app_comment_commands: bool = False,
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -43,22 +48,37 @@ def dispatch(
         on_before_run: Callable to be executed before run.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
+        secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
+        run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
+
+    # Used to indicate Lightning has been dispatched
+    os.environ["LIGHTNING_DISPATCHED"] = "1"
 
     _set_flow_context()
 
     runtime_type = RuntimeType(runtime_type)
     runtime_cls: Type[Runtime] = runtime_type.get_runtime()
-    app = load_app_from_file(str(entrypoint_file))
+    app = runtime_cls.load_app_from_file(str(entrypoint_file))
+
+    env_vars = {} if env_vars is None else env_vars
+    secrets = {} if secrets is None else secrets
 
     if blocking:
         app.stage = AppStage.BLOCKING
 
     runtime = runtime_cls(
-        app=app, entrypoint_file=entrypoint_file, start_server=start_server, host=host, port=port, env_vars=env_vars
+        app=app,
+        entrypoint_file=entrypoint_file,
+        start_server=start_server,
+        host=host,
+        port=port,
+        env_vars=env_vars,
+        secrets=secrets,
+        run_app_comment_commands=run_app_comment_commands,
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
@@ -78,12 +98,14 @@ class Runtime:
     done: bool = False
     backend: Optional[Union[str, Backend]] = "multiprocessing"
     env_vars: Dict[str, str] = field(default_factory=dict)
+    secrets: Dict[str, str] = field(default_factory=dict)
+    run_app_comment_commands: bool = False
 
     def __post_init__(self):
         if isinstance(self.backend, str):
             self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
 
-        lightning_app.LightningFlow._attach_backend(self.app.root, self.backend)
+        LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""
@@ -92,11 +114,6 @@ class Runtime:
         has_messaged = False
         while not self.done:
             try:
-                for work in self.app.works:
-                    if not hasattr(work, "_has_called_on_exit"):
-                        work.on_exit()
-                        work._has_called_on_exit = True
-
                 if self.app.backend is not None:
                     self.app.backend.stop_all_works(self.app.works)
 
@@ -142,3 +159,7 @@ class Runtime:
         latest_call_hash = work._calls[CacheCallsKeys.LATEST_CALL_HASH]
         if latest_call_hash in work._calls:
             work._calls[latest_call_hash]["statuses"].append(make_status(WorkStageStatus.STOPPED))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        return load_app_from_file(filepath)

@@ -1,7 +1,7 @@
 :orphan:
 
 ##################
-lightning_app.core
+lightning.app.core
 ##################
 
 .. contents::

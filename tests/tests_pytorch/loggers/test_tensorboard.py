@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import operator
 import os
 from argparse import Namespace
 from unittest import mock
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -25,19 +25,15 @@ import yaml
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities.imports import _compare_version, _OMEGACONF_AVAILABLE
+from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
 
 
-@pytest.mark.skipif(
-    _compare_version("tensorboard", operator.ge, "2.6.0"), reason="cannot import EventAccumulator in >= 2.6.0"
-)
 def test_tensorboard_hparams_reload(tmpdir):
-    from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-
     class CustomModel(BoringModel):
         def __init__(self, b1=0.5, b2=0.999):
             super().__init__()
@@ -62,15 +58,6 @@ def test_tensorboard_hparams_reload(tmpdir):
 
     # verify artifacts
     assert len(os.listdir(os.path.join(folder_path, "checkpoints"))) == 1
-
-    # verify tb logs
-    event_acc = EventAccumulator(folder_path)
-    event_acc.Reload()
-
-    hparams_data = b'\x12\x1f"\x06\n\x02b1 \x03"\x06\n\x02b2 \x03*\r\n\x0b\x12\thp_metric'
-
-    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.plugin_name == "hparams"
-    assert event_acc.summary_metadata["_hparams_/experiment"].plugin_data.content == hparams_data
 
 
 def test_tensorboard_automatic_versioning(tmpdir):
@@ -235,6 +222,7 @@ def test_tensorboard_log_graph(tmpdir, example_input_array):
     logger.log_graph(model, example_input_array)
 
 
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     """test that log graph throws warning if model.example_input_array is None."""
     model = BoringModel()
@@ -242,8 +230,13 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
     logger = TensorBoardLogger(tmpdir, log_graph=True)
     with pytest.warns(
         UserWarning,
-        match="Could not log computational graph since the `model.example_input_array`"
-        " attribute is not set or `input_array` was not given",
+        match="Could not log computational graph to TensorBoard: The `model.example_input_array` .* was not given",
+    ):
+        logger.log_graph(model)
+
+    model.example_input_array = dict(x=1, y=2)
+    with pytest.warns(
+        UserWarning, match="Could not log computational graph to TensorBoard: .* can't be traced by TensorBoard"
     ):
         logger.log_graph(model)
 
@@ -286,13 +279,28 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
     assert count_steps == model.indexes
 
 
-@mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter")
-def test_tensorboard_finalize(summary_writer, tmpdir):
+def test_tensorboard_finalize(monkeypatch, tmpdir):
     """Test that the SummaryWriter closes in finalize."""
+    if _TENSORBOARD_AVAILABLE:
+        import torch.utils.tensorboard as tb
+    else:
+        import tensorboardX as tb
+
+    monkeypatch.setattr(tb, "SummaryWriter", Mock())
     logger = TensorBoardLogger(save_dir=tmpdir)
+    assert logger._experiment is None
     logger.finalize("any")
-    summary_writer().flush.assert_called()
-    summary_writer().close.assert_called()
+
+    # no log calls, no experiment created -> nothing to flush
+    logger.experiment.assert_not_called()
+
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    logger.log_metrics({"flush_me": 11.1})  # trigger creation of an experiment
+    logger.finalize("any")
+
+    # finalize flushes to experiment directory
+    logger.experiment.flush.assert_called()
+    logger.experiment.close.assert_called()
 
 
 def test_tensorboard_save_hparams_to_yaml_once(tmpdir):

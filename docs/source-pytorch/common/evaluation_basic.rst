@@ -24,10 +24,12 @@ Datasets come with two splits. Refer to the dataset documentation to find the *t
 
    import torch.utils.data as data
    from torchvision import datasets
+   import torchvision.transforms as transforms
 
    # Load data sets
-   train_set = datasets.MNIST(root="MNIST", download=True, train=True)
-   test_set = datasets.MNIST(root="MNIST", download=True, train=False)
+   transform = transforms.ToTensor()
+   train_set = datasets.MNIST(root="MNIST", download=True, train=True, transform=transform)
+   test_set = datasets.MNIST(root="MNIST", download=True, train=False, transform=transform)
 
 ----
 
@@ -107,8 +109,8 @@ To add a validation loop, implement the **validation_step** method of the Lightn
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            test_loss = F.mse_loss(x_hat, x)
-            self.log("val_loss", test_loss)
+            val_loss = F.mse_loss(x_hat, x)
+            self.log("val_loss", val_loss)
 
 ----
 
@@ -120,9 +122,9 @@ To run the validation loop, pass in the validation set to **.fit**
 
    from torch.utils.data import DataLoader
 
-   train_set = DataLoader(train_set)
-   val_set = DataLoader(val_set)
+   train_loader = DataLoader(train_set)
+   valid_loader = DataLoader(valid_set)
 
    # train with both splits
    trainer = Trainer()
-   trainer.fit(model, train_set, val_set)
+   trainer.fit(model, train_loader, valid_loader)

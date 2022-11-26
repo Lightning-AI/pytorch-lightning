@@ -1,5 +1,5 @@
 ######################
-lightning_app.frontend
+lightning.app.frontend
 ######################
 
 .. contents::
@@ -20,3 +20,4 @@ ___________________
     ~frontend.Frontend
     ~web.StaticWebFrontend
     ~stream_lit.StreamlitFrontend
+    ~panel.PanelFrontend

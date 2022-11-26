@@ -22,7 +22,6 @@ from pytorch_lightning.utilities.logger import (
     _add_prefix,
     _convert_params,
     _flatten_dict,
-    _name,
     _sanitize_callable_params,
     _sanitize_params,
     _version,
@@ -90,7 +89,7 @@ def test_flatten_dict():
 
     assert type(params) == dict
     assert params["params/logger"] is True
-    assert params["params/gpus"] == "None"
+    assert params["params/gpus"] is None
     assert "logger" not in params
     assert "gpus" not in params
 
@@ -119,7 +118,7 @@ def test_sanitize_callable_params():
     params = _convert_params(params)
     params = _flatten_dict(params)
     params = _sanitize_callable_params(params)
-    assert params["gpus"] == "None"
+    assert params["gpus"] is None
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
@@ -175,23 +174,6 @@ def test_add_prefix():
     assert "prefix-metric2" not in metrics
     assert metrics["prefix2_prefix-metric1"] == 1
     assert metrics["prefix2_prefix-metric2"] == 2
-
-
-def test_name(tmpdir):
-    """Verify names of loggers are concatenated properly."""
-    logger1 = CSVLogger(tmpdir, name="foo")
-    logger2 = CSVLogger(tmpdir, name="bar")
-    logger3 = CSVLogger(tmpdir, name="foo")
-    logger4 = CSVLogger(tmpdir, name="baz")
-    loggers = [logger1, logger2, logger3, logger4]
-    name = _name([])
-    assert name == ""
-    name = _name([logger3])
-    assert name == "foo"
-    name = _name(loggers)
-    assert name == "foo_bar_baz"
-    name = _name(loggers, "-")
-    assert name == "foo-bar-baz"
 
 
 def test_version(tmpdir):

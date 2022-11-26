@@ -1,10 +1,10 @@
 :orphan:
 
-.. _checkpointing_intermediate:
+.. _checkpointing_intermediate_1:
 
-############################
-Checkpointing (intermediate)
-############################
+###############################################
+Customize checkpointing behavior (intermediate)
+###############################################
 **Audience:** Users looking to customize the checkpointing behavior
 
 ----
@@ -120,7 +120,7 @@ What
 Where
 =====
 
-- It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.module.LightningModule.log`.
+- By default, the ``ModelCheckpoint`` will save files into the ``Trainer.log_dir``. It gives you the ability to specify the ``dirpath`` and ``filename`` for your checkpoints. Filename can also be dynamic so you can inject the metrics that are being logged using :meth:`~pytorch_lightning.core.module.LightningModule.log`.
 
 |
 

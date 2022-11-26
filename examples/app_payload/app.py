@@ -1,5 +1,5 @@
 import lightning as L
-from lightning.app.storage.payload import Payload
+from lightning.app.storage import Payload
 
 
 class SourceFileWriterWork(L.LightningWork):

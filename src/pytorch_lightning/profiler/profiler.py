@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.profilers.profiler import Profiler as NewProfiler
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class Profiler(NewProfiler):
     """
-    .. deprecated:: v1.6
+    .. deprecated:: v1.7
         `pytorch_lightning.profiler.Profiler` is deprecated in v1.7 and will be removed in v1.9.
         Use the equivalent `pytorch_lightning.profilers.Profiler` class instead.
     """

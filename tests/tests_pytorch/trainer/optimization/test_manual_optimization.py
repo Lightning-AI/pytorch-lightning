@@ -25,13 +25,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.strategies import Strategy
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class ManualOptModel(BoringModel):
@@ -461,7 +455,7 @@ def test_multiple_optimizers_step(tmpdir):
             grads = [p.grad for p in self.parameters()]
             assert len(grads) == len(self.original_grads)
             for actual, expected in zip(grads, self.original_grads):
-                torch_test_assert_close(actual, expected)
+                torch.testing.assert_close(actual, expected)
 
         def on_before_optimizer_step(self, optimizer, *_):
             self.check_grads_unscaled(optimizer)
