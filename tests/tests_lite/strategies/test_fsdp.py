@@ -26,7 +26,7 @@ from lightning_lite.strategies.fsdp import _FSDPBackwardSyncControl
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision, CPUOffload
 
 
 @mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
@@ -36,11 +36,24 @@ def test_fsdp_support(*_):
 
 
 @RunIf(min_torch="1.12")
-def test_fsdp_custom_mixed_precision(*_):
+def test_fsdp_custom_mixed_precision():
     """Test that passing a custom mixed precision config works."""
     config = MixedPrecision()
     strategy = FSDPStrategy(mixed_precision=config)
     assert strategy.mixed_precision_config == config
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_cpu_offload():
+    """Test the different ways cpu offloading can be enabled."""
+    # bool
+    strategy = FSDPStrategy(cpu_offload=True)
+    assert strategy.cpu_offload == CPUOffload(offload_params=True)
+
+    # dataclass
+    config = CPUOffload()
+    strategy = FSDPStrategy(cpu_offload=config)
+    assert strategy.cpu_offload == config
 
 
 @RunIf(min_torch="1.12")
