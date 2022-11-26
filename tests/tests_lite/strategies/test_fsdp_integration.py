@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import tempfile
+from unittest import mock
 
 import pytest
 import torch
 from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data import DataLoader
-from unittest import mock
 
 from lightning_lite import LightningLite
 from lightning_lite.plugins import FSDPPrecision
@@ -141,5 +141,4 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert lite_model.device == torch.device("cpu")
-
     assert lite.device == torch.device("cuda", lite.local_rank)
