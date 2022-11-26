@@ -60,8 +60,6 @@ def test_default_level_for_hooks_that_support_logging():
             "optimizer_zero_grad",
             "training_step",
             "training_step_end",
-            "on_batch_start",
-            "on_batch_end",
             "on_train_batch_start",
             "on_train_batch_end",
         ]
@@ -72,8 +70,6 @@ def test_default_level_for_hooks_that_support_logging():
             "on_train_start",
             "on_train_epoch_start",
             "on_train_epoch_end",
-            "on_epoch_start",
-            "on_epoch_end",
             "training_epoch_end",
         ]
         all_logging_hooks = all_logging_hooks - set(hooks)

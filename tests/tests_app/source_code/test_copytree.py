@@ -1,6 +1,6 @@
 import os
 
-from lightning_app.source_code.copytree import _read_lightningignore, copytree
+from lightning_app.source_code.copytree import _copytree, _read_lightningignore
 
 
 def test_read_lightningignore(tmpdir):
@@ -63,7 +63,7 @@ def test_copytree_ignoring_files(tmp_path_factory):
     source.joinpath("dir2/file.txt").write_text("")
     source.joinpath("dir2/file.zip").write_text("")  # .zip everywhere is ignored
 
-    files_copied = copytree(source, dest)
+    files_copied = _copytree(source, dest)
     relative_names = set()
     for file in files_copied:
         relative_names.add(file.split("source")[1].strip("/").strip("\\"))

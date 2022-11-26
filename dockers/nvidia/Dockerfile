@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=22.06
+ARG PYTORCH_VERSION=22.09
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
@@ -42,16 +42,14 @@ RUN \
     cp -r lightning/*examples . && \
 
 # Installations \
-    pip install -q fire && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
-    pip install ./lightning["extra","loggers","strategies","examples"] --no-cache-dir && \
+    # remove colossalai from requirements since they are installed separately
+    python -c "fname = 'lightning/requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    PACKAGE_NAME=pytorch pip install './lightning[extra,loggers,strategies]' --no-cache-dir && \
     rm -rf lightning && \
     pip list
 
 RUN pip install jupyterlab[all] -U
-
-RUN pip install lightning-grid -U && \
-    pip install "py>=1.10" "protobuf>=3.15.6" --upgrade-strategy only-if-needed
 
 ENV PYTHONPATH="/workspace"
 

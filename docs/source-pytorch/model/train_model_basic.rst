@@ -20,7 +20,7 @@ Add the relevant imports at the top of the file
     import torch.nn.functional as F
     from torchvision import transforms
     from torchvision.datasets import MNIST
-    from torch.utils.data import DataLoader, random_split
+    from torch.utils.data import DataLoader
     import pytorch_lightning as pl
 
 ----
@@ -116,11 +116,11 @@ Under the hood, the Lightning Trainer runs the following training loop on your b
 
 .. code:: python
 
-    autoencoder = LitAutoEncoder(encoder, decoder)
+    autoencoder = LitAutoEncoder(Encoder(), Decoder())
     optimizer = autoencoder.configure_optimizers()
 
     for batch_idx, batch in enumerate(train_loader):
-        loss = autoencoder(batch, batch_idx)
+        loss = autoencoder.training_step(batch, batch_idx)
 
         loss.backward()
         optimizer.step()

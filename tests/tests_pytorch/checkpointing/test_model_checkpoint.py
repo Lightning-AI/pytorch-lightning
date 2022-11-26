@@ -31,8 +31,7 @@ import yaml
 from torch import optim
 
 import pytorch_lightning as pl
-import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.cloud_io import load as pl_load
+from lightning_lite.utilities.cloud_io import _load as pl_load
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -49,7 +48,7 @@ def test_model_checkpoint_state_key():
     early_stopping = ModelCheckpoint(monitor="val_loss")
     expected_id = (
         "ModelCheckpoint{'monitor': 'val_loss', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': None}"
+        " 'train_time_interval': None}"
     )
     assert early_stopping.state_key == expected_id
 
@@ -169,7 +168,7 @@ def test_model_checkpoint_score_and_ckpt(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+            " 'train_time_interval': None}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -270,7 +269,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 
         mc_specific_data = chk["callbacks"][
             f"ModelCheckpoint{{'monitor': '{monitor}', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': False}"
+            " 'train_time_interval': None}"
         ]
         assert mc_specific_data["dirpath"] == checkpoint.dirpath
         assert mc_specific_data["monitor"] == monitor
@@ -298,7 +297,6 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
     """Test that dirpath=None in checkpoint callback is valid and that ckpt_path is set correctly."""
-    tutils.reset_seed()
     model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
@@ -317,7 +315,6 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 @pytest.mark.parametrize("save_top_k", [-1, 0, 1, 2])
 def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
     """Test that None in checkpoint callback is valid and that chkp_path is set correctly."""
-    tutils.reset_seed()
     model = LogInTwoMethods()
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=save_top_k)
@@ -335,7 +332,6 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 @pytest.mark.parametrize("logger_version,expected", [(None, "version_0"), (1, "version_1"), ("awesome", "awesome")])
 def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], expected: str):
     """Test that "version_" prefix is only added when logger's version is an integer."""
-    tutils.reset_seed()
     model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
@@ -809,7 +805,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
 
     ckpt_id = (
         "ModelCheckpoint{'monitor': 'early_stop_on', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-        " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+        " 'train_time_interval': None}"
     )
     assert ckpt_last["callbacks"][ckpt_id] == ckpt_last_epoch["callbacks"][ckpt_id]
 
@@ -985,8 +981,8 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 def test_configure_model_checkpoint(tmpdir):
     """Test all valid and invalid ways a checkpoint callback can be passed to the Trainer."""
     kwargs = dict(default_root_dir=tmpdir)
-    callback1 = ModelCheckpoint()
-    callback2 = ModelCheckpoint()
+    callback1 = ModelCheckpoint(monitor="foo")
+    callback2 = ModelCheckpoint(monitor="bar")
 
     # no callbacks
     trainer = Trainer(enable_checkpointing=False, callbacks=[], **kwargs)
@@ -1056,7 +1052,7 @@ def test_current_score(tmpdir):
     ckpts = [
         ckpt["callbacks"][
             "ModelCheckpoint{'monitor': 'foo', 'mode': 'min', 'every_n_train_steps': 0, 'every_n_epochs': 1,"
-            " 'train_time_interval': None, 'save_on_train_epoch_end': True}"
+            " 'train_time_interval': None}"
         ]
         for ckpt in ckpts
     ]
@@ -1364,3 +1360,13 @@ def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
         trainer.fit(model)
     assert mc.last_model_path  # a "last" ckpt was saved
     assert save_mock.call_count == trainer.max_epochs
+
+
+def test_train_epoch_end_ckpt_with_no_validation():
+    trainer = Trainer(val_check_interval=0.5)
+    trainer.num_val_batches = [0]
+    assert trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.num_val_batches = [1]
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)
+    trainer.val_check_interval = 0.8
+    assert not trainer.checkpoint_callback._should_save_on_train_epoch_end(trainer)

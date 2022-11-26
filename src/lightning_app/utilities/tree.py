@@ -17,16 +17,6 @@ def breadth_first(root: "Component", types: Type["ComponentTuple"] = None):
     yield from _BreadthFirstVisitor(root, types)
 
 
-def depth_first(root: "Component", types: Type["ComponentTuple"] = None):
-    """Returns a generator that walks through the tree of components depth-first.
-
-    Arguments:
-        root: The root component of the tree
-        types: If provided, only the component types in this list will be visited.
-    """
-    yield from _DepthFirstVisitor(root, types)
-
-
 class _BreadthFirstVisitor:
     def __init__(self, root: "Component", types: Type["ComponentTuple"] = None) -> None:
         self.queue = [root]
@@ -36,11 +26,23 @@ class _BreadthFirstVisitor:
         return self
 
     def __next__(self):
+        from lightning_app.structures import Dict
+
         while self.queue:
             component = self.queue.pop(0)
 
             if isinstance(component, lightning_app.LightningFlow):
-                self.queue += list(component.flows.values())
+                components = [getattr(component, el) for el in sorted(component._flows)]
+                for struct_name in sorted(component._structures):
+                    structure = getattr(component, struct_name)
+                    if isinstance(structure, Dict):
+                        values = sorted(structure.items(), key=lambda x: x[0])
+                    else:
+                        values = sorted(((v.name, v) for v in structure), key=lambda x: x[0])
+                    for _, value in values:
+                        if isinstance(value, lightning_app.LightningFlow):
+                            components.append(value)
+                self.queue += components
                 self.queue += component.works(recurse=False)
 
             if any(isinstance(component, t) for t in self.types):

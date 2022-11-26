@@ -1,5 +1,5 @@
-from lightning.app.components.python import TracerPythonScript
-from lightning.app.storage.path import Path
+from lightning.app.components import TracerPythonScript
+from lightning.app.storage import Path
 from lightning.app.utilities.tracer import Tracer
 from pytorch_lightning import Trainer
 
@@ -27,7 +27,7 @@ class PLTracerPythonScript(TracerPythonScript):
                 print("Even the Lightning Work is available and state transfer works !")
                 print(self.lightning_work)
 
-            def on_batch_end(self, trainer, *_) -> None:
+            def on_batch_train_end(self, trainer, *_) -> None:
                 # On every batch end, collects some information.
                 # This is communicated automatically to the rest of the app,
                 # so you can track your training in real time in the Lightning App UI.

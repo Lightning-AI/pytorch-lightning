@@ -27,12 +27,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
-
-if torch.distributed.is_available():
-    from torch._C._distributed_c10d import ProcessGroup
-else:
-    ProcessGroup = Any  # type: ignore[assignment,misc]
+from lightning_lite.utilities.types import _LRScheduler, ProcessGroup, ReduceLROnPlateau
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]

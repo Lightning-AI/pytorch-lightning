@@ -85,7 +85,7 @@ def test_pure_half_precision(tmpdir, hmp_params: dict):
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(RuntimeError, match=r"float16/half is not supported on Gaudi."):
         trainer.fit(model)
 
 

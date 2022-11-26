@@ -10,6 +10,7 @@ class Flow(LightningFlow):
         print(self.names)
 
     def add_name(self, name: str):
+        """Add a name."""
         print(f"Received name: {name}")
         self.names.append(name)
 

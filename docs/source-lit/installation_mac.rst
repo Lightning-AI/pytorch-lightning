@@ -1,1 +1,0 @@
-../source-app/installation_mac.rst

@@ -15,7 +15,6 @@ class SingleProcessRuntime(Runtime):
 
     def dispatch(self, *args, on_before_run: Optional[Callable] = None, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
-
         queue = QueuingSystem.SINGLEPROCESS
 
         self.app.delta_queue = queue.get_delta_queue()
@@ -34,6 +33,7 @@ class SingleProcessRuntime(Runtime):
                 api_delta_queue=self.app.api_delta_queue,
                 has_started_queue=has_started_queue,
                 spec=extract_metadata_from_app(self.app),
+                root_path=self.app.root_path,
             )
             server_proc = mp.Process(target=start_server, kwargs=kwargs)
             self.processes["server"] = server_proc

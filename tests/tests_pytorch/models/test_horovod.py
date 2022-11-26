@@ -21,12 +21,10 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import accuracy_score
 from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -55,7 +53,6 @@ TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_
 def _run_horovod(trainer_options):
     """Execute the training script across multiple workers in parallel."""
     devices = trainer_options.get("devices", 1)
-    tutils.reset_seed()
     # TODO: Find out why coverage breaks CI.
     # append = '-a' if '.coverage' in os.listdir(_PROJECT_ROOT) else ''
     # str(num_processes), sys.executable, '-m', 'coverage', 'run', '--source', 'pytorch_lightning', append,
@@ -327,8 +324,6 @@ def test_result_reduce_horovod(tmpdir):
 
     This test mirrors tests/core/test_results.py::_ddp_test_fn
     """
-    tutils.reset_seed()
-    tutils.set_random_main_port()
 
     def hvd_test_fn():
         path_here = os.path.abspath(os.path.dirname(__file__))
@@ -372,8 +367,10 @@ def test_result_reduce_horovod(tmpdir):
 
 # todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
-@RunIf(horovod=True, skip_windows=True, num_gpus=2)
+@RunIf(horovod=True, skip_windows=True, num_gpus=2, sklearn=True)
 def test_accuracy_metric_horovod():
+    from sklearn.metrics import accuracy_score
+
     num_batches = 10
     batch_size = 16
     threshold = 0.5

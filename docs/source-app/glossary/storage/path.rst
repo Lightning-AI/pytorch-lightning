@@ -216,7 +216,7 @@ First, define a component that saves a checkpoint:
     :emphasize-lines: 14-18
 
     from lightning_app import LightningFlow, LightningWork
-    from lightning_app.storage.path import Path
+    from lightning_app.storage import Path
     import torch
     import os
 

@@ -1,1 +1,0 @@
-../../source-pytorch/common/trainer.rst

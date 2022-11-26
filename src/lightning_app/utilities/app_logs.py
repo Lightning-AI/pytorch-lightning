@@ -86,7 +86,7 @@ def _app_logs_reader(
         th.start()
 
     # Print logs from queue when log event is available
-    flow = "Your app has started. View it in your browser"
+    flow = "Your app has started."
     work = "USER_RUN_WORK"
     start_timestamps = {}
 
@@ -94,6 +94,7 @@ def _app_logs_reader(
     try:
         while True:
             log_event: _LogEvent = read_queue.get(timeout=None if follow else 1.0)
+
             token = flow if log_event.component_name == "flow" else work
             if token in log_event.message:
                 start_timestamps[log_event.component_name] = log_event.timestamp

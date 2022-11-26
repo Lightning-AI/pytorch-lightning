@@ -18,7 +18,7 @@ def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJ
                 break
         else:
             raise ValueError(
-                "Environment variable LIGHTNING_CLOUD_PROJECT_ID is set " "but could not find an associated project."
+                "Environment variable `LIGHTNING_CLOUD_PROJECT_ID` is set but could not find an associated project."
             )
         return membership
 

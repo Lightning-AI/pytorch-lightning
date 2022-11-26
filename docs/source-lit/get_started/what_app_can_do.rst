@@ -1,1 +1,0 @@
-../../source-app/get_started/what_app_can_do.rst

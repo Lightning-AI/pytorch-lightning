@@ -3,7 +3,7 @@ import os
 from unittest import mock
 
 from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.frontend.panel.app_state_comm import _get_ws_url, _run_callbacks, watch_app_state
+from lightning_app.frontend.panel.app_state_comm import _get_ws_url, _run_callbacks, _watch_app_state
 
 FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"
@@ -29,7 +29,7 @@ def test_watch_app_state():
     """We can watch the App state and a callback function will be run when it changes."""
     callback = mock.MagicMock()
     # When
-    watch_app_state(callback)
+    _watch_app_state(callback)
 
     # Here we would like to send messages using the web socket
     # For testing the web socket is not started. See conftest.py

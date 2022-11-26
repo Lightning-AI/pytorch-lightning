@@ -4,9 +4,9 @@ from pathlib import Path
 from shutil import rmtree
 from typing import List, Optional
 
-from lightning_app.source_code.copytree import copytree
-from lightning_app.source_code.hashing import get_hash
-from lightning_app.source_code.tar import tar_path
+from lightning_app.source_code.copytree import _copytree
+from lightning_app.source_code.hashing import _get_hash
+from lightning_app.source_code.tar import _tar_path
 from lightning_app.source_code.uploader import FileUploader
 
 
@@ -33,7 +33,7 @@ class LocalSourceCodeDir:
     def files(self) -> List[str]:
         """Returns a set of files that are not ignored by .lightningignore."""
         if self._non_ignored_files is None:
-            self._non_ignored_files = copytree(self.path, "", dry_run=True)
+            self._non_ignored_files = _copytree(self.path, "", dry_run=True)
         return self._non_ignored_files
 
     @property
@@ -44,7 +44,7 @@ class LocalSourceCodeDir:
             return self._version
 
         # stores both version and a set with the files used to generate the checksum
-        self._version = get_hash(files=self.files, algorithm="blake2")
+        self._version = _get_hash(files=self.files, algorithm="blake2")
         return self._version
 
     @property
@@ -59,7 +59,7 @@ class LocalSourceCodeDir:
         session_path = self.cache_location / "packaging_sessions" / self.version
         try:
             rmtree(session_path, ignore_errors=True)
-            copytree(self.path, session_path)
+            _copytree(self.path, session_path)
             yield session_path
         finally:
             rmtree(session_path, ignore_errors=True)
@@ -77,7 +77,7 @@ class LocalSourceCodeDir:
             return self.package_path
         # create a packaging session if not available
         with self.packaging_session() as session_path:
-            tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
+            _tar_path(source_path=session_path, target_file=str(self.package_path), compression=True)
         return self.package_path
 
     def upload(self, url: str) -> None:

@@ -3,6 +3,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
 from typing import Any, Dict
 
+from pkg_resources import parse_requirements
 from setuptools import find_packages
 
 _PROJECT_ROOT = "."
@@ -21,26 +22,27 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _adjust_manifest(**__: Any) -> None:
-    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
-    assert os.path.isfile(manifest_path)
-    with open(manifest_path) as fp:
-        lines = fp.readlines()
-    lines += [
-        "recursive-exclude src *.md" + os.linesep,
-        "recursive-exclude requirements *.txt" + os.linesep,
-        "recursive-include requirements/lite *.txt" + os.linesep,
-        "recursive-include src/lightning_lite *.md" + os.linesep,
-    ]
+def _prepare_extras() -> Dict[str, Any]:
+    path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
+    setup_tools = _load_py_module("setup_tools", path_setup_tools)
+    # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
+    # Define package extras. These are only installed if you specify them.
+    # From remote, use like `pip install pytorch-lightning[dev, docs]`
+    # From local copy of repo, use like `pip install ".[dev, docs]"`
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
+    extras = {
+        "examples": setup_tools.load_requirements(file_name="examples.txt", **common_args),
+        "strategies": setup_tools.load_requirements(file_name="strategies.txt", **common_args),
+        "test": setup_tools.load_requirements(file_name="test.txt", **common_args),
+    }
+    for req in parse_requirements(extras["strategies"]):
+        extras[req.key] = [str(req)]
+    extras["dev"] = extras["test"]
+    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]
+    return extras
 
-    # TODO: remove this once lightning-ui package is ready as a dependency
-    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
 
-    with open(manifest_path, "w") as fp:
-        fp.writelines(lines)
-
-
-def _setup_args(**__: Any) -> Dict[str, Any]:
+def _setup_args() -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
@@ -51,7 +53,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
 
     return dict(
         name="lightning-lite",
-        version=_version.version,  # todo: consider using date version + branch for installation from source
+        version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,
         author_email=_about.__author_email__,
@@ -68,7 +70,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         python_requires=">=3.7",
         setup_requires=["wheel"],
         install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
-        # extras_require=_prepare_extras(),  # todo
+        extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",

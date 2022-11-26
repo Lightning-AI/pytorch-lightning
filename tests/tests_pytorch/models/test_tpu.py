@@ -21,7 +21,6 @@ import torch
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
@@ -45,7 +44,6 @@ class SerialLoaderBoringModel(BoringModel):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -65,7 +63,6 @@ def test_model_tpu_devices_1(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -87,7 +84,6 @@ def test_model_tpu_index(tmpdir, tpu_core):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -107,7 +103,6 @@ def test_model_tpu_devices_8(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -128,7 +123,6 @@ def test_model_16bit_tpu_devices_1(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_index(tmpdir, tpu_core):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -151,7 +145,6 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         precision=16,
@@ -179,7 +172,6 @@ def test_model_tpu_early_stop(tmpdir):
             self.log("val_loss", out["x"])
             return out
 
-    tutils.reset_seed()
     model = CustomBoringModel()
     trainer = Trainer(
         callbacks=[EarlyStopping(monitor="val_loss")],
@@ -199,7 +191,6 @@ def test_model_tpu_early_stop(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_grad_norm(tmpdir):
     """Test if grad_norm works on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -219,7 +210,6 @@ def test_tpu_grad_norm(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_clip_grad_by_value(tmpdir):
     """Test if clip_gradients by value works on TPU."""
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -240,7 +230,6 @@ def test_tpu_clip_grad_by_value(tmpdir):
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_dataloaders_passed_to_fit(tmpdir):
     """Test if dataloaders passed to trainer works on TPU."""
-    tutils.reset_seed()
     model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="tpu", devices=8)
@@ -260,12 +249,12 @@ def test_exception_when_no_tpu_found(xla_available):
         Trainer(accelerator="tpu", devices=8)
 
 
-@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+@pytest.mark.parametrize("devices", [1, 8, [1]])
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_accelerator_set_when_using_tpu(tpu_cores):
-    """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
-    assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
+def test_accelerator_set_when_using_tpu(devices):
+    """Test if the accelerator is set to `tpu` when devices is not None."""
+    assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
 
 
 @pytest.mark.parametrize(
@@ -286,31 +275,6 @@ def test_tpu_cores_with_argparse(cli_args, expected):
         assert getattr(args, k) == v
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
-
-
-@RunIf(min_torch="1.10")
-@pytest.mark.parametrize("clip_val", [0, 10])
-@mock.patch("torch.nn.utils.clip_grad_norm_")
-def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0."""
-    # TODO: shouldn't be in the TPU file
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        max_epochs=1,
-        devices=1,
-        precision=16,
-        limit_train_batches=4,
-        limit_val_batches=0,
-        gradient_clip_val=clip_val,
-    )
-    trainer.fit(model)
-
-    if clip_val > 0:
-        mock_clip_grad_norm.assert_called()
-    else:
-        mock_clip_grad_norm.assert_not_called()
 
 
 @RunIf(tpu=True)
@@ -374,7 +338,6 @@ def test_tpu_debug_mode(tmpdir):
         def teardown(self, stage):
             assert "PT_XLA_DEBUG" not in os.environ
 
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
@@ -399,7 +362,6 @@ def test_tpu_host_world_size(tmpdir):
         def on_train_start(self):
             assert os.environ.get("XRT_HOST_WORLD_SIZE") == str(1)
 
-    tutils.reset_seed()
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,

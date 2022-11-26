@@ -36,13 +36,13 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        devices = parse_cpu_cores(devices)
+        devices = _parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = parse_cpu_cores(devices)
+        devices = _parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
@@ -64,7 +64,7 @@ class CPUAccelerator(Accelerator):
         )
 
 
-def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
+def _parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
     """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
     :class:`~pytorch_lightning.trainer.Trainer`.
 

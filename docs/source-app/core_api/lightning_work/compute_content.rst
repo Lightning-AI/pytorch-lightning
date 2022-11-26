@@ -22,6 +22,15 @@ a :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to your
     # Run on a fast multi-GPU machine (see specs below)
     MyCustomWork(cloud_compute=L.CloudCompute("gpu-fast-multi"))
 
+.. warning::
+     Custom base images are not supported with the default CPU cloud compute. For example:
+
+     .. code-block:: py
+
+         class MyWork(LightningWork):
+             def __init__(self):
+              super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work
+
 
 Here is the full list of supported machine names:
 
@@ -59,21 +68,6 @@ Here is the full list of supported machine names:
      - 244 GB
 
 The up-to-date prices for these instances can be found `here <https://lightning.ai/pages/pricing>`_.
-
-----
-
-*******************************
-Run on spot/preemptible machine
-*******************************
-
-Most cloud provider offers ``preemptible`` (synonym of ``spot``) machines that are usually discounted by up to 90 %. Those machines are cheaper but the cloud provider can retrieve them at any time and might take longer to be ready.
-
-.. code-block:: python
-
-    import lightning as L
-
-    # Run on a single CPU
-    MyCustomWork(cloud_compute=L.CloudCompute("gpu", preemptible=True))
 
 ----
 

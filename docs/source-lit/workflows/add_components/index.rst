@@ -1,1 +1,0 @@
-../../../source-app/workflows/add_components/index.rst

@@ -1,1 +1,0 @@
-../source-app/moving_to_the_cloud.rst

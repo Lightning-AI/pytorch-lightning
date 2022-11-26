@@ -80,7 +80,7 @@ To see a list of available commands:
     --help     Show this message and exit.
 
     Lightning App Commands
-        run notebook Description
+        run notebook Run a Notebook.
 
 
 To find the arguments of the commands:

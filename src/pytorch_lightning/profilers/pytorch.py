@@ -354,6 +354,7 @@ class PyTorchProfiler(Profiler):
             return sum(trainer.num_test_batches)
         if self._schedule.is_predicting:
             return sum(trainer.num_predict_batches)
+        raise NotImplementedError("Unsupported schedule")
 
     def _should_override_schedule(self) -> bool:
         return (

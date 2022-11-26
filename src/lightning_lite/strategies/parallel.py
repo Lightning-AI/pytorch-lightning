@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch import Tensor
-from torch.nn import Module
 
-import lightning_lite as lite
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available
+from lightning_lite.utilities.types import ReduceOp
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -37,9 +35,9 @@ class ParallelStrategy(Strategy, ABC):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
     ):
-        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self.parallel_devices = parallel_devices
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 
@@ -78,33 +76,31 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        return dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
+            rank=self.global_rank,
         )
-        return distributed_sampler_kwargs
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
+        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
+        ``False``, it behaves like ``any`` instead.
+
+        Args:
+            decision: A single input decision.
+            all: Whether to logically emulate ``all`` or ``any``. Defaults to True.
+
+        Returns:
+            bool: The reduced boolean decision.
+        """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
+        decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
-
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks ddp sync gradients behaviour on backwards pass.
-
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
-        """
-        if isinstance(module, lite.utilities.types.DistributedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
 
     def teardown(self) -> None:
         assert self.cluster_environment is not None

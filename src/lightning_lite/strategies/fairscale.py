@@ -17,13 +17,19 @@ from typing import Any, Dict, Generator, List, Literal, Optional, Tuple
 
 import torch
 from lightning_utilities.core.imports import module_available
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.precision.precision import Precision
+from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
+from lightning_lite.strategies.strategy import _BackwardSyncControl
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _IS_WINDOWS
 
@@ -47,7 +53,7 @@ class DDPShardedStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
@@ -57,11 +63,12 @@ class DDPShardedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             **kwargs,
         )
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
@@ -75,7 +82,7 @@ class DDPShardedStrategy(DDPStrategy):
             The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
             and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
         """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision_plugin, self.num_nodes)
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
         for optimizer in optimizers:
             # This forces buckets to be rebuilt on the first forward pass
             # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
@@ -84,18 +91,19 @@ class DDPShardedStrategy(DDPStrategy):
         model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
 
-    @contextmanager
-    def block_backward_sync(self, module: Module) -> Generator:
-        """Blocks syncing gradients behaviour on backwards pass.
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
 
-        This is useful for skipping sync when accumulating gradients, reducing communication overhead
-        Returns: context manager with sync behaviour off
+        Please use :meth:`setup_module_and_optimizers` instead.
         """
-        if isinstance(module, ShardedDataParallel):
-            with module.no_sync():
-                yield None
-        else:
-            yield None
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -131,7 +139,7 @@ class DDPSpawnShardedStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "spawn",  # different default than in ddp
@@ -142,22 +150,70 @@ class DDPSpawnShardedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
             process_group_backend=process_group_backend,
             timeout=timeout,
             start_method=start_method,
             **kwargs,
         )
+        self._backward_sync_control = _FairscaleBackwardSyncControl()
+        if "reduce_buffer_size" not in self._ddp_kwargs:
+            # For multi-node training, enabling bucketing will improve performance.
+            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
+
+    def setup_module_and_optimizers(
+        self, module: Module, optimizers: List[Optimizer]
+    ) -> Tuple["ShardedDataParallel", List[Optimizer]]:
+        """Wraps the model and optimizers with fairscale components.
+
+        Return:
+            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
+            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
+        """
+        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
+        for optimizer in optimizers:
+            # This forces buckets to be rebuilt on the first forward pass
+            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
+            # device than the params
+            optimizer._clear_cache()
+        model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
+        return model, optimizers
+
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Setting up the module without optimizers in this strategy is not supported.
+
+        Please use :meth:`setup_module_and_optimizers` instead.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
+        """Optimizers can only be set up jointly with the model in this strategy.
+
+        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
+        """
+        raise NotImplementedError(self._err_msg_joint_setup_required())
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            "ddp_sharded_spawn_find_unused_parameters_false",
+            cls,
+            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
+            find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            "ddp_sharded_spawn",
+            cls,
+            description=cls.__class__.__name__,
+        )
 
 
-def _reinit_optimizers_with_oss(
-    optimizers: List[Optimizer], precision_plugin: Precision, num_nodes: int
-) -> List["OSS"]:
+def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
     for x, optimizer in enumerate(optimizers):
         if not isinstance(optimizer, OSS):
             optim_class = type(optimizer)
             zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-            is_fp16 = precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+            is_fp16 = precision.precision in (PrecisionType.MIXED, PrecisionType.HALF)
             # For multi-node training, compressing the model shards in fp16 before broadcasting
             # improves performance. When using PyTorch AMP, it will not degrade
             # the model performance.
@@ -165,3 +221,24 @@ def _reinit_optimizers_with_oss(
             optimizers[x] = zero_optimizer
             del optimizer
     return optimizers
+
+
+class _FairscaleBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the :class:`~fairscale.nn.data_parallel.ShardedDataParallel`
+        wrapper."""
+        if not isinstance(module, ShardedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `ShardedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():
+            yield None
+
+
+def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    from fairscale.nn.misc.flatten_params_wrapper import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])

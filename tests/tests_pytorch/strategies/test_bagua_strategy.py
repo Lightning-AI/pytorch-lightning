@@ -17,7 +17,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.strategies import BaguaStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -43,6 +43,25 @@ def test_bagua_default(tmpdir):
         devices=1,
     )
     assert isinstance(trainer.strategy, BaguaStrategy)
+
+
+@RunIf(min_cuda_gpus=1, bagua=True)
+def test_manual_optimization(tmpdir):
+    model = ManualOptimBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        strategy="bagua",
+        accelerator="gpu",
+        devices=1,
+        logger=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
 
 
 @pytest.mark.skipif(

@@ -1,5 +1,5 @@
 ######################
-lightning_app.frontend
+lightning.app.frontend
 ######################
 
 .. contents::

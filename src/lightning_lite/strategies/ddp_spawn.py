@@ -32,7 +32,7 @@ class DDPSpawnStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "spawn",  # different default than in ddp

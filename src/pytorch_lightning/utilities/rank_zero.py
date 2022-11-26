@@ -15,7 +15,6 @@
 import logging
 
 # note: we want to keep these indirections so the `rank_zero_module.log` is set (on import) for PL users
-# backwards compatibility
 from lightning_lite.utilities.rank_zero import LightningDeprecationWarning  # noqa: F401
 from lightning_lite.utilities.rank_zero import (  # noqa: F401
     rank_zero_debug,

@@ -70,7 +70,7 @@ Then, create a file named ``app.py`` with the following App content:
     # app.py
 
     import lightning as L
-    from lightning.app.frontend.panel import PanelFrontend
+    from lightning.app.frontend import PanelFrontend
 
 
     class LitPanel(L.LightningFlow):
@@ -83,6 +83,9 @@ Then, create a file named ``app.py`` with the following App content:
         def __init__(self):
             super().__init__()
             self.lit_panel = LitPanel()
+
+        def run(self):
+            self.lit_panel.run()
 
         def configure_layout(self):
             return {"name": "home", "content": self.lit_panel}
@@ -158,7 +161,7 @@ the ``configure_layout`` method of the Lightning Component you want to connect t
     :emphasize-lines: 7-10
 
     import lightning as L
-    from lightning.app.frontend.panel import PanelFrontend
+    from lightning.app.frontend import PanelFrontend
 
 
     class LitPanel(L.LightningFlow):
@@ -171,6 +174,9 @@ the ``configure_layout`` method of the Lightning Component you want to connect t
         def __init__(self):
             super().__init__()
             self.lit_panel = LitPanel()
+
+        def run(self):
+            self.lit_panel.run()
 
         def configure_layout(self):
             return {"name": "home", "content": self.lit_panel}
@@ -190,10 +196,10 @@ The second step, is to tell the Root component in which tab to render this compo
 In this case, we render the ``LitPanel`` UI in the ``home`` tab of the app.
 
 .. code:: python
-    :emphasize-lines: 16-17
+    :emphasize-lines: 19-20
 
     import lightning as L
-    from lightning.app.frontend.panel import PanelFrontend
+    from lightning.app.frontend import PanelFrontend
 
 
     class LitPanel(L.LightningFlow):
@@ -207,8 +213,13 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the app.
             super().__init__()
             self.lit_panel = LitPanel()
 
+        def run(self):
+            self.lit_panel.run()
+
         def configure_layout(self):
             return {"name": "home", "content": self.lit_panel}
+
+    app = L.LightningApp(LitApp())
 
 ----
 

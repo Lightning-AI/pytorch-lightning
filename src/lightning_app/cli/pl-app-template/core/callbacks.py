@@ -4,7 +4,7 @@ from typing import Any, Dict, TYPE_CHECKING, Union
 from core.state import ProgressBarState, TrainerState
 
 import pytorch_lightning as pl
-from lightning.app.storage import Path
+from lightning_app.storage import Path
 from lightning_app.utilities.app_helpers import Logger
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks.progress.base import get_standard_metrics

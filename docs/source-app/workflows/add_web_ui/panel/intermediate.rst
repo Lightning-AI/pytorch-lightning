@@ -25,7 +25,7 @@ presses a button:
     # app_panel.py
 
     import panel as pn
-    from lightning.app.frontend.panel import AppStateWatcher
+    from lightning.app.frontend import AppStateWatcher
 
     pn.extension(sizing_mode="stretch_width")
 
@@ -53,7 +53,7 @@ presses a button:
     # app.py
 
     import lightning as L
-    from lightning.app.frontend.panel import PanelFrontend
+    from lightning.app.frontend import PanelFrontend
 
     class LitPanel(L.LightningFlow):
         def __init__(self):
@@ -105,7 +105,7 @@ In this example, we update the ``count`` value of the Component:
     # app_panel.py
 
     import panel as pn
-    from lightning.app.frontend.panel import AppStateWatcher
+    from lightning.app.frontend import AppStateWatcher
 
     app = AppStateWatcher()
 
@@ -123,7 +123,7 @@ In this example, we update the ``count`` value of the Component:
     # app.py
 
     from datetime import datetime as dt
-    from lightning.app.frontend.panel import PanelFrontend
+    from lightning.app.frontend import PanelFrontend
 
     import lightning as L
 

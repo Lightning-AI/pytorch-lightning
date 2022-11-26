@@ -1,17 +1,17 @@
 from unittest.mock import MagicMock
 
 from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.storage.path import GetRequest, GetResponse
-from lightning_app.testing.helpers import MockQueue
+from lightning_app.storage.requests import _GetRequest, _GetResponse
+from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.enum import WorkStageStatus
 
 
 def test_orchestrator():
     """Simulate orchestration when Work B requests a file from Work A."""
-    request_queues = {"work_a": MockQueue(), "work_b": MockQueue()}
-    response_queues = {"work_a": MockQueue(), "work_b": MockQueue()}
-    copy_request_queues = {"work_a": MockQueue(), "work_b": MockQueue()}
-    copy_response_queues = {"work_a": MockQueue(), "work_b": MockQueue()}
+    request_queues = {"work_a": _MockQueue(), "work_b": _MockQueue()}
+    response_queues = {"work_a": _MockQueue(), "work_b": _MockQueue()}
+    copy_request_queues = {"work_a": _MockQueue(), "work_b": _MockQueue()}
+    copy_response_queues = {"work_a": _MockQueue(), "work_b": _MockQueue()}
     app = MagicMock()
     work = MagicMock()
     work.status.stage = WorkStageStatus.RUNNING
@@ -31,7 +31,7 @@ def test_orchestrator():
     assert not orchestrator.waiting_for_response
 
     # simulate Work B sending a request for a file in Work A
-    request = GetRequest(source="work_a", path="/a/b/c.txt", hash="", destination="", name="")
+    request = _GetRequest(source="work_a", path="/a/b/c.txt", hash="", destination="", name="")
     request_queues["work_b"].put(request)
     orchestrator.run_once("work_a")
     assert not orchestrator.waiting_for_response
@@ -48,7 +48,7 @@ def test_orchestrator():
     orchestrator.run_once("work_b")
 
     # simulate copier A confirms that the file is available on the shared volume
-    response = GetResponse(source="work_a", path="/a/b/c.txt", hash="", destination="work_b", name="")
+    response = _GetResponse(source="work_a", path="/a/b/c.txt", hash="", destination="work_b", name="")
     copy_request_queues["work_a"].get()
     copy_response_queues["work_a"].put(response)
 

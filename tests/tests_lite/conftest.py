@@ -54,6 +54,7 @@ def restore_env_variables():
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
+        "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"
@@ -77,7 +78,7 @@ def reset_deterministic_algorithm():
 @pytest.fixture(scope="function")
 def xla_available(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(lightning_lite.accelerators.tpu, "_XLA_AVAILABLE", True)
-    monkeypatch.setattr(lightning_lite.plugins.environments.xla_environment, "_XLA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_lite.plugins.environments.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.xla, "_XLA_AVAILABLE", True)
     monkeypatch.setattr(lightning_lite.strategies.launchers.xla, "_XLA_AVAILABLE", True)
 

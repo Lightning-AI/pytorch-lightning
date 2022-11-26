@@ -38,6 +38,7 @@ def environment_combinations():
         "SLURM_NODEID": "1",
         "SLURM_PROCID": "3",
         "SLURM_NTASKS": "4",
+        "SLURM_NTASKS_PER_NODE": "2",
     }
     environment = SLURMEnvironment()
     yield environment, variables, expected

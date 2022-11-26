@@ -15,7 +15,7 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Any, MutableMapping, Optional, Sequence, Union
+from typing import Any, List, MutableMapping, Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities.parsing import AttributeDict, save_hyperparameters
@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.parsing import AttributeDict, save_hyperparamet
 
 class HyperparametersMixin:
 
-    __jit_unused_properties__ = ["hparams", "hparams_initial"]
+    __jit_unused_properties__: List[str] = ["hparams", "hparams_initial"]
 
     def __init__(self) -> None:
         super().__init__()

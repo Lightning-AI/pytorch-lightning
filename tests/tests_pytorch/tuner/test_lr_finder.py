@@ -14,6 +14,7 @@
 import logging
 import os
 from copy import deepcopy
+from unittest import mock
 
 import pytest
 import torch
@@ -24,6 +25,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
 
@@ -91,6 +93,7 @@ def test_trainer_reset_correctly(tmpdir):
         "max_steps",
         "fit_loop.max_steps",
         "strategy.setup_optimizers",
+        "should_stop",
     ]
     expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
@@ -194,12 +197,14 @@ def test_call_to_trainer_method(tmpdir, opt):
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
 
 
+@RunIf(sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_datamodule_parameter(tmpdir):
     """Test that the datamodule parameter works."""
     seed_everything(1)
 
     dm = ClassifDataModule()
-    model = ClassificationModel()
+    model = ClassificationModel(lr=1e-3)
 
     before_lr = model.lr
     # logger file to get meta
@@ -434,3 +439,27 @@ def test_if_lr_finder_callback_already_configured():
 
     with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
         trainer.tune(model)
+
+
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
+@RunIf(standalone=True)
+def test_lr_finder_with_ddp(tmpdir):
+    seed_everything(7)
+
+    init_lr = 1e-4
+    dm = ClassifDataModule()
+    model = ClassificationModel(lr=init_lr)
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        strategy="ddp",
+        devices=2,
+        accelerator="cpu",
+    )
+
+    trainer.tuner.lr_find(model, datamodule=dm, update_attr=True, num_training=20)
+    lr = trainer.lightning_module.lr
+    lr = trainer.strategy.broadcast(lr)
+    assert trainer.lightning_module.lr == lr
+    assert lr != init_lr

@@ -2,9 +2,11 @@ import os
 import signal
 import sys
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, Union
 
-from lightning_app import LightningWork
+from typing_extensions import TypedDict
+
+from lightning_app.core.work import LightningWork
 from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _collect_child_process_pids, Logger
@@ -115,11 +117,18 @@ class TracerPythonScript(LightningWork):
         self.code_name = code.get("name") if code else None
         self.restart_count = 0
 
-    def run(self, params: Optional[Dict[str, Any]] = None, restart_count: Optional[int] = None, **kwargs):
+    def run(
+        self,
+        params: Optional[Dict[str, Any]] = None,
+        restart_count: Optional[int] = None,
+        code_dir: Optional[str] = ".",
+        **kwargs,
+    ):
         """
         Arguments:
             params: A dictionary of arguments to be be added to script_args.
             restart_count: Passes an incrementing counter to enable the re-execution of LightningWorks.
+            code_dir: A path string determining where the source is extracted, default is current directory.
         """
         if restart_count:
             self.restart_count = restart_count
@@ -135,7 +144,10 @@ class TracerPythonScript(LightningWork):
 
             if self.code_name in self.drive.list():
                 self.drive.get(self.code_name)
-                extract_tarfile(self.code_name, ".", "r:gz")
+                extract_tarfile(self.code_name, code_dir, "r:gz")
+
+        prev_cwd = os.getcwd()
+        os.chdir(code_dir)
 
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
@@ -150,6 +162,7 @@ class TracerPythonScript(LightningWork):
         if self.env:
             os.environ.update(self.env)
         res = self._run_tracer(init_globals)
+        os.chdir(prev_cwd)
         os.environ = env_copy
         return self.on_after_run(res)
 
@@ -164,9 +177,7 @@ class TracerPythonScript(LightningWork):
 
     @staticmethod
     def _to_script_args(k: str, v: str) -> str:
-        if k.startswith("--"):
-            return f"{k}={v}"
-        return f"--{k}={v}"
+        return f"{k}={v}"
 
 
 __all__ = ["TracerPythonScript"]

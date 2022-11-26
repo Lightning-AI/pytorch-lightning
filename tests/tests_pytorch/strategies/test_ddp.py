@@ -27,7 +27,7 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -35,7 +35,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir):
     trainer.fit(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_test_only(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
@@ -43,7 +43,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir):
     trainer.test(model, datamodule=dm)
 
 
-@RunIf(min_cuda_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True, sklearn=True)
 def test_multi_gpu_model_ddp_fit_test(tmpdir):
     seed_everything(4321)
     dm = ClassifDataModule()

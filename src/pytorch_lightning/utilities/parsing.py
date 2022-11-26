@@ -256,8 +256,6 @@ def save_hyperparameters(
 
     # `hparams` are expected here
     obj._set_hparams(hp)
-    # make deep copy so there is not other runtime changes reflected
-    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
     for k, v in obj._hparams.items():
         if isinstance(v, nn.Module):
@@ -265,6 +263,9 @@ def save_hyperparameters(
                 f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
                 f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k!r}])`."
             )
+
+    # make a deep copy so there are no other runtime changes reflected
+    obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
 class AttributeDict(Dict):

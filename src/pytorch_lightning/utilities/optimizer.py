@@ -14,15 +14,15 @@
 
 from typing import Any
 
-from lightning_lite.utilities.optimizer import optimizer_to_device as new_optimizer_to_device
-from lightning_lite.utilities.optimizer import optimizers_to_device as new_optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizer_to_device as new_optimizer_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device as new_optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.optimizer.optimizers_to_device` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizers_to_device` instead."
+        " removed in v1.10.0. This function is internal but you can copy over its implementation."
     )
     return new_optimizers_to_device(*args, **kwargs)
 
@@ -30,6 +30,6 @@ def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
 def optimizer_to_device(*args: Any, **kwargs: Any) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.optimizer.optimizer_to_device` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.optimizer.optimizer_to_device` instead."
+        " removed in v1.10.0. This function is internal but you can copy over its implementation."
     )
     return new_optimizer_to_device(*args, **kwargs)

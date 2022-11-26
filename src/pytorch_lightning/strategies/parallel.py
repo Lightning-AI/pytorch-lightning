@@ -20,7 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from lightning_lite.utilities.distributed import _all_gather_ddp_if_available, ReduceOp
 from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
@@ -77,22 +77,33 @@ class ParallelStrategy(Strategy, ABC):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
+        return dict(
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
+            rank=self.global_rank,
         )
-        return distributed_sampler_kwargs
 
     def reconciliate_processes(self, trace: str) -> None:
         """Function to re-conciliate processes on failure."""
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
-        return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
+        return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
+    def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
+        """Reduces a boolean decision over distributed processes. By default is analagous to ``all`` from the
+        standard library, returning ``True`` only if all input decisions evaluate to ``True``. If ``all`` is set to
+        ``False``, it behaves like ``any`` instead.
+
+        Args:
+            decision: A single input decision.
+            all: Whether to logically emulate ``all`` or ``any``. Defaults to True.
+
+        Returns:
+            bool: The reduced boolean decision.
+        """
         decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
-        decision = bool(decision == self.world_size)
+        decision = bool(decision == self.world_size) if all else bool(decision)
         return decision
 
     @contextmanager

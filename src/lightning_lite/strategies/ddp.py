@@ -11,27 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
-from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_lite.strategies.parallel import ParallelStrategy
-from lightning_lite.strategies.strategy import TBroadcast
-from lightning_lite.utilities.distributed import distributed_available, get_default_process_group_backend_for_device
+from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning_lite.utilities.distributed import (
+    _distributed_available,
+    _get_default_process_group_backend_for_device,
+    _init_dist_connection,
+    _sync_ddp_if_available,
+)
 from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
@@ -52,7 +58,7 @@ class DDPStrategy(ParallelStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[Precision] = None,
+        precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
         start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
@@ -63,12 +69,13 @@ class DDPStrategy(ParallelStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
-            precision_plugin=precision_plugin,
+            precision=precision,
         )
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._start_method = start_method
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
 
     @property
@@ -95,8 +102,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
-        return distributed_sampler_kwargs
+        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     @property
     def process_group_backend(self) -> Optional[str]:
@@ -136,11 +142,11 @@ class DDPStrategy(ParallelStrategy):
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
         if isinstance(tensor, Tensor):
-            tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
+            tensor = _sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if not distributed_available():
+        if not _distributed_available():
             return
         if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self._determine_ddp_device_ids())
@@ -192,10 +198,10 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
-        return self._process_group_backend or get_default_process_group_backend_for_device(self.root_device)
+        return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
 
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -208,3 +214,18 @@ class DDPStrategy(ParallelStrategy):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
+
+
+class _DDPBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the
+        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+        if not isinstance(module, DistributedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `DistributedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():  # type: ignore[operator]
+            yield

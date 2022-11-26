@@ -1,24 +1,30 @@
+import glob
 import os
 from unittest import mock
 
 import pytest
+from lightning_utilities.core.imports import module_available
 
-from lightning_app.testing.helpers import RunIf
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (
     _prepare_lightning_wheels_and_requirements,
     _verify_lightning_version,
+    get_dist_path_if_editable_install,
 )
 
 
+@pytest.mark.skipif(not module_available("lightning"), reason="TODO: should work for lightning_app too")
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
+    package_name = "lightning"
+    if not get_dist_path_if_editable_install(package_name):
+        pytest.skip("Requires --editable install")
 
-    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
-    from lightning.__version__ import version
+    cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
+    assert len(os.listdir(tmpdir)) == 1
+    assert len(glob.glob(str(tmpdir / "lightning-*.tar.gz"))) == 1
 
-    tar_name = f"lightning-{version}.tar.gz"
-    assert sorted(os.listdir(tmpdir))[0] == tar_name
     cleanup_handle()
     assert os.listdir(tmpdir) == []
 
@@ -39,7 +45,7 @@ def test_prepare_lightning_wheels_and_requirement_for_packages_installed_in_edit
 
 
 @pytest.mark.skip(reason="TODO: Find a way to check for the latest version")
-@RunIf(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_verify_lightning_version(monkeypatch):
     monkeypatch.setattr(lightning_utils, "__version__", "0.0.1")
     monkeypatch.setattr(lightning_utils, "_fetch_latest_version", lambda _: "0.0.2")

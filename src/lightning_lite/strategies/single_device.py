@@ -20,7 +20,7 @@ from torch import Tensor
 from torch.nn import Module
 
 from lightning_lite.accelerators import Accelerator
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.strategy import Strategy, TBroadcast
 from lightning_lite.utilities.types import _DEVICE
@@ -34,9 +34,9 @@ class SingleDeviceStrategy(Strategy):
         device: _DEVICE = "cpu",
         accelerator: Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
-        precision_plugin: Precision | None = None,
+        precision: Precision | None = None,
     ):
-        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
+        super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision=precision)
         self._root_device = torch.device(device)
         self.global_rank = 0
         self.local_rank = 0

@@ -64,7 +64,7 @@ To see a list of available commands:
     --help     Show this message and exit.
 
     Lightning App Commands
-        add Description
+        add Add a name.
 
 To find the arguments of the commands:
 

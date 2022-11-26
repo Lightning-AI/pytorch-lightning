@@ -20,7 +20,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -81,7 +81,7 @@ class DDPShardedStrategy(DDPStrategy):
             model=_LightningModuleWrapperBase(self.model),
             optimizers=self.optimizers,
         )
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
 
     def _set_ddp_kwargs(self) -> None:
         if "reduce_buffer_size" not in self._ddp_kwargs:

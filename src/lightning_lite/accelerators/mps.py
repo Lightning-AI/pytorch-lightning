@@ -39,9 +39,9 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        from lightning_lite.utilities.device_parser import parse_gpu_ids
+        from lightning_lite.utilities.device_parser import _parse_gpu_ids
 
-        parsed_devices = parse_gpu_ids(devices, include_mps=True)
+        parsed_devices = _parse_gpu_ids(devices, include_mps=True)
         return parsed_devices
 
     @staticmethod

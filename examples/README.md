@@ -11,23 +11,19 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
-## MNIST Examples
+## Lightning Lite Examples
 
-5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
+We show how to accelerate your PyTorch code with [Lightning Lite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) with minimal code changes.
+You stay in full control of the training loop.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) from pure PyTorch is optional, but it might be helpful to learn about it.
-
-- [MNIST with vanilla PyTorch](convert_from_pt_to_pl/image_classifier_1_pytorch.py)
-- [MNIST with LightningLite](convert_from_pt_to_pl/image_classifier_2_lite.py)
-- [MNIST LightningLite to LightningModule](convert_from_pt_to_pl/image_classifier_3_lite_to_lightning_module.py)
-- [MNIST with LightningModule](convert_from_pt_to_pl/image_classifier_4_lightning_module.py)
-- [MNIST with LightningModule + LightningDataModule](convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py)
+- [MNIST with vanilla PyTorch](lite/image_classifier_1_pytorch.py)
+- [MNIST with Lightning Lite](lite/image_classifier_2_lite.py)
 
 ______________________________________________________________________
 
-## Basic Examples
+## Lightning Trainer Examples
 
-In this folder, we have 2 simple examples:
+In this folder, we have 2 simple examples that showcase the power of the Lightning Trainer.
 
 - [Image Classifier](pl_basics/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
 - [Image Classifier + DALI](convert_from_pt_to_pl/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).

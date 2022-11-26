@@ -13,12 +13,12 @@ from lightning_app.frontend.utils import _get_frontend_environment
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import requires
-from lightning_app.utilities.log import get_frontend_logfile
+from lightning_app.utilities.log import get_logfile
 
 _logger = Logger(__name__)
 
 
-def has_panel_autoreload() -> bool:
+def _has_panel_autoreload() -> bool:
     """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
 
     Please note the casing of value does not matter
@@ -27,17 +27,28 @@ def has_panel_autoreload() -> bool:
 
 
 class PanelFrontend(Frontend):
-    """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
+    """The `PanelFrontend` enables you to serve Panel code as a Frontend for your LightningFlow.
 
-    To use this frontend, you must first install the `panel` package:
+    Reference: https://lightning.ai/lightning-docs/workflows/add_web_ui/panel/
+
+    Args:
+        entry_point: The path to a .py or .ipynb file, or a pure function. The file or function must contain your Panel
+            code. The function can optionally accept an ``AppStateWatcher`` argument.
+
+    Raises:
+        TypeError: Raised if the ``entry_point`` provided is a class method
+
+    Example:
+
+    To use the `PanelFrontend`, you must first install the `panel` package:
 
     .. code-block:: bash
 
         pip install panel
 
-    Example:
+    Create the files `panel_app_basic.py` and `app_basic.py` with the content below.
 
-    `panel_app_basic.py`
+    **panel_app_basic.py**
 
     .. code-block:: python
 
@@ -45,12 +56,12 @@ class PanelFrontend(Frontend):
 
         pn.panel("Hello **Panel ⚡** World").servable()
 
-    `app_basic.py`
+    **app_basic.py**
 
     .. code-block:: python
 
         import lightning as L
-        from lightning.app.frontend.panel import PanelFrontend
+        from lightning_app.frontend.panel import PanelFrontend
 
 
         class LitPanel(L.LightningFlow):
@@ -69,20 +80,15 @@ class PanelFrontend(Frontend):
 
         app = L.LightningApp(LitApp())
 
-    You can start the Lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
-    environment variable to 'yes': `AUTORELOAD=yes lightning run app app_basic.py`.
+    Start the Lightning server with `lightning run app app_basic.py`.
 
-    Args:
-        entry_point: A pure function or the path to a .py or .ipynb file.
-        The function must be a pure function that contains your Panel code.
-        The function can optionally accept an `AppStateWatcher` argument.
-
-    Raises:
-        TypeError: Raised if the entry_point is a class method
+    For development you can get Panel autoreload by setting the ``PANEL_AUTORELOAD``
+    environment variable to 'yes', i.e. run
+    ``PANEL_AUTORELOAD=yes lightning run app app_basic.py``
     """
 
     @requires("panel")
-    def __init__(self, entry_point: Callable | str):
+    def __init__(self, entry_point: str | Callable):
         super().__init__()
 
         if inspect.ismethod(entry_point):
@@ -95,7 +101,7 @@ class PanelFrontend(Frontend):
         self._log_files: dict[str, TextIO] = {}
         _logger.debug("PanelFrontend Frontend with %s is initialized.", entry_point)
 
-    def start_server(self, host: str, port: int) -> None:
+    def start_server(self, host: str, port: int, root_path: str = "") -> None:
         _logger.debug("PanelFrontend starting server on %s:%s", host, port)
 
         # 1: Prepare environment variables and arguments.
@@ -128,8 +134,8 @@ class PanelFrontend(Frontend):
         # Don't log to file when developing locally. Makes it harder to debug.
         self._close_log_files()
 
-        std_err_out = get_frontend_logfile("error.log")
-        std_out_out = get_frontend_logfile("output.log")
+        std_err_out = get_logfile("error.log")
+        std_out_out = get_logfile("output.log")
         stderr = std_err_out.open("wb")
         stdout = std_out_out.open("wb")
         self._log_files = {"stdout": stderr, "stderr": stdout}
@@ -159,7 +165,7 @@ class PanelFrontend(Frontend):
             "--allow-websocket-origin",
             _get_allowed_hosts(),
         ]
-        if has_panel_autoreload():
+        if _has_panel_autoreload():
             command.append("--autoreload")
         _logger.debug("PanelFrontend command %s", command)
         return command

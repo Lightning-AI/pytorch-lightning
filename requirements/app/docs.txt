@@ -3,5 +3,4 @@
 ipython[notebook]
 ipython_genutils
 
-sphinx-autobuild
-https://storage.googleapis.com/grid-packages/lightning-ai-sphinx-theme/build-32.zip
+lai-sphinx-theme

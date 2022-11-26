@@ -18,46 +18,6 @@ if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.wrap import wrap
 
 
-def custom_auto_wrap_policy(
-    module,
-    recurse,
-    unwrapped_params: int,
-    min_num_params: int = int(1e8),
-) -> bool:
-    return unwrapped_params >= 2
-
-
-@RunIf(min_torch="1.12")
-def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
-    with pytest.raises(
-        MisconfigurationException,
-        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-        "but GPU accelerator is not used.",
-    ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
-        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
-        trainer.strategy.setup_environment()
-
-
-@RunIf(min_torch="1.12", min_cuda_gpus=1)
-@pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
-def test_precision_plugin_config(precision, expected):
-    plugin = FullyShardedNativeNativeMixedPrecisionPlugin(precision=precision, device="cuda")
-    config = plugin.mixed_precision_config
-    assert config.param_dtype == expected
-    assert config.buffer_dtype == expected
-    assert config.reduce_dtype == expected
-
-
-@RunIf(min_torch="1.12")
-def test_fsdp_custom_mixed_precision(tmpdir):
-    """Test to ensure that passing a custom mixed precision config works."""
-    config = MixedPrecision()
-    strategy = DDPFullyShardedNativeStrategy(mixed_precision=config)
-    assert strategy.mixed_precision_config == config
-
-
 class TestFSDPModel(BoringModel):
     def __init__(self):
         super().__init__()
@@ -101,9 +61,6 @@ class TestFSDPModel(BoringModel):
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
-        # root should not be resharding
-        assert self.layer.reshard_after_forward is False
-
         precision = torch.float16 if self.precision == 16 else torch.bfloat16
         assert self.layer.mixed_precision.param_dtype == precision
         assert self.layer.mixed_precision.reduce_dtype == precision
@@ -111,9 +68,6 @@ class TestFSDPModel(BoringModel):
 
         for layer_num in [0, 2]:
             assert isinstance(self.layer.module[layer_num], FullyShardedDataParallel)
-            # Assert that the nested layers are set reshard_after_forward to True
-            assert self.layer.module[layer_num].reshard_after_forward is True
-
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
             assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
             assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
@@ -146,12 +100,83 @@ class TestFSDPModelAutoWrapped(BoringModel):
         precision = torch.float16 if self.precision == 16 else torch.bfloat16
         for layer_num in [0, 2]:
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
-            # Assert that the nested layers are set reshard_after_forward to True
-            assert self.layer[layer_num].reshard_after_forward
-
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
             assert self.layer[layer_num].mixed_precision.reduce_dtype == precision
             assert self.layer[layer_num].mixed_precision.buffer_dtype == precision
+
+
+def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
+    trainer.fit(model)
+    model_path = trainer.strategy.broadcast(model_path)
+    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
+
+    trainer.save_checkpoint(model_path, weights_only=True)
+
+    _assert_save_equality(trainer, model_path, cls=model.__class__)
+
+    # Test entry point
+    trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
+
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+    trainer.test(ckpt_path=model_path)
+
+    # Predict entry point
+    trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
+
+    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
+    trainer.predict(ckpt_path=model_path)
+
+
+def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
+    # Use FullySharded to get the state dict for the sake of comparison
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    if trainer.is_global_zero:
+        saved_model = cls.load_from_checkpoint(ckpt_path)
+
+        # Assert model parameters are identical after loading
+        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
+            assert torch.equal(ddp_param.float().cpu(), shard_param)
+
+
+def custom_auto_wrap_policy(
+    module,
+    recurse,
+    unwrapped_params: int,
+    min_num_params: int = int(1e8),
+) -> bool:
+    return unwrapped_params >= 2
+
+
+@RunIf(min_torch="1.12")
+def test_invalid_on_cpu(tmpdir):
+    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
+    with pytest.raises(
+        MisconfigurationException,
+        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+        "but GPU accelerator is not used.",
+    ):
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
+        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
+        trainer.strategy.setup_environment()
+
+
+@RunIf(min_torch="1.12", min_cuda_gpus=1)
+@pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
+def test_precision_plugin_config(precision, expected):
+    plugin = FullyShardedNativeNativeMixedPrecisionPlugin(precision=precision, device="cuda")
+    config = plugin.mixed_precision_config
+    assert config.param_dtype == expected
+    assert config.buffer_dtype == expected
+    assert config.reduce_dtype == expected
+
+
+@RunIf(min_torch="1.12")
+def test_fsdp_custom_mixed_precision(tmpdir):
+    """Test to ensure that passing a custom mixed precision config works."""
+    config = MixedPrecision()
+    strategy = DDPFullyShardedNativeStrategy(mixed_precision=config)
+    assert strategy.mixed_precision_config == config
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
@@ -214,35 +239,23 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, stra
     _run_multiple_stages(trainer, model)
 
 
-def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
-    trainer.fit(model)
-    model_path = trainer.strategy.broadcast(model_path)
-    model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+def test_invalid_parameters_in_optimizer(tmpdir):
+    trainer = Trainer(strategy="fsdp_native", accelerator="cuda", devices=1)
 
-    trainer.save_checkpoint(model_path, weights_only=True)
+    class EmptyParametersModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=1e-2)
 
-    _assert_save_equality(trainer, model_path, cls=model.__class__)
+    model = EmptyParametersModel()
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+        trainer.fit(model)
 
-    # Test entry point
-    trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
+    class NoFlatParametersModel(BoringModel):
+        def configure_optimizers(self):
+            layer = torch.nn.Linear(4, 5)
+            return torch.optim.Adam(layer.parameters(), lr=1e-2)
 
-    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.test(ckpt_path=model_path)
-
-    # Predict entry point
-    trainer.predict(model)  # model is wrapped, will not call `configure_sharded_model`
-
-    # provide model path, will create a new unwrapped model and load and then call `configure_shared_model` to wrap
-    trainer.predict(ckpt_path=model_path)
-
-
-def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
-    # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.strategy.lightning_module_state_dict()
-
-    if trainer.is_global_zero:
-        saved_model = cls.load_from_checkpoint(ckpt_path)
-
-        # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-            assert torch.equal(ddp_param.float().cpu(), shard_param)
+    model = NoFlatParametersModel()
+    with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
+        trainer.fit(model)

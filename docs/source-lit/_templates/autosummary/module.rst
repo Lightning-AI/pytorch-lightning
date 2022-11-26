@@ -1,1 +1,0 @@
-../../../source-pytorch/_templates/autosummary/module.rst

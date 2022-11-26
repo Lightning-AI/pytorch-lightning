@@ -147,19 +147,23 @@ def test_freeze_unfreeze_function(tmpdir):
             self.backbone = nn.Sequential(nn.Linear(32, 32), nn.BatchNorm1d(32), nn.ReLU(), nn.Linear(32, 2))
 
     model = FreezeModel()
+    assert model.backbone[1].track_running_stats
     BaseFinetuning.freeze(model, train_bn=True)
     assert not model.backbone[0].weight.requires_grad
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
     BaseFinetuning.freeze(model, train_bn=False)
     assert not model.backbone[0].weight.requires_grad
     assert not model.backbone[1].weight.requires_grad
+    assert not model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
     BaseFinetuning.make_trainable(model)
     assert model.backbone[0].weight.requires_grad
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert model.backbone[3].weight.requires_grad
 
     BaseFinetuning.freeze(model.backbone[0], train_bn=False)
@@ -167,6 +171,7 @@ def test_freeze_unfreeze_function(tmpdir):
 
     BaseFinetuning.freeze(([(model.backbone[1]), [model.backbone[3]]]), train_bn=True)
     assert model.backbone[1].weight.requires_grad
+    assert model.backbone[1].track_running_stats
     assert not model.backbone[3].weight.requires_grad
 
 

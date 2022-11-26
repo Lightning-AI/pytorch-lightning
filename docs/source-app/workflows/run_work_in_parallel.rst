@@ -1,10 +1,9 @@
-##############################
-Run LightningWorks in parallel
-##############################
+#############################
+Run LightningWork in parallel
+#############################
+**Audience:** Users who want to run a LightningWork in parallel (asynchroneously).
 
-**Audience:** Users who want to run multiple LightningWorks at once.
-
-**Prereqs:** Level 8+
+**Prereqs:** You must have finished the `Basic levels <../basic/>`_.
 
 ----
 

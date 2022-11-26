@@ -1,1 +1,0 @@
-../../../source-app/glossary/build_config/build_config_basic.rst

@@ -18,8 +18,8 @@ from lightning_lite.plugins.precision.double import DoublePrecision
 
 
 def test_double_precision_forward_context():
-    precision_plugin = DoublePrecision()
+    precision = DoublePrecision()
     assert torch.get_default_dtype() == torch.float32
-    with precision_plugin.forward_context():
+    with precision.forward_context():
         assert torch.get_default_dtype() == torch.float64
     assert torch.get_default_dtype() == torch.float32

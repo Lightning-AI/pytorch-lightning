@@ -2,7 +2,7 @@
 
 This root requirements folder branches into sub-folders depending on the python package.
 Within the folder, we have grouped requirements files/lists per focus, which shall closely match package extra
-So, for example, when you install PL as `pip install pytorch-lightning[loggers]`, this list is stored in `requirements/pytorch/loggers.txt`.
+So, for example, when you install PL as `pip install pytorch-lightning[extra]`, this list is stored in `requirements/pytorch/extra.txt`.
 The only exceptional requirement file is `devel.txt`, which aggregated all the needed requirements for development.
 
 ## CI/CD upper bounds

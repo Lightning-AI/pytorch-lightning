@@ -61,21 +61,16 @@ class _StrategyType(LightningEnum):
     DDP = "ddp"
     DDP_SPAWN = "ddp_spawn"
     DDP_FORK = "ddp_fork"
-    TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
-    HOROVOD = "horovod"
     DDP_SHARDED = "ddp_sharded"
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
-    BAGUA = "bagua"
-    HPU_PARALLEL = "hpu_parallel"
 
     @staticmethod
     def interactive_compatible_types() -> list[_StrategyType]:
         """Returns a list containing interactive compatible _StrategyTypes."""
         return [
             _StrategyType.DP,
-            _StrategyType.TPU_SPAWN,
             _StrategyType.DDP_FORK,
         ]
 
@@ -89,7 +84,5 @@ class _AcceleratorType(LightningEnum):
 
     CPU = "CPU"
     CUDA = "CUDA"
-    IPU = "IPU"
     TPU = "TPU"
-    HPU = "HPU"
     MPS = "MPS"

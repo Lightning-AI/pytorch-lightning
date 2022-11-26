@@ -18,8 +18,7 @@ from unittest.mock import MagicMock, Mock
 
 import torch
 
-from lightning_lite.plugins.io.checkpoint_plugin import CheckpointIO
-from lightning_lite.plugins.io.torch_plugin import TorchCheckpointIO
+from lightning_lite.plugins import CheckpointIO, TorchCheckpointIO
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint

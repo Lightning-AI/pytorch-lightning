@@ -1,1 +1,0 @@
-../../../../source-app/workflows/add_web_ui/react/create_react_template.rst

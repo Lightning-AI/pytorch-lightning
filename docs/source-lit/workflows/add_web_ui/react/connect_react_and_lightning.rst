@@ -1,1 +1,0 @@
-../../../../source-app/workflows/add_web_ui/react/connect_react_and_lightning.rst

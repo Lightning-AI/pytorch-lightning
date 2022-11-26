@@ -91,13 +91,13 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
-    pip install -q fire && \
+    pip install -q -r .actions/requirements.txt && \
     # Pin mkl version to avoid OSError on torch import
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
     # https://github.com/pytorch/xla/issues/1666
     pip install mkl==2021.4.0 && \
     # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
+    python .actions/assistant.py requirements_prune_pkgs "--packages=[torch,torchvision]" && \
     # drop unnecessary packages
     python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies

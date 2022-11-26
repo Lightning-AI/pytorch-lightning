@@ -3,4 +3,4 @@ framework."""
 from lightning_app.frontend.panel.app_state_watcher import AppStateWatcher
 from lightning_app.frontend.panel.panel_frontend import PanelFrontend
 
-__all__ = ["PanelFrontend", "AppStateWatcher"]
+__all__ = ["AppStateWatcher", "PanelFrontend"]

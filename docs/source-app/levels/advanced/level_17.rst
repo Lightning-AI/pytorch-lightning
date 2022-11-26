@@ -1,6 +1,6 @@
-##############################
-Level 17: Cache calls into run
-##############################
+##########################
+Level 17: Rerun components
+##########################
 **Audience:** Users who want Work.run() to activate multiple times in an app.
 
 **Prereqs:** Level 16+ and read the `Event Loop guide <../glossary/event_loop.html>`_.

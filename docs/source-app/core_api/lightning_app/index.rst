@@ -3,6 +3,8 @@ Lightning App
 #############
 **Audience:** Users who want to know how an app works under the hood 🤯.
 
+**Lightning App:** We call workflows composed of multiple LightningWorks a **Lightning App**.
+
 ----
 
 *******************
@@ -36,6 +38,14 @@ Peek under the hood
    :description: Learn more about components communicate.
    :col_css: col-md-4
    :button_link: communication.html
+   :height: 180
+   :tag: Intermediate
+
+.. displayitem::
+   :header: Customize Flow compute resources
+   :description: Learn more about Flow customizations.
+   :col_css: col-md-4
+   :button_link: compute_content.html
    :height: 180
    :tag: Intermediate
 

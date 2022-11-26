@@ -22,9 +22,6 @@ clean:
 	rm -rf ./docs/source-pytorch/api
 	rm -rf ./docs/source-app/generated
 	rm -rf ./docs/source-app/*/generated
-	rm -rf ./docs/source-lit/api
-	rm -rf ./docs/source-lit/generated
-	rm -rf ./docs/source-lit/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -47,8 +44,8 @@ test: clean
 	python -m coverage report
 
 docs: clean
-	pip install -e . --quiet -r requirements/lit/docs.txt
-	cd docs/source-lit && $(MAKE) html
+	pip install -e . --quiet -r requirements/app/docs.txt
+	cd docs/source-app && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

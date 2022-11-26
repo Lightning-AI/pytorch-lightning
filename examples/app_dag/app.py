@@ -7,7 +7,7 @@ from sklearn import datasets
 from sklearn.metrics import mean_squared_error
 
 import lightning as L
-from lightning.app.components.python import TracerPythonScript
+from lightning.app.components import TracerPythonScript
 from lightning.app.storage import Payload
 from lightning.app.structures import Dict, List
 
@@ -56,7 +56,7 @@ class DAG(L.LightningFlow):
 
     """This component is a DAG."""
 
-    def __init__(self, models_paths):
+    def __init__(self, models_paths: list):
         super().__init__()
         # Step 1: Create a work to get the data.
         self.data_collector = GetDataWork()
@@ -80,12 +80,10 @@ class DAG(L.LightningFlow):
     def run(self):
         # Step 1 and 2: Download and process the data.
         self.data_collector.run()
-        self.data_collector.stop()  # Stop the data_collector to reduce cost
         self.processing.run(
             df_data=self.data_collector.df_data,
             df_target=self.data_collector.df_target,
         )
-        self.processing.stop()  # Stop the processing to reduce cost
 
         # Step 3: Launch n models training in parallel.
         for model, work in self.dict.items():
@@ -128,7 +126,7 @@ class ScheduledDAG(L.LightningFlow):
 app = L.LightningApp(
     ScheduledDAG(
         DAG,
-        models=[
+        models_paths=[
             "svm.SVR",
             "linear_model.LinearRegression",
             "tree.DecisionTreeRegressor",

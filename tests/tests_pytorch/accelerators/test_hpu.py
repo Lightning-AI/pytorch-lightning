@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
 
 import pytest
 import torch
@@ -75,7 +76,8 @@ def test_all_stages(tmpdir, hpus):
     trainer.predict(model)
 
 
-@RunIf(hpu=True)
+@RunIf(hpu=True, sklearn=True)
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_optimization(tmpdir):
     seed_everything(42)
 

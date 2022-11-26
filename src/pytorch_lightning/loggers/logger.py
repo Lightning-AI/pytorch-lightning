@@ -21,13 +21,12 @@ from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
-from weakref import ReferenceType
 
 import numpy as np
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
@@ -59,7 +58,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
 class Logger(ABC):
     """Base class for experiment loggers."""
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:

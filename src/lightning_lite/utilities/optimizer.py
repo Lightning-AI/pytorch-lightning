@@ -22,13 +22,13 @@ from lightning_lite.utilities.apply_func import move_data_to_device
 from lightning_lite.utilities.types import _DEVICE
 
 
-def optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> None:
+def _optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> None:
     """Moves optimizer states for a sequence of optimizers to the device."""
     for opt in optimizers:
-        optimizer_to_device(opt, device)
+        _optimizer_to_device(opt, device)
 
 
-def optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
+def _optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     for p, v in optimizer.state.items():
         optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device)

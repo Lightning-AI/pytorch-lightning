@@ -1,5 +1,5 @@
 #####################
-lightning_app.storage
+lightning.app.storage
 #####################
 
 Lightning Core

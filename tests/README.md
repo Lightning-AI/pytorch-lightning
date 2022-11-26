@@ -65,9 +65,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/tests_pytorch/trainer/
-# or
-./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
+./tests/tests_pytorch/run_standalone_tests.sh tests/tests_pytorch/trainer/
+# or run a specific test
+./tests/tests_pytorch/run_standalone_tests.sh -k test_multi_gpu_model_ddp
 ```
 
 ## Running Coverage
@@ -85,21 +85,4 @@ coverage report -m
 
 # exporting results
 coverage xml
-```
-
-## Building test image
-
-You can build it on your own, note it takes lots of time, be prepared.
-
-```bash
-git clone <git-repository>
-docker image build -t pytorch_lightning:devel-torch1.9 -f dockers/cuda-extras/Dockerfile --build-arg TORCH_VERSION=1.9 .
-```
-
-To build other versions, select different Dockerfile.
-
-```bash
-docker image list
-docker run --rm -it pytorch_lightning:devel-torch1.9 bash
-docker image rm pytorch_lightning:devel-torch1.9
 ```

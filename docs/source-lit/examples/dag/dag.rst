@@ -1,1 +1,0 @@
-../../../source-app/examples/dag/dag.rst

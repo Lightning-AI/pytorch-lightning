@@ -1,1 +1,0 @@
-../../source-pytorch/guides/data.rst

@@ -11,24 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import subprocess
+import sys
+from textwrap import dedent
+
+from tests_lite.helpers.runif import RunIf
+
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.imports import (
-    _APEX_AVAILABLE,
-    _HOROVOD_AVAILABLE,
-    _OMEGACONF_AVAILABLE,
-    _POPTORCH_AVAILABLE,
-)
 
 
 def test_imports():
-    try:
-        import apex  # noqa
-    except ModuleNotFoundError:
-        assert not _APEX_AVAILABLE
-    else:
-        assert _APEX_AVAILABLE
-
     try:
         import deepspeed  # noqa
     except ModuleNotFoundError:
@@ -43,23 +36,36 @@ def test_imports():
     else:
         assert _FAIRSCALE_AVAILABLE
 
-    try:
-        import horovod.torch  # noqa
-    except ModuleNotFoundError:
-        assert not _HOROVOD_AVAILABLE
-    else:
-        assert _HOROVOD_AVAILABLE
 
-    try:
-        import omegaconf  # noqa
-    except ModuleNotFoundError:
-        assert not _OMEGACONF_AVAILABLE
-    else:
-        assert _OMEGACONF_AVAILABLE
+def test_import_lightning_lite_with_torch_dist_unavailable():
+    """Test that the package can be imported regardless of whether torch.distributed is available."""
+    code = dedent(
+        """
+        import torch
+        torch.distributed.is_available = lambda: False  # pretend torch.distributed not available
+        import lightning_lite
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
 
-    try:
-        import poptorch  # noqa
-    except ModuleNotFoundError:
-        assert not _POPTORCH_AVAILABLE
-    else:
-        assert _POPTORCH_AVAILABLE
+
+@RunIf(deepspeed=True)
+def test_import_deepspeed_lazily():
+    """Test that we are importing deepspeed only when necessary."""
+    code = dedent(
+        """
+        import lightning_lite
+        import sys
+
+        assert 'deepspeed' not in sys.modules
+        from lightning_lite.strategies import DeepSpeedStrategy
+        from lightning_lite.plugins import DeepSpeedPrecision
+        assert 'deepspeed' not in sys.modules
+
+        import deepspeed
+        assert 'deepspeed' in sys.modules
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0

@@ -25,7 +25,7 @@ from fsspec.implementations.local import AbstractFileSystem
 from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
 
 
-def load(
+def _load(
     path_or_url: Union[IO, _PATH],
     map_location: _MAP_LOCATION_TYPE = None,
 ) -> Any:
@@ -53,7 +53,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:

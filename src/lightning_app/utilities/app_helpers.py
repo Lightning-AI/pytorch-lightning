@@ -1,7 +1,9 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
+import inspect
 import json
 import logging
 import os
@@ -9,15 +11,16 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
 
 import lightning_app
-from lightning_app.core.constants import APP_SERVER_PORT, APP_STATE_MAX_SIZE_BYTES, SUPPORTED_PRIMITIVE_TYPES
 from lightning_app.utilities.exceptions import LightningAppStateException
 
 if TYPE_CHECKING:
@@ -110,10 +113,10 @@ class InMemoryStateStore(StateStore):
 
     def set_app_state(self, k, v):
         state_size = sys.getsizeof(v)
-        if state_size > APP_STATE_MAX_SIZE_BYTES:
+        if state_size > lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES:
             raise LightningAppStateException(
                 f"App state size is {state_size} bytes, which is larger than the recommended size "
-                f"of {APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
+                f"of {lightning_app.core.constants.APP_STATE_MAX_SIZE_BYTES}. Please investigate this."
             )
         self.store[k].app_state = deepcopy(v)
         self.counter += 1
@@ -191,7 +194,11 @@ def target_fn():
     async def update_fn():
         server = Server.get_current()
         sessions = list(server._session_info_by_id.values())
-        url = "localhost:8080" if "LIGHTNING_APP_STATE_URL" in os.environ else f"localhost:{APP_SERVER_PORT}"
+        url = (
+            "localhost:8080"
+            if "LIGHTNING_APP_STATE_URL" in os.environ
+            else f"localhost:{lightning_app.core.constants.APP_SERVER_PORT}"
+        )
         ws_url = f"ws://{url}/api/v1/ws"
         last_updated = time.time()
         async with websockets.connect(ws_url) as websocket:
@@ -246,7 +253,7 @@ def is_overridden(method_name: str, instance: Optional[object] = None, parent: O
 
 def _is_json_serializable(x: Any) -> bool:
     """Test whether a variable can be encoded as json."""
-    if type(x) in SUPPORTED_PRIMITIVE_TYPES:
+    if type(x) in lightning_app.core.constants.SUPPORTED_PRIMITIVE_TYPES:
         # shortcut for primitive types that are not containers
         return True
     try:
@@ -264,10 +271,12 @@ def _set_child_name(component: "Component", child: "Component", new_name: str) -
 
     # the name changed, so recursively update the names of the children of this child
     if isinstance(child, lightning_app.core.LightningFlow):
-        for n, c in child.flows.items():
+        for n in child._flows:
+            c = getattr(child, n)
             _set_child_name(child, c, n)
-        for n, w in child.named_works(recurse=False):
-            _set_child_name(child, w, n)
+        for n in child._works:
+            c = getattr(child, n)
+            _set_child_name(child, c, n)
         for n in child._structures:
             s = getattr(child, n)
             _set_child_name(child, s, n)
@@ -478,3 +487,43 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+class _MagicMockJsonSerializable(MagicMock):
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def _mock_import(*args, original_fn=None):
+    try:
+        return original_fn(*args)
+    except Exception:
+        return _MagicMockJsonSerializable()
+
+
+@contextmanager
+def _mock_missing_imports():
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(_mock_import, original_fn=original_fn)
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
+
+
+def is_static_method(klass_or_instance, attr) -> bool:
+    return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
+
+
+def _debugger_is_active() -> bool:
+    """Return if the debugger is currently active."""
+    return hasattr(sys, "gettrace") and sys.gettrace() is not None
+
+
+def _should_dispatch_app() -> bool:
+    return (
+        _debugger_is_active()
+        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and "LIGHTNING_APP_STATE_URL" not in os.environ
+    )

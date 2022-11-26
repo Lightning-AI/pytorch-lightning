@@ -112,7 +112,7 @@ def test_lite_module_state_dict_access():
             torch.bfloat16,
             "gpu",
             "cuda:0",
-            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+            marks=RunIf(min_cuda_gpus=1, bf16_cuda=True),
         ),
         pytest.param(
             "bf16",
@@ -120,7 +120,7 @@ def test_lite_module_state_dict_access():
             torch.bfloat16,
             "gpu",
             "cuda:0",
-            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+            marks=RunIf(min_cuda_gpus=1, bf16_cuda=True),
         ),
         pytest.param(
             "bf16",
@@ -128,7 +128,7 @@ def test_lite_module_state_dict_access():
             torch.bool,
             "gpu",
             "cuda:0",
-            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+            marks=RunIf(min_cuda_gpus=1, bf16_cuda=True),
         ),
         pytest.param(32, torch.float32, torch.float32, "mps", "mps:0", marks=RunIf(mps=True)),
     ],
@@ -143,7 +143,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type, ac
         return forward_input
 
     module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
-    lite_module = _LiteModule(module, lite._precision_plugin).to(device)
+    lite_module = _LiteModule(module, lite._precision).to(device)
     out = lite_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()

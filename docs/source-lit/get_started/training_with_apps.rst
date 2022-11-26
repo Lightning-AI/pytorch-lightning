@@ -1,1 +1,0 @@
-../../source-app/get_started/training_with_apps.rst

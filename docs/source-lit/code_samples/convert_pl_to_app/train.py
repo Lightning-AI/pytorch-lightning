@@ -1,1 +1,0 @@
-../../../source-app/code_samples/convert_pl_to_app/train.py

@@ -21,9 +21,9 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO
-from lightning_lite.utilities.distributed import distributed_available
+from lightning_lite.utilities.distributed import _distributed_available
 from lightning_lite.utilities.distributed import group as dist_group
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -134,7 +134,7 @@ class HorovodStrategy(ParallelStrategy):
             self._exit_stack.enter_context(optimizer.skip_synchronize())
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
-        if distributed_available():
+        if _distributed_available():
             self.join()
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:

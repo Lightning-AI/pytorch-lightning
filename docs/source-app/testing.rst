@@ -32,14 +32,14 @@ Testing a Lightning app is unique. It is a superset of an application that conve
 Anatomy of a Lightning integration test
 ****************************************
 
-The following is a PyTest example of an integration test using the ``lightning_app.testing.testing`` module.
+The following is a PyTest example of an integration test using the ``lightning_app.testing`` module.
 
 .. code-block:: python
 
    import os
 
    from lightning_app import _PROJECT_ROOT
-   from lightning_app.testing.testing import application_testing, TestLightningApp
+   from lightning_app.testing import application_testing, LightningTestApp
    from lightning_app.utilities.enum import AppStage
 
 
@@ -76,20 +76,20 @@ To get started, you simply need to import the following:
 
 .. code-block:: python
 
-    from lightning_app.testing.testing import application_testing, TestLightningApp
+    from lightning_app.testing import application_testing, LightningTestApp
 
-We will discuss ``application_testing`` in a bit, but first let's review the structure of ``TestLightningApp``.
+We will discuss ``application_testing`` in a bit, but first let's review the structure of ``LightningTestApp``.
 
 ----
 
-TestLightningApp
+LightningTestApp
 ^^^^^^^^^^^^^^^^^
 
-The :class:`lightning_app.testing.testing.TestingLightningApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please revuew the class for more information.
+The :class:`lightning_app.testing.testing.LightningTestApp` class is available to use for provisioning and setting up your testing needs. Note that you do not need this class to move forward with testing. Any application that inherits ``LightningApp`` should suffice as long as you override the correct methods. Reviewing the TestLightnigApp we see some overrides that are already there. Please revuew the class for more information.
 
 .. code-block:: python
 
-   class TestLightningAppInt(TestLightningApp):
+   class TestLightningAppInt(LightningTestApp):
        def run_once(self) -> bool:
            if self.root.counter > 1:
                print("V0 App End")

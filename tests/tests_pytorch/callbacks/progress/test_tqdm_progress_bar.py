@@ -30,13 +30,7 @@ from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
-
-if _TORCH_GREATER_EQUAL_1_12:
-    torch_test_assert_close = torch.testing.assert_close
-else:
-    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class MockTqdm(Tqdm):
@@ -421,7 +415,7 @@ def test_tensor_to_float_conversion(tmpdir):
     )
     trainer.fit(TestModel())
 
-    torch_test_assert_close(trainer.progress_bar_metrics["a"], 0.123)
+    torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
     assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
     assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar
@@ -545,11 +539,21 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
 
 def test_tqdm_progress_bar_can_be_pickled():
     bar = TQDMProgressBar()
-    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    trainer = Trainer(
+        callbacks=[bar],
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        logger=False,
+        enable_model_summary=False,
+    )
     model = BoringModel()
-
     pickle.dumps(bar)
     trainer.fit(model)
+    pickle.dumps(bar)
+    trainer.validate(model)
     pickle.dumps(bar)
     trainer.test(model)
     pickle.dumps(bar)

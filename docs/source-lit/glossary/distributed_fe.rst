@@ -1,1 +1,0 @@
-../../source-app/glossary/distributed_fe.rst

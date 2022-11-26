@@ -318,7 +318,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
             return super().step(model, batch)
 
     lite = Lite(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16")
-    assert isinstance(lite._strategy.precision_plugin, DeepSpeedPrecision)
-    assert lite._strategy.precision_plugin.precision == "bf16"
+    assert isinstance(lite._strategy.precision, DeepSpeedPrecision)
+    assert lite._strategy.precision.precision == "bf16"
     assert lite._strategy.config["zero_optimization"]["stage"] == 3
     lite.run()

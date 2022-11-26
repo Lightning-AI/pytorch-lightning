@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import tempfile
 from collections import UserList
 from dataclasses import dataclass
 from multiprocessing.queues import SimpleQueue
@@ -172,13 +173,14 @@ class _MultiProcessingLauncher(_Launcher):
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
 
-        if self._strategy.global_rank != 0:
+        if self._strategy.local_rank != 0:
             return None
 
         # save the last weights
         weights_path = None
         if trainer.state.fn == TrainerFn.FITTING:
-            weights_path = os.path.join(trainer.default_root_dir, ".temp.ckpt")
+            # use tempdir here to avoid race conditions because the filesystem may be shared between nodes
+            weights_path = os.path.join(tempfile.mkdtemp(), ".temp.ckpt")
             self._strategy.checkpoint_io.save_checkpoint(state_dict, weights_path)
 
         # adds the `callback_metrics` to the queue

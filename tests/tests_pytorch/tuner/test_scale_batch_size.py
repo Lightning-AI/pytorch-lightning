@@ -19,7 +19,6 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
@@ -30,8 +29,8 @@ from tests_pytorch.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
-    def __init__(self, data_dir, batch_size):
-        super().__init__(data_dir)
+    def __init__(self, batch_size):
+        super().__init__()
         if batch_size is not None:
             self.batch_size = batch_size
 
@@ -64,7 +63,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
     trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0, max_epochs=1)
 
     model = BatchSizeModel(model_bs)
-    datamodule = BatchSizeDataModule(tmpdir, dm_bs) if dm_bs != -1 else None
+    datamodule = BatchSizeDataModule(dm_bs) if dm_bs != -1 else None
 
     new_batch_size = trainer.tuner.scale_batch_size(
         model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule
@@ -84,8 +83,6 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
 def test_trainer_reset_correctly(tmpdir, trainer_fn):
     """Check that model and all trainer parameters are reset correctly after scaling batch size."""
-    tutils.reset_seed()
-
     model = BatchSizeModel(batch_size=2)
     before_state_dict = deepcopy(model.state_dict())
 
@@ -127,7 +124,6 @@ def test_trainer_reset_correctly(tmpdir, trainer_fn):
 @pytest.mark.parametrize("scale_arg", ["power", "binsearch", True])
 def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """Test possible values for 'batch size auto scaling' Trainer argument."""
-    tutils.reset_seed()
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
     trainer = Trainer(
@@ -143,8 +139,6 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
 @pytest.mark.parametrize("use_hparams", [True, False])
 def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     """Test that new batch size gets written to the correct hyperparameter attribute for model."""
-    tutils.reset_seed()
-
     hparams = {"batch_size": 2}
     before_batch_size = hparams["batch_size"]
 
@@ -172,14 +166,12 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 @pytest.mark.parametrize("use_hparams", [True, False])
 def test_auto_scale_batch_size_set_datamodule_attribute(tmpdir, use_hparams):
     """Test that new batch size gets written to the correct hyperparameter attribute for datamodule."""
-    tutils.reset_seed()
-
     hparams = {"batch_size": 2}
     before_batch_size = hparams["batch_size"]
 
     class HparamsBatchSizeDataModule(BoringDataModule):
-        def __init__(self, data_dir, batch_size):
-            super().__init__(data_dir)
+        def __init__(self, batch_size):
+            super().__init__()
             self.save_hyperparameters()
 
         def train_dataloader(self):
@@ -189,7 +181,7 @@ def test_auto_scale_batch_size_set_datamodule_attribute(tmpdir, use_hparams):
             return DataLoader(RandomDataset(32, 64), batch_size=self.hparams.batch_size)
 
     datamodule_class = HparamsBatchSizeDataModule if use_hparams else BatchSizeDataModule
-    datamodule = datamodule_class(data_dir=tmpdir, batch_size=before_batch_size)
+    datamodule = datamodule_class(batch_size=before_batch_size)
     model = BatchSizeModel(**hparams)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True)
@@ -220,8 +212,6 @@ def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
 @pytest.mark.parametrize("scale_method", ["power", "binsearch"])
 def test_call_to_trainer_method(tmpdir, scale_method):
     """Test that calling the trainer method itself works."""
-    tutils.reset_seed()
-
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
 
@@ -329,7 +319,6 @@ def test_dataloader_reset_with_scale_batch_size(tmpdir, scale_method):
 @pytest.mark.parametrize("trainer_fn", ["validate", "test", "predict"])
 def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
     """Test batch size tuner with Trainer's evaluation methods."""
-    tutils.reset_seed()
     before_batch_size = 2
     max_trials = 4
     expected_scaled_batch_size = before_batch_size ** (max_trials + 1)
@@ -354,7 +343,6 @@ def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
 @pytest.mark.parametrize("trainer_fn", ["fit", "validate", "test", "predict"])
 def test_batch_size_finder_callback(tmpdir, trainer_fn):
     """Test batch size finder callback with different trainer methods."""
-    tutils.reset_seed()
     before_batch_size = 2
     max_trials = 4
     max_epochs = 2

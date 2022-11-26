@@ -39,14 +39,14 @@ CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], Tensor]]] = [
 ]
 
 
-class TransferableDataType(ABC):
+class _TransferableDataType(ABC):
     """A custom type for data that can be moved to a torch device via ``.to(...)``.
 
     Example:
 
-        >>> isinstance(dict, TransferableDataType)
+        >>> isinstance(dict, _TransferableDataType)
         False
-        >>> isinstance(torch.rand(2, 3), TransferableDataType)
+        >>> isinstance(torch.rand(2, 3), _TransferableDataType)
         True
         >>> class CustomObject:
         ...     def __init__(self):
@@ -54,13 +54,13 @@ class TransferableDataType(ABC):
         ...     def to(self, device):
         ...         self.x = self.x.to(device)
         ...         return self
-        >>> isinstance(CustomObject(), TransferableDataType)
+        >>> isinstance(CustomObject(), _TransferableDataType)
         True
     """
 
     @classmethod
     def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
-        if cls is TransferableDataType:
+        if cls is _TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
         return NotImplemented
@@ -95,10 +95,10 @@ def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
         data_output = data.to(device, **kwargs)
         if data_output is not None:
             return data_output
-        # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
+        # user wrongly implemented the `_TransferableDataType` and forgot to return `self`.
         return data
 
-    return apply_to_collection(batch, dtype=TransferableDataType, function=batch_to)
+    return apply_to_collection(batch, dtype=_TransferableDataType, function=batch_to)
 
 
 def convert_to_tensors(data: Any, device: _DEVICE) -> Any:

@@ -157,9 +157,9 @@ class FileServer(L.LightningWork):
         return self.url != ""
 
 
-import requests  # noqa: E402
+import requests
 
-from lightning import LightningWork  # noqa: E402
+from lightning import LightningWork
 
 
 class TestFileServer(LightningWork):
@@ -184,7 +184,7 @@ class TestFileServer(LightningWork):
             assert response.json() == {"asset_names": ["test.txt"]}
 
 
-from lightning import LightningApp, LightningFlow  # noqa: E402
+from lightning import LightningApp, LightningFlow
 
 
 class Flow(LightningFlow):
@@ -218,7 +218,7 @@ class Flow(LightningFlow):
         return {"name": "File Server", "content": self.file_server}
 
 
-from lightning.app.runners import MultiProcessRuntime  # noqa: E402
+from lightning.app.runners import MultiProcessRuntime
 
 
 def test_file_server():
@@ -226,7 +226,7 @@ def test_file_server():
     MultiProcessRuntime(app).dispatch()
 
 
-from lightning.app.testing.testing import run_app_in_cloud  # noqa: E402
+from lightning.app.testing import run_app_in_cloud
 
 
 def test_file_server_in_cloud():

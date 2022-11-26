@@ -68,7 +68,7 @@ def _start_websocket():
         _logger.debug("thread started")
 
 
-def watch_app_state(callback: Callable):
+def _watch_app_state(callback: Callable):
     """Start the process that serves the UI at the given hostname and port number.
 
     Arguments:

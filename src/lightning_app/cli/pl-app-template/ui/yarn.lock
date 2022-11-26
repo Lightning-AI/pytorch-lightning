@@ -1396,11 +1396,6 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
-"@fullstory/browser@^1.5.1":
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/@fullstory/browser/-/browser-1.5.1.tgz#4b6ce95df3a91408a8b56bac06038f4d128f9ec8"
-  integrity sha512-eOTR0lc2BwwyGYn7ke7aJrJpl8Ae4+KdWyiibixVn+RUG3NaQgrP7hj/KmlMnndRSO9I4YqoqZCKYwtqDFo3rw==
-
 "@humanwhocodes/config-array@^0.9.2":
   version "0.9.2"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.9.2.tgz#68be55c737023009dfc5fe245d51181bb6476914"

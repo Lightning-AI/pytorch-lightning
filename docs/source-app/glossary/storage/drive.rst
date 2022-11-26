@@ -10,4 +10,4 @@ Drive Storage
 
 ----
 
-.. include:: ../../glossary/storage/drive_content.rst
+.. include:: ../../glossary/storage/drive_content_old.rst

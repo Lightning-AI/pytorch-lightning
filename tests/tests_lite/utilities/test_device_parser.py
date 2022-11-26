@@ -32,7 +32,7 @@ _PRETEND_N_OF_GPUS = 16
     ],
 )
 def test_determine_root_gpu_device(devices, expected_root_gpu):
-    assert device_parser.determine_root_gpu_device(devices) == expected_root_gpu
+    assert device_parser._determine_root_gpu_device(devices) == expected_root_gpu
 
 
 @pytest.mark.parametrize(
@@ -56,31 +56,31 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
 )
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_ids(_, devices, expected_gpu_ids):
-    assert device_parser.parse_gpu_ids(devices, include_cuda=True) == expected_gpu_ids
+    assert device_parser._parse_gpu_ids(devices, include_cuda=True) == expected_gpu_ids
 
 
 @pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_fail_on_unsupported_inputs(_, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices, include_cuda=True)
+        device_parser._parse_gpu_ids(devices, include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [[1, 2, 19], -1, "-1"])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_parse_gpu_fail_on_non_existent_id(_, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices, include_cuda=True)
+        device_parser._parse_gpu_ids(devices, include_cuda=True)
 
 
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=_PRETEND_N_OF_GPUS)
 def test_parse_gpu_fail_on_non_existent_id_2(_):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids([1, 2, 19], include_cuda=True)
+        device_parser._parse_gpu_ids([1, 2, 19], include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [-1, "-1"])
 @mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0)
 def test_parse_gpu_returns_none_when_no_devices_are_available(_, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices, include_cuda=True)
+        device_parser._parse_gpu_ids(devices, include_cuda=True)

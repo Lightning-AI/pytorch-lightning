@@ -50,4 +50,4 @@ class Flow(LightningFlow):
         return [{"name": w.name, "content": w} for i, w in enumerate(self.works())]
 
 
-app = LightningApp(Flow(), debug=True)
+app = LightningApp(Flow(), log_level="debug")

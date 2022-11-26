@@ -78,7 +78,13 @@ class SignalConnector:
 
         if self.trainer.is_global_zero:
             # find job id
-            job_id = os.environ["SLURM_JOB_ID"]
+            array_job_id = os.getenv("SLURM_ARRAY_JOB_ID")
+            if array_job_id is not None:
+                array_task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+                job_id = f"{array_job_id}_{array_task_id}"
+            else:
+                job_id = os.environ["SLURM_JOB_ID"]
+
             cmd = ["scontrol", "requeue", job_id]
 
             # requeue job

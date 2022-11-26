@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -32,7 +32,7 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
 from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.optimizer import optimizers_to_device
+from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -52,7 +52,7 @@ log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
-if _DEEPSPEED_AVAILABLE:
+if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
@@ -319,6 +319,8 @@ class DeepSpeedStrategy(DDPStrategy):
                 reduce_bucket_size=reduce_bucket_size,
                 sub_group_size=sub_group_size,
             )
+        import deepspeed
+
         self._config_initialized = False
         deepspeed.utils.logging.logger.setLevel(logging_level)
 
@@ -363,11 +365,13 @@ class DeepSpeedStrategy(DDPStrategy):
         self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
+        _optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
+        import deepspeed
+
         assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
@@ -428,6 +432,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
         This calls :func:`deepspeed.initialize` internally.
         """
+        import deepspeed
+
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
@@ -527,6 +533,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator[None, None, None]:
+        import deepspeed
+
         if self.zero_stage_3:
             assert self._config_initialized
 
@@ -547,6 +555,8 @@ class DeepSpeedStrategy(DDPStrategy):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
+        import deepspeed
+
         assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
@@ -559,17 +569,10 @@ class DeepSpeedStrategy(DDPStrategy):
             )
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
-        # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        import deepspeed
+
         assert isinstance(self.config, dict)
-        optimizer, scheduler = None, None
-        if "optimizer" not in self.config:
-            rank_zero_info(
-                "You have not specified an optimizer or scheduler within the DeepSpeed config."
-                " Using `configure_optimizers` to define optimizer and scheduler."
-            )
-            optimizer, lr_scheduler, _ = self._init_optimizers()
-            if lr_scheduler is not None:
-                scheduler = lr_scheduler.scheduler
+
         # todo: this is required for DeepSpeed throughput timers
         inference_config = {"train_micro_batch_size_per_gpu": 1}
         if "fp16" in self.config:
@@ -587,8 +590,8 @@ class DeepSpeedStrategy(DDPStrategy):
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=inference_config,
             model=model,
-            optimizer=optimizer,
-            lr_scheduler=scheduler,
+            optimizer=None,
+            lr_scheduler=None,
             model_parameters=[],
             dist_init_required=False,
         )
@@ -596,8 +599,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
-        return distributed_sampler_kwargs
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         """Creates optimizers and schedulers.
@@ -605,7 +607,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             trainer: the Trainer, these optimizers should be connected to
         """
-        if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
+        if trainer.state.fn != TrainerFn.FITTING:
             return
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
@@ -648,6 +650,8 @@ class DeepSpeedStrategy(DDPStrategy):
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
     def _auto_select_batch_size(self) -> int:
+        import deepspeed
+
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert self.lightning_module is not None
@@ -851,6 +855,7 @@ class DeepSpeedStrategy(DDPStrategy):
         Args:
             ckpt: The ckpt file.
         """
+        import deepspeed
 
         assert self.lightning_module is not None
 
