@@ -439,8 +439,8 @@ Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutori
 Activation Checkpointing
 ========================
 
-Activation checkpointing reduces GPU memory usage by avoiding the storing of intermediate activation tensors in
-selected layers. The tradoff is that computation cost for the backpropagation increases, as the dropped activations
+Activation checkpointing reduces GPU memory usage by avoiding the storage of intermediate activation tensors in
+selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
 need to be recomputed.
 
 Enable checkpointing on large layers (like Transformers) by providing the layer class/type to the strategy:
