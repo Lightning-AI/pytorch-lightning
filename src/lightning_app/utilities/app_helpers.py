@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
 import inspect
@@ -10,9 +11,11 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
@@ -484,6 +487,29 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
         for component_name in dynamic_components:
             if component_name not in components_names:
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
+
+
+class _MagicMockJsonSerializable(MagicMock):
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def _mock_import(*args, original_fn=None):
+    try:
+        return original_fn(*args)
+    except Exception:
+        return _MagicMockJsonSerializable()
+
+
+@contextmanager
+def _mock_missing_imports():
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(_mock_import, original_fn=original_fn)
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
 
 
 def is_static_method(klass_or_instance, attr) -> bool:

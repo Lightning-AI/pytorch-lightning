@@ -47,9 +47,8 @@ def test_subprocess_script_launcher_external_processes(popen_mock):
     popen_mock.assert_not_called()
 
 
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.sleep")
 @mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
-def test_subprocess_script_launcher_launch_processes(popen_mock, _):
+def test_subprocess_script_launcher_launch_processes(popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
     cluster_env.local_rank.return_value = 0
@@ -84,7 +83,7 @@ def test_subprocess_script_launcher_launch_processes(popen_mock, _):
 @mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
 def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     basic_command = Mock(return_value="basic_command")
-    hydra_command = Mock(return_value="hydra_command")
+    hydra_command = Mock(return_value=("hydra_command", "hydra_cwd"))
     monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_basic_subprocess_cmd", basic_command)
     monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_hydra_subprocess_cmd", hydra_command)
 
@@ -101,7 +100,7 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     # when hydra not available
     monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", False)
     simulate_launch()
-    popen_mock.assert_called_with("basic_command", env=ANY)
+    popen_mock.assert_called_with("basic_command", env=ANY, cwd=None)
     popen_mock.reset_mock()
 
     import hydra
@@ -112,7 +111,7 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     HydraConfigMock.initialized.return_value = False
     monkeypatch.setattr(hydra.core.hydra_config, "HydraConfig", HydraConfigMock)
     simulate_launch()
-    popen_mock.assert_called_with("basic_command", env=ANY)
+    popen_mock.assert_called_with("basic_command", env=ANY, cwd=None)
     popen_mock.reset_mock()
 
     # when hydra available and initialized
@@ -121,5 +120,5 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     HydraConfigMock.initialized.return_value = True
     monkeypatch.setattr(hydra.core.hydra_config, "HydraConfig", HydraConfigMock)
     simulate_launch()
-    popen_mock.assert_called_with("hydra_command", env=ANY)
+    popen_mock.assert_called_with("hydra_command", env=ANY, cwd="hydra_cwd")
     popen_mock.reset_mock()
