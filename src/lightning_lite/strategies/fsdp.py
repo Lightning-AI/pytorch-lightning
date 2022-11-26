@@ -310,9 +310,7 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
 def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUOffload":
     from torch.distributed.fsdp import CPUOffload
 
-    return (
-        cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=cpu_offload)
-    )
+    return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=cpu_offload)
 
 
 def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
