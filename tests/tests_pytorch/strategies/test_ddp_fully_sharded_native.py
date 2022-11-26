@@ -264,6 +264,7 @@ def test_invalid_parameters_in_optimizer(tmpdir):
         trainer.fit(model)
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("pytorch_lightning.strategies.fully_sharded_native._TORCH_GREATER_EQUAL_1_13", False)
 def test_fully_sharded_native_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""

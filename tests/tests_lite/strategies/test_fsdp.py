@@ -79,6 +79,7 @@ def test_fsdp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
+@RunIf(min_torch="1.12")
 @mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
 def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
