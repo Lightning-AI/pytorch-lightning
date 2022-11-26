@@ -115,11 +115,16 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
+        self._ddp_kwargs = kwargs
+
+        if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
+            raise ValueError(
+                "Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`"
+            )
         activation_checkpointing = activation_checkpointing or []
         self._activation_checkpointing = (
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         )
-        self._ddp_kwargs = kwargs
 
         self.cpu_offload = cpu_offload
         self.backward_prefetch = backward_prefetch
@@ -184,9 +189,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-        if (
-            any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
-            and "auto_wrap_policy" in self._ddp_kwargs
+        if "auto_wrap_policy" in self._ddp_kwargs and any(
+            isinstance(mod, FullyShardedDataParallel) for mod in module.modules()
         ):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._ddp_kwargs["auto_wrap_policy"]
