@@ -41,6 +41,7 @@ There are considered three main scenarios for installing this project:
 """
 import contextlib
 import os
+import sys
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -115,24 +116,28 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    if os.path.exists(_PATH_SRC):  # not a wheel install
-        # copy the version information to all packages
-        setup_tools.distribute_version(_PATH_SRC)
+    is_wheel_install = "sdist" not in sys.argv[1:] and "bdist_wheel" not in sys.argv[1:]
+    print("is_wheel_install:", is_wheel_install, sys.argv)
 
     package_to_install = _PACKAGE_NAME or "lightning"
-    print(f"Installing the {package_to_install} package")  # requires `-v` to appear
-    if package_to_install == "lightning":  # install everything
-        # merge all requirements files
-        setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
-        # replace imports and copy the code
-        assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
-    elif package_to_install not in _PACKAGE_MAPPING:
+    if package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
-    # if `_PACKAGE_NAME` is not set, iterate over all possible packages until we find one that can be installed.
-    # this is useful for installing existing wheels, as the user wouldn't set this environment variable, but the wheel
-    # should have included only the relevant files of the package to install
-    possible_packages = _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
+    if not is_wheel_install:
+        print(f"Installing the {package_to_install} package")
+        # copy the version information to all packages
+        setup_tools.distribute_version(_PATH_SRC)
+        if package_to_install == "lightning":  # install everything
+            # merge all requirements files
+            setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+            # replace imports and copy the code
+            assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
+
+    # if it's a wheel, iterate over all possible packages until we find one that can be installed.
+    # the wheel should have included only the relevant files of the package to install
+    possible_packages = (
+        _PACKAGE_MAPPING.values() if is_wheel_install or _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
+    )
     for pkg in possible_packages:
         pkg_path = os.path.join(_PATH_SRC, pkg)
         pkg_setup = os.path.join(pkg_path, "__setup__.py")
@@ -140,8 +145,12 @@ if __name__ == "__main__":
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
-            with _set_manifest_path(pkg_path, aggregate=package_to_install == "lightning"):
+            if is_wheel_install:
                 setuptools.setup(**setup_args)
+            else:
+                # we are installing from source, set the correct manifest path
+                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
+                    setuptools.setup(**setup_args)
             break
     else:
         raise RuntimeError(f"Something's wrong, no package was installed. Package name: {_PACKAGE_NAME}")
