@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 from contextlib import contextmanager
 from datetime import timedelta
-import functools
-from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Type, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -116,7 +116,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
         activation_checkpointing = activation_checkpointing or []
-        self._activation_checkpointing = [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        self._activation_checkpointing = (
+            [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        )
         self._ddp_kwargs = kwargs
 
         self.cpu_offload = cpu_offload
@@ -304,17 +306,18 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
 
 def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: List[Type[Module]]) -> None:
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-        CheckpointImpl, apply_activation_checkpointing, checkpoint_wrapper
+        apply_activation_checkpointing,
+        checkpoint_wrapper,
+        CheckpointImpl,
     )
+
     check_fn = lambda submodule: isinstance(submodule, tuple(layers))
     wrapper = functools.partial(
         checkpoint_wrapper,
         offload_to_cpu=False,
         checkpoint_impl=CheckpointImpl.NO_REENTRANT,
     )
-    apply_activation_checkpointing(
-        module, checkpoint_wrapper_fn=wrapper, check_fn=check_fn
-    )
+    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, check_fn=check_fn)
 
 
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
