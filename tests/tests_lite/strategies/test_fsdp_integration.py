@@ -144,10 +144,6 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     assert next(lite_model.parameters()).device == torch.device("cuda", lite.local_rank)
     assert next(lite_model.parameters()).numel() == 50
 
-    # print(list((param.device, param.shape) for param in lite_model.parameters()))
-
-    assert False
-
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert lite_model.device == torch.device("cpu")
     assert lite.device == torch.device("cuda", lite.local_rank)
