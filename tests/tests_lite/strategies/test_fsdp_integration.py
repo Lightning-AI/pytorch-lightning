@@ -119,7 +119,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
     _assert_save_equality(lite, model, ckpt_path)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning_lite.wrappers._LiteModule")
 def test_setup_module_move_to_device(lite_module_mock, move_to_device):
