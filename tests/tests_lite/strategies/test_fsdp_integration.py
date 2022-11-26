@@ -123,7 +123,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 @pytest.mark.parametrize("move_to_device", [True, False])
 @mock.patch("lightning_lite.wrappers._LiteModule")
 def test_setup_module_move_to_device(lite_module_mock, move_to_device):
-    """Test that `move_to_device` does nothing, FSDP decided which device parameters get moved to (sharding)."""
+    """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device (sharding)."""
     strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
     lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
     lite.launch()
@@ -136,8 +136,7 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     assert current_device.type == "cuda"
 
     # all parameters on the expected device
-    print(list(param.device for param in model.parameters()))
-    # assert all(param.device == expected_device for param in lite_model.parameters())
+    assert list(param.device for param in model.parameters()) == []
 
     # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
     assert lite_model.device == torch.device("cpu")
