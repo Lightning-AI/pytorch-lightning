@@ -79,9 +79,9 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
         mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`` or BF16
             if ``precision=bf16`` unless a config is passed in. This is only available in PyTorch 1.12 and later.
-        activation_checkpointing: A list of layer classes for which you want to enable activation checkpointing. This is typically
-            your transformer block (including attention + feed-forward). Enabling this can free up a significant amount of
-            memory at the cost of speed since activations in these layers need to be recomputed during backprop.
+        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation checkpointing.
+            This is typically your transformer block (including attention + feed-forward). Enabling this can free up a significant
+            amount of memory at the cost of speed since activations in these layers need to be recomputed during backpropagation.
         \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
             when wrapping modules.
     """
@@ -98,7 +98,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         cpu_offload: Optional["CPUOffload"] = None,
         backward_prefetch: Optional["BackwardPrefetch"] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
-        activation_checkpointing: Optional[List[Type[Module]]] = None,
+        activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -115,7 +115,8 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
-        self._activation_checkpointing = activation_checkpointing or []
+        activation_checkpointing = activation_checkpointing or []
+        self._activation_checkpointing = list(activation_checkpointing) if not isinstance(activation_checkpointing, list) else activation_checkpointing
         self._ddp_kwargs = kwargs
 
         self.cpu_offload = cpu_offload
@@ -305,7 +306,7 @@ def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: 
     from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
         CheckpointImpl, apply_activation_checkpointing, checkpoint_wrapper
     )
-    check_fn = lambda submodule: isinstance(submodule, layers)
+    check_fn = lambda submodule: isinstance(submodule, tuple(layers))
     wrapper = functools.partial(
         checkpoint_wrapper,
         offload_to_cpu=False,
