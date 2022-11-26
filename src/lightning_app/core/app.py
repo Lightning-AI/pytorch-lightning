@@ -138,6 +138,7 @@ class LightningApp:
         self._schedules: Dict[str, Dict] = {}
         self.threads: List[threading.Thread] = []
         self.exception = None
+        self.collect_changes: bool = True
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -169,16 +170,16 @@ class LightningApp:
 
         logger.debug(f"ENV: {os.environ}")
 
-    def _update_index_file(self):
-        # update index.html,
-        # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
-
         if _should_dispatch_app():
             os.environ["LIGHTNING_DISPATCHED"] = "1"
             from lightning_app.runners import MultiProcessRuntime
 
             MultiProcessRuntime(self).dispatch()
+
+    def _update_index_file(self):
+        # update index.html,
+        # this should happen once for all apps before the ui server starts running.
+        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -362,10 +363,13 @@ class LightningApp:
             delta.raise_errors = False
         return deltas
 
-    def maybe_apply_changes(self) -> bool:
+    def maybe_apply_changes(self) -> None:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
         self._send_flow_to_work_deltas(self.state)
+
+        if not self.collect_changes:
+            return None
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 

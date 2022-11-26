@@ -1,6 +1,6 @@
 coverage==6.5.0
 codecov==2.1.12
-pytest==7.1.3
+pytest==7.2.0
 pytest-cov==4.0.0
 pytest-forked==1.4.0
 pytest-rerunfailures==10.2
@@ -14,3 +14,6 @@ psutil<5.9.4 # for `DeviceStatsMonitor`
 pandas>1.0, <1.5.2  # needed in benchmarks
 fastapi<0.87.0
 uvicorn<0.19.1
+
+tensorboard>=2.9.1, <2.12.0
+protobuf<=3.20.1 # strict  # an extra is updating protobuf, this pin prevents TensorBoard failure

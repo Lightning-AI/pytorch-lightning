@@ -20,7 +20,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fsdp_native import _optimizer_has_flat_params
+from lightning_lite.strategies.fsdp import _optimizer_has_flat_params
 from lightning_lite.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,

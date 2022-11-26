@@ -11,11 +11,9 @@ from tests_app import _PROJECT_ROOT
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.testing.helpers import _RunIf
 from lightning_app.utilities.app_helpers import convert_print_to_logger_info
 
 
-@_RunIf(skip_linux=True)
 @mock.patch("click.launch")
 @pytest.mark.parametrize("open_ui", (True, False))
 def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypatch):
@@ -51,7 +49,7 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             else:
                 lauch_mock.assert_not_called()
         assert result.exit_code == 0
-    assert len(caplog.messages) == 2
+    assert len(caplog.messages) == 4
     assert bool(int(caplog.messages[0])) is open_ui
 
 

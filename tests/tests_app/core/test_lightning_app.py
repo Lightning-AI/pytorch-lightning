@@ -974,11 +974,16 @@ class NonUpdatedLightningTestApp(LightningTestApp):
 
 
 def test_non_updated_flow(caplog):
-    """This tests validate the app can run 3 times and call the flow only once."""
+    """Validate that the app can run 3 times and calls the flow only once."""
+    app = NonUpdatedLightningTestApp(FlowUpdated())
+    runtime = MultiProcessRuntime(app, start_server=False)
     with caplog.at_level(logging.INFO):
-        app = NonUpdatedLightningTestApp(FlowUpdated())
-        MultiProcessRuntime(app, start_server=False).dispatch()
-    assert caplog.messages == ["Hello World"]
+        runtime.dispatch()
+    assert caplog.messages == [
+        "Hello World",
+        "Your Lightning App is being stopped. This won't take long.",
+        "Your Lightning App has been stopped successfully!",
+    ]
     assert app.counter == 3
 
 
@@ -1108,3 +1113,40 @@ def test_cloud_compute_binding():
 
     with pytest.raises(Exception, match="A Cloud Compute can be assigned only to a single Work"):
         FlowCC()
+
+
+class FlowValue(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self._value = None
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    def run(self):
+        self.value = True
+
+
+def test_lightning_flow_properties():
+    """Validates setting properties to the LightningFlow properly calls property.fset."""
+
+    flow = FlowValue()
+    assert flow._value is None
+    flow.run()
+    assert flow._value is True
+
+
+class SimpleWork2(LightningWork):
+    def run(self):
+        pass
+
+
+def test_lightning_work_stopped():
+
+    app = LightningApp(SimpleWork2())
+    MultiProcessRuntime(app, start_server=False).dispatch()
