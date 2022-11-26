@@ -5,6 +5,7 @@ subprojects:
 
   - id: "pytorch_lightning: Tests workflow"
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-pytorch-tests.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
@@ -13,8 +14,7 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -40,6 +40,7 @@ subprojects:
 
   - id: "pytorch_lightning: Azure GPU"
     paths:
+      - ".actions/**"
       - ".azure/gpu-tests-pytorch.yml"
       # only the azure GPU workflow runs the examples
       # all examples don't need to be added because they aren't used in CI, but these are
@@ -55,8 +56,8 @@ subprojects:
       - "setup.cfg"  # includes pytest config
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -75,6 +76,7 @@ subprojects:
 
   - id: "pytorch_lightning: Azure HPU"
     paths:
+      - ".actions/**"
       - ".azure/hpu-tests.yml"
       - "examples/pl_hpu/mnist_sample.py"
       - "requirements/lite/**"
@@ -83,8 +85,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -92,6 +93,7 @@ subprojects:
 
   - id: "pytorch_lightning: Azure IPU"
     paths:
+      - ".actions/**"
       - ".azure/ipu-tests.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
@@ -99,8 +101,8 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -109,6 +111,7 @@ subprojects:
   # TODO: since this job has intermittent availability, it cannot be required
   #- id: "pytorch-lightning: TPU workflow"
   #  paths:
+  #    - ".actions/**"
   #    - ".github/workflows/tpu-tests.yml"
   #    - "dockers/base-xla/*"
   #    - "requirements/lite/**"
@@ -118,8 +121,7 @@ subprojects:
   #    - "src/pytorch_lightning/**"
   #    - "tests/tests_pytorch/**"
   #    - "setup.cfg"  # includes pytest config
-  #    - ".actions/**"
-  #    - "!requirements/**/docs.txt"
+  #    - "!requirements/*/docs.txt"
   #    - "!*.md"
   #    - "!**/*.md"
   #  checks:
@@ -129,12 +131,12 @@ subprojects:
     paths:
       - "src/pytorch_lightning/**"
       - "docs/source-pytorch/**"
+      - ".actions/**"
       - ".github/workflows/docs-checks.yml"
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
-      - ".actions/**"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -143,14 +145,14 @@ subprojects:
 
   - id: "pytorch_lightning: Docker"
     paths:
-      - "dockers/**"
+      - ".actions/**"
       - ".github/workflows/ci-pytorch-dockers.yml"
+      - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/lite/**"
       - "environment.yml"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -171,13 +173,13 @@ subprojects:
 
   - id: "lightning_lite: CPU workflow"
     paths:
+      - ".actions/**"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
-      - ".actions/**"
-      - "!requirements/lite/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -200,6 +202,7 @@ subprojects:
 
   - id: "lightning_lite: Azure GPU"
     paths:
+      - ".actions/**"
       - ".azure/gpu-tests-lite.yml"
       - "examples/lite/**"
       - "examples/run_lite_examples.sh"
@@ -209,8 +212,7 @@ subprojects:
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/lite/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -220,13 +222,13 @@ subprojects:
 
   - id: "lightning_app: Tests workflow"
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -242,14 +244,14 @@ subprojects:
 
   - id: "lightning_app: Examples"
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-app-examples.yml"
       - "src/lightning_app/**"
       - "tests/tests_examples_app/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -265,14 +267,13 @@ subprojects:
 
   - id: "lightning_app: Azure"
     paths:
+      - ".actions/**"
       - ".azure/app-cloud-e2e.yml"
-      - "requirements/app/**"
       - "src/lightning_app/**"
-      - "examples/app_*/**"  # some tests_app tests call examples files
+      - "requirements/app/**"
       - "tests/tests_examples_app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -280,6 +281,7 @@ subprojects:
 
   - id: "lightning_app: Docs"
     paths:
+      - ".actions/**"
       - "src/lightning_app/**"
       - "docs/source-app/**"
       - ".github/workflows/docs-checks.yml"
@@ -287,7 +289,6 @@ subprojects:
       - "requirements/app/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
-      - ".actions/**"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -298,12 +299,13 @@ subprojects:
 
   - id: "mypy"
     paths:
+      - ".actions/**"
       - ".github/workflows/code-checks.yml"
       - "requirements/**"
       - "src/**"
       - "pyproject.toml"  # includes mypy config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -316,7 +318,8 @@ subprojects:
       - "setup.py"
       - "src/**"
       - "requirements/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
     checks:
