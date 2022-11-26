@@ -1,3 +1,4 @@
+import glob
 import os
 from unittest import mock
 
@@ -12,24 +13,14 @@ from lightning_app.utilities.packaging.lightning_utils import (
 )
 
 
-# TODO: Resolve this sensitive test.
-@pytest.mark.skipif(True, reason="Currently broken")
 def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
-
     package_name = "lightning" if module_available("lightning") else "lightning-app"
 
-    if package_name == "lightning":
-        from lightning.__version__ import version
-
-        tar_name = f"lightning-{version}.tar.gz"
-    else:
-        from lightning_app.__version__ import version
-
-        tar_name = f"lightning-app-{version}.tar.gz"
-
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir, package_name=package_name)
-    assert sorted(os.listdir(tmpdir))[0] == tar_name
+    assert len(os.listdir(tmpdir)) == 1
+    assert len(glob.glob("lightning-*.tar.gz", root_dir=tmpdir)) == 1
+
     cleanup_handle()
     assert os.listdir(tmpdir) == []
 

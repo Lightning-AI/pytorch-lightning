@@ -121,16 +121,18 @@ if __name__ == "__main__":
 
     package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")  # requires `-v` to appear
+    is_wheel_install = "PEP517_BUILD_BACKEND" in os.environ
+    print("is_wheel_install:", is_wheel_install)
+    if package_to_install not in _PACKAGE_MAPPING or (not is_wheel_install and _PACKAGE_NAME is None):
+        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
+    is_wheel_install &= _PACKAGE_NAME is None
+
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         # replace imports and copy the code
         assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
-    elif package_to_install not in _PACKAGE_MAPPING:
-        raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
-    is_wheel_install = _PACKAGE_NAME is None and "PEP517_BUILD_BACKEND" in os.environ
-    print("is_wheel_install:", is_wheel_install)
     # if it's a wheel install (hence _PACKAGE_NAME should not be set), iterate over all possible packages until we find
     # one that can be installed. the wheel should have included only the relevant files of the package to install
     possible_packages = _PACKAGE_MAPPING.values() if is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
