@@ -272,7 +272,7 @@ def test_fully_sharded_native_activation_checkpointing_support():
 
 
 @RunIf(min_torch="1.13")
-def test_fsdp_activation_checkpointing():
+def test_fully_sharded_native_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
     class Block1(nn.Linear):
