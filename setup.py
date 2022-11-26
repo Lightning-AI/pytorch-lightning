@@ -115,15 +115,12 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    is_wheel_install = "PEP517_BUILD_BACKEND" in os.environ
-    print("is_wheel_install:", is_wheel_install)
-
     if os.path.exists(_PATH_SRC):
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 
     package_to_install = _PACKAGE_NAME or "lightning"
-    print(f"Installing the {package_to_install} package")
+    print(f"Installing the {package_to_install} package")  # requires `-v` to appear
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
         setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
@@ -132,11 +129,11 @@ if __name__ == "__main__":
     elif package_to_install not in _PACKAGE_MAPPING:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
 
-    # if it's a wheel, iterate over all possible packages until we find one that can be installed.
-    # the wheel should have included only the relevant files of the package to install
-    possible_packages = (
-        _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None and is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
-    )
+    is_wheel_install = _PACKAGE_NAME is None and "PEP517_BUILD_BACKEND" in os.environ
+    print("is_wheel_install:", is_wheel_install)
+    # if it's a wheel install (hence _PACKAGE_NAME should not be set), iterate over all possible packages until we find
+    # one that can be installed. the wheel should have included only the relevant files of the package to install
+    possible_packages = _PACKAGE_MAPPING.values() if is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
         pkg_path = os.path.join(_PATH_SRC, pkg)
         pkg_setup = os.path.join(pkg_path, "__setup__.py")
