@@ -116,7 +116,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._timeout: Optional[timedelta] = timeout
         self._backward_sync_control = _FSDPBackwardSyncControl()
         activation_checkpointing = activation_checkpointing or []
-        self._activation_checkpointing = list(activation_checkpointing) if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        self._activation_checkpointing = [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
         self._ddp_kwargs = kwargs
 
         self.cpu_offload = cpu_offload
