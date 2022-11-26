@@ -116,7 +116,7 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    is_wheel_install = "sdist" not in sys.argv and "bdist_wheel" not in sys.argv
+    is_wheel_install = "sdist" not in sys.argv and "bdist_wheel" not in sys.argv and not os.path.exists(_PATH_SRC)
     print("is_wheel_install:", is_wheel_install, sys.argv)
 
     if not is_wheel_install:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # if it's a wheel, iterate over all possible packages until we find one that can be installed.
     # the wheel should have included only the relevant files of the package to install
     possible_packages = (
-        _PACKAGE_MAPPING.values() if is_wheel_install or _PACKAGE_NAME is None else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
+        _PACKAGE_MAPPING.values() if _PACKAGE_NAME is None or is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     )
     for pkg in possible_packages:
         pkg_path = os.path.join(_PATH_SRC, pkg)
