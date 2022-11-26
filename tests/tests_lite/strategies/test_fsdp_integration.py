@@ -129,16 +129,22 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
     lite.launch()
 
-    model = torch.nn.Linear(10, 10)
+    model = torch.nn.Linear(10, 10, bias=False)  # total params: 10 * 10 = 100
     lite_model = lite.setup_module(model, move_to_device=move_to_device)
     lite_module_mock.assert_not_called()
 
     current_device = lite.device
     assert current_device.type == "cuda"
 
-    # all parameters on the expected device
+    
     assert list(param.device for param in model.parameters()) == []
-    print(list((param.device, param.shape) for param in lite_model.parameters()))
+    assert len(list(lite_model.parameters())) == 1
+
+    # the linear layer got sharded and each part is on the expected device
+    assert next(lite_model.parameters()).device == torch.device("cuda", lite.local_rank)
+    assert next(lite_model.parameters()).numel() == 50
+
+    # print(list((param.device, param.shape) for param in lite_model.parameters()))
 
     assert False
 
