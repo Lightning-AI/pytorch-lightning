@@ -1,5 +1,7 @@
+import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -8,7 +10,7 @@ from setuptools import find_packages
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
-_PATH_REQUIREMENTS = os.path.join("requirements")
+_PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
@@ -22,6 +24,30 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 _SETUP_TOOLS = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
+
+
+def _prepare_extras() -> Dict[str, Any]:
+    # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
+    # Define package extras. These are only installed if you specify them.
+    # From remote, use like `pip install pytorch-lightning[dev, docs]`
+    # From local copy of repo, use like `pip install ".[dev, docs]"`
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
+    common_args = dict(unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
+    extras = {
+        f"{p.parent.name}-{p.stem}": _SETUP_TOOLS.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
+    }
+    for extra in list(extras):
+        name = "-".join(extra.split("-")[1:])
+        extras[name] = extras.get(name, []) + extras[extra]
+    # todo
+    # extras["extra"] = extras["cloud"] + extras["ui"]
+    # extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
+    # extras["all"] = extras["dev"]
+    extras = {name: list(set(reqs)) for name, reqs in extras.items()}
+    print("The extras are", extras)
+    return extras
 
 
 def _adjust_manifest(**kwargs: Any) -> None:
@@ -83,7 +109,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         },
         setup_requires=[],
         install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
-        extras_require={},  # todo: consider porting all other packages extras with prefix
+        extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://lightning.ai/lightning-docs",
