@@ -13,7 +13,8 @@ on:
       - "setup.py"
       - "src/**"
       - "requirements/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 

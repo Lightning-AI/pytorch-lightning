@@ -8,6 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -16,8 +17,7 @@ on:
       - ".github/workflows/ci-pytorch-tests.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
