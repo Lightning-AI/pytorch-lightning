@@ -118,9 +118,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._ddp_kwargs = kwargs
 
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
-            raise ValueError(
-                "Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`"
-            )
+            raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
         activation_checkpointing = activation_checkpointing or []
         self._activation_checkpointing = (
             [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
