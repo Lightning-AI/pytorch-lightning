@@ -1,5 +1,6 @@
 import fnmatch
 import os
+from functools import partial
 from pathlib import Path
 from shutil import copy2, copystat, Error
 from typing import Callable, List, Set, Union
@@ -58,8 +59,10 @@ def _copytree(
     _ignore_filename_spell_check(src)
     src = Path(src)
     dst = Path(dst)
-    if src.joinpath(DOT_IGNORE_FILENAME).exists():
-        ignore_fn = _get_ignore_function(src)
+    ignore_filepath = src / DOT_IGNORE_FILENAME
+    if ignore_filepath.is_file():
+        patterns = _read_lightningignore(ignore_filepath)
+        ignore_fn = partial(_filter_ignored, src, patterns)
         # creating new list so we won't modify the original
         ignore_functions = [*ignore_functions, ignore_fn]
 
@@ -108,19 +111,22 @@ def _copytree(
     return files_copied
 
 
-def _get_ignore_function(src: Path) -> Callable:
-    patterns = _read_lightningignore(src / DOT_IGNORE_FILENAME)
+def _filter_ignored(src: Path, patterns: Set[str], current_dir: Path, entries: List[Path]) -> List[Path]:
+    relative_dir = current_dir.relative_to(src)
+    names = [str(relative_dir / entry.name) for entry in entries]
+    ignored_names = set()
+    for pattern in patterns:
+        ignored_names.update(fnmatch.filter(names, pattern))
+    return [entry for entry in entries if str(relative_dir / entry.name) not in ignored_names]
 
-    def filter_ignored(current_dir: Path, entries: List[Path]) -> List[Path]:
-        relative_dir = current_dir.relative_to(src)
-        names = [str(relative_dir / entry.name) for entry in entries]
-        ignored_names = []
-        for pattern in patterns:
-            ignored_names.extend(fnmatch.filter(names, pattern))
-        ignored_names_set = set(ignored_names)
-        return [entry for entry in entries if str(relative_dir / entry.name) not in ignored_names_set]
 
-    return filter_ignored
+def _parse_lightningignore(lines: List[str]) -> Set[str]:
+    """Creates a set that removes empty lines and comments."""
+    lines = [ln.strip() for ln in lines]
+    # removes first `/` character for posix and `\\` for windows
+    lines = [ln.lstrip("/").lstrip("\\") for ln in lines if ln != "" and not ln.startswith("#")]
+    # convert to path and converting back to string to sanitize the pattern
+    return {str(Path(ln)) for ln in lines}
 
 
 def _read_lightningignore(path: Path) -> Set[str]:
@@ -137,14 +143,8 @@ def _read_lightningignore(path: Path) -> Set[str]:
     Set[str]
         Set of unique lines.
     """
-    raw_lines = [ln.strip() for ln in path.open().readlines()]
-
-    # creates a set that removes empty lines and comments
-    lines = {ln for ln in raw_lines if ln != "" and ln is not None and not ln.startswith("#")}
-
-    # removes first `/` character for posix and `\\` for windows
-    # also converting to path and converting back to string to sanitize the pattern
-    return {str(Path(ln.lstrip("/").lstrip("\\"))) for ln in lines}
+    raw_lines = path.open().readlines()
+    return _parse_lightningignore(raw_lines)
 
 
 def _ignore_filename_spell_check(src: Path):

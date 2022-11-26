@@ -37,8 +37,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -60,8 +60,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -78,8 +78,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkB",
             "module": "__main__",
             "docstring": "WorkB.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "gpu",
