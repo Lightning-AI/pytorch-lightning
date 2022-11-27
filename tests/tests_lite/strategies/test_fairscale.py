@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.optim
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.strategies.fairscale import DDPShardedStrategy, ShardedDataParallel, _FairscaleBackwardSyncControl
+from lightning_lite.strategies.fairscale import _FairscaleBackwardSyncControl, DDPShardedStrategy, ShardedDataParallel
 
 
 @RunIf(fairscale=True)
