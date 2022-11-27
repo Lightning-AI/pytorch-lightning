@@ -26,7 +26,6 @@ from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision import Precision
-
 from lightning_lite.strategies import ParallelStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
