@@ -8,8 +8,8 @@ This app tests three things
 import subprocess
 from pathlib import Path
 
+from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.utilities import safe_pickle
-from lightning_app import LightningApp, LightningWork, LightningFlow
 
 
 class SelfPicklingWork(LightningWork):
