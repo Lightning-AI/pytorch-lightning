@@ -82,7 +82,7 @@ class _XLALauncher(_MultiProcessingLauncher):
         return_queue: SimpleQueue,
         global_states: Optional[_GlobalStateSnapshot] = None,
     ) -> None:
-        self._strategy._local_rank = process_idx  # TODO(lite): set local rank
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if process_idx == 0:

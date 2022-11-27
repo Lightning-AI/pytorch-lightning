@@ -60,6 +60,7 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
         self._launched = False
+        self._local_rank = 0
 
     @property
     def root_device(self) -> torch.device:
@@ -68,6 +69,10 @@ class XLAStrategy(ParallelStrategy):
         import torch_xla.core.xla_model as xm
 
         return xm.xla_device()
+
+    @property
+    def local_rank(self) -> int:
+        return self._local_rank
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
