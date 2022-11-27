@@ -182,7 +182,9 @@ def collective_launch(fn, parallel_devices, num_groups=1):
     device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
     strategy = DDPStrategy(
-        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment(),
+        accelerator=accelerator_cls(),
+        parallel_devices=parallel_devices,
+        cluster_environment=LightningEnvironment(),
         start_method="spawn",
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
