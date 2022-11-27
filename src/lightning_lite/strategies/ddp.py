@@ -111,7 +111,6 @@ class DDPStrategy(ParallelStrategy):
     def _configure_launcher(self) -> None:
         assert self.cluster_environment is not None
         if self._start_method == "popen":
-            # if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         else:
             self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
