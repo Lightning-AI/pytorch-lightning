@@ -47,7 +47,7 @@ jobs:
         working-directory: .actions/
         run: |
           pip install pytest -q
-          python -m pytest setup_tools.py
+          python -m pytest assistant.py
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
 
