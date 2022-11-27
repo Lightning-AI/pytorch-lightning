@@ -13,7 +13,7 @@
 # limitations under the License.
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Literal, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import torch
 from lightning_utilities.core.imports import module_available
@@ -122,36 +122,6 @@ class DDPShardedStrategy(DDPStrategy):
             start_method="spawn",
         )
         strategy_registry.register("ddp_sharded_spawn", cls, description=cls.__class__.__name__, start_method="spawn")
-
-
-class DDPSpawnShardedStrategy(DDPStrategy):
-    """Optimizer and gradient sharded training provided by FairScale with Spawn."""
-
-    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
-
-    def __init__(
-        self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
-        start_method: Literal["popen", "spawn", "fork", "forkserver"] = "spawn",  # different default than in ddp
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            accelerator=accelerator,
-            parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
-            precision=precision,
-            process_group_backend=process_group_backend,
-            timeout=timeout,
-            start_method=start_method,
-            **kwargs,
-        )
 
 
 def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
