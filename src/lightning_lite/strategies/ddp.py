@@ -120,7 +120,7 @@ class DDPStrategy(ParallelStrategy):
         self._setup_distributed()
         super().setup_environment()
 
-    def setup_module(self, module: Module) -> DistributedDataParallel:
+    def setup_module(self, module: Module) -> Module:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
 
