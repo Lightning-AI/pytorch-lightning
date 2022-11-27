@@ -26,7 +26,8 @@ from lightning_lite.plugins.environments import XLAEnvironment
 from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
 from lightning_lite.plugins.io.xla import XLACheckpointIO
 from lightning_lite.plugins.precision import Precision
-from lightning_lite.strategies.ddp import DDPStrategy
+
+from lightning_lite.strategies import ParallelStrategy
 from lightning_lite.strategies.launchers.xla import _XLALauncher
 from lightning_lite.strategies.strategy import TBroadcast
 from lightning_lite.utilities.apply_func import apply_to_collection
@@ -38,7 +39,7 @@ if TYPE_CHECKING and _XLA_AVAILABLE:
     from torch_xla.distributed.parallel_loader import MpDeviceLoader
 
 
-class XLAStrategy(DDPStrategy):  # TODO(lite)
+class XLAStrategy(ParallelStrategy):
     """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
     method."""
 
@@ -55,7 +56,6 @@ class XLAStrategy(DDPStrategy):  # TODO(lite)
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision=precision,
-            start_method="fork",
         )
         self._checkpoint_io: Optional[CheckpointIO]
         self._backward_sync_control = None  # XLA synchronizes gradients in the optimizer.step() call
@@ -93,10 +93,11 @@ class XLAStrategy(DDPStrategy):  # TODO(lite)
     def _configure_launcher(self) -> None:
         self._launcher = _XLALauncher(self)
 
-    def _setup_distributed(self) -> None:
+    def setup_environment(self) -> None:
         self._launched = True
         self._set_world_ranks()
         rank_zero_only.rank = self.global_rank
+        super().setup_environment()
 
     def setup_module(self, module: Module) -> Module:
         return module
@@ -198,6 +199,14 @@ class XLAStrategy(DDPStrategy):  # TODO(lite)
         # TODO(lite): Deprecate the name "tpu_spawn" through the connector
         strategy_registry.register("tpu_spawn", cls, description=cls.__class__.__name__)
         strategy_registry.register("xla", cls, description=cls.__class__.__name__)
+
+    def _set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
+        self.cluster_environment.set_global_rank(self.node_rank * num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @staticmethod
     def _validate_dataloader(dataloaders: DataLoader) -> None:
