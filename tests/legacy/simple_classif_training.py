@@ -26,7 +26,7 @@ PATH_LEGACY = os.path.dirname(__file__)
 
 def main_train(dir_path, max_epochs: int = 20):
     seed_everything(42)
-    stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.002)
+    stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
     trainer = pl.Trainer(
         default_root_dir=dir_path,
         gpus=int(torch.cuda.is_available()),
