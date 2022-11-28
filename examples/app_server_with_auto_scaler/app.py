@@ -63,10 +63,12 @@ class PyTorchServer(PythonServer):
 app = L.LightningApp(
     AutoScaler(
         PyTorchServer,
+        min_replicas=2,
         max_replicas=4,
         worker_url="predict",
         input_schema=RequestModel,
         output_schema=Any,
-        timeout_batch=0.1,
+        timeout_batch=1,
+        autoscale_interval=10,
     )
 )

@@ -414,6 +414,7 @@ class AutoScaler(LightningFlow):
             worker.run()
 
         if self.load_balancer.url:
+            self.fake_trigger += 1  # change state to keep calling `run`.
             self.autoscale()
 
     def scale(self, replicas: int, metrics) -> int:
