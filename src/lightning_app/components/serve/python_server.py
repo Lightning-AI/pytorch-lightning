@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
+from lightning_utilities.core.imports import module_available
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
@@ -16,6 +17,10 @@ from lightning_app.utilities.imports import requires
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
+
+# Skip doctests if requirements aren't available
+if not module_available("lightning_api_access"):
+    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
