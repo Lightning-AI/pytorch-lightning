@@ -8,9 +8,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
+from lightning_app.components.serve.base import _DefaultInputData, _DefaultOutputData
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
-from lightning_app.components.serve.base import _DefaultInputData, _DefaultOutputData
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
