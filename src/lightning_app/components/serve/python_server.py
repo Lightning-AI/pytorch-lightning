@@ -12,7 +12,7 @@ from starlette.staticfiles import StaticFiles
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
-from lightning_app.utilities.imports import requires, _is_torch_available
+from lightning_app.utilities.imports import _is_torch_available, requires
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
@@ -205,6 +205,7 @@ class PythonServer(LightningWork, abc.ABC):
 
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
         from torch import inference_mode
+
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
