@@ -24,7 +24,7 @@ from tritonclient.utils import np_to_triton_dtype
 logger = Logger(__name__)
 
 MODEL_NAME = "lightning-triton"
-LIGHTNING_TRITON_BASE_IMAGE = os.getenv("LIGHTNING_TRITON_BASE_IMAGE", "ghcr.io/gridai/lightning-triton:v0.11")
+LIGHTNING_TRITON_BASE_IMAGE = os.getenv("LIGHTNING_TRITON_BASE_IMAGE", "ghcr.io/gridai/lightning-triton:v0.13")
 
 
 environment = jinja2.Environment()
@@ -81,6 +81,7 @@ class TritonPythonModel:
     def initialize(self, args):
         self.model_config = json.loads(args['model_config'])
         self.work = pickle.load(open("__model_repository/lightning-triton/1/__lightning_work.pkl", "rb"))
+        self.work.setup()
 
     def execute(self, requests):
         responses = []
