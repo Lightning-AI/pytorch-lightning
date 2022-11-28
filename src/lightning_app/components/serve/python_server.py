@@ -18,7 +18,7 @@ from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecu
 logger = Logger(__name__)
 
 # Skip doctests if requirements aren't available
-if _is_torch_available():
+if not _is_torch_available():
     __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
