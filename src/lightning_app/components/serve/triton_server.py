@@ -200,7 +200,7 @@ class TritonServer(ServeBase, abc.ABC):
         fastapi_app.post("/infer", response_model=output_type)(proxy_fn)
 
     def _get_config_file(self) -> str:
-        """ Create config.pbtxt file specific for triton-python backend """
+        """Create config.pbtxt file specific for triton-python backend."""
         kind = "GPU" if self.device.type == "cuda" else "CPU"
         input_types = self.configure_input_type()
         output_types = self.configure_output_type()

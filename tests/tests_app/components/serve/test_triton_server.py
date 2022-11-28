@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from lightning_app.core.app import LightningApp
 from lightning_app.components import TritonServer
 from lightning_app.components.serve import triton_server
+from lightning_app.core.app import LightningApp
 
 
 class TestTritonServer(TritonServer):
