@@ -36,7 +36,7 @@ class ClusterState(StrEnum):
     QUEUED = "queued"
     PENDING = "pending"
     RUNNING = "running"
-    FAILED = "failed"
+    FAILED = "error"
     DELETED = "deleted"
 
     def __str__(self) -> str:
