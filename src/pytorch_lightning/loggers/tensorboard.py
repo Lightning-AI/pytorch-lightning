@@ -19,12 +19,11 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
 
 import numpy as np
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.cloud_io import get_filesystem
@@ -38,6 +37,15 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
+_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
+_TENSORBOARDX_AVAILABLE = RequirementCache("tensorboardX")
+if TYPE_CHECKING:
+    # assumes at least one will be installed when type checking
+    if _TENSORBOARD_AVAILABLE:
+        from torch.utils.tensorboard import SummaryWriter
+    else:
+        from tensorboardX import SummaryWriter  # type: ignore[no-redef]
+
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
@@ -46,7 +54,7 @@ class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
-    Implemented using :class:`~torch.utils.tensorboard.SummaryWriter`. Logs are saved to
+    Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
     ``os.path.join(save_dir, name, version)``. This is the default logger in Lightning, it comes
     preinstalled.
 
@@ -77,11 +85,20 @@ class TensorBoardLogger(Logger):
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
             then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
             logs are saved in ``/save_dir/name/version/``.
-        \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
+        \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
 
+    Example:
+        >>> import shutil, tempfile
+        >>> tmp = tempfile.mkdtemp()
+        >>> tbl = TensorBoardLogger(tmp)
+        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
+        >>> tbl.log_metrics({"acc": 0.75})
+        >>> tbl.log_metrics({"acc": 0.9})
+        >>> tbl.finalize("success")
+        >>> shutil.rmtree(tmp)
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
     LOGGER_JOIN_CHAR = "-"
@@ -97,13 +114,20 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
+        if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
+            raise ModuleNotFoundError(
+                "Neither `tensorboard` nor `tensorboardX` is available. Try `pip install`ing either."
+            )
         super().__init__()
         save_dir = os.fspath(save_dir)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
         self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
-        self._log_graph = log_graph
+        if log_graph and not _TENSORBOARD_AVAILABLE:
+            rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
+        self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
+
         self._default_hp_metric = default_hp_metric
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
@@ -157,7 +181,7 @@ class TensorBoardLogger(Logger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> SummaryWriter:
+    def experiment(self) -> "SummaryWriter":
         r"""
         Actual tensorboard object. To use TensorBoard features in your
         :class:`~pytorch_lightning.core.module.LightningModule` do the following.
@@ -173,6 +197,12 @@ class TensorBoardLogger(Logger):
         assert rank_zero_only.rank == 0, "tried to init log dirs in non global_rank=0"
         if self.root_dir:
             self._fs.makedirs(self.root_dir, exist_ok=True)
+
+        if _TENSORBOARD_AVAILABLE:
+            from torch.utils.tensorboard import SummaryWriter
+        else:
+            from tensorboardX import SummaryWriter  # type: ignore[no-redef]
+
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
@@ -209,6 +239,12 @@ class TensorBoardLogger(Logger):
 
         if metrics:
             self.log_metrics(metrics, 0)
+
+            if _TENSORBOARD_AVAILABLE:
+                from torch.utils.tensorboard.summary import hparams
+            else:
+                from tensorboardX.summary import hparams  # type: ignore[no-redef]
+
             exp, ssi, sei = hparams(params, metrics)
             writer = self.experiment._get_file_writer()
             writer.add_summary(exp)

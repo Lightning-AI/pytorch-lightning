@@ -8,14 +8,14 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-app-examples.yml"
       - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
+      - "tests/tests_examples_app/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -111,7 +111,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_examples_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

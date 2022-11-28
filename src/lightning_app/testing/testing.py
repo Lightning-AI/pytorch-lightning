@@ -219,7 +219,7 @@ def _run_cli(args) -> Generator:
 def run_app_in_cloud(
     app_folder: str, app_name: str = "app.py", extra_args: List[str] = [], debug: bool = True
 ) -> Generator:
-    """This utility is used to automate testing e2e application with lightning_app.ai."""
+    """This utility is used to automate testing e2e application with lightning.ai."""
     # 1. Validate the provide app_folder is correct.
     if not os.path.exists(os.path.join(app_folder, "app.py")):
         raise Exception("The app folder should contain an app.py file.")
@@ -383,12 +383,12 @@ def run_app_in_cloud(
             ).lightningapps
             if app.name == name
         ]
-
         if not lit_apps:
             return True
-
         assert len(lit_apps) == 1
-        app_id = lit_apps[0].id
+        app = lit_apps[0]
+        app_id = app.id
+        print(f"The Lightning App ID is: {app.id}")  # useful for Grafana
 
         if debug:
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
@@ -404,6 +404,7 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
+        # TODO: is re-creating this redundant?
         lit_apps = [
             app
             for app in client.lightningapp_instance_service_list_lightningapp_instances(
@@ -411,16 +412,13 @@ def run_app_in_cloud(
             ).lightningapps
             if app.name == name
         ]
-
-        app_url = lit_apps[0].status.url
-
+        app = lit_apps[0]
+        app_url = app.status.url
         while True:
             sleep(1)
             resp = requests.get(app_url + "/openapi.json")
             if resp.status_code == 200:
                 break
-
-        print(f"The Lightning Id Name : [bold magenta]{app_id}[/bold magenta]")
 
         logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
