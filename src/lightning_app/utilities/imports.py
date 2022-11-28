@@ -52,10 +52,13 @@ def requires(module_paths: Union[str, List]):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             unavailable_modules = [f"'{module}'" for module in module_paths if not module_available(module)]
-            if any(unavailable_modules) and not bool(int(os.getenv("LIGHTING_TESTING", "0"))):
-                raise ModuleNotFoundError(
-                    f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
-                )
+            is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
+            if any(unavailable_modules):
+                msg = f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
+                if not is_lit_testing:
+                    raise ImportWarning(msg)
+                else:
+                    raise ModuleNotFoundError(msg)
             return func(*args, **kwargs)
 
         return wrapper

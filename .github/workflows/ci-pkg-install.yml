@@ -67,6 +67,7 @@ jobs:
 
       - name: DocTest package
         env:
+          LIGHTING_TESTING: 1  # path for require wrapper
           PY_IGNORE_IMPORTMISMATCH: 1
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
