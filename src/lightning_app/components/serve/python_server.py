@@ -1,8 +1,6 @@
 import abc
-import base64
 import os
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import torch
 import uvicorn
@@ -12,6 +10,7 @@ from starlette.staticfiles import StaticFiles
 
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
+from lightning_app.components.serve.base import _DefaultInputData, _DefaultOutputData
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
@@ -56,33 +55,6 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
         if local_rank == 0:
             state_observer.join(0)
-
-
-class _DefaultInputData(BaseModel):
-    payload: str
-
-
-class _DefaultOutputData(BaseModel):
-    prediction: str
-
-
-class Image(BaseModel):
-    image: Optional[str]
-
-    @staticmethod
-    def _get_sample_data() -> Dict[Any, Any]:
-        imagepath = Path(__file__).parent / "catimage.png"
-        with open(imagepath, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read())
-        return {"image": encoded_string.decode("UTF-8")}
-
-
-class Number(BaseModel):
-    prediction: Optional[int]
-
-    @staticmethod
-    def _get_sample_data() -> Dict[Any, Any]:
-        return {"prediction": 463}
 
 
 class PythonServer(LightningWork, abc.ABC):
