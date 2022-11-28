@@ -87,7 +87,6 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
-
     @requires("lightning_api_access")
     def __init__(  # type: ignore
         self,
