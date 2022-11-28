@@ -22,6 +22,15 @@ a :class:`~lightning_app.utilities.packaging.cloud_compute.CloudCompute` to your
     # Run on a fast multi-GPU machine (see specs below)
     MyCustomWork(cloud_compute=L.CloudCompute("gpu-fast-multi"))
 
+.. warning::
+     Custom base images are not supported with the default CPU cloud compute. For example:
+
+     .. code-block:: py
+
+         class MyWork(LightningWork):
+             def __init__(self):
+              super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work
+
 
 Here is the full list of supported machine names:
 
