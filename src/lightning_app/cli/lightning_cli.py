@@ -60,7 +60,7 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
         action = "?action=add_credits" if need_credits else ""
         return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
-        url = f"http://{APP_SERVER_HOST}:{APP_SERVER_PORT}/view"
+        url = f"{APP_SERVER_HOST}:{APP_SERVER_PORT}/view"
         return url
 
 
