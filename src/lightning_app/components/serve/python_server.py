@@ -13,6 +13,7 @@ from starlette.staticfiles import StaticFiles
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import requires
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
@@ -86,6 +87,8 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
+
+    @requires("lightning_api_access")
     def __init__(  # type: ignore
         self,
         host: str = "127.0.0.1",
