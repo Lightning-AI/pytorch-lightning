@@ -143,11 +143,12 @@ if __name__ == "__main__":
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
-            if is_wheel_install:
+            is_main_pkg = pkg == "lightning"
+            if is_wheel_install and not is_main_pkg:
                 setuptools.setup(**setup_args)
             else:
                 # we are installing from source, set the correct manifest path
-                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
+                with _set_manifest_path(pkg_path, aggregate=is_main_pkg):
                     setuptools.setup(**setup_args)
             break
     else:
