@@ -90,7 +90,15 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         del mapping["lightning"]
         lines = ["include src/lightning/version.info\n"]
         for pkg in mapping.values():
-            with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
+            pkg_path = os.path.join(_PATH_SRC, pkg)
+            if not os.path.exists(pkg_path):
+                # this function is getting called with `pip install .` and `pip install *.tar.gz`, however, it only
+                # should be called with the former. i haven't found a way to differentiate the two so this is the hacky
+                # solution to avoid an error
+                print(f"{pkg_path!r} does not exist")
+                yield
+                return
+            with open(os.path.join(pkg_path, "MANIFEST.in")) as fh:
                 lines.extend(fh.readlines())
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
