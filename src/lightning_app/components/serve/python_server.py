@@ -205,6 +205,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         def predict_fn(request: input_type):  # type: ignore
             import torch
+
             with torch.inference_mode():
                 return self.predict(request)
 
