@@ -108,12 +108,12 @@ For certain CI/CD systems, it's useful to pass in raw yaml config as environment
 ***************************************
 Run from environment variables directly
 ***************************************
-The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, set the *env_parse*
-argument:
+The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, add to
+``parser_kwargs`` the ``default_env`` argument:
 
 .. code:: python
 
-    cli = LightningCLI(DemoModel, env_parse=True)
+    cli = LightningCLI(..., parser_kwargs={"default_env": True})
 
 now use the ``--help`` CLI flag with any subcommand:
 
