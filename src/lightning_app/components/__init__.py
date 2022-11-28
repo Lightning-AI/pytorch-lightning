@@ -29,6 +29,7 @@ __all__ = [
     "Image",
     "Number",
     "TritonServer",
+    "ServeBase",
     "MultiNode",
     "LiteMultiNode",
     "LightningTrainerScript",

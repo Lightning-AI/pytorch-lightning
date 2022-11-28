@@ -206,8 +206,8 @@ class TritonServer(ServeBase, abc.ABC):
         """
         # create the model repository directory
         cwd = Path.cwd()
-        if (cwd / f"__model_repository").is_dir():
-            shutil.rmtree(cwd / f"__model_repository")
+        if (cwd / "__model_repository").is_dir():
+            shutil.rmtree(cwd / "__model_repository")
         repo_path = cwd / f"__model_repository/{MODEL_NAME}/1"
         repo_path.mkdir(parents=True, exist_ok=True)
 

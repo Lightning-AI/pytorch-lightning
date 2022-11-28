@@ -4,4 +4,4 @@ from lightning_app.components.serve.python_server import PythonServer
 from lightning_app.components.serve.streamlit import ServeStreamlit
 from lightning_app.components.serve.triton_server import TritonServer
 
-__all__ = ["ServeGradio", "ServeStreamlit", "PythonServer", "Image", "Number", "TritonServer"]
+__all__ = ["ServeGradio", "ServeStreamlit", "PythonServer", "Image", "Number", "TritonServer", "ServeBase"]
