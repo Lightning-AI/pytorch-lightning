@@ -21,7 +21,7 @@ def _find_lit_app_port(default_port: int) -> int:
 
     if not app_id or not project_id or not enable_multiple_works_in_default_container:
         app_port = default_port
-        
+
         # If the default port is not available, picks any other available one
         if is_port_in_use(default_port):
             app_port = find_free_network_port()
