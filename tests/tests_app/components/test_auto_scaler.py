@@ -15,21 +15,11 @@ class AutoScaler1(AutoScaler):
         # only upscale
         return replicas + 1
 
-    @property
-    def num_requests(self):
-        """To avoid sending a request to '/num-requests'."""
-        return 0  # whatever number
-
 
 class AutoScaler2(AutoScaler):
     def scale(self, replicas: int, metrics) -> int:
         # only downscale
         return replicas - 1
-
-    @property
-    def num_requests(self):
-        """To avoid sending a request to '/num-requests'."""
-        return 0  # whatever number
 
 
 def test_num_replicas_after_init():
@@ -40,14 +30,14 @@ def test_num_replicas_after_init():
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler.LoadBalancer.url")
-def test_num_replicas_not_above_max_replicas(url, uvicorn_run):
+@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.auto_scaler.AutoScaler.num_requests")
+def test_num_replicas_not_above_max_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
-    min_replicas = 1
     max_replicas = 6
     auto_scaler = AutoScaler1(
         EmptyWork,
-        min_replicas=min_replicas,
+        min_replicas=1,
         max_replicas=max_replicas,
         autoscale_interval=0.001,
     )
@@ -60,15 +50,15 @@ def test_num_replicas_not_above_max_replicas(url, uvicorn_run):
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler.LoadBalancer.url")
-def test_num_replicas_not_belo_min_replicas(url, uvicorn_run):
+@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.auto_scaler.AutoScaler.num_requests")
+def test_num_replicas_not_belo_min_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     min_replicas = 1
-    max_replicas = 6
     auto_scaler = AutoScaler2(
         EmptyWork,
         min_replicas=min_replicas,
-        max_replicas=max_replicas,
+        max_replicas=4,
         autoscale_interval=0.001,
     )
 
