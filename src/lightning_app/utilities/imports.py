@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+
 import functools
 import os
+import warnings
 from typing import List, Union
 
 from lightning_utilities.core.imports import module_available
@@ -56,7 +58,7 @@ def requires(module_paths: Union[str, List]):
             if any(unavailable_modules):
                 msg = f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
                 if not is_lit_testing:
-                    raise ImportWarning(msg)
+                    warnings.warn(msg)
                 else:
                     raise ModuleNotFoundError(msg)
             return func(*args, **kwargs)
