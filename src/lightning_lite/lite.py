@@ -218,8 +218,9 @@ class LightningLite:
         module = self._strategy.setup_module(module)
         module = _LiteModule(module, self._precision, original_module=original_module)
 
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters()).device)
+        if not isinstance(self._strategy, FSDPStrategy):
+            # Update the _DeviceDtypeModuleMixin's device parameter
+            module.to(self.device if move_to_device else next(module.parameters()).device)
 
         self._models_setup += 1
         return module

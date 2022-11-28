@@ -1332,12 +1332,13 @@ def get_unique_name():
     Original source:
         https://raw.githubusercontent.com/moby/moby/master/pkg/namesgenerator/names-generator.go
 
-    Examples
-    --------
-    >>> get_unique_name()  # doctest: +SKIP
-    'focused-turing-23'
-    >>> get_unique_name()  # doctest: +SKIP
-    'thirsty-allen-9200'
+    Examples:
+
+    >>> import random ; random.seed(42)
+    >>> get_unique_name()
+    'meek-ardinghelli-4506'
+    >>> get_unique_name()
+    'truthful-dijkstra-2286'
     """
     adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)
     return f"{adjective}-{surname}-{i}"
