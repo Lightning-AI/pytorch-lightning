@@ -6,20 +6,19 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-import uvicorn
-from fastapi import FastAPI
-from lightning_app.utilities.packaging.build_config import BuildConfig
-from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-
-from lightning_app.utilities.cloud import is_running_in_cloud
-from lightning_app.utilities.app_helpers import Logger
-from lightning_app.components.serve.base import ServeBase
-from lightning_app.utilities import safe_pickle
 import jinja2
 import numpy as np
 import tritonclient.http as httpclient
+import uvicorn
+from fastapi import FastAPI
 from tritonclient.utils import np_to_triton_dtype
 
+from lightning_app.components.serve.base import ServeBase
+from lightning_app.utilities import safe_pickle
+from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.cloud import is_running_in_cloud
+from lightning_app.utilities.packaging.build_config import BuildConfig
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
 
@@ -28,7 +27,8 @@ LIGHTNING_TRITON_BASE_IMAGE = os.getenv("LIGHTNING_TRITON_BASE_IMAGE", "ghcr.io/
 
 
 environment = jinja2.Environment()
-template = environment.from_string("""name: "lightning-triton"
+template = environment.from_string(
+    """name: "lightning-triton"
 backend: "{{ backend }}"
 max_batch_size: {{ max_batch_size }}
 default_model_filename: "__lightningapp_triton_model_file.py"
@@ -57,7 +57,8 @@ instance_group [
     kind: KIND_{{ kind }}
   }
 ]
-""")
+"""
+)
 
 
 triton_model_file_template = """
@@ -135,7 +136,6 @@ def pydantic_to_triton_dtype_string(pydantic_obj_string):
 
 
 class TritonServer(ServeBase, abc.ABC):
-
     def __init__(self, *args, max_batch_size=8, backend="python", **kwargs):
         cloud_build_config = kwargs.get("cloud_build_config", BuildConfig(image=LIGHTNING_TRITON_BASE_IMAGE))
         compute_config = kwargs.get("cloud_compute", CloudCompute("cpu", shm_size=512))
@@ -146,9 +146,11 @@ class TritonServer(ServeBase, abc.ABC):
             raise ValueError("max_batch_size must be greater than 0")
         self.max_batch_size = max_batch_size
         if backend != "python":
-            raise ValueError("Currently only python backend is supported. But we are looking for user feedback to"
-                             "support other backends too. Please reach out to our slack channel or "
-                             "support@lightning.ai")
+            raise ValueError(
+                "Currently only python backend is supported. But we are looking for user feedback to"
+                "support other backends too. Please reach out to our slack channel or "
+                "support@lightning.ai"
+            )
         self.backend = backend
         self._triton_server_process = None
 
@@ -174,7 +176,7 @@ class TritonServer(ServeBase, abc.ABC):
             outputs = []
             for property_name, property in input_type.schema()["properties"].items():
                 val = [getattr(request, property_name)]
-                dtype = pydantic_to_numpy_dtype(property['type'])
+                dtype = pydantic_to_numpy_dtype(property["type"])
                 arr = np.array(val, dtype=dtype).reshape((-1, 1))
                 data = httpclient.InferInput(property_name, arr.shape, np_to_triton_dtype(arr.dtype))
                 data.set_data_from_numpy(arr)
@@ -225,11 +227,8 @@ class TritonServer(ServeBase, abc.ABC):
         for k, v in output_types.schema()["properties"].items():
             outputs.append({"name": k, "type": pydantic_to_triton_dtype_string(v["type"]), "dim": "[1]"})
         config = template.render(
-            kind=kind,
-            inputs=inputs,
-            outputs=outputs,
-            max_batch_size=self.max_batch_size,
-            backend=self.backend)
+            kind=kind, inputs=inputs, outputs=outputs, max_batch_size=self.max_batch_size, backend=self.backend
+        )
         config_path = repo_path.parent
         with open(config_path / "config.pbtxt", "w") as f:
             f.write(config)
@@ -260,5 +259,3 @@ class TritonServer(ServeBase, abc.ABC):
         # TODO @sherin add the termination of uvicorn once the issue with signal/uvloop conflict is resolved
         if self._triton_server_process:
             self._triton_server_process.kill()
-
-

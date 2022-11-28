@@ -9,7 +9,7 @@ from lightning_app.utilities.app_helpers import _LightningAppRef
 
 
 def get_picklable_work(work: LightningWork):
-    """ Pickling a LightningWork instance fails if it doesn from the work process
+    """Pickling a LightningWork instance fails if it doesn from the work process
     itself. This function is safe to call from the work process within both MultiprocessRuntime
     and Cloud.
     Note: This function modifies the module information of the work object. Specifically, it injects
@@ -41,7 +41,7 @@ def get_picklable_work(work: LightningWork):
     if "_main__" in copied_work.__class__.__module__:
         work_class_module = sys.modules[copied_work.__class__.__module__]
         relative_path = Path(work_class_module.__file__).relative_to(Path.cwd())
-        expected_module_name = relative_path.as_posix().replace(".py", "").replace('/', '.')
+        expected_module_name = relative_path.as_posix().replace(".py", "").replace("/", ".")
         # TODO @sherin: also check if the module is importable from the CWD
         fake_module = types.ModuleType(expected_module_name)
         fake_module.__dict__.update(work_class_module.__dict__)

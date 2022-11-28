@@ -43,12 +43,12 @@ class Number(BaseModel):
 
 class ServeBase(LightningWork, abc.ABC):
     def __init__(  # type: ignore
-            self,
-            host: str = "127.0.0.1",
-            port: int = 7777,
-            input_type: type = _DefaultInputData,
-            output_type: type = _DefaultOutputData,
-            **kwargs,
+        self,
+        host: str = "127.0.0.1",
+        port: int = 7777,
+        input_type: type = _DefaultInputData,
+        output_type: type = _DefaultOutputData,
+        **kwargs,
     ):
         super().__init__(parallel=True, host=host, port=port, **kwargs)
         if not issubclass(input_type, BaseModel):
@@ -64,11 +64,17 @@ class ServeBase(LightningWork, abc.ABC):
         return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     def configure_input_type(self) -> type:
-        """Override this method to configure the input type for the API. By default, it is set to `_DefaultInputData`"""
+        """Override this method to configure the input type for the API.
+
+        By default, it is set to `_DefaultInputData`
+        """
         return self._input_type
 
     def configure_output_type(self) -> type:
-        """Override this method to configure the output type for the API. By default, it is set to `_DefaultOutputData`"""
+        """Override this method to configure the output type for the API.
+
+        By default, it is set to `_DefaultOutputData`
+        """
         return self._output_type
 
     def _verify_type(self, datatype: Any):
@@ -168,4 +174,3 @@ class ServeBase(LightningWork, abc.ABC):
             ]
         )
         fastapi_app.mount("/", StaticFiles(directory=frontend.serve_dir, html=True), name="static")
-
