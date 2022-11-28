@@ -10,7 +10,7 @@ from lightning_app.utilities.app_helpers import _LightningAppRef
 
 
 def get_picklable_work(work: LightningWork) -> LightningWork:
-    """Pickling a LightningWork instance fails if it doesn from the work process
+    """Pickling a LightningWork instance fails if done from the work process
     itself. This function is safe to call from the work process within both MultiprocessRuntime
     and Cloud.
     Note: This function modifies the module information of the work object. Specifically, it injects
