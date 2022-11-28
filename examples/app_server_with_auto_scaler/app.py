@@ -1,15 +1,13 @@
-import base64
-import io
 from typing import Any, List
 
 import torch
 import torchvision
-from PIL import Image as PILImage
 from pydantic import BaseModel
 
 import lightning as L
 from lightning.app.components import AutoScaler
 from lightning.app.components.serve import PythonServer
+from lightning.app.components.serve.types.image import Image
 from lightning.app.utilities.network import find_free_network_port
 
 
@@ -49,8 +47,7 @@ class PyTorchServer(PythonServer):
         )
         images = []
         for request in requests.inputs:
-            image = base64.b64decode(request.image.encode("utf-8"))
-            image = PILImage.open(io.BytesIO(image))
+            image = Image.deserialize(request.image)
             image = transforms(image).unsqueeze(0)
             images.append(image)
         images = torch.cat(images)
