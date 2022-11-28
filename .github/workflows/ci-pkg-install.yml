@@ -46,7 +46,7 @@ jobs:
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          pip install pytest -q
+          pip install pytest "pytest-doctestplus>=0.9.0" -q
           python -m pytest setup_tools.py
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
