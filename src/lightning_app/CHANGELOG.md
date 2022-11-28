@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a CloudMultiProcessBackend which enables running a child App from within the Flow in the cloud ([#15800](https://github.com/Lightning-AI/lightning/pull/15800))
 
+- Added `AutoScaler` component ([#15769](https://github.com/Lightning-AI/lightning/pull/15769))
+
 
 ### Changed
 
