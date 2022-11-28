@@ -39,7 +39,7 @@ def _raise_granular_exception(exception: Exception) -> None:
         raise HTTPException(500, "Worker Server error")
 
     if isinstance(exception, asyncio.TimeoutError):
-        raise TimeoutException()
+        raise HTTPException(408, "Request timed out")
 
     if isinstance(exception, Exception):
         if exception.args[0] == "Server disconnected":
@@ -47,11 +47,6 @@ def _raise_granular_exception(exception: Exception) -> None:
 
     logging.exception(exception)
     raise HTTPException(500, exception.args[0])
-
-
-class TimeoutException(HTTPException):
-    def __init__(self, status_code: int = 408, detail: str = "Request timed out.", *args: Any, **kwargs: Any) -> None:
-        super().__init__(status_code=status_code, detail=detail, *args, **kwargs)
 
 
 class _SysInfo(BaseModel):
@@ -105,14 +100,9 @@ def _create_fastapi(title: str) -> FastAPI:
     return fastapi_app
 
 
-class LoadBalancer(LightningWork):
+class _LoadBalancer(LightningWork):
     r"""The LoadBalancer is a LightningWork component that collects the requests and sends it to the prediciton API
     asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
-
-    The LoadBalancer exposes system endpoints with a basic HTTP authentication, in order to activate the authentication
-    you need to provide a system password from environment variable
-    `lightning run app lb_flow.py --env MUSE_SYSTEM_PASSWORD=PASSWORD`.
-    After enabling you will require to send username and password from the request header for the private endpoints.
 
     Args:
         input_schema: Input schema.
@@ -153,7 +143,7 @@ class LoadBalancer(LightningWork):
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
         server = next(self._ITER)  # round-robin
-        request_data: List[LoadBalancer._input_schema] = [b[1] for b in batch]
+        request_data: List[_LoadBalancer._input_schema] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
         try:
@@ -169,7 +159,7 @@ class LoadBalancer(LightningWork):
                     headers=headers,
                 ) as response:
                     if response.status == 408:
-                        raise TimeoutException()
+                        raise HTTPException(408, "Request timed out")
                     response.raise_for_status()
                     response = await response.json()
                     outputs = response["outputs"]
@@ -362,7 +352,7 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
 
         worker_url = worker_url or "api/predict"
-        self.load_balancer = LoadBalancer(
+        self.load_balancer = _LoadBalancer(
             input_schema=self._input_schema,
             output_schema=self._output_schema,
             worker_url=worker_url,
