@@ -13,27 +13,15 @@ def delete() -> None:
 @delete.command("cluster")
 @click.argument("cluster", type=str)
 @click.option(
-    "--force",
-    "force",
+    "--async",
+    "do_async",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help="""Delete a BYOC cluster from Lightning AI. This does NOT delete any resources created by the cluster,
-            it just removes the entry from Lightning AI.
-
-            WARNING: You should NOT use this under normal circumstances.""",
+    help="This flag makes the CLI return immediately and lets the cluster deletion happen in the background",
 )
-@click.option(
-    "--wait",
-    "wait",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
-)
-def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> None:
+def delete_cluster(cluster: str, force: bool = False, do_async: bool = False) -> None:
     """Delete a Lightning AI BYOC cluster and all associated cloud provider resources.
 
     Deleting a cluster also deletes all apps that were started on the cluster.
@@ -49,7 +37,7 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False) -> Non
     VPC components, etc. are irreversibly deleted and cannot be recovered!
     """
     cluster_manager = AWSClusterManager()
-    cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
+    cluster_manager.delete(cluster_id=cluster, force=force, do_async=do_async)
 
 
 @delete.command("ssh-key")
