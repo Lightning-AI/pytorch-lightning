@@ -12,6 +12,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from lightning_utilities.core.overrides import is_overridden
 from pydantic import BaseModel
 
 from lightning_app.core.flow import LightningFlow
@@ -312,12 +313,25 @@ class AutoScaler(LightningFlow):
         upscale_threshold: Upper limit to determine when to spawn up a new work.
         worker_url: Default=api/predict. Provide the REST API path
         input_schema:
-        output_schema
+        output_schema:
+
+        .. doctest::
+
+            >>> from lightning_app.components import AutoScaler
+            >>> from lightning_app import LightningApp
+            >>> app = LightningApp(
+            ...     AutoScaler(
+            ...         MyPythonServer,  # noqa: F821
+            ...         min_replicas=1,
+            ...         max_replicas=4,
+            ...         autoscale_interval=10,
+            ...     )
+            ... )
     """
 
     def __init__(
         self,
-        work_cls: type,
+        work_cls: Optional[type] = None,
         min_replicas: int = 1,
         max_replicas: int = 4,
         autoscale_interval: int = 1 * 10,
@@ -333,15 +347,18 @@ class AutoScaler(LightningFlow):
         self.num_replicas = 0
         self._work_registry = {}
 
+        assert work_cls is not None or is_overridden("create_worker", self, AutoScaler)
         self._work_cls = work_cls
         self._input_schema = input_schema
         self._output_schema = output_schema
         self.autoscale_interval = autoscale_interval
+
+        if max_replicas < min_replicas:
+            raise ValueError("max_replicas must be less than or equal to min_replicas.")
         self.max_replicas = max_replicas
         self.min_replicas = min_replicas
         self.downscale_threshold = downscale_threshold or min_replicas
         self.upscale_threshold = upscale_threshold or min_replicas * max_batch_size
-        self.fake_trigger = 0
         self._last_autoscale = time.time()
 
         worker_url = worker_url or "api/predict"
@@ -359,10 +376,11 @@ class AutoScaler(LightningFlow):
             self.add_work(work)
 
         logger.info(
-            f"Initialized AutoScaler(replicas={min_replicas}, "
+            f"Initialized AutoScaler("
+            f"min_replicas={min_replicas}, "
             f"max_replicas={max_replicas}, "
-            f"batch timeout={timeout_batch}, "
-            f"batch size={max_batch_size})"
+            f"timeout_batch={timeout_batch}, "
+            f"max_batch_size={max_batch_size})"
         )
 
     @property
@@ -374,7 +392,7 @@ class AutoScaler(LightningFlow):
         return works
 
     def create_worker(self, *args, **kwargs) -> LightningWork:
-        """implement."""
+        """Override this hook to customise the work creation process."""
         return self._work_cls()
 
     def add_work(self, work) -> str:
@@ -406,7 +424,6 @@ class AutoScaler(LightningFlow):
             worker.run()
 
         if self.load_balancer.url:
-            self.fake_trigger += 1
             self.autoscale()
 
     def scale(self, replicas: int, metrics) -> int:
@@ -422,6 +439,10 @@ class AutoScaler(LightningFlow):
 
         return replicas
 
+    @property
+    def num_requests(self):
+        return int(requests.get(f"{self.load_balancer.url}/num-requests").json())
+
     def autoscale(self):
         """Upscale and down scale model inference works based on the number of requests."""
         if time.time() - self._last_autoscale < self.autoscale_interval:
@@ -429,10 +450,11 @@ class AutoScaler(LightningFlow):
 
         self.load_balancer.update_servers(self.workers)
 
-        num_requests = int(requests.get(f"{self.load_balancer.url}/num-requests").json())
         metrics = {
-            "pending_requests": num_requests,
+            "pending_requests": self.num_requests,
         }
+
+        # ensure min_replicas <= num_replicas <= max_replicas
         num_target_workers = max(
             self.min_replicas,
             min(self.max_replicas, self.scale(self.num_replicas, metrics)),
