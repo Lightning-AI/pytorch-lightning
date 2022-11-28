@@ -4,18 +4,13 @@ from typing import Optional
 
 from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1NetworkConfig
 
-from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.network import LightningClient, find_free_network_port
 
 
 def is_port_in_use(port: int) -> bool:
+    """Checks if the given port is in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(("localhost", port)) == 0
-
-
-def get_available_port() -> int:
-    sock = socket.socket()
-    sock.bind(("", 0))
-    return sock.getsockname()[1]
 
 
 def _find_lit_app_port(default_port: int) -> int:
@@ -30,7 +25,7 @@ def _find_lit_app_port(default_port: int) -> int:
         if not is_port_in_use(default_port):
             return default_port
         else:
-            return get_available_port()
+            return find_free_network_port()
 
     client = LightningClient()
     list_apps_resp = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
