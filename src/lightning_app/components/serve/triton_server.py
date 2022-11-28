@@ -199,11 +199,22 @@ class TritonServer(ServeBase, abc.ABC):
 
         fastapi_app.post("/infer", response_model=output_type)(proxy_fn)
 
-    def run(self, *args: Any, **kwargs: Any) -> Any:
-        """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
+    def _get_config_file(self) -> str:
+        """ Create config.pbtxt file specific for triton-python backend """
+        kind = "GPU" if self.device.type == "cuda" else "CPU"
+        input_types = self.configure_input_type()
+        output_types = self.configure_output_type()
+        inputs = []
+        outputs = []
+        for k, v in input_types.schema()["properties"].items():
+            inputs.append({"name": k, "type": pydantic_to_triton_dtype_string(v["type"]), "dim": "[1]"})
+        for k, v in output_types.schema()["properties"].items():
+            outputs.append({"name": k, "type": pydantic_to_triton_dtype_string(v["type"]), "dim": "[1]"})
+        return template.render(
+            kind=kind, inputs=inputs, outputs=outputs, max_batch_size=self.max_batch_size, backend=self.backend
+        )
 
-        Normally, you don't need to override this method.
-        """
+    def _setup_model_repository(self):
         # create the model repository directory
         cwd = Path.cwd()
         if (cwd / "__model_repository").is_dir():
@@ -217,22 +228,18 @@ class TritonServer(ServeBase, abc.ABC):
         with open(repo_path / "__lightning_work.pkl", "wb+") as f:
             safe_pickle.dump(self, f)
 
-        # creating the config.pbtxt file
-        kind = "GPU" if self.device.type == "cuda" else "CPU"
-        input_types = self.configure_input_type()
-        output_types = self.configure_output_type()
-        inputs = []
-        outputs = []
-        for k, v in input_types.schema()["properties"].items():
-            inputs.append({"name": k, "type": pydantic_to_triton_dtype_string(v["type"]), "dim": "[1]"})
-        for k, v in output_types.schema()["properties"].items():
-            outputs.append({"name": k, "type": pydantic_to_triton_dtype_string(v["type"]), "dim": "[1]"})
-        config = template.render(
-            kind=kind, inputs=inputs, outputs=outputs, max_batch_size=self.max_batch_size, backend=self.backend
-        )
+        # setting the config file
+        config = self._get_config_file()
         config_path = repo_path.parent
         with open(config_path / "config.pbtxt", "w") as f:
             f.write(config)
+
+    def run(self, *args: Any, **kwargs: Any) -> Any:
+        """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
+
+        Normally, you don't need to override this method.
+        """
+        self._setup_model_repository()
 
         # setting and exposing the fast api service that sits in front of triton server
         fastapi_app = FastAPI()
