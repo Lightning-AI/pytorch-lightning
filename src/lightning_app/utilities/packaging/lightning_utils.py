@@ -102,9 +102,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path, package_name: str = "
     if not get_dist_path_if_editable_install(package_name):
         return
 
-    # this is patch for installing `lightning-app` as standalone package
-    if package_name == "lightning_app":
-        os.environ["PACKAGE_NAME"] = "app"
+    os.environ["PACKAGE_NAME"] = "app" if package_name == "lightning" + "_app" else "lightning"
 
     # Packaging the Lightning codebase happens only inside the `lightning` repo.
     git_dir_name = get_dir_name() if check_github_repository() else None
