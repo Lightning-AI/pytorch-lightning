@@ -7,7 +7,9 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
     V1LightningappInstanceStatus,
+    V1LightningworkState,
     V1ListLightningappInstancesResponse,
+    V1ListLightningworkResponse,
     V1ListMembershipsResponse,
     V1Membership,
 )
@@ -95,6 +97,36 @@ def test_list_all_apps(list_memberships: mock.MagicMock, list_instances: mock.Ma
 
     list_memberships.assert_called_once()
     list_instances.assert_called_once_with(project_id="default-project", limit=100, phase_in=[])
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.lightningwork_service_list_lightningwork")
+@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
+def test_list_components(list_memberships: mock.MagicMock, list_components: mock.MagicMock):
+    list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
+    list_components.return_value = V1ListLightningworkResponse(lightningworks=[])
+
+    cluster_manager = _AppManager()
+    cluster_manager.list_components(app_id="cheese")
+
+    list_memberships.assert_called_once()
+    list_components.assert_called_once_with(project_id="default-project", app_id="cheese", phase_in=[])
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.lightningwork_service_list_lightningwork")
+@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
+def test_list_components_with_phase(list_memberships: mock.MagicMock, list_components: mock.MagicMock):
+    list_memberships.return_value = V1ListMembershipsResponse(memberships=[V1Membership(project_id="default-project")])
+    list_components.return_value = V1ListLightningworkResponse(lightningworks=[])
+
+    cluster_manager = _AppManager()
+    cluster_manager.list_components(app_id="cheese", phase_in=[V1LightningworkState.RUNNING])
+
+    list_memberships.assert_called_once()
+    list_components.assert_called_once_with(
+        project_id="default-project", app_id="cheese", phase_in=[V1LightningworkState.RUNNING]
+    )
 
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
