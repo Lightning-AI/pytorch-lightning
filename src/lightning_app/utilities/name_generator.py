@@ -1,5 +1,7 @@
 from random import choice, randint
 
+__doctest_skip__ = ["get_unique_name"]
+
 _adjectives = [
     # Appearance, sound, smell...
     "acrid",
@@ -1334,9 +1336,9 @@ def get_unique_name():
 
     Examples
     --------
-    >>> get_unique_name()  # doctest: +SKIP
+    >>> get_unique_name()
     'focused-turing-23'
-    >>> get_unique_name()  # doctest: +SKIP
+    >>> get_unique_name()
     'thirsty-allen-9200'
     """
     adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)

@@ -26,7 +26,7 @@ class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
     """This Executor enables to move PyTorch tensors on GPU.
 
-    Without this executor, it woud raise the following expection:
+    Without this executor, it would raise the following exception:
     RuntimeError: Cannot re-initialize CUDA in forked subprocess.
     To use CUDA with multiprocessing, you must use the 'spawn' start method
     """
