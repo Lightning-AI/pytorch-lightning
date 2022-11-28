@@ -54,8 +54,8 @@ def requires(module_paths: Union[str, List]):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             unavailable_modules = [f"'{module}'" for module in module_paths if not module_available(module)]
-            is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
             if any(unavailable_modules):
+                is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
                 msg = f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
                 if is_lit_testing:
                     warnings.warn(msg)
