@@ -50,7 +50,7 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
                 f"Cannot pickle work class {copied_work.__class__.__name__} because we "
                 f"couldn't identify the module file"
             )
-        relative_path = Path(work_class_module.__file__).relative_to(Path.cwd())
+        relative_path = Path(work_class_module.__file__).relative_to(Path.cwd())  # type: ignore
         expected_module_name = relative_path.as_posix().replace(".py", "").replace("/", ".")
         # TODO @sherin: also check if the module is importable from the CWD
         fake_module = types.ModuleType(expected_module_name)
@@ -72,7 +72,7 @@ def dump(work: LightningWork, f: typing.BinaryIO) -> None:
     pickle.dump(picklable_work, f)
 
 
-def load(f) -> typing.Any:
+def load(f: typing.BinaryIO) -> typing.Any:
     # inject current working directory to sys.path
     sys.path.insert(1, str(Path.cwd()))
     work = pickle.load(f)
