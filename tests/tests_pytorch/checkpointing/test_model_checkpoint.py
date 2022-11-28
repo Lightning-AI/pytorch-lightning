@@ -957,11 +957,12 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     trainer.test(model)
     assert trainer.current_epoch == epochs
 
-    for idx in range(5):
+    for idx in range(1, 5):
         chk = get_last_checkpoint(ckpt_dir)
         assert_checkpoint_content(ckpt_dir)
 
         # load from checkpoint
+        trainer_config["logger"] = TensorBoardLogger(tmpdir)
         trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
@@ -984,6 +985,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
         assert trainer.fit_loop.epoch_progress.current.processed == epochs
+        assert_checkpoint_log_dir(idx)
 
 
 def test_configure_model_checkpoint(tmpdir):
