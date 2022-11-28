@@ -78,7 +78,7 @@ jobs:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
-    - uses: google-github-actions/get-gke-credentials@v0
+    - uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
