@@ -1,7 +1,10 @@
 import asyncio
 import logging
+import os
+import secrets
 import time
 import uuid
+from base64 import b64encode
 from itertools import cycle
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,11 +12,13 @@ import aiohttp
 import aiohttp.client_exceptions
 import requests
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from lightning_utilities.core.overrides import is_overridden
 from pydantic import BaseModel
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
@@ -21,6 +26,9 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
+
+
+BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
 
 
 def _raise_granular_exception(exception: Exception) -> None:
@@ -32,21 +40,21 @@ def _raise_granular_exception(exception: Exception) -> None:
         raise exception
 
     if isinstance(exception, aiohttp.client_exceptions.ServerDisconnectedError):
-        raise HTTPException(500, "Worker Server Disconnected")
+        raise HTTPException(500, "Worker Server Disconnected") from exception
 
     if isinstance(exception, aiohttp.client_exceptions.ClientError):
         logging.exception(exception)
-        raise HTTPException(500, "Worker Server error")
+        raise HTTPException(500, "Worker Server error") from exception
 
     if isinstance(exception, asyncio.TimeoutError):
-        raise HTTPException(408, "Request timed out")
+        raise HTTPException(408, "Request timed out") from exception
 
     if isinstance(exception, Exception):
         if exception.args[0] == "Server disconnected":
-            raise HTTPException(500, "Worker Server disconnected")
+            raise HTTPException(500, "Worker Server disconnected") from exception
 
     logging.exception(exception)
-    raise HTTPException(500, exception.args[0])
+    raise HTTPException(500, exception.args[0]) from exception
 
 
 class _SysInfo(BaseModel):
@@ -103,6 +111,13 @@ def _create_fastapi(title: str) -> FastAPI:
 class _LoadBalancer(LightningWork):
     r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
     asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
+
+    The LoadBalancer exposes system endpoints with a basic HTTP authentication, in order to activate the authentication
+    you need to provide a system password from environment variable::
+
+        lightning run app app.py --env BASIC_AUTH_PASSWORD=PASSWORD
+
+    After enabling you will require to send username and password from the request header for the private endpoints.
 
     Args:
         input_schema: Input schema.
@@ -221,6 +236,7 @@ class _LoadBalancer(LightningWork):
         self._last_batch_sent = time.time()
 
         fastapi_app = _create_fastapi("Load Balancer")
+        security = HTTPBasic()
         fastapi_app.global_request_count = 0
         fastapi_app.num_current_requests = 0
         fastapi_app.last_process_time = 0
@@ -236,8 +252,21 @@ class _LoadBalancer(LightningWork):
             fastapi_app.SEND_TASK.cancel()
             self._server_ready = False
 
+        def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
+            if len(BASIC_AUTH_PASSWORD) == 0:
+                logging.warning("You have not set password for private endpoints!")
+            current_password_bytes = credentials.password.encode("utf8")
+            is_correct_password = secrets.compare_digest(current_password_bytes, BASIC_AUTH_PASSWORD.encode("utf8"))
+            if not is_correct_password:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Incorrect password",
+                    headers={"WWW-Authenticate": "Basic"},
+                )
+            return True
+
         @fastapi_app.get("/system/info", response_model=_SysInfo)
-        async def sys_info():
+        async def sys_info(authenticated: bool = Depends(authenticate_private_endpoint)):
             return _SysInfo(
                 num_workers=len(self.servers),
                 servers=self.servers,
@@ -247,7 +276,7 @@ class _LoadBalancer(LightningWork):
             )
 
         @fastapi_app.put("/system/update-servers")
-        async def update_servers(servers: List[str]):
+        async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
             self.servers = servers
             self._ITER = cycle(self.servers)
 
@@ -270,11 +299,13 @@ class _LoadBalancer(LightningWork):
         AutoScaler uses this method to increase/decrease the number of works.
         """
         old_servers = set(self.servers)
-        server_urls: List[str] = [server.url for server in server_works if server.url]
-        new_servers = set(server_urls)
+        self.servers: List[str] = [server.url for server in server_works if server.url]
+        new_servers = set(self.servers)
+
         if new_servers == old_servers:
             logging.debug("no new server added")
             return
+
         if new_servers - old_servers:
             logger.info(f"servers added: {new_servers - old_servers}")
 
@@ -282,11 +313,26 @@ class _LoadBalancer(LightningWork):
         if deleted_servers:
             logger.info(f"servers deleted: {deleted_servers}")
 
+        self.send_request_to_update_servers(self.servers)
+
+    def send_request_to_update_servers(self, servers: List[str]):
+        AUTHORIZATION_TYPE = "Basic"
+        USERNAME = "lightning"
+        try:
+            param = f"{USERNAME}:{BASIC_AUTH_PASSWORD}".encode()
+            data = b64encode(param).decode("utf-8")
+        except (ValueError, UnicodeDecodeError) as e:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Basic"},
+            ) from e
         headers = {
             "accept": "application/json",
-            "username": "lightning",
+            "username": USERNAME,
+            "Authorization": AUTHORIZATION_TYPE + " " + data,
         }
-        response = requests.put(f"{self.url}/system/update-servers", json=server_urls, headers=headers, timeout=10)
+        response = requests.put(f"{self.url}/system/update-servers", json=servers, headers=headers, timeout=10)
         response.raise_for_status()
 
 
