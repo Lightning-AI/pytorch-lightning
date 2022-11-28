@@ -253,7 +253,7 @@ def test_lightning_cli_args(cleandir):
 def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
-        LightningCLI(BoringModel, DataDirDataModule, env_parse=True)
+        LightningCLI(BoringModel, DataDirDataModule, parser_kwargs={"default_env": True})
     out = out.getvalue()
     assert "PL_FIT__CONFIG" in out
     assert "PL_FIT__SEED_EVERYTHING" in out
@@ -268,7 +268,7 @@ def test_lightning_env_parse(cleandir):
         "PL_FIT__TRAINER__LOGGER": "False",
     }
     with mock.patch.dict(os.environ, env_vars), mock.patch("sys.argv", ["", "fit"]):
-        cli = LightningCLI(BoringModel, DataDirDataModule, env_parse=True)
+        cli = LightningCLI(BoringModel, DataDirDataModule, parser_kwargs={"default_env": True})
     assert cli.config.fit.data.data_dir == "."
     assert cli.config.fit.trainer.default_root_dir == "."
     assert cli.config.fit.trainer.max_epochs == 1
@@ -555,6 +555,16 @@ def test_cli_config_overwrite(cleandir):
         LightningCLI(BoringModel, trainer_defaults=trainer_defaults)
     with mock.patch("sys.argv", argv):
         LightningCLI(BoringModel, save_config_kwargs={"overwrite": True}, trainer_defaults=trainer_defaults)
+
+
+def test_cli_config_filename(tmpdir):
+    with mock.patch("sys.argv", ["any.py", "fit"]):
+        LightningCLI(
+            BoringModel,
+            trainer_defaults={"default_root_dir": str(tmpdir), "logger": False, "max_steps": 1, "max_epochs": 1},
+            save_config_kwargs={"config_filename": "name.yaml"},
+        )
+    assert os.path.isfile(tmpdir / "name.yaml")
 
 
 @pytest.mark.parametrize("run", (False, True))
