@@ -1,7 +1,5 @@
 from random import choice, randint
 
-__doctest_skip__ = ["get_unique_name"]
-
 _adjectives = [
     # Appearance, sound, smell...
     "acrid",
@@ -1334,12 +1332,13 @@ def get_unique_name():
     Original source:
         https://raw.githubusercontent.com/moby/moby/master/pkg/namesgenerator/names-generator.go
 
-    Examples
-    --------
+    Examples:
+
+    >>> import random ; random.seed(42)
     >>> get_unique_name()
-    'focused-turing-23'
+    'meek-ardinghelli-4506'
     >>> get_unique_name()
-    'thirsty-allen-9200'
+    'truthful-dijkstra-2286'
     """
     adjective, surname, i = choice(_adjectives), choice(_surnames), randint(0, 9999)
     return f"{adjective}-{surname}-{i}"
