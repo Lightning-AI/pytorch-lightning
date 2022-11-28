@@ -101,7 +101,7 @@ def _create_fastapi(title: str) -> FastAPI:
 
 
 class _LoadBalancer(LightningWork):
-    r"""The LoadBalancer is a LightningWork component that collects the requests and sends it to the prediciton API
+    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
     asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
     Args:
@@ -109,7 +109,7 @@ class _LoadBalancer(LightningWork):
         output_schema: Output schema.
         worker_url: The REST API path.
         max_batch_size: The number of requests processed at once.
-        timeout_batch: The number of seconds to wait before sending the requests to process.
+        timeout_batch: The number of seconds to wait before sending the requests to process in order to allow for requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
         timeout_keep_alive: Close Keep-Alive connections if no new data is received within this timeout.
         timeout_inference_request: The number of seconds to wait for inference.
         \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
