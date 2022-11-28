@@ -57,7 +57,7 @@ def requires(module_paths: Union[str, List]):
             is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
             if any(unavailable_modules):
                 msg = f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
-                if not is_lit_testing:
+                if is_lit_testing:
                     warnings.warn(msg)
                 else:
                     raise ModuleNotFoundError(msg)
