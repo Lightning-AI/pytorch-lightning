@@ -1,6 +1,7 @@
 import pickle
 import sys
 import types
+import typing
 from copy import deepcopy
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import _LightningAppRef
 
 
-def get_picklable_work(work: LightningWork):
+def get_picklable_work(work: LightningWork) -> LightningWork:
     """Pickling a LightningWork instance fails if it doesn from the work process
     itself. This function is safe to call from the work process within both MultiprocessRuntime
     and Cloud.
@@ -29,7 +30,10 @@ def get_picklable_work(work: LightningWork):
 
     # pickling the user work class - pickling `self` will cause issue because the
     # work is running under a process, in local
-    for w in _LightningAppRef.get_current().works:
+    app_ref = _LightningAppRef.get_current()
+    if app_ref is None:
+        raise RuntimeError("Cannot pickle LightningWork outside of a LightningApp")
+    for w in app_ref.works:
         if work.name == w.name:
             # copying the work object to avoid modifying the original work object
             copied_work = deepcopy(w)
@@ -40,6 +44,12 @@ def get_picklable_work(work: LightningWork):
     # pickling/unpickling will fail, hence we need patch the module information
     if "_main__" in copied_work.__class__.__module__:
         work_class_module = sys.modules[copied_work.__class__.__module__]
+        work_class_file = work_class_module.__file__
+        if not work_class_file:
+            raise ValueError(
+                f"Cannot pickle work class {copied_work.__class__.__name__} because we "
+                f"couldn't identify the module file"
+            )
         relative_path = Path(work_class_module.__file__).relative_to(Path.cwd())
         expected_module_name = relative_path.as_posix().replace(".py", "").replace("/", ".")
         # TODO @sherin: also check if the module is importable from the CWD
@@ -57,12 +67,12 @@ def get_picklable_work(work: LightningWork):
     return copied_work
 
 
-def dump(work: LightningWork, f):
+def dump(work: LightningWork, f: typing.BinaryIO) -> None:
     picklable_work = get_picklable_work(work)
     pickle.dump(picklable_work, f)
 
 
-def load(f):
+def load(f) -> typing.Any:
     # inject current working directory to sys.path
     sys.path.insert(1, str(Path.cwd()))
     work = pickle.load(f)
