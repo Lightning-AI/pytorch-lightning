@@ -11,11 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import glob
 import inspect
 import json
 import os
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
+from pathlib import Path
 from typing import Callable, List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
@@ -39,6 +41,7 @@ from pytorch_lightning.cli import (
 )
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import _COMET_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.strategies import DDPStrategy
@@ -63,6 +66,19 @@ def mock_subclasses(baseclass, *subclasses):
         for mgr in [mock.patch.object(s, "__subclasses__", return_value=[]) for s in subclasses]:
             stack.enter_context(mgr)
         yield None
+
+
+@pytest.fixture
+def cleandir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def ensure_cleandir():
+    yield
+    # make sure tests don't leave configuration files
+    assert not glob.glob("*.yaml")
 
 
 @pytest.mark.parametrize("cli_args", [["--callbacks=1", "--logger"], ["--foo", "--bar=1"]])
@@ -132,7 +148,7 @@ def test_lightning_cli(trainer_class, model_class, monkeypatch):
         assert hasattr(cli.trainer, "ran_asserts") and cli.trainer.ran_asserts
 
 
-def test_lightning_cli_args_callbacks(tmpdir):
+def test_lightning_cli_args_callbacks(cleandir):
 
     callbacks = [
         dict(
@@ -154,7 +170,7 @@ def test_lightning_cli_args_callbacks(tmpdir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.callbacks={json.dumps(callbacks)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+        cli = LightningCLI(TestModel, trainer_defaults=dict(fast_dev_run=True, logger=CSVLogger(".")))
 
     assert cli.trainer.ran_asserts
 
@@ -168,7 +184,7 @@ def test_lightning_cli_single_arg_callback():
 
 
 @pytest.mark.parametrize("run", (False, True))
-def test_lightning_cli_configurable_callbacks(tmpdir, run):
+def test_lightning_cli_configurable_callbacks(cleandir, run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_lightning_class_args(LearningRateMonitor, "learning_rate_monitor")
@@ -177,7 +193,7 @@ def test_lightning_cli_configurable_callbacks(tmpdir, run):
             pass
 
     cli_args = ["fit"] if run else []
-    cli_args += [f"--trainer.default_root_dir={tmpdir}", "--learning_rate_monitor.logging_interval=epoch"]
+    cli_args += ["--learning_rate_monitor.logging_interval=epoch"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel, run=run)
@@ -187,7 +203,7 @@ def test_lightning_cli_configurable_callbacks(tmpdir, run):
     assert callback[0].logging_interval == "epoch"
 
 
-def test_lightning_cli_args_cluster_environments(tmpdir):
+def test_lightning_cli_args_cluster_environments(cleandir):
     plugins = [dict(class_path="lightning_lite.plugins.environments.SLURMEnvironment")]
 
     class TestModel(BoringModel):
@@ -197,26 +213,32 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.plugins={json.dumps(plugins)}"]):
-        cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
+        cli = LightningCLI(TestModel, trainer_defaults=dict(fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
 
 
-def test_lightning_cli_args(tmpdir):
+class DataDirDataModule(BoringDataModule):
+    def __init__(self, data_dir):
+        super().__init__()
 
+
+def test_lightning_cli_args(cleandir):
     cli_args = [
         "fit",
-        f"--data.data_dir={tmpdir}",
-        f"--trainer.default_root_dir={tmpdir}",
+        "--data.data_dir=.",
         "--trainer.max_epochs=1",
+        "--trainer.limit_train_batches=1",
+        "--trainer.limit_val_batches=0",
         "--trainer.enable_model_summary=False",
+        "--trainer.logger=False",
         "--seed_everything=1234",
     ]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(BoringModel, BoringDataModule, trainer_defaults={"callbacks": [LearningRateMonitor()]})
+        cli = LightningCLI(BoringModel, DataDirDataModule)
 
-    config_path = tmpdir / "lightning_logs" / "version_0" / "config.yaml"
+    config_path = "config.yaml"
     assert os.path.isfile(config_path)
     with open(config_path) as f:
         loaded_config = yaml.safe_load(f.read())
@@ -228,10 +250,10 @@ def test_lightning_cli_args(tmpdir):
     assert loaded_config["trainer"] == cli_config["trainer"]
 
 
-def test_lightning_env_parse(tmpdir):
+def test_lightning_env_parse(cleandir):
     out = StringIO()
     with mock.patch("sys.argv", ["", "fit", "--help"]), redirect_stdout(out), pytest.raises(SystemExit):
-        LightningCLI(BoringModel, BoringDataModule, env_parse=True)
+        LightningCLI(BoringModel, DataDirDataModule, parser_kwargs={"default_env": True})
     out = out.getvalue()
     assert "PL_FIT__CONFIG" in out
     assert "PL_FIT__SEED_EVERYTHING" in out
@@ -240,23 +262,23 @@ def test_lightning_env_parse(tmpdir):
     assert "PL_FIT__CKPT_PATH" in out
 
     env_vars = {
-        "PL_FIT__DATA__DATA_DIR": str(tmpdir),
-        "PL_FIT__TRAINER__DEFAULT_ROOT_DIR": str(tmpdir),
+        "PL_FIT__DATA__DATA_DIR": ".",
+        "PL_FIT__TRAINER__DEFAULT_ROOT_DIR": ".",
         "PL_FIT__TRAINER__MAX_EPOCHS": "1",
-        "PL_FIT__TRAINER__LOGGER": "false",
+        "PL_FIT__TRAINER__LOGGER": "False",
     }
     with mock.patch.dict(os.environ, env_vars), mock.patch("sys.argv", ["", "fit"]):
-        cli = LightningCLI(BoringModel, BoringDataModule, env_parse=True)
-    assert cli.config.fit.data.data_dir == str(tmpdir)
-    assert cli.config.fit.trainer.default_root_dir == str(tmpdir)
+        cli = LightningCLI(BoringModel, DataDirDataModule, parser_kwargs={"default_env": True})
+    assert cli.config.fit.data.data_dir == "."
+    assert cli.config.fit.trainer.default_root_dir == "."
     assert cli.config.fit.trainer.max_epochs == 1
     assert cli.config.fit.trainer.logger is False
 
 
-def test_lightning_cli_save_config_cases(tmpdir):
+def test_lightning_cli_save_config_cases(cleandir):
 
-    config_path = tmpdir / "config.yaml"
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.fast_dev_run=1"]
+    config_path = "config.yaml"
+    cli_args = ["fit", "--trainer.logger=false", "--trainer.fast_dev_run=1"]
 
     # With fast_dev_run!=False config should not be saved
     with mock.patch("sys.argv", ["any.py"] + cli_args):
@@ -274,9 +296,9 @@ def test_lightning_cli_save_config_cases(tmpdir):
         LightningCLI(BoringModel)
 
 
-def test_lightning_cli_save_config_only_once(tmpdir):
-    config_path = tmpdir / "config.yaml"
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--trainer.logger=False", "--trainer.max_epochs=1"]
+def test_lightning_cli_save_config_only_once(cleandir):
+    config_path = "config.yaml"
+    cli_args = ["--trainer.logger=false", "--trainer.max_epochs=1"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(BoringModel, run=False)
@@ -290,31 +312,33 @@ def test_lightning_cli_save_config_only_once(tmpdir):
     cli.trainer.test(cli.model)  # Should not fail because config already saved
 
 
-def test_lightning_cli_config_and_subclass_mode(tmpdir):
+def test_lightning_cli_config_and_subclass_mode(cleandir):
     input_config = {
         "fit": {
             "model": {"class_path": "pytorch_lightning.demos.boring_classes.BoringModel"},
             "data": {
-                "class_path": "pytorch_lightning.demos.boring_classes.BoringDataModule",
-                "init_args": {"data_dir": str(tmpdir)},
+                "class_path": "DataDirDataModule",
+                "init_args": {"data_dir": "."},
             },
-            "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
+            "trainer": {"max_epochs": 1, "enable_model_summary": False, "logger": False},
         }
     }
-    config_path = tmpdir / "config.yaml"
+    config_path = "config.yaml"
     with open(config_path, "w") as f:
         f.write(yaml.dump(input_config))
 
-    with mock.patch("sys.argv", ["any.py", "--config", str(config_path)]):
+    with mock.patch("sys.argv", ["any.py", "--config", config_path]), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ):
         cli = LightningCLI(
             BoringModel,
             BoringDataModule,
             subclass_mode_model=True,
             subclass_mode_data=True,
-            trainer_defaults={"callbacks": LearningRateMonitor()},
+            save_config_kwargs={"overwrite": True},
         )
 
-    config_path = tmpdir / "lightning_logs" / "version_0" / "config.yaml"
+    config_path = "config.yaml"
     assert os.path.isfile(config_path)
     with open(config_path) as f:
         loaded_config = yaml.safe_load(f.read())
@@ -330,7 +354,6 @@ def any_model_any_data_cli():
 
 
 def test_lightning_cli_help():
-
     cli_args = ["any.py", "fit", "--help"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
@@ -348,9 +371,11 @@ def test_lightning_cli_help():
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
-    cli_args = ["any.py", "fit", "--data.help=pytorch_lightning.demos.boring_classes.BoringDataModule"]
+    cli_args = ["any.py", "fit", "--data.help=DataDirDataModule"]
     out = StringIO()
-    with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+    with mock.patch("sys.argv", cli_args), redirect_stdout(out), mock_subclasses(
+        LightningDataModule, DataDirDataModule
+    ), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
     assert "--data.init_args.data_dir" in out.getvalue()
@@ -380,7 +405,7 @@ def test_lightning_cli_print_config():
     assert outval["ckpt_path"] is None
 
 
-def test_lightning_cli_submodules(tmpdir):
+def test_lightning_cli_submodules(cleandir):
     class MainModule(BoringModel):
         def __init__(self, submodule1: LightningModule, submodule2: LightningModule, main_param: int = 1):
             super().__init__()
@@ -394,12 +419,10 @@ def test_lightning_cli_submodules(tmpdir):
         submodule2:
             class_path: pytorch_lightning.demos.boring_classes.BoringModel
     """
-    config_path = tmpdir / "config.yaml"
-    with open(config_path, "w") as f:
-        f.write(config)
+    config_path = Path("config.yaml")
+    config_path.write_text(config)
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", f"--config={str(config_path)}"]
-
+    cli_args = [f"--config={config_path}"]
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(MainModule, run=False)
 
@@ -409,7 +432,7 @@ def test_lightning_cli_submodules(tmpdir):
 
 
 @pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason=str(_TORCHVISION_AVAILABLE))
-def test_lightning_cli_torch_modules(tmpdir):
+def test_lightning_cli_torch_modules(cleandir):
     class TestModule(BoringModel):
         def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
             super().__init__()
@@ -429,12 +452,10 @@ def test_lightning_cli_torch_modules(tmpdir):
             init_args:
               size: 64
     """
-    config_path = tmpdir / "config.yaml"
-    with open(config_path, "w") as f:
-        f.write(config)
+    config_path = Path("config.yaml")
+    config_path.write_text(config)
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", f"--config={str(config_path)}"]
-
+    cli_args = [f"--config={config_path}"]
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(TestModule, run=False)
 
@@ -458,13 +479,13 @@ class BoringDataModuleBatchSizeAndClasses(BoringDataModule):
         self.num_classes = 5  # only available after instantiation
 
 
-def test_lightning_cli_link_arguments(tmpdir):
+def test_lightning_cli_link_arguments():
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.link_arguments("data.batch_size", "model.batch_size")
             parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
 
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", "--data.batch_size=12"]
+    cli_args = ["--data.batch_size=12"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModelRequiredClasses, BoringDataModuleBatchSizeAndClasses, run=False)
@@ -495,9 +516,9 @@ class EarlyExitTestModel(BoringModel):
 
 # mps not yet supported by distributed
 @RunIf(skip_windows=True, mps=False)
-@pytest.mark.parametrize("logger", (False, True))
+@pytest.mark.parametrize("logger", (None, TensorBoardLogger(".")))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
-def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
+def test_cli_distributed_save_config_callback(cleandir, logger, strategy):
     from torch.multiprocessing import ProcessRaisedException
 
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
@@ -506,7 +527,6 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
         LightningCLI(
             EarlyExitTestModel,
             trainer_defaults={
-                "default_root_dir": str(tmpdir),
                 "logger": logger,
                 "max_steps": 1,
                 "max_epochs": 1,
@@ -516,17 +536,17 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
             },
         )
     if logger:
-        config_dir = tmpdir / "lightning_logs"
+        config_dir = Path("lightning_logs")
         # no more version dirs should get created
         assert os.listdir(config_dir) == ["version_0"]
         config_path = config_dir / "version_0" / "config.yaml"
     else:
-        config_path = tmpdir / "config.yaml"
+        config_path = "config.yaml"
     assert os.path.isfile(config_path)
 
 
-def test_cli_config_overwrite(tmpdir):
-    trainer_defaults = {"default_root_dir": str(tmpdir), "logger": False, "max_steps": 1, "max_epochs": 1}
+def test_cli_config_overwrite(cleandir):
+    trainer_defaults = {"max_steps": 1, "max_epochs": 1, "logger": False}
 
     argv = ["any.py", "fit"]
     with mock.patch("sys.argv", argv):
@@ -537,14 +557,24 @@ def test_cli_config_overwrite(tmpdir):
         LightningCLI(BoringModel, save_config_kwargs={"overwrite": True}, trainer_defaults=trainer_defaults)
 
 
+def test_cli_config_filename(tmpdir):
+    with mock.patch("sys.argv", ["any.py", "fit"]):
+        LightningCLI(
+            BoringModel,
+            trainer_defaults={"default_root_dir": str(tmpdir), "logger": False, "max_steps": 1, "max_epochs": 1},
+            save_config_kwargs={"config_filename": "name.yaml"},
+        )
+    assert os.path.isfile(tmpdir / "name.yaml")
+
+
 @pytest.mark.parametrize("run", (False, True))
-def test_lightning_cli_optimizer(tmpdir, run):
+def test_lightning_cli_optimizer(run):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
 
     match = "BoringModel.configure_optimizers` will be overridden by " "`MyLightningCLI.configure_optimizers`"
-    argv = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1"] if run else []
+    argv = ["fit", "--trainer.fast_dev_run=1"] if run else []
     with mock.patch("sys.argv", ["any.py"] + argv), pytest.warns(UserWarning, match=match):
         cli = MyLightningCLI(BoringModel, run=run)
 
@@ -559,13 +589,13 @@ def test_lightning_cli_optimizer(tmpdir, run):
         assert len(cli.trainer.lr_scheduler_configs) == 0
 
 
-def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
+def test_lightning_cli_optimizer_and_lr_scheduler():
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(torch.optim.Adam)
             parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
 
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.fast_dev_run=1", "--lr_scheduler.gamma=0.8"]
+    cli_args = ["fit", "--trainer.fast_dev_run=1", "--lr_scheduler.gamma=0.8"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(BoringModel)
@@ -578,7 +608,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler(tmpdir):
     assert cli.trainer.lr_scheduler_configs[0].scheduler.gamma == 0.8
 
 
-def test_cli_no_need_configure_optimizers():
+def test_cli_no_need_configure_optimizers(cleandir):
     class BoringModel(LightningModule):
         def __init__(self):
             super().__init__()
@@ -605,7 +635,7 @@ def test_cli_no_need_configure_optimizers():
     verify.assert_called_once_with(cli.trainer, cli.model)
 
 
-def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
+def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(cleandir):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args((torch.optim.SGD, torch.optim.Adam))
@@ -615,7 +645,6 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
     lr_scheduler_arg = dict(class_path="torch.optim.lr_scheduler.StepLR", init_args=dict(step_size=50))
     cli_args = [
         "fit",
-        f"--trainer.default_root_dir={tmpdir}",
         "--trainer.max_epochs=1",
         f"--optimizer={json.dumps(optimizer_arg)}",
         f"--lr_scheduler={json.dumps(lr_scheduler_arg)}",
@@ -632,7 +661,7 @@ def test_lightning_cli_optimizer_and_lr_scheduler_subclasses(tmpdir):
 
 
 @pytest.mark.parametrize("use_generic_base_class", [False, True])
-def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class, tmpdir):
+def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base_class):
     class MyLightningCLI(LightningCLI):
         def add_arguments_to_parser(self, parser):
             parser.add_optimizer_args(
@@ -653,7 +682,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1"]
+    cli_args = ["fit", "--trainer.fast_dev_run=1"]
     if use_generic_base_class:
         cli_args += [
             "--optim1",
@@ -783,7 +812,7 @@ def test_lightning_cli_custom_subcommand():
     assert "The y (type: float, default: 1.0)" in out
 
 
-def test_lightning_cli_run():
+def test_lightning_cli_run(cleandir):
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, run=False)
     assert cli.trainer.global_step == 0
@@ -917,7 +946,7 @@ def test_callbacks_append(use_class_path_callbacks):
     assert all(t in callback_types for t in expected)
 
 
-def test_optimizers_and_lr_schedulers_reload(tmpdir):
+def test_optimizers_and_lr_schedulers_reload(cleandir):
     base = ["any.py", "--trainer.max_epochs=1"]
     input = base + [
         "--lr_scheduler",
@@ -942,13 +971,13 @@ def test_optimizers_and_lr_schedulers_reload(tmpdir):
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
 
     # reload config
-    yaml_config_file = tmpdir / "config.yaml"
-    yaml_config_file.write_text(yaml_config, "utf-8")
+    yaml_config_file = Path("config.yaml")
+    yaml_config_file.write_text(yaml_config)
     with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
         LightningCLI(BoringModel, run=False)
 
 
-def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(tmpdir):
+def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload(cleandir):
     class TestLightningCLI(LightningCLI):
         def __init__(self, *args):
             super().__init__(*args, run=False)
@@ -1007,8 +1036,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     assert dict_config["something"] == ["a", "b", "c"]
 
     # reload config
-    yaml_config_file = tmpdir / "config.yaml"
-    yaml_config_file.write_text(yaml_config, "utf-8")
+    yaml_config_file = Path("config.yaml")
+    yaml_config_file.write_text(yaml_config)
     with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
         cli = TestLightningCLI(TestModel)
 
@@ -1106,14 +1135,14 @@ def test_lightning_cli_config_before_and_after_subcommand():
     assert cli.trainer.fast_dev_run == 1
 
 
-def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
+def test_lightning_cli_parse_kwargs_with_subcommands(cleandir):
     fit_config = {"trainer": {"limit_train_batches": 2}}
-    fit_config_path = tmpdir / "fit.yaml"
-    fit_config_path.write_text(str(fit_config), "utf8")
+    fit_config_path = Path("fit.yaml")
+    fit_config_path.write_text(str(fit_config))
 
     validate_config = {"trainer": {"limit_val_batches": 3}}
-    validate_config_path = tmpdir / "validate.yaml"
-    validate_config_path.write_text(str(validate_config), "utf8")
+    validate_config_path = Path("validate.yaml")
+    validate_config_path.write_text(str(validate_config))
 
     parser_kwargs = {
         "fit": {"default_config_files": [str(fit_config_path)]},
@@ -1137,15 +1166,15 @@ def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
     assert cli.trainer.limit_val_batches == 3
 
 
-def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
+def test_lightning_cli_subcommands_common_default_config_files(cleandir):
     class Model(BoringModel):
         def __init__(self, foo: int, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.foo = foo
 
     config = {"fit": {"model": {"foo": 123}}}
-    config_path = tmpdir / "default.yaml"
-    config_path.write_text(str(config), "utf8")
+    config_path = Path("default.yaml")
+    config_path.write_text(str(config))
     parser_kwargs = {"default_config_files": [str(config_path)]}
 
     with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(

@@ -12,11 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+
 import functools
 import os
+import warnings
 from typing import List, Union
 
 from lightning_utilities.core.imports import module_available
+from packaging.requirements import Marker, Requirement
+
+try:
+    from importlib import metadata
+except ImportError:
+    # Python < 3.8
+    import importlib_metadata as metadata  # type: ignore
+
+
+def _get_extras(extras: str) -> str:
+    """Get the given extras as a space delimited string.
+
+    Used by the platform to install cloud extras in the cloud.
+    """
+    from lightning_app import __package_name__
+
+    requirements = {r: Requirement(r) for r in metadata.requires(__package_name__)}
+    marker = Marker(f'extra == "{extras}"')
+    requirements = [r for r, req in requirements.items() if str(req.marker) == str(marker)]
+
+    if requirements:
+        requirements = [f"'{r.split(';')[0].strip()}'" for r in requirements]
+        return " ".join(requirements)
+    return ""
 
 
 def requires(module_paths: Union[str, List]):
@@ -28,10 +54,13 @@ def requires(module_paths: Union[str, List]):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             unavailable_modules = [f"'{module}'" for module in module_paths if not module_available(module)]
-            if any(unavailable_modules) and not bool(int(os.getenv("LIGHTING_TESTING", "0"))):
-                raise ModuleNotFoundError(
-                    f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
-                )
+            if any(unavailable_modules):
+                is_lit_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
+                msg = f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
+                if is_lit_testing:
+                    warnings.warn(msg)
+                else:
+                    raise ModuleNotFoundError(msg)
             return func(*args, **kwargs)
 
         return wrapper

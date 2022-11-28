@@ -322,7 +322,7 @@ class LightningModule(
         name: str,
         value: _METRIC_COLLECTION,
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -438,6 +438,16 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
+        if logger and self.trainer.logger is None:
+            rank_zero_warn(
+                f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
+                " by doing `Trainer(logger=ALogger(...))`"
+            )
+        if logger is None:
+            # we could set false here if there's no configured logger, however, we still need to compute the "logged"
+            # metrics anyway because that's what the evaluation loops use as return value
+            logger = True
+
         results.log(
             self._current_fx_name,
             name,
@@ -463,7 +473,7 @@ class LightningModule(
         self,
         dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
