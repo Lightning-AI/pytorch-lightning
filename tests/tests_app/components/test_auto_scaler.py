@@ -31,7 +31,7 @@ def test_num_replicas_after_init():
 
 @patch("uvicorn.run")
 @patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_requests")
+@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_above_max_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     max_replicas = 6
@@ -51,7 +51,7 @@ def test_num_replicas_not_above_max_replicas(*_):
 
 @patch("uvicorn.run")
 @patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_requests")
+@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_belo_min_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     min_replicas = 1
