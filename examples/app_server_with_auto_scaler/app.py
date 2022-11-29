@@ -1,4 +1,3 @@
-import warnings  # FIXME: remove before merge
 from typing import Any, List
 
 import torch
@@ -6,9 +5,6 @@ import torchvision
 from pydantic import BaseModel
 
 import lightning as L
-
-warnings.filterwarnings("ignore", "Arguments other than a weight enum", UserWarning)  # FIXME: remove before merge
-warnings.filterwarnings("ignore", "The parameter 'pretrained' is deprecated", UserWarning)  # FIXME: remove before merge
 
 
 class RequestModel(BaseModel):
