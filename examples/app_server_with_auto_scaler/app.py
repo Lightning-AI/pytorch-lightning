@@ -74,8 +74,8 @@ app = L.LightningApp(
         max_replicas=4,
         autoscale_interval=10,
         endpoint="predict",
-        input_schema=RequestModel,
-        output_schema=Any,
+        input_type=RequestModel,
+        output_type=Any,
         timeout_batching=1,
     )
 )
