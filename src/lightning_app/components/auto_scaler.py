@@ -78,7 +78,7 @@ def _create_fastapi(title: str) -> FastAPI:
 
     fastapi_app.global_request_count = 0
     fastapi_app.num_current_requests = 0
-    fastapi_app.last_process_time = 0
+    fastapi_app.last_processing_time = 0
 
     @fastapi_app.middleware("http")
     async def current_request_counter(request: Request, call_next):
@@ -88,8 +88,8 @@ def _create_fastapi(title: str) -> FastAPI:
         fastapi_app.num_current_requests += 1
         start_time = time.time()
         response = await call_next(request)
-        process_time = time.time() - start_time
-        fastapi_app.last_process_time = process_time
+        processing_time = time.time() - start_time
+        fastapi_app.last_processing_time = processing_time
         fastapi_app.num_current_requests -= 1
         return response
 
@@ -233,7 +233,7 @@ class _LoadBalancer(LightningWork):
         security = HTTPBasic()
         fastapi_app.global_request_count = 0
         fastapi_app.num_current_requests = 0
-        fastapi_app.last_process_time = 0
+        fastapi_app.last_processing_time = 0
         fastapi_app.SEND_TASK = None
 
         @fastapi_app.on_event("startup")
@@ -268,7 +268,7 @@ class _LoadBalancer(LightningWork):
                 num_workers=len(self.servers),
                 servers=self.servers,
                 num_requests=fastapi_app.num_current_requests,
-                process_time=fastapi_app.last_process_time,
+                processing_time=fastapi_app.last_processing_time,
                 global_request_count=fastapi_app.global_request_count,
             )
 
