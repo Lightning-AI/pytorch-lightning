@@ -116,8 +116,8 @@ class _LoadBalancer(LightningWork):
     After enabling you will require to send username and password from the request header for the private endpoints.
 
     Args:
-        input_schema: Input schema.
-        output_schema: Output schema.
+        input_type: Input type.
+        output_type: Output type.
         worker_url: The REST API path.
         max_batch_size: The number of requests processed at once.
         timeout_batching: The number of seconds to wait before sending the requests to process in order to allow for
@@ -129,8 +129,8 @@ class _LoadBalancer(LightningWork):
 
     def __init__(
         self,
-        input_schema,
-        output_schema,
+        input_type: type,
+        output_type: type,
         worker_url: str,
         max_batch_size: int = 8,
         timeout_batching: int = 10,
@@ -139,8 +139,8 @@ class _LoadBalancer(LightningWork):
         **kwargs: Any,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
-        self._input_schema = input_schema
-        self._output_schema = output_schema
+        self._input_type = input_type
+        self._output_type = output_type
         self._server_ready = False
         self._timeout_keep_alive = timeout_keep_alive
         self._timeout_inference_request = timeout_inference_request
@@ -155,7 +155,7 @@ class _LoadBalancer(LightningWork):
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
         server = next(self._ITER)  # round-robin
-        request_data: List[_LoadBalancer._input_schema] = [b[1] for b in batch]
+        request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
         try:
@@ -223,9 +223,6 @@ class _LoadBalancer(LightningWork):
         if self._server_ready:
             return
 
-        INPUT_SCHEMA = self._input_schema
-        OUTPUT_SCHEMA = self._output_schema
-
         logger.info(f"servers: {self.servers}")
 
         self._ITER = cycle(self.servers)
@@ -279,8 +276,8 @@ class _LoadBalancer(LightningWork):
             self.servers = servers
             self._ITER = cycle(self.servers)
 
-        @fastapi_app.post("/api/predict", response_model=OUTPUT_SCHEMA)
-        async def balance_api(inputs: INPUT_SCHEMA):
+        @fastapi_app.post("/api/predict", response_model=self._output_type)
+        async def balance_api(inputs: self._input_type):
             return await self.process_request(inputs)
 
         uvicorn.run(
@@ -350,13 +347,13 @@ class AutoScaler(LightningFlow):
         worker_url: Default=api/predict. Provide the REST API path
         max_batch_size: (auto-batching) The number of requests to process at once.
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
-        input_schema:
-        output_schema:
+        input_type: Input type.
+        output_type: Output type.
 
         Example:
             import lightning as L
 
-            # Example 1: Auto-scaling serving out-of-the-box
+            # Example 1: Auto-scaling serve component out-of-the-box
             app = L.LightningApp(
                 L.app.components.AutoScaler(
                     MyPythonServer,
@@ -402,8 +399,8 @@ class AutoScaler(LightningFlow):
         downscale_threshold: Optional[int] = None,
         upscale_threshold: Optional[int] = None,
         worker_url: str = None,
-        input_schema: Any = Dict,
-        output_schema: Any = Dict,
+        input_type: type = Dict,
+        output_type: type = Dict,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -415,8 +412,8 @@ class AutoScaler(LightningFlow):
         self._work_args = work_args
         self._work_kwargs = work_kwargs
 
-        self._input_schema = input_schema
-        self._output_schema = output_schema
+        self._input_type = input_type
+        self._output_type = output_type
         self.autoscale_interval = autoscale_interval
 
         if max_replicas < min_replicas:
@@ -432,8 +429,8 @@ class AutoScaler(LightningFlow):
 
         worker_url = worker_url or "api/predict"
         self.load_balancer = _LoadBalancer(
-            input_schema=self._input_schema,
-            output_schema=self._output_schema,
+            input_type=self._input_type,
+            output_type=self._output_type,
             worker_url=worker_url,
             max_batch_size=max_batch_size,
             timeout_batching=timeout_batching,
