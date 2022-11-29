@@ -22,6 +22,7 @@ from deepdiff import Delta
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
+from lightning_app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
     from lightning_app.core.app import LightningApp
@@ -527,3 +528,15 @@ def _should_dispatch_app() -> bool:
         and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
         and "LIGHTNING_APP_STATE_URL" not in os.environ
     )
+
+
+def _is_headless(app: "LightningApp") -> bool:
+    """Utility which returns True if the given App has no ``Frontend`` objects or URLs exposed through
+    ``configure_layout``."""
+    if app.frontends:
+        return False
+    for component in breadth_first(app.root, types=(lightning_app.LightningFlow,)):
+        for entry in component._layout:
+            if "target" in entry:
+                return False
+    return True
