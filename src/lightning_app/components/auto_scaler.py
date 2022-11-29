@@ -147,14 +147,14 @@ class _LoadBalancer(LightningWork):
         self.servers = []
         self.max_batch_size = max_batch_size
         self.timeout_batching = timeout_batching
-        self._ITER = None
+        self._iter = None
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
         self.worker_url = worker_url
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
-        server = next(self._ITER)  # round-robin
+        server = next(self._iter)  # round-robin
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
@@ -225,7 +225,7 @@ class _LoadBalancer(LightningWork):
 
         logger.info(f"servers: {self.servers}")
 
-        self._ITER = cycle(self.servers)
+        self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
 
         fastapi_app = _create_fastapi("Load Balancer")
@@ -274,7 +274,7 @@ class _LoadBalancer(LightningWork):
         @fastapi_app.put("/system/update-servers")
         async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
             self.servers = servers
-            self._ITER = cycle(self.servers)
+            self._iter = cycle(self.servers)
 
         @fastapi_app.post("/api/predict", response_model=self._output_type)
         async def balance_api(inputs: self._input_type):
