@@ -8,7 +8,7 @@ import arrow
 import click
 import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
@@ -54,7 +54,7 @@ def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = Fals
         action = "?action=add_credits" if need_credits else ""
         return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
     else:
-        return "http://127.0.0.1:7501/view"
+        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")
 
 
 def main() -> None:
@@ -420,7 +420,7 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
     except ApiException:
         raise click.ClickException("failed fetching app instance")
 
-    components = app_manager.list_components(app_id=app_id)
+    components = app_manager.list_components(app_id=app_id, phase_in=[V1LightningworkState.RUNNING])
     available_component_names = [work.name for work in components] + ["flow"]
     if component_name is None:
         available_components = [
