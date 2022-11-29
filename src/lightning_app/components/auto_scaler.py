@@ -118,7 +118,7 @@ class _LoadBalancer(LightningWork):
     Args:
         input_type: Input type.
         output_type: Output type.
-        worker_url: The REST API path.
+        endpoint: The REST API path.
         max_batch_size: The number of requests processed at once.
         timeout_batching: The number of seconds to wait before sending the requests to process in order to allow for
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
@@ -131,7 +131,7 @@ class _LoadBalancer(LightningWork):
         self,
         input_type: type,
         output_type: type,
-        worker_url: str,
+        endpoint: str,
         max_batch_size: int = 8,
         # all timeout args are in seconds
         timeout_batching: int = 10,
@@ -152,7 +152,7 @@ class _LoadBalancer(LightningWork):
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
-        self.worker_url = worker_url
+        self.endpoint = endpoint
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
         server = next(self._iter)  # round-robin
@@ -166,7 +166,7 @@ class _LoadBalancer(LightningWork):
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                    f"{server}/{self.worker_url}",
+                    f"{server}/{self.endpoint}",
                     json=batch_request_data.dict(),
                     timeout=self._timeout_inference_request,
                     headers=headers,
@@ -345,7 +345,7 @@ class AutoScaler(LightningFlow):
         autoscale_interval: The number of seconds to wait before checking whether to upscale or downscale the works.
         downscale_threshold: Lower limit to determine when to stop works.
         upscale_threshold: Upper limit to determine when to spawn up a new work.
-        worker_url: Default=api/predict. Provide the REST API path
+        endpoint: Default=api/predict. Provide the REST API path
         max_batch_size: (auto-batching) The number of requests to process at once.
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
         input_type: Input type.
@@ -399,7 +399,7 @@ class AutoScaler(LightningFlow):
         timeout_batching: float = 2,
         downscale_threshold: Optional[int] = None,
         upscale_threshold: Optional[int] = None,
-        worker_url: str = None,
+        endpoint: str = None,
         input_type: type = Dict,
         output_type: type = Dict,
         *work_args: Any,
@@ -428,11 +428,11 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
         self.fake_trigger = 0
 
-        worker_url = worker_url or "api/predict"
+        endpoint = endpoint or "api/predict"
         self.load_balancer = _LoadBalancer(
             input_type=self._input_type,
             output_type=self._output_type,
-            worker_url=worker_url,
+            endpoint=endpoint,
             max_batch_size=max_batch_size,
             timeout_batching=timeout_batching,
             cache_calls=True,
