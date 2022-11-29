@@ -47,7 +47,7 @@ class PyTorchServer(L.app.components.PythonServer):
         )
         images = []
         for request in requests.inputs:
-            image = L.app.components.Image.deserialize(request.image)
+            image = L.app.components.serve.types.image.Image.deserialize(request.image)
             image = transforms(image).unsqueeze(0)
             images.append(image)
         images = torch.cat(images)
@@ -77,10 +77,10 @@ app = L.LightningApp(
         PyTorchServer,
         min_replicas=2,
         max_replicas=4,
+        autoscale_interval=10,
         worker_url="predict",
         input_schema=RequestModel,
         output_schema=Any,
-        timeout_batch=1,
-        autoscale_interval=10,
+        timeout_batching=1,
     )
 )

@@ -120,7 +120,7 @@ class _LoadBalancer(LightningWork):
         output_schema: Output schema.
         worker_url: The REST API path.
         max_batch_size: The number of requests processed at once.
-        timeout_batch: The number of seconds to wait before sending the requests to process in order to allow for
+        timeout_batching: The number of seconds to wait before sending the requests to process in order to allow for
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
         timeout_keep_alive: Close Keep-Alive connections if no new data is received within this timeout.
         timeout_inference_request: The number of seconds to wait for inference.
@@ -133,7 +133,7 @@ class _LoadBalancer(LightningWork):
         output_schema,
         worker_url: str,
         max_batch_size: int = 8,
-        timeout_batch: int = 10,
+        timeout_batching: int = 10,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
         **kwargs: Any,
@@ -146,7 +146,7 @@ class _LoadBalancer(LightningWork):
         self._timeout_inference_request = timeout_inference_request
         self.servers = []
         self.max_batch_size = max_batch_size
-        self.timeout_batch = timeout_batch
+        self.timeout_batching = timeout_batching
         self._ITER = None
         self._batch = []
         self._responses = {}  # {request_id: response}
@@ -190,7 +190,7 @@ class _LoadBalancer(LightningWork):
 
             batch = self._batch[: self.max_batch_size]
             while batch and (
-                (len(batch) >= self.max_batch_size) or ((time.time() - self._last_batch_sent) > self.timeout_batch)
+                (len(batch) >= self.max_batch_size) or ((time.time() - self._last_batch_sent) > self.timeout_batching)
             ):
                 has_sent = True
 
@@ -342,29 +342,53 @@ class AutoScaler(LightningFlow):
     on current requests in the queue.
 
     Args:
-        min_replicas: Number of works to start when app initializes.
-        max_replicas: Max numbers of works to spawn to handle the incoming requests.
-        autoscale_interval: Number of seconds to wait before checking whether to upscale or downscale the works.
-        max_batch_size: Number of requests to process at once.
-        timeout_batch: Number of seconds to wait before sending the requests to process.
+        min_replicas: The number of works to start when app initializes.
+        max_replicas: The max number of works to spawn to handle the incoming requests.
+        autoscale_interval: The number of seconds to wait before checking whether to upscale or downscale the works.
         downscale_threshold: Lower limit to determine when to stop works.
         upscale_threshold: Upper limit to determine when to spawn up a new work.
         worker_url: Default=api/predict. Provide the REST API path
+        max_batch_size: (auto-batching) The number of requests to process at once.
+        timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
         input_schema:
         output_schema:
 
-        .. doctest::
+        Example:
+            import lightning as L
 
-            >>> from lightning_app.components import AutoScaler
-            >>> from lightning_app import LightningApp
-            >>> app = LightningApp(
-            ...     AutoScaler(
-            ...         MyPythonServer,  # noqa: F821
-            ...         min_replicas=1,
-            ...         max_replicas=4,
-            ...         autoscale_interval=10,
-            ...     )
-            ... )
+            # Example 1: Auto-scaling serving out-of-the-box
+            app = L.LightningApp(
+                L.app.components.AutoScaler(
+                    MyPythonServer,
+                    min_replicas=1,
+                    max_replicas=8,
+                    autoscale_interval=10,
+                )
+            )
+
+            # Example 2: Customizing the scaling logic
+            class MyAutoScaler(L.app.components.AutoScaler):
+                def scale(self, replicas: int, metrics: dict) -> int:
+                    # upscale
+                    if metrics["pending_requests"] > self.upscale_threshold * metrics["pending_works"]:
+                        return replicas + 1
+
+                    # downscale
+                    if metrics["pending_requests"] < self.downscale_threshold:
+                        return replicas - 1
+
+                    return replicas
+
+            app = L.LightningApp(
+                MyAutoScaler(
+                    MyPythonServer,
+                    min_replicas=1,
+                    max_replicas=8,
+                    autoscale_interval=10,
+                    max_batch_size=8,  # for auto batching
+                    timeout_batching
+                )
+            )
     """
 
     def __init__(
@@ -374,7 +398,7 @@ class AutoScaler(LightningFlow):
         max_replicas: int = 4,
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
-        timeout_batch: float = 2,
+        timeout_batching: float = 2,
         downscale_threshold: Optional[int] = None,
         upscale_threshold: Optional[int] = None,
         worker_url: str = None,
@@ -410,7 +434,7 @@ class AutoScaler(LightningFlow):
             output_schema=self._output_schema,
             worker_url=worker_url,
             max_batch_size=max_batch_size,
-            timeout_batch=timeout_batch,
+            timeout_batching=timeout_batching,
             cache_calls=True,
             parallel=True,
         )
@@ -422,7 +446,7 @@ class AutoScaler(LightningFlow):
             f"Initialized AutoScaler("
             f"min_replicas={min_replicas}, "
             f"max_replicas={max_replicas}, "
-            f"timeout_batch={timeout_batch}, "
+            f"timeout_batching={timeout_batching}, "
             f"max_batch_size={max_batch_size})"
         )
 
@@ -439,6 +463,11 @@ class AutoScaler(LightningFlow):
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
     def add_work(self, work) -> str:
+        """Adds a new LightningWork instance.
+
+        Returns:
+            The name of the new work attribute.
+        """
         work_attribute = uuid.uuid4().hex
         work_attribute = f"worker_{self.num_replicas}_{str(work_attribute)}"
         setattr(self, work_attribute, work)
@@ -447,6 +476,7 @@ class AutoScaler(LightningFlow):
         return work_attribute
 
     def remove_work(self, index: int) -> str:
+        """Removes the ``index``th LightningWork instance."""
         work_attribute = self._work_registry[index]
         del self._work_registry[index]
         work = getattr(self, work_attribute)
@@ -455,6 +485,7 @@ class AutoScaler(LightningFlow):
         return work_attribute
 
     def get_work(self, index: int) -> LightningWork:
+        """Returns the ``index``th LightningWork instance."""
         work_attribute = self._work_registry[index]
         work = getattr(self, work_attribute)
         return work
@@ -467,7 +498,7 @@ class AutoScaler(LightningFlow):
             worker.run()
 
         if self.load_balancer.url:
-            self.fake_trigger += 1  # change state to keep calling `run`.
+            self.fake_trigger += 1  # Note: change state to keep calling `run`.
             self.autoscale()
 
     def scale(self, replicas: int, metrics) -> int:
@@ -485,10 +516,12 @@ class AutoScaler(LightningFlow):
 
     @property
     def num_pending_requests(self) -> int:
+        """Fetches the number of pending requests via load balancer."""
         return int(requests.get(f"{self.load_balancer.url}/num-requests").json())
 
     @property
     def num_pending_works(self) -> int:
+        """The number of unready works."""
         return sum(1 for work in self.workers if work.url)
 
     def autoscale(self) -> None:
