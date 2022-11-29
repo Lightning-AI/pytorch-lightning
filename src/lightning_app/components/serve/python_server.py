@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -13,16 +12,21 @@ from starlette.staticfiles import StaticFiles
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import _is_torch_available, requires
 from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
+
+# Skip doctests if requirements aren't available
+if not _is_torch_available():
+    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
 
     """This Executor enables to move PyTorch tensors on GPU.
 
-    Without this executor, it woud raise the following expection:
+    Without this executor, it would raise the following exception:
     RuntimeError: Cannot re-initialize CUDA in forked subprocess.
     To use CUDA with multiprocessing, you must use the 'spawn' start method
     """
@@ -86,6 +90,7 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
+    @requires("torch")
     def __init__(  # type: ignore
         self,
         host: str = "127.0.0.1",
@@ -127,15 +132,16 @@ class PythonServer(LightningWork, abc.ABC):
                 and this can be accessed as `response.json()["prediction"]` in the client if
                 you are using requests library
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app.components.serve.python_server import PythonServer
             >>> from lightning_app import LightningApp
-            >>>
             ...
             >>> class SimpleServer(PythonServer):
+            ...
             ...     def setup(self):
             ...         self._model = lambda x: x + " " + x
+            ...
             ...     def predict(self, request):
             ...         return {"prediction": self._model(request.image)}
             ...
@@ -199,11 +205,13 @@ class PythonServer(LightningWork, abc.ABC):
         return out
 
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
+        from torch import inference_mode
+
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
         def predict_fn(request: input_type):  # type: ignore
-            with torch.inference_mode():
+            with inference_mode():
                 return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
