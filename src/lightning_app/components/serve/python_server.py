@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -201,6 +200,8 @@ class PythonServer(LightningWork, abc.ABC):
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
+
+        import torch
 
         def predict_fn(request: input_type):  # type: ignore
             with torch.inference_mode():
