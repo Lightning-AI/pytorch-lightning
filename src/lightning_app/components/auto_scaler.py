@@ -446,10 +446,10 @@ class AutoScaler(LightningFlow):
 
         logger.info(
             f"Initialized AutoScaler("
-            f"min_replicas={min_replicas}, "
-            f"max_replicas={max_replicas}, "
-            f"timeout_batching={timeout_batching}, "
-            f"max_batch_size={max_batch_size})"
+            f"min_replicas={min_replicas},"
+            f" max_replicas={max_replicas},"
+            f" timeout_batching={timeout_batching},"
+            f" max_batch_size={max_batch_size})"
         )
 
     @property
