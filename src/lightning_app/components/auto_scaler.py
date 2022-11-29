@@ -471,28 +471,33 @@ class AutoScaler(LightningFlow):
         """The default replication logic that users can override."""
 
         # upscale
-        if metrics["pending_requests"] > self.upscale_threshold:
+        if metrics["pending_requests"] > self.upscale_threshold * metrics["pending_works"]:
             return replicas + 1
 
         # downscale
-        elif metrics["pending_requests"] < self.downscale_threshold:
+        if metrics["pending_requests"] < self.downscale_threshold:
             return replicas - 1
 
         return replicas
 
     @property
-    def num_requests(self):
+    def num_pending_requests(self) -> int:
         return int(requests.get(f"{self.load_balancer.url}/num-requests").json())
 
-    def autoscale(self):
-        """Upscale and down scale model inference works based on the number of requests."""
+    @property
+    def num_pending_works(self) -> int:
+        return sum(1 for work in self.workers if work.url)
+
+    def autoscale(self) -> None:
+        """Upscale and down scale model inference works."""
         if time.time() - self._last_autoscale < self.autoscale_interval:
             return
 
         self.load_balancer.update_servers(self.workers)
 
         metrics = {
-            "pending_requests": self.num_requests,
+            "pending_requests": self.num_pending_requests,
+            "pending_works": self.num_pending_works,
         }
 
         # ensure min_replicas <= num_replicas <= max_replicas
