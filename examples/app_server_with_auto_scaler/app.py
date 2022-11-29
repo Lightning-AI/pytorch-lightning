@@ -5,10 +5,6 @@ import torchvision
 from pydantic import BaseModel
 
 import lightning as L
-from lightning.app.components import AutoScaler
-from lightning.app.components.serve import PythonServer
-from lightning.app.components.serve.types.image import Image
-from lightning.app.utilities.network import find_free_network_port
 
 
 class RequestModel(BaseModel):
@@ -23,10 +19,10 @@ class BatchResponse(BaseModel):
     outputs: List[Any]
 
 
-class PyTorchServer(PythonServer):
+class PyTorchServer(L.app.components.PythonServer):
     def __init__(self, *args, **kwargs):
         super().__init__(
-            port=find_free_network_port(),
+            port=L.app.utilities.network.find_free_network_port(),
             input_type=BatchRequestModel,
             output_type=BatchResponse,
             cloud_compute=L.CloudCompute("gpu"),
@@ -47,7 +43,7 @@ class PyTorchServer(PythonServer):
         )
         images = []
         for request in requests.inputs:
-            image = Image.deserialize(request.image)
+            image = L.app.components.Image.deserialize(request.image)
             image = transforms(image).unsqueeze(0)
             images.append(image)
         images = torch.cat(images)
@@ -58,7 +54,7 @@ class PyTorchServer(PythonServer):
 
 
 app = L.LightningApp(
-    AutoScaler(
+    L.app.components.AutoScaler(
         PyTorchServer,
         min_replicas=2,
         max_replicas=4,
