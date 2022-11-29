@@ -210,8 +210,6 @@ class PythonServer(LightningWork, abc.ABC):
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
-        import torch
-
         def predict_fn(request: input_type):  # type: ignore
             with inference_mode():
                 return self.predict(request)
