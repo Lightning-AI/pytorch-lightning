@@ -57,7 +57,7 @@ class _SysInfo(BaseModel):
     num_workers: int
     servers: List[str]
     num_requests: int
-    process_time: int
+    processing_time: int
     global_request_count: int
 
 
@@ -178,8 +178,8 @@ class _LoadBalancer(LightningWork):
                     assert len(batch) == len(outputs), f"result has {len(outputs)} items but batch is {len(batch)}"
                     result = {request[0]: r for request, r in zip(batch, outputs)}
                     self._responses.update(result)
-        except Exception as e:
-            result = {request[0]: e for request in batch}
+        except Exception as ex:
+            result = {request[0]: ex for request in batch}
             self._responses.update(result)
 
     async def consumer(self):
@@ -420,7 +420,7 @@ class AutoScaler(LightningFlow):
         self.autoscale_interval = autoscale_interval
 
         if max_replicas < min_replicas:
-            raise ValueError("max_replicas must be less than or equal to min_replicas.")
+            raise ValueError(f"`max_replicas={max_replicas}` must be less than or equal to `min_replicas={min_replicas}`.")
         self.max_replicas = max_replicas
         self.min_replicas = min_replicas
         self.downscale_threshold = downscale_threshold or min_replicas
@@ -452,11 +452,7 @@ class AutoScaler(LightningFlow):
 
     @property
     def workers(self) -> List[LightningWork]:
-        works = []
-        for i in range(self.num_replicas):
-            work = self.get_work(i)
-            works.append(work)
-        return works
+        return [self.get_work(i) for i in range(self.num_replicas)]
 
     def create_worker(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""

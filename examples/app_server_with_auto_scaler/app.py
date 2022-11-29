@@ -50,7 +50,7 @@ class PyTorchServer(L.app.components.PythonServer):
         images = images.to(self._device)
         predictions = self._model(images)
         results = predictions.argmax(1).cpu().numpy().tolist()
-        return BatchResponse(outputs=[{"prediction": e} for e in results])
+        return BatchResponse(outputs=[{"prediction": pred} for pred in results])
 
 
 class MyAutoScaler(L.app.components.AutoScaler):
