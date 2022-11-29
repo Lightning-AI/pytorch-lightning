@@ -9,7 +9,6 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any, Callable, List, Optional, Union
 
-import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
