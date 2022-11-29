@@ -28,9 +28,6 @@ from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 logger = Logger(__name__)
 
 
-BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
-
-
 def _raise_granular_exception(exception: Exception) -> None:
     """Handle an exception from hitting the model servers."""
     if not isinstance(exception, Exception):
@@ -253,6 +250,7 @@ class _LoadBalancer(LightningWork):
             self._server_ready = False
 
         def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
+            BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
             if len(BASIC_AUTH_PASSWORD) == 0:
                 logging.warning("You have not set password for private endpoints!")
             current_password_bytes = credentials.password.encode("utf8")
@@ -318,6 +316,8 @@ class _LoadBalancer(LightningWork):
     def send_request_to_update_servers(self, servers: List[str]):
         AUTHORIZATION_TYPE = "Basic"
         USERNAME = "lightning"
+        BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
+
         try:
             param = f"{USERNAME}:{BASIC_AUTH_PASSWORD}".encode()
             data = b64encode(param).decode("utf-8")
