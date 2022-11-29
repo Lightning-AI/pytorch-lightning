@@ -122,7 +122,7 @@ class _LoadBalancer(LightningWork):
         max_batch_size: The number of requests processed at once.
         timeout_batching: The number of seconds to wait before sending the requests to process in order to allow for
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
-        timeout_keep_alive: Close Keep-Alive connections if no new data is received within this timeout.
+        timeout_keep_alive: The number of seconds until it closes Keep-Alive connections if no new data is received.
         timeout_inference_request: The number of seconds to wait for inference.
         \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
@@ -133,6 +133,7 @@ class _LoadBalancer(LightningWork):
         output_type: type,
         worker_url: str,
         max_batch_size: int = 8,
+        # all timeout args are in seconds
         timeout_batching: int = 10,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
@@ -383,7 +384,7 @@ class AutoScaler(LightningFlow):
                     max_replicas=8,
                     autoscale_interval=10,
                     max_batch_size=8,  # for auto batching
-                    timeout_batching
+                    timeout_batching=2,  # for auto batching
                 )
             )
     """
