@@ -6,7 +6,7 @@ import time
 import uuid
 from base64 import b64encode
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -16,7 +16,6 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from lightning_utilities.core.overrides import is_overridden
 from pydantic import BaseModel
 from starlette.status import HTTP_401_UNAUTHORIZED
 
@@ -370,7 +369,7 @@ class AutoScaler(LightningFlow):
 
     def __init__(
         self,
-        work_cls: Optional[type] = None,
+        work_cls: Type[LightningWork],
         min_replicas: int = 1,
         max_replicas: int = 4,
         autoscale_interval: int = 1 * 10,
@@ -381,13 +380,17 @@ class AutoScaler(LightningFlow):
         worker_url: str = None,
         input_schema: Any = Dict,
         output_schema: Any = Dict,
+        *work_args: Any,
+        **work_kwargs: Any,
     ) -> None:
         super().__init__()
         self.num_replicas = 0
         self._work_registry = {}
 
-        assert work_cls is not None or is_overridden("create_worker", self, AutoScaler)
         self._work_cls = work_cls
+        self._work_args = work_args
+        self._work_kwargs = work_kwargs
+
         self._input_schema = input_schema
         self._output_schema = output_schema
         self.autoscale_interval = autoscale_interval
@@ -431,9 +434,9 @@ class AutoScaler(LightningFlow):
             works.append(work)
         return works
 
-    def create_worker(self, *args, **kwargs) -> LightningWork:
-        """Override this hook to customise the work creation process."""
-        return self._work_cls()
+    def create_worker(self) -> LightningWork:
+        """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
+        return self._work_cls(*self._work_args, **self._work_kwargs)
 
     def add_work(self, work) -> str:
         work_attribute = uuid.uuid4().hex
