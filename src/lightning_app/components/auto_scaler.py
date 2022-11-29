@@ -112,7 +112,7 @@ class _LoadBalancer(LightningWork):
     The LoadBalancer exposes system endpoints with a basic HTTP authentication, in order to activate the authentication
     you need to provide a system password from environment variable::
 
-        lightning run app app.py --env BASIC_AUTH_PASSWORD=PASSWORD
+        lightning run app app.py --env AUTO_SCALER_AUTH_PASSWORD=PASSWORD
 
     After enabling you will require to send username and password from the request header for the private endpoints.
 
@@ -250,11 +250,13 @@ class _LoadBalancer(LightningWork):
             self._server_ready = False
 
         def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
-            BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
-            if len(BASIC_AUTH_PASSWORD) == 0:
+            AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
+            if len(AUTO_SCALER_AUTH_PASSWORD) == 0:
                 logging.warning("You have not set password for private endpoints!")
             current_password_bytes = credentials.password.encode("utf8")
-            is_correct_password = secrets.compare_digest(current_password_bytes, BASIC_AUTH_PASSWORD.encode("utf8"))
+            is_correct_password = secrets.compare_digest(
+                current_password_bytes, AUTO_SCALER_AUTH_PASSWORD.encode("utf8")
+            )
             if not is_correct_password:
                 raise HTTPException(
                     status_code=401,
@@ -316,10 +318,10 @@ class _LoadBalancer(LightningWork):
     def send_request_to_update_servers(self, servers: List[str]):
         AUTHORIZATION_TYPE = "Basic"
         USERNAME = "lightning"
-        BASIC_AUTH_PASSWORD = os.environ.get("BASIC_AUTH_PASSWORD", "")
+        AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
 
         try:
-            param = f"{USERNAME}:{BASIC_AUTH_PASSWORD}".encode()
+            param = f"{USERNAME}:{AUTO_SCALER_AUTH_PASSWORD}".encode()
             data = b64encode(param).decode("utf-8")
         except (ValueError, UnicodeDecodeError) as e:
             raise HTTPException(
