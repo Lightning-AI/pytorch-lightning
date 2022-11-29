@@ -420,7 +420,9 @@ class AutoScaler(LightningFlow):
         self.autoscale_interval = autoscale_interval
 
         if max_replicas < min_replicas:
-            raise ValueError(f"`max_replicas={max_replicas}` must be less than or equal to `min_replicas={min_replicas}`.")
+            raise ValueError(
+                f"`max_replicas={max_replicas}` must be less than or equal to `min_replicas={min_replicas}`."
+            )
         self.max_replicas = max_replicas
         self.min_replicas = min_replicas
         self.downscale_threshold = downscale_threshold or min_replicas
