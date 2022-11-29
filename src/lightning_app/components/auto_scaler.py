@@ -296,8 +296,8 @@ class _LoadBalancer(LightningWork):
         AutoScaler uses this method to increase/decrease the number of works.
         """
         old_servers = set(self.servers)
-        self.servers: List[str] = [server.url for server in server_works if server.url]
-        new_servers = set(self.servers)
+        server_urls: List[str] = [server.url for server in server_works if server.url]
+        new_servers = set(server_urls)
 
         if new_servers == old_servers:
             logging.debug("no new server added")
@@ -310,7 +310,7 @@ class _LoadBalancer(LightningWork):
         if deleted_servers:
             logger.info(f"servers deleted: {deleted_servers}")
 
-        self.send_request_to_update_servers(self.servers)
+        self.send_request_to_update_servers(server_urls)
 
     def send_request_to_update_servers(self, servers: List[str]):
         AUTHORIZATION_TYPE = "Basic"
