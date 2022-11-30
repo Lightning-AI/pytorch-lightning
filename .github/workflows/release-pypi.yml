@@ -2,8 +2,8 @@ name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
-  push: {}  # FIXME
-#    branches: [master, "release/*"]
+  push:
+    branches: [master, "release/*"]
   release:
     types: [published]
 
@@ -100,7 +100,7 @@ jobs:
       with:
         repository: gridai/base-images
         token: ${{ secrets.PAT_GHOST }}
-        ref: master  # FIXME
+        ref: main
     - uses: fregante/setup-git-token@v1
       with:
         token: ${{ secrets.PAT_GHOST }}
