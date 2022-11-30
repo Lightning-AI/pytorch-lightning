@@ -72,7 +72,7 @@ class LRScheduler(_Stateful[str], Protocol):
         ...
 
 
-_TORCH_LRSCHEDULER = torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else _LRScheduler
+_TORCH_LRSCHEDULER = torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else LRScheduler
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`

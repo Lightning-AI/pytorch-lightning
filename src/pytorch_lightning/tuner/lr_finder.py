@@ -23,6 +23,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
@@ -400,7 +401,7 @@ class _LRCallback(Callback):
         self.losses.append(smoothed_loss)
 
 
-class _LinearLR(LRScheduler):
+class _LinearLR(_TORCH_LRSCHEDULER):
     """Linearly increases the learning rate between two boundaries over a number of iterations.
 
     Args:
@@ -435,7 +436,7 @@ class _LinearLR(LRScheduler):
         return self._lr
 
 
-class _ExponentialLR(LRScheduler):
+class _ExponentialLR(_TORCH_LRSCHEDULER):
     """Exponentially increases the learning rate between two boundaries over a number of iterations.
 
     Arguments:

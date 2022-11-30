@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_lite.utilities.types import LRScheduler, ProcessGroup, ReduceLROnPlateau
+from lightning_lite.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, ProcessGroup, ReduceLROnPlateau
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
@@ -111,9 +111,9 @@ class DistributedDataParallel(Protocol):
 
 
 # todo: improve LRSchedulerType naming/typing
-LRSchedulerTypeTuple = (LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
-LRSchedulerType = Union[Type[LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (_TORCH_LRSCHEDULER, torch.optim.lr_scheduler.ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[_TORCH_LRSCHEDULER, torch.optim.lr_scheduler.ReduceLROnPlateau]
+LRSchedulerType = Union[Type[_TORCH_LRSCHEDULER], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
 LRSchedulerPLType = Union[LRScheduler, ReduceLROnPlateau]
 
 

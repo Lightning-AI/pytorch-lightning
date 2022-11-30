@@ -23,6 +23,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 import pytorch_lightning.cli as new_cli
+from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import LRScheduler
 
@@ -111,7 +112,7 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
         # this will register any subclasses from all loaded modules including userland
         for cls in get_all_subclasses(torch.optim.Optimizer):
             OPTIMIZER_REGISTRY(cls, show_deprecation=False)
-        for cls in get_all_subclasses(LRScheduler):
+        for cls in get_all_subclasses(_TORCH_LRSCHEDULER):
             LR_SCHEDULER_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.Callback):
             CALLBACK_REGISTRY(cls, show_deprecation=False)
