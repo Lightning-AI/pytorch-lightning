@@ -30,6 +30,10 @@ env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # TODO: package parametrization
   test-on-tpus:
@@ -68,10 +72,19 @@ jobs:
         PR_NUMBER: ${{ github.event.pull_request.number }}
         SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-       python -c "fname = 'dockers/base-xla/tpu_workflow.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
-       data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
-       cat dockers/base-xla/tpu_workflow.jsonnet
-      shell: bash
+        import os
+        fname = 'dockers/base-xla/tpu_workflow.jsonnet'
+        with open(fname) as fo:
+            data = fo.read()
+        data = data.replace('{PYTORCH_VERSION}', os.getenv("XLA_VER"))
+        data = data.replace('{PYTHON_VERSION}', os.getenv("PYTHON_VER"))
+        data = data.replace('{PR_NUMBER}', os.getenv("PR_NUMBER"))
+        data = data.replace('{SHA}', os.getenv("SHA"))
+        with open(fname, "w") as fw:
+            fw.write(data)
+      shell: python
+    - name: Show jsonnet
+      run: cat dockers/base-xla/tpu_workflow.jsonnet
 
     - uses: google-github-actions/auth@v1
       with:
