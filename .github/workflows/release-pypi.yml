@@ -114,7 +114,7 @@ jobs:
             vers = json.load(fo)
         vers["lightning_version"] = "${TAG}"
         with open("versions.json", "w") as fw:
-            vers = json.dump(vers, fo)
+            json.dump(vers, fw)
       shell: python
     - name: GIT Commit
       run: |
