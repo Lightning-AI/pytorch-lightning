@@ -109,10 +109,10 @@ jobs:
         email: pl-github@grid.ai
     - name: Update lightning version
       run: |
-        import json
+        import json, os
         with open("versions.json") as fo:
             vers = json.load(fo)
-        vers["lightning_version"] = "${TAG}"
+        vers["lightning_version"] = os.getenv('TAG')
         with open("versions.json", "w") as fw:
             json.dump(vers, fw)
       shell: python
