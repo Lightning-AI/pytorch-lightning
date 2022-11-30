@@ -57,7 +57,7 @@ class MyAutoScaler(L.app.components.AutoScaler):
         """The default replication logic that users can override."""
 
         # upscale (default: upscale_threshold = min_replicas * max_batch_size)
-        if metrics["pending_requests"] > self.upscale_threshold * metrics["pending_works"]:
+        if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
             return replicas + 1
 
         # downscale
