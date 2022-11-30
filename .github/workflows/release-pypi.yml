@@ -89,8 +89,7 @@ jobs:
 
   signaling:
     runs-on: ubuntu-20.04
-    # TODO: instead of `build-packages` this shall be `upload-packages`
-    needs: [release-version, build-packages]
+    needs: [release-version, upload-packages]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
     steps:
@@ -118,9 +117,9 @@ jobs:
       shell: python
     - name: GIT Commit
       run: |
-        cat versions.json
         git add versions.json
         git commit -m "bumping lightning version -> ${TAG}"
+        cat versions.json
     - name: GIT Push
       run: |
         git status
