@@ -2,8 +2,8 @@ name: PyPI
 
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
-  push:
-    branches: [master, "release/*"]
+  push: {}  # FIXME
+#    branches: [master, "release/*"]
   release:
     types: [published]
 
@@ -70,9 +70,18 @@ jobs:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-packages:
+  waiting:
     runs-on: ubuntu-20.04
     needs: build-packages
+    steps:
+    - name: Delay releasing
+      uses: juliangruber/sleep-action@v1
+      with:
+        time: 30m
+
+  publish-packages:
+    runs-on: ubuntu-20.04
+    needs: waiting
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
@@ -83,26 +92,18 @@ jobs:
     - run: ls -lh dist/
     - run: mkdir pypi/
 
-    - name: Delay releasing
-      uses: juliangruber/sleep-action@v1
-      with:
-        time: 10m
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*app*"
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*lite*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*pytorch*"
         pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*"
