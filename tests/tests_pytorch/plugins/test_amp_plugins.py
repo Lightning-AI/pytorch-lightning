@@ -258,9 +258,6 @@ def test_precision_selection_raises(monkeypatch):
     ):
         Trainer(amp_backend="apex", precision=16)
 
-    with pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
-        Trainer(precision="bf16")
-
     with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
         Trainer(amp_backend="apex", precision="bf16")
 
