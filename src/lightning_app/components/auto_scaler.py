@@ -518,7 +518,7 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_works(self) -> int:
         """The number of unready works."""
-        return sum(1 for work in self.workers if work.url)
+        return sum(1 for work in self.workers if not work.url)
 
     def autoscale(self) -> None:
         """Upscale and down scale model inference works."""
