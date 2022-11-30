@@ -368,7 +368,7 @@ class AutoScaler(LightningFlow):
             class MyAutoScaler(L.app.components.AutoScaler):
                 def scale(self, replicas: int, metrics: dict) -> int:
                     # upscale
-                    if metrics["pending_requests"] > self.upscale_threshold * metrics["pending_works"]:
+                    if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
                         return replicas + 1
 
                     # downscale
@@ -501,7 +501,7 @@ class AutoScaler(LightningFlow):
         """The default replication logic that users can override."""
 
         # upscale
-        if metrics["pending_requests"] > self.upscale_threshold * metrics["pending_works"]:
+        if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
             return replicas + 1
 
         # downscale
