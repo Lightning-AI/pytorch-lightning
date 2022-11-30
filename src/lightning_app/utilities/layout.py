@@ -41,8 +41,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         # When running in the cloud, the frontend code will construct the URL based on the flow name
         return flow._layout
     elif isinstance(layout, _MagicMockJsonSerializable):
-        # Do nothing
-        pass
+        # The import was mocked, we assume it is a `Frontend`
+        app.frontends.setdefault(flow.name, "mock")
+        return flow._layout
     elif isinstance(layout, dict):
         layout = _collect_content_layout([layout], flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
@@ -108,8 +109,9 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
                 entry["content"] = ""
                 entry["target"] = ""
         elif isinstance(entry["content"], _MagicMockJsonSerializable):
-            # Do nothing
-            pass
+            # The import was mocked, so we just record dummy content
+            entry["content"] = "mock"
+            entry["target"] = "mock"
         else:
             m = f"""
             A dictionary returned by `{flow.__class__.__name__}.configure_layout()` contains an unsupported entry.

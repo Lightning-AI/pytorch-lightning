@@ -2,8 +2,10 @@ from unittest import mock
 
 import pytest
 
-from lightning_app import LightningFlow, LightningWork
+from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.utilities.app_helpers import (
+    _is_headless,
+    _MagicMockJsonSerializable,
     AppStatePlugin,
     BaseStatePlugin,
     InMemoryStateStore,
@@ -102,3 +104,60 @@ def test_is_static_method():
     assert is_static_method(A, "a")
     assert is_static_method(A, "b")
     assert not is_static_method(A, "c")
+
+
+class FlowWithURLLayout(Flow):
+    def configure_layout(self):
+        return {"name": "test", "content": "https://appurl"}
+
+
+class FlowWithWorkLayout(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.work = Work()
+
+    def configure_layout(self):
+        return {"name": "test", "content": self.work}
+
+
+class FlowWithMockedFrontend(Flow):
+    def configure_layout(self):
+        return _MagicMockJsonSerializable()
+
+
+class FlowWithMockedContent(Flow):
+    def configure_layout(self):
+        return [{"name": "test", "content": _MagicMockJsonSerializable()}]
+
+
+class NestedFlow(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.flow = Flow()
+
+
+class NestedFlowWithURLLayout(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.flow = FlowWithURLLayout()
+
+
+@pytest.mark.parametrize(
+    "flow,expected",
+    [
+        (Flow, True),
+        (FlowWithURLLayout, False),
+        (FlowWithWorkLayout, False),
+        (FlowWithMockedFrontend, False),
+        (FlowWithMockedContent, False),
+        (NestedFlow, True),
+        (NestedFlowWithURLLayout, False),
+    ],
+)
+def test_is_headless(flow, expected):
+    flow = flow()
+    app = LightningApp(flow)
+    assert _is_headless(app) == expected
