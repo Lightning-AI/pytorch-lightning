@@ -7,6 +7,10 @@ on:
   release:
     types: [published]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   init:
     runs-on: ubuntu-20.04
@@ -24,8 +28,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
-      # run sequential
-      max-parallel: 1
+      max-parallel: 1  # run sequential to prevent download/upload collisions
       matrix:
         pkg-name: ["lightning", "app", "lite", "pytorch"]
     steps:
@@ -70,32 +73,57 @@ jobs:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+  release-version:
+    runs-on: ubuntu-20.04
+    outputs:
+      tag: ${{ steps.lai-package.outputs.version }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Package
+      env:
+        PACKAGE_NAME: "lightning"
+      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    - name: package Version
+      id: lai-package
+      run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
+
   signaling:
     runs-on: ubuntu-20.04
-    needs: build-packages  # TODO: this shall be `upload-packages`
+    # TODO: instead of `build-packages` this shall be `upload-packages`
+    needs: [release-version, build-packages]
     steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
     - uses: actions/checkout@v3
       with:
         repository: gridai/base-images
         token: ${{ secrets.PAT_GHOST }}
-        ref: master
+        ref: master  # FIXME
     - uses: fregante/setup-git-token@v1
       with:
         token: ${{ secrets.PAT_GHOST }}
         name: PL Ghost
         email: pl-github@grid.ai
-    - run: ls -l
-    # TODO bump version
-    - run: |
+    - name: Update lightning version
+      env:
+        TAG: ${{ needs.release-version.outputs.tag }}
+      run: |
         import json
         with open("versions.json") as fo:
             vers = json.load(fo)
-        print(vers)
+        vers["lightning_version"] = $TAG
+        with open("versions.json", "w") as fw:
+            vers = json.dump(vers, fo)
+      shell: python
     - name: GIT Commit
+      env:
+        TAG: ${{ needs.release-version.outputs.tag }}
       run: |
+        cat versions.json
         git add versions.json
         git status
-        git commit -m "bumping version TBD"
+        git commit -m "bumping lightning version -> $TAG"
         git push
 
   waiting:
