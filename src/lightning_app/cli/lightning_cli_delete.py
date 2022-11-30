@@ -136,7 +136,7 @@ def _cli_delete_app_find_selected_instance_id(app_name: str, cluster_id: str) ->
     return selected_app_instance_id
 
 
-def _cli_delete_app_user_confirmation_prompt(app_name: str, cluster_id: str):
+def _cli_delete_app_user_confirmation_prompt(app_name: str, cluster_id: str) -> None:
     console = Console()
 
     # when the --yes / -y flags were not passed, do a final
