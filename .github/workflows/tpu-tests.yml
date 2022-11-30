@@ -89,7 +89,7 @@ jobs:
             fw.write(data)
       shell: python
     - name: Show jsonnet
-      run: cat dockers/base-xla/tpu_workflow_{{ matrix.pkg-name }}.jsonnet
+      run: cat dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet
 
     - uses: google-github-actions/auth@v1
       with:
@@ -104,7 +104,7 @@ jobs:
     - name: Deploy cluster
       run: |
         export PATH=$PATH:$HOME/go/bin
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_{{ matrix.pkg-name }}.jsonnet | kubectl create -f -)
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -f -)
         job_name=${job_name#job.batch/}
         job_name=${job_name% created}
         pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
