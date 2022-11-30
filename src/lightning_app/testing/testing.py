@@ -404,6 +404,17 @@ def run_app_in_cloud(
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                 pass
 
+        # TODO: is re-creating this redundant?
+        lit_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.name == name
+        ]
+        same_app = lit_apps[0]
+        assert app.status.url == same_app.status.url
+
         app_url = app.status.url
         while True:
             sleep(1)
