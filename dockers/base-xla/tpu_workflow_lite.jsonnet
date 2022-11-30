@@ -36,8 +36,7 @@ local tputests = base.BaseTest {
       fi
 
       echo "--- Install packages ---"
-      PACKAGE_NAME=lite pip install -e .[dev]
-      PACKAGE_NAME=pytorch pip install -e .[dev]
+      PACKAGE_NAME=lite pip install .[dev]
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
@@ -45,7 +44,6 @@ local tputests = base.BaseTest {
 
       echo "--- Sanity check TPU availability ---"
       python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
-      python -c "from pytorch_lightning.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       echo "Sanity check passed!"
 
       echo "--- Running Lite tests ---"
@@ -54,13 +52,6 @@ local tputests = base.BaseTest {
 
       echo "--- Running standalone Lite tests ---"
       PL_STANDALONE_TESTS_SOURCE=lightning_lite PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
-
-      echo "--- Running PL tests ---"
-      cd ../tests_pytorch
-      PL_RUN_TPU_TESTS=1 coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
-
-      echo "--- Running standalone PL tests ---"
-      PL_STANDALONE_TESTS_SOURCE=pytorch_lightning PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
       coverage xml
