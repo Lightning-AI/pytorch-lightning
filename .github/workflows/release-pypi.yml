@@ -91,6 +91,8 @@ jobs:
     runs-on: ubuntu-20.04
     # TODO: instead of `build-packages` this shall be `upload-packages`
     needs: [release-version, build-packages]
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
     steps:
     - uses: actions/setup-python@v4
       with:
@@ -106,24 +108,20 @@ jobs:
         name: PL Ghost
         email: pl-github@grid.ai
     - name: Update lightning version
-      env:
-        TAG: ${{ needs.release-version.outputs.tag }}
       run: |
         import json
         with open("versions.json") as fo:
             vers = json.load(fo)
-        vers["lightning_version"] = $TAG
+        vers["lightning_version"] = "${TAG}"
         with open("versions.json", "w") as fw:
             vers = json.dump(vers, fo)
       shell: python
     - name: GIT Commit
-      env:
-        TAG: ${{ needs.release-version.outputs.tag }}
       run: |
         cat versions.json
         git add versions.json
         git status
-        git commit -m "bumping lightning version -> $TAG"
+        git commit -m "bumping lightning version -> ${TAG}"
         git push
 
   waiting:
