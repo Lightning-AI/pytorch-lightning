@@ -120,8 +120,10 @@ jobs:
       run: |
         cat versions.json
         git add versions.json
-        git status
         git commit -m "bumping lightning version -> ${TAG}"
+    - name: GIT Push
+      run: |
+        git status
         git push
 
   waiting:
