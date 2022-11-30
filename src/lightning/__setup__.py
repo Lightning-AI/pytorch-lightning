@@ -23,7 +23,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PACKAGE_ROOT, ".actions", "assistant.py"))
+_ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_ROOT, ".actions", "assistant.py"))
 
 
 def _prepare_extras() -> Dict[str, Any]:
