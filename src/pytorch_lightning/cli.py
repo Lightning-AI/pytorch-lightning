@@ -15,7 +15,7 @@ import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -49,9 +49,6 @@ else:
     locals()["Namespace"] = object
 
 
-ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
-
-
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
     def __init__(self, optimizer: Optimizer, monitor: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(optimizer, *args, **kwargs)
@@ -62,6 +59,12 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
+
+
+# Type aliases intended for convenience of CLI developers
+ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
+OptimizerCallable = Callable[[Iterable], Optimizer]
+LRSchedulerCallable = Callable[[Optimizer], Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -274,6 +277,7 @@ class LightningCLI:
         subclass_mode_data: bool = False,
         args: ArgsType = None,
         run: bool = True,
+        auto_configure_optimizers: bool = True,
         auto_registry: bool = False,
         **kwargs: Any,  # Remove with deprecations of v1.10
     ) -> None:
@@ -326,6 +330,7 @@ class LightningCLI:
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
         self.parser_kwargs = parser_kwargs or {}  # type: ignore[var-annotated]  # github.com/python/mypy/issues/6463
+        self.auto_configure_optimizers = auto_configure_optimizers
 
         self._handle_deprecated_params(kwargs)
 
@@ -447,10 +452,11 @@ class LightningCLI:
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
         # add default optimizer args if necessary
-        if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_optimizer_args((Optimizer,))
-        if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
+        if self.auto_configure_optimizers:
+            if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
+                parser.add_optimizer_args((Optimizer,))
+            if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
+                parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -602,6 +608,9 @@ class LightningCLI:
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
         """Overrides the model's :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` method
         if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        if not self.auto_configure_optimizers:
+            return
+
         parser = self._parser(subcommand)
 
         def get_automatic(
