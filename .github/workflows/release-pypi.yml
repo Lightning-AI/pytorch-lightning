@@ -89,7 +89,7 @@ jobs:
 
   signaling:
     runs-on: ubuntu-20.04
-    needs: [release-version, upload-packages]
+    needs: [release-version, pre-publish-packages]
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
     steps:
@@ -126,17 +126,18 @@ jobs:
         git push
 
   waiting:
+    # TODO: replace with back signal from build images/ loop checking for a specific branch?
     runs-on: ubuntu-20.04
-    needs: build-packages
+    needs: signaling
     steps:
     - name: Delay releasing
       uses: juliangruber/sleep-action@v1
       with:
         time: 30m
 
-  publish-packages:
+  pre-publish-packages:
     runs-on: ubuntu-20.04
-    needs: [waiting, signaling]
+    needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
@@ -146,7 +147,35 @@ jobs:
         path: dist
     - run: ls -lh dist/
     - run: mkdir pypi/
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*app*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*lite*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*pytorch*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
 
+  publish-packages:
+    runs-on: ubuntu-20.04
+    needs: waiting
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - run: ls -lh dist/
+    - run: mkdir pypi/
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*app*"
@@ -165,11 +194,12 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
   legacy-checkpoints:
-    needs: publish-packages
+    needs: [release-version, pre-publish-packages]
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
       push_to_s3: true
       create_pr: true
+      pl_version: ${{ needs.release-version.outputs.tag }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

@@ -5,9 +5,14 @@ inputs:
   pkg-pattern:
     description: what file pattern is searched in folder, so for example `*_app*`
     required: true
+  pypi-test-token:
+    description: login token for PyPI
+    default: ''
+    required: false
   pypi-token:
     description: login token for PyPI
-    required: true
+    default: ''
+    required: false
 
 runs:
   using: "composite"
@@ -20,16 +25,19 @@ runs:
     shell: bash
 
   # We do this, since failures on test.pypi aren't that bad
-  #- name: Publish to Test PyPI
-  #  uses: pypa/gh-action-pypi-publish@v1.5.1
-  #  with:
-  #    user: __token__
-  #    password: ${{ secrets.test_pypi_token_lai }}
-  #    repository_url: https://test.pypi.org/legacy/
-  #    verbose: true
+  - name: Publish to Test PyPI
+    uses: pypa/gh-action-pypi-publish@v1.5.1
+    if: inputs.pypi-test-token != ''
+    with:
+      user: __token__
+      password: ${{ secrets.test_pypi_token_lai }}
+      repository_url: https://test.pypi.org/legacy/
+      packages_dir: pypi/
+      verbose: true
 
   - name: Publish distribution 📦 to PyPI
     uses: pypa/gh-action-pypi-publish@v1.5.1
+    if: inputs.pypi-token != ''
     with:
       user: __token__
       password: ${{ inputs.pypi-token }}
