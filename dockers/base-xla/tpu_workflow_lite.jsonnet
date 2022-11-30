@@ -26,12 +26,14 @@ local tputests = base.BaseTest {
       source ~/.bashrc
       conda activate lightning
 
-      echo "--- Fetch the SHA's changes ---"
+      echo "--- Cloning lightning repo ---"
       git clone --single-branch https://github.com/Lightning-AI/lightning.git
       cd lightning
+      # PR triggered it, check it out
       if [ -n "{PR_NUMBER}" ]; then  # if PR number is not empty
-        # PR triggered it, check it out
+        echo "--- Fetch the PR changes ---"
         git fetch origin pull/{PR_NUMBER}/head:ACTUAL_PR
+        echo "--- Checkout PR changes ---"
         git checkout ACTUAL_PR
       fi
 
