@@ -35,6 +35,8 @@ def metrics_to_scalars(metrics: Any) -> Any:
             raise MisconfigurationException(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
             )
+        if value.device.type == 'xla':
+            value = value.cpu()
         return value.item()
 
     return apply_to_collection(metrics, Tensor, to_item)

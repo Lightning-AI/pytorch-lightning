@@ -239,7 +239,8 @@ class EvaluationLoop(DataLoaderLoop):
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
         assert self._results is not None
-        self._results.to(device=self.trainer.lightning_module.device)
+        if self.trainer.lightning_module.device.type != 'xla':
+            self._results.to(device=self.trainer.lightning_module.device)
 
         hook_name = "on_test_start" if self.trainer.testing else "on_validation_start"
         self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
