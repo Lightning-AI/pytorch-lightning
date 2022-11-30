@@ -1,6 +1,5 @@
 import fnmatch
 import json
-import os
 import random
 import string
 import sys
@@ -50,8 +49,9 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    DOT_IGNORE_FILENAME,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
-    ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
+    enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
@@ -243,7 +243,7 @@ class CloudRuntime(Runtime):
         if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
             v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
 
-        if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+        if enable_multiple_works_in_default_container():
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
         if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
@@ -303,7 +303,7 @@ class CloudRuntime(Runtime):
                 )
 
             network_configs: Optional[List[V1NetworkConfig]] = None
-            if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+            if enable_multiple_works_in_default_container():
                 network_configs = []
                 initial_port = 8080 + 1 + len(frontend_specs)
                 for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
@@ -488,12 +488,12 @@ class CloudRuntime(Runtime):
             largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]
             largest_paths_msg = "\n".join(f"{round(s, 5)} MB: {p}" for p, s in largest_paths)
             warning_msg = (
-                f"Your application folder {root} is more than {CLOUD_UPLOAD_WARNING} MB. "
-                f"Found {app_folder_size_in_mb} MB \n"
-                "Here are the largest files: \n"
-                f"{largest_paths_msg}"
+                f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
+                f"The total size is {app_folder_size_in_mb} MB\n"
+                f"Here are the largest files: \n{largest_paths_msg}\n"
+                "Perhaps you should try running the app in an empty directory."
             )
-            if not os.path.exists(os.path.join(root, ".lightningignore")):
+            if not (root / DOT_IGNORE_FILENAME).is_file():
                 warning_msg = (
                     warning_msg
                     + "\nIn order to ignore some files or folder, "
