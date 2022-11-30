@@ -419,7 +419,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         self,
         model: Module,
         optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[LRScheduler, ReduceLROnPlateau]] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 

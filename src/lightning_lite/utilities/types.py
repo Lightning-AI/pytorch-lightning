@@ -61,7 +61,7 @@ class CollectibleGroup(Protocol):
 
 
 @runtime_checkable
-class _LRScheduler(_Stateful[str], Protocol):
+class LRScheduler(_Stateful[str], Protocol):
     optimizer: Optimizer
     base_lrs: List[float]
 
