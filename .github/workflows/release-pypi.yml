@@ -70,6 +70,34 @@ jobs:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+  signaling:
+    runs-on: ubuntu-20.04
+    needs: build-packages  # TODO: this shall be `upload-packages`
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        repository: gridai/base-images
+        token: ${{ secrets.PAT_GHOST }}
+        ref: master
+    - uses: fregante/setup-git-token@v1
+      with:
+        token: ${{ secrets.PAT_GHOST }}
+        name: PL Ghost
+        email: pl-github@grid.ai
+    - run: ls -l
+    # TODO bump version
+    - run: |
+        import json
+        with open("versions.json") as fo:
+            vers = json.load(fo)
+        print(vers)
+    - name: GIT Commit
+      run: |
+        git add versions.json
+        git status
+        git commit -m "bumping version TBD"
+        git push
+
   waiting:
     runs-on: ubuntu-20.04
     needs: build-packages
@@ -81,7 +109,7 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: waiting
+    needs: [waiting, signaling]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
