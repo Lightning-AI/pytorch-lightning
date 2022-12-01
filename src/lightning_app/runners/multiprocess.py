@@ -1,7 +1,9 @@
 import multiprocessing
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Union
+from typing import Any, Union
+
+import click
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
@@ -29,7 +31,7 @@ class MultiProcessRuntime(Runtime):
     backend: Union[str, Backend] = "multiprocessing"
     _has_triggered_termination: bool = False
 
-    def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
+    def dispatch(self, *args: Any, open_ui: bool = True, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
         try:
             _set_flow_context()
@@ -101,8 +103,8 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if on_before_run:
-                on_before_run(self, self.app, has_ui=not _is_headless(self.app))
+            if open_ui and not _is_headless(self.app):
+                click.launch(self._get_app_url())
 
             # Connect the runtime to the application.
             self.app.connect(self)
@@ -125,3 +127,7 @@ class MultiProcessRuntime(Runtime):
             for port in ports:
                 disable_port(port)
         super().terminate()
+
+    @staticmethod
+    def _get_app_url() -> str:
+        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")

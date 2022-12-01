@@ -1,3 +1,5 @@
+import pytest
+
 from lightning_app import LightningFlow
 from lightning_app.core.app import LightningApp
 from lightning_app.runners import SingleProcessRuntime
@@ -16,3 +18,14 @@ def test_single_process_runtime(tmpdir):
 
     app = LightningApp(Flow())
     SingleProcessRuntime(app, start_server=False).dispatch(on_before_run=on_before_run)
+
+
+@pytest.mark.parametrize(
+    "expected_url",
+    [
+        "http://127.0.0.1:7501/view",
+        "http://127.0.0.1:7501/view",
+    ],
+)
+def test_get_app_url(expected_url):
+    assert SingleProcessRuntime._get_app_url() == expected_url

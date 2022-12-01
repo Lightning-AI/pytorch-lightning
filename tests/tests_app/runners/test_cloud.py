@@ -13,6 +13,7 @@ from lightning_cloud.openapi import (
     Body8,
     Body9,
     Externalv1Cluster,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     IdGetBody,
     V1BuildSpec,
@@ -1414,3 +1415,25 @@ def test_incompatible_cloud_compute_and_build_config():
 
     with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
         _validate_build_spec_and_compute(Work())
+
+
+@pytest.mark.parametrize(
+    "lightning_app_instance, lightning_cloud_url, expected_url",
+    [
+        (
+            Externalv1LightningappInstance(id="test-app-id"),
+            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai",
+            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai/me/apps/test-app-id",
+        ),
+        (
+            Externalv1LightningappInstance(id="test-app-id"),
+            "http://localhost:9800",
+            "http://localhost:9800/me/apps/test-app-id",
+        ),
+    ],
+)
+def test_get_app_url(lightning_app_instance, lightning_cloud_url, expected_url):
+    with mock.patch(
+        "lightning_app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
+    ):
+        assert CloudRuntime._get_app_url(lightning_app_instance) == expected_url

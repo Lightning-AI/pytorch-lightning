@@ -7,8 +7,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, List, Optional, Union
 
+import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -56,6 +57,7 @@ from lightning_app.core.constants import (
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
+    get_lightning_cloud_url,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
@@ -192,9 +194,9 @@ class CloudRuntime(Runtime):
 
     def dispatch(
         self,
-        on_before_run: Optional[Callable] = None,
         name: str = "",
         cluster_id: str = None,
+        open_ui: bool = True,
         **kwargs: Any,
     ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -465,11 +467,11 @@ class CloudRuntime(Runtime):
             logger.error(e.body)
             sys.exit(1)
 
-        if on_before_run:
-            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
-
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
+
+        if open_ui:
+            click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
 
         if cleanup_handle:
             cleanup_handle()
@@ -538,6 +540,11 @@ class CloudRuntime(Runtime):
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
         return app
+
+    @staticmethod
+    def _get_app_url(lightning_app_instance: Externalv1LightningappInstance, need_credits: bool = False) -> str:
+        action = "?action=add_credits" if need_credits else ""
+        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app_instance.id}{action}"
 
 
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
