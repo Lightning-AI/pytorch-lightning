@@ -61,8 +61,6 @@ def test_main_lightning_cli_no_arguments():
     assert "create  " in res
     assert "show    " in res
     assert "ssh     " in res
-    assert "add     " in res
-    assert "remove  " in res
 
 
 def test_main_lightning_cli_help():
@@ -76,8 +74,6 @@ def test_main_lightning_cli_help():
     assert "create  " in res
     assert "show    " in res
     assert "ssh     " in res
-    assert "add     " in res
-    assert "remove  " in res
 
     res = os.popen("lightning run --help").read()
     assert "app  " in res
@@ -97,17 +93,20 @@ def test_main_lightning_cli_help():
     res = os.popen("lightning show cluster --help").read()
     assert "logs " in res
 
+    # inspect create group
+    res = os.popen("lightning create --help").read()
+    assert "cluster " in res
+    assert "ssh-key " in res
+
+    # inspect delete group
+    res = os.popen("lightning delete --help").read()
+    assert "cluster " in res
+    assert "ssh-key " in res
+
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
-@pytest.mark.parametrize(
-    "extra_arguments,expected_cost_savings_mode",
-    [
-        ([], True),
-        (["--enable-performance"], False),
-    ],
-)
-def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expected_cost_savings_mode):
+def test_create_cluster(create_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -119,8 +118,7 @@ def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expecte
             "dummy",
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
-        ]
-        + extra_arguments,
+        ],
     )
 
     create_command.assert_called_once_with(
@@ -129,8 +127,8 @@ def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expecte
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         external_id="dummy",
         edit_before_creation=False,
-        cost_savings=expected_cost_savings_mode,
-        wait=False,
+        cost_savings=True,
+        do_async=False,
     )
 
 
@@ -158,7 +156,7 @@ def test_delete_cluster(delete: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(delete_cluster, ["test-7"])
 
-    delete.assert_called_once_with(cluster_id="test-7", force=False, wait=False)
+    delete.assert_called_once_with(cluster_id="test-7", force=False, do_async=False)
 
 
 @mock.patch("lightning_app.utilities.login.Auth._run_server")

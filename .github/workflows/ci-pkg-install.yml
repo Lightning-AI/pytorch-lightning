@@ -13,7 +13,8 @@ on:
       - "setup.py"
       - "src/**"
       - "requirements/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -45,7 +46,7 @@ jobs:
       - name: DocTests actions
         working-directory: .actions/
         run: |
-          pip install pytest -q
+          pip install -q pytest
           python -m pytest setup_tools.py
 
       - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
@@ -66,7 +67,10 @@ jobs:
 
       - name: DocTest package
         env:
+          LIGHTING_TESTING: 1  # path for require wrapper
           PY_IGNORE_IMPORTMISMATCH: 1
         run: |
+          pip install -q "pytest-doctestplus>=0.9.0"
+          pip list
           PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"

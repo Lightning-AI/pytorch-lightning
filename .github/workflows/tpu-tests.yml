@@ -7,6 +7,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
       - "requirements/lite/**"
@@ -16,8 +17,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -78,7 +78,7 @@ jobs:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
-    - uses: google-github-actions/get-gke-credentials@v0
+    - uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
