@@ -471,7 +471,7 @@ class AutoScaler(LightningFlow):
         return work_attribute
 
     def remove_work(self, index: int) -> str:
-        """Removes the ``index``th LightningWork instance."""
+        """Removes the ``index`` th LightningWork instance."""
         work_attribute = self._work_registry[index]
         del self._work_registry[index]
         work = getattr(self, work_attribute)
@@ -480,7 +480,7 @@ class AutoScaler(LightningFlow):
         return work_attribute
 
     def get_work(self, index: int) -> LightningWork:
-        """Returns the ``index``th LightningWork instance."""
+        """Returns the ``index`` th LightningWork instance."""
         work_attribute = self._work_registry[index]
         work = getattr(self, work_attribute)
         return work
