@@ -1,0 +1,2 @@
+# deps required by components in the lightning app repository (src/lightning_app/components)
+lightning_api_access>=0.0.3
