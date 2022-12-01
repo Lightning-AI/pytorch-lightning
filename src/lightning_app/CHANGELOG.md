@@ -96,6 +96,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [1.8.1] - 2022-11-10
 
+- Fixed bug when launching apps on multiple clusters ([#15484](https://github.com/Lightning-AI/lightning/pull/15484))
+
 
 ### Added
 
