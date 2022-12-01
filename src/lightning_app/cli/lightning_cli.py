@@ -269,8 +269,8 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args: Any, **kwargs: Any) -> None:
-        if open_ui and not without_server:
+    def on_before_run(*args: Any, has_ui: bool = True, **kwargs: Any) -> None:
+        if open_ui and has_ui and not without_server:
             click.launch(get_app_url(runtime_type, *args, **kwargs))
 
     click.echo("Your Lightning App is starting. This won't take long.")
