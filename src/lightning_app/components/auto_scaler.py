@@ -352,7 +352,8 @@ class AutoScaler(LightningFlow):
         input_type: Input type.
         output_type: Output type.
 
-        Example:
+        .. testcode::
+
             import lightning as L
 
             # Example 1: Auto-scaling serve component out-of-the-box
@@ -383,6 +384,7 @@ class AutoScaler(LightningFlow):
                         return replicas - 1
 
                     return replicas
+
 
             app = L.LightningApp(
                 MyAutoScaler(
