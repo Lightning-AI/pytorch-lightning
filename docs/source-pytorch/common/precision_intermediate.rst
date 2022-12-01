@@ -115,8 +115,6 @@ BFloat16 Mixed Precision
 
 .. warning::
 
-    BFloat16 requires PyTorch 1.10 or later and is only supported with PyTorch Native AMP.
-
     BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
 
     Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`__ based GPUs, such as A100s or 3090s.
@@ -126,14 +124,13 @@ BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintai
 Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html>`__ with the dtype set to ``bfloat16``, with no gradient scaling.
 
 .. testcode::
-    :skipif: not _TORCH_GREATER_EQUAL_1_10 or not torch.cuda.is_available()
+    :skipif: not torch.cuda.is_available()
 
     Trainer(accelerator="gpu", devices=1, precision="bf16")
 
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
 .. testcode::
-    :skipif: not _TORCH_GREATER_EQUAL_1_10
 
     Trainer(precision="bf16")
 

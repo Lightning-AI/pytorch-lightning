@@ -6,15 +6,16 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from textwrap import dedent
 from typing import Any, Callable, List, Optional, Union
 
-import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
     Body7,
     Body8,
     Body9,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
@@ -336,6 +337,7 @@ class CloudRuntime(Runtime):
             elif CLOUD_QUEUE_TYPE == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
+            existing_instance: Optional[Externalv1LightningappInstance] = None
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
@@ -374,12 +376,20 @@ class CloudRuntime(Runtime):
                             f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
                             "doesn't exist anymore."
                         )
-                    click.confirm(
-                        f"{msg} Do you want to run on Lightning Cloud instead?",
-                        abort=True,
-                        default=True,
+                    raise ValueError(msg)
+                if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
+                    raise ValueError(
+                        dedent(
+                            f"""\
+                            An app names {app_config.name} is already running on cluster {existing_instance.spec.cluster_id}, and you requested it to run on cluster {app_config.cluster_id}.
+
+                            In order to proceed, please either:
+                                a. rename the app to run on {app_config.cluster_id} with the --name option
+                                    lightning run app {app_entrypoint_file} --name (new name) --cloud --cluster-id {app_config.cluster_id}
+                                b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
+                            """  # noqa: E501
+                        )
                     )
-                    app_config.cluster_id = None
 
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
