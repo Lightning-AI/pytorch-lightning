@@ -250,7 +250,8 @@ class _LoadBalancer(LightningWork):
             AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
             if len(AUTO_SCALER_AUTH_PASSWORD) == 0:
                 logger.warn(
-                    "You have not set a password for private endpoints! To set a password add --env AUTO_SCALER_AUTH_PASSWORD=<your pass> to your lightning run command."
+                    "You have not set a password for private endpoints! To set a password, add "
+                    "`--env AUTO_SCALER_AUTH_PASSWORD=<your pass>` to your lightning run command."
                 )
             current_password_bytes = credentials.password.encode("utf8")
             is_correct_password = secrets.compare_digest(
@@ -442,14 +443,14 @@ class AutoScaler(LightningFlow):
             parallel=True,
         )
         for _ in range(min_replicas):
-            work = self.create_worker()
+            work = self.create_work()
             self.add_work(work)
 
     @property
     def workers(self) -> List[LightningWork]:
         return [self.get_work(i) for i in range(self.num_replicas)]
 
-    def create_worker(self) -> LightningWork:
+    def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         return self._work_cls(*self._work_args, **self._work_kwargs)
 
@@ -552,7 +553,7 @@ class AutoScaler(LightningFlow):
         num_workers_to_add = num_target_workers - self.num_replicas
         for _ in range(num_workers_to_add):
             logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
-            work = self.create_worker()
+            work = self.create_work()
             new_work_id = self.add_work(work)
             logger.info(f"Work created: '{new_work_id}'")
 
