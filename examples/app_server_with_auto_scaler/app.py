@@ -54,14 +54,29 @@ class PyTorchServer(L.app.components.PythonServer):
 
 class MyAutoScaler(L.app.components.AutoScaler):
     def scale(self, replicas, metrics):
-        """The default replication logic that users can override."""
+        """The default scaling logic that users can override.
 
-        # upscale (default: upscale_threshold = min_replicas * max_batch_size)
-        if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
+        Args:
+            replicas: The number of running works.
+            metrics: ``metrics['pending_requests']`` is the total number of requests that are currently pending.
+                ``metrics['pending_works']`` is the number of pending works.
+
+        Returns:
+            The target number of running works. The value will be adjusted after this method runs
+            so that it satisfies ``min_replicas<=replicas<=max_replicas``.
+        """
+        max_requests_per_work = self.max_batch_size
+        min_requests_per_work = 1
+        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
+            replicas + metrics["pending_works"]
+        )
+
+        # upscale
+        if pending_requests_per_running_or_pending_work >= max_requests_per_work:
             return replicas + 1
 
         # downscale
-        if metrics["pending_requests"] < self.downscale_threshold:
+        if pending_requests_per_running_or_pending_work < min_requests_per_work:
             return replicas - 1
 
         return replicas
