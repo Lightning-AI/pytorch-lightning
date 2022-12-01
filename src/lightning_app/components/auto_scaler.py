@@ -249,7 +249,7 @@ class _LoadBalancer(LightningWork):
         def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
             AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
             if len(AUTO_SCALER_AUTH_PASSWORD) == 0:
-                logging.warning("You have not set password for private endpoints!")
+                logger.warn("You have not set password for private endpoints!")
             current_password_bytes = credentials.password.encode("utf8")
             is_correct_password = secrets.compare_digest(
                 current_password_bytes, AUTO_SCALER_AUTH_PASSWORD.encode("utf8")
@@ -300,7 +300,7 @@ class _LoadBalancer(LightningWork):
         new_servers = set(server_urls)
 
         if new_servers == old_servers:
-            logging.debug("no new server added")
+            logger.debug("no new server added")
             return
 
         if new_servers - old_servers:
@@ -442,14 +442,6 @@ class AutoScaler(LightningFlow):
             work = self.create_worker()
             self.add_work(work)
 
-        logger.info(
-            f"Initialized AutoScaler("
-            f"min_replicas={min_replicas},"
-            f" max_replicas={max_replicas},"
-            f" timeout_batching={timeout_batching},"
-            f" max_batch_size={max_batch_size})"
-        )
-
     @property
     def workers(self) -> List[LightningWork]:
         return [self.get_work(i) for i in range(self.num_replicas)]
@@ -517,8 +509,8 @@ class AutoScaler(LightningFlow):
 
     @property
     def num_pending_works(self) -> int:
-        """The number of unready works."""
-        return sum(1 for work in self.workers if not work.url)
+        """The number of pending works."""
+        return sum(work.is_pending for work in self.workers)
 
     def autoscale(self) -> None:
         """Upscale and down scale model inference works."""
