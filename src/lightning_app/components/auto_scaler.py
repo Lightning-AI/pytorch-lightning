@@ -486,8 +486,8 @@ class AutoScaler(LightningFlow):
         if not self.load_balancer.is_running:
             self.load_balancer.run()
 
-        for worker in self.workers:
-            worker.run()
+        for work in self.workers:
+            work.run()
 
         if self.load_balancer.url:
             self.fake_trigger += 1  # Note: change state to keep calling `run`.
