@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable
+from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable, is_overridden
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -44,9 +44,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         # Do nothing
         pass
     elif isinstance(layout, dict):
-        layout = _collect_content_layout([layout], flow)
+        layout = _collect_content_layout([layout], app, flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
-        layout = _collect_content_layout(layout, flow)
+        layout = _collect_content_layout(layout, app, flow)
     else:
         lines = _add_comment_to_literal_code(flow.configure_layout, contains="return", comment="  <------- this guy")
         m = f"""
@@ -75,7 +75,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
     return layout
 
 
-def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFlow") -> List[Dict]:
+def _collect_content_layout(
+    layout: List[Dict], app: "lightning_app.LightningApp", flow: "lightning_app.LightningFlow"
+) -> List[Dict]:
     """Process the layout returned by the ``configure_layout()`` method if the returned format represents an
     aggregation of child layouts."""
     for entry in layout:
@@ -101,12 +103,45 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             entry["content"] = entry["content"].name
 
         elif isinstance(entry["content"], lightning_app.LightningWork):
-            if entry["content"].url and not entry["content"].url.startswith("/"):
-                entry["content"] = entry["content"].url
-                entry["target"] = entry["content"]
+            work = entry["content"]
+            if is_overridden("configure_layout", work):
+                work_layout = work.configure_layout()
             else:
-                entry["content"] = ""
-                entry["target"] = ""
+                work_layout = work.url
+
+            if isinstance(work_layout, str):
+                url = work_layout
+                if url and not url.startswith("/"):
+                    entry["content"] = url
+                    entry["target"] = url
+                else:
+                    entry["content"] = ""
+                    entry["target"] = ""
+            elif isinstance(work_layout, Frontend):
+                if len(layout) > 1:
+                    lines = _add_comment_to_literal_code(
+                        flow.configure_layout, contains="return", comment="  <------- this guy"
+                    )
+                    m = f"""
+                    The return value of configure_layout() in `{flow.__class__.__name__}`  is an
+                    unsupported layout format:
+                    \n{lines}
+
+                    If one of your tabs contains a `{work.__class__.__name__}` it must be the only tab in the
+                    layout of this flow.
+
+                    (see the docs for `LightningWork.configure_layout`).
+                    """
+                    raise TypeError(m)
+                # If the work returned a frontend, treat it as belonging to the flow.
+                frontend = work_layout
+                frontend.flow = flow
+                app.frontends.setdefault(flow.name, frontend)
+
+                return flow._layout
+            else:
+                # TODO: Handle error, return value of work configure layout is unsupported
+                pass
         elif isinstance(entry["content"], _MagicMockJsonSerializable):
             # Do nothing
             pass
