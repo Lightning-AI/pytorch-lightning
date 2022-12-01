@@ -1,1 +1,1 @@
-pytorch-lightning>=1.8.0
+pytorch-lightning @ https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip
