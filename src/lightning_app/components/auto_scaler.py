@@ -352,50 +352,50 @@ class AutoScaler(LightningFlow):
         input_type: Input type.
         output_type: Output type.
 
-        .. testcode::
+    .. testcode::
 
-            import lightning as L
+        import lightning as L
 
-            # Example 1: Auto-scaling serve component out-of-the-box
-            app = L.LightningApp(
-                L.app.components.AutoScaler(
-                    MyPythonServer,
-                    min_replicas=1,
-                    max_replicas=8,
-                    autoscale_interval=10,
-                )
+        # Example 1: Auto-scaling serve component out-of-the-box
+        app = L.LightningApp(
+            L.app.components.AutoScaler(
+                MyPythonServer,
+                min_replicas=1,
+                max_replicas=8,
+                autoscale_interval=10,
             )
+        )
 
-            # Example 2: Customizing the scaling logic
-            class MyAutoScaler(L.app.components.AutoScaler):
-                def scale(self, replicas: int, metrics: dict) -> int:
-                    max_requests_per_work = self.max_batch_size
-                    min_requests_per_work = 1
-                    pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
-                        replicas + metrics["pending_works"]
-                    )
-
-                    # upscale
-                    if pending_requests_per_running_or_pending_work >= max_requests_per_work:
-                        return replicas + 1
-
-                    # downscale
-                    if pending_requests_per_running_or_pending_work < min_requests_per_work:
-                        return replicas - 1
-
-                    return replicas
-
-
-            app = L.LightningApp(
-                MyAutoScaler(
-                    MyPythonServer,
-                    min_replicas=1,
-                    max_replicas=8,
-                    autoscale_interval=10,
-                    max_batch_size=8,  # for auto batching
-                    timeout_batching=2,  # for auto batching
+        # Example 2: Customizing the scaling logic
+        class MyAutoScaler(L.app.components.AutoScaler):
+            def scale(self, replicas: int, metrics: dict) -> int:
+                max_requests_per_work = self.max_batch_size
+                min_requests_per_work = 1
+                pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
+                    replicas + metrics["pending_works"]
                 )
+
+                # upscale
+                if pending_requests_per_running_or_pending_work >= max_requests_per_work:
+                    return replicas + 1
+
+                # downscale
+                if pending_requests_per_running_or_pending_work < min_requests_per_work:
+                    return replicas - 1
+
+                return replicas
+
+
+        app = L.LightningApp(
+            MyAutoScaler(
+                MyPythonServer,
+                min_replicas=1,
+                max_replicas=8,
+                autoscale_interval=10,
+                max_batch_size=8,  # for auto batching
+                timeout_batching=2,  # for auto batching
             )
+        )
     """
 
     def __init__(
