@@ -5,10 +5,10 @@ from typing import Any, Dict
 
 from setuptools import find_packages
 
-_PROJECT_ROOT = "."
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning_app")
-_PATH_REQUIREMENTS = os.path.join("requirements", "app")
+_PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements", "app")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
