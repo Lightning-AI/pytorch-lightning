@@ -6,7 +6,7 @@ import time
 import uuid
 from base64 import b64encode
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Tuple, Type
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -343,8 +343,6 @@ class AutoScaler(LightningFlow):
         min_replicas: The number of works to start when app initializes.
         max_replicas: The max number of works to spawn to handle the incoming requests.
         autoscale_interval: The number of seconds to wait before checking whether to upscale or downscale the works.
-        downscale_threshold: Lower limit to determine when to stop works.
-        upscale_threshold: Upper limit to determine when to spawn up a new work.
         endpoint: Default=api/predict. Provide the REST API path
         max_batch_size: (auto-batching) The number of requests to process at once.
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
@@ -367,14 +365,6 @@ class AutoScaler(LightningFlow):
             # Example 2: Customizing the scaling logic
             class MyAutoScaler(L.app.components.AutoScaler):
                 def scale(self, replicas: int, metrics: dict) -> int:
-                    # upscale
-                    if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
-                        return replicas + 1
-
-                    # downscale
-                    if metrics["pending_requests"] < self.downscale_threshold:
-                        return replicas - 1
-
                     return replicas
 
             app = L.LightningApp(
@@ -397,8 +387,6 @@ class AutoScaler(LightningFlow):
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
         timeout_batching: float = 2,
-        downscale_threshold: Optional[int] = None,
-        upscale_threshold: Optional[int] = None,
         endpoint: str = None,
         input_type: type = Dict,
         output_type: type = Dict,
@@ -416,6 +404,7 @@ class AutoScaler(LightningFlow):
         self._input_type = input_type
         self._output_type = output_type
         self.autoscale_interval = autoscale_interval
+        self.max_batch_size = max_batch_size
 
         if max_replicas < min_replicas:
             raise ValueError(
@@ -423,8 +412,6 @@ class AutoScaler(LightningFlow):
             )
         self.max_replicas = max_replicas
         self.min_replicas = min_replicas
-        self.downscale_threshold = downscale_threshold or min_replicas
-        self.upscale_threshold = upscale_threshold or min_replicas * max_batch_size
         self._last_autoscale = time.time()
         self.fake_trigger = 0
 
@@ -490,17 +477,29 @@ class AutoScaler(LightningFlow):
             self.autoscale()
 
     def scale(self, replicas: int, metrics: dict) -> int:
-        """The default replication logic that users can override."""
-        max_requests_per_work = self.upscale_threshold
+        """The default scaling logic that users can override.
+
+        Args:
+            replicas: The number of running works.
+            metrics: ``metrics['pending_requests']`` is the total number of requests that are currently pending.
+                ``metrics['pending_works']`` is the number of pending works.
+
+        Returns:
+            The target number of running works. The value will be adjusted after this method runs
+            so that it satisfies ``min_replicas<=replicas<=max_replicas``.
+        """
+        max_requests_per_work = self.max_batch_size
+        min_requests_per_work = 1
         pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
             replicas + metrics["pending_works"]
         )
 
+        # upscale
         if pending_requests_per_running_or_pending_work >= max_requests_per_work:
             return replicas + 1
 
         # downscale
-        if metrics["pending_requests"] < self.downscale_threshold:
+        if pending_requests_per_running_or_pending_work < min_requests_per_work:
             return replicas - 1
 
         return replicas
