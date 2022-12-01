@@ -249,7 +249,7 @@ class _LoadBalancer(LightningWork):
         def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
             AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
             if len(AUTO_SCALER_AUTH_PASSWORD) == 0:
-                logger.warn("You have not set password for private endpoints!")
+                logger.warn("You have not set a password for private endpoints! To set a password add --env AUTO_SCALER_AUTH_PASSWORD=<your pass> to your lightning run command.")
             current_password_bytes = credentials.password.encode("utf8")
             is_correct_password = secrets.compare_digest(
                 current_password_bytes, AUTO_SCALER_AUTH_PASSWORD.encode("utf8")
