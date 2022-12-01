@@ -489,11 +489,14 @@ class AutoScaler(LightningFlow):
             self.fake_trigger += 1  # Note: change state to keep calling `run`.
             self.autoscale()
 
-    def scale(self, replicas: int, metrics) -> int:
+    def scale(self, replicas: int, metrics: dict) -> int:
         """The default replication logic that users can override."""
+        max_requests_per_work = self.upscale_threshold
+        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
+            replicas + metrics["pending_works"]
+        )
 
-        # upscale
-        if metrics["pending_requests"] > self.upscale_threshold * (metrics["pending_works"] + 1):
+        if pending_requests_per_running_or_pending_work >= max_requests_per_work:
             return replicas + 1
 
         # downscale
