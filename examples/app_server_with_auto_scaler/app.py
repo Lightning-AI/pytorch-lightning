@@ -53,7 +53,7 @@ class PyTorchServer(L.app.components.PythonServer):
 
 
 class MyAutoScaler(L.app.components.AutoScaler):
-    def scale(self, replicas, metrics):
+    def scale(self, replicas: int, metrics: dict) -> int:
         """The default scaling logic that users can override.
 
         Args:
