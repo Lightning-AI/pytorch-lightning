@@ -111,7 +111,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload: Optional[Union[bool, "CPUOffload"]] = None,
+        cpu_offload: Union[bool, "CPUOffload", None] = None,
         backward_prefetch: Optional[BackwardPrefetch] = None,
         mixed_precision: Optional[MixedPrecision] = None,
         **kwargs: Any,
