@@ -90,7 +90,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        cpu_offload: Optional[Union[bool, "CPUOffload"]] = None,
+        cpu_offload: Union[bool, "CPUOffload", None] = None,
         backward_prefetch: Optional["BackwardPrefetch"] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
         **kwargs: Any,
