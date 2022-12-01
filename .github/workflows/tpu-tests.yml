@@ -42,6 +42,7 @@ jobs:
       PYTHON_VER: 3.7
     strategy:
       fail-fast: false
+      max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning
         pkg-name: ["lite", "pytorch"]
