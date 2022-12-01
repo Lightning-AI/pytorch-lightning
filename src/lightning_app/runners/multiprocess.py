@@ -27,6 +27,7 @@ class MultiProcessRuntime(Runtime):
     """
 
     backend: Union[str, Backend] = "multiprocessing"
+    _has_triggered_termination: bool = False
 
     def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
@@ -111,9 +112,11 @@ class MultiProcessRuntime(Runtime):
             self.app._run()
         except KeyboardInterrupt:
             self.terminate()
+            self._has_triggered_termination = True
             raise
         finally:
-            self.terminate()
+            if not self._has_triggered_termination:
+                self.terminate()
 
     def terminate(self):
         if APP_SERVER_IN_CLOUD:
