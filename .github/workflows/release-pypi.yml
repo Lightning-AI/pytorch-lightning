@@ -197,7 +197,7 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
   legacy-checkpoints:
-    needs: [upload-packages]
+    needs: [build-packages]
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
       push_to_s3: ${{ env.PUBLISH }}
