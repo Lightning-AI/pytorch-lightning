@@ -47,7 +47,7 @@ log = logging.getLogger(__name__)
 _INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
 
 
-class NeptuneLogger(Logger):
+class NeptuneLogger(Logger[Run]):
     r"""
     Log using `Neptune <https://neptune.ai>`_.
 

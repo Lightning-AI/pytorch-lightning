@@ -60,8 +60,12 @@ def rank_zero_experiment(fn: Callable[[T_log], T_exp]) -> Callable[[T_log], Unio
     return experiment
 
 
-class Logger(ABC):
+class Logger(ABC, Generic[T_exp]):
     """Base class for experiment loggers."""
+
+    @abstractproperty
+    def experiment(self) -> T_exp:
+        ...
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.
