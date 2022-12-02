@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 from torch import Tensor
@@ -29,12 +29,17 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
+# subclass of Logger
+T_log = TypeVar("T_log", bound="Logger")
+# experiment type
+T_exp = TypeVar("T_exp")
 
-def rank_zero_experiment(fn: Callable) -> Callable:
+
+def rank_zero_experiment(fn: Callable[[T_log], T_exp]) -> Callable[[T_log], Union[T_exp, "DummyExperiment"]]:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self) -> Union[Any, DummyExperiment]:  # type: ignore[no-untyped-def]
+    def experiment(self: T_log) -> Union[T_exp, DummyExperiment]:
         """
         Note:
             ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
@@ -47,7 +52,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
         """
 
         @rank_zero_only
-        def get_experiment() -> Callable:
+        def get_experiment() -> T_exp:
             return fn(self)
 
         return get_experiment() or DummyExperiment()
