@@ -142,9 +142,6 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
-        self.is_headless: Optional[bool] = None
-        self._has_launched_browser = False
-
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
         # we will need to revisit the logic at _should_snapshot, since right now
@@ -152,7 +149,9 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
-        self._update_is_headless()
+
+        self.is_headless: bool = _is_headless(self)
+        self._has_launched_browser = False
 
         self._original_state = None
         self._last_state = self.state
@@ -519,11 +518,6 @@ class LightningApp:
 
     def _update_is_headless(self) -> None:
         is_headless = _is_headless(self)
-
-        # If `is_headless` hasn't been set before, set it and return.
-        if self.is_headless is None:
-            self.is_headless = is_headless
-            return
 
         # If `is_headless` changed, handle it.
         # This ensures support for apps which dynamically add a UI at runtime.
