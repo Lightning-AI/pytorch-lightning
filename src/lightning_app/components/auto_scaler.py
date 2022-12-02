@@ -339,8 +339,9 @@ class _LoadBalancer(LightningWork):
 
 
 class AutoScaler(LightningFlow):
-    """A LightningFlow component that handles all the servers and uses load balancer to spawn up and shutdown based
-    on current requests in the queue.
+    """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server
+    in response to changes in the number of incoming requests. Incoming requests will be batched and
+    balanced across the replicas.
 
     Args:
         min_replicas: The number of works to start when app initializes.
@@ -480,7 +481,7 @@ class AutoScaler(LightningFlow):
         return work_attribute
 
     def get_work(self, index: int) -> LightningWork:
-        """Returns the ``index`` th LightningWork instance."""
+        """Returns the ``LightningWork`` instance with the given index."""
         work_attribute = self._work_registry[index]
         work = getattr(self, work_attribute)
         return work
@@ -535,7 +536,7 @@ class AutoScaler(LightningFlow):
         return sum(work.is_pending for work in self.workers)
 
     def autoscale(self) -> None:
-        """Upscale and down scale model inference works."""
+        """Adjust the number of works based on the target number returned by ``self.scale``."""
         if time.time() - self._last_autoscale < self.autoscale_interval:
             return
 
