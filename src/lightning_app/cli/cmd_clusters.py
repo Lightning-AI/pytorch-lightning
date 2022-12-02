@@ -158,10 +158,10 @@ class AWSClusterManager:
                 lightning list clusters
 
             To view cluster logs use:
-                lightning show cluster logs {cluster_name}
+                lightning show cluster logs {cluster_id}
 
             To delete the cluster run:
-                lightning delete cluster {cluster_name}
+                lightning delete cluster {cluster_id}
             """
             )
         )

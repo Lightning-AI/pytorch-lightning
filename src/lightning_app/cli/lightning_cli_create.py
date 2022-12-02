@@ -5,7 +5,7 @@ from typing import Any, Optional, Union
 import click
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager
+from lightning_app.cli.cmd_clusters import _check_cluster_id_is_valid, AWSClusterManager
 from lightning_app.cli.cmd_ssh_keys import _SSHKeyManager
 
 

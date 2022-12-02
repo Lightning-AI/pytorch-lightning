@@ -106,7 +106,7 @@ def test_delete_cluster_api(api_get: mock.MagicMock, api_delete: mock.MagicMock,
     api_delete.assert_called_once_with(id="test-7", force=False)
 
 
-class Test_check_cluster_name_is_valid:
+class Test_check_cluster_id_is_valid:
     @pytest.mark.parametrize("name", ["test-7", "0wildgoat"])
     def test_valid(self, name):
         assert cmd_clusters._check_cluster_id_is_valid(None, None, name)
