@@ -394,15 +394,18 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        while True:
-            try:
-                with admin_page.context.expect_page() as page_catcher:
-                    admin_page.locator('[data-cy="open"]').click()
-                view_page = page_catcher.value
-                view_page.wait_for_load_state(timeout=0)
-                break
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                pass
+        if not app.spec.is_headless:
+            while True:
+                try:
+                    with admin_page.context.expect_page() as page_catcher:
+                        admin_page.locator('[data-cy="open"]').click()
+                    view_page = page_catcher.value
+                    view_page.wait_for_load_state(timeout=0)
+                    break
+                except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
+                    pass
+        else:
+            view_page = None
 
         # TODO: is re-creating this redundant?
         lit_apps = [
