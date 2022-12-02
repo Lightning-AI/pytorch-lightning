@@ -50,7 +50,7 @@ class XLAProfiler(Profiler):
     def start(self, action_name: str) -> None:
         import torch_xla.debug.profiler as xp
 
-        if action_name in self.RECORD_FUNCTIONS:
+        if action_name.split(".")[-1] in self.RECORD_FUNCTIONS:
             if not self._start_trace:
                 self.server = xp.start_server(self.port)
                 self._start_trace = True
