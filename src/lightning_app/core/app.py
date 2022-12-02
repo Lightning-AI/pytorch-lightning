@@ -152,6 +152,7 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+        self._update_is_headless()
 
         self._original_state = None
         self._last_state = self.state
