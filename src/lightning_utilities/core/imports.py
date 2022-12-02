@@ -1,11 +1,13 @@
 # Copyright The PyTorch Lightning team.
 # Licensed under the Apache License, Version 2.0 (the "License");
 #     http://www.apache.org/licenses/LICENSE-2.0
+
 import importlib
 import operator
 from functools import lru_cache
 from importlib.util import find_spec
-from typing import Callable
+from types import ModuleType
+from typing import Any, Callable, List, Optional
 
 import pkg_resources
 from packaging.requirements import Requirement
@@ -132,3 +134,58 @@ def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> 
         "This is an internal error. Please file a GitHub issue with the error message. Dependency "
         f"{dependency_name!r} not found in package {package_name!r}."
     )
+
+
+class LazyModule(ModuleType):
+    """Proxy module that lazily imports the underlying module the first time it is actually used.
+
+    Args:
+        module_name: the fully-qualified module name to import
+        callback: a callback function to call before importing the module
+    """
+
+    def __init__(self, module_name: str, callback: Optional[Callable] = None) -> None:
+        super().__init__(module_name)
+        self._module: Any = None
+        self._callback = callback
+
+    def __getattr__(self, item: str) -> Any:
+        if self._module is None:
+            self._import_module()
+
+        return getattr(self._module, item)
+
+    def __dir__(self) -> List[str]:
+        if self._module is None:
+            self._import_module()
+
+        return dir(self._module)
+
+    def _import_module(self) -> None:
+        # Execute callback, if any
+        if self._callback is not None:
+            self._callback()
+
+        # Actually import the module
+        self._module = importlib.import_module(self.__name__)
+
+        # Update this object's dict so that attribute references are efficient
+        # (__getattr__ is only called on lookups that fail)
+        self.__dict__.update(self._module.__dict__)
+
+
+def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyModule:
+    """Returns a proxy module object that will lazily import the given module the first time it is used. Example usage::
+
+        # Lazy version of `import tensorflow as tf`
+        tf = lazy_import("tensorflow")
+        # Other commands
+        # Now the module is loaded
+        tf.__version__
+    Args:
+        module_name: the fully-qualified module name to import
+        callback: a callback function to call before importing the module
+    Returns:
+        a proxy module object that will be lazily imported when first used
+    """
+    return LazyModule(module_name, callback=callback)
