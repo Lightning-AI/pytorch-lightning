@@ -295,7 +295,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         elapsed: Seconds since we've started polling
     """
 
-    cluster_name = cluster.name
+    cluster_id = cluster.id
     current_state = cluster.status.phase
     current_reason = cluster.status.reason
     bucket_name = cluster.spec.driver.kubernetes.aws.bucket_name
@@ -305,7 +305,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     if current_state == V1ClusterState.FAILED:
         return dedent(
             f"""\
-            The requested cluster operation for cluster {cluster_name} has errors:
+            The requested cluster operation for cluster {cluster_id} has errors:
             {current_reason}
 
             ---
@@ -313,7 +313,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
 
             WARNING: Any non-deleted cluster may be using resources.
             To avoid incuring cost on your cloud provider, delete the cluster using the following command:
-                lightning delete cluster {cluster_name}
+                lightning delete cluster {cluster_id}
 
             Contact support@lightning.ai for additional help
             """
@@ -322,18 +322,18 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     if desired_state == current_state == V1ClusterState.RUNNING:
         return dedent(
             f"""\
-                Cluster {cluster_name} is now running and ready to use.
-                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_name}
+                Cluster {cluster_id} is now running and ready to use.
+                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_id}
                 """
         )
 
     if desired_state == V1ClusterState.RUNNING:
-        return f"Cluster {cluster_name} is being created [elapsed={duration}]"
+        return f"Cluster {cluster_id} is being created [elapsed={duration}]"
 
     if desired_state == current_state == V1ClusterState.DELETED:
         return dedent(
             f"""\
-            Cluster {cluster_name} has been successfully deleted, and almost all AWS resources have been removed
+            Cluster {cluster_id} has been successfully deleted, and almost all AWS resources have been removed
 
             For safety purposes we kept the S3 bucket associated with the cluster: {bucket_name}
 
@@ -343,7 +343,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         )
 
     if desired_state == V1ClusterState.DELETED:
-        return f"Cluster {cluster_name} is being deleted [elapsed={duration}]"
+        return f"Cluster {cluster_id} is being deleted [elapsed={duration}]"
 
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
 
