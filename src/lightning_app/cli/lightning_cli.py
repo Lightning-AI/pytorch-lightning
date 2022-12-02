@@ -271,6 +271,7 @@ def _run_app(
         start_server=not without_server,
         no_cache=no_cache,
         blocking=blocking,
+        open_ui=open_ui,
         name=name,
         env_vars=env_vars,
         secrets=secrets,
