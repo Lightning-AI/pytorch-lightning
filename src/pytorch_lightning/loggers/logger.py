@@ -16,11 +16,11 @@
 
 import functools
 import operator
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, Mapping, Optional, Sequence, TypeVar, Union
 
 import numpy as np
 from torch import Tensor
@@ -60,8 +60,12 @@ def rank_zero_experiment(fn: Callable[[T_log], T_exp]) -> Callable[[T_log], Unio
     return experiment
 
 
-class Logger(ABC):
+class Logger(ABC, Generic[T_exp]):
     """Base class for experiment loggers."""
+
+    @abstractproperty
+    def experiment(self) -> T_exp:
+        ...
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Called after model checkpoint callback saves a new checkpoint.

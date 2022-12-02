@@ -50,7 +50,7 @@ _WANDB_GREATER_EQUAL_0_10_22 = RequirementCache("wandb>=0.10.22")
 _WANDB_GREATER_EQUAL_0_12_10 = RequirementCache("wandb>=0.12.10")
 
 
-class WandbLogger(Logger):
+class WandbLogger(Logger[Union[Run, RunDisabled]]):
     r"""
     Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 

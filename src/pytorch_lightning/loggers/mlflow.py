@@ -71,7 +71,7 @@ else:
         return tags
 
 
-class MLFlowLogger(Logger):
+class MLFlowLogger(Logger[MlflowClient]):
     """Log using `MLflow <https://mlflow.org>`_.
 
     Install it with pip:

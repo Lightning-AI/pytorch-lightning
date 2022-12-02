@@ -101,7 +101,7 @@ class ExperimentWriter:
             writer.writerows(self.metrics)
 
 
-class CSVLogger(Logger):
+class CSVLogger(Logger[ExperimentWriter]):
     r"""
     Log to local file system in yaml and CSV format.
 

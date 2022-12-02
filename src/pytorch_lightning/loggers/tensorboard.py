@@ -50,7 +50,7 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-class TensorBoardLogger(Logger):
+class TensorBoardLogger(Logger[SummaryWriter]):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 

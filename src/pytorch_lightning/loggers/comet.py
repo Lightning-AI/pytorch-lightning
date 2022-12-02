@@ -51,7 +51,7 @@ else:
     API = None
 
 
-class CometLogger(Logger):
+class CometLogger(Logger[Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]]):
     r"""
     Track your parameters, metrics, source code and more using
     `Comet <https://www.comet.com/?utm_source=pytorch_lightning&utm_medium=referral>`_.
