@@ -286,6 +286,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
         app.flows = []
         app.frontend = {}
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
@@ -335,6 +336,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
         app.flows = []
         app.frontend = {}
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
@@ -459,6 +461,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
 
         work = MyWork(start_with_flow=start_with_flow, cloud_compute=CloudCompute("custom"))
         work._name = "test-work"
@@ -631,6 +634,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -766,6 +770,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
 
         work = MyWork(cloud_compute=CloudCompute("custom"))
         work._state = {"_port"}
@@ -882,6 +887,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
 
         mocked_lit_drive = MagicMock(spec=Drive)
         setattr(mocked_lit_drive, "id", "foobar")
@@ -1085,6 +1091,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
