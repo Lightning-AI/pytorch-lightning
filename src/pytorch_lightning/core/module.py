@@ -45,7 +45,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
@@ -1824,13 +1824,6 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
-            self.eval()
-            if isinstance(input_sample, tuple):
-                kwargs["example_outputs"] = self(*input_sample)
-            else:
-                kwargs["example_outputs"] = self(input_sample)
-
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
 
@@ -1938,7 +1931,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS or not torch.distributed.is_available():
+        if _IS_WINDOWS or not torch.distributed.is_available():
             rank_zero_debug("Could not register sharded tensor state dict hooks")
             return
 
