@@ -61,7 +61,7 @@ jobs:
           pkg-name: ${{ matrix.pkg-name }}
 
       - name: Run CLI
-        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == "app" }}
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'app' }}
         run: python -m lightning --version
 
       - name: DocTest package
