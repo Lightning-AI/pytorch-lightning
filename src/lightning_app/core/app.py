@@ -29,6 +29,8 @@ from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
+    _handle_is_headless,
+    _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
     Logger,
@@ -139,6 +141,9 @@ class LightningApp:
         self.threads: List[threading.Thread] = []
         self.exception = None
         self.collect_changes: bool = True
+
+        self.is_headless: Optional[bool] = None
+        self._has_launched_browser = False
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -412,6 +417,7 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
+        self._update_is_headless()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -509,6 +515,21 @@ class LightningApp:
         for component in breadth_first(self.root, types=(lightning_app.LightningFlow,)):
             layout = _collect_layout(self, component)
             component._layout = layout
+
+    def _update_is_headless(self) -> None:
+        is_headless = _is_headless(self)
+
+        # If `is_headless` hasn't been set before, set it and return.
+        if self.is_headless is None:
+            self.is_headless = is_headless
+            return
+
+        # If `is_headless` changed, handle it.
+        # This ensures support for apps which dynamically add a UI at runtime.
+        if self.is_headless != is_headless:
+            self.is_headless = is_headless
+
+            _handle_is_headless(self)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()

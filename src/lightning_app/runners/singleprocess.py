@@ -48,6 +48,7 @@ class SingleProcessRuntime(Runtime):
 
         if open_ui and not _is_headless(self.app):
             click.launch(self._get_app_url())
+            self.app._has_launched_browser = True
 
         try:
             self.app._run()
