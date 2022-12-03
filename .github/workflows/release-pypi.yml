@@ -131,12 +131,27 @@ jobs:
   waiting:
     # TODO: replace with back signal from build images/ loop checking for a specific branch?
     runs-on: ubuntu-20.04
-    needs: signaling
+    needs: [release-version, signaling]
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
+    timeout-minutes: 90
     steps:
-    - name: Delay releasing
-      uses: juliangruber/sleep-action@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
-        time: 30m
+        python-version: 3.8
+    - run: pip install gitpython
+    - name: Delay releasing
+      run: |
+        import git, os, time
+        repo = git.Repo('.')
+        branch = f"origin/built/{os.getenv('TAG')}"
+        while True:
+          remote_refs = [b.name for b in repo.remote().refs]
+          if branch in remote_refs:
+            break
+          time.sleep(60)
+      shell: python
 
   pre-publish-packages:
     runs-on: ubuntu-20.04
