@@ -36,7 +36,6 @@ from pytorch_lightning.utilities.imports import (
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _PSUTIL_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
 )
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
@@ -162,7 +161,7 @@ class RunIf:
 
         if bf16_cuda:
             try:
-                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+                cond = not (torch.cuda.is_available() and torch.cuda.is_bf16_supported())
             except (AssertionError, RuntimeError) as e:
                 # AssertionError: Torch not compiled with CUDA enabled
                 # RuntimeError: Found no NVIDIA driver on your system.

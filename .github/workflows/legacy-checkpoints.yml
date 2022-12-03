@@ -41,11 +41,15 @@ on:
       AWS_SECRET_KEY_ID:
         required: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   create-legacy-ckpts:
     runs-on: ubuntu-20.04
     outputs:
-      pl-version: ${{ steps.decide-pl-version.outputs.pl-version }}
+      pl-version: ${{ steps.decide-version.outputs.pl-version }}
     defaults:
       run:
         working-directory: tests/legacy
@@ -69,16 +73,23 @@ jobs:
       env:
         PACKAGE_NAME: pytorch
       run: |
-        pip install -e . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
       if: inputs.pl_version == ''
+
+    - name: Install PL version
+      run: |
+        pip install "pytorch-lightning==${{ inputs.pl_version }}" \
+          -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip list
+      if: inputs.pl_version != ''
 
     - name: Pull legacy checkpoints
       working-directory: ./
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Decide PL version to create a PR with
-      id: decide-pl-version
+      id: decide-version
       run: |
         python -c "import pytorch_lightning as pl; print(f'pl-version={pl.__version__}')" >> $GITHUB_OUTPUT || echo pl-version='' >> $GITHUB_OUTPUT
 

@@ -53,7 +53,7 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
@@ -61,7 +61,7 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 else:
     OSS = object
-if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
+if torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 log = logging.getLogger(__name__)
@@ -181,7 +181,7 @@ class DDPStrategy(ParallelStrategy):
             self.setup_optimizers(trainer)
             _optimizers_to_device(self.optimizers, self.root_device)
 
-        if _TORCH_GREATER_EQUAL_1_10 and trainer_fn == TrainerFn.FITTING:
+        if trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
@@ -279,7 +279,7 @@ class DDPStrategy(ParallelStrategy):
         """
         optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
 
-        if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
+        if self._model_averager is None:
             return optimizer_output
 
         params = [param for group in optimizer.param_groups for param in group["params"] if param.grad is not None]
