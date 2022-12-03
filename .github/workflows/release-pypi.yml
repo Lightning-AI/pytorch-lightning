@@ -145,7 +145,7 @@ jobs:
       run: |
         import git, os, time
         repo = git.Repo('.')
-        branch = f"origin/built/{os.getenv('TAG')}"
+        branch = f"origin/builds/{os.getenv('TAG')}"
         while True:
           remote_refs = [b.name for b in repo.remote().refs]
           if branch in remote_refs:
