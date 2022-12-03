@@ -49,7 +49,7 @@ local tputests = base.BaseTest {
       echo "Sanity check passed!"
 
       echo "--- Running PL tests ---"
-      cd ../tests_pytorch
+      cd tests/tests_pytorch
       PL_RUN_TPU_TESTS=1 coverage run --source=pytorch_lightning -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone PL tests ---"
