@@ -239,7 +239,8 @@ class ColossalAIStrategy(DDPStrategy):
                 if getattr(module, "_colossalai_module", False) is True:
                     return
                 super()._post_init_method(module, *args, **kwargs)
-                module._colossalai_module = True  # type: ignore[assignment]
+                for sub_module in module.modules():
+                    sub_module._colossalai_module = True  # type: ignore[assignment]
 
         return ModelShardedContext()
 
