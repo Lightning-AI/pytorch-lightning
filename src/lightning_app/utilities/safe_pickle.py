@@ -51,7 +51,7 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
         raise RuntimeError("Cannot pickle LightningWork outside of a LightningApp")
     for w in app_ref.works:
         if work.name == w.name:
-            # copying the work object to avoid modifying the original work object
+            # deep-copying the work object to avoid modifying the original work object
             with _trimmed_work(w, to_trim=NON_PICKLABLE_WORK_ATTRIBUTES):
                 copied_work = deepcopy(w)
             break
