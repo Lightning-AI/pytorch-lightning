@@ -9,11 +9,12 @@ from pathlib import Path
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import _LightningAppRef
 
-NON_PICKLABLE_WORK_ARGS = ["_request_queue", "_response_queue", "_backend", "_setattr_replacement"]
+NON_PICKLABLE_WORK_ATTRIBUTES = ["_request_queue", "_response_queue", "_backend", "_setattr_replacement"]
 
 
 @contextlib.contextmanager
-def trimmed_work(work: LightningWork, to_trim: typing.List[str]) -> typing.Iterator[None]:
+def _trimmed_work(work: LightningWork, to_trim: typing.List[str]) -> typing.Iterator[None]:
+    """ Context manager to trim the work object to remove attributes that are not picklable """
     holder = {}
     for arg in to_trim:
         holder[arg] = getattr(work, arg)
@@ -42,15 +43,16 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
                 └── app.py
     """
 
-    # pickling the user work class - pickling `self` will cause issue because the
-    # work is running under a process, in local
+    # If the work object not taken from the app ref, there is a thread lock reference
+    # somewhere thats preventing it from being pickled. Investigate it later. We
+    # shouldn't be fetching the work object from the app ref. TODO @sherin
     app_ref = _LightningAppRef.get_current()
     if app_ref is None:
         raise RuntimeError("Cannot pickle LightningWork outside of a LightningApp")
     for w in app_ref.works:
         if work.name == w.name:
             # copying the work object to avoid modifying the original work object
-            with trimmed_work(w, to_trim=NON_PICKLABLE_WORK_ARGS):
+            with _trimmed_work(w, to_trim=NON_PICKLABLE_WORK_ATTRIBUTES):
                 copied_work = deepcopy(w)
             break
     else:
@@ -77,9 +79,6 @@ def get_picklable_work(work: LightningWork) -> LightningWork:
             if not k.startswith("__") and hasattr(v, "__module__"):
                 if "_main__" in v.__module__:
                     v.__module__ = expected_module_name
-
-    # removing reference to backend; backend is not picklable because of openapi client reference in it
-    copied_work._backend = None
     return copied_work
 
 
