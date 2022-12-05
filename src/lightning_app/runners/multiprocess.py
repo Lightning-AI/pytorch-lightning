@@ -105,7 +105,6 @@ class MultiProcessRuntime(Runtime):
 
             if open_ui and not self.app.is_headless:
                 click.launch(self._get_app_url())
-                self.app._has_launched_browser = True
 
             # Connect the runtime to the application.
             self.app.connect(self)

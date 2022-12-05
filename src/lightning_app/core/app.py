@@ -151,7 +151,6 @@ class LightningApp:
         self._update_layout()
 
         self.is_headless: bool = _is_headless(self)
-        self._has_launched_browser = False
 
         self._original_state = None
         self._last_state = self.state

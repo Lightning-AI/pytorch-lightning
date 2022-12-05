@@ -572,12 +572,3 @@ def _handle_is_headless(app: "LightningApp"):
             id=current_lightningapp_instance.id,
             body=AppinstancesIdBody(name=current_lightningapp_instance.name, spec=current_lightningapp_instance.spec),
         )
-    elif not app.is_headless and not app._has_launched_browser:
-        # If running locally, the app now has a UI, and we haven't opened the browser yet, open the browser.
-        # TODO: This could cause browsers to be opened at strange times
-        import click
-
-        from lightning_app.runners.multiprocess import MultiProcessRuntime
-
-        click.launch(MultiProcessRuntime._get_app_url())
-        app._has_launched_browser = True
