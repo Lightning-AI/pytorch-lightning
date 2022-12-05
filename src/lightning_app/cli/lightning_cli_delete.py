@@ -47,7 +47,7 @@ def delete_cluster(cluster: str, force: bool = False, do_async: bool = False) ->
     cluster_manager.delete(cluster_id=cluster, force=force, do_async=do_async)
 
 
-def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> Optional[str]:
+def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
     console = Console()
     cluster_manager = AWSClusterManager()
 
