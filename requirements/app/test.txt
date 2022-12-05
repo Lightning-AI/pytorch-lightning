@@ -4,7 +4,7 @@ pytest==7.2.0
 pytest-timeout==2.1.0
 pytest-cov==4.0.0
 pytest-doctestplus>=0.9.0
-playwright==1.27.1
+playwright==1.28.0
 httpx
 trio<0.22.0
 pympler
