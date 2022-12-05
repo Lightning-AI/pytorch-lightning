@@ -8,9 +8,10 @@ from lightning_app.cli.lightning_cli_delete import _find_cluster_for_user, _find
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
-@mock.patch("lightning_app.cli.lightning_cli_delete.AWSClusterManager.list_clusters")
+@mock.patch("lightning_cloud.login.Auth.authenticate", mock.MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_list_clusters")
 def test_find_cluster_for_user_when_provided_valid_cluster_id(list_clusters_mock: mock.MagicMock):
-    list_clusters_mock.return_value = [
+    list_clusters_mock.return_value.clusters = [
         Externalv1Cluster(
             id="default",
             spec=V1ClusterSpec(
@@ -29,9 +30,10 @@ def test_find_cluster_for_user_when_provided_valid_cluster_id(list_clusters_mock
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
-@mock.patch("lightning_app.cli.lightning_cli_delete.AWSClusterManager.list_clusters")
+@mock.patch("lightning_cloud.login.Auth.authenticate", mock.MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_list_clusters")
 def test_find_cluster_for_user_without_cluster_id_uses_default(list_clusters_mock: mock.MagicMock):
-    list_clusters_mock.return_value = [
+    list_clusters_mock.return_value.clusters = [
         Externalv1Cluster(
             id="default",
             spec=V1ClusterSpec(
@@ -44,13 +46,14 @@ def test_find_cluster_for_user_without_cluster_id_uses_default(list_clusters_moc
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
-@mock.patch("lightning_app.cli.lightning_cli_delete.AWSClusterManager.list_clusters")
+@mock.patch("lightning_cloud.login.Auth.authenticate", mock.MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_list_clusters")
 @mock.patch("lightning_app.cli.lightning_cli_delete.inquirer")
 def test_find_cluster_for_user_without_valid_cluster_id_asks_if_they_meant_to_use_valid(
     list_clusters_mock: mock.MagicMock,
     inquirer_mock: mock.MagicMock,
 ):
-    list_clusters_mock.return_value = [
+    list_clusters_mock.return_value.clusters = [
         Externalv1Cluster(
             id="default",
             spec=V1ClusterSpec(
