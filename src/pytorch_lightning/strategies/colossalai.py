@@ -267,7 +267,7 @@ class ColossalAIStrategy(DDPStrategy):
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         pl_module = self.model
 
-        new_version_flag = compare_version("colossalai", operator.ge, "0.1.10")
+        new_version_flag = compare_version("colossalai", operator.gt, "0.1.10")
 
         if not hasattr(pl_module, "_colossalai_zero"):
             if not new_version_flag:
@@ -291,8 +291,10 @@ class ColossalAIStrategy(DDPStrategy):
                 with _patch_cuda_is_available():
                     from colossalai.nn.parallel import GeminiDDP
                     from colossalai.utils import get_current_device
-
-                assert self.use_chunk, "`ColossalAIStrategy` must use chunk in versions higher than 0.1.10"
+                if not self.use_chunk:
+                    raise MisconfigurationException(
+                        "`ColossalAIStrategy` must use chunk in versions higher than 0.1.10"
+                    )
                 chunk_search_range = self.chunk_size_search_kwargs["search_range"]
                 search_range_mb = self.chunk_size_search_kwargs["search_range"] / 1024**2
                 search_interval = math.ceil(chunk_search_range / self.chunk_size_search_kwargs["n_grids"])
