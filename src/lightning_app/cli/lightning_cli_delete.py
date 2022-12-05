@@ -108,10 +108,7 @@ def _cli_delete_app_find_selected_instance_id(app_name: str, cluster_id: str) ->
     for app in app_manager.list_apps(cluster_id=cluster_id):
         all_app_names_and_ids[app.name] = app.id
         # figure out the ID of some app_name on the cluster.
-        if app_name == app.name:
-            selected_app_instance_id = app.id
-            break
-        if app_name == app.id:
+        if app_name == app.name or app_name == app.id:
             selected_app_instance_id = app.id
             break
 
