@@ -567,6 +567,9 @@ def _handle_is_headless(app: "LightningApp"):
             "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
         )
 
+    if current_lightningapp_instance.spec.is_headless == app.is_headless:
+        return
+
     current_lightningapp_instance.spec.is_headless = app.is_headless
 
     client.lightningapp_instance_service_update_lightningapp_instance(
