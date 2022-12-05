@@ -22,6 +22,7 @@ from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSqua
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
@@ -605,15 +606,25 @@ def test_result_collection_on_tensor_with_mean_reduction():
     }
 
 
-def test_logged_metrics_has_logged_epoch_value(tmpdir):
+@pytest.mark.parametrize("logger", (False, True))
+def test_logged_metrics_has_logged_epoch_value(tmpdir, logger):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("epoch", -batch_idx, logger=True)
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-    trainer.fit(model)
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=0, max_epochs=1, logger=False
+    )
+    if logger:
+        trainer_kwargs["logger"] = CSVLogger(tmpdir)
+    trainer = Trainer(**trainer_kwargs)
+    if not logger:
+        with pytest.warns(match=r"log\('epoch', ..., logger=True\)` but have no logger"):
+            trainer.fit(model)
+    else:
+        trainer.fit(model)
 
     # should not get overridden if logged manually
     assert trainer.logged_metrics == {"epoch": -1}
