@@ -1806,16 +1806,19 @@ class LightningModule(
             **kwargs: Will be passed to the torch._dynamo.optimize function.
 
         Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
-            ...
-            ... model = SimpleModel()
-            ... model.compile(dynamic=True)
+
+        .. code-block:: python
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+
+            model = SimpleModel()
+            model.compile(dynamic=True)
         """
         try:
             import torch._dynamo as dynamo
