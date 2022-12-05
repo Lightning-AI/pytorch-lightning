@@ -14,6 +14,7 @@ from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
 import requests
+from lightning_cloud.openapi import V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
 from requests import Session
 from rich import print
@@ -406,6 +407,22 @@ def run_app_in_cloud(
                     pass
         else:
             view_page = None
+
+            # Wait until the app is running
+            while True:
+                sleep(1)
+
+                lit_apps = [
+                    app
+                    for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                        project_id=project.project_id
+                    ).lightningapps
+                    if app.name == name
+                ]
+                app = lit_apps[0]
+
+                if app.status.phase == V1LightningappInstanceState.RUNNING:
+                    break
 
         # TODO: is re-creating this redundant?
         lit_apps = [
