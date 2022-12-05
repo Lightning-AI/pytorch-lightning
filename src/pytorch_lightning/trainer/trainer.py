@@ -557,6 +557,24 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
+    def _check_model_type(self, model, fn_name) -> None:
+        try:
+            from torch._dynamo import OptimizedModule
+
+            if model is not None and isinstance(model, OptimizedModule):
+                raise TypeError(
+                    "You probably called `torch.compile` on the model prior to passing "
+                    f"it to `{fn_name}`. However, `torch.compile` modifies `LightningModule` "
+                    "in a way that is incompatible with usage in the Trainer. "
+                    "Please call `model.compile()` on your `LightningModule` instead, "
+                    "or simply pass `compile=True` as an argument to the Trainer."
+                )
+        except ImportError:
+            pass
+
+        if not isinstance(model, pl.LightningModule):
+            raise TypeError(f"`{fn_name}` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -583,8 +601,7 @@ class Trainer:
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+        self._check_model_type(model, "Trainer.fit()")
         self.strategy._lightning_module = model
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
@@ -666,8 +683,7 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+        self._check_model_type(model, "Trainer.validate()")
         self.strategy._lightning_module = model or self.lightning_module
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
@@ -758,8 +774,7 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+        self._check_model_type(model, "Trainer.test()")
         self.strategy._lightning_module = model or self.lightning_module
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
@@ -851,8 +866,7 @@ class Trainer:
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+        self._check_model_type(model, "Trainer.predict()")
         self.strategy._lightning_module = model or self.lightning_module
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
@@ -942,8 +956,7 @@ class Trainer:
 
             method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+        self._check_model_type(model, "Trainer.tune()")
 
         Trainer._log_api_event("tune")
 
