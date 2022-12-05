@@ -174,6 +174,10 @@ class AWSClusterManager:
             except KeyboardInterrupt:
                 click.echo(background_message)
 
+    def list_clusters(self) -> List[Externalv1Cluster]:
+        resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        return resp.clusters
+
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
         return ClusterList(resp.clusters)
