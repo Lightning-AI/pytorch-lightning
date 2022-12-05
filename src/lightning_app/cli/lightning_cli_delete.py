@@ -98,6 +98,10 @@ def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
                 console.print("[b][red]Cancelled by user![/b][/red]")
                 raise InterruptedError
 
+    if cluster_id is None:
+        # stupid mypy thing...
+        cluster_id = ""
+
     return cluster_id
 
 
