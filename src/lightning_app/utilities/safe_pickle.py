@@ -9,8 +9,7 @@ from pathlib import Path
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import _LightningAppRef
 
-
-NON_PICKLABLE_WORK_ARGS = ['_request_queue', '_response_queue', '_backend', '_setattr_replacement']
+NON_PICKLABLE_WORK_ARGS = ["_request_queue", "_response_queue", "_backend", "_setattr_replacement"]
 
 
 @contextlib.contextmanager
