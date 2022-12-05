@@ -78,6 +78,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 
+- Fixed the `XLAProfiler` not recording anything due to mismatching of action names ([#15885](https://github.com/Lightning-AI/lightning/pull/15885))
+
 
 ## [1.8.3] - 2022-11-22
 
