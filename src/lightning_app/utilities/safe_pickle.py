@@ -14,7 +14,7 @@ NON_PICKLABLE_WORK_ATTRIBUTES = ["_request_queue", "_response_queue", "_backend"
 
 @contextlib.contextmanager
 def _trimmed_work(work: LightningWork, to_trim: typing.List[str]) -> typing.Iterator[None]:
-    """ Context manager to trim the work object to remove attributes that are not picklable """
+    """Context manager to trim the work object to remove attributes that are not picklable."""
     holder = {}
     for arg in to_trim:
         holder[arg] = getattr(work, arg)
