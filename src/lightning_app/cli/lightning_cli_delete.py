@@ -47,7 +47,7 @@ def delete_cluster(cluster: str, force: bool = False, do_async: bool = False) ->
     cluster_manager.delete(cluster_id=cluster, force=force, do_async=do_async)
 
 
-def _cli_delete_app_find_cluster(app_name: str, cluster_id: Optional[str]) -> str:
+def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
     console = Console()
     cluster_manager = AWSClusterManager()
 
@@ -100,7 +100,7 @@ def _cli_delete_app_find_cluster(app_name: str, cluster_id: Optional[str]) -> st
     return cluster_id
 
 
-def _cli_delete_app_find_selected_app_instance_id(app_name: str, cluster_id: str) -> str:
+def _find_selected_app_instance_id(app_name: str, cluster_id: str) -> str:
     console = Console()
     app_manager = _AppManager()
 
@@ -135,7 +135,7 @@ def _cli_delete_app_find_selected_app_instance_id(app_name: str, cluster_id: str
     return selected_app_instance_id
 
 
-def _cli_delete_app_user_confirmation_prompt(app_name: str, cluster_id: str) -> None:
+def _delete_app_confirmation_prompt(app_name: str, cluster_id: str) -> None:
     console = Console()
 
     # when the --yes / -y flags were not passed, do a final
@@ -182,12 +182,10 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
     console = Console()
 
     try:
-        cluster_id = _cli_delete_app_find_cluster(app_name=app_name, cluster_id=cluster_id)
-        selected_app_instance_id = _cli_delete_app_find_selected_app_instance_id(
-            app_name=app_name, cluster_id=cluster_id
-        )
+        cluster_id = _find_cluster_for_user(app_name=app_name, cluster_id=cluster_id)
+        selected_app_instance_id = _find_selected_app_instance_id(app_name=app_name, cluster_id=cluster_id)
         if not skip_user_confirm_prompt:
-            _cli_delete_app_user_confirmation_prompt(app_name=app_name, cluster_id=cluster_id)
+            _delete_app_confirmation_prompt(app_name=app_name, cluster_id=cluster_id)
     except InterruptedError:
         return
 
