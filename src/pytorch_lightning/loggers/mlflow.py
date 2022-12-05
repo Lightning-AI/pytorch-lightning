@@ -22,7 +22,7 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 import torch
 import yaml
@@ -39,6 +39,7 @@ LOCAL_FILE_URI_PREFIX = "file:"
 _MLFLOW_AVAILABLE = module_available("mlflow")
 try:
     import mlflow
+    from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
 # todo: there seems to be still some remaining import error with Conda env
@@ -240,20 +241,26 @@ class MLFlowLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
+        # params = [Param(k, v) for k, v in params.items()]
+        params_list: List[Param] = []
+        
         for k, v in params.items():
+            # FIXME: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
             if len(str(v)) > 250:
                 rank_zero_warn(
                     f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
                 )
                 continue
+            params_list.append(Param(key=v, value=v))
 
-            self.experiment.log_param(self.run_id, k, v)
+        self.experiment.log_batch(run_id=self.run_id, params=params_list)
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics_list: List[Metric] = []
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -269,8 +276,9 @@ class MLFlowLogger(Logger):
                     category=RuntimeWarning,
                 )
                 k = new_k
+            metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
-            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+        self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list)
 
     @rank_zero_only
     def finalize(self, status: str = "success") -> None:
