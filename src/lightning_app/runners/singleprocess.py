@@ -7,6 +7,7 @@ import click
 from lightning_app.core.api import start_server
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.runtime import Runtime
+from lightning_app.utilities.app_helpers import _is_headless
 from lightning_app.utilities.load_app import extract_metadata_from_app
 
 
@@ -45,7 +46,7 @@ class SingleProcessRuntime(Runtime):
             # wait for server to be ready.
             has_started_queue.get()
 
-        if open_ui and not self.app.is_headless:
+        if open_ui and not _is_headless(self.app):
             click.launch(self._get_app_url())
 
         try:

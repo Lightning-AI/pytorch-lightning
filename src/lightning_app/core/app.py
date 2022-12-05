@@ -150,7 +150,7 @@ class LightningApp:
 
         self._update_layout()
 
-        self.is_headless: bool = _is_headless(self)
+        self.is_headless: Optional[bool] = None
 
         self._original_state = None
         self._last_state = self.state
