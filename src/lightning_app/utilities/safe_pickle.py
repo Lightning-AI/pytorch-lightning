@@ -14,7 +14,7 @@ NON_PICKLABLE_WORK_ARGS = ['_request_queue', '_response_queue', '_backend', '_se
 
 
 @contextlib.contextmanager
-def trimmed_work(work: LightningWork, to_trim: typing.List[str]) -> None:
+def trimmed_work(work: LightningWork, to_trim: typing.List[str]) -> typing.Iterator[None]:
     holder = {}
     for arg in to_trim:
         holder[arg] = getattr(work, arg)
