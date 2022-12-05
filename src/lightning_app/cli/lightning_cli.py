@@ -2,13 +2,13 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Tuple, Union
+from typing import Tuple, Union
 
 import arrow
 import click
 import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState, V1LightningworkState
+from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from requests.exceptions import ConnectionError
 
@@ -45,15 +45,6 @@ from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
 
 logger = Logger(__name__)
-
-
-def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
-    if runtime_type == RuntimeType.CLOUD:
-        lit_app: Externalv1LightningappInstance = args[0]
-        action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
-    else:
-        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")
 
 
 def main() -> None:
@@ -268,10 +259,6 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args: Any, **kwargs: Any) -> None:
-        if open_ui and not without_server:
-            click.launch(get_app_url(runtime_type, *args, **kwargs))
-
     click.echo("Your Lightning App is starting. This won't take long.")
 
     # TODO: Fixme when Grid utilities are available.
@@ -283,7 +270,7 @@ def _run_app(
         start_server=not without_server,
         no_cache=no_cache,
         blocking=blocking,
-        on_before_run=on_before_run,
+        open_ui=open_ui,
         name=name,
         env_vars=env_vars,
         secrets=secrets,
