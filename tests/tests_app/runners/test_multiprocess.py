@@ -94,7 +94,5 @@ def test_multiprocess_runtime_sets_context():
     ],
 )
 def test_get_app_url(env, expected_url):
-    old_env = os.environ.copy()
-    os.environ.update(**env)
-    assert MultiProcessRuntime._get_app_url() == expected_url
-    os.environ = old_env
+    with mock.patch.dict(os.environ, env):
+        assert MultiProcessRuntime._get_app_url() == expected_url

@@ -1,4 +1,5 @@
 import os
+from unittest import mock
 
 import pytest
 
@@ -30,7 +31,5 @@ def test_single_process_runtime(tmpdir):
     ],
 )
 def test_get_app_url(env, expected_url):
-    old_env = os.environ.copy()
-    os.environ.update(**env)
-    assert SingleProcessRuntime._get_app_url() == expected_url
-    os.environ = old_env
+    with mock.patch.dict(os.environ, env):
+        assert SingleProcessRuntime._get_app_url() == expected_url
