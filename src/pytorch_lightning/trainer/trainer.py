@@ -499,10 +499,13 @@ class Trainer:
 
         self._inference_mode: bool = inference_mode
 
-        if not (type(compile) == bool or isinstance(compile, dict)):
+        self._compile = compile
+
+        if not (type(self._compile) == bool or isinstance(self._compile, dict)):
             raise ValueError(f"The compile argument must either be a bool or a dictionary. {type(self._compile)} found")
 
-        self._compile: Dict[str, Any] = compile if isinstance(compile, dict) else {}
+        if self._compile is not False:
+            self._compile: Dict[str, Any] = compile if isinstance(compile, dict) else {}
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
