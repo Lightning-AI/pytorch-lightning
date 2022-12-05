@@ -66,6 +66,7 @@ def test_find_cluster_for_user_without_valid_cluster_id_asks_if_they_meant_to_us
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
+@mock.patch("lightning_cloud.login.Auth.authenticate", mock.MagicMock())
 @mock.patch("lightning_app.cli.lightning_cli_delete._AppManager.list_apps")
 def test_app_find_selected_app_instance_id_when_app_name_exists(list_apps_mock: mock.MagicMock):
     list_apps_mock.return_value = [
@@ -77,6 +78,7 @@ def test_app_find_selected_app_instance_id_when_app_name_exists(list_apps_mock: 
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="currently not supported for windows.")
+@mock.patch("lightning_cloud.login.Auth.authenticate", mock.MagicMock())
 @mock.patch("lightning_app.cli.lightning_cli_delete._AppManager.list_apps")
 def test_app_find_selected_app_instance_id_when_app_id_exists(list_apps_mock: mock.MagicMock):
     list_apps_mock.return_value = [
