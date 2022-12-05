@@ -55,8 +55,6 @@ class List(t.List[T]):
         self._backend: Optional[Backend] = None
         for item in items:
             self.append(item)
-            _set_child_name(self, item, str(self._last_index))
-            self._last_index += 1
 
     def append(self, v):
         from lightning_app import LightningFlow, LightningWork
