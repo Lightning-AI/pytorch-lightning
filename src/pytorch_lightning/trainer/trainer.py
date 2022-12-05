@@ -499,13 +499,13 @@ class Trainer:
 
         self._inference_mode: bool = inference_mode
 
-        self._compile = compile
+        if not (type(compile) == bool or isinstance(compile, dict)):
+            raise ValueError(f"The compile argument must either be a bool or a dictionary. {type(compile)} found")
 
-        if not (type(self._compile) == bool or isinstance(self._compile, dict)):
-            raise ValueError(f"The compile argument must either be a bool or a dictionary. {type(self._compile)} found")
-
-        if self._compile is not False:
-            self._compile: Dict[str, Any] = compile if isinstance(compile, dict) else {}
+        self._do_compile: bool = compile is not False
+        self._compile_kwargs: Dict[str, Any] = {}
+        if self._do_compile is not False:
+            self._compile_kwargs = compile if isinstance(compile, dict) else {}
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -560,7 +560,7 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
-    def _check_model_type(self, model, fn_name) -> None:
+    def _check_model_type(self, model: Optional["pl.LightningModule"], fn_name: str) -> None:
         try:
             from torch._dynamo import OptimizedModule
 
@@ -990,14 +990,14 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
-        if self._compile is not False:
-            backend = self._compile.get("backend", "inductor")
-            fullgraph = self._compile.get("fullgraph", False)
-            dynamic = self._compile.get("dynamic", False)
-            mode = self._compile.get("mode", "default")
+        if self._do_compile:
+            backend = self._compile_kwargs.get("backend", "inductor")
+            fullgraph = self._compile_kwargs.get("fullgraph", False)
+            dynamic = self._compile_kwargs.get("dynamic", False)
+            mode = self._compile_kwargs.get("mode", "default")
 
             # this will wrap forward
-            self.model.compile(backend=backend, fullgraph=fullgraph, dynamic=dynamic, mode=mode)
+            model.compile(backend=backend, fullgraph=fullgraph, dynamic=dynamic, mode=mode)
 
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
