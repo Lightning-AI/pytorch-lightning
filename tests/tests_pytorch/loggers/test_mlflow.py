@@ -249,7 +249,7 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     params = {"test": "test_param"}
     logger.log_hyperparams(params)
 
-    logger.experiment.log_param.assert_called_once_with(logger.run_id, "test", "test_param")
+    logger.experiment.log_batch.assert_called_once_with(logger.run_id, "test", "test_param")
 
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)

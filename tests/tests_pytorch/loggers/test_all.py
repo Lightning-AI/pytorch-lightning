@@ -287,7 +287,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     ):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_metric.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
+        logger.experiment.log_batch.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
 
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"), mock.patch(
