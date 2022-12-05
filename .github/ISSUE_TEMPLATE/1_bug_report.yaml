@@ -87,7 +87,7 @@ body:
         #- How you installed Lightning(`conda`, `pip`, source):
         #- Running environment of LightningApp (e.g. local, cloud):
         ```
-        
+
         </details>
     validations:
       required: false
