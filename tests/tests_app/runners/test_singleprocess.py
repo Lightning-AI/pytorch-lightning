@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from lightning_app import LightningFlow
@@ -21,11 +23,14 @@ def test_single_process_runtime(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "expected_url",
+    "env,expected_url",
     [
-        "http://127.0.0.1:7501/view",
-        "http://127.0.0.1:7501/view",
+        ({}, "http://127.0.0.1:7501/view"),
+        ({"APP_SERVER_HOST": "http://test"}, "http://test"),
     ],
 )
-def test_get_app_url(expected_url):
+def test_get_app_url(env, expected_url):
+    old_env = os.environ.copy()
+    os.environ.update(**env)
     assert SingleProcessRuntime._get_app_url() == expected_url
+    os.environ = old_env

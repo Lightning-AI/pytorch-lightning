@@ -1,3 +1,4 @@
+import os
 from unittest import mock
 from unittest.mock import Mock
 
@@ -86,11 +87,14 @@ def test_multiprocess_runtime_sets_context():
 
 
 @pytest.mark.parametrize(
-    "expected_url",
+    "env,expected_url",
     [
-        "http://127.0.0.1:7501/view",
-        "http://127.0.0.1:7501/view",
+        ({}, "http://127.0.0.1:7501/view"),
+        ({"APP_SERVER_HOST": "http://test"}, "http://test"),
     ],
 )
-def test_get_app_url(expected_url):
+def test_get_app_url(env, expected_url):
+    old_env = os.environ.copy()
+    os.environ.update(**env)
     assert MultiProcessRuntime._get_app_url() == expected_url
+    os.environ = old_env
