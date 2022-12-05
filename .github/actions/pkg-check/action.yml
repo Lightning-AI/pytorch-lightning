@@ -33,9 +33,9 @@ runs:
 
   - name: Check package
     run: |
+      git diff --exit-code || exit $?  # make sure there are no local unstaged changes
       ls -l dist/
       twine check dist/*
-      # python setup.py clean
     shell: bash
 
   - name: Unzip packages

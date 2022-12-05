@@ -1,21 +1,21 @@
 import fnmatch
 import json
-import os
 import random
 import string
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from textwrap import dedent
 from typing import Any, Callable, List, Optional, Union
 
-import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
     Body7,
     Body8,
     Body9,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
@@ -50,8 +50,9 @@ from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
+    DOT_IGNORE_FILENAME,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
-    ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER,
+    enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
@@ -243,7 +244,7 @@ class CloudRuntime(Runtime):
         if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
             v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
 
-        if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+        if enable_multiple_works_in_default_container():
             v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
 
         if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
@@ -303,7 +304,7 @@ class CloudRuntime(Runtime):
                 )
 
             network_configs: Optional[List[V1NetworkConfig]] = None
-            if ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER:
+            if enable_multiple_works_in_default_container():
                 network_configs = []
                 initial_port = 8080 + 1 + len(frontend_specs)
                 for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
@@ -336,6 +337,7 @@ class CloudRuntime(Runtime):
             elif CLOUD_QUEUE_TYPE == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
+            existing_instance: Optional[Externalv1LightningappInstance] = None
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
@@ -374,12 +376,20 @@ class CloudRuntime(Runtime):
                             f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
                             "doesn't exist anymore."
                         )
-                    click.confirm(
-                        f"{msg} Do you want to run on Lightning Cloud instead?",
-                        abort=True,
-                        default=True,
+                    raise ValueError(msg)
+                if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
+                    raise ValueError(
+                        dedent(
+                            f"""\
+                            An app names {app_config.name} is already running on cluster {existing_instance.spec.cluster_id}, and you requested it to run on cluster {app_config.cluster_id}.
+
+                            In order to proceed, please either:
+                                a. rename the app to run on {app_config.cluster_id} with the --name option
+                                    lightning run app {app_entrypoint_file} --name (new name) --cloud --cluster-id {app_config.cluster_id}
+                                b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
+                            """  # noqa: E501
+                        )
                     )
-                    app_config.cluster_id = None
 
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
@@ -488,12 +498,12 @@ class CloudRuntime(Runtime):
             largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]
             largest_paths_msg = "\n".join(f"{round(s, 5)} MB: {p}" for p, s in largest_paths)
             warning_msg = (
-                f"Your application folder {root} is more than {CLOUD_UPLOAD_WARNING} MB. "
-                f"Found {app_folder_size_in_mb} MB \n"
-                "Here are the largest files: \n"
-                f"{largest_paths_msg}"
+                f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
+                f"The total size is {app_folder_size_in_mb} MB\n"
+                f"Here are the largest files: \n{largest_paths_msg}\n"
+                "Perhaps you should try running the app in an empty directory."
             )
-            if not os.path.exists(os.path.join(root, ".lightningignore")):
+            if not (root / DOT_IGNORE_FILENAME).is_file():
                 warning_msg = (
                     warning_msg
                     + "\nIn order to ignore some files or folder, "

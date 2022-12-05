@@ -11,10 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from torch.optim import Optimizer
+import pytest
 
 
-def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
-    from torch.distributed.fsdp import FlatParameter
+def test_v2_0_0_base_profilers():
+    from pytorch_lightning.profiler.base import AbstractProfiler, BaseProfiler
 
-    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])
+    with pytest.raises(
+        RuntimeError, match="AbstractProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
+    ):
+        AbstractProfiler()
+
+    with pytest.raises(
+        RuntimeError, match="AbstractProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
+    ):
+        BaseProfiler()

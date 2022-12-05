@@ -1,8 +1,10 @@
+import warnings
 from typing import Any, Type
 
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
@@ -45,12 +47,21 @@ class MultiNode(LightningFlow):
 
         Arguments:
             work_cls: The work to be executed
-            num_nodes: Number of nodes.
-            cloud_compute: The cloud compute object used in the cloud.
+            num_nodes: Number of nodes. Gets ignored when running locally. Launch the app with --cloud to run on
+                multiple cloud machines.
+            cloud_compute: The cloud compute object used in the cloud. The value provided here gets ignored when
+                running locally.
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
         """
         super().__init__()
+        if num_nodes > 1 and not is_running_in_cloud():
+            num_nodes = 1
+            warnings.warn(
+                f"You set {type(self).__name__}(num_nodes={num_nodes}, ...)` but this app is running locally."
+                " We assume you are debugging and will ignore the `num_nodes` argument."
+                " To run on multiple nodes in the cloud, launch your app with `--cloud`."
+            )
         self.ws = structures.List(
             *[
                 work_cls(

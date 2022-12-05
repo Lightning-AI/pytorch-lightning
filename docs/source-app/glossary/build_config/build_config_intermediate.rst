@@ -42,7 +42,15 @@ If you need to install additional system packages or run other configuration ste
                 # Can also be combined with extra requirements
                 self.cloud_build_config = CustomBuildConfig(requirements=["torchmetrics"])
 
-
 .. note::
     - When you need to execute commands or install tools that require more privileges than the current user has, you can use ``sudo`` without needing to provide a password, e.g., when installing system packages.
     - The build config only applies when running in the cloud and gets ignored otherwise. A local build config is currently not supported.
+
+.. warning::
+     Custom base images are not supported with the default CPU cloud compute. For example:
+
+     .. code-block:: py
+
+         class MyWork(LightningWork):
+             def __init__(self):
+              super().__init__(cloud_build_config=BuildConfig(image="my-custom-image")) # no cloud compute, for example default work

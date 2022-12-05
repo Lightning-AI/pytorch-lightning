@@ -25,7 +25,6 @@ from lightning_lite.accelerators.cuda import num_cuda_devices
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 
 
 class RunIf:
@@ -97,7 +96,7 @@ class RunIf:
 
         if bf16_cuda:
             try:
-                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+                cond = not (torch.cuda.is_available() and torch.cuda.is_bf16_supported())
             except (AssertionError, RuntimeError) as e:
                 # AssertionError: Torch not compiled with CUDA enabled
                 # RuntimeError: Found no NVIDIA driver on your system.

@@ -10,11 +10,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added the CLI command `lightning run model` to launch a `LightningLite` accelerated script ([#15506](https://github.com/Lightning-AI/lightning/pull/15506))
 
+- Show a message when `BuildConfig(requirements=[...])` is passed but a `requirements.txt` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
+- Show a message when `BuildConfig(dockerfile="...")` is passed but a `Dockerfile` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
+
+- Added a CloudMultiProcessBackend which enables running a child App from within the Flow in the cloud ([#15800](https://github.com/Lightning-AI/lightning/pull/15800))
+
 
 ### Changed
 
-- `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key` with the same calling signature ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
-- `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key` with the same calling signature ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
+- The `MultiNode` components now warn the user when running with `num_nodes > 1` locally ([#15806](https://github.com/Lightning-AI/lightning/pull/15806))
+- Cluster creation and deletion now waits by default [#15458](https://github.com/Lightning-AI/lightning/pull/15458)
 
 
 ### Deprecated
@@ -29,7 +34,40 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed SSH CLI command listing stopped components ([#15810](https://github.com/Lightning-AI/lightning/pull/15810))
+
+
+- Fixed the work not stopped when successful when passed directly to the LightningApp ([#15801](https://github.com/Lightning-AI/lightning/pull/15801))
+
+
+- Fixed the `enable_spawn` method of the `WorkRunExecutor` ([#15812](https://github.com/Lightning-AI/lightning/pull/15812)
+
+- Fixed Sigterm Handler causing thread lock which caused KeyboardInterrupt to hang ([#15881](https://github.com/Lightning-AI/lightning/pull/15881))
+
+
+## [1.8.3] - 2022-11-22
+
+### Changed
+
+- Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
+- Switch from `tensorboard` to `tensorboardx` in `TensorBoardLogger` ([#15728](https://github.com/Lightning-AI/lightning/pull/15728))
+
+## [1.8.3] - 2022-11-22
+
+### Changed
+
+- Deduplicate top level lighting CLI command groups ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
+  * `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key`
+  * `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key`
+- Set Torch inference mode for prediction ([#15719](https://github.com/Lightning-AI/lightning/pull/15719))
+- Improved `LightningTrainerScript` start-up time ([#15751](https://github.com/Lightning-AI/lightning/pull/15751))
+- Disable XSRF protection in `StreamlitFrontend` to support upload in localhost ([#15684](https://github.com/Lightning-AI/lightning/pull/15684))
+
+### Fixed
+
 - Fixed debugging with VSCode IDE ([#15747](https://github.com/Lightning-AI/lightning/pull/15747))
+- Fixed setting property to the `LightningFlow` ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
+- Fixed the PyTorch Inference locally on GPU ([#15813](https://github.com/Lightning-AI/lightning/pull/15813))
 
 
 ## [1.8.2] - 2022-11-17
@@ -55,11 +93,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed catimage import ([#15712](https://github.com/Lightning-AI/lightning/pull/15712))
 - Parse all lines in app file looking for shebangs to run commands ([#15714](https://github.com/Lightning-AI/lightning/pull/15714))
 
-- Fixed setting property to the LightningFlow ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
-
-
 
 ## [1.8.1] - 2022-11-10
+
+- Fixed bug when launching apps on multiple clusters ([#15484](https://github.com/Lightning-AI/lightning/pull/15484))
 
 
 ### Added
