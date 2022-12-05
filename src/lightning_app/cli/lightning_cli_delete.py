@@ -51,19 +51,20 @@ def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
     console = Console()
     cluster_manager = AWSClusterManager()
 
-    default_cluster, valid_clusters = None, []
+    default_cluster, valid_cluster_list = None, []
     for cluster in cluster_manager.list_clusters():
-        valid_clusters.append(cluster.id)
+        valid_cluster_list.append(cluster.id)
         if cluster.spec.cluster_type == V1ClusterType.GLOBAL and default_cluster is None:
             default_cluster = cluster.id
+            break
 
     # when no cluster-id is passed in, use the default (Lightning Cloud) cluster
     if cluster_id is None:
         cluster_id = default_cluster
 
-    if cluster_id not in valid_clusters:
+    if cluster_id not in valid_cluster_list:
         console.print(f'[b][yellow]You don\'t have access to cluster "{cluster_id}"[/yellow][/b]')
-        if len(valid_clusters) == 1:
+        if len(valid_cluster_list) == 1:
             # if there are no BYOC clusters, then confirm that
             # the user wants to fall back to the Lightning Cloud.
             try:
@@ -88,7 +89,7 @@ def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
                     inquirer.List(
                         "cluster",
                         message=f'Please select which cluster app "{app_name}" should be deleted from',
-                        choices=valid_clusters,
+                        choices=valid_cluster_list,
                         default=default_cluster,
                     ),
                 ]
