@@ -2241,9 +2241,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 
 
 # TODO: replace with 1.14 when it is released
-RunIf(min_torch="1.14.0.dev20221202")
-
-
+@RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compile():
     def is_optimized(model):
         return hasattr(model.forward, "_torchdynamo_inline")
