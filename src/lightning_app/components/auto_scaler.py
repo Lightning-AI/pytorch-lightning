@@ -342,7 +342,7 @@ class AutoScaler(LightningFlow):
     """The ``AutoScaler`` can be used to automatically change the number of replicas of the given server in
     response to changes in the number of incoming requests. Incoming requests will be batched and balanced across
     the replicas.
-Note that the ``Autoscaler`` experience on the cloud is in beta. 
+
     Args:
         min_replicas: The number of works to start when app initializes.
         max_replicas: The max number of works to spawn to handle the incoming requests.
