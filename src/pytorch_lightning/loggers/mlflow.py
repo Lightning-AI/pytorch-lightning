@@ -243,7 +243,7 @@ class MLFlowLogger(Logger):
         params = _flatten_dict(params)
         # params = [Param(k, v) for k, v in params.items()]
         params_list: List[Param] = []
-        
+
         for k, v in params.items():
             # FIXME: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
             if len(str(v)) > 250:
