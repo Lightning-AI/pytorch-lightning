@@ -472,7 +472,6 @@ class CloudRuntime(Runtime):
 
         if open_ui:
             click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
-            self.app._has_launched_browser = True
 
         if cleanup_handle:
             cleanup_handle()
