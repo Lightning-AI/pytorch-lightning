@@ -1,3 +1,5 @@
+from typing import Optional
+
 import click
 import inquirer
 from inquirer.themes import GreenPassion
@@ -181,7 +183,9 @@ def delete_app(app_name: str, cluster_id: str, skip_user_confirm_prompt: bool) -
 
     try:
         cluster_id = _cli_delete_app_find_cluster(app_name=app_name, cluster_id=cluster_id)
-        selected_app_instance_id = _cli_delete_app_find_selected_app_instance_id(app_name=app_name, cluster_id=cluster_id)
+        selected_app_instance_id = _cli_delete_app_find_selected_app_instance_id(
+            app_name=app_name, cluster_id=cluster_id
+        )
         if not skip_user_confirm_prompt:
             _cli_delete_app_user_confirmation_prompt(app_name=app_name, cluster_id=cluster_id)
     except InterruptedError:
