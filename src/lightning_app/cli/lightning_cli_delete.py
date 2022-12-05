@@ -98,7 +98,7 @@ def _cli_delete_app_find_cluster(app_name: str, cluster_id: Optional[str]) -> st
     return cluster_id
 
 
-def _cli_delete_app_find_selected_instance_id(app_name: str, cluster_id: str) -> str:
+def _cli_delete_app_find_selected_app_instance_id(app_name: str, cluster_id: str) -> str:
     console = Console()
     app_manager = _AppManager()
 
