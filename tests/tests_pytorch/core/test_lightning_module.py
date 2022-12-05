@@ -440,3 +440,18 @@ def test_trainer_reference_recursively():
     assert ensemble.trainer is inner.trainer
     # and the trainer was weakly referenced
     assert inner.trainer is weakref.proxy(trainer)
+
+
+def test_compile():
+    def is_wrapped(model):
+        return hasattr(model.forward, "_torchdynamo_inline")
+
+    model = BoringModel()
+    model.compile()
+
+    is_wrapped(model)
+
+    model = BoringModel()
+    model.compile(fullgraph=True, dynamic=True, backend="eager")
+
+    is_wrapped(model)

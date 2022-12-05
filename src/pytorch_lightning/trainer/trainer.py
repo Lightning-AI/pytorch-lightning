@@ -163,6 +163,7 @@ class Trainer:
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
+        compile: Union[bool, Dict[str, Any]] = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -389,6 +390,11 @@ class Trainer:
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
+
+            compile: Whether to optimize the model using a compiler.
+                It accepts a boolean, or a dict for granular control over optimizations containing the
+                arguments to :meth:`~pytorch_lightning.core.module.LightningModule.compile` in key-value form.
+                Default: ``False``.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -492,6 +498,11 @@ class Trainer:
         self.track_grad_norm: float = float(track_grad_norm)
 
         self._inference_mode: bool = inference_mode
+
+        if not (type(compile) == bool or isinstance(compile, dict)):
+            raise ValueError(f"The compile argument must either be a bool or a dictionary. {type(self._compile)} found")
+
+        self._compile: Dict[str, Any] = compile if isinstance(compile, dict) else {}
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
@@ -963,6 +974,15 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        if self._compile is not False:
+            backend = self._compile.get("backend", "inductor")
+            fullgraph = self._compile.get("fullgraph", False)
+            dynamic = self._compile.get("dynamic", False)
+            mode = self._compile.get("mode", "default")
+
+            # this will wrap forward
+            self.model.compile(backend=backend, fullgraph=fullgraph, dynamic=dynamic, mode=mode)
+
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self

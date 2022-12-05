@@ -1786,6 +1786,60 @@ class LightningModule(
                 " set model property `automatic_optimization` as False"
             )
 
+    def compile(
+        self,
+        backend: Union[str, Callable],
+        fullgraph: bool = False,
+        dynamic: bool = False,
+        mode: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        """Optimizes the model using the Dynamo compiler.
+
+        Args:
+            backend (str or Callable): compiler backend to be used. Default: ``"inductor"``.
+                Call ``torch._dynamo.list_backends()`` to get a full list.
+            dynamic (bool): Use dynamic shape tracing. Default: ``False``.
+            fullgraph (bool): Whether it is ok to break model into several subgraphs. Default: ``False``.
+            mode (str): Can be either ``"default"``, ``"reduce-overhead"`` or ``"max-autotune"``.
+                Only relevant for the "inductor" backend.
+            **kwargs: Will be passed to the torch._dynamo.optimize function.
+
+        Example:
+            >>> class SimpleModel(LightningModule):
+            ...     def __init__(self):
+            ...         super().__init__()
+            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+            ...
+            ...     def forward(self, x):
+            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+            ...
+            ... model = SimpleModel()
+            ... model.compile(dynamic=True)
+        """
+        try:
+            import torch._dynamo as dynamo
+            from torch._dynamo.eval_frame import lookup_backend
+            from torch._inductor.config import InductorConfigContext
+        except ImportError as e:
+            raise ImportError(
+                "Please make sure you are running on PyTorch version 1.14+, "
+                "or a PyTorch nightly published after Fri 3 Dec 2022."
+            ) from e
+
+        if backend == "inductor":
+            compile_fn = lookup_backend(backend)
+            cm = InductorConfigContext(mode)
+
+            def _compile_fn(fn, inputs_):
+                with cm:
+                    return compile_fn(fn, inputs_)
+
+            _compile_fn._torchdynamo_orig_callable = compile_fn  # type: ignore[attr-defined]
+            backend = _compile_fn
+
+        self.forward = dynamo.optimize(backend=backend, nopython=fullgraph, dynamic=dynamic, **kwargs)(self.forward)
+
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.

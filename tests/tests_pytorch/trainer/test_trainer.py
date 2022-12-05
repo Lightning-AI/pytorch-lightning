@@ -2238,3 +2238,40 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
         trainer.fit(model)
 
     logger.finalize.assert_called_once_with("failed")
+
+
+# TODO: replace with 1.14 when it is released
+RunIf(min_torch="1.14.0.dev20221202")
+
+
+def test_trainer_compile():
+    def is_optimized(model):
+        return hasattr(model.forward, "_torchdynamo_inline")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        compile=True,
+    )
+    trainer.fit(model)
+
+    assert is_optimized(trainer.model)
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        compile={
+            "fullgraph": True,
+            "dynamic": True,
+            "backend": "eager",
+        },
+    )
+    trainer.fit(model)
+
+    assert is_optimized(trainer.model)
