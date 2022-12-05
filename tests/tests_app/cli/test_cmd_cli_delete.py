@@ -1,8 +1,8 @@
 from unittest import mock
 
-from lightning_cloud.openapi import Externalv1Cluster, V1ClusterSpec, V1ClusterType
+from lightning_cloud.openapi import Externalv1Cluster, Externalv1LightningappInstance, V1ClusterSpec, V1ClusterType
 
-from lightning_app.cli.lightning_cli_delete import _find_cluster_for_user
+from lightning_app.cli.lightning_cli_delete import _find_cluster_for_user, _find_selected_app_instance_id
 
 
 @mock.patch("lightning_app.cli.lightning_cli_delete.AWSClusterManager.list_clusters")
@@ -40,19 +40,38 @@ def test_find_cluster_for_user_without_cluster_id_uses_default(list_clusters_moc
 
 
 @mock.patch("lightning_app.cli.lightning_cli_delete.AWSClusterManager.list_clusters")
-def test_cli_delete_app_find_cluster_without_valid_cluster_id_asks_if_they_meant_to_use_valid(
-    list_clusters: mock.MagicMock,
+@mock.patch("lightning_app.cli.lightning_cli_delete.inquirer")
+def test_find_cluster_for_user_without_valid_cluster_id_asks_if_they_meant_to_use_valid(
+    list_clusters_mock: mock.MagicMock,
+    inquirer_mock: mock.MagicMock,
 ):
-    pass
+    list_clusters_mock.return_value = [
+        Externalv1Cluster(
+            id="default",
+            spec=V1ClusterSpec(
+                cluster_type=V1ClusterType.GLOBAL,
+            ),
+        )
+    ]
+    _find_cluster_for_user(app_name="whatever", cluster_id="does-not-exist")
+    inquirer_mock.assert_called()
 
 
-def test_cli_delete_app_find_selected_app_instance_id_exists():
-    pass
+@mock.patch("lightning_app.cli.lightning_cli_delete._AppManager.list_apps")
+def test_app_find_selected_app_instance_id_when_app_name_exists(list_apps_mock: mock.MagicMock):
+    list_apps_mock.return_value = [
+        Externalv1LightningappInstance(name="app-name", id="app-id"),
+    ]
+    returned_app_instance_id = _find_selected_app_instance_id(app_name="app-name", cluster_id="default-cluster")
+    assert returned_app_instance_id == "app-id"
+    list_apps_mock.assert_called_once_with(cluster_id="default-cluster")
 
 
-def test_cli_delete_app_find_selected_app_instance_id_does_not_exist():
-    pass
-
-
-def test_appmanager_delete_calls_lightningapp_instance_service_delete_lightningapp_instance_with_correct_args():
-    pass
+@mock.patch("lightning_app.cli.lightning_cli_delete._AppManager.list_apps")
+def test_app_find_selected_app_instance_id_when_app_id_exists(list_apps_mock: mock.MagicMock):
+    list_apps_mock.return_value = [
+        Externalv1LightningappInstance(name="app-name", id="app-id"),
+    ]
+    returned_app_instance_id = _find_selected_app_instance_id(app_name="app-id", cluster_id="default-cluster")
+    assert returned_app_instance_id == "app-id"
+    list_apps_mock.assert_called_once_with(cluster_id="default-cluster")
