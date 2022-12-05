@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Union
 
 import click
 import inquirer
@@ -47,7 +47,7 @@ def delete_cluster(cluster: str, force: bool = False, do_async: bool = False) ->
     cluster_manager.delete(cluster_id=cluster, force=force, do_async=do_async)
 
 
-def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> Union[str, None]:
+def _find_cluster_for_user(app_name: str, cluster_id: str) -> Union[str, None]:
     console = Console()
     cluster_manager = AWSClusterManager()
 
