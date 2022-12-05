@@ -73,7 +73,6 @@ class _AppManager:
             project_id=project.project_id,
             id=app_id,
         )
-        return
 
 
 class _AppList(Formatable):
