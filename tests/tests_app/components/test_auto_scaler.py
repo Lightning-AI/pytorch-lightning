@@ -1,6 +1,8 @@
 import time
 from unittest.mock import patch
 
+import pytest
+
 from lightning_app import LightningWork
 from lightning_app.components import AutoScaler
 
@@ -67,3 +69,24 @@ def test_num_replicas_not_belo_min_replicas(*_):
         auto_scaler.run()
 
     assert auto_scaler.num_replicas == min_replicas
+
+
+@pytest.mark.parametrize(
+    "replicas, metrics, expected_replicas",
+    [
+        pytest.param(1, {"pending_requests": 1, "pending_works": 0}, 2, id="increase if no pending work"),
+        pytest.param(1, {"pending_requests": 1, "pending_works": 1}, 1, id="dont increase if pending works"),
+        pytest.param(8, {"pending_requests": 1, "pending_works": 0}, 7, id="reduce if requests < 25% capacity"),
+        pytest.param(8, {"pending_requests": 2, "pending_works": 0}, 8, id="dont reduce if requests >= 25% capacity"),
+    ],
+)
+def test_scale(replicas, metrics, expected_replicas):
+    """Test `scale()`, the default scaling strategy."""
+    auto_scaler = AutoScaler(
+        EmptyWork,
+        min_replicas=1,
+        max_replicas=8,
+        max_batch_size=1,
+    )
+
+    assert auto_scaler.scale(replicas, metrics) == expected_replicas
