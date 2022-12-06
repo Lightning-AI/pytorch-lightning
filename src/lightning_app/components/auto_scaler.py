@@ -390,7 +390,7 @@ class AutoScaler(LightningFlow):
         work_cls: Type[LightningWork],
         min_replicas: int = 1,
         max_replicas: int = 4,
-        autoscale_interval: int = 1 * 10,
+        autoscale_interval: int = 10,
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = None,
