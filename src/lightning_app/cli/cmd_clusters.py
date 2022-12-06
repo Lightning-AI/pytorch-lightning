@@ -56,7 +56,7 @@ class ClusterList(Formatable):
         return json.dumps(self.clusters)
 
     def as_table(self) -> Table:
-        table = Table("id", "name", "type", "status", "created", show_header=True, header_style="bold green")
+        table = Table("id", "type", "status", "created", show_header=True, header_style="bold green")
         phases = {
             V1ClusterState.QUEUED: Text("queued", style="bold yellow"),
             V1ClusterState.PENDING: Text("pending", style="bold yellow"),
@@ -82,7 +82,6 @@ class ClusterList(Formatable):
 
             table.add_row(
                 cluster.id,
-                cluster.name,
                 cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
                 status,
                 created_at.strftime("%Y-%m-%d") if created_at else "",
@@ -100,7 +99,7 @@ class AWSClusterManager:
     def create(
         self,
         cost_savings: bool = False,
-        cluster_name: str = None,
+        cluster_id: str = None,
         role_arn: str = None,
         region: str = "us-east-1",
         external_id: str = None,
@@ -111,7 +110,7 @@ class AWSClusterManager:
 
         Args:
             cost_savings: Specifies if the cluster uses cost savings mode
-            cluster_name: The name of the cluster to be created
+            cluster_id: The name of the cluster to be created
             role_arn: AWS IAM Role ARN used to provision resources
             region: AWS region containing compute resources
             external_id: AWS IAM Role external ID
@@ -125,7 +124,7 @@ class AWSClusterManager:
             performance_profile = V1ClusterPerformanceProfile.COST_SAVING
 
         body = V1CreateClusterRequest(
-            name=cluster_name,
+            name=cluster_id,
             spec=V1ClusterSpec(
                 cluster_type=V1ClusterType.BYOC,
                 performance_profile=performance_profile,
@@ -159,10 +158,10 @@ class AWSClusterManager:
                 lightning list clusters
 
             To view cluster logs use:
-                lightning show cluster logs {cluster_name}
+                lightning show cluster logs {cluster_id}
 
             To delete the cluster run:
-                lightning delete cluster {cluster_name}
+                lightning delete cluster {cluster_id}
             """
             )
         )
@@ -174,6 +173,10 @@ class AWSClusterManager:
                 _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
             except KeyboardInterrupt:
                 click.echo(background_message)
+
+    def list_clusters(self) -> List[Externalv1Cluster]:
+        resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        return resp.clusters
 
     def get_clusters(self) -> ClusterList:
         resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
@@ -277,7 +280,7 @@ def _wait_for_cluster_state(
         )
 
 
-def _check_cluster_name_is_valid(_ctx: Any, _param: Any, value: str) -> str:
+def _check_cluster_id_is_valid(_ctx: Any, _param: Any, value: str) -> str:
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
         raise click.ClickException(
@@ -296,7 +299,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         elapsed: Seconds since we've started polling
     """
 
-    cluster_name = cluster.name
+    cluster_id = cluster.id
     current_state = cluster.status.phase
     current_reason = cluster.status.reason
     bucket_name = cluster.spec.driver.kubernetes.aws.bucket_name
@@ -306,7 +309,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     if current_state == V1ClusterState.FAILED:
         return dedent(
             f"""\
-            The requested cluster operation for cluster {cluster_name} has errors:
+            The requested cluster operation for cluster {cluster_id} has errors:
             {current_reason}
 
             ---
@@ -314,7 +317,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
 
             WARNING: Any non-deleted cluster may be using resources.
             To avoid incuring cost on your cloud provider, delete the cluster using the following command:
-                lightning delete cluster {cluster_name}
+                lightning delete cluster {cluster_id}
 
             Contact support@lightning.ai for additional help
             """
@@ -323,18 +326,18 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     if desired_state == current_state == V1ClusterState.RUNNING:
         return dedent(
             f"""\
-                Cluster {cluster_name} is now running and ready to use.
-                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_name}
+                Cluster {cluster_id} is now running and ready to use.
+                To launch an app on this cluster use: lightning run app app.py --cloud --cluster-id {cluster_id}
                 """
         )
 
     if desired_state == V1ClusterState.RUNNING:
-        return f"Cluster {cluster_name} is being created [elapsed={duration}]"
+        return f"Cluster {cluster_id} is being created [elapsed={duration}]"
 
     if desired_state == current_state == V1ClusterState.DELETED:
         return dedent(
             f"""\
-            Cluster {cluster_name} has been successfully deleted, and almost all AWS resources have been removed
+            Cluster {cluster_id} has been successfully deleted, and almost all AWS resources have been removed
 
             For safety purposes we kept the S3 bucket associated with the cluster: {bucket_name}
 
@@ -344,7 +347,7 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         )
 
     if desired_state == V1ClusterState.DELETED:
-        return f"Cluster {cluster_name} is being deleted [elapsed={duration}]"
+        return f"Cluster {cluster_id} is being deleted [elapsed={duration}]"
 
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
 
