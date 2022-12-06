@@ -4,10 +4,9 @@ import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Any, Optional
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -30,6 +29,7 @@ if _is_redis_available():
     import redis
 
 logger = Logger(__name__)
+
 
 READINESS_QUEUE_CONSTANT = "READINESS_QUEUE"
 ERROR_QUEUE_CONSTANT = "ERROR_QUEUE"
@@ -198,8 +198,7 @@ class MultiProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
         self.name = name
         self.default_timeout = default_timeout
-        context = multiprocessing.get_context("spawn")
-        self.queue = context.Queue()
+        self.queue = multiprocessing.Queue()
 
     def put(self, item):
         self.queue.put(item)
