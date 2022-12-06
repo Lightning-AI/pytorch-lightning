@@ -82,7 +82,6 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_11,
 )
@@ -499,7 +498,7 @@ class AcceleratorConnector:
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
-            if _HPU_AVAILABLE:
+            if HPUAccelerator.is_available():
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"

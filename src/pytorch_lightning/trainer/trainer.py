@@ -2225,12 +2225,11 @@ class Trainer:
 @contextmanager
 def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
     # inference mode is not supported with gloo backend (#9431),
-    # and HPU & TPU accelerators.
+    # and TPU accelerators.
     context_manager_class = (
         torch.inference_mode
         if inference_mode
         and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )

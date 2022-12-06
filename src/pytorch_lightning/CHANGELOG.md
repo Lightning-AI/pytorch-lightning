@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
+- Fixed issue with unsupported torch.inference_mode() on hpu backends ([#](https://github.com/Lightning-AI/lightning/pull/#))
 
 
 ## [1.8.3] - 2022-11-22
