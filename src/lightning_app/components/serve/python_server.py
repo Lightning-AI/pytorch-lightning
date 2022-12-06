@@ -123,7 +123,7 @@ class PythonServer(LightningWork, abc.ABC):
                 .. code-block:: python
 
                     def predict(self, request):
-                    data = request.payload
+                        data = request.payload
 
             output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases. It expects the return value of
