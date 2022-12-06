@@ -112,7 +112,7 @@ def _collect_content_layout(
             elif isinstance(work_layout, str):
                 entry["content"] = work_layout
                 entry["target"] = work_layout
-            else:
+            elif isinstance(work_layout, (Frontend, _MagicMockJsonSerializable)):
                 if len(layout) > 1:
                     lines = _add_comment_to_literal_code(
                         flow.configure_layout, contains="return", comment="  <------- this guy"
@@ -131,10 +131,11 @@ def _collect_content_layout(
 
                 if isinstance(work_layout, Frontend):
                     # If the work returned a frontend, treat it as belonging to the flow.
+                    # NOTE: This could evolve in the future to run the Frontend directly in the work machine.
                     frontend = work_layout
                     frontend.flow = flow
                 elif isinstance(work_layout, _MagicMockJsonSerializable):
-                    # The import was mocked, we set a dummy `Frontend` so that `is_headless` knows there is a UI
+                    # The import was mocked, we set a dummy `Frontend` so that `is_headless` knows there is a UI.
                     frontend = "mock"
 
                 app.frontends.setdefault(flow.name, frontend)
