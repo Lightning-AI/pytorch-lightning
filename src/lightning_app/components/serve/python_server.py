@@ -222,28 +222,29 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
     def configure_layout(self) -> None:
-        from lightning_api_access import APIAccessFrontend
+        if module_available("lightning_api_access"):
+            from lightning_api_access import APIAccessFrontend
 
-        class_name = self.__class__.__name__
-        url = f"{self.url}/predict"
+            class_name = self.__class__.__name__
+            url = f"{self.url}/predict"
 
-        try:
-            request = self._get_sample_dict_from_datatype(self.configure_input_type())
-            response = self._get_sample_dict_from_datatype(self.configure_output_type())
-        except TypeError:
-            return None
+            try:
+                request = self._get_sample_dict_from_datatype(self.configure_input_type())
+                response = self._get_sample_dict_from_datatype(self.configure_output_type())
+            except TypeError:
+                return None
 
-        return APIAccessFrontend(
-            apis=[
-                {
-                    "name": class_name,
-                    "url": url,
-                    "method": "POST",
-                    "request": request,
-                    "response": response,
-                }
-            ]
-        )
+            return APIAccessFrontend(
+                apis=[
+                    {
+                        "name": class_name,
+                        "url": url,
+                        "method": "POST",
+                        "request": request,
+                        "response": response,
+                    }
+                ]
+            )
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
