@@ -19,6 +19,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+from mlflow.entities import Metric
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -287,7 +288,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     ):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log_batch.assert_called_once_with(ANY, "tmp-test", 1.0, ANY, 0)
+        logger.experiment.log_batch.assert_called_once_with(
+            run_id=ANY, metrics=[Metric(key="tmp-test", value=1.0, timestamp=ANY, step=0)]
+        )
 
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"), mock.patch(
