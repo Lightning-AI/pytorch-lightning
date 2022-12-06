@@ -141,6 +141,8 @@ class LightningApp:
         self.threads: List[threading.Thread] = []
         self.exception = None
         self.collect_changes: bool = True
+
+        # TODO: Enable ready locally for opening the UI.
         self.ready = False
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
