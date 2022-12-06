@@ -4,7 +4,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 from lightning_app import LightningApp, LightningFlow
 from lightning_app.core.constants import APP_SERVER_HOST, APP_SERVER_PORT
@@ -28,7 +28,7 @@ def dispatch(
     host: str = APP_SERVER_HOST,
     port: int = APP_SERVER_PORT,
     blocking: bool = True,
-    on_before_run: Optional[Callable] = None,
+    open_ui: bool = True,
     name: str = "",
     env_vars: Dict[str, str] = None,
     secrets: Dict[str, str] = None,
@@ -45,7 +45,7 @@ def dispatch(
         host: Server host address
         port: Server port
         blocking: Whether for the wait for the UI to start running.
-        on_before_run: Callable to be executed before run.
+        open_ui: Whether to open the UI in the browser.
         name: Name of app execution
         env_vars: Dict of env variables to be set on the app
         secrets: Dict of secrets to be passed as environment variables to the app
@@ -82,7 +82,7 @@ def dispatch(
     )
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
-    return runtime.dispatch(on_before_run=on_before_run, name=name, no_cache=no_cache, cluster_id=cluster_id)
+    return runtime.dispatch(open_ui=open_ui, name=name, no_cache=no_cache, cluster_id=cluster_id)
 
 
 @dataclass
