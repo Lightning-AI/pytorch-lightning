@@ -319,7 +319,6 @@ def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: 
     check_fn = lambda submodule: isinstance(submodule, tuple(layers))
     wrapper = functools.partial(
         checkpoint_wrapper,
-        offload_to_cpu=False,
         checkpoint_impl=CheckpointImpl.NO_REENTRANT,
     )
     apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, check_fn=check_fn)
