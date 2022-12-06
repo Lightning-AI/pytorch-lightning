@@ -2242,14 +2242,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
-def test_compile():
-    model = BoringModel()
-    model = torch.compile(model)
-
-
-# TODO: replace with 1.14 when it is released
-@RunIf(min_torch="1.14.0.dev20221202")
-def test_trainer_compile():
+def test_trainer_compiled_model():
     model = BoringModel()
 
     model = torch.compile(model)
