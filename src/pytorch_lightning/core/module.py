@@ -1952,7 +1952,7 @@ class LightningModule(
             )
 
     @classmethod
-    def from_compiled(cls, model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
+    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
         """Returns an instance LightningModule from the output of ``torch.compile``.
 
         The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
