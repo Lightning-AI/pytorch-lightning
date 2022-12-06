@@ -30,7 +30,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning_lite.lite import LightningLite
+from lightning_lite.lite import Fabric
 from lightning_lite.plugins.environments.lightning import find_free_network_port
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.utilities.apply_func import move_data_to_device
@@ -72,7 +72,7 @@ def main(
     return model.state_dict()
 
 
-class LiteRunner(LightningLite):
+class LiteRunner(Fabric):
     def run(self, model: nn.Module, train_dataloader: DataLoader, num_epochs: int = 10, tmpdir: str = None):
         optimizer = configure_optimizers(model)
         model, optimizer = self.setup(model, optimizer)
@@ -117,7 +117,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
-    LightningLite.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
@@ -171,7 +171,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
     ],
 )
 def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, tmpdir):
-    LightningLite.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 8))
     model = BoringModel()
     num_epochs = 1
@@ -202,7 +202,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     ],
 )
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
-    LightningLite.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()
     num_epochs = 1
@@ -216,7 +216,7 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
     for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
         assert not torch.equal(w_pure.cpu(), w_lite.cpu())
 
-    LightningLite.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4))
     model = BoringModel()
     run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)

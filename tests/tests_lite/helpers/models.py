@@ -7,7 +7,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from lightning_lite import LightningLite
+from lightning_lite import Fabric
 
 
 class RandomDataset(Dataset):
@@ -32,7 +32,7 @@ class RandomIterableDataset(IterableDataset):
             yield torch.randn(self.size)
 
 
-class BoringLite(LightningLite):
+class BoringLite(Fabric):
     def get_model(self) -> Module:
         return nn.Linear(32, 2)
 

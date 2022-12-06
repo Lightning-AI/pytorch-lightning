@@ -55,7 +55,7 @@ class TorchCheckpointIO(CheckpointIO):
         except AttributeError as err:
             # todo: is this try catch necessary still?
             # https://github.com/Lightning-AI/lightning/pull/431
-            # TODO(lite): Lite doesn't support hyperparameters in the checkpoint, so this should be refactored
+            # TODO(lite): Fabric doesn't support hyperparameters in the checkpoint, so this should be refactored
             key = "hyper_parameters"
             checkpoint.pop(key, None)
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")

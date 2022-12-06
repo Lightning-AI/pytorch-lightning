@@ -341,8 +341,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     @contextmanager
     def module_sharded_context(self) -> Generator[None, None, None]:
-        # Current limitation in Lite: The config needs to be fully determined at the time of calling the
-        # context manager, which happens at the start of `Lite.run()`. Later modificatoins through e.g. `Lite.setup()`
+        # Current limitation in Fabric: The config needs to be fully determined at the time of calling the
+        # context manager, which happens at the start of `Fabric.run()`. Later modificatoins through e.g. `Fabric.setup()`
         # won't have an effect here.
 
         import deepspeed

@@ -24,14 +24,14 @@ from tests_lite.helpers.runif import RunIf
 from tests_lite.test_lite import BoringModel
 from torch.utils.data import DataLoader
 
-from lightning_lite import LightningLite
+from lightning_lite import Fabric
 from lightning_lite.plugins import DeepSpeedPrecision
 from lightning_lite.strategies import DeepSpeedStrategy
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             model = BoringModel()
             optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
@@ -118,7 +118,7 @@ def test_deepspeed_multiple_models():
 def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size_per_gpu, expected_batch_size):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             assert isinstance(self._strategy, DeepSpeedStrategy)
             _ = self.setup_dataloaders(DataLoader(dataset_cls(32, 64)))
@@ -139,7 +139,7 @@ def test_deepspeed_configure_optimizers():
 
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             model = nn.Linear(3, 3)
             optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -161,7 +161,7 @@ def test_deepspeed_custom_precision_params():
     """Test that if the FP16 parameters are set via the DeepSpeedStrategy, the deepspeed config contains these
     changes."""
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             assert self._strategy._config_initialized
             assert self._strategy.config["fp16"]["loss_scale"] == 10
@@ -188,7 +188,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
     correctly."""
     import deepspeed
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             model = nn.Linear(3, 3)
             optimizer = torch.optim.Adam(model.parameters())

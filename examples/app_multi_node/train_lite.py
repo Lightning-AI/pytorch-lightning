@@ -14,7 +14,7 @@ class LitePyTorchDistributed(L.LightningWork):
             torch.nn.Linear(1, 1),
         )
 
-        # 2. Create LightningLite.
+        # 2. Create Fabric.
         lite = LightningLite(strategy="ddp", precision=16)
         model, optimizer = lite.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()

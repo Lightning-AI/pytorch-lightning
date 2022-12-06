@@ -20,7 +20,7 @@ from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
-from lightning_lite import LightningLite
+from lightning_lite import Fabric
 from lightning_lite.plugins import FSDPPrecision
 from lightning_lite.strategies import FSDPStrategy
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
@@ -88,7 +88,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
         auto_wrap_policy=_custom_auto_wrap_policy,
         activation_checkpointing=[torch.nn.Linear],
     )
-    lite = LightningLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
+    lite = Fabric(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.launch()
 
     with lite.sharded_model():
@@ -129,7 +129,7 @@ def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""
     strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
-    lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
+    lite = Fabric(accelerator="cuda", devices=2, strategy=strategy)
     lite.launch()
 
     model = torch.nn.Linear(10, 10, bias=False)  # total params: 10 * 10 = 100

@@ -65,7 +65,7 @@ _PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
-    """The Connector parses several Lite arguments and instantiates the Strategy including its owned components.
+    """The Connector parses several Fabric arguments and instantiates the Strategy including its owned components.
 
         A. accelerator flag could be:
             1. accelerator class
@@ -297,7 +297,7 @@ class _Connector:
                 else self._accelerator_flag
             )
             raise ValueError(
-                f"`Lite(devices={self._devices_flag!r})` value is not a valid input"
+                f"`Fabric(devices={self._devices_flag!r})` value is not a valid input"
                 f" using {accelerator_name} accelerator."
             )
 
@@ -345,7 +345,7 @@ class _Connector:
                 f"`{accelerator_cls.__qualname__}` can not run on your system"
                 " since the accelerator is not available. The following accelerator(s)"
                 " is available and can be passed into `accelerator` argument of"
-                f" `Lite`: {available_accelerator}."
+                f" `Fabric`: {available_accelerator}."
             )
 
         self._set_devices_flag_if_auto_passed()
@@ -416,14 +416,14 @@ class _Connector:
             strategy_flag = "ddp"
         if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
-                f"You selected `Lite(strategy='{strategy_flag}')` but process forking is not supported on this"
-                f" platform. We recommed `Lite(strategy='ddp_spawn')` instead."
+                f"You selected `Fabric(strategy='{strategy_flag}')` but process forking is not supported on this"
+                f" platform. We recommed `Fabric(strategy='ddp_spawn')` instead."
             )
         if (
             strategy_flag in _FSDP_ALIASES or isinstance(self._strategy_flag, FSDPStrategy)
         ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise ValueError(
-                "You selected the FSDP strategy but FSDP is only available on GPU. Set `Lite(accelerator='gpu', ...)`"
+                "You selected the FSDP strategy but FSDP is only available on GPU. Set `Fabric(accelerator='gpu', ...)`"
                 " to continue or select a different strategy."
             )
         if strategy_flag:
@@ -449,7 +449,7 @@ class _Connector:
             elif self._precision_input in (16, "bf16"):
                 if self._precision_input == 16:
                     rank_zero_warn(
-                        "You passed `Lite(accelerator='tpu', precision=16)` but AMP"
+                        "You passed `Fabric(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16Precision()
@@ -463,7 +463,7 @@ class _Connector:
 
         if self._precision_input == 16 and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Lite(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                "You passed `Fabric(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_input = "bf16"
@@ -487,7 +487,7 @@ class _Connector:
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_input == 64:
                 raise NotImplementedError(
-                    "`Lite(accelerator='tpu', precision=64)` is not implemented."
+                    "`Fabric(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
@@ -519,10 +519,10 @@ class _Connector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise RuntimeError(
-                f"`Lite(strategy={self._strategy_flag!r})` is not compatible with an interactive"
+                f"`Fabric(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Lite(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
-                " In case you are spawning processes yourself, make sure to include the Lite"
+                f" Fabric(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                " In case you are spawning processes yourself, make sure to include the Fabric"
                 " creation inside the worker function."
             )
 
@@ -549,9 +549,9 @@ class _Connector:
 
         if env_value is not None and env_value != current and current != default:
             raise ValueError(
-                f"Your code has `LightningLite({name}={current!r}, ...)` but it conflicts with the value "
+                f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
                 f"`--{name}={current}` set through the CLI. "
-                " Remove it either from the CLI or from the Lightning Lite object."
+                " Remove it either from the CLI or from the Lightning Fabric object."
             )
         if env_value is None:
             return current

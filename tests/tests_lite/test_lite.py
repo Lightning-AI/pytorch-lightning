@@ -25,7 +25,7 @@ from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from lightning_lite.lite import LightningLite
+from lightning_lite.lite import Fabric
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
@@ -45,7 +45,7 @@ from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
-class EmptyLite(LightningLite):
+class EmptyLite(Fabric):
     def run(self):
         pass
 
@@ -63,7 +63,7 @@ class BoringModel(nn.Module):
 def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
 
         run_args = ()
         run_kwargs = {}
@@ -315,7 +315,7 @@ def test_setup_dataloaders_return_type():
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             # One for BatchSampler, another for DataLoader
             assert ctx_manager().__enter__.call_count == 2
@@ -356,7 +356,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "lightning_lite.lite.LightningLite.device",
+    "lightning_lite.lite.Fabric.device",
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
@@ -461,7 +461,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
 
-    class Lite(LightningLite):
+    class Lite(Fabric):
         def run(self):
             expected_device = torch.device(expected)
 
@@ -575,55 +575,55 @@ def test_no_backward_sync():
 
 
 def test_launch_without_function():
-    """Test the various ways `LightningLite.launch()` can be called."""
+    """Test the various ways `Fabric.launch()` can be called."""
 
     # default: no launcher, single process
-    lite = LightningLite()
+    lite = Fabric()
     with mock.patch("lightning_lite.lite._do_nothing") as nothing:
         lite.launch()
     nothing.assert_called()
 
     # with a launcher on the strategy
-    lite = LightningLite()
+    lite = Fabric()
     lite._strategy._launcher = Mock()
     lite.launch()
     lite._strategy._launcher.launch.assert_called()
 
 
 def test_launch_with_function():
-    """Test the various ways `LightningLite.launch(function)` can be called."""
+    """Test the various ways `Fabric.launch(function)` can be called."""
 
     def fn_without_args():
         pass
 
-    lite = LightningLite()
+    lite = Fabric()
     with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
         lite.launch(fn_without_args)
 
     def fn_with_one_arg(arg):
-        assert isinstance(arg, LightningLite)
+        assert isinstance(arg, Fabric)
         fn_with_one_arg.called = True
 
-    lite = LightningLite()
+    lite = Fabric()
     lite.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
 
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
-    lite = LightningLite()
+    lite = Fabric()
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
         lite.launch()
 
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_overridden_run_and_cli_not_allowed():
-    class LiteWithRun(LightningLite):
+    class LiteWithRun(Fabric):
         def run(self):
             pass
 
     with pytest.raises(
-        TypeError, match=escape("Overriding `LightningLite.run()` and launching from the CLI is not allowed")
+        TypeError, match=escape("Overriding `Fabric.run()` and launching from the CLI is not allowed")
     ):
         LiteWithRun()
 

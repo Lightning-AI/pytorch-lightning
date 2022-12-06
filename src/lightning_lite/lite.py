@@ -54,8 +54,8 @@ from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
-class LightningLite:
-    """Lite accelerates your PyTorch training or inference code with minimal changes required.
+class Fabric:
+    """Fabric accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.
     - Automatic support for mixed and double precision (smaller memory footprint).
@@ -139,7 +139,7 @@ class LightningLite:
         return self._strategy.is_global_zero
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
-        """All the code inside this run method gets accelerated by Lite.
+        """All the code inside this run method gets accelerated by Fabric.
 
         You can pass arbitrary arguments to this function when overriding it.
         """
@@ -502,7 +502,7 @@ class LightningLite:
         """
         return self._strategy.load_checkpoint(filepath)
 
-    def launch(self, function: Optional[Callable[["LightningLite"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         if _is_using_cli():
             raise RuntimeError(
                 "This script was launched through the CLI, and processes have already been created. Calling "
@@ -510,8 +510,8 @@ class LightningLite:
             )
         if function is not None and not inspect.signature(function).parameters:
             raise TypeError(
-                "The function passed to `Lite.launch()` needs to take at least one argument. The launcher will pass"
-                " in the `LightningLite` object so you can use it inside the function."
+                "The function passed to `Fabric.launch()` needs to take at least one argument. The launcher will pass"
+                " in the `Fabric` object so you can use it inside the function."
             )
         function = partial(self._run_with_setup, function or _do_nothing)
         args = [self, *args]
@@ -550,9 +550,9 @@ class LightningLite:
         initial_device = next(model.parameters()).device
         if any(param.device != initial_device for param in model.parameters()):
             rank_zero_warn(
-                "The model passed to `Lite.setup()` has parameters on different devices. Since `move_to_device=True`,"
+                "The model passed to `Fabric.setup()` has parameters on different devices. Since `move_to_device=True`,"
                 " all parameters will be moved to the new device. If this is not desired, set "
-                " `Lite.setup(..., move_to_device=False)`.",
+                " `Fabric.setup(..., move_to_device=False)`.",
                 category=PossibleUserWarning,
             )
 
@@ -586,10 +586,10 @@ class LightningLite:
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _prepare_run_method(self) -> None:
-        if is_overridden("run", self, LightningLite) and _is_using_cli():
+        if is_overridden("run", self, Fabric) and _is_using_cli():
             raise TypeError(
-                "Overriding `LightningLite.run()` and launching from the CLI is not allowed. Run the script normally,"
-                " or change your code to directly call `lite = LightningLite(...); lite.setup(...)` etc."
+                "Overriding `Fabric.run()` and launching from the CLI is not allowed. Run the script normally,"
+                " or change your code to directly call `lite = Fabric(...); lite.setup(...)` etc."
             )
         # wrap the run method, so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
