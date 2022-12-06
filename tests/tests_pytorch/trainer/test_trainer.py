@@ -2237,3 +2237,39 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
         trainer.fit(model)
 
     logger.finalize.assert_called_once_with("failed")
+
+
+# TODO: replace with 1.14 when it is released
+@RunIf(min_torch="1.14.0.dev20221202")
+def test_trainer_compiled_model():
+    model = BoringModel()
+
+    model = torch.compile(model)
+
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+    )
+    trainer.fit(model)
+
+    assert trainer.model._compiler_ctx["compiler"] == "dynamo"
+
+    model = model.to_uncompiled()
+
+    assert model._compiler_ctx is None
+
+    trainer.train(model)
+
+    assert trainer.model._compiler_ctx is None
+
+    model = torch.compile(model)
+
+    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPShardedStrategy)
+
+    with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
+        trainer.fit(model)
+
+    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPStrategy)
+
+    trainer.fit(model)
