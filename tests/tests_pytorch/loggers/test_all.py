@@ -19,7 +19,6 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from mlflow.entities import Metric
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -286,6 +285,8 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
         "pytorch_lightning.loggers.mlflow.MlflowClient"
     ):
+        from mlflow.entities import Metric
+
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_batch.assert_called_once_with(

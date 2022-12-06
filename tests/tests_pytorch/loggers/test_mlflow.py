@@ -16,7 +16,6 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from mlflow.entities import Metric, Param
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -242,6 +241,8 @@ def test_mlflow_logger_with_long_param_value(client, mlflow, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     """Test that the logger calls methods on the mlflow experiment correctly."""
+    from mlflow.entities import Metric, Param
+
     time.return_value = 1
 
     logger = MLFlowLogger("test", save_dir=tmpdir, artifact_location="my_artifact_location")
