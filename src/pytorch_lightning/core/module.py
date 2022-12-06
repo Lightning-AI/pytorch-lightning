@@ -1808,6 +1808,7 @@ class LightningModule(
         Example:
 
         .. code-block:: python
+
             class SimpleModel(LightningModule):
                 def __init__(self):
                     super().__init__()
