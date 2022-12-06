@@ -2260,7 +2260,7 @@ def test_trainer_compiled_model():
 
     assert model._compiler_ctx is None
 
-    trainer.train(model)
+    trainer.fit(model)
 
     assert trainer.model._compiler_ctx is None
 
