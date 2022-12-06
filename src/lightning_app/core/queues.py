@@ -4,10 +4,11 @@ import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Generator
-from contextlib import contextmanager
+from typing import Any, Generator, Optional
+
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_TOKEN,
