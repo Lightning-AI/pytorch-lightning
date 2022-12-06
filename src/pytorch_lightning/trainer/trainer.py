@@ -65,7 +65,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
 )
 from pytorch_lightning.profilers import Profiler
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPStrategy, ParallelStrategy, Strategy
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
@@ -991,6 +991,28 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        if model.compiler is not None or self._do_compile:
+            supported_strategies = [DDPStrategy, DDPFullyShardedNativeStrategy]
+            if self.strategy is not None and not any(isinstance(self.strategy, s) for s in supported_strategies):
+                supported_strategy_names = " ".join(s.__name__ for s in supported_strategies)
+                if model.compiler is not None:
+                    error_message = (
+                        "Using a compiled model is incompatible with the current strategy: "
+                        f"{self.strategy.__class__.__name__}. "
+                        f"Only {supported_strategy_names} support compilation."
+                        "Either switch to one of the supported strategies or avoid calling "
+                        "`.compile()` on the model prior to passing it to `fit()`"
+                    )
+                else:
+                    error_message = (
+                        f"Compiling the model is incompatible with the current strategy: "
+                        f"{self.strategy.__class__.__name__}. "
+                        f"Only {supported_strategy_names} support compilation."
+                        "Either switch to one of the supported strategies or set `compile=False`"
+                        "in the `Trainer`"
+                    )
+                raise RuntimeError(error_message)
+
         if self._do_compile:
             backend = self._compile_kwargs.get("backend", "inductor")
             fullgraph = self._compile_kwargs.get("fullgraph", False)

@@ -117,6 +117,7 @@ class LightningModule(
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
+        self._forward_compiler: Optional[str] = None
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
@@ -269,6 +270,11 @@ class LightningModule(
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
+
+    @property
+    def compiler(self) -> Optional[str]:
+        """Name of compiler used to optimize the model forward."""
+        return self._forward_compiler
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
@@ -1844,6 +1850,7 @@ class LightningModule(
 
         optimize = dynamo.optimize(backend=backend, nopython=fullgraph, dynamic=dynamic, **kwargs)
         self.forward = optimize(self.forward)  # type: ignore[assignment]
+        self._forward_compiler = "dynamo"
 
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:

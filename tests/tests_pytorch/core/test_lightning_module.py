@@ -445,15 +445,12 @@ def test_trainer_reference_recursively():
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_compile():
-    def is_wrapped(model):
-        return hasattr(model.forward, "_torchdynamo_inline")
-
     model = BoringModel()
     model.compile()
 
-    is_wrapped(model)
+    assert model.compiler == "dynamo"
 
     model = BoringModel()
     model.compile(fullgraph=True, dynamic=True, backend="eager")
 
-    is_wrapped(model)
+    assert model.compiler == "dynamo"

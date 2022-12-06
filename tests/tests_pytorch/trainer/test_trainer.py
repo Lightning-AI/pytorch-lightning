@@ -52,6 +52,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
+    DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -2243,9 +2244,6 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compile():
-    def is_optimized(model):
-        return hasattr(model.forward, "_torchdynamo_inline")
-
     model = BoringModel()
 
     trainer = Trainer(
@@ -2256,7 +2254,7 @@ def test_trainer_compile():
     )
     trainer.fit(model)
 
-    assert is_optimized(trainer.model)
+    assert trainer.model.compiler == "dynamo"
 
     model = BoringModel()
 
@@ -2272,4 +2270,30 @@ def test_trainer_compile():
     )
     trainer.fit(model)
 
-    assert is_optimized(trainer.model)
+    assert trainer.model.compiler == "dynamo"
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        max_epochs=1, limit_train_batches=1, limit_val_batches=1, compile=True, strategy=DDPFullyShardedNativeStrategy
+    )
+    trainer.fit(model)
+
+    assert trainer.model.compiler == "dynamo"
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        max_epochs=1, limit_train_batches=1, limit_val_batches=1, compile=True, strategy=DDPShardedStrategy
+    )
+
+    with pytest.raises(RuntimeError, match="Compiling models is incompatible with the current strategy.*"):
+        trainer.fit(model)
+
+    model = BoringModel()
+    model.compile()
+
+    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPShardedStrategy)
+
+    with pytest.raises(RuntimeError, match="Compiling models is incompatible with the current strategy.*"):
+        trainer.fit(model)
