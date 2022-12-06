@@ -31,7 +31,9 @@ class MultiProcessWorkManager(WorkManager):
             flow_to_work_delta_queue=self.app.flow_to_work_delta_queues[self.work.name],
             run_executor_cls=self.work._run_executor_cls,
         )
-        self._process = multiprocessing.Process(target=self._work_runner)
+
+        context = multiprocessing.get_context(getattr(self.work, "_start_method", "fork"))
+        self._process = context.Process(target=self._work_runner)
         self._process.start()
 
     def kill(self):

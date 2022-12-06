@@ -46,6 +46,7 @@ class LightningWork:
     )
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
+    _start_method = "fork"
 
     def __init__(
         self,

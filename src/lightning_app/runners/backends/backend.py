@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Any, Callable, List, Optional, TYPE_CHECKING
 
-from lightning_app.core.queues import QueuingSystem
+from lightning_app.core.queues import QueuingSystem, start_method_context
 from lightning_app.utilities.proxies import ProxyWorkRun, unwrap
 
 if TYPE_CHECKING:
@@ -97,13 +97,14 @@ class Backend(ABC):
         app.flow_to_work_delta_queues = {}
 
     def _register_queues(self, app, work):
-        kw = dict(queue_id=self.queue_id, work_name=work.name)
-        app.request_queues.update({work.name: self.queues.get_orchestrator_request_queue(**kw)})
-        app.response_queues.update({work.name: self.queues.get_orchestrator_response_queue(**kw)})
-        app.copy_request_queues.update({work.name: self.queues.get_orchestrator_copy_request_queue(**kw)})
-        app.copy_response_queues.update({work.name: self.queues.get_orchestrator_copy_response_queue(**kw)})
-        app.caller_queues.update({work.name: self.queues.get_caller_queue(**kw)})
-        app.flow_to_work_delta_queues.update({work.name: self.queues.get_flow_to_work_delta_queue(**kw)})
+        with start_method_context(work):
+            kw = dict(queue_id=self.queue_id, work_name=work.name)
+            app.request_queues.update({work.name: self.queues.get_orchestrator_request_queue(**kw)})
+            app.response_queues.update({work.name: self.queues.get_orchestrator_response_queue(**kw)})
+            app.copy_request_queues.update({work.name: self.queues.get_orchestrator_copy_request_queue(**kw)})
+            app.copy_response_queues.update({work.name: self.queues.get_orchestrator_copy_response_queue(**kw)})
+            app.caller_queues.update({work.name: self.queues.get_caller_queue(**kw)})
+            app.flow_to_work_delta_queues.update({work.name: self.queues.get_flow_to_work_delta_queue(**kw)})
 
 
 class WorkManager(ABC):

@@ -6,8 +6,8 @@ import warnings
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Any, Optional, Generator
+from contextlib import contextmanager
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_TOKEN,
@@ -29,6 +29,17 @@ if _is_redis_available():
     import redis
 
 logger = Logger(__name__)
+
+_START_METHOD = "fork"
+
+@contextmanager
+def start_method_context(work: str) -> Generator:
+    global _START_METHOD
+    v = _START_METHOD
+    _START_METHOD = getattr(work, "_start_method", "fork")
+    yield
+    _START_METHOD = v
+
 
 
 READINESS_QUEUE_CONSTANT = "READINESS_QUEUE"
@@ -198,7 +209,8 @@ class MultiProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
         self.name = name
         self.default_timeout = default_timeout
-        self.queue = multiprocessing.Queue()
+        context = multiprocessing.get_context(_START_METHOD)
+        self.queue = context.Queue()
 
     def put(self, item):
         self.queue.put(item)
