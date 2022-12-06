@@ -561,22 +561,23 @@ class Trainer:
         self._last_val_dl_reload_epoch = float("-inf")
 
     def _check_model_type(self, model: Optional["pl.LightningModule"], fn_name: str) -> None:
-        try:
-            from torch._dynamo import OptimizedModule
+        if model is not None:
+            try:
+                from torch._dynamo import OptimizedModule
 
-            if model is not None and isinstance(model, OptimizedModule):
-                raise TypeError(
-                    "You probably called `torch.compile` on the model prior to passing "
-                    f"it to `{fn_name}`. However, `torch.compile` modifies `LightningModule` "
-                    "in a way that is incompatible with usage in the Trainer. "
-                    "Please call `model.compile()` on your `LightningModule` instead, "
-                    "or simply pass `compile=True` as an argument to the Trainer."
-                )
-        except ImportError:
-            pass
+                if isinstance(model, OptimizedModule):
+                    raise TypeError(
+                        "You probably called `torch.compile` on the model prior to passing "
+                        f"it to `{fn_name}`. However, `torch.compile` modifies `LightningModule` "
+                        "in a way that is incompatible with usage in the Trainer. "
+                        "Please call `model.compile()` on your `LightningModule` instead, "
+                        "or simply pass `compile=True` as an argument to the Trainer."
+                    )
+            except ImportError:
+                pass
 
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`{fn_name}` requires a `LightningModule`, got: {model.__class__.__qualname__}")
+            if not isinstance(model, pl.LightningModule):
+                raise TypeError(f"`{fn_name}` requires a `LightningModule`, got: {model.__class__.__qualname__}")
 
     def fit(
         self,
