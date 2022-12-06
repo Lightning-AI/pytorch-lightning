@@ -33,7 +33,8 @@ logger = Logger(__name__)
 _START_METHOD = "fork"
 
 @contextmanager
-def start_method_context(work: str) -> Generator:
+def start_method_context(work) -> Generator:
+    """Context to switch the start method."""
     global _START_METHOD
     v = _START_METHOD
     _START_METHOD = getattr(work, "_start_method", "fork")
