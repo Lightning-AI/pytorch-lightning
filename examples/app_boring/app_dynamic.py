@@ -70,4 +70,4 @@ class BoringApp(L.LightningFlow):
         return {"name": "Boring Tab", "content": self.dict["dst_w"].url + "/file" if "dst_w" in self.dict else ""}
 
 
-app = L.LightningApp(BoringApp())  # , log_level="debug")
+app = L.LightningApp(BoringApp(), log_level="debug")
