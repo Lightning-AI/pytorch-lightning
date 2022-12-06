@@ -19,15 +19,12 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from tests_pytorch.helpers.runif import RunIf
 
 if torch.distributed.is_available():
+    import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
     from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
     from torch.distributed.algorithms.ddp_comm_hooks import powerSGD_hook as powerSGD
-
-    if _TORCH_GREATER_EQUAL_1_10:
-        import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
 
 class TestDDPStrategy(DDPStrategy):

@@ -22,17 +22,13 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
+from torch.ao.quantization.qconfig import QConfig
 from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.ao.quantization.qconfig import QConfig
-else:
-    from torch.quantization import QConfig
 
 if _TORCH_GREATER_EQUAL_1_11:
     from torch.ao.quantization import fuse_modules_qat as fuse_modules
@@ -252,15 +248,9 @@ class QuantizationAwareTraining(Callback):
             if self._observer_type == "histogram":
                 model.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
-                extra_kwargs: Dict[str, Optional[int]] = {}
-                if _TORCH_GREATER_EQUAL_1_12:
-                    extra_kwargs["version"] = 0
-                # version=None corresponds to using FakeQuantize rather than
-                # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
-                # details in https://github.com/pytorch/pytorch/issues/64564
-                elif _TORCH_GREATER_EQUAL_1_10:
-                    extra_kwargs["version"] = None
-                model.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
+                model.qconfig = torch.quantization.get_default_qat_qconfig(
+                    self._qconfig, version=0 if _TORCH_GREATER_EQUAL_1_12 else None
+                )
 
         elif isinstance(self._qconfig, QConfig):
             model.qconfig = self._qconfig  # type: ignore [assignment]
