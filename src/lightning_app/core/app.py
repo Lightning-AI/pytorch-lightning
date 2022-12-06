@@ -142,6 +142,9 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
+        # TODO: Enable ready locally for opening the UI.
+        self.ready = False
+
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
         # we will need to revisit the logic at _should_snapshot, since right now
@@ -446,6 +449,9 @@ class LightningApp:
             done = True
             self.stage = AppStage.STOPPING
 
+        if not self.ready:
+            self.ready = self.root.ready
+
         self._last_run_time = time() - t0
 
         self.on_run_once_end()
@@ -480,13 +486,11 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
+        self.ready = self.root.ready
 
         self._start_with_flow_works()
 
-        if self.should_publish_changes_to_api and self.api_publish_state_queue:
-            logger.debug("Publishing the state with changes")
-            # Push two states to optimize start in the cloud.
-            self.api_publish_state_queue.put(self.state_vars)
+        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
@@ -496,7 +500,7 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
+            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
             self._has_updated = False

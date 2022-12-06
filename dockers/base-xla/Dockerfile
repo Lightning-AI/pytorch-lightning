@@ -86,11 +86,11 @@ RUN pip --version && \
     rm *.whl
 
 # Get package
-COPY ./ ./pytorch-lightning/
+COPY ./ ./lightning/
 
 RUN \
     python --version && \
-    cd pytorch-lightning && \
+    cd lightning && \
     pip install -q -r .actions/requirements.txt && \
     # Pin mkl version to avoid OSError on torch import
     # OSError: libmkl_intel_lp64.so.1: cannot open shared object file: No such file or directory
@@ -103,7 +103,7 @@ RUN \
     # install PL dependencies
     pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     cd .. && \
-    rm -rf pytorch-lightning && \
+    rm -rf lightning && \
     rm -rf /root/.cache
 
 RUN \
