@@ -630,7 +630,7 @@ class LightningWork:
             else:
                 self._default_setattr(name, value)
 
-    def configure_layout(self) -> Union[str, "Frontend"]:
+    def configure_layout(self) -> Union[None, str, "Frontend"]:
         """Configure the UI of this LightningWork.
 
         You can either
@@ -638,6 +638,7 @@ class LightningWork:
         1.  Return a single :class:`~lightning_app.frontend.frontend.Frontend` object to serve a user interface
             for this Work.
         2.  Return a string containing a URL to act as the user interface for this Work.
+        3.  Return ``None`` to indicate that this Work doesn't currently have a user interface.
 
         **Example:** Serve a static directory (with at least a file index.html inside).
 

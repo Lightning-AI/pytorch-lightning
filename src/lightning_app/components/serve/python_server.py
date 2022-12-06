@@ -8,7 +8,6 @@ import uvicorn
 from fastapi import FastAPI
 from lightning_utilities.core.imports import module_available
 from pydantic import BaseModel
-from starlette.staticfiles import StaticFiles
 
 from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
@@ -222,38 +221,19 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def _attach_frontend(self, fastapi_app: FastAPI) -> None:
+    def configure_layout(self) -> None:
         from lightning_api_access import APIAccessFrontend
 
         class_name = self.__class__.__name__
-        url = self._future_url if self._future_url else self.url
-        if not url:
-            # if the url is still empty, point it to localhost
-            url = f"http://127.0.0.1:{self.port}"
-        url = f"{url}/predict"
-        datatype_parse_error = False
+        url = f"{self.url}/predict"
+
         try:
             request = self._get_sample_dict_from_datatype(self.configure_input_type())
-        except TypeError:
-            datatype_parse_error = True
-
-        try:
             response = self._get_sample_dict_from_datatype(self.configure_output_type())
         except TypeError:
-            datatype_parse_error = True
+            return None
 
-        if datatype_parse_error:
-
-            @fastapi_app.get("/")
-            def index() -> str:
-                return (
-                    "Automatic generation of the UI is only supported for simple, "
-                    "non-nested datatype with types string, integer, float and boolean"
-                )
-
-            return
-
-        frontend = APIAccessFrontend(
+        return APIAccessFrontend(
             apis=[
                 {
                     "name": class_name,
@@ -264,7 +244,6 @@ class PythonServer(LightningWork, abc.ABC):
                 }
             ]
         )
-        fastapi_app.mount("/", StaticFiles(directory=frontend.serve_dir, html=True), name="static")
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
@@ -275,7 +254,6 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
-        self._attach_frontend(fastapi_app)
 
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")
