@@ -138,6 +138,10 @@ class _LoadBalancer(LightningWork):
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
+
+        if not endpoint.startswith("/"):
+            endpoint = "/" + endpoint
+
         self.endpoint = endpoint
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
@@ -152,7 +156,7 @@ class _LoadBalancer(LightningWork):
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                    f"{server}/{self.endpoint}",
+                    f"{server}{self.endpoint}",
                     json=batch_request_data.dict(),
                     timeout=self._timeout_inference_request,
                     headers=headers,
@@ -162,7 +166,7 @@ class _LoadBalancer(LightningWork):
                     response.raise_for_status()
                     response = await response.json()
                     outputs = response["outputs"]
-                    if len(batch) == len(outputs):
+                    if len(batch) != len(outputs):
                         raise RuntimeError(f"result has {len(outputs)} items but batch is {len(batch)}")
                     result = {request[0]: r for request, r in zip(batch, outputs)}
                     self._responses.update(result)
