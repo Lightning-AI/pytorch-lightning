@@ -32,7 +32,8 @@ class MultiProcessWorkManager(WorkManager):
             run_executor_cls=self.work._run_executor_cls,
         )
 
-        context = multiprocessing.get_context(getattr(self.work, "_start_method", "fork"))
+        start_method = getattr(self.work, "_start_method", "fork")
+        context = multiprocessing.get_context(start_method)
         self._process = context.Process(target=self._work_runner)
         self._process.start()
 
