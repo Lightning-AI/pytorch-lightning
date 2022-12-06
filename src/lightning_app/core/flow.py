@@ -763,6 +763,10 @@ class _RootFlow(LightningFlow):
         super().__init__()
         self.work = work
 
+    @property
+    def ready(self) -> bool:
+        return self.work.url != ""
+
     def run(self):
         if self.work.has_succeeded:
             self.work.stop()
