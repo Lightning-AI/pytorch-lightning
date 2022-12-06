@@ -766,3 +766,4 @@ class _RootFlow(LightningFlow):
     def configure_layout(self):
         if is_overridden("configure_layout", self.work):
             return [{"name": "Main", "content": self.work}]
+        return []
