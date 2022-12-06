@@ -59,7 +59,7 @@ class FakeLightningClient:
 def test_create_cluster_api(api: mock.MagicMock, async_or_interrupt):
     cluster_manager = AWSClusterManager()
     cluster_manager.create(
-        cluster_name="test-7",
+        cluster_id="test-7",
         external_id="dummy",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         region="us-west-2",
@@ -106,17 +106,17 @@ def test_delete_cluster_api(api_get: mock.MagicMock, api_delete: mock.MagicMock,
     api_delete.assert_called_once_with(id="test-7", force=False)
 
 
-class Test_check_cluster_name_is_valid:
+class Test_check_cluster_id_is_valid:
     @pytest.mark.parametrize("name", ["test-7", "0wildgoat"])
     def test_valid(self, name):
-        assert cmd_clusters._check_cluster_name_is_valid(None, None, name)
+        assert cmd_clusters._check_cluster_id_is_valid(None, None, name)
 
     @pytest.mark.parametrize(
         "name", ["(&%)!@#", "1234567890123456789012345678901234567890123456789012345678901234567890"]
     )
     def test_invalid(self, name):
         with pytest.raises(click.ClickException) as e:
-            cmd_clusters._check_cluster_name_is_valid(None, None, name)
+            cmd_clusters._check_cluster_id_is_valid(None, None, name)
             assert "cluster name doesn't match regex pattern" in str(e.value)
 
 
