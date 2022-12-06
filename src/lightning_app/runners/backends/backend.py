@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Any, Callable, List, Optional, TYPE_CHECKING
 
-from lightning_app.core.queues import QueuingSystem, start_method_context
+from lightning_app.core.queues import QueuingSystem
 from lightning_app.utilities.proxies import ProxyWorkRun, unwrap
 
 if TYPE_CHECKING:
