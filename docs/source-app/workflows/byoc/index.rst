@@ -53,7 +53,7 @@ Here's an example:
 Arguments
 ^^^^^^^^^
 
-* cluster_name: The name of the cluster to be created
+* cluster_id: The name of the cluster to be created
 
 .. note:: Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
 
