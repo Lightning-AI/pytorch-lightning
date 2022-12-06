@@ -380,7 +380,7 @@ class AutoScaler(LightningFlow):
                 max_replicas=8,
                 autoscale_interval=10,
                 max_batch_size=8,  # for auto batching
-                timeout_batching=2,  # for auto batching
+                timeout_batching=1,  # for auto batching
             )
         )
     """
@@ -392,7 +392,7 @@ class AutoScaler(LightningFlow):
         max_replicas: int = 4,
         autoscale_interval: int = 1 * 10,
         max_batch_size: int = 8,
-        timeout_batching: float = 2,
+        timeout_batching: float = 1,
         endpoint: str = None,
         input_type: type = Dict,
         output_type: type = Dict,
