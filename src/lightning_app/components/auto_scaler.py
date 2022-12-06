@@ -134,7 +134,7 @@ class _LoadBalancer(LightningWork):
         endpoint: str,
         max_batch_size: int = 8,
         # all timeout args are in seconds
-        timeout_batching: int = 10,
+        timeout_batching: int = 1,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
         **kwargs: Any,
