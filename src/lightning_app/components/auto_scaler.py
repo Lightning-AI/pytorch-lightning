@@ -290,7 +290,6 @@ class _LoadBalancer(LightningWork):
         new_servers = set(server_urls)
 
         if new_servers == old_servers:
-            logger.debug("no new server added")
             return
 
         if new_servers - old_servers:
