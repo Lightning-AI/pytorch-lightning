@@ -80,19 +80,6 @@ def _create_fastapi(title: str) -> FastAPI:
     fastapi_app.num_current_requests = 0
     fastapi_app.last_processing_time = 0
 
-    @fastapi_app.middleware("http")
-    async def current_request_counter(request: Request, call_next):
-        if not request.scope["path"] == "/api/predict":
-            return await call_next(request)
-        fastapi_app.global_request_count += 1
-        fastapi_app.num_current_requests += 1
-        start_time = time.time()
-        response = await call_next(request)
-        processing_time = time.time() - start_time
-        fastapi_app.last_processing_time = processing_time
-        fastapi_app.num_current_requests -= 1
-        return response
-
     @fastapi_app.get("/", include_in_schema=False)
     async def docs():
         return RedirectResponse("/docs")
@@ -225,6 +212,19 @@ class _LoadBalancer(LightningWork):
         security = HTTPBasic()
         fastapi_app.SEND_TASK = None
 
+        @fastapi_app.middleware("http")
+        async def current_request_counter(request: Request, call_next):
+            if not request.scope["path"] == self.endpoint:
+                return await call_next(request)
+            fastapi_app.global_request_count += 1
+            fastapi_app.num_current_requests += 1
+            start_time = time.time()
+            response = await call_next(request)
+            processing_time = time.time() - start_time
+            fastapi_app.last_processing_time = processing_time
+            fastapi_app.num_current_requests -= 1
+            return response
+
         @fastapi_app.on_event("startup")
         async def startup_event():
             fastapi_app.SEND_TASK = asyncio.create_task(self.consumer())
@@ -267,7 +267,7 @@ class _LoadBalancer(LightningWork):
             self.servers = servers
             self._iter = cycle(self.servers)
 
-        @fastapi_app.post("/api/predict", response_model=self._output_type)
+        @fastapi_app.post(self.endpoint, response_model=self._output_type)
         async def balance_api(inputs: self._input_type):
             return await self.process_request(inputs)
 
@@ -333,7 +333,7 @@ class AutoScaler(LightningFlow):
         min_replicas: The number of works to start when app initializes.
         max_replicas: The max number of works to spawn to handle the incoming requests.
         autoscale_interval: The number of seconds to wait before checking whether to upscale or downscale the works.
-        endpoint: Default=api/predict. Provide the REST API path
+        endpoint: Provide the REST API path.
         max_batch_size: (auto-batching) The number of requests to process at once.
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
         input_type: Input type.
@@ -393,7 +393,7 @@ class AutoScaler(LightningFlow):
         autoscale_interval: int = 10,
         max_batch_size: int = 8,
         timeout_batching: float = 1,
-        endpoint: str = None,
+        endpoint: str = "api/predict",
         input_type: type = Dict,
         output_type: type = Dict,
         *work_args: Any,
@@ -421,7 +421,6 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
         self.fake_trigger = 0
 
-        endpoint = endpoint or "api/predict"
         self.load_balancer = _LoadBalancer(
             input_type=self._input_type,
             output_type=self._output_type,
