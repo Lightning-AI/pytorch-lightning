@@ -57,7 +57,7 @@ class XLAProfiler(Profiler):
                 self.server = xp.start_server(self.port)
                 self._start_trace = True
 
-            if action_name in self.STEP_FUNCTIONS:
+            if action_name.split(".")[-1] in self.STEP_FUNCTIONS:
                 step = self._get_step_num(action_name)
                 recording = xp.StepTrace(action_name, step_num=step)
             else:
