@@ -175,7 +175,8 @@ class _LoadBalancer(LightningWork):
                     response.raise_for_status()
                     response = await response.json()
                     outputs = response["outputs"]
-                    assert len(batch) == len(outputs), f"result has {len(outputs)} items but batch is {len(batch)}"
+                    if len(batch) == len(outputs):
+                        raise RuntimeError(f"result has {len(outputs)} items but batch is {len(batch)}")
                     result = {request[0]: r for request, r in zip(batch, outputs)}
                     self._responses.update(result)
         except Exception as ex:
