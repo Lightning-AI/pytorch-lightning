@@ -117,8 +117,8 @@ class _LoadBalancer(LightningWork):
 
     def __init__(
         self,
-        input_type: type,
-        output_type: type,
+        input_type: BaseModel,
+        output_type: BaseModel,
         endpoint: str,
         max_batch_size: int = 8,
         # all timeout args are in seconds
@@ -401,8 +401,8 @@ class AutoScaler(LightningFlow):
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = "api/predict",
-        input_type: type = Dict,
-        output_type: type = Dict,
+        input_type: BaseModel = Dict,
+        output_type: BaseModel = Dict,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
