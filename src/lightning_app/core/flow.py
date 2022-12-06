@@ -765,6 +765,9 @@ class _RootFlow(LightningFlow):
 
     @property
     def ready(self) -> bool:
+        ready = getattr(self.work, "ready", None)
+        if ready:
+            return ready
         return self.work.url != ""
 
     def run(self):
