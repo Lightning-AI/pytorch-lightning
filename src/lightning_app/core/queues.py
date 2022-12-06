@@ -30,19 +30,6 @@ if _is_redis_available():
 
 logger = Logger(__name__)
 
-_START_METHOD = "fork"
-
-@contextmanager
-def start_method_context(work) -> Generator:
-    """Context to switch the start method."""
-    global _START_METHOD
-    v = _START_METHOD
-    _START_METHOD = getattr(work, "_start_method", "fork")
-    yield
-    _START_METHOD = v
-
-
-
 READINESS_QUEUE_CONSTANT = "READINESS_QUEUE"
 ERROR_QUEUE_CONSTANT = "ERROR_QUEUE"
 DELTA_QUEUE_CONSTANT = "DELTA_QUEUE"
@@ -210,7 +197,7 @@ class MultiProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
         self.name = name
         self.default_timeout = default_timeout
-        context = multiprocessing.get_context(_START_METHOD)
+        context = multiprocessing.get_context("spawn")
         self.queue = context.Queue()
 
     def put(self, item):
