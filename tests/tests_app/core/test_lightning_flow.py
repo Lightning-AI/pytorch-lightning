@@ -3,6 +3,7 @@ import pickle
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import partial
 from time import time
 from unittest.mock import ANY, MagicMock
 
@@ -887,14 +888,12 @@ class FlowReady(LightningFlow):
 
 
 def test_flow_ready():
-    """This test validates the api publish state queue is populated only when ready is True."""
+    """This test validates the api publish state queue is populated only once ready is True."""
 
     def run_patch(method):
         app.api_publish_state_queue = MagicMock()
         app.should_publish_changes_to_api = False
         method()
-
-    from functools import partial
 
     app = LightningApp(FlowReady())
     app._run = partial(run_patch, method=app._run)
