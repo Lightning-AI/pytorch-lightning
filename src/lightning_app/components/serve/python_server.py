@@ -114,13 +114,13 @@ class PythonServer(LightningWork, abc.ABC):
                 The default data type is good enough for the basic usecases and it expects the data
                 to be a json object that has one key called `payload`
 
-                .. codeblock:: python
+                .. code-block:: python
 
                     input_data = {"payload": "some data"}
 
                 and this can be accessed as `request.payload` in the `predict` method.
 
-                .. codeblock:: python
+                .. code-block:: python
 
                     def predict(self, request):
                     data = request.payload
@@ -129,7 +129,7 @@ class PythonServer(LightningWork, abc.ABC):
                 The default data type is good enough for the basic usecases. It expects the return value of
                 the `predict` method to be a dictionary with one key called `prediction`.
 
-                .. codeblock:: python
+                .. code-block:: python
 
                     def predict(self, request):
                         # some code
