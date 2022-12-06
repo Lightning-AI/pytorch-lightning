@@ -4,10 +4,11 @@ import queue  # needed as import instead from/import for mocking in tests
 import time
 import warnings
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Generator
-from contextlib import contextmanager
+from typing import Any, Generator, Optional
+
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
     HTTP_QUEUE_TOKEN,
@@ -32,6 +33,7 @@ logger = Logger(__name__)
 
 _START_METHOD = "fork"
 
+
 @contextmanager
 def start_method_context(work) -> Generator:
     """Context to switch the start method."""
@@ -40,7 +42,6 @@ def start_method_context(work) -> Generator:
     _START_METHOD = getattr(work, "_start_method", "fork")
     yield
     _START_METHOD = v
-
 
 
 READINESS_QUEUE_CONSTANT = "READINESS_QUEUE"
