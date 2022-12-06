@@ -1,9 +1,13 @@
 import multiprocessing as mp
-from typing import Any, Callable, Optional
+import os
+from typing import Any
+
+import click
 
 from lightning_app.core.api import start_server
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.runtime import Runtime
+from lightning_app.utilities.app_helpers import _is_headless
 from lightning_app.utilities.load_app import extract_metadata_from_app
 
 
@@ -13,7 +17,7 @@ class SingleProcessRuntime(Runtime):
     def __post_init__(self):
         pass
 
-    def dispatch(self, *args, on_before_run: Optional[Callable] = None, **kwargs: Any):
+    def dispatch(self, *args, open_ui: bool = True, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
         queue = QueuingSystem.SINGLEPROCESS
 
@@ -42,8 +46,8 @@ class SingleProcessRuntime(Runtime):
             # wait for server to be ready.
             has_started_queue.get()
 
-        if on_before_run:
-            on_before_run()
+        if open_ui and not _is_headless(self.app):
+            click.launch(self._get_app_url())
 
         try:
             self.app._run()
@@ -52,3 +56,7 @@ class SingleProcessRuntime(Runtime):
             raise
         finally:
             self.terminate()
+
+    @staticmethod
+    def _get_app_url() -> str:
+        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")
