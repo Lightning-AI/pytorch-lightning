@@ -3,11 +3,11 @@ name: Check Docs
 
 on:
   push:
-    branches: ["master", "release/*", "lite/debug/*"]
+    branches: ["master", "release/*", "lite/debug"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
   pull_request_target:
-    branches: ["master", "release/*", "lite/debug/*"]
+    branches: ["master", "release/*", "lite/debug"]
     paths:
       - ".actions/**"
       - ".github/workflows/docs-checks.yml"
