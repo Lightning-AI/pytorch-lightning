@@ -16,6 +16,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from mlflow.entities import Metric, Param
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -249,12 +250,16 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     params = {"test": "test_param"}
     logger.log_hyperparams(params)
 
-    logger.experiment.log_batch.assert_called_once_with(logger.run_id, "test", "test_param")
+    logger.experiment.log_batch.assert_called_once_with(
+        run_id=logger.run_id, params=[Param(key="test_param", value="test_param")]
+    )
 
     metrics = {"some_metric": 10}
     logger.log_metrics(metrics)
 
-    logger.experiment.log_metric.assert_called_once_with(logger.run_id, "some_metric", 10, 1000, None)
+    logger.experiment.log_batch.assert_called_with(
+        run_id=logger.run_id, metrics=[Metric(key="some_metric", value=10, timestamp=1000, step=0)]
+    )
 
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
