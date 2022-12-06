@@ -1841,9 +1841,8 @@ class LightningModule(
             _compile_fn._torchdynamo_orig_callable = compile_fn  # type: ignore[attr-defined]
             backend = _compile_fn
 
-        self.forward = dynamo.optimize(backend=backend, nopython=fullgraph, dynamic=dynamic, **kwargs)(
-            self.forward
-        )  # type: ignore[assignment]
+        optimize = dynamo.optimize(backend=backend, nopython=fullgraph, dynamic=dynamic, **kwargs)
+        self.forward = optimize(self.forward)  # type: ignore[assignment]
 
     @torch.no_grad()
     def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
