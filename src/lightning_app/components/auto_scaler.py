@@ -142,7 +142,6 @@ class _LoadBalancer(LightningWork):
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
         self._input_type = input_type
         self._output_type = output_type
-        self._server_ready = False
         self._timeout_keep_alive = timeout_keep_alive
         self._timeout_inference_request = timeout_inference_request
         self.servers = []
@@ -221,8 +220,6 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def run(self):
-        if self._server_ready:
-            return
 
         logger.info(f"servers: {self.servers}")
 
@@ -236,12 +233,10 @@ class _LoadBalancer(LightningWork):
         @fastapi_app.on_event("startup")
         async def startup_event():
             fastapi_app.SEND_TASK = asyncio.create_task(self.consumer())
-            self._server_ready = True
 
         @fastapi_app.on_event("shutdown")
         def shutdown_event():
             fastapi_app.SEND_TASK.cancel()
-            self._server_ready = False
 
         def authenticate_private_endpoint(credentials: HTTPBasicCredentials = Depends(security)):
             AUTO_SCALER_AUTH_PASSWORD = os.environ.get("AUTO_SCALER_AUTH_PASSWORD", "")
