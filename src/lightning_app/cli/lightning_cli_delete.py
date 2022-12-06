@@ -56,7 +56,6 @@ def _find_cluster_for_user(app_name: str, cluster_id: Optional[str]) -> str:
         valid_cluster_list.append(cluster.id)
         if cluster.spec.cluster_type == V1ClusterType.GLOBAL and default_cluster is None:
             default_cluster = cluster.id
-            break
 
     # when no cluster-id is passed in, use the default (Lightning Cloud) cluster
     if cluster_id is None:
