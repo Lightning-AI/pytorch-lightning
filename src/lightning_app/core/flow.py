@@ -231,6 +231,11 @@ class LightningFlow:
         return self.__getattribute__(item)
 
     @property
+    def ready(self) -> bool:
+        flows = self.flows
+        return all(flow.ready for flow in flows.values()) if flows else True
+
+    @property
     def changes(self):
         return self._changes.copy()
 
