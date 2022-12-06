@@ -55,6 +55,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
+- Deprecated `description`, `env_prefix` and `env_parse` parameters in `LightningCLI.__init__` in favour of giving them through `parser_kwargs` ([#15651](https://github.com/Lightning-AI/lightning/pull/15651))
+
+
 -
 
 
@@ -73,12 +76,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 -
 
+
 ### Fixed
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 
 
+## [1.8.3] - 2022-11-22
+
+### Changed
+
+- Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
+- Switch from `tensorboard` to `tensorboardx` in `TensorBoardLogger` ([#15728](https://github.com/Lightning-AI/lightning/pull/15728))
 
 
 ## [1.8.2] - 2022-11-17

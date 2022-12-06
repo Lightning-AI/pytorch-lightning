@@ -1131,9 +1131,6 @@ Combine hooks for accumulated benefit:
 
 When using Post-localSGD, you must also pass ``model_averaging_period`` to allow for model parameter averaging:
 
-.. note::
-    Post-localSGD support requires PyTorch>=1.10.0
-
 .. code-block:: python
 
     from pytorch_lightning import Trainer
