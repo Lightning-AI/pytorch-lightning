@@ -231,9 +231,6 @@ class _LoadBalancer(LightningWork):
 
         fastapi_app = _create_fastapi("Load Balancer")
         security = HTTPBasic()
-        fastapi_app.global_request_count = 0
-        fastapi_app.num_current_requests = 0
-        fastapi_app.last_processing_time = 0
         fastapi_app.SEND_TASK = None
 
         @fastapi_app.on_event("startup")
