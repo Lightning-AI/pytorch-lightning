@@ -67,6 +67,13 @@ class _AppManager:
         console = Console()
         console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
 
+    def delete(self, app_id: str) -> None:
+        project = _get_project(self.api_client)
+        self.api_client.lightningapp_instance_service_delete_lightningapp_instance(
+            project_id=project.project_id,
+            id=app_id,
+        )
+
 
 class _AppList(Formatable):
     def __init__(self, apps: List[Externalv1LightningappInstance]) -> None:
