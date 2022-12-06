@@ -489,7 +489,6 @@ class LightningApp:
         self._start_with_flow_works()
 
         if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
-            logger.debug("Publishing the state with changes")
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
