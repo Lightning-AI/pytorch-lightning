@@ -181,7 +181,7 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: waiting
+    needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
