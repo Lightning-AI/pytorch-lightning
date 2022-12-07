@@ -7,6 +7,8 @@ import requests
 from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
+from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.network import LightningClient
 
 
 @pytest.mark.timeout(300)
@@ -14,7 +16,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 def test_commands_and_api_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_commands_and_api")) as (
         admin_page,
-        view_page,
+        _,
         fetch_logs,
         _,
     ):
@@ -34,7 +36,19 @@ def test_commands_and_api_example_cloud() -> None:
         sleep(5)
 
         # 5: Send a request to the Rest API directly.
-        base_url = view_page.url.replace("/view", "").replace("/child_flow", "")
+        client = LightningClient()
+        project = _get_project(client)
+
+        lit_apps = [
+            app
+            for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id
+            ).lightningapps
+            if app.id == app_id
+        ]
+        app = lit_apps[0]
+
+        base_url = app.status.url
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
