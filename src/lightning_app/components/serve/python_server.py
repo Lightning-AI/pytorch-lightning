@@ -6,13 +6,66 @@ from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
+from lightning_utilities.core.imports import module_available
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import _is_torch_available, requires
+from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
+
+__doctest_skip__ = []
+# Skip doctests if requirements aren't available
+if not module_available("lightning_api_access"):
+    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+
+# Skip doctests if requirements aren't available
+if not _is_torch_available():
+    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+
+
+class _PyTorchSpawnRunExecutor(WorkRunExecutor):
+
+    """This Executor enables to move PyTorch tensors on GPU.
+
+    Without this executor, it would raise the following exception:
+    RuntimeError: Cannot re-initialize CUDA in forked subprocess.
+    To use CUDA with multiprocessing, you must use the 'spawn' start method
+    """
+
+    enable_start_observer: bool = False
+
+    def __call__(self, *args: Any, **kwargs: Any):
+        import torch
+
+        with self.enable_spawn():
+            queue = self.delta_queue if isinstance(self.delta_queue, MultiProcessQueue) else self.delta_queue.to_dict()
+            torch.multiprocessing.spawn(
+                self.dispatch_run,
+                args=(self.__class__, self.work, queue, args, kwargs),
+                nprocs=1,
+            )
+
+    @staticmethod
+    def dispatch_run(local_rank, cls, work, delta_queue, args, kwargs):
+        if local_rank == 0:
+            if isinstance(delta_queue, dict):
+                delta_queue = cls.process_queue(delta_queue)
+                work._request_queue = cls.process_queue(work._request_queue)
+                work._response_queue = cls.process_queue(work._response_queue)
+
+            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
+            state_observer.start()
+            _proxy_setattr(work, delta_queue, state_observer)
+
+        unwrap(work.run)(*args, **kwargs)
+
+        if local_rank == 0:
+            state_observer.join(0)
 
 
 class _DefaultInputData(BaseModel):
@@ -28,8 +81,7 @@ class Image(BaseModel):
 
     @staticmethod
     def _get_sample_data() -> Dict[Any, Any]:
-        name = "lightning" + "_" + "app"
-        imagepath = Path(__file__.replace(f"lightning{os.sep}app", name)).absolute().parent / "catimage.png"
+        imagepath = Path(__file__).parent / "catimage.png"
         with open(imagepath, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read())
         return {"image": encoded_string.decode("UTF-8")}
@@ -44,6 +96,7 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
+    @requires(["torch", "lightning_api_access"])
     def __init__(  # type: ignore
         self,
         host: str = "127.0.0.1",
@@ -85,15 +138,16 @@ class PythonServer(LightningWork, abc.ABC):
                 and this can be accessed as `response.json()["prediction"]` in the client if
                 you are using requests library
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app.components.serve.python_server import PythonServer
             >>> from lightning_app import LightningApp
-            >>>
             ...
             >>> class SimpleServer(PythonServer):
+            ...
             ...     def setup(self):
             ...         self._model = lambda x: x + " " + x
+            ...
             ...     def predict(self, request):
             ...         return {"prediction": self._model(request.image)}
             ...
@@ -107,7 +161,12 @@ class PythonServer(LightningWork, abc.ABC):
         self._input_type = input_type
         self._output_type = output_type
 
-    def setup(self) -> None:
+        # Note: Enable to run inference on GPUs.
+        self._run_executor_cls = (
+            WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
+        )
+
+    def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
         initialize the weights, setting up pipelines etc.
 
@@ -152,11 +211,14 @@ class PythonServer(LightningWork, abc.ABC):
         return out
 
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
+        from torch import inference_mode
+
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
         def predict_fn(request: input_type):  # type: ignore
-            return self.predict(request)
+            with inference_mode():
+                return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
@@ -209,7 +271,7 @@ class PythonServer(LightningWork, abc.ABC):
 
         Normally, you don't need to override this method.
         """
-        self.setup()
+        self.setup(*args, **kwargs)
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)

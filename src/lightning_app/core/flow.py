@@ -110,7 +110,11 @@ class LightningFlow:
         """Return the current LightningFlow name."""
         return self._name or "root"
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
+        attr = getattr(self.__class__, name, None)
+        if isinstance(attr, property) and attr.fset is not None:
+            return attr.fset(self, value)
+
         from lightning_app.structures import Dict, List
 
         if (
@@ -225,6 +229,12 @@ class LightningFlow:
         if item in self.__dict__.get("_paths", {}):
             return Path.from_dict(self._paths[item])
         return self.__getattribute__(item)
+
+    @property
+    def ready(self) -> bool:
+        """Override to customize when your App should be ready."""
+        flows = self.flows
+        return all(flow.ready for flow in flows.values()) if flows else True
 
     @property
     def changes(self):
@@ -753,7 +763,17 @@ class _RootFlow(LightningFlow):
         super().__init__()
         self.work = work
 
+    @property
+    def ready(self) -> bool:
+        ready = getattr(self.work, "ready", None)
+        if ready:
+            return ready
+        return self.work.url != ""
+
     def run(self):
+        if self.work.has_succeeded:
+            self.work.stop()
+            self._exit()
         self.work.run()
 
     def configure_layout(self):

@@ -400,7 +400,6 @@ from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARG
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_10,
 )
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE

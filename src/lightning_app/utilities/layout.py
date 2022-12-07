@@ -4,6 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
+from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -38,6 +39,10 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
 
         # When running locally, the target will get overwritten by the dispatcher when launching the frontend servers
         # When running in the cloud, the frontend code will construct the URL based on the flow name
+        return flow._layout
+    elif isinstance(layout, _MagicMockJsonSerializable):
+        # The import was mocked, we set a dummy `Frontend` so that `is_headless` knows there is a UI
+        app.frontends.setdefault(flow.name, "mock")
         return flow._layout
     elif isinstance(layout, dict):
         layout = _collect_content_layout([layout], flow)
@@ -103,6 +108,10 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             else:
                 entry["content"] = ""
                 entry["target"] = ""
+        elif isinstance(entry["content"], _MagicMockJsonSerializable):
+            # The import was mocked, we just record dummy content so that `is_headless` knows there is a UI
+            entry["content"] = "mock"
+            entry["target"] = "mock"
         else:
             m = f"""
             A dictionary returned by `{flow.__class__.__name__}.configure_layout()` contains an unsupported entry.

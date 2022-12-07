@@ -1,18 +1,22 @@
 import multiprocessing
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Union
+from typing import Any, Union
+
+import click
 
 from lightning_app.api.http_methods import _add_tags_to_api, _validate_api
 from lightning_app.core.api import start_server
+from lightning_app.core.constants import APP_SERVER_IN_CLOUD
 from lightning_app.runners.backends import Backend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.storage.orchestrator import StorageOrchestrator
-from lightning_app.utilities.app_helpers import is_overridden
+from lightning_app.utilities.app_helpers import _is_headless, is_overridden
 from lightning_app.utilities.commands.base import _commands_to_api, _prepare_commands
 from lightning_app.utilities.component import _set_flow_context, _set_frontend_context
 from lightning_app.utilities.load_app import extract_metadata_from_app
 from lightning_app.utilities.network import find_free_network_port
+from lightning_app.utilities.port import disable_port
 
 
 @dataclass
@@ -25,11 +29,15 @@ class MultiProcessRuntime(Runtime):
     """
 
     backend: Union[str, Backend] = "multiprocessing"
+    _has_triggered_termination: bool = False
 
-    def dispatch(self, *args: Any, on_before_run: Optional[Callable] = None, **kwargs: Any):
+    def dispatch(self, *args: Any, open_ui: bool = True, **kwargs: Any):
         """Method to dispatch and run the LightningApp."""
         try:
             _set_flow_context()
+
+            # Note: In case the runtime is used in the cloud.
+            self.host = "0.0.0.0" if APP_SERVER_IN_CLOUD else self.host
 
             self.app.backend = self.backend
             self.backend._prepare_queues(self.app)
@@ -95,8 +103,8 @@ class MultiProcessRuntime(Runtime):
                 # wait for server to be ready
                 has_started_queue.get()
 
-            if on_before_run:
-                on_before_run(self, self.app)
+            if open_ui and not _is_headless(self.app):
+                click.launch(self._get_app_url())
 
             # Connect the runtime to the application.
             self.app.connect(self)
@@ -106,6 +114,20 @@ class MultiProcessRuntime(Runtime):
             self.app._run()
         except KeyboardInterrupt:
             self.terminate()
+            self._has_triggered_termination = True
             raise
         finally:
-            self.terminate()
+            if not self._has_triggered_termination:
+                self.terminate()
+
+    def terminate(self):
+        if APP_SERVER_IN_CLOUD:
+            # Close all the ports open for the App within the App.
+            ports = [self.port] + getattr(self.backend, "ports", [])
+            for port in ports:
+                disable_port(port)
+        super().terminate()
+
+    @staticmethod
+    def _get_app_url() -> str:
+        return os.getenv("APP_SERVER_HOST", "http://127.0.0.1:7501/view")

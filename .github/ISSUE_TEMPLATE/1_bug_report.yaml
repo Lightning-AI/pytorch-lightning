@@ -52,9 +52,7 @@ body:
       placeholder: "# Copy the complete error messages and logs"
       value: |
         ```
-
         # Error messages and logs here please
-
         ```
     validations:
       required: false
@@ -63,7 +61,7 @@ body:
     attributes:
       label: Environment
       description: |
-        Please provide details about your enviornment by copying and pasting the output from our environment collection script:
+        Please provide details about your environment by copying and pasting the output from our environment collection script:
         https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
         (For security purposes, please check the contents of the script before running it)
         You can get the script and run it with:
@@ -74,8 +72,10 @@ body:
 
         You can also fill out the list below manually.
       value: |
-        ```
+        <details>
+          <summary>Current environment</summary>
 
+        ```
         #- Lightning Component (e.g. Trainer, LightningModule, LightningApp, LightningWork, LightningFlow):
         #- PyTorch Lightning Version (e.g., 1.5.0):
         #- Lightning App Version (e.g., 0.5.2):
@@ -86,8 +86,9 @@ body:
         #- GPU models and configuration:
         #- How you installed Lightning(`conda`, `pip`, source):
         #- Running environment of LightningApp (e.g. local, cloud):
-
         ```
+
+        </details>
     validations:
       required: false
 

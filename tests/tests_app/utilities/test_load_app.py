@@ -3,17 +3,12 @@ from unittest.mock import ANY
 
 import pytest
 import tests_app.core.scripts
-from tests_app import _PROJECT_ROOT
 
-from lightning_app import LightningApp
 from lightning_app.utilities.exceptions import MisconfigurationException
 from lightning_app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 
 
 def test_load_app_from_file():
-    app = load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-    assert isinstance(app, LightningApp)
-
     test_script_dir = os.path.join(os.path.dirname(tests_app.core.__file__), "scripts")
     with pytest.raises(MisconfigurationException, match="There should not be multiple apps instantiated within a file"):
         load_app_from_file(os.path.join(test_script_dir, "two_apps.py"))
@@ -42,8 +37,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -65,8 +60,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkA",
             "module": "__main__",
             "docstring": "WorkA.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -83,8 +78,8 @@ def test_extract_metadata_from_component():
             "cls_name": "WorkB",
             "module": "__main__",
             "docstring": "WorkB.",
-            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
-            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": [], "image": None}},
+            "local_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
+            "cloud_build_config": {"__build_config__": {"requirements": [], "dockerfile": None, "image": None}},
             "cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "gpu",
