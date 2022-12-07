@@ -622,9 +622,7 @@ def test_overridden_run_and_cli_not_allowed():
         def run(self):
             pass
 
-    with pytest.raises(
-        TypeError, match=escape("Overriding `Fabric.run()` and launching from the CLI is not allowed")
-    ):
+    with pytest.raises(TypeError, match=escape("Overriding `Fabric.run()` and launching from the CLI is not allowed")):
         LiteWithRun()
 
 
