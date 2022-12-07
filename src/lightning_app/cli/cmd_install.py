@@ -14,7 +14,9 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def gallery_apps_and_components(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
+def gallery_apps_and_components(
+    name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False
+) -> str:
 
     # make sure org/app-name syntax is correct
     org, app_or_component = _validate_name(name, resource_type="App OR Component", example="lightning/quick-start")
@@ -34,13 +36,15 @@ def gallery_apps_and_components(name: str, yes_arg: bool, version_arg: str, cwd:
         return os.path.join(os.getcwd(), app_entry["appEntrypointFile"])
     else:
         # load the component resource
-        component_entry = _resolve_resource(_resolve_app_registry(), name=name, version_arg=version_arg, resource_type="component")
+        component_entry = _resolve_resource(
+            _resolve_app_registry(), name=name, version_arg=version_arg, resource_type="component"
+        )
 
         # give the user the chance to do a manual install
         git_url = _show_install_component_prompt(component_entry, app_or_component, org, yes_arg)
 
         # run installation if requested
-        _install_component(git_url)      
+        _install_component(git_url)
 
         return os.path.join(os.getcwd(), component_entry["appEntrypointFile"])
 
