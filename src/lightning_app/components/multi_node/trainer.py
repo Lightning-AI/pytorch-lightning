@@ -65,8 +65,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
 
                 if old_acc_value != kwargs["accelerator"]:
                     warnings.warn(
-                        "Forcing accelerator=cpu as other accelerators (specifically MPS) are not supported "
-                        "by PyTorch for distributed training on mps capable devices"
+                        "Forcing `accelerator=cpu` as MPS does not support distributed training."
                     )
             else:
                 kwargs["accelerator"] = "auto"
