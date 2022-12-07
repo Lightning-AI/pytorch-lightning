@@ -180,6 +180,7 @@ def _collect_work_layout(work: "lightning_app.LightningWork") -> Union[None, str
         return None
     elif isinstance(work_layout, str):
         url = work_layout
+        # The URL isn't fully defined yet. Looks something like ``self.work.url + /something``.
         if url and not url.startswith("/"):
             return url
         return ""
@@ -191,7 +192,7 @@ def _collect_work_layout(work: "lightning_app.LightningWork") -> Union[None, str
 
         {repr(work_layout)}
 
-        Return a `Frontend` or a URL, for example:
+        Return a `Frontend` or a URL string, for example:
 
         class {work.__class__.__name__}(LightningWork):
             def configure_layout(self):
