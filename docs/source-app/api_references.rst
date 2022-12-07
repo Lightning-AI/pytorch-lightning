@@ -37,6 +37,7 @@ ___________________
     ~training.LightningTrainerScript
     ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
+    ~auto_scaler.AutoScaler
 
 ----
 
