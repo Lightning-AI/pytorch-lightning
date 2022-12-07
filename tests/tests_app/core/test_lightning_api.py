@@ -71,11 +71,10 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_app_state_api(runtime_cls):
+def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
     app = LightningApp(_A(), log_level="debug")
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
     assert app.root.work_a.drive.list(".") == ["test_app_state_api.txt"]
@@ -150,13 +149,12 @@ class AppStageTestingApp(LightningApp):
 
 # FIXME: This test doesn't assert anything
 @pytest.mark.skip(reason="TODO: Resolve flaky test.")
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_app_stage_from_frontend(runtime_cls):
+def test_app_stage_from_frontend():
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
     start and stop the app."""
     app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
 
 
 def test_update_publish_state_and_maybe_refresh_ui():

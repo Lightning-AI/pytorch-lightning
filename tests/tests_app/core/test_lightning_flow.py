@@ -519,11 +519,10 @@ class CFlow(LightningFlow):
             self._exit()
 
 
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 @pytest.mark.parametrize("run_once", [False, True])
-def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
+def test_lightning_flow_iterate(tmpdir, run_once):
     app = LightningApp(CFlow(run_once))
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 0
     assert app.root.tracker == 4
     call_hash = list(v for v in app.root._calls if "experimental_iterate" in v)[0]
@@ -537,7 +536,7 @@ def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
     app.root.restarting = True
     assert app.root.looping == 0
     assert app.root.tracker == 4
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 2
     assert app.root.tracker == 10 if run_once else 20
     iterate_call = app.root._calls[call_hash]
@@ -555,12 +554,11 @@ class FlowCounter(LightningFlow):
         self.counter += 1
 
 
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_lightning_flow_counter(runtime_cls, tmpdir):
+def test_lightning_flow_counter(tmpdir):
 
     app = LightningApp(FlowCounter())
     app.checkpointing = True
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.counter == 3
 
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
@@ -571,7 +569,7 @@ def test_lightning_flow_counter(runtime_cls, tmpdir):
         with open(checkpoint_path, "rb") as f:
             app = LightningApp(FlowCounter())
             app.set_state(pickle.load(f))
-            runtime_cls(app, start_server=False).dispatch()
+            MultiProcessRuntime(app, start_server=False).dispatch()
             assert app.root.counter == 3
 
 
