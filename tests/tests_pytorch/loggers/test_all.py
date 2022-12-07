@@ -283,10 +283,8 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
     # MLflow
     with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
-        "pytorch_lightning.loggers.mlflow.MlflowClient"
-    ):
-        from mlflow.entities import Metric
-
+        "pytorch_lightning.loggers.mlflow.Metric"
+    ) as Metric, mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log_batch.assert_called_once_with(
