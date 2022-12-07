@@ -27,7 +27,7 @@ if not _is_torch_available():
     __doctest_skip__ += ["PythonServer", "PythonServer.*"]
 
 
-def get_device():
+def _get_device():
     import operator
 
     import torch
@@ -188,7 +188,7 @@ class PythonServer(LightningWork, abc.ABC):
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
-        device = get_device()
+        device = _get_device()
         context = no_grad if device.type == "mps" else inference_mode
 
         def predict_fn(request: input_type):  # type: ignore
