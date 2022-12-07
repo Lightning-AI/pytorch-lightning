@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 
 class RuntimeType(Enum):
-    SINGLEPROCESS = "singleprocess"
     MULTIPROCESS = "multiprocess"
     CLOUD = "cloud"
 

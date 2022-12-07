@@ -18,7 +18,7 @@ from lightning_app.core.constants import (
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
 )
-from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
+from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
 from lightning_app.frontend import StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
@@ -360,7 +360,6 @@ class EmptyFlow(LightningFlow):
 @pytest.mark.parametrize(
     "queue_type_cls, default_timeout",
     [
-        (SingleProcessQueue, STATE_UPDATE_TIMEOUT),
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
             RedisQueue,
@@ -426,7 +425,7 @@ def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
     app = LightningApp(SimpleFlow())
-    app.delta_queue = SingleProcessQueue("a", 0)
+    app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()
