@@ -17,7 +17,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import wrap
 
 
@@ -306,3 +306,16 @@ def test_fully_sharded_native_activation_checkpointing():
     ) as ckpt_mock:
         strategy._setup_model(model)
         ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
+
+
+@RunIf(min_torch="1.12")
+def test_fully_sharded_native_strategy_cpu_offload():
+    """Test the different ways cpu offloading can be enabled."""
+    # bool
+    strategy = DDPFullyShardedNativeStrategy(cpu_offload=True)
+    assert strategy.cpu_offload == CPUOffload(offload_params=True)
+
+    # dataclass
+    config = CPUOffload()
+    strategy = DDPFullyShardedNativeStrategy(cpu_offload=config)
+    assert strategy.cpu_offload == config
