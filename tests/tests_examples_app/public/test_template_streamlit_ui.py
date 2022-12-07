@@ -16,8 +16,25 @@ def test_template_streamlit_ui_example_cloud() -> None:
         fetch_logs,
         _,
     ):
-        button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
-        button.click()
+        import playwright
+
+        i = 0
+
+        while i < 2:
+            try:
+                button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
+                button.click()
+                break
+            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
+                print(e)
+                try:
+                    sleep(5)
+                    view_page.reload()
+                except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
+                    print(e)
+                    pass
+                sleep(2)
+                i = i + 1
 
         has_logs = False
         while not has_logs:
