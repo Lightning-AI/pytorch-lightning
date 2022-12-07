@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration.migration import _migration_index
 
 _log = logging.getLogger(__name__)

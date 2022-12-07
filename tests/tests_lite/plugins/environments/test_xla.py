@@ -18,8 +18,8 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-import lightning_lite
-from lightning_lite.plugins.environments import XLAEnvironment
+import lightning_fabric
+from lightning_fabric.plugins.environments import XLAEnvironment
 
 
 @RunIf(tpu=True)
@@ -72,8 +72,8 @@ def test_attributes_from_environment_variables():
 
 def test_detect(monkeypatch):
     """Test the detection of a xla environment configuration."""
-    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: False)
+    monkeypatch.setattr(lightning_fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: False)
     assert not XLAEnvironment.detect()
 
-    monkeypatch.setattr(lightning_lite.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(lightning_fabric.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
     assert XLAEnvironment.detect()

@@ -20,10 +20,10 @@ from tests_lite.helpers.models import RandomDataset
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
-from lightning_lite import Fabric
-from lightning_lite.plugins import FSDPPrecision
-from lightning_lite.strategies import FSDPStrategy
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_fabric import Fabric
+from lightning_fabric.plugins import FSDPPrecision
+from lightning_fabric.strategies import FSDPStrategy
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp import FullyShardedDataParallel
@@ -124,7 +124,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
-@mock.patch("lightning_lite.wrappers._LiteModule")
+@mock.patch("lightning_fabric.wrappers._LiteModule")
 def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""

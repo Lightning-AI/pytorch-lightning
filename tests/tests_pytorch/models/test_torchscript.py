@@ -19,7 +19,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 
-from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.cloud_io import get_filesystem
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN

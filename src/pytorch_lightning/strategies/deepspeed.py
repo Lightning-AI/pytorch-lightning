@@ -30,11 +30,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import ClusterEnvironment
-from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.optimizer import _optimizers_to_device
-from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_fabric.plugins import ClusterEnvironment
+from lightning_fabric.utilities.enums import AMPType, PrecisionType
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.utilities.seed import reset_seed
+from lightning_fabric.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase

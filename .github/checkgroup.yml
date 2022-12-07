@@ -8,7 +8,7 @@ subprojects:
       - ".actions/**"
       - ".github/workflows/ci-pytorch-tests.yml"
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -55,7 +55,7 @@ subprojects:
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -80,7 +80,7 @@ subprojects:
       - ".azure/hpu-tests.yml"
       - "examples/pl_hpu/mnist_sample.py"
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -96,7 +96,7 @@ subprojects:
       - ".actions/**"
       - ".azure/ipu-tests.yml"
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
@@ -115,7 +115,7 @@ subprojects:
   #    - ".github/workflows/tpu-tests.yml"
   #    - "dockers/base-xla/*"
   #    - "requirements/lite/**"
-  #    - "src/lightning_lite/**"
+  #    - "src/lightning_fabric/**"
   #    - "tests/tests_lite/**"
   #    - "requirements/pytorch/**"
   #    - "src/pytorch_lightning/**"
@@ -169,13 +169,13 @@ subprojects:
       - "build-pl (3.9, 1.13, 11.6.1)"
       - "build-xla (3.7, 1.12)"
 
-  # SECTION: lightning_lite
+  # SECTION: lightning_fabric
 
-  - id: "lightning_lite: CPU workflow"
+  - id: "lightning_fabric: CPU workflow"
     paths:
       - ".actions/**"
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-lite-tests.yml"
@@ -200,7 +200,7 @@ subprojects:
       - "lite-cpu (ubuntu-20.04, lightning, 3.8, 1.13)"
       - "lite-cpu (windows-2022, lightning, 3.8, 1.13)"
 
-  - id: "lightning_lite: Azure GPU"
+  - id: "lightning_fabric: Azure GPU"
     paths:
       - ".actions/**"
       - ".azure/gpu-tests-lite.yml"
@@ -209,7 +209,7 @@ subprojects:
       - "tests/tests_lite/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
       - "!requirements/*/docs.txt"

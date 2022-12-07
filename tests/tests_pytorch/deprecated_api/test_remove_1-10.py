@@ -20,8 +20,8 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
-from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
+from lightning_fabric.accelerators import CUDAAccelerator as LiteCUDAAccelerator
+from lightning_fabric.accelerators import TPUAccelerator as LiteTPUAccelerator
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI

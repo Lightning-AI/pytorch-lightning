@@ -54,7 +54,7 @@ _PACKAGE_MAPPING = {
     "lightning": "lightning",
     "pytorch": "pytorch_lightning",
     "app": "lightning_app",
-    "lite": "lightning_lite",
+    "fabric": "lightning_fabric",
 }
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/

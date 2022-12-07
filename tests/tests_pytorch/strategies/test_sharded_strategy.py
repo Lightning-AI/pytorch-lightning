@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import NativeMixedPrecisionPlugin

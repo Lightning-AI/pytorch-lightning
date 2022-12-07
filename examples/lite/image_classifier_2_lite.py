@@ -40,8 +40,8 @@ from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
 
-from lightning.lite import Fabric  # import Fabric
-from lightning.lite import seed_everything
+from lightning.fabric import Fabric  # import Fabric
+from lightning.fabric import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

@@ -17,8 +17,8 @@ import pytest
 import torch
 from torch.nn.parallel import DistributedDataParallel
 
-from lightning_lite.strategies import DDPStrategy
-from lightning_lite.strategies.ddp import _DDPBackwardSyncControl
+from lightning_fabric.strategies import DDPStrategy
+from lightning_fabric.strategies.ddp import _DDPBackwardSyncControl
 
 
 @pytest.mark.parametrize(

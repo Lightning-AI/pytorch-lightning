@@ -11,7 +11,7 @@ on:
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
       - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"

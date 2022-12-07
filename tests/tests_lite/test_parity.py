@@ -30,11 +30,11 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-from lightning_lite.fabric import Fabric
-from lightning_lite.plugins.environments.lightning import find_free_network_port
-from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
-from lightning_lite.utilities.apply_func import move_data_to_device
-from lightning_lite.utilities.cloud_io import _atomic_save
+from lightning_fabric.fabric import Fabric
+from lightning_fabric.plugins.environments.lightning import find_free_network_port
+from lightning_fabric.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_fabric.utilities.apply_func import move_data_to_device
+from lightning_fabric.utilities.cloud_io import _atomic_save
 
 
 class BoringModel(nn.Module):

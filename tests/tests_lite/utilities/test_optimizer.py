@@ -2,7 +2,7 @@ import collections
 
 import torch
 
-from lightning_lite.utilities.optimizer import _optimizer_to_device
+from lightning_fabric.utilities.optimizer import _optimizer_to_device
 
 
 def test_optimizer_to_device():

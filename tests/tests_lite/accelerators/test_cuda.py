@@ -19,11 +19,11 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-import lightning_lite
-from lightning_lite.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
+import lightning_fabric
+from lightning_fabric.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
 
 
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_auto_device_count(_):
     assert CUDAAccelerator.auto_device_count() == 2
 
@@ -56,7 +56,7 @@ def test_set_cuda_device(set_device_mock):
     set_device_mock.assert_called_once_with(torch.device("cuda", 1))
 
 
-@mock.patch("lightning_lite.accelerators.cuda._device_count_nvml", return_value=-1)
+@mock.patch("lightning_fabric.accelerators.cuda._device_count_nvml", return_value=-1)
 @mock.patch("torch.cuda.device_count", return_value=100)
 def test_num_cuda_devices_without_nvml(*_):
     """Test that if NVML can't be loaded, our helper functions fall back to the default implementation for
@@ -70,6 +70,6 @@ def test_num_cuda_devices_without_nvml(*_):
 @mock.patch.dict(os.environ, {}, clear=True)
 def test_force_nvml_based_cuda_check():
     """Test that we force PyTorch to use the NVML-based CUDA checks."""
-    importlib.reload(lightning_lite)  # reevaluate top-level code, without becoming a different object
+    importlib.reload(lightning_fabric)  # reevaluate top-level code, without becoming a different object
 
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"

@@ -22,9 +22,9 @@ from torch.optim.optimizer import Optimizer
 from typing_extensions import OrderedDict
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_fabric.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO

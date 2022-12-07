@@ -15,8 +15,8 @@
 
 import numpy
 
-from lightning_lite.utilities import move_data_to_device  # noqa: F401
-from lightning_lite.utilities import AMPType, LightningEnum  # noqa: F401
+from lightning_fabric.utilities import move_data_to_device  # noqa: F401
+from lightning_fabric.utilities import AMPType, LightningEnum  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
 from pytorch_lightning.utilities.enums import GradClipAlgorithmType  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401

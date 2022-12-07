@@ -15,7 +15,7 @@ from typing import List
 
 import torch
 
-from lightning_lite.accelerators.cuda import num_cuda_devices
+from lightning_fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
