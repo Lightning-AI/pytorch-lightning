@@ -91,7 +91,7 @@ lightninglite
     :toctree: api
     :nosignatures:
 
-    Fabric
+    LightningLite
 
 loggers
 -------
