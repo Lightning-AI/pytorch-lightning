@@ -1,9 +1,19 @@
+import os
 from unittest import mock
 
 import pytest
+from lightning_cloud.openapi import (
+    AppinstancesIdBody,
+    V1LightningappInstanceSpec,
+    V1LightningappInstanceState,
+    V1ListLightningappInstancesResponse,
+)
 
-from lightning_app import LightningFlow, LightningWork
+from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.utilities.app_helpers import (
+    _handle_is_headless,
+    _is_headless,
+    _MagicMockJsonSerializable,
     AppStatePlugin,
     BaseStatePlugin,
     InMemoryStateStore,
@@ -102,3 +112,89 @@ def test_is_static_method():
     assert is_static_method(A, "a")
     assert is_static_method(A, "b")
     assert not is_static_method(A, "c")
+
+
+class FlowWithURLLayout(Flow):
+    def configure_layout(self):
+        return {"name": "test", "content": "https://appurl"}
+
+
+class FlowWithWorkLayout(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.work = Work()
+
+    def configure_layout(self):
+        return {"name": "test", "content": self.work}
+
+
+class FlowWithMockedFrontend(Flow):
+    def configure_layout(self):
+        return _MagicMockJsonSerializable()
+
+
+class FlowWithMockedContent(Flow):
+    def configure_layout(self):
+        return [{"name": "test", "content": _MagicMockJsonSerializable()}]
+
+
+class NestedFlow(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.flow = Flow()
+
+
+class NestedFlowWithURLLayout(Flow):
+    def __init__(self):
+        super().__init__()
+
+        self.flow = FlowWithURLLayout()
+
+
+@pytest.mark.parametrize(
+    "flow,expected",
+    [
+        (Flow, True),
+        (FlowWithURLLayout, False),
+        (FlowWithWorkLayout, False),
+        (FlowWithMockedFrontend, False),
+        (FlowWithMockedContent, False),
+        (NestedFlow, True),
+        (NestedFlowWithURLLayout, False),
+    ],
+)
+def test_is_headless(flow, expected):
+    flow = flow()
+    app = LightningApp(flow)
+    assert _is_headless(app) == expected
+
+
+@mock.patch("lightning_app.utilities.network.LightningClient")
+def test_handle_is_headless(mock_client):
+    project_id = "test_project_id"
+    app_id = "test_app_id"
+    app_name = "test_app_name"
+
+    lightningapps = [mock.MagicMock()]
+    lightningapps[0].id = app_id
+    lightningapps[0].name = app_name
+    lightningapps[0].status.phase = V1LightningappInstanceState.RUNNING
+    lightningapps[0].spec = V1LightningappInstanceSpec(app_id=app_id)
+
+    mock_client().lightningapp_instance_service_list_lightningapp_instances.return_value = (
+        V1ListLightningappInstancesResponse(lightningapps=lightningapps)
+    )
+
+    app = mock.MagicMock()
+    app.is_headless = True
+
+    with mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": app_id, "LIGHTNING_CLOUD_PROJECT_ID": project_id}):
+        _handle_is_headless(app)
+
+    mock_client().lightningapp_instance_service_update_lightningapp_instance.assert_called_once_with(
+        project_id=project_id,
+        id=app_id,
+        body=AppinstancesIdBody(name="test_app_name", spec=V1LightningappInstanceSpec(app_id=app_id, is_headless=True)),
+    )

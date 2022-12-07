@@ -1,8 +1,11 @@
 import os
 from typing import Any, Dict, Optional
+from unittest import mock
+from unittest.mock import ANY, Mock
 
 import pytest
 import torch
+import torch.nn as nn
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -14,7 +17,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload, FullyShardedDataParallel, MixedPrecision
     from torch.distributed.fsdp.wrap import wrap
 
 
@@ -259,3 +262,60 @@ def test_invalid_parameters_in_optimizer(tmpdir):
     model = NoFlatParametersModel()
     with pytest.raises(ValueError, match="The optimizer does not seem to reference any FSDP parameters"):
         trainer.fit(model)
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("pytorch_lightning.strategies.fully_sharded_native._TORCH_GREATER_EQUAL_1_13", False)
+def test_fully_sharded_native_activation_checkpointing_support():
+    """Test that we error out if activation checkpointing requires a newer PyTorch version."""
+    with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
+        DDPFullyShardedNativeStrategy(activation_checkpointing=Mock())
+
+
+@RunIf(min_torch="1.13")
+def test_fully_sharded_native_activation_checkpointing():
+    """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
+
+    class Block1(nn.Linear):
+        pass
+
+    class Block2(nn.Linear):
+        pass
+
+    class Model(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.layer0 = nn.Sequential(Block1(4, 4), Block1(5, 5))
+            self.layer1 = Block2(2, 2)
+            self.layer2 = nn.Linear(3, 3)
+
+    strategy = DDPFullyShardedNativeStrategy(activation_checkpointing=Block1)
+    assert strategy._activation_checkpointing == [Block1]
+
+    strategy = DDPFullyShardedNativeStrategy(activation_checkpointing=[Block1, Block2])
+    assert strategy._activation_checkpointing == [Block1, Block2]
+
+    model = Model()
+    strategy._parallel_devices = [torch.device("cuda", 0)]
+    strategy._lightning_module = model
+    strategy._process_group = Mock()
+    with mock.patch(
+        "pytorch_lightning.strategies.fully_sharded_native.FullyShardedDataParallel"
+    ) as fsdp_mock, mock.patch(
+        "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
+    ) as ckpt_mock:
+        strategy._setup_model(model)
+        ckpt_mock.assert_called_with(fsdp_mock(), checkpoint_wrapper_fn=ANY, check_fn=ANY)
+
+
+@RunIf(min_torch="1.12")
+def test_fully_sharded_native_strategy_cpu_offload():
+    """Test the different ways cpu offloading can be enabled."""
+    # bool
+    strategy = DDPFullyShardedNativeStrategy(cpu_offload=True)
+    assert strategy.cpu_offload == CPUOffload(offload_params=True)
+
+    # dataclass
+    config = CPUOffload()
+    strategy = DDPFullyShardedNativeStrategy(cpu_offload=config)
+    assert strategy.cpu_offload == config
