@@ -18,7 +18,7 @@ import torch
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_lite.lite import Fabric
+from lightning_lite.fabric import Fabric
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
