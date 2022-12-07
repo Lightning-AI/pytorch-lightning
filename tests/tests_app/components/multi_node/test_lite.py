@@ -94,7 +94,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
     assert env_vars["LT_CLI_USED"] == "1"
 
 
-@pytest.mark.skipif(not module_available("lightning_lite"), reason="Lightning lite not available")
+@pytest.mark.skipif(not module_available("lightning"), reason="Lightning not available")
 def test_lite_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
         _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPSpawnStrategy())

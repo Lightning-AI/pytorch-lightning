@@ -97,7 +97,7 @@ def test_trainer_run_executor_arguments_choices(
     assert env_vars["TORCHELASTIC_RUN_ID"] == "1"
 
 
-@pytest.mark.skipif(not module_available("pytorch_lightning"), reason="pytorch_lightning not available")
+@pytest.mark.skipif(not module_available("lightning"), reason="lightning not available")
 def test_trainer_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
         _, _ = _get_args_after_tracer_injection(strategy=pl.strategies.DDPSpawnStrategy())
