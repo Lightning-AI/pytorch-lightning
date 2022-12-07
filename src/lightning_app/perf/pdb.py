@@ -14,14 +14,13 @@ except Exception:
 
 # Taken from https://github.com/facebookresearch/metaseq/blob/main/metaseq/pdb.py
 class MPPdb(pdb.Pdb):
-    """A Pdb wrapper that works in a multiprocessing environment.
-    """
+    """A Pdb wrapper that works in a multiprocessing environment"""
 
     def __init__(self):
         pdb.Pdb.__init__(self, nosigint=True)
 
     def _cmdloop(self):
-        stdin_bak = sys.stdin
+        stdin_back = sys.stdin
         with _stdin_lock:
             try:
                 if _stdin_fd is not None:
@@ -30,7 +29,7 @@ class MPPdb(pdb.Pdb):
                     sys.stdin = _stdin[0]
                 self.cmdloop()
             finally:
-                sys.stdin = stdin_bak
+                sys.stdin = stdin_back
 
 
 def set_trace():
