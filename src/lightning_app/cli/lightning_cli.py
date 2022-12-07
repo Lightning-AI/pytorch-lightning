@@ -232,7 +232,10 @@ def _run_app(
     secret: tuple,
     run_app_comment_commands: bool,
 ) -> None:
-    file = _prepare_file(file)
+
+    if not os.path.exists(file):
+        file = _install_app(file, True, "latest", overwrite=False)
+        run_app_comment_commands = True
 
     if not cloud and cluster_id is not None:
         raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
@@ -288,7 +291,7 @@ def run() -> None:
 
 
 @run.command("app")
-@click.argument("file", type=click.Path(exists=True))
+@click.argument("file", type=str)
 @click.option("--cloud", type=bool, default=False, is_flag=True)
 @click.option(
     "--cluster-id",
@@ -449,6 +452,18 @@ def install() -> None:
     """Install a Lightning App and/or component."""
 
 
+def _install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
+    if "github.com" in name:
+        if version != "latest":
+            logger.warn(
+                f"The provided version {version} isn't the officially supported one. "
+                f"The provided version will be ignored."
+            )
+        return cmd_install.non_gallery_app(name, yes, overwrite=overwrite)
+    else:
+        return cmd_install.gallery_app(name, yes, version, overwrite=overwrite)
+
+
 @install.command("app")
 @click.argument("name", type=str)
 @click.option(
@@ -473,15 +488,19 @@ def install() -> None:
     help="When set, overwrite the app directory without asking if it already exists.",
 )
 def install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
+    _install_app(name, yes, version, overwrite=overwrite)
+
+
+def _install_component(name: str, yes: bool, version: str) -> None:
     if "github.com" in name:
         if version != "latest":
             logger.warn(
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
-        cmd_install.non_gallery_app(name, yes, overwrite=overwrite)
+        cmd_install.non_gallery_component(name, yes)
     else:
-        cmd_install.gallery_app(name, yes, version, overwrite=overwrite)
+        cmd_install.gallery_component(name, yes, version)
 
 
 @install.command("component")
@@ -510,7 +529,6 @@ def install_component(name: str, yes: bool, version: str) -> None:
         cmd_install.non_gallery_component(name, yes)
     else:
         cmd_install.gallery_component(name, yes, version)
-
 
 @_main.group()
 def init() -> None:

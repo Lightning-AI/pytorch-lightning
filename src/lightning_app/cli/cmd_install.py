@@ -19,7 +19,7 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
 
     # resolve registry (orgs can have a private registry through their environment variables)
-    registry_url = _resolve_component_registry()
+    registry_url = _resolve_app_registry()
 
     # load the component resource
     component_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="component")
@@ -40,7 +40,7 @@ def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
     _install_component(git_url)
 
 
-def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> None:
+def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
 
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
@@ -58,6 +58,8 @@ def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, ove
 
     # run installation if requested
     _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+
+    return os.path.join(os.getcwd(), folder_name, app_entry["appEntrypointFile"])
 
 
 def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool = False) -> None:
