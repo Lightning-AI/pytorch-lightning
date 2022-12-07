@@ -46,6 +46,7 @@ try:
 except ModuleNotFoundError:
     _MLFLOW_AVAILABLE = False
     mlflow, MlflowClient, context = None, None, None
+    Metric, Param = None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
 
 # before v1.1.0
