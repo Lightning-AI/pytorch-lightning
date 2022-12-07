@@ -14,6 +14,37 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
+def gallery_apps_and_components(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
+
+    # make sure org/app-name syntax is correct
+    org, app_or_component = _validate_name(name, resource_type="App OR Component", example="lightning/quick-start")
+
+    # load the app resource
+    app_entry = _resolve_resource(_resolve_app_registry(), name=name, version_arg=version_arg, resource_type="app")
+
+    if app_entry:
+        # give the user the chance to do a manual install
+        source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+            app_entry, app_or_component, org, yes_arg, resource_type="app"
+        )
+
+        # run installation if requested
+        _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+
+        return os.path.join(os.getcwd(), app_entry["appEntrypointFile"])
+    else:
+        # load the component resource
+        component_entry = _resolve_resource(_resolve_app_registry(), name=name, version_arg=version_arg, resource_type="component")
+
+        # give the user the chance to do a manual install
+        git_url = _show_install_component_prompt(component_entry, app_or_component, org, yes_arg)
+
+        # run installation if requested
+        _install_component(git_url)      
+
+        return os.path.join(os.getcwd(), component_entry["appEntrypointFile"])
+
+
 def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> None:
     # make sure org/component-name name is correct
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
@@ -313,6 +344,7 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
         elif resource_type == "component":
             gallery_entries = data["components"]
     except requests.ConnectionError:
+        breakpoint()
         m = f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
 

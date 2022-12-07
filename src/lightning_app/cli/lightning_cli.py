@@ -234,7 +234,7 @@ def _run_app(
 ) -> None:
 
     if not os.path.exists(file):
-        file = _install_app(file, True, "latest", overwrite=False)
+        file = cmd_install.gallery_apps_and_components(name, True, "latest", overwrite=False)
         run_app_comment_commands = True
 
     if not cloud and cluster_id is not None:
