@@ -401,18 +401,21 @@ def run_app_in_cloud(
             if app.status.phase == V1LightningappInstanceState.RUNNING:
                 break
 
+        view_page = None
         if not app.spec.is_headless:
-            while True:
+            for _ in range(5):
                 try:
+                    admin_page.reload()
                     with admin_page.context.expect_page() as page_catcher:
                         admin_page.locator('[data-cy="open"]').click()
                     view_page = page_catcher.value
                     view_page.wait_for_load_state(timeout=0)
                     break
                 except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                    pass
-        else:
-            view_page = None
+                    sleep(1)
+
+            if view_page is None:
+                raise RuntimeError("Failed to open the app UI")
 
         # TODO: is re-creating this redundant?
         lit_apps = [
