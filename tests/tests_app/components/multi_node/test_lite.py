@@ -7,7 +7,7 @@ import pytest
 from lightning_utilities.core.imports import module_available
 from tests_app.helpers.utils import no_warning_call
 
-import lightning.lite as ll
+import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
 
 
@@ -66,14 +66,7 @@ def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expecte
 @pytest.mark.parametrize(
     "args_given,args_expected",
     [
-        (
-            {
-                "devices": 1,
-                "num_nodes": 1,
-                "accelerator": "gpu",
-            },
-            {"devices": 8, "num_nodes": 7, "accelerator": "auto"},
-        ),
+        ({"devices": 1, "num_nodes": 1, "accelerator": "gpu"}, {"devices": 8, "num_nodes": 7, "accelerator": "auto"}),
         ({"strategy": "ddp_spawn"}, {"strategy": "ddp"}),
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
