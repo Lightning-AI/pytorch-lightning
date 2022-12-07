@@ -114,6 +114,12 @@ jobs:
         run: |
           coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: failure()
+        with:
+          limit-access-to-actor: true
+
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
         with:
