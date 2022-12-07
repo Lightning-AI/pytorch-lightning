@@ -43,7 +43,9 @@ from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoin
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
+    BoringDataModule,
     BoringModel,
+    DemoModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
@@ -2243,16 +2245,18 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compiled_model():
-    model = BoringModel()
+    model = DemoModel()
 
     model = torch.compile(model)
+
+    data = BoringDataModule()
 
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
     )
-    trainer.fit(model)
+    trainer.fit(model, data)
 
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
@@ -2260,7 +2264,7 @@ def test_trainer_compiled_model():
 
     assert model._compiler_ctx is None
 
-    trainer.train(model)
+    trainer.fit(model)
 
     assert trainer.model._compiler_ctx is None
 

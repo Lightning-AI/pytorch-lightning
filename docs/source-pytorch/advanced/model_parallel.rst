@@ -424,10 +424,9 @@ You can customize the strategy configuration by adjusting the arguments of :clas
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
 
 
-    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=CPUOffload(offload_params=True))
+    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=True)
     trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", devices=4)
 
 
