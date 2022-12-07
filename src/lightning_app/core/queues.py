@@ -49,7 +49,6 @@ FLOW_TO_WORKS_DELTA_QUEUE_CONSTANT = "FLOW_TO_WORKS_DELTA_QUEUE"
 
 
 class QueuingSystem(Enum):
-    SINGLEPROCESS = "singleprocess"
     MULTIPROCESS = "multiprocess"
     REDIS = "redis"
     HTTP = "http"
@@ -59,10 +58,8 @@ class QueuingSystem(Enum):
             return MultiProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         elif self == QueuingSystem.REDIS:
             return RedisQueue(queue_name, default_timeout=REDIS_QUEUES_READ_DEFAULT_TIMEOUT)
-        elif self == QueuingSystem.HTTP:
-            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
         else:
-            return SingleProcessQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
+            return HTTPQueue(queue_name, default_timeout=STATE_UPDATE_TIMEOUT)
 
     def get_api_response_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{API_RESPONSE_QUEUE_CONSTANT}" if queue_id else API_RESPONSE_QUEUE_CONSTANT
@@ -177,21 +174,6 @@ class BaseQueue(ABC):
         Child classes should override this property and implement custom logic as required
         """
         return True
-
-
-class SingleProcessQueue(BaseQueue):
-    def __init__(self, name: str, default_timeout: float):
-        self.name = name
-        self.default_timeout = default_timeout
-        self.queue = queue.Queue()
-
-    def put(self, item):
-        self.queue.put(item)
-
-    def get(self, timeout: int = None):
-        if timeout == 0:
-            timeout = self.default_timeout
-        return self.queue.get(timeout=timeout, block=(timeout is None))
 
 
 class MultiProcessQueue(BaseQueue):
