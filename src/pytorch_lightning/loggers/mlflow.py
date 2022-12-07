@@ -242,7 +242,6 @@ class MLFlowLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
-        # params = [Param(k, v) for k, v in params.items()]
         params_list: List[Param] = []
 
         for k, v in params.items():
