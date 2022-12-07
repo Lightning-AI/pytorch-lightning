@@ -2,6 +2,7 @@
 
 From here, we will call the render function that the user provided in ``configure_layout``.
 """
+import asyncio
 import os
 import pydoc
 from typing import Callable
@@ -9,7 +10,7 @@ from typing import Callable
 from lightning_app.frontend.utils import _reduce_to_flow_scope
 from lightning_app.utilities.app_helpers import StreamLitStatePlugin
 from lightning_app.utilities.state import AppState
-import asyncio
+
 
 def _get_render_fn_from_environment() -> Callable:
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
@@ -22,7 +23,6 @@ def _main():
     """Run the render_fn with the current flow_state."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
 
     app_state = AppState(plugin=StreamLitStatePlugin())
 
