@@ -385,11 +385,9 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        view_page = None
         if not app.spec.is_headless:
             while True:
                 try:
-                    admin_page.reload()
                     with admin_page.context.expect_page() as page_catcher:
                         admin_page.locator('[data-cy="open"]').click()
                     view_page = page_catcher.value
@@ -398,6 +396,8 @@ def run_app_in_cloud(
                 except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
                     pass
         else:
+            view_page = None
+
             # Wait until the app is running
             while True:
                 sleep(1)
