@@ -2,7 +2,7 @@ import torch
 
 import lightning as L
 from lightning.app.components import LiteMultiNode
-from lightning.lite import LightningLite
+from lightning.lite import Fabric
 
 
 class LitePyTorchDistributed(L.LightningWork):
@@ -15,7 +15,7 @@ class LitePyTorchDistributed(L.LightningWork):
         )
 
         # 2. Create Fabric.
-        lite = LightningLite(strategy="ddp", precision=16)
+        lite = Fabric(strategy="ddp", precision=16)
         model, optimizer = lite.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 

@@ -40,7 +40,7 @@ from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
 
-from lightning.lite import LightningLite  # import Fabric
+from lightning.lite import Fabric  # import Fabric
 from lightning.lite import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
@@ -49,7 +49,7 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 def run(hparams):
     # Create the Lightning Lite object. The parameters like accelerator, strategy, devices etc. will be proided
     # by the command line. See all options: `lightning run model --help`
-    lite = LightningLite()
+    lite = Fabric()
 
     lite.hparams = hparams
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
