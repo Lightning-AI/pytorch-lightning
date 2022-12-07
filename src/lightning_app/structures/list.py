@@ -1,7 +1,5 @@
 import typing as t
 
-from pyparsing import Optional
-
 from lightning_app.utilities.app_helpers import _LightningAppRef, _set_child_name
 
 T = t.TypeVar("T")
@@ -52,7 +50,7 @@ class List(t.List[T]):
 
         self._name: t.Optional[str] = ""
         self._last_index = 0
-        self._backend: Optional[Backend] = None
+        self._backend: t.Optional[Backend] = None
         for item in items:
             self.append(item)
 
