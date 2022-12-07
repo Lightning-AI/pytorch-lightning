@@ -81,11 +81,81 @@ class Work(LightningWork):
         self.has_finished = False
 
     def run(self):
-        self.counter += 1
+        self.counter = self.counter + 1
         if self.cache_calls:
             self.has_finished = True
         elif self.counter >= 3:
             self.has_finished = True
+
+
+class SimpleFlow(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.work_a = Work(cache_calls=True)
+        self.work_b = Work(cache_calls=False)
+
+    def run(self):
+        if self.work_a.has_finished and self.work_b.has_finished:
+            self._exit()
+        self.work_a.run()
+        self.work_b.run()
+
+
+def test_simple_app(tmpdir):
+    comp = SimpleFlow()
+    app = LightningApp(comp, log_level="debug")
+    assert app.root == comp
+    expected = {
+        "app_state": mock.ANY,
+        "vars": {"_layout": mock.ANY, "_paths": {}},
+        "calls": {},
+        "flows": {},
+        "structures": {},
+        "works": {
+            "work_b": {
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                },
+                "calls": {"latest_call_hash": None},
+                "changes": {},
+            },
+            "work_a": {
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                },
+                "calls": {"latest_call_hash": None},
+                "changes": {},
+            },
+        },
+        "changes": {},
+    }
+    assert app.state == expected
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    assert comp.work_a.has_finished
+    assert comp.work_b.has_finished
+    # possible the `work_a` takes for ever to
+    # start and `work_b` has already completed multiple iterations.
+    assert comp.work_a.counter == 1
+    assert comp.work_b.counter >= 3
 
 
 class WorkCounter(LightningWork):
@@ -411,7 +481,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
-class SimpleFlow(LightningFlow):
+class SimpleFlow2(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
@@ -424,7 +494,7 @@ class SimpleFlow(LightningFlow):
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
-    app = LightningApp(SimpleFlow())
+    app = LightningApp(SimpleFlow2())
     app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
     app.maybe_apply_changes()

@@ -83,6 +83,33 @@ def test_app_state_api():
     os.remove("test_app_state_api.txt")
 
 
+class A2(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.var_a = 0
+        self.a = _A()
+
+    def update_state(self):
+        state = AppState()
+        # this would download and push data to the REST API.
+        assert state.a.work_a.var_a == 0
+        assert state.var_a == 0
+        state.var_a = -1
+
+    def run(self):
+        if self.var_a == 0:
+            self.update_state()
+        elif self.var_a == -1:
+            self._exit()
+
+
+def test_app_state_api_with_flows(tmpdir):
+    """This test validates the AppState can properly broadcast changes from flows."""
+    app = LightningApp(A2(), log_level="debug")
+    MultiProcessRuntime(app, start_server=True).dispatch()
+    assert app.root.var_a == -1
+
+
 class NestedFlow(LightningFlow):
     def run(self):
         pass
