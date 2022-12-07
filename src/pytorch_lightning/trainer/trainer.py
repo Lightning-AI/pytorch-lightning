@@ -995,11 +995,11 @@ class Trainer:
         if model._compiler_ctx is not None:
             supported_strategies = [SingleDeviceStrategy, DDPStrategy, DDPFullyShardedNativeStrategy]
             if self.strategy is not None and not any(isinstance(self.strategy, s) for s in supported_strategies):
-                supported_strategy_names = " ".join(s.__name__ for s in supported_strategies)
+                supported_strategy_names = ", ".join(s.__name__ for s in supported_strategies)
                 raise RuntimeError(
                     "Using a compiled model is incompatible with the current strategy: "
                     f"{self.strategy.__class__.__name__}. "
-                    f"Only {supported_strategy_names} support compilation."
+                    f"Only {supported_strategy_names} support compilation. "
                     "Either switch to one of the supported strategies or avoid passing in "
                     "a compiled model."
                 )

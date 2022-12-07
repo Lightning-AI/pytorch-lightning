@@ -21,7 +21,7 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, DemoModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
@@ -446,7 +446,7 @@ def test_trainer_reference_recursively():
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_compile_uncompile():
 
-    lit_model = BoringModel()
+    lit_model = DemoModel()
     model_compiled = torch.compile(lit_model)
 
     lit_model_compiled = LightningModule.from_compiled(model_compiled)
