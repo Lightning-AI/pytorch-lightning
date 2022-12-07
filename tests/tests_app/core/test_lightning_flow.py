@@ -3,8 +3,9 @@ import pickle
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import partial
 from time import time
-from unittest.mock import ANY
+from unittest.mock import ANY, MagicMock
 
 import pytest
 from deepdiff import DeepDiff, Delta
@@ -859,3 +860,46 @@ def test_lightning_flow_flows_and_works():
         "root.flows_dict.a.w",
         "root.flows_list.0.w",
     ]
+
+
+class WorkReady(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowReady(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkReady()
+
+    @property
+    def ready(self) -> bool:
+        return self.w.has_succeeded
+
+    def run(self):
+        self.w.run()
+
+        if self.ready:
+            self._exit()
+
+
+def test_flow_ready():
+    """This test validates the api publish state queue is populated only once ready is True."""
+
+    def run_patch(method):
+        app.api_publish_state_queue = MagicMock()
+        app.should_publish_changes_to_api = False
+        method()
+
+    app = LightningApp(FlowReady())
+    app._run = partial(run_patch, method=app._run)
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    # Validates the state has been added only when ready was true.
+    state = app.api_publish_state_queue.put._mock_call_args[0][0]
+    call_hash = state["works"]["w"]["calls"]["latest_call_hash"]
+    assert state["works"]["w"]["calls"][call_hash]["statuses"][0]["stage"] == "succeeded"

@@ -5,7 +5,6 @@ import time
 from unittest import mock
 
 import pytest
-import redis
 import requests_mock
 
 from lightning_app import LightningFlow
@@ -23,6 +22,7 @@ def test_queue_api(queue_type, monkeypatch):
 
     This test run all the Queue implementation but we monkeypatch the Redis Queues to avoid external interaction
     """
+    import redis
 
     blpop_out = (b"entry-id", pickle.dumps("test_entry"))
 
@@ -104,12 +104,14 @@ def test_redis_queue_read_timeout(redis_mock):
 
 @pytest.mark.parametrize(
     "queue_type, queue_process_mock",
-    [(QueuingSystem.SINGLEPROCESS, queue), (QueuingSystem.MULTIPROCESS, multiprocessing)],
+    [(QueuingSystem.MULTIPROCESS, multiprocessing)],
 )
 def test_process_queue_read_timeout(queue_type, queue_process_mock, monkeypatch):
 
+    context = mock.MagicMock()
     queue_mocked = mock.MagicMock()
-    monkeypatch.setattr(queue_process_mock, "Queue", queue_mocked)
+    context.Queue = queue_mocked
+    monkeypatch.setattr(queue_process_mock, "get_context", mock.MagicMock(return_value=context))
     my_queue = queue_type.get_readiness_queue()
 
     # default timeout
