@@ -18,7 +18,7 @@ import torch.nn as nn
 from tests_lite.helpers.models import BoringLite
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite import LightningLite, seed_everything
+from lightning_lite import Fabric, seed_everything
 
 
 class NativeMixedPrecisionModule(nn.Module):
@@ -77,7 +77,7 @@ def test_native_mixed_precision(accelerator, precision, expected_dtype):
 def test_native_mixed_precision_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)
-        lite = LightningLite(accelerator="cuda", precision=16, devices=1)
+        lite = Fabric(accelerator="cuda", precision=16, devices=1)
 
         model = nn.Linear(10, 10).to(lite.device)  # TODO: replace with individual setup_model call
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)

@@ -106,9 +106,9 @@ if _CLICK_AVAILABLE:
     )
     @click.argument("script_args", nargs=-1, type=click.UNPROCESSED)
     def _run_model(**kwargs: Any) -> None:
-        """Run a Lightning Lite script.
+        """Run a Lightning Fabric script.
 
-        SCRIPT is the path to the Python script with the code to run. The script must contain a LightningLite object.
+        SCRIPT is the path to the Python script with the code to run. The script must contain a Fabric object.
 
         SCRIPT_ARGS are the remaining arguments that you can pass to the script itself and are expected to be parsed
         there.
@@ -120,7 +120,7 @@ if _CLICK_AVAILABLE:
 def _set_env_variables(args: Namespace) -> None:
     """Set the environment variables for the new processes.
 
-    The Lite connector will parse the arguments set here.
+    The Fabric connector will parse the arguments set here.
     """
     os.environ["LT_CLI_USED"] = "1"
     os.environ["LT_ACCELERATOR"] = str(args.accelerator)
@@ -187,7 +187,7 @@ def main(args: Namespace, script_args: Optional[List[str]] = None) -> None:
 if __name__ == "__main__":
     if not _CLICK_AVAILABLE:  # pragma: no cover
         _log.error(
-            "To use the Lightning Lite CLI, you must have `click` installed."
+            "To use the Lightning Fabric CLI, you must have `click` installed."
             " Install it by running `pip install -U click`."
         )
         raise SystemExit(1)

@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Here are 4 easy steps to use LightningLite in your PyTorch code.
+"""Here are 4 easy steps to use Fabric in your PyTorch code.
 
 1. Create the Lightning Lite object at the beginning of your script.
 
-2. Remove all ``.to`` and ``.cuda`` calls since LightningLite will take care of it.
+2. Remove all ``.to`` and ``.cuda`` calls since Fabric will take care of it.
 
 3. Apply ``setup`` over each model and optimizers pair, ``setup_dataloaders`` on all your dataloaders,
 and replace ``loss.backward()`` with ``self.backward(loss)``.
@@ -40,7 +40,7 @@ from torch.optim.lr_scheduler import StepLR
 from torchmetrics.classification import Accuracy
 from torchvision.datasets import MNIST
 
-from lightning.lite import LightningLite  # import LightningLite
+from lightning.lite import Fabric  # import Fabric
 from lightning.lite import seed_everything
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
@@ -49,7 +49,7 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 def run(hparams):
     # Create the Lightning Lite object. The parameters like accelerator, strategy, devices etc. will be proided
     # by the command line. See all options: `lightning run model --help`
-    lite = LightningLite()
+    lite = Fabric()
 
     lite.hparams = hparams
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # Arguments can be passed in through the CLI as normal and will be parsed here
     # Example:
     # lightning run model image_classifier.py accelerator=cuda --epochs=3
-    parser = argparse.ArgumentParser(description="LightningLite MNIST Example")
+    parser = argparse.ArgumentParser(description="Fabric MNIST Example")
     parser.add_argument(
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )

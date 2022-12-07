@@ -17,9 +17,9 @@ from typing import List, Optional, Tuple, Union
 
 from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
 
+from lightning_lite import Fabric
 from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
 from lightning_lite.connector import _PRECISION_INPUT
-from lightning_lite.lite import LightningLite as _NewLightningLite
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
 from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
@@ -59,7 +59,7 @@ _PL_PLUGIN = Union[PLPrecisionPlugin, ClusterEnvironment, CheckpointIO]
 _PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
 
 
-class LightningLite(_NewLightningLite, ABC):
+class LightningLite(Fabric, ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.

@@ -7,7 +7,7 @@ Lightning Lite
 on any kind of device while retaining full control over their own loops and optimization logic.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
-    :alt: Animation showing how to convert your PyTorch code to LightningLite.
+    :alt: Animation showing how to convert your PyTorch code to Fabric.
     :width: 500
     :align: center
 
@@ -72,8 +72,8 @@ The ``train`` function contains a standard training loop used to train ``MyModel
 ----------
 
 
-Convert to LightningLite
-========================
+Convert to Fabric
+=================
 
 Here are five easy steps to let :class:`~pytorch_lightning.lite.LightningLite` scale your PyTorch models.
 
@@ -89,7 +89,7 @@ Here are five easy steps to let :class:`~pytorch_lightning.lite.LightningLite` s
     import torch
     from torch import nn
     from torch.utils.data import DataLoader, Dataset
-    from lightning.lite import LightningLite
+    from lightning.lite import Fabric
 
 
     class MyModel(nn.Module):
@@ -102,7 +102,7 @@ Here are five easy steps to let :class:`~pytorch_lightning.lite.LightningLite` s
 
     def train(args):
 
-        lite = LightningLite()
+        lite = Fabric()
 
         model = MyModel(...)
         optimizer = torch.optim.SGD(model.parameters(), ...)
@@ -124,7 +124,7 @@ Here are five easy steps to let :class:`~pytorch_lightning.lite.LightningLite` s
 
 
 That's all you need to do to your code. You can now train on any kind of device and scale your training.
-Check out `this <https://github.com/Lightning-AI/lightning/blob/master/examples/lite/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
+Check out `this <https://github.com/Lightning-AI/lightning/blob/master/examples/lite/image_classifier_2_lite.py>`_ full MNIST training example with Fabric.
 
 Here is how to train on eight GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
@@ -149,7 +149,7 @@ You can also easily use distributed collectives if required.
 
 .. code-block:: python
 
-    lite = LightningLite()
+    lite = Fabric()
 
     # Transfer and concatenate tensors across processes
     lite.all_gather(...)
