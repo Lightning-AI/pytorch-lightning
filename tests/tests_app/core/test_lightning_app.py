@@ -376,11 +376,10 @@ class SimpleApp2(LightningApp):
         return True
 
 
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
+def test_app_restarting_move_to_blocking(tmpdir):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), log_level="debug")
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 class FlowWithFrontend(LightningFlow):
