@@ -24,6 +24,10 @@ def _main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    import streamlit as st
+
+    st.write(os.environ)
+
     app_state = AppState(plugin=StreamLitStatePlugin())
 
     # Fetch the information of which flow attaches to this streamlit instance
