@@ -1,19 +1,19 @@
 import abc
 import base64
 import os
+import platform
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import compare_version, module_available
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
-import platform
+
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_torch_available, requires
-from lightning_utilities.core.imports import compare_version
 
 logger = Logger(__name__)
 
@@ -28,23 +28,18 @@ if not _is_torch_available():
 
 
 def get_device():
-    import torch
     import operator
+
+    import torch
 
     _TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
 
     local_rank = int(os.getenv("LOCAL_RANK", "0"))
 
-    if (
-        _TORCH_GREATER_EQUAL_1_12
-        and torch.backends.mps.is_available()
-        and platform.processor() in ("arm", "arm64")
-    ):
+    if _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64"):
         return torch.device("mps", local_rank)
     else:
-        return torch.device(
-            f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu"
-        )
+        return torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
 
 
 class _DefaultInputData(BaseModel):
