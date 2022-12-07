@@ -4,7 +4,7 @@ from copy import deepcopy
 import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.payload import Payload
 from lightning_app.structures import Dict, List
 from lightning_app.testing.helpers import EmptyFlow
@@ -309,7 +309,7 @@ class CounterWork(LightningWork):
 
 
 @pytest.mark.skip(reason="tchaton: Resolve this test.")
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime, SingleProcessRuntime])
+@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 @pytest.mark.parametrize("run_once_iterable", [False, True])
 @pytest.mark.parametrize("cache_calls", [False, True])
 @pytest.mark.parametrize("use_list", [False, True])

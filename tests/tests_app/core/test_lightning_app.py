@@ -4,7 +4,6 @@ import pickle
 from re import escape
 from time import sleep
 from unittest import mock
-from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
@@ -21,7 +20,7 @@ from lightning_app.core.constants import (
 )
 from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
 from lightning_app.frontend import StreamlitFrontend
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.testing.helpers import _RunIf
@@ -87,56 +86,6 @@ class Work(LightningWork):
             self.has_finished = True
         elif self.counter >= 3:
             self.has_finished = True
-
-
-class SimpleFlow(LightningFlow):
-    def __init__(self):
-        super().__init__()
-        self.work_a = Work(cache_calls=True)
-        self.work_b = Work(cache_calls=False)
-
-    def run(self):
-        self.work_a.run()
-        self.work_b.run()
-        if self.work_a.has_finished and self.work_b.has_finished:
-            self._exit()
-
-
-@pytest.mark.skip
-@pytest.mark.parametrize("component_cls", [SimpleFlow])
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_simple_app(component_cls, runtime_cls, tmpdir):
-    comp = component_cls()
-    app = LightningApp(comp, log_level="debug")
-    assert app.root == comp
-    expected = {
-        "app_state": ANY,
-        "vars": {"_layout": ANY, "_paths": {}},
-        "calls": {},
-        "flows": {},
-        "works": {
-            "work_b": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
-                "changes": {},
-            },
-            "work_a": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
-                "changes": {},
-            },
-        },
-        "changes": {},
-    }
-    assert app.state == expected
-    runtime_cls(app, start_server=False).dispatch()
-
-    assert comp.work_a.has_finished
-    assert comp.work_b.has_finished
-    # possible the `work_a` takes for ever to
-    # start and `work_b` has already completed multiple iterations.
-    assert comp.work_a.counter == 1
-    assert comp.work_b.counter >= 3
 
 
 class WorkCounter(LightningWork):
@@ -357,7 +306,7 @@ class SimpleApp2(LightningApp):
         return True
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
+@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), log_level="debug")

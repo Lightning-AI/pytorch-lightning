@@ -28,7 +28,7 @@ from lightning_app.core.api import (
     UIRefresher,
 )
 from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
@@ -71,7 +71,6 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
-# TODO: Resolve singleprocess - idea: explore frame calls recursively.
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_state_api(runtime_cls):
     """This test validates the AppState can properly broadcast changes from work within its own process."""
@@ -83,36 +82,6 @@ def test_app_state_api(runtime_cls):
     _set_frontend_context()
     assert app.root.work_a.drive.list(".") == ["test_app_state_api.txt"]
     os.remove("test_app_state_api.txt")
-
-
-class A2(LightningFlow):
-    def __init__(self):
-        super().__init__()
-        self.var_a = 0
-        self.a = _A()
-
-    def update_state(self):
-        state = AppState()
-        # this would download and push data to the REST API.
-        assert state.a.work_a.var_a == 0
-        assert state.var_a == 0
-        state.var_a = -1
-
-    def run(self):
-        if self.var_a == 0:
-            self.update_state()
-        elif self.var_a == -1:
-            self._exit()
-
-
-# TODO: Find why this test is flaky.
-@pytest.mark.skip(reason="flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_app_state_api_with_flows(runtime_cls, tmpdir):
-    """This test validates the AppState can properly broadcast changes from flows."""
-    app = LightningApp(A2(), log_level="debug")
-    runtime_cls(app, start_server=True).dispatch()
-    assert app.root.var_a == -1
 
 
 class NestedFlow(LightningFlow):
@@ -181,7 +150,7 @@ class AppStageTestingApp(LightningApp):
 
 # FIXME: This test doesn't assert anything
 @pytest.mark.skip(reason="TODO: Resolve flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
+@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
 def test_app_stage_from_frontend(runtime_cls):
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
     start and stop the app."""
