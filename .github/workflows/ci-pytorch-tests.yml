@@ -135,8 +135,9 @@ jobs:
     - name: Install package & dependencies
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
+        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e . "pytest-timeout" -r requirements/pytorch/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e .[dev] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Reinstall Horovod if necessary
@@ -184,7 +185,11 @@ jobs:
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=${TEST_TIMEOUT} --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: |
+        coverage run --source ${COVERAGE_SCOPE} -m pytest -v \
+          --timeout=${TEST_TIMEOUT} --durations=50 \
+          --reruns 3 --reruns-delay 1 \
+          --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       if: failure()

@@ -108,8 +108,9 @@ jobs:
     - name: Install package & dependencies
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
+        FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e . "pytest-timeout" -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e .[dev] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests
