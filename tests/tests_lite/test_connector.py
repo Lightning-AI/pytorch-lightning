@@ -864,15 +864,11 @@ def test_arguments_from_environment_collision():
             _Connector(devices=3)
 
     with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(num_nodes=2, ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match=escape("Your code has `Fabric(num_nodes=2, ...)` but it conflicts")):
             _Connector(num_nodes=2)
 
     with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(precision=64, ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match=escape("Your code has `Fabric(precision=64, ...)` but it conflicts")):
             _Connector(precision=64)
 
 
