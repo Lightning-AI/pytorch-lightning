@@ -8,7 +8,7 @@ import lightning as L
 
 
 class RequestModel(BaseModel):
-    image: str
+    image: str  # bytecode
 
 
 class BatchRequestModel(BaseModel):
