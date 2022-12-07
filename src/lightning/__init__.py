@@ -60,7 +60,7 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
-    "LightningLite",
+    "Fabric",
     "storage",
     "pdb",
 ]
