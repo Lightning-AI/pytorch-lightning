@@ -426,6 +426,7 @@ def test_proper_refcount():
 
 
 def test_lightning_module_scriptable():
+    """Test that the LightningModule is `torch.jit.script`-able. Regression test for #15917."""
     model = BoringModel()
     trainer = Trainer()
     model.trainer = trainer
