@@ -25,7 +25,7 @@ from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from lightning_lite.lite import Fabric
+from lightning_lite.fabric import Fabric
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import (
     DDPShardedStrategy,

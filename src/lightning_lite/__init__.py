@@ -20,7 +20,7 @@ if not _root_logger.hasHandlers():
 os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
 
 
-from lightning_lite.lite import Fabric  # noqa: E402
+from lightning_lite.fabric import Fabric  # noqa: E402
 from lightning_lite.utilities.seed import seed_everything  # noqa: E402
 
 __all__ = ["Fabric", "seed_everything"]
