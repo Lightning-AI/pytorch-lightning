@@ -186,7 +186,8 @@ jobs:
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: |
-        coverage run --source ${COVERAGE_SCOPE} -m pytest -v \
+        python -m coverage run --source ${COVERAGE_SCOPE} \
+          -m pytest . -v \
           --timeout=${TEST_TIMEOUT} --durations=50 \
           --reruns 3 --reruns-delay 1 \
           --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml

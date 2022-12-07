@@ -114,7 +114,8 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app \
+          coverage run --source ${COVERAGE_SCOPE} \
+            -m pytest -m "not cloud" tests_app \
             --timeout=300 -vvvv --durations=50 \
             --reruns 3 --reruns-delay 1 \
             --junitxml=$PYTEST_ARTIFACT
