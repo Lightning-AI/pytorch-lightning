@@ -2,13 +2,13 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Tuple, Union
+from typing import Tuple, Union
 
 import arrow
 import click
 import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState, V1LightningworkState
+from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
@@ -129,7 +129,7 @@ def cluster() -> None:
 
 
 @cluster.command(name="logs")
-@click.argument("cluster_name", required=True)
+@click.argument("cluster_id", required=True)
 @click.option(
     "--from",
     "from_time",
@@ -148,7 +148,7 @@ def cluster() -> None:
 )
 @click.option("--limit", default=10000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -177,26 +177,26 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
 
-    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+    clusters = {cluster.id: cluster.id for cluster in existing_cluster_list.clusters}
 
     if not clusters:
         raise click.ClickException("You don't have any clusters.")
 
-    if not cluster_name:
+    if not cluster_id:
         raise click.ClickException(
             f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
         )
 
-    if cluster_name not in clusters:
+    if cluster_id not in clusters:
         raise click.ClickException(
-            f"The cluster '{cluster_name}' does not exist."
+            f"The cluster '{cluster_id}' does not exist."
             f" Please select one of the following: [{', '.join(clusters.keys())}]"
         )
 
     try:
         log_reader = _cluster_logs_reader(
             logs_api_client=_ClusterLogsSocketAPI(client.api_client),
-            cluster_id=clusters[cluster_name],
+            cluster_id=cluster_id,
             start=from_time.int_timestamp,
             end=to_time.int_timestamp if not follow else None,
             limit=limit,
@@ -276,10 +276,6 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args: Any, **kwargs: Any) -> None:
-        if open_ui and not without_server:
-            click.launch(get_app_url(runtime_type, *args, **kwargs))
-
     click.echo("Your Lightning App is starting. This won't take long.")
 
     # TODO: Fixme when Grid utilities are available.
@@ -291,7 +287,7 @@ def _run_app(
         start_server=not without_server,
         no_cache=no_cache,
         blocking=blocking,
-        on_before_run=on_before_run,
+        open_ui=open_ui,
         name=name,
         env_vars=env_vars,
         secrets=secrets,
