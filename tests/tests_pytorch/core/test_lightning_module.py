@@ -425,6 +425,13 @@ def test_proper_refcount():
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
 
 
+def test_lightning_module_scriptable():
+    model = BoringModel()
+    trainer = Trainer()
+    model.trainer = trainer
+    torch.jit.script(model)
+
+
 def test_trainer_reference_recursively():
     ensemble = LightningModule()
     inner = LightningModule()
