@@ -73,7 +73,7 @@ The ``train`` function contains a standard training loop used to train ``MyModel
 
 
 Convert to Fabric
-========================
+=================
 
 Here are five easy steps to let :class:`~pytorch_lightning.lite.Fabric` scale your PyTorch models.
 
