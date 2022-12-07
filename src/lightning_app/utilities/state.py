@@ -156,16 +156,17 @@ class AppState:
         # Sometimes the state URL can return an empty JSON when things are being set-up,
         # so we wait for it to be ready here.
         while response_json == {}:
+            sleep(0.5)
             try:
                 response = self._session.get(app_url, headers=headers, timeout=1)
             except ConnectionError as e:
                 raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from e
 
             self._authorized = response.status_code
-            if self._authorized == 200:
-                response_json = response.json()
+            if self._authorized != 200:
+                return
 
-            sleep(0.5)
+            response_json = response.json()
 
         logger.debug(f"GET STATE {response} {response_json}")
         self._store_state(response_json)
