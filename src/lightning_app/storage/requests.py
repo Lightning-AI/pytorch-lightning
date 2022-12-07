@@ -17,6 +17,7 @@ class _GetResponse:
     name: str
     path: str
     hash: str
+    size: int
     destination: str = ""
     exception: Optional[Exception] = None
     timedelta: Optional[float] = None
