@@ -21,8 +21,7 @@ runs:
 
   - name: Set PACKAGE_NAME envvar
     if: ${{ inputs.pkg-name != 'notset' }}
-    run: |
-      echo "PACKAGE_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
+    run: echo "PACKAGE_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
     shell: bash
 
   - name: Source check
