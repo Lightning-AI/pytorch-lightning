@@ -1,3 +1,4 @@
+# ! pip install torch torchvision
 from typing import Any, List
 
 import torch
@@ -21,11 +22,13 @@ class BatchResponse(BaseModel):
 
 class PyTorchServer(L.app.components.PythonServer):
     def __init__(self, *args, **kwargs):
+        print(args)
+        print(kwargs)
         super().__init__(
-            port=L.app.utilities.network.find_free_network_port(),
             input_type=BatchRequestModel,
             output_type=BatchResponse,
-            cloud_compute=L.CloudCompute("gpu"),
+            *args,
+            **kwargs,
         )
 
     def setup(self):
@@ -33,6 +36,9 @@ class PyTorchServer(L.app.components.PythonServer):
         self._model = torchvision.models.resnet18(pretrained=True).to(self._device)
 
     def predict(self, requests: BatchRequestModel):
+        import time
+
+        time.sleep(60)
         transforms = torchvision.transforms.Compose(
             [
                 torchvision.transforms.Resize(224),
@@ -74,13 +80,17 @@ class MyAutoScaler(L.app.components.AutoScaler):
 
 app = L.LightningApp(
     MyAutoScaler(
+        # server class and args
         PyTorchServer,
-        min_replicas=2,
+        cloud_compute=L.CloudCompute("default"),
+        # autoscaler specific args
+        min_replicas=1,
         max_replicas=4,
-        autoscale_interval=10,
+        autoscale_interval=1,
         endpoint="predict",
         input_type=RequestModel,
         output_type=Any,
         timeout_batching=1,
+        max_batch_size=1,
     )
 )
