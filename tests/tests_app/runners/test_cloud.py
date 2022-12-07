@@ -1528,4 +1528,3 @@ def test_get_app_url(lightning_app_instance, lightning_cloud_url, expected_url):
         "lightning_app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
     ):
         assert CloudRuntime._get_app_url(lightning_app_instance) == expected_url
-
