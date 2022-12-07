@@ -23,7 +23,7 @@ import torch.nn.functional
 from tests_lite.helpers.runif import RunIf
 from tests_lite.helpers.utils import no_warning_call
 from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, Sampler, TensorDataset, SequentialSampler, RandomSampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
@@ -385,7 +385,8 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
 
 
 def test_setup_dataloaders_distributed_sampler_shuffle():
-    """Test that the DataLoader(shuffle=True|False) setting gets carried over correctly into the distributed sampler."""
+    """Test that the DataLoader(shuffle=True|False) setting gets carried over correctly into the distributed
+    sampler."""
     lite = LightningLite(accelerator="cpu", strategy="ddp_spawn", devices=2)
     # no lite.launch(): pretend we are on rank 0 now
 
@@ -395,17 +396,14 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     no_shuffle_dataloaders = [
         DataLoader(dataset),
         DataLoader(dataset, shuffle=False),
-        DataLoader(dataset, sampler=SequentialSampler(dataset))
+        DataLoader(dataset, sampler=SequentialSampler(dataset)),
     ]
     for dataloader in no_shuffle_dataloaders:
         dataloader = lite.setup_dataloaders(dataloader)
         assert list(t[0].item() for t in iter(dataloader)) == [0, 2, 4, 6]
 
     # shuffling turned on
-    shuffle_dataloaders = [
-        DataLoader(dataset, shuffle=True),
-        DataLoader(dataset, sampler=RandomSampler(dataset))
-    ]
+    shuffle_dataloaders = [DataLoader(dataset, shuffle=True), DataLoader(dataset, sampler=RandomSampler(dataset))]
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = lite.setup_dataloaders(dataloader)
