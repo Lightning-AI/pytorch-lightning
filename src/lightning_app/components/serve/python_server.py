@@ -197,7 +197,7 @@ class PythonServer(LightningWork, abc.ABC):
         context = no_grad if device.type == "mps" else inference_mode
 
         def predict_fn(request: input_type):  # type: ignore
-            with context:
+            with context():
                 return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
