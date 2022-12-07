@@ -385,6 +385,22 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
+        # Wait until the app is running
+        while True:
+            sleep(1)
+
+            lit_apps = [
+                app
+                for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                    project_id=project.project_id
+                ).lightningapps
+                if app.name == name
+            ]
+            app = lit_apps[0]
+
+            if app.status.phase == V1LightningappInstanceState.RUNNING:
+                break
+
         if not app.spec.is_headless:
             while True:
                 try:
@@ -397,22 +413,6 @@ def run_app_in_cloud(
                     pass
         else:
             view_page = None
-
-            # Wait until the app is running
-            while True:
-                sleep(1)
-
-                lit_apps = [
-                    app
-                    for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                        project_id=project.project_id
-                    ).lightningapps
-                    if app.name == name
-                ]
-                app = lit_apps[0]
-
-                if app.status.phase == V1LightningappInstanceState.RUNNING:
-                    break
 
         # TODO: is re-creating this redundant?
         lit_apps = [

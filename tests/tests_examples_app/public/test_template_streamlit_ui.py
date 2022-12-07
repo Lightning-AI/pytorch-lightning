@@ -18,12 +18,16 @@ def test_template_streamlit_ui_example_cloud() -> None:
     ):
         import playwright
 
+        print("Reached")
+
         i = 0
 
         while i < 2:
             try:
+                print("clicking")
                 button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
                 button.click()
+                print("clicked")
                 break
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
                 print(e)
