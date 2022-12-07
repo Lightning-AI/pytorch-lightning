@@ -78,7 +78,7 @@ jobs:
           FREEZE_REQUIREMENTS: 1
         run: |
           # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
-          pip install . [dev] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install .[dev] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
 
       - name: Setup Node.js
