@@ -71,7 +71,7 @@ def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expecte
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
 )
-@pytest.mark.skipif(not module_available("lightning_lite"), reason="Lightning Lite is required for this test")
+@pytest.mark.skipif(not module_available("lightning"), reason="Lightning Lite is required for this test")
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
