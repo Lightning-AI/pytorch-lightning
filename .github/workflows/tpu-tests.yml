@@ -45,7 +45,7 @@ jobs:
       max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning
-        pkg-name: ["lite", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:

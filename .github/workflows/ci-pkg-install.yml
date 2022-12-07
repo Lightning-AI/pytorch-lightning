@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg-name: ["app", "lite", "pytorch", "lightning"]
+        pkg-name: ["app", "fabric", "pytorch", "lightning"]
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3

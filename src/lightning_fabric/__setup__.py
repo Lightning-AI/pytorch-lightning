@@ -52,7 +52,7 @@ def _setup_args() -> Dict[str, Any]:
     )
 
     return dict(
-        name="lightning-lite",
+        name="lightning-fabric",
         version=_version.version,
         description=_about.__docs__,
         author=_about.__author__,

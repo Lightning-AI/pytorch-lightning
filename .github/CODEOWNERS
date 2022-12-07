@@ -38,7 +38,7 @@
 /src/pytorch_lightning/core/hooks.py         @williamfalcon @tchaton @awaelchli @carmocca
 /src/pytorch_lightning/core/module.py        @williamfalcon @tchaton @awaelchli @carmocca
 
-# Lightning Lite
+# Lightning Fabric
 /src/lightning_fabric                         @awaelchli @carmocca @justusschock
 /tests/tests_lite                           @awaelchli @carmocca @justusschock
 
