@@ -30,6 +30,8 @@ from typing_extensions import Protocol, runtime_checkable
 try:
     from torch.optim.lr_scheduler import LRScheduler as TorchLRScheduler
 except ImportError:
+    # For torch <= 1.13.x
+    # TODO: Remove once minimum torch version is 1.14 (or 2.0)
     from torch.optim.lr_scheduler import _LRScheduler as TorchLRScheduler
 
 from lightning_lite.utilities.types import _LRScheduler, ProcessGroup, ReduceLROnPlateau
