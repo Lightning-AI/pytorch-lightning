@@ -22,7 +22,6 @@ from lightning_utilities.core.imports import compare_version, module_available, 
 _IS_WINDOWS = platform.system() == "Windows"
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
-_TORCH_GREATER_EQUAL_1_10 = compare_version("torch", operator.ge, "1.10.0")
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 _TORCH_GREATER_EQUAL_1_11 = compare_version("torch", operator.ge, "1.11.0")
 _TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")

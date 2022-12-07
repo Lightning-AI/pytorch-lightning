@@ -6,7 +6,8 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from textwrap import dedent
+from typing import Any, List, Optional, Union
 
 import click
 from lightning_cloud.openapi import (
@@ -15,6 +16,7 @@ from lightning_cloud.openapi import (
     Body7,
     Body8,
     Body9,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
@@ -55,12 +57,13 @@ from lightning_app.core.constants import (
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
+    get_lightning_cloud_url,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
-from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.app_helpers import _is_headless, Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
@@ -191,9 +194,9 @@ class CloudRuntime(Runtime):
 
     def dispatch(
         self,
-        on_before_run: Optional[Callable] = None,
         name: str = "",
         cluster_id: str = None,
+        open_ui: bool = True,
         **kwargs: Any,
     ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -336,6 +339,7 @@ class CloudRuntime(Runtime):
             elif CLOUD_QUEUE_TYPE == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
+            existing_instance: Optional[Externalv1LightningappInstance] = None
             if find_instances_resp.lightningapps:
                 existing_instance = find_instances_resp.lightningapps[0]
 
@@ -374,12 +378,20 @@ class CloudRuntime(Runtime):
                             f"Your app last ran on cluster {app_config.cluster_id}, but that cluster "
                             "doesn't exist anymore."
                         )
-                    click.confirm(
-                        f"{msg} Do you want to run on Lightning Cloud instead?",
-                        abort=True,
-                        default=True,
+                    raise ValueError(msg)
+                if existing_instance and existing_instance.spec.cluster_id != app_config.cluster_id:
+                    raise ValueError(
+                        dedent(
+                            f"""\
+                            An app names {app_config.name} is already running on cluster {existing_instance.spec.cluster_id}, and you requested it to run on cluster {app_config.cluster_id}.
+
+                            In order to proceed, please either:
+                                a. rename the app to run on {app_config.cluster_id} with the --name option
+                                    lightning run app {app_entrypoint_file} --name (new name) --cloud --cluster-id {app_config.cluster_id}
+                                b. delete the app running on {existing_instance.spec.cluster_id} in the UI before running this command.
+                            """  # noqa: E501
+                        )
                     )
-                    app_config.cluster_id = None
 
             if app_config.cluster_id is not None:
                 self._ensure_cluster_project_binding(project.project_id, app_config.cluster_id)
@@ -395,6 +407,7 @@ class CloudRuntime(Runtime):
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
+                is_headless=_is_headless(self.app),
             )
 
             # create / upload the new app release
@@ -454,11 +467,11 @@ class CloudRuntime(Runtime):
             logger.error(e.body)
             sys.exit(1)
 
-        if on_before_run:
-            on_before_run(lightning_app_instance, need_credits=not has_sufficient_credits)
-
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
+
+        if open_ui:
+            click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
 
         if cleanup_handle:
             cleanup_handle()
@@ -527,6 +540,11 @@ class CloudRuntime(Runtime):
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
         return app
+
+    @staticmethod
+    def _get_app_url(lightning_app_instance: Externalv1LightningappInstance, need_credits: bool = False) -> str:
+        action = "?action=add_credits" if need_credits else ""
+        return f"{get_lightning_cloud_url()}/me/apps/{lightning_app_instance.id}{action}"
 
 
 def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
