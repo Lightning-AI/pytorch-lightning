@@ -311,7 +311,7 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("lightning_lite.lite._replace_dunder_methods")
+@mock.patch("lightning_lite.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
@@ -356,7 +356,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "lightning_lite.lite.Fabric.device",
+    "lightning_lite.fabric.Fabric.device",
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
@@ -579,7 +579,7 @@ def test_launch_without_function():
 
     # default: no launcher, single process
     lite = Fabric()
-    with mock.patch("lightning_lite.lite._do_nothing") as nothing:
+    with mock.patch("lightning_lite.fabric._do_nothing") as nothing:
         lite.launch()
     nothing.assert_called()
 
