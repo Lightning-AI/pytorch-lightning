@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import tempfile
+from unittest import mock
 
 import pytest
 import torch
@@ -71,7 +72,7 @@ def _assert_save_equality(lite, model, ckpt_path):
 
     # model parameters are identical after loading
     for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
-        assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
+        assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
 def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
@@ -83,7 +84,10 @@ def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_par
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
-    strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    strategy = FSDPStrategy(
+        auto_wrap_policy=_custom_auto_wrap_policy,
+        activation_checkpointing=[torch.nn.Linear],
+    )
     lite = LightningLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.launch()
 
@@ -116,3 +120,29 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
         lite._strategy.save_checkpoint(model.state_dict(), ckpt_path)
 
     _assert_save_equality(lite, model, ckpt_path)
+
+
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
+@pytest.mark.parametrize("move_to_device", [True, False])
+@mock.patch("lightning_lite.wrappers._LiteModule")
+def test_setup_module_move_to_device(lite_module_mock, move_to_device):
+    """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
+    (sharding)."""
+    strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    lite = LightningLite(accelerator="cuda", devices=2, strategy=strategy)
+    lite.launch()
+
+    model = torch.nn.Linear(10, 10, bias=False)  # total params: 10 * 10 = 100
+    lite_model = lite.setup_module(model, move_to_device=move_to_device)
+    lite_module_mock.assert_not_called()
+
+    assert list(param.device for param in model.parameters()) == []
+    assert len(list(lite_model.parameters())) == 1
+
+    # the linear layer got sharded and each part is on the expected device
+    assert next(lite_model.parameters()).device == torch.device("cuda", lite.local_rank)
+    assert next(lite_model.parameters()).numel() == 50
+
+    # The _DeviceDtypeModuleMixin currently can't represent the device in a meaningful way for sharded models
+    assert lite_model.device == torch.device("cpu")
+    assert lite.device == torch.device("cuda", lite.local_rank)

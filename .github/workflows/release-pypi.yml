@@ -7,6 +7,13 @@ on:
   release:
     types: [published]
 
+defaults:
+  run:
+    shell: bash
+
+env:
+  PUBLISH: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+
 jobs:
   init:
     runs-on: ubuntu-20.04
@@ -24,8 +31,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
-      # run sequential
-      max-parallel: 1
+      max-parallel: 1  # run sequential to prevent download/upload collisions
       matrix:
         pkg-name: ["lightning", "app", "lite", "pytorch"]
     steps:
@@ -70,7 +76,84 @@ jobs:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-packages:
+  release-version:
+    runs-on: ubuntu-20.04
+    outputs:
+      tag: ${{ steps.lai-package.outputs.version }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: install Package
+      env:
+        PACKAGE_NAME: "lightning"
+      run: pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
+    - name: package Version
+      id: lai-package
+      run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
+
+  signaling:
+    runs-on: ubuntu-20.04
+    needs: [release-version]
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
+    steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+    - uses: actions/checkout@v3
+      with:
+        repository: gridai/base-images
+        token: ${{ secrets.PAT_GHOST }}
+        ref: main
+    - uses: fregante/setup-git-token@v1
+      with:
+        token: ${{ secrets.PAT_GHOST }}
+        name: PL Ghost
+        email: pl-github@grid.ai
+    - name: Update lightning version
+      run: |
+        import json, os
+        with open("versions.json") as fo:
+            vers = json.load(fo)
+        vers["lightning_version"] = os.getenv('TAG')
+        with open("versions.json", "w") as fw:
+            json.dump(vers, fw)
+      shell: python
+    - name: GIT Commit
+      run: |
+        git add versions.json
+        git commit -m "bumping lightning version -> ${TAG}"
+        cat versions.json
+    - name: GIT Push
+      run: |
+        git status
+        git push
+
+  waiting:
+    # TODO: replace with back signal from build images/ loop checking for a specific branch?
+    runs-on: ubuntu-20.04
+    needs: [release-version, signaling]
+    env:
+      TAG: ${{ needs.release-version.outputs.tag }}
+    timeout-minutes: 90
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
+    - run: pip install gitpython
+    - name: Delay releasing
+      run: |
+        import git, os, time
+        repo = git.Repo('.')
+        branch = f"origin/builds/{os.getenv('TAG')}"
+        while True:
+          remote_refs = [b.name for b in repo.remote().refs]
+          if branch in remote_refs:
+            break
+          time.sleep(60)
+      shell: python
+
+  pre-publish-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
@@ -82,38 +165,58 @@ jobs:
         path: dist
     - run: ls -lh dist/
     - run: mkdir pypi/
-
-    - name: Delay releasing
-      uses: juliangruber/sleep-action@v1
+    - uses: ./.github/actions/pkg-publish
       with:
-        time: 10m
+        pkg-pattern: "*app*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*lite*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*pytorch*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
+    - uses: ./.github/actions/pkg-publish
+      with:
+        pkg-pattern: "*"
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
 
+  publish-packages:
+    runs-on: ubuntu-20.04
+    needs: waiting
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - run: ls -lh dist/
+    - run: mkdir pypi/
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*app*"
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*lite*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*pytorch*"
         pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
-
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
   legacy-checkpoints:
-    needs: publish-packages
+    needs: [build-packages]
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
-      push_to_s3: true
-      create_pr: true
+      push_to_s3: ${{ env.PUBLISH }}
+      create_pr: ${{ env.PUBLISH }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

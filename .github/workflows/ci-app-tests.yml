@@ -8,13 +8,13 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -77,16 +77,11 @@ jobs:
       - name: Switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
-      - name: Install package
+      - name: Install package & depenencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
-          pip list
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
+          pip install -e . -r requirements/app/devel.txt -U -q --find-links ${TORCH_URL}
           pip list
 
       - name: Setup Node.js

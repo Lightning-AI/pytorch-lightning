@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, T
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.storage import Path
 from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
@@ -357,7 +358,7 @@ class WorkRunExecutor:
         yield
 
     def _clean_queues(self):
-        if "LIGHTNING_APP_STATE_URL" in os.environ:
+        if not isinstance(self.work._request_queue, MultiProcessQueue):
             self.work._request_queue = self.work._request_queue.to_dict()
             self.work._response_queue = self.work._response_queue.to_dict()
 

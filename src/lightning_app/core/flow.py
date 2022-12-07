@@ -232,6 +232,12 @@ class LightningFlow:
         return self.__getattribute__(item)
 
     @property
+    def ready(self) -> bool:
+        """Override to customize when your App should be ready."""
+        flows = self.flows
+        return all(flow.ready for flow in flows.values()) if flows else True
+
+    @property
     def changes(self):
         return self._changes.copy()
 
@@ -766,6 +772,13 @@ class _RootFlow(LightningFlow):
     def __init__(self, work):
         super().__init__()
         self.work = work
+
+    @property
+    def ready(self) -> bool:
+        ready = getattr(self.work, "ready", None)
+        if ready:
+            return ready
+        return self.work.url != ""
 
     def run(self):
         if self.work.has_succeeded:

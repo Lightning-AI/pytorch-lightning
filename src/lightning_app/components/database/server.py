@@ -19,6 +19,8 @@ from lightning_app.utilities.packaging.build_config import BuildConfig
 
 if _is_sqlmodel_available():
     from sqlmodel import SQLModel
+else:
+    SQLModel = object
 
 
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
