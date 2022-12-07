@@ -123,7 +123,9 @@ jobs:
     - name: GIT Push
       run: |
         git status
-        git push
+        # force push is not very nice
+        # but so far the push is rejected even with exception for this user
+        git push -f
 
   waiting:
     # TODO: replace with back signal from build images/ loop checking for a specific branch?
