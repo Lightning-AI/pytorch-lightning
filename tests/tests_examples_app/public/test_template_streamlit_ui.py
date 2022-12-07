@@ -4,7 +4,7 @@ from time import sleep
 import pytest
 from tests_examples_app.public import _PATH_EXAMPLES
 
-from lightning_app.testing.testing import run_app_in_cloud
+from lightning_app.testing.testing import run_app_in_cloud, wait_for
 
 
 @pytest.mark.cloud
@@ -16,34 +16,19 @@ def test_template_streamlit_ui_example_cloud() -> None:
         fetch_logs,
         _,
     ):
-        import playwright
 
-        print("Reached")
+        def click_button(*_, **__):
+            button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
 
-        i = 0
-
-        while i < 2:
-            try:
-                print("clicking")
-                button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
+            if button.all_text_contents() == ["Should print to the terminal ?"]:
                 button.click()
-                print("clicked")
-                break
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-                print(e)
-                try:
-                    sleep(5)
-                    view_page.reload()
-                except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-                    print(e)
-                    pass
-                sleep(2)
-                i = i + 1
+                return True
+
+        wait_for(view_page, click_button)
 
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
-                print(log)
-                if "Hello World!" in log:
+                if "0: Hello World!" in log:
                     has_logs = True
             sleep(1)

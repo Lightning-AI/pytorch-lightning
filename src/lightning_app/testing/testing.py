@@ -385,25 +385,9 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        # Wait until the app is running
-        while True:
-            sleep(1)
-
-            lit_apps = [
-                app
-                for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                    project_id=project.project_id
-                ).lightningapps
-                if app.name == name
-            ]
-            app = lit_apps[0]
-
-            if app.status.phase == V1LightningappInstanceState.RUNNING:
-                break
-
         view_page = None
         if not app.spec.is_headless:
-            for _ in range(5):
+            while True:
                 try:
                     admin_page.reload()
                     with admin_page.context.expect_page() as page_catcher:
@@ -412,10 +396,23 @@ def run_app_in_cloud(
                     view_page.wait_for_load_state(timeout=0)
                     break
                 except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                    sleep(1)
+                    pass
+        else:
+            # Wait until the app is running
+            while True:
+                sleep(1)
 
-            if view_page is None:
-                raise RuntimeError("Failed to open the app UI")
+                lit_apps = [
+                    app
+                    for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                        project_id=project.project_id
+                    ).lightningapps
+                    if app.name == name
+                ]
+                app = lit_apps[0]
+
+                if app.status.phase == V1LightningappInstanceState.RUNNING:
+                    break
 
         # TODO: is re-creating this redundant?
         lit_apps = [
