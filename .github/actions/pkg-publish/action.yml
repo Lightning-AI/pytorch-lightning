@@ -30,7 +30,7 @@ runs:
     if: inputs.pypi-test-token != ''
     with:
       user: __token__
-      password: ${{ input.pypi-test-token }}
+      password: ${{ inputs.pypi-test-token }}
       repository_url: https://test.pypi.org/legacy/
       packages_dir: pypi/
       verbose: true
