@@ -130,13 +130,6 @@ class InMemoryStateStore(StateStore):
         self.store[k].session_id = v
 
 
-class DistributedMode(enum.Enum):
-    SINGLEPROCESS = enum.auto()
-    MULTIPROCESS = enum.auto()
-    CONTAINER = enum.auto()
-    GRID = enum.auto()
-
-
 class _LightningAppRef:
     _app_instance: Optional["LightningApp"] = None
 
