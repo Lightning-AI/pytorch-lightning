@@ -70,6 +70,10 @@ class XLAStrategy(ParallelStrategy):
         return xm.xla_device()
 
     @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
+    @property
     def local_rank(self) -> int:
         return self._local_rank
 
@@ -207,9 +211,8 @@ class XLAStrategy(ParallelStrategy):
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
-        num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
-        self.cluster_environment.set_global_rank(self.node_rank * num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(num_processes)
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @staticmethod

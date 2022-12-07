@@ -18,14 +18,15 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 from torch.multiprocessing import get_context
 
 from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot, _MultiProcessingLauncher
+from lightning_lite.strategies.launchers.base import _Launcher
+from lightning_lite.strategies.launchers.multiprocessing import _GlobalStateSnapshot
 from lightning_lite.utilities.apply_func import move_data_to_device
 
 if TYPE_CHECKING:
     from lightning_lite.strategies import XLAStrategy
 
 
-class _XLALauncher(_MultiProcessingLauncher):
+class _XLALauncher(_Launcher):
     r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
     end.
 
@@ -44,7 +45,8 @@ class _XLALauncher(_MultiProcessingLauncher):
     def __init__(self, strategy: "XLAStrategy") -> None:
         if not _XLA_AVAILABLE:
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
-        super().__init__(strategy=strategy, start_method="fork")
+        self._strategy = strategy
+        self._start_method = "fork"
 
     @property
     def is_interactive_compatible(self) -> bool:
