@@ -68,9 +68,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
                 kwargs["accelerator"] = "cpu"
 
                 if old_acc_value != kwargs["accelerator"]:
-                    warnings.warn(
-                        "Forcing `accelerator=cpu` as MPS does not support distributed training."
-                    )
+                    warnings.warn("Forcing `accelerator=cpu` as MPS does not support distributed training.")
             else:
                 kwargs["accelerator"] = "auto"
             strategy = kwargs.get("strategy", None)
