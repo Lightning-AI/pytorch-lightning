@@ -4,7 +4,7 @@ from time import sleep
 import pytest
 from tests_examples_app.public import _PATH_EXAMPLES
 
-from lightning_app.testing.testing import run_app_in_cloud, wait_for
+from lightning_app.testing.testing import run_app_in_cloud
 
 
 @pytest.mark.cloud
@@ -16,23 +16,8 @@ def test_template_streamlit_ui_example_cloud() -> None:
         fetch_logs,
         _,
     ):
-
-        def click_button(*_, **__):
-            button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
-
-            if button.all_text_contents() == ["Should print to the terminal ?"]:
-                button.click()
-                return True
-
-        wait_for(view_page, click_button)
-
-        print("Button clicked")
-
-        # Print a few more times to make sure we get logs
-        for _ in range(5):
-            button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
-            button.click()
-            print("Button clicked")
+        button = view_page.frame_locator("iframe").locator('button:has-text("Should print to the terminal ?")')
+        button.click()
 
         has_logs = False
         while not has_logs:
