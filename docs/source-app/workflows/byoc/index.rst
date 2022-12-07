@@ -3,7 +3,8 @@
 Run Apps on your own cloud (BYOC)
 #################################
 
-**Audience:** Users looking to run Lightning Apps on their own private cloud.
+**Audience:** Users looking to run Lightning Apps on their own private cloud infrastructure. The following document assumes
+basic familiarity with configuration cloud provider infrastructure.
 
 ----
 
@@ -12,9 +13,9 @@ A bit of background
 *******************
 
 BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
-BYOC separates the control and data plane. The data plane, that includes
-Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
-The control plane resides on Lightning Cloud.
+BYOC separates the control- and dataplane. The data plane, that includes
+Lightning clusters, services and Lightning Apps, reside inside the user’s own cloud provider account.
+The controlplane resides on Lightning Cloud.
 
 Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
 delegated access and an identity provider for secure access to the data plane.
