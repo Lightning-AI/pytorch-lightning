@@ -198,7 +198,8 @@ class MultiProcessQueue(BaseQueue):
     def __init__(self, name: str, default_timeout: float):
         self.name = name
         self.default_timeout = default_timeout
-        self.queue = multiprocessing.Queue()
+        context = multiprocessing.get_context("spawn")
+        self.queue = context.Queue()
 
     def put(self, item):
         self.queue.put(item)

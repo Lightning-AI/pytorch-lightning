@@ -13,14 +13,19 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Type, Union
 
 import torch
 from torch import Tensor
+from torch.nn import Module
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fsdp_native import _optimizer_has_flat_params
+from lightning_lite.strategies.fsdp import (
+    _init_cpu_offload,
+    _optimizer_has_flat_params,
+    _setup_activation_checkpointing,
+)
 from lightning_lite.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -38,7 +43,7 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -83,14 +88,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload:
-            CPU offloading config. Currently, only parameter and gradient CPU
-            offload is supported. It can be enabled via passing in
-            ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
-            currently implicitly enables gradient offloading to CPU in order for
-            params and grads to be on same device to work with optimizer. This
-            API is subject to change. Default is ``None`` in which case there
-            will be no offloading.
+        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
+            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
+            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
+            to work with the optimizer. This API is subject to change. Default: no offoading
         backward_prefetch:
             This is an experimental feature that is subject to change in the
             the near future. It allows users to enable two different backward_prefetch
@@ -100,6 +101,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16``
             or BF16 if ``precision=bf16`` unless a config is passed in.
             This is only available in PyTorch 1.12 and later.
+        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
+            checkpointing. This is typically your transformer block (including attention + feed-forward).
+            Enabling this can free up a significant amount of memory at the cost of speed since activations in
+            these layers need to be recomputed during backpropagation.
         \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
 
     """
@@ -115,9 +120,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload: Optional[CPUOffload] = None,
+        cpu_offload: Union[bool, "CPUOffload", None] = None,
         backward_prefetch: Optional[BackwardPrefetch] = None,
         mixed_precision: Optional[MixedPrecision] = None,
+        activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -135,10 +141,16 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
-        self.cpu_offload = cpu_offload
+        self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
         self._rank_0_will_call_children_scripts: bool = False
+        if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
+            raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
+        activation_checkpointing = activation_checkpointing or []
+        self._activation_checkpointing = (
+            [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        )
         self.kwargs = kwargs
 
     @property
@@ -209,15 +221,14 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
         assert self.lightning_module is not None
-        if (
-            any(isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules())
-            and "auto_wrap_policy" in self.kwargs
+        if "auto_wrap_policy" in self.kwargs and any(
+            isinstance(mod, FullyShardedDataParallel) for mod in self.lightning_module.modules()
         ):
             del self.kwargs["auto_wrap_policy"]
 
         log.detail(f"setting up FSDP model with device id: {self.root_device.index}, kwargs: {self.kwargs}")
 
-        return FullyShardedDataParallel(
+        wrapped_module = FullyShardedDataParallel(
             module=model,
             process_group=self.process_group,
             cpu_offload=self.cpu_offload,
@@ -226,6 +237,12 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             device_id=self.root_device.index,
             **self.kwargs,
         )
+
+        # activation checkpointing needs to be set up after wrapping the model
+        if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
+            _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
+
+        return wrapped_module
 
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
@@ -386,6 +403,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 "fsdp_native_full_shard_offload",
                 cls,
                 description="Native FSDP with Full Sharding and CPU Offloading",
-                cpu_offload=CPUOffload(offload_params=True),
+                cpu_offload=True,
             )
             cls._registered_strategies.append("fsdp_native_full_shard_offload")

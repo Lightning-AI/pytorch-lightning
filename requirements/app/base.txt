@@ -1,4 +1,4 @@
-lightning-cloud>=0.5.11
+lightning-cloud>=0.5.12
 packaging
 typing-extensions>=4.0.0, <=4.4.0
 deepdiff>=5.7.0, <=5.8.1
@@ -7,9 +7,9 @@ fsspec>=2022.5.0, <=2022.7.1
 croniter>=1.3.0, <1.4.0  # strict; TODO: for now until we find something more robust.
 traitlets>=5.3.0, <=5.4.0
 arrow>=1.2.0, <1.2.4
-lightning-utilities==0.3.*
+lightning-utilities>=0.3.*, !=0.4.0, <0.5.0
 beautifulsoup4>=4.8.0, <4.11.2
 inquirer>=2.10.0
 psutil<5.9.4
 click<=8.1.3
-lightning_api_access>=0.0.1
+aiohttp>=3.8.0, <=3.8.3

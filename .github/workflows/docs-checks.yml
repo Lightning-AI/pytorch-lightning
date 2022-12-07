@@ -10,12 +10,12 @@ on:
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
+      - ".github/workflows/docs-checks.yml"
       - "requirements/**"
       - "docs/**"
       - "src/**"
       - "setup.py"
       - "setup.cfg"  # includes metadata used in the package creation
-      - ".github/workflows/docs-checks.yml"
       - "!*.md"
       - "!**/*.md"
 
@@ -79,8 +79,7 @@ jobs:
         # This is needed as App docs is heavily using/referring to lightning package
         if: ${{ matrix.pkg-name == 'app' }}
         run: |
-          pip install -e . -U  -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
-          git checkout -- .
+          pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
 
       - name: Adjust docs refs
         if: ${{ matrix.pkg-name == 'app' }}

@@ -42,8 +42,8 @@ def main_train(dir_path, max_epochs: int = 20):
     model = ClassificationModel()
     trainer.fit(model, datamodule=dm)
     res = trainer.test(model, datamodule=dm)
-    assert res[0]["test_loss"] <= 0.7
-    assert res[0]["test_acc"] >= 0.85
+    assert res[0]["test_loss"] <= 0.85, str(res[0]["test_loss"])
+    assert res[0]["test_acc"] >= 0.7, str(res[0]["test_acc"])
     assert trainer.current_epoch < (max_epochs - 1)
 
 
