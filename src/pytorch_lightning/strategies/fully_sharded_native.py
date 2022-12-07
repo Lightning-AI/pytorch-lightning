@@ -21,7 +21,11 @@ from torch.nn import Module
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fsdp import _optimizer_has_flat_params, _setup_activation_checkpointing
+from lightning_lite.strategies.fsdp import (
+    _init_cpu_offload,
+    _optimizer_has_flat_params,
+    _setup_activation_checkpointing,
+)
 from lightning_lite.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
@@ -84,14 +88,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload:
-            CPU offloading config. Currently, only parameter and gradient CPU
-            offload is supported. It can be enabled via passing in
-            ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
-            currently implicitly enables gradient offloading to CPU in order for
-            params and grads to be on same device to work with optimizer. This
-            API is subject to change. Default is ``None`` in which case there
-            will be no offloading.
+        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
+            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
+            implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
+            to work with the optimizer. This API is subject to change. Default: no offoading
         backward_prefetch:
             This is an experimental feature that is subject to change in the
             the near future. It allows users to enable two different backward_prefetch
@@ -120,7 +120,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload: Optional[CPUOffload] = None,
+        cpu_offload: Union[bool, "CPUOffload", None] = None,
         backward_prefetch: Optional[BackwardPrefetch] = None,
         mixed_precision: Optional[MixedPrecision] = None,
         activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
@@ -141,7 +141,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self._process_group = None
         self.num_nodes = 1
         self._process_group_backend = process_group_backend
-        self.cpu_offload = cpu_offload
+        self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
         self._rank_0_will_call_children_scripts: bool = False
@@ -403,6 +403,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 "fsdp_native_full_shard_offload",
                 cls,
                 description="Native FSDP with Full Sharding and CPU Offloading",
-                cpu_offload=CPUOffload(offload_params=True),
+                cpu_offload=True,
             )
             cls._registered_strategies.append("fsdp_native_full_shard_offload")
