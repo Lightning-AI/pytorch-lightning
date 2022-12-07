@@ -188,13 +188,16 @@ class PythonServer(LightningWork, abc.ABC):
         return out
 
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
-        from torch import inference_mode
+        from torch import inference_mode, no_grad
 
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
+        device = get_device()
+        context = no_grad if device.type == "mps" else inference_mode
+
         def predict_fn(request: input_type):  # type: ignore
-            with inference_mode():
+            with context:
                 return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
