@@ -2,9 +2,9 @@ name: Test PyTorch - TPU
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
   pull_request_target:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
