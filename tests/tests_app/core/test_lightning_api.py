@@ -106,7 +106,7 @@ class A2(LightningFlow):
 
 
 # TODO: Find why this test is flaky.
-@pytest.mark.skipif(True, reason="flaky test.")
+@pytest.mark.skip(reason="flaky test.")
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 def test_app_state_api_with_flows(runtime_cls, tmpdir):
     """This test validates the AppState can properly broadcast changes from flows."""
@@ -180,7 +180,7 @@ class AppStageTestingApp(LightningApp):
 
 
 # FIXME: This test doesn't assert anything
-@pytest.mark.skipif(True, reason="TODO: Resolve flaky test.")
+@pytest.mark.skip(reason="TODO: Resolve flaky test.")
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_app_stage_from_frontend(runtime_cls):
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would

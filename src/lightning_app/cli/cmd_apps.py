@@ -54,14 +54,25 @@ class _AppManager:
             apps = apps + resp.lightningapps
         return apps
 
-    def list_components(self, app_id: str) -> List[Externalv1Lightningwork]:
+    def list_components(self, app_id: str, phase_in: List[str] = []) -> List[Externalv1Lightningwork]:
         project = _get_project(self.api_client)
-        resp = self.api_client.lightningwork_service_list_lightningwork(project_id=project.project_id, app_id=app_id)
+        resp = self.api_client.lightningwork_service_list_lightningwork(
+            project_id=project.project_id,
+            app_id=app_id,
+            phase_in=phase_in,
+        )
         return resp.lightningworks
 
     def list(self, cluster_id: str = None, limit: int = 100) -> None:
         console = Console()
         console.print(_AppList(self.list_apps(cluster_id=cluster_id, limit=limit)).as_table())
+
+    def delete(self, app_id: str) -> None:
+        project = _get_project(self.api_client)
+        self.api_client.lightningapp_instance_service_delete_lightningapp_instance(
+            project_id=project.project_id,
+            id=app_id,
+        )
 
 
 class _AppList(Formatable):
