@@ -478,9 +478,9 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
 to_device
 =========
 
-Use :meth:`~pytorch_lightning.lite.lite.Fabric.to_device` to move models, tensors or collections of tensors to
-the current device. By default :meth:`~pytorch_lightning.lite.lite.Fabric.setup` and
-:meth:`~pytorch_lightning.lite.lite.Fabric.setup_dataloaders` already move the model and data to the correct
+Use :meth:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
+the current device. By default :meth:`~pytorch_lightning.lite.lite.LightningLite.setup` and
+:meth:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
 
 .. code-block:: python
@@ -508,7 +508,7 @@ autocast
 ========
 
 Let the precision backend autocast the block of code under this context manager. This is optional and already done by
-Lite for the model's forward method (once the model was :meth:`~pytorch_lightning.lite.lite.Fabric.setup`).
+Lite for the model's forward method (once the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
 You need this only if you wish to autocast more operations outside the ones in model forward:
 
 .. code-block:: python
