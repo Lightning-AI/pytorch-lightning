@@ -511,16 +511,16 @@ class CloudRuntime(Runtime):
         excludes.update(fnmatch.filter(repo.files, ".lightningignore"))
         files = [Path(f) for f in repo.files if f not in excludes]
         file_sizes = {f: f.stat().st_size for f in files}
-        mb = 1000 * 1000
+        mb = 1000_000
         app_folder_size_in_mb = sum(file_sizes.values()) / mb
         if app_folder_size_in_mb > CLOUD_UPLOAD_WARNING:
             # filter out files under 0.01mb
-            relevant_files = {f: s for f, s in file_sizes.items() if s > 0.01 * mb}
+            relevant_files = {f: sz for f, sz in file_sizes.items() if sz > 0.01 * mb}
             if relevant_files:
                 by_largest = dict(sorted(relevant_files.items(), key=lambda x: x[1], reverse=True))
                 by_largest = dict(list(by_largest.items())[:25])  # trim
                 largest_paths_msg = "\n".join(
-                    f"{round(s / mb, 5)} MB: {p.relative_to(root)}" for p, s in by_largest.items()
+                    f"{round(sz / mb, 5)} MB: {p.relative_to(root)}" for p, sz in by_largest.items()
                 )
                 largest_paths_msg = f"Here are the largest files:\n{largest_paths_msg}\n"
             else:
@@ -529,7 +529,7 @@ class CloudRuntime(Runtime):
                 f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
                 f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
                 + largest_paths_msg
-                + "Perhaps you should try running the app in an empty directory."
+                + " Perhaps you should try running the app in an empty directory."
             )
             if not (root / DOT_IGNORE_FILENAME).is_file():
                 warning_msg += (
