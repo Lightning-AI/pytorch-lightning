@@ -14,7 +14,7 @@ except Exception:
 
 # Taken from https://github.com/facebookresearch/metaseq/blob/main/metaseq/pdb.py
 class MPPdb(pdb.Pdb):
-    """A Pdb wrapper that works in a multiprocessing environment"""
+    """A Pdb wrapper that works in a multiprocessing environment."""
 
     def __init__(self):
         pdb.Pdb.__init__(self, nosigint=True)

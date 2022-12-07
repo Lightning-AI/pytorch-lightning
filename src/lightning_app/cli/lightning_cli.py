@@ -530,6 +530,7 @@ def install_component(name: str, yes: bool, version: str) -> None:
     else:
         cmd_install.gallery_component(name, yes, version)
 
+
 @_main.group()
 def init() -> None:
     """Init a Lightning App and/or component."""
