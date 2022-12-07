@@ -14,7 +14,10 @@ from lightning_app.utilities.state import AppState
 def _get_render_fn_from_environment() -> Callable:
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
     render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
-    module = pydoc.importfile(render_fn_module_file)
+    try:
+        module = pydoc.importfile(render_fn_module_file)
+    except pydoc.ErrorDuringImport as exc:
+        raise exc.value from None
     return getattr(module, render_fn_name)
 
 
