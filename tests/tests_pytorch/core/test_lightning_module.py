@@ -21,7 +21,7 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, DemoModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
@@ -440,3 +440,21 @@ def test_trainer_reference_recursively():
     assert ensemble.trainer is inner.trainer
     # and the trainer was weakly referenced
     assert inner.trainer is weakref.proxy(trainer)
+
+
+# TODO: replace with 1.14 when it is released
+@RunIf(min_torch="1.14.0.dev20221202")
+def test_compile_uncompile():
+
+    lit_model = DemoModel()
+    model_compiled = torch.compile(lit_model)
+
+    lit_model_compiled = LightningModule.from_compiled(model_compiled)
+
+    assert isinstance(lit_model_compiled, LightningModule)
+    assert lit_model_compiled._compiler_ctx is not None
+
+    lit_model_orig = LightningModule.to_uncompiled(lit_model)
+
+    assert lit_model_orig._compiler_ctx is None
+    assert lit_model_orig.forward == lit_model.forward

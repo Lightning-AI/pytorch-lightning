@@ -29,6 +29,8 @@ from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
+    _handle_is_headless,
+    _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
     Logger,
@@ -138,6 +140,10 @@ class LightningApp:
         self._schedules: Dict[str, Dict] = {}
         self.threads: List[threading.Thread] = []
         self.exception = None
+        self.collect_changes: bool = True
+
+        # TODO: Enable ready locally for opening the UI.
+        self.ready = False
 
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
@@ -146,6 +152,8 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+
+        self.is_headless: Optional[bool] = None
 
         self._original_state = None
         self._last_state = self.state
@@ -362,10 +370,13 @@ class LightningApp:
             delta.raise_errors = False
         return deltas
 
-    def maybe_apply_changes(self) -> bool:
+    def maybe_apply_changes(self) -> None:
         """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
         state."""
         self._send_flow_to_work_deltas(self.state)
+
+        if not self.collect_changes:
+            return None
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
@@ -408,6 +419,7 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
+        self._update_is_headless()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -436,6 +448,9 @@ class LightningApp:
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
+
+        if not self.ready:
+            self.ready = self.root.ready
 
         self._last_run_time = time() - t0
 
@@ -471,13 +486,11 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
+        self.ready = self.root.ready
 
         self._start_with_flow_works()
 
-        if self.should_publish_changes_to_api and self.api_publish_state_queue:
-            logger.debug("Publishing the state with changes")
-            # Push two states to optimize start in the cloud.
-            self.api_publish_state_queue.put(self.state_vars)
+        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
@@ -487,7 +500,7 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
+            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
             self._has_updated = False
@@ -505,6 +518,16 @@ class LightningApp:
         for component in breadth_first(self.root, types=(lightning_app.LightningFlow,)):
             layout = _collect_layout(self, component)
             component._layout = layout
+
+    def _update_is_headless(self) -> None:
+        is_headless = _is_headless(self)
+
+        # If `is_headless` changed, handle it.
+        # This ensures support for apps which dynamically add a UI at runtime.
+        if self.is_headless != is_headless:
+            self.is_headless = is_headless
+
+            _handle_is_headless(self)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()

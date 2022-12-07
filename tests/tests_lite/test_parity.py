@@ -162,7 +162,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
         _atomic_save(model.state_dict(), os.path.join(tmpdir, "model_spawn.pt"))
 
 
-@pytest.mark.skipif(True, reason="Skipping as it takes 80 seconds.")
+@pytest.mark.skip(reason="Skipping as it takes 80 seconds.")
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
