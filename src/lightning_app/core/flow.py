@@ -173,7 +173,7 @@ class LightningFlow:
             elif isinstance(value, (Dict, List)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if self._backend:
+                if getattr(self, "_backend", None) is not None:
                     value._backend = self._backend
                     for flow in value.flows:
                         LightningFlow._attach_backend(flow, self._backend)
