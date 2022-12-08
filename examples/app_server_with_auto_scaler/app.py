@@ -22,8 +22,6 @@ class BatchResponse(BaseModel):
 
 class PyTorchServer(L.app.components.PythonServer):
     def __init__(self, *args, **kwargs):
-        print(args)
-        print(kwargs)
         super().__init__(
             input_type=BatchRequestModel,
             output_type=BatchResponse,
