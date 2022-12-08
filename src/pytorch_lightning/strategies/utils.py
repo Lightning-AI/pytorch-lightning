@@ -16,6 +16,7 @@ import os
 from inspect import getmembers, isclass
 
 import torch
+from torch import Tensor
 
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.strategies import _StrategyRegistry
@@ -40,7 +41,7 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
             mod.register_strategies(registry)
 
 
-def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+def _fp_to_half(tensor: Tensor, precision: PrecisionType) -> Tensor:
     if precision == PrecisionType.HALF:
         return _convert_fp_tensor(tensor, torch.half)
     if precision == PrecisionType.BFLOAT:

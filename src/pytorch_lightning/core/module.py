@@ -88,7 +88,6 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
-            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -403,7 +402,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        value = apply_to_collection(value, (torch.Tensor, numbers.Number), self.__to_tensor, name)
+        value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -545,10 +544,10 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
+    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
         value = (
             value.clone().detach().to(self.device)
-            if isinstance(value, torch.Tensor)
+            if isinstance(value, Tensor)
             else torch.tensor(value, device=self.device)
         )
         if not torch.numel(value) == 1:
