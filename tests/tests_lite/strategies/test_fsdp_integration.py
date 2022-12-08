@@ -72,7 +72,7 @@ def _assert_save_equality(lite, model, ckpt_path):
 
     # model parameters are identical after loading
     for current_param, loaded_param in zip(current_state_dict.values(), loaded_model.state_dict().values()):
-        assert torch.equal(current_param.float().cpu(), loaded_param.cpu())
+        assert torch.allclose(current_param.float().cpu(), loaded_param.cpu())
 
 
 def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_params: int = int(1e8)) -> bool:
@@ -84,7 +84,10 @@ def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_par
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
     """Test FSDP training, saving and loading with different wrapping and precision settings."""
-    strategy = FSDPStrategy(auto_wrap_policy=_custom_auto_wrap_policy)
+    strategy = FSDPStrategy(
+        auto_wrap_policy=_custom_auto_wrap_policy,
+        activation_checkpointing=[torch.nn.Linear],
+    )
     lite = LightningLite(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
     lite.launch()
 
