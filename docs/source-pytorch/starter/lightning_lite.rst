@@ -3,7 +3,7 @@ Lightning Lite
 ##############
 
 
-:class:`~pytorch_lightning.lite.LightningLite` enables pure PyTorch users to scale their existing code
+:class:`~lightning_fabric.fabric.Fabric` enables pure PyTorch users to scale their existing code
 on any kind of device while retaining full control over their own loops and optimization logic.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
@@ -13,13 +13,13 @@ on any kind of device while retaining full control over their own loops and opti
 
 |
 
-:class:`~pytorch_lightning.lite.LightningLite` is the right tool for you if you match one of the two following descriptions:
+:class:`~lightning_fabric.fabric.Fabric` is the right tool for you if you match one of the two following descriptions:
 
 - I want to quickly scale my existing code to multiple devices with minimal code changes.
 - I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
 
 
-.. warning:: :class:`~pytorch_lightning.lite.LightningLite` is currently a beta feature. Its API is subject to change based on your feedback.
+.. warning:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on your feedback.
 
 
 ----------
@@ -75,12 +75,12 @@ The ``train`` function contains a standard training loop used to train ``MyModel
 Convert to Fabric
 =================
 
-Here are five easy steps to let :class:`~pytorch_lightning.lite.LightningLite` scale your PyTorch models.
+Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale your PyTorch models.
 
-1. Create the :class:`~pytorch_lightning.lite.LightningLite` object at the beginning of your training code.
-2. Remove all ``.to`` and ``.cuda`` calls since :class:`~pytorch_lightning.lite.LightningLite` will take care of it.
-3. Apply :meth:`~pytorch_lightning.lite.LightningLite.setup` over each model and optimizers pair and :meth:`~pytorch_lightning.lite.LightningLite.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``lite.backward(loss)``.
-4. Run the script from the terminal using ``lightning run model path/to/train.py`` or use the :meth:`~pytorch_lightning.lite.LightningLite.launch` method in a notebook.
+1. Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
+2. Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
+3. Apply :meth:`~lightning_fabric.fabric.Fabric.setup` over each model and optimizers pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``lite.backward(loss)``.
+4. Run the script from the terminal using ``lightning run model path/to/train.py`` or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 
 |
 
@@ -138,7 +138,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
 
      lightning run model ./path/to/train.py --strategy=deepspeed --devices=8 --accelerator=cuda --precision=16
 
-:class:`~pytorch_lightning.lite.LightningLite` can also figure it out automatically for you!
+:class:`~lightning_fabric.fabric.Fabric` can also figure it out automatically for you!
 
 .. code-block:: bash
 
@@ -180,8 +180,8 @@ You can also easily use distributed collectives if required.
 
 The code stays agnostic, whether you are running on CPU, on two GPUS or on multiple machines with many GPUs.
 
-If you require custom data or model device placement, you can deactivate :class:`~pytorch_lightning.lite.LightningLite`'s automatic placement by doing ``lite.setup_dataloaders(..., move_to_device=False)`` for the data and ``lite.setup(..., move_to_device=False)`` for the model.
-Furthermore, you can access the current device from ``lite.device`` or rely on :meth:`~pytorch_lightning.lite.LightningLite.to_device` utility to move an object to the current device.
+If you require custom data or model device placement, you can deactivate :class:`~lightning_fabric.fabric.Fabric`'s automatic placement by doing ``lite.setup_dataloaders(..., move_to_device=False)`` for the data and ``lite.setup(..., move_to_device=False)`` for the model.
+Furthermore, you can access the current device from ``lite.device`` or rely on :meth:`~lightning_fabric.fabric.Fabric.to_device` utility to move an object to the current device.
 
 
 ----------
@@ -190,7 +190,7 @@ Furthermore, you can access the current device from ``lite.device`` or rely on :
 Distributed Training Pitfalls
 =============================
 
-The :class:`~pytorch_lightning.lite.LightningLite` provides you with the tools to scale your training, but there are several major challenges ahead of you now:
+The :class:`~lightning_fabric.fabric.Fabric` provides you with the tools to scale your training, but there are several major challenges ahead of you now:
 
 
 .. list-table::
@@ -211,7 +211,7 @@ The :class:`~pytorch_lightning.lite.LightningLite` provides you with the tools t
      - Ability to resume from a failure as if it never happened.
 
 
-If you are facing one of those challenges, then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
+If you are facing one of those challenges, then you are already meeting the limit of :class:`~lightning_fabric.fabric.Fabric`.
 We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
 
 
@@ -478,9 +478,9 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
 to_device
 =========
 
-Use :meth:`~pytorch_lightning.lite.lite.LightningLite.to_device` to move models, tensors or collections of tensors to
-the current device. By default :meth:`~pytorch_lightning.lite.lite.LightningLite.setup` and
-:meth:`~pytorch_lightning.lite.lite.LightningLite.setup_dataloaders` already move the model and data to the correct
+Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors or collections of tensors to
+the current device. By default :meth:`~lightning_fabric.fabric.Fabric.setup` and
+:meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
 
 .. code-block:: python
@@ -508,7 +508,7 @@ autocast
 ========
 
 Let the precision backend autocast the block of code under this context manager. This is optional and already done by
-Lite for the model's forward method (once the model was :meth:`~pytorch_lightning.lite.lite.LightningLite.setup`).
+Lite for the model's forward method (once the model was :meth:`~lightning_fabric.fabric.Fabric.setup`).
 You need this only if you wish to autocast more operations outside the ones in model forward:
 
 .. code-block:: python
