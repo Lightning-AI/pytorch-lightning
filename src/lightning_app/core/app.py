@@ -93,12 +93,10 @@ class LightningApp:
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
-            ...         print("Hello World!")
             ...         self._exit()
             ...
             >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             >>> MultiProcessRuntime(app).dispatch()
-            Hello World!
         """
 
         self.root_path = root_path  # when running behind a proxy
