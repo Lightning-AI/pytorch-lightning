@@ -511,14 +511,10 @@ def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
 
 
-def _debugger_is_active() -> bool:
-    """Return if the debugger is currently active."""
-    return hasattr(sys, "gettrace") and sys.gettrace() is not None
-
-
 def _should_dispatch_app() -> bool:
     return (
-        _debugger_is_active()
+        __debug__
+        and "_pytest.doctest" not in sys.modules
         and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
         and "LIGHTNING_APP_STATE_URL" not in os.environ
     )
