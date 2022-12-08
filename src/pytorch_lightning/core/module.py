@@ -1979,9 +1979,17 @@ class LightningModule(
             "compiler": "dynamo",
             "dynamo_ctx": model.dynamo_ctx,
             "original_forward": orig_module.forward,
+            "original_training_step": orig_module.training_step,
+            "original_validation_step": orig_module.validation_step,
+            "original_test_step": orig_module.test_step,
+            "original_predict_step": orig_module.predict_step,
         }
 
         orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
+        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
+        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
+        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
+        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
         return orig_module
 
     @classmethod
@@ -2010,6 +2018,10 @@ class LightningModule(
             raise ValueError("`model` must either be an instance of torch._dynamo.OptimizedModule or LightningModule")
 
         model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
+        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
+        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
+        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
+        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
         model._compiler_ctx = None
 
         return model
