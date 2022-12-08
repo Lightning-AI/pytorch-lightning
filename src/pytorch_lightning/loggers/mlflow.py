@@ -31,6 +31,7 @@ from typing_extensions import Literal
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
+from pytorch_lightning.utilities.imports import RequirementCache
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -153,6 +154,9 @@ class MLFlowLogger(Logger):
             raise ModuleNotFoundError(
                 "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
             )
+        if not RequirementCache("mlflow>=1.0.0"):
+            # we require the log_batch APIs that were introduced in mlflow 1.0.0
+            raise RuntimeError("Incompatible mlflow version")
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
