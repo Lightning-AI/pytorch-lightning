@@ -21,7 +21,7 @@ from lightning_app.core.constants import (
     FRONTEND_DIR,
     STATE_ACCUMULATE_WAIT,
 )
-from lightning_app.core.queues import BaseQueue, SingleProcessQueue
+from lightning_app.core.queues import BaseQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path, Payload
@@ -548,8 +548,6 @@ class LightningApp:
 
     def _should_snapshot(self) -> bool:
         if len(self.works) == 0:
-            return True
-        elif isinstance(self.delta_queue, SingleProcessQueue):
             return True
         elif self._has_updated:
             work_finished_status = self._collect_work_finish_status()
