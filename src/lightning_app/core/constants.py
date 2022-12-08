@@ -75,3 +75,7 @@ ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
 
 def enable_multiple_works_in_default_container() -> bool:
     return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
+
+
+# Number of seconds to wait between filesystem checks when waiting for files in remote storage
+REMOTE_STORAGE_WAIT = 0.5

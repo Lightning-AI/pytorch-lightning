@@ -16,7 +16,7 @@ from lightning_app.utilities.redis import check_if_redis_running
 
 
 @pytest.mark.skipif(not check_if_redis_running(), reason="Redis is not running")
-@pytest.mark.parametrize("queue_type", [QueuingSystem.REDIS, QueuingSystem.MULTIPROCESS, QueuingSystem.SINGLEPROCESS])
+@pytest.mark.parametrize("queue_type", [QueuingSystem.REDIS, QueuingSystem.MULTIPROCESS])
 def test_queue_api(queue_type, monkeypatch):
     """Test the Queue API.
 
