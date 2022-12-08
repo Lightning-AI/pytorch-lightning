@@ -309,6 +309,17 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   git push -f
   ```
 
+#### How to run an app on the cloud with lightning that you're making changes
+
+Once you install lightning in editable mode following [the installation guide](https://github.com/Lightning-AI/lightning/#install-bleeding-edge), set the following environment variable before running your app on the cloud:
+
+```bash
+export PACKAGE_LIGHTNING=1  # <- this is the magic to use dev version!!!
+lightning run app app.py --cloud
+```
+
+By seting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code.
+
 ### Bonus Workflow Tip
 
 If you don't want to remember all the commands above every time you want to push some code/setup a Lightning Dev environment on a new VM, you can set up bash aliases for some common commands. You can add these to one of your `~/.bashrc`, `~/.zshrc`, or `~/.bash_aliases` files.
