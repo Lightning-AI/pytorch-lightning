@@ -317,7 +317,7 @@ The lightning cloud uses the latest release by default. However, you might want 
 git clone https://github.com/Lightning-AI/lightning.git
 cd lightning
 pip install -e .
-export PACKAGE_LIGHTNING=1  # <- this is the magic to use local version!
+export PACKAGE_LIGHTNING=1  # <- this is the magic to use your version (not mainstream PyPI)!
 lightning run app app.py --cloud
 ```
 
