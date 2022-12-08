@@ -364,6 +364,7 @@ if RequirementCache("lightning-lite"):
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
+_main.add_command(cmd_install.install)
 
 
 @_main.command("ssh")
@@ -445,90 +446,6 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
             "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
     os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
-
-
-@_main.group()
-def install() -> None:
-    """Install a Lightning App and/or component."""
-
-
-def _install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
-    if "github.com" in name:
-        if version != "latest":
-            logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
-            )
-        return cmd_install.non_gallery_app(name, yes, overwrite=overwrite)
-    else:
-        return cmd_install.gallery_app(name, yes, version, overwrite=overwrite)
-
-
-@install.command("app")
-@click.argument("name", type=str)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="disables prompt to ask permission to create env and run install cmds",
-)
-@click.option(
-    "--version",
-    "-v",
-    type=str,
-    help="Specify the version to install. By default it uses 'latest'",
-    default="latest",
-    show_default=True,
-)
-@click.option(
-    "--overwrite",
-    "-f",
-    is_flag=True,
-    default=False,
-    help="When set, overwrite the app directory without asking if it already exists.",
-)
-def install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
-    _install_app(name, yes, version, overwrite=overwrite)
-
-
-def _install_component(name: str, yes: bool, version: str) -> None:
-    if "github.com" in name:
-        if version != "latest":
-            logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
-            )
-        cmd_install.non_gallery_component(name, yes)
-    else:
-        cmd_install.gallery_component(name, yes, version)
-
-
-@install.command("component")
-@click.argument("name", type=str)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="disables prompt to ask permission to create env and run install cmds",
-)
-@click.option(
-    "--version",
-    "-v",
-    type=str,
-    help="Specify the version to install. By default it uses 'latest'",
-    default="latest",
-    show_default=True,
-)
-def install_component(name: str, yes: bool, version: str) -> None:
-    if "github.com" in name:
-        if version != "latest":
-            logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
-            )
-        cmd_install.non_gallery_component(name, yes)
-    else:
-        cmd_install.gallery_component(name, yes, version)
 
 
 @_main.group()
