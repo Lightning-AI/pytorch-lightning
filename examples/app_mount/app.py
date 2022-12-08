@@ -32,4 +32,4 @@ class Flow(L.LightningFlow):
         self.work_1.run()
 
 
-app = L.LightningApp(Flow(), log_level="debug")
+app = L.LightningApp(Flow())
