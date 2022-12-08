@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added support for `torch.compile` ([#15922](https://github.com/Lightning-AI/lightning/pull/15922), [15957](https://github.com/Lightning-AI/lightning/pull/15957))
+
+
 - Added support for DDP with `LRFinder` ([#15304](https://github.com/Lightning-AI/lightning/pull/15304))
 
 
