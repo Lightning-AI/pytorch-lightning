@@ -173,15 +173,17 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
     if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
 
         if is_overridden("on_train_batch_start", model):
-            raise MisconfigurationException(
-                "The model hook `on_train_batch_start` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
+            rank_zero_warn(
+                "`batch_idx` arguement in `on_train_batch_start` hook may "
+                "not match with the actual batch index when taking `dataloader_iter` "
+                "argument in your `training_step`."
             )
 
         if is_overridden("on_train_batch_end", model):
-            raise MisconfigurationException(
-                "The model hook `on_train_batch_end` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
+            rank_zero_warn(
+                "`batch_idx` arguement in `on_train_batch_end` hook may "
+                "not match with the actual batch index when taking `dataloader_iter` "
+                "argument in your `training_step`."
             )
 
         if model.truncated_bptt_steps > 0:
