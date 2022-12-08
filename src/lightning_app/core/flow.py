@@ -232,7 +232,10 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Override to customize when your App should be ready."""
+        """Not currently enabled.
+
+        Override to customize when your App should be ready.
+        """
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 
