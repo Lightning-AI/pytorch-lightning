@@ -234,9 +234,11 @@ def _run_app(
 ) -> None:
 
     if not os.path.exists(file):
+        original_file = file
         file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=False)
         if file is None:
-            raise Exception(f"The provided entrypoint {file} doesn't exist.")
+            click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
+            sys.exit(1)
         run_app_comment_commands = True
 
     if not cloud and cluster_id is not None:

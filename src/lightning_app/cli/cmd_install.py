@@ -422,14 +422,16 @@ def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
     registry_url = _resolve_app_registry()
 
     # load the app resource
-    entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
+    entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app", raise_error=False)
 
     if not entry:
 
         registry_url = _resolve_component_registry()
 
         # load the component resource
-        entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="component")
+        entry = _resolve_resource(
+            registry_url, name=name, version_arg=version_arg, resource_type="component", raise_error=False
+        )
         kind = "component" if entry else None
 
     else:
@@ -438,7 +440,9 @@ def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
     return entry, kind
 
 
-def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_type: str) -> Dict[str, str]:
+def _resolve_resource(
+    registry_url: str, name: str, version_arg: str, resource_type: str, raise_error: bool = True
+) -> Dict[str, str]:
     gallery_entries = []
     try:
         response = requests.get(registry_url)
@@ -466,7 +470,10 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
             all_versions.append(x["version"])
 
     if len(entries) == 0:
-        raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
+        if raise_error:
+            raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
+        else:
+            return None
 
     entry = None
     if version_arg == "latest":
@@ -476,11 +483,14 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
             if e["version"] == version_arg:
                 entry = e
                 break
-    if entry is None:
-        raise Exception(
-            f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
-            f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
-        )
+    if entry is None and raise_error:
+        if raise_error:
+            raise Exception(
+                f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
+                f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
+            )
+        else:
+            return None
 
     return entry
 
