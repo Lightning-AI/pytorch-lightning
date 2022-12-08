@@ -21,40 +21,37 @@ def gallery_apps_and_components(
     # make sure org/app-name syntax is correct
     org, app_or_component = _validate_name(name, resource_type="App OR Component", example="lightning/quick-start")
 
-    # load the app resource
-    app_entry = _resolve_resource(_resolve_app_registry(), name=name, version_arg=version_arg, resource_type="app")
+    entry, kind = _resolve_entry(app_or_component, version_arg)
 
-    if app_entry:
+    if kind == "app":
         # give the user the chance to do a manual install
         source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
-            app_entry, app_or_component, org, yes_arg, resource_type="app"
+            entry, app_or_component, org, yes_arg, resource_type="app"
         )
-
         # run installation if requested
         _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
-        return os.path.join(os.getcwd(), app_entry["appEntrypointFile"])
-    else:
-        # load the component resource
-        component_entry = _resolve_resource(
-            _resolve_app_registry(), name=name, version_arg=version_arg, resource_type="component"
-        )
+        return os.path.join(os.getcwd(), folder_name, entry["appEntrypointFile"])
 
+    elif kind == "component":
         # give the user the chance to do a manual install
-        git_url = _show_install_component_prompt(component_entry, app_or_component, org, yes_arg)
+        git_url = _show_install_component_prompt(entry, app_or_component, org, yes_arg)
 
         # run installation if requested
         _install_component(git_url)
 
-        return os.path.join(os.getcwd(), component_entry["appEntrypointFile"])
+        return os.path.join(os.getcwd(), entry["appEntrypointFile"])
+
+    else:
+        raise Exception(f"The provided {name} doesn't exist.")
 
 
-def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> None:
+def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> str:
     # make sure org/component-name name is correct
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
 
     # resolve registry (orgs can have a private registry through their environment variables)
-    registry_url = _resolve_app_registry()
+    registry_url = _resolve_component_registry()
 
     # load the component resource
     component_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="component")
@@ -64,6 +61,8 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
 
     # run installation if requested
     _install_component(git_url)
+
+    return os.path.join(os.getcwd(), component_entry["appEntrypointFile"])
 
 
 def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
@@ -336,6 +335,30 @@ def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, st
     return org, resource
 
 
+def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
+    entry = None
+    kind = None
+
+    # resolve registry (orgs can have a private registry through their environment variables)
+    registry_url = _resolve_app_registry()
+
+    # load the app resource
+    entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
+
+    if not entry:
+
+        registry_url = _resolve_component_registry()
+
+        # load the component resource
+        entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="component")
+        kind = "component" if entry else None
+
+    else:
+        kind = "app"
+
+    return entry, kind
+
+
 def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_type: str) -> Dict[str, str]:
     gallery_entries = []
     try:
@@ -348,7 +371,6 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
         elif resource_type == "component":
             gallery_entries = data["components"]
     except requests.ConnectionError:
-        breakpoint()
         m = f"""
         Network connection error, could not load list of available Lightning {resource_type}s.
 
