@@ -486,7 +486,9 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
-        self.ready = self.root.ready
+
+        # TODO: Re-enable the `ready` property once issues are resolved
+        self.ready = True  # self.root.ready
 
         self._start_with_flow_works()
 
