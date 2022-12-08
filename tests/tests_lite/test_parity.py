@@ -214,7 +214,7 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
     lite_model_state_dict = model.state_dict()
 
     for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
-        assert not torch.equal(w_pure.cpu(), w_lite.cpu())
+        assert not torch.allclose(w_pure.cpu(), w_lite.cpu())
 
     LightningLite.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4), shuffle=True)
@@ -223,4 +223,4 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
     pure_model_state_dict = model.state_dict()
 
     for w_pure, w_lite in zip(pure_model_state_dict.values(), lite_model_state_dict.values()):
-        assert torch.equal(w_pure.cpu(), w_lite.cpu())
+        torch.testing.assert_allclose(w_pure.cpu(), w_lite.cpu())
