@@ -122,8 +122,7 @@ def gallery_apps_and_components(
 
         return os.path.join(os.getcwd(), entry["appEntrypointFile"])
 
-    else:
-        raise Exception(f"The provided {name} doesn't exist.")
+    return None
 
 
 def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> str:
