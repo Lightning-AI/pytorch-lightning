@@ -311,10 +311,10 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
 
 #### How to run an app on the cloud with a local version of lightning
 
-Once you install lightning in editable mode following [the installation guide](https://github.com/Lightning-AI/lightning/#install-bleeding-edge), set the following environment variable before running your app on the cloud:
+The lightning cloud uses the latest release by default. However, you might want to run your app with lightning that you have made changes to in your directory. To use your local version of lightning on the cloud, set the following environment variable:
 
 ```bash
-export PACKAGE_LIGHTNING=1  # <- this is the magic to use dev version!!!
+export PACKAGE_LIGHTNING=1  # <- this is the magic to use local version!
 lightning run app app.py --cloud
 ```
 
