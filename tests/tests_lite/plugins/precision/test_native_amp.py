@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -25,19 +24,12 @@ def test_native_amp_precision_default_scaler():
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
 
 
-@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", True)
 def test_native_amp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16'` does not use a scaler"):
         NativeMixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
 
     precision = NativeMixedPrecision(precision="bf16", device=Mock())
     assert precision.scaler is None
-
-
-@mock.patch("lightning_lite.plugins.precision.native_amp._TORCH_GREATER_EQUAL_1_10", False)
-def test_native_amp_precision_bf16_min_torch():
-    with pytest.raises(ImportError, match="you must install torch greater or equal to 1.10"):
-        NativeMixedPrecision(precision="bf16", device=Mock())
 
 
 def test_native_amp_precision_forward_context():

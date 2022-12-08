@@ -258,17 +258,6 @@ def test_precision_selection_raises(monkeypatch):
     ):
         Trainer(amp_backend="apex", precision=16)
 
-    import pytorch_lightning.plugins.precision.native_amp as amp
-
-    monkeypatch.setattr(amp, "_TORCH_GREATER_EQUAL_1_10", False)
-    with pytest.warns(
-        UserWarning, match=r"precision=16\)` but native AMP is not supported on CPU. Using `precision='bf16"
-    ), pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
-        Trainer(precision=16)
-
-    with pytest.raises(MisconfigurationException, match="must install torch greater or equal to 1.10"):
-        Trainer(precision="bf16")
-
     with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
         Trainer(amp_backend="apex", precision="bf16")
 
