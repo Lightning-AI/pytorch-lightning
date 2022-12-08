@@ -4,43 +4,13 @@ from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
-from lightning_cloud.openapi import Externalv1LightningappInstance
 
 from lightning_app import __version__
-from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
+from lightning_app.cli.lightning_cli import _main, login, logout, run
 from lightning_app.cli.lightning_cli_create import create, create_cluster
 from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
 from lightning_app.cli.lightning_cli_list import get_list, list_apps, list_clusters
-from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.exceptions import _ApiExceptionHandler
-
-
-@pytest.mark.parametrize(
-    "runtime_type, extra_args, lightning_cloud_url, expected_url",
-    [
-        (
-            RuntimeType.CLOUD,
-            (Externalv1LightningappInstance(id="test-app-id"),),
-            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai",
-            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai/me/apps/test-app-id",
-        ),
-        (
-            RuntimeType.CLOUD,
-            (Externalv1LightningappInstance(id="test-app-id"),),
-            "http://localhost:9800",
-            "http://localhost:9800/me/apps/test-app-id",
-        ),
-        (RuntimeType.SINGLEPROCESS, tuple(), "", "http://127.0.0.1:7501/view"),
-        (RuntimeType.SINGLEPROCESS, tuple(), "http://localhost:9800", "http://127.0.0.1:7501/view"),
-        (RuntimeType.MULTIPROCESS, tuple(), "", "http://127.0.0.1:7501/view"),
-        (RuntimeType.MULTIPROCESS, tuple(), "http://localhost:9800", "http://127.0.0.1:7501/view"),
-    ],
-)
-def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expected_url):
-    with mock.patch(
-        "lightning_app.cli.lightning_cli.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
-    ):
-        assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
 @pytest.mark.parametrize("command", [_main, run, get_list, create, delete])
@@ -106,14 +76,7 @@ def test_main_lightning_cli_help():
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
-@pytest.mark.parametrize(
-    "extra_arguments,expected_cost_savings_mode",
-    [
-        ([], True),
-        (["--enable-performance"], False),
-    ],
-)
-def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expected_cost_savings_mode):
+def test_create_cluster(create_command: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -125,18 +88,17 @@ def test_create_cluster(create_command: mock.MagicMock, extra_arguments, expecte
             "dummy",
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
-        ]
-        + extra_arguments,
+        ],
     )
 
     create_command.assert_called_once_with(
-        cluster_name="test-7",
+        cluster_id="test-7",
         region="us-east-1",
         role_arn="arn:aws:iam::1234567890:role/lai-byoc",
         external_id="dummy",
         edit_before_creation=False,
-        cost_savings=expected_cost_savings_mode,
-        wait=False,
+        cost_savings=True,
+        do_async=False,
     )
 
 
@@ -164,7 +126,7 @@ def test_delete_cluster(delete: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(delete_cluster, ["test-7"])
 
-    delete.assert_called_once_with(cluster_id="test-7", force=False, wait=False)
+    delete.assert_called_once_with(cluster_id="test-7", force=False, do_async=False)
 
 
 @mock.patch("lightning_app.utilities.login.Auth._run_server")
