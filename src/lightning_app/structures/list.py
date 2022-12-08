@@ -53,20 +53,18 @@ class List(t.List[T]):
         self._backend: t.Optional[Backend] = None
         for item in items:
             self.append(item)
-            _set_child_name(self, item, str(self._last_index))
-            self._last_index += 1
 
     def append(self, v):
         from lightning_app import LightningFlow, LightningWork
 
+        _set_child_name(self, v, str(self._last_index))
         if self._backend:
             if isinstance(v, LightningFlow):
                 LightningFlow._attach_backend(v, self._backend)
-                _set_child_name(self, v, str(self._last_index))
             elif isinstance(v, LightningWork):
                 self._backend._wrap_run_method(_LightningAppRef().get_current(), v)
-            v._name = f"{self.name}.{self._last_index}"
-            self._last_index += 1
+        v._name = f"{self.name}.{self._last_index}"
+        self._last_index += 1
         super().append(v)
 
     @property
