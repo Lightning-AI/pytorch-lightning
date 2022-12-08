@@ -141,7 +141,7 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
     # run installation if requested
     _install_component_from_source(git_url)
 
-    return os.path.join(os.getcwd(), component_entry["appEntrypointFile"])
+    return os.path.join(os.getcwd(), component_entry["entrypointFile"])
 
 
 def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
