@@ -148,8 +148,7 @@ class LightningFlow:
                     value = List(*value)
 
                 if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
-                    if value and all(isinstance(va, _type) for va in value.values()):
-                        value = Dict(**value)
+                    value = Dict(**value)
 
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
