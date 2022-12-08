@@ -87,9 +87,9 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
                 f"The provided version {version} isn't the officially supported one. "
                 f"The provided version will be ignored."
             )
-        return non_gallery_component(name, yes, overwrite=overwrite)
+        return non_gallery_component(name, yes)
     else:
-        return gallery_component(name, yes, version, overwrite=overwrite)
+        return gallery_component(name, yes, version)
 
 
 def gallery_apps_and_components(
