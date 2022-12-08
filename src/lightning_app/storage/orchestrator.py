@@ -105,6 +105,7 @@ class StorageOrchestrator(Thread):
                             name=request.name,
                             path=maybe_artifact_path,
                             hash=request.hash,
+                            size=self.fs.info(maybe_artifact_path)["size"],
                             destination=request.destination,
                         )
                     if isinstance(request, _ExistsRequest):
@@ -139,6 +140,7 @@ class StorageOrchestrator(Thread):
                             path=request.path,
                             name=request.name,
                             hash=request.hash,
+                            size=0,
                             destination=request.destination,
                         )
                     if isinstance(request, _ExistsRequest):
