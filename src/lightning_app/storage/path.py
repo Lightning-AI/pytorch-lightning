@@ -10,6 +10,7 @@ from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
 
+from lightning_app.core.constants import REMOTE_STORAGE_WAIT
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -199,9 +200,8 @@ class Path(PathlibPath):
         fs = _filesystem()
 
         # 3. Wait until the file appears in shared storage
-        while not fs.exists(response.path):
-            # TODO: Existence check on folder is not enough, files may not be completely transferred yet
-            sleep(0.5)
+        while not fs.exists(response.path) or fs.info(response.path)["size"] != response.size:
+            sleep(REMOTE_STORAGE_WAIT)
 
         if self.exists_local() and self.is_dir():
             # Delete the directory, otherwise we can't overwrite it
@@ -340,10 +340,11 @@ class Path(PathlibPath):
         destination_path = _shared_storage_path() / request.hash
         response = _GetResponse(
             source=request.source,
+            name=request.name,
             path=str(destination_path),
             hash=request.hash,
+            size=source_path.stat().st_size,
             destination=request.destination,
-            name=request.name,
         )
 
         try:

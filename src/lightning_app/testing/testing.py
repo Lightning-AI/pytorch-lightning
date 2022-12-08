@@ -362,17 +362,7 @@ def run_app_in_cloud(
         except playwright._impl._api_types.TimeoutError:
             print("'Create Project' dialog not visible, skipping.")
 
-        admin_page.locator(f"role=link[name='{name}']").click()
-        sleep(5)
-        # Scroll to the bottom of the page. Used to capture all logs.
-        admin_page.evaluate(
-            """
-            var intervalID = setInterval(function () {
-                var scrollingElement = (document.scrollingElement || document.body);
-                scrollingElement.scrollTop = scrollingElement.scrollHeight;
-            }, 200);
-            """
-        )
+        admin_page.locator(f'[data-cy="{name}"]').click()
 
         client = LightningClient()
         project = _get_project(client)
