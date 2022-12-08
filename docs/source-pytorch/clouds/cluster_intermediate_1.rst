@@ -24,7 +24,7 @@ PyTorch Lightning follows the design of `PyTorch distributed communication packa
 
 - *MASTER_PORT* - required; has to be a free port on machine with NODE_RANK 0
 - *MASTER_ADDR* - required (except for NODE_RANK 0); address of NODE_RANK 0 node
-- *WORLD_SIZE* - required; how many nodes are in the cluster
+- *WORLD_SIZE* - required; the total number of GPUs/processes that you will use
 - *NODE_RANK* - required; id of the node in the cluster
 
 .. _training_script_setup:
