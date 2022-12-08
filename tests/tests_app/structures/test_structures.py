@@ -496,3 +496,25 @@ def test_structures_with_payload():
     app = LightningApp(FlowPayload(), log_level="debug")
     MultiProcessRuntime(app, start_server=False).dispatch()
     os.remove("payload")
+
+
+def test_structures_have_name_on_init():
+    """Test that the children in structures have the correct name assigned upon initialization."""
+
+    class ChildWork(LightningWork):
+        def run(self):
+            pass
+
+    class Collection(EmptyFlow):
+        def __init__(self):
+            super().__init__()
+            self.list_structure = List()
+            self.list_structure.append(ChildWork())
+
+            self.dict_structure = Dict()
+            self.dict_structure["dict_child"] = ChildWork()
+
+    flow = Collection()
+    LightningApp(flow)  # wrap in app to init all component names
+    assert flow.list_structure[0].name == "root.list_structure.0"
+    assert flow.dict_structure["dict_child"].name == "root.dict_structure.dict_child"
