@@ -2,7 +2,6 @@
 
 From here, we will call the render function that the user provided in ``configure_layout``.
 """
-import asyncio
 import os
 import pydoc
 from typing import Callable
@@ -21,9 +20,6 @@ def _get_render_fn_from_environment() -> Callable:
 
 def _main():
     """Run the render_fn with the current flow_state."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
     app_state = AppState(plugin=StreamLitStatePlugin())
 
     # Fetch the information of which flow attaches to this streamlit instance
