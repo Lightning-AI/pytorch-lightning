@@ -309,7 +309,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   git push -f
   ```
 
-#### How to run an app on the cloud with lightning that you're making changes
+#### How to run an app on the cloud with a local version of lightning
 
 Once you install lightning in editable mode following [the installation guide](https://github.com/Lightning-AI/lightning/#install-bleeding-edge), set the following environment variable before running your app on the cloud:
 
