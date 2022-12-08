@@ -9,7 +9,7 @@ from setuptools import find_packages
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning_fabric")
-_PATH_REQUIREMENTS = os.path.join("requirements", "lite")
+_PATH_REQUIREMENTS = os.path.join("requirements", "fabric")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
