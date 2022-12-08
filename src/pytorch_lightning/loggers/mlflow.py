@@ -249,7 +249,7 @@ class MLFlowLogger(Logger):
         params_list: List[Param] = []
 
         for k, v in params.items():
-            # FIXME: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
+            # TODO: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
             if len(str(v)) > 250:
                 rank_zero_warn(
                     f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
