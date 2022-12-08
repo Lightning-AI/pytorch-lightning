@@ -1,5 +1,8 @@
+import os
 from unittest import mock
 from unittest.mock import Mock
+
+import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.frontend import StaticWebFrontend, StreamlitFrontend
@@ -81,3 +84,15 @@ class ContxtFlow(LightningFlow):
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
     MultiProcessRuntime(LightningApp(ContxtFlow())).dispatch()
+
+
+@pytest.mark.parametrize(
+    "env,expected_url",
+    [
+        ({}, "http://127.0.0.1:7501/view"),
+        ({"APP_SERVER_HOST": "http://test"}, "http://test"),
+    ],
+)
+def test_get_app_url(env, expected_url):
+    with mock.patch.dict(os.environ, env):
+        assert MultiProcessRuntime._get_app_url() == expected_url

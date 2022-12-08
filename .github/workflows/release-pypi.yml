@@ -11,9 +11,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  PUBLISH: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-
 jobs:
   init:
     runs-on: ubuntu-20.04
@@ -184,7 +181,7 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: waiting
+    needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
@@ -215,8 +212,8 @@ jobs:
     needs: [build-packages]
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
-      push_to_s3: ${{ env.PUBLISH }}
-      create_pr: ${{ env.PUBLISH }}
+      push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

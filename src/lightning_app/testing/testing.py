@@ -14,6 +14,7 @@ from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Optional, Type
 
 import requests
+from lightning_cloud.openapi import V1LightningappInstanceState
 from lightning_cloud.openapi.rest import ApiException
 from requests import Session
 from rich import print
@@ -361,17 +362,7 @@ def run_app_in_cloud(
         except playwright._impl._api_types.TimeoutError:
             print("'Create Project' dialog not visible, skipping.")
 
-        admin_page.locator(f"role=link[name='{name}']").click()
-        sleep(5)
-        # Scroll to the bottom of the page. Used to capture all logs.
-        admin_page.evaluate(
-            """
-            var intervalID = setInterval(function () {
-                var scrollingElement = (document.scrollingElement || document.body);
-                scrollingElement.scrollTop = scrollingElement.scrollHeight;
-            }, 200);
-            """
-        )
+        admin_page.locator(f'[data-cy="{name}"]').click()
 
         client = LightningClient()
         project = _get_project(client)
@@ -394,15 +385,34 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        while True:
-            try:
-                with admin_page.context.expect_page() as page_catcher:
-                    admin_page.locator('[data-cy="open"]').click()
-                view_page = page_catcher.value
-                view_page.wait_for_load_state(timeout=0)
-                break
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-                pass
+        if not app.spec.is_headless:
+            while True:
+                try:
+                    with admin_page.context.expect_page() as page_catcher:
+                        admin_page.locator('[data-cy="open"]').click()
+                    view_page = page_catcher.value
+                    view_page.wait_for_load_state(timeout=0)
+                    break
+                except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
+                    pass
+        else:
+            view_page = None
+
+            # Wait until the app is running
+            while True:
+                sleep(1)
+
+                lit_apps = [
+                    app
+                    for app in client.lightningapp_instance_service_list_lightningapp_instances(
+                        project_id=project.project_id
+                    ).lightningapps
+                    if app.name == name
+                ]
+                app = lit_apps[0]
+
+                if app.status.phase == V1LightningappInstanceState.RUNNING:
+                    break
 
         # TODO: is re-creating this redundant?
         lit_apps = [
