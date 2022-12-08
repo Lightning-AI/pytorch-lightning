@@ -1,8 +1,8 @@
 import logging
 
-from lightning_app import LightningApp, LightningFlow
-from lightning_app.frontend import StreamlitFrontend
-from lightning_app.utilities.state import AppState
+from lightning.app import LightningApp, LightningFlow
+from lightning.app.frontend import StreamlitFrontend
+from lightning.app.utilities.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -45,4 +45,4 @@ class HelloWorld(LightningFlow):
         return [{"name": "StreamLitUI", "content": self.streamlit_ui}]
 
 
-app = LightningApp(HelloWorld(), log_level="debug")
+app = LightningApp(HelloWorld())

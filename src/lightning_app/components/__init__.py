@@ -1,3 +1,4 @@
+from lightning_app.components.auto_scaler import AutoScaler
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
 from lightning_app.components.multi_node import (
@@ -15,6 +16,7 @@ from lightning_app.components.serve.streamlit import ServeStreamlit
 from lightning_app.components.training import LightningTrainerScript, PyTorchLightningScriptRunner
 
 __all__ = [
+    "AutoScaler",
     "DatabaseClient",
     "Database",
     "PopenPythonScript",
