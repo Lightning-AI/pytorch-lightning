@@ -513,9 +513,7 @@ def is_static_method(klass_or_instance, attr) -> bool:
 
 def _should_dispatch_app() -> bool:
     return (
-        __debug__
-        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
-        and "LIGHTNING_APP_STATE_URL" not in os.environ
+        False and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0"))) and "LIGHTNING_APP_STATE_URL" not in os.environ
     )
 
 
