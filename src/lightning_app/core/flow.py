@@ -10,7 +10,7 @@ from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
@@ -777,4 +777,6 @@ class _RootFlow(LightningFlow):
         self.work.run()
 
     def configure_layout(self):
-        return [{"name": "Main", "content": self.work}]
+        if is_overridden("configure_layout", self.work):
+            return [{"name": "Main", "content": self.work}]
+        return []
