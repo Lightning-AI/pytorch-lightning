@@ -84,8 +84,8 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
     if "github.com" in name:
         if version != "latest":
             logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
+                "When installing from GitHub, only the 'latest' version is supported. "
+                f"The provided version ({version}) will be ignored."
             )
         return non_gallery_component(name, yes)
     else:
