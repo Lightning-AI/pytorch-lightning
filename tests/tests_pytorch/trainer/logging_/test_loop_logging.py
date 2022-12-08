@@ -68,6 +68,7 @@ def test_default_level_for_hooks_that_support_logging():
 
         hooks = [
             "on_train_start",
+            "on_train_end",
             "on_train_epoch_start",
             "on_train_epoch_end",
             "training_epoch_end",

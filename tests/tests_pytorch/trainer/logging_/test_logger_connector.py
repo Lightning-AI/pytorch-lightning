@@ -109,7 +109,7 @@ def test_fx_validator():
         is_stage = "train" in func_name or "test" in func_name or "validation" in func_name
         is_start = "start" in func_name or "batch" in func_name
         is_epoch = "epoch" in func_name
-        on_step = is_stage and not is_start and not is_epoch
+        on_step = is_stage and not is_start and not is_epoch and func_name not in ["on_train_end"]
         on_epoch = True
         # creating allowed condition
         allowed = (
@@ -124,7 +124,7 @@ def test_fx_validator():
             allowed
             and "pretrain" not in func_name
             and "predict" not in func_name
-            and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
+            and func_name not in ["on_test_end", "on_validation_end"]
         )
         if allowed:
             validator.check_logging_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
@@ -198,7 +198,6 @@ def test_fx_validator_integration(tmpdir):
         "transfer_batch_to_device": "You can't",
         "on_after_batch_transfer": "You can't",
         "on_validation_end": "You can't",
-        "on_train_end": "You can't",
         "on_fit_end": "You can't",
         "teardown": "You can't",
         "on_sanity_check_start": "You can't",
