@@ -65,6 +65,10 @@ class Dict(t.Dict[str, T]):
             raise Exception(f"The provided name {k} contains . which is forbidden.")
 
         _set_child_name(self, v, k)
+
+        for work in self.works:
+            work._register_cloud_compute()
+
         if self._backend:
             if isinstance(v, LightningFlow):
                 LightningFlow._attach_backend(v, self._backend)
