@@ -14,10 +14,10 @@ except Exception:
 class MPPdb(pdb.Pdb):
     """A Pdb wrapper that works in a multiprocessing environment."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pdb.Pdb.__init__(self, nosigint=True)
 
-    def _cmdloop(self):
+    def _cmdloop(self) -> None:
         stdin_back = sys.stdin
         with _stdin_lock:
             try:
@@ -30,6 +30,6 @@ class MPPdb(pdb.Pdb):
                 sys.stdin = stdin_back
 
 
-def set_trace():
+def set_trace() -> None:
     pdb = MPPdb()
     pdb.set_trace(sys._getframe().f_back)
