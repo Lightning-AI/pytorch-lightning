@@ -37,11 +37,14 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         mps_accelerators = []
 
         for pkg_name in ("lightning.lite", "lightning_" + "lite"):
-            pkg = importlib.import_module(pkg_name)
-            lites.append(pkg.LightningLite)
-            strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
-            strategies.append(pkg.strategies.DDPSpawnStrategy)
-            mps_accelerators.append(pkg.accelerators.MPSAccelerator)
+            try:
+                pkg = importlib.import_module(pkg_name)
+                lites.append(pkg.LightningLite)
+                strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
+                strategies.append(pkg.strategies.DDPSpawnStrategy)
+                mps_accelerators.append(pkg.accelerators.MPSAccelerator)
+            except (ImportError, ModuleNotFoundError):
+                continue
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
