@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Apps without UIs no longer activate the "Open App" button when running in the cloud ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
 
+- Changed the default port of `PythonServer` from `7777` to a free port at runtime ([#15966](https://github.com/Lightning-AI/lightning/pull/15966))
+
 
 ### Deprecated
 
