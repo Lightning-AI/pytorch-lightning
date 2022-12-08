@@ -314,6 +314,9 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
 The lightning cloud uses the latest release by default. However, you might want to run your app with lightning that you have made changes to in your directory. To use your local version of lightning on the cloud, set the following environment variable:
 
 ```bash
+git clone https://github.com/Lightning-AI/lightning.git
+cd lightning
+pip install -e .
 export PACKAGE_LIGHTNING=1  # <- this is the magic to use local version!
 lightning run app app.py --cloud
 ```
