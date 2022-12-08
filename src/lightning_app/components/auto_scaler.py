@@ -26,6 +26,7 @@ from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
 
+
 def _raise_granular_exception(exception: Exception) -> None:
     """Handle an exception from hitting the model servers."""
     if not isinstance(exception, Exception):
