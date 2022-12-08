@@ -32,16 +32,6 @@ files = [
 ]
 exclude = [
     "src/lightning_app/cli/component-template",
-    "src/lightning_app/cli/pl-app-template",
-    "src/lightning_app/cli/react-ui-template",
-    "src/lightning_app/cli/app-template",
-    "src/lightning_app/cli/lightning_cli",
-    "src/lightning_app/cli/cmd_install",
-    "src/lightning_app/cli/component-template/placeholdername",
-    "src/lightning_app/cli/",
-    "src/lightning_app/components/database",
-    "src/lightning_app/components/multi_node",
-    "src/lightning_app/frontend/just_py/just_py",
 ]
 install_types = "True"
 non_interactive = "True"
@@ -73,8 +63,8 @@ module = [
     "lightning_app.cli.commands.connection",
     "lightning_app.cli.commands.lightning_cli",
     "lightning_app.cli.commands.cmd_install",
-    "lightning_app.cli",
     "lightning_app.cli.react-ui-template.example_app",
+    "lightning_app.cli.cmd_install",
     "lightning_app.components.database.client",
     "lightning_app.components.database.server",
     "lightning_app.components.database.utilities",
