@@ -94,10 +94,12 @@ def _install_component_command(name: str, yes: bool, version: str, overwrite: bo
 
 def gallery_apps_and_components(
     name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False
-) -> str:
+) -> Optional[str]:
 
-    # make sure org/app-name syntax is correct
-    org, app_or_component = _validate_name(name, resource_type="App OR Component", example="lightning/quick-start")
+    try:
+        org, app_or_component = name.split("/")
+    except Exception:
+        return None
 
     entry, kind = _resolve_entry(app_or_component, version_arg)
 
