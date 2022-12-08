@@ -526,7 +526,7 @@ class FlowWiStructures(LightningFlow):
 
         self.ws = [EmptyFlow(), EmptyFlow()]
 
-        self.ws = {"a": EmptyFlow(), "b": EmptyFlow()}
+        self.ws1 = {"a": EmptyFlow(), "b": EmptyFlow()}
 
     def run(self):
         pass
@@ -534,4 +534,6 @@ class FlowWiStructures(LightningFlow):
 
 def test_flow_without_structures():
 
-    FlowWiStructures()
+    flow = FlowWiStructures()
+    assert isinstance(flow.ws, List)
+    assert isinstance(flow.ws1, Dict)
