@@ -2,7 +2,7 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 numpy>=1.17.2, <1.23.1
-torch>=1.10.*, <=1.13.0
+torch>=1.10.0, <=1.13.0
 tqdm>=4.57.0, <4.65.0
 PyYAML>=5.4, <=6.0
 fsspec[http]>2021.06.0, <2022.8.0

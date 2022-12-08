@@ -10,7 +10,6 @@ import fastapi  # noqa E511
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from starlette.responses import RedirectResponse
 
 from lightning_app.components.serve.types import _DESERIALIZER, _SERIALIZER
 from lightning_app.core.work import LightningWork
@@ -35,10 +34,6 @@ class _InferenceCallable:
 
     async def run(self, data) -> Any:
         return self.serialize(self.predict(self.deserialize(data)))
-
-
-async def _redirect():
-    return RedirectResponse("/docs")
 
 
 class ModelInferenceAPI(LightningWork, abc.ABC):
@@ -121,7 +116,6 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
     def _populate_app(self, fastapi_service: FastAPI):
         self._model = self.build_model()
 
-        fastapi_service.get("/")(_redirect)
         fastapi_service.post("/predict", response_class=JSONResponse)(
             _InferenceCallable(
                 deserialize=_DESERIALIZER[self.input] if self.input else self.deserialize,
@@ -133,6 +127,9 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
     def _launch_server(self, fastapi_service: FastAPI):
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_service, host=self.host, port=self.port, log_level="error")
+
+    def configure_layout(self) -> str:
+        return f"{self.url}/docs"
 
 
 def _maybe_create_instance() -> Optional[ModelInferenceAPI]:

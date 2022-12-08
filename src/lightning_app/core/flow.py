@@ -10,7 +10,7 @@ from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
@@ -229,6 +229,12 @@ class LightningFlow:
         if item in self.__dict__.get("_paths", {}):
             return Path.from_dict(self._paths[item])
         return self.__getattribute__(item)
+
+    @property
+    def ready(self) -> bool:
+        """Override to customize when your App should be ready."""
+        flows = self.flows
+        return all(flow.ready for flow in flows.values()) if flows else True
 
     @property
     def changes(self):
@@ -757,6 +763,13 @@ class _RootFlow(LightningFlow):
         super().__init__()
         self.work = work
 
+    @property
+    def ready(self) -> bool:
+        ready = getattr(self.work, "ready", None)
+        if ready:
+            return ready
+        return self.work.url != ""
+
     def run(self):
         if self.work.has_succeeded:
             self.work.stop()
@@ -764,4 +777,6 @@ class _RootFlow(LightningFlow):
         self.work.run()
 
     def configure_layout(self):
-        return [{"name": "Main", "content": self.work}]
+        if is_overridden("configure_layout", self.work):
+            return [{"name": "Main", "content": self.work}]
+        return []
