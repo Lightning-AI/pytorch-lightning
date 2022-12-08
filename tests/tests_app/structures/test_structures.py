@@ -528,6 +528,13 @@ class FlowWiStructures(LightningFlow):
 
         self.ws1 = {"a": EmptyFlow(), "b": EmptyFlow()}
 
+        self.ws2 = {
+            "a": EmptyFlow(),
+            "b": EmptyFlow(),
+            "c": List(EmptyFlow(), EmptyFlow()),
+            "d": Dict(**{"a": EmptyFlow()}),
+        }
+
     def run(self):
         pass
 

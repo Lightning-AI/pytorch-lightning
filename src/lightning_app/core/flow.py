@@ -142,13 +142,14 @@ class LightningFlow:
                 if name in self._works and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
-            if isinstance(value, list):
-                if value and all(isinstance(va, (LightningFlow, LightningWork)) for va in value):
+            if isinstance(value, (list, dict)) and value:
+                _type = (LightningFlow, LightningWork, List, Dict)
+                if isinstance(value, list) and all(isinstance(va, _type) for va in value):
                     value = List(*value)
 
-            if isinstance(value, dict):
-                if value and all(isinstance(va, (LightningFlow, LightningWork)) for va in value.values()):
-                    value = Dict(**value)
+                if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
+                    if value and all(isinstance(va, _type) for va in value.values()):
+                        value = Dict(**value)
 
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
