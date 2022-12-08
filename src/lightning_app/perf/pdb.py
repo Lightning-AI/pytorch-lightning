@@ -10,8 +10,6 @@ try:
 except Exception:
     _stdin_fd = None
 
-__all__ = ["set_trace"]
-
 
 # Taken from https://github.com/facebookresearch/metaseq/blob/main/metaseq/pdb.py
 class MPPdb(pdb.Pdb):
