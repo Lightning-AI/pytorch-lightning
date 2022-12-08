@@ -207,6 +207,7 @@ class _LoadBalancer(LightningWork):
 
     def run(self):
         logger.info(f"servers: {self.servers}")
+        lock = asyncio.Lock()
 
         self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
@@ -267,7 +268,8 @@ class _LoadBalancer(LightningWork):
 
         @fastapi_app.put("/system/update-servers")
         async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
-            self.servers = servers
+            async with lock:
+                self.servers = servers
             self._iter = cycle(self.servers)
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
