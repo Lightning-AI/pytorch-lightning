@@ -102,7 +102,6 @@ module = [
     "lightning_app.runners.cloud",
     "lightning_app.runners.multiprocess",
     "lightning_app.runners.runtime",
-    "lightning_app.runners.singleprocess",
     "lightning_app.source_code.copytree",
     "lightning_app.source_code.hashing",
     "lightning_app.source_code.local",
