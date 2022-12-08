@@ -143,11 +143,11 @@ class LightningFlow:
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
             if isinstance(value, list):
-                if all(isinstance(va, (LightningFlow, LightningWork)) for va in value):
+                if value and all(isinstance(va, (LightningFlow, LightningWork)) for va in value):
                     value = List(*value)
 
             if isinstance(value, dict):
-                if all(isinstance(va, (LightningFlow, LightningWork)) for va in value.values()):
+                if value and all(isinstance(va, (LightningFlow, LightningWork)) for va in value.values()):
                     value = Dict(**value)
 
             if isinstance(value, LightningFlow):
