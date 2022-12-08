@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Show a message when `BuildConfig(dockerfile="...")` is passed but a `Dockerfile` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
 - Dropped name column from cluster list ([#15721](https://github.com/Lightning-AI/lightning/pull/15721))
 - Apps without UIs no longer activate the "Open App" button when running in the cloud ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
+- Wait for full file to be transferred in Path / Payload ([#15934](https://github.com/Lightning-AI/lightning/pull/15934))
 
 ### Removed
 
