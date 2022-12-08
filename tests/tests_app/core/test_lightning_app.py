@@ -4,7 +4,6 @@ import pickle
 from re import escape
 from time import sleep
 from unittest import mock
-from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
@@ -19,9 +18,9 @@ from lightning_app.core.constants import (
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
 )
-from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue, SingleProcessQueue
+from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
 from lightning_app.frontend import StreamlitFrontend
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.testing.helpers import _RunIf
@@ -82,7 +81,7 @@ class Work(LightningWork):
         self.has_finished = False
 
     def run(self):
-        self.counter += 1
+        self.counter = self.counter + 1
         if self.cache_calls:
             self.has_finished = True
         elif self.counter >= 3:
@@ -96,40 +95,60 @@ class SimpleFlow(LightningFlow):
         self.work_b = Work(cache_calls=False)
 
     def run(self):
-        self.work_a.run()
-        self.work_b.run()
         if self.work_a.has_finished and self.work_b.has_finished:
             self._exit()
+        self.work_a.run()
+        self.work_b.run()
 
 
-@pytest.mark.skip
-@pytest.mark.parametrize("component_cls", [SimpleFlow])
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_simple_app(component_cls, runtime_cls, tmpdir):
-    comp = component_cls()
+def test_simple_app(tmpdir):
+    comp = SimpleFlow()
     app = LightningApp(comp, log_level="debug")
     assert app.root == comp
     expected = {
-        "app_state": ANY,
-        "vars": {"_layout": ANY, "_paths": {}},
+        "app_state": mock.ANY,
+        "vars": {"_layout": mock.ANY, "_paths": {}},
         "calls": {},
         "flows": {},
+        "structures": {},
         "works": {
             "work_b": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                },
+                "calls": {"latest_call_hash": None},
                 "changes": {},
             },
             "work_a": {
-                "vars": {"has_finished": False, "counter": 0, "_urls": {}, "_paths": {}},
-                "calls": {},
+                "vars": {
+                    "has_finished": False,
+                    "counter": 0,
+                    "_cloud_compute": mock.ANY,
+                    "_host": mock.ANY,
+                    "_url": "",
+                    "_future_url": "",
+                    "_internal_ip": "",
+                    "_paths": {},
+                    "_port": None,
+                    "_restarting": False,
+                },
+                "calls": {"latest_call_hash": None},
                 "changes": {},
             },
         },
         "changes": {},
     }
     assert app.state == expected
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
     assert comp.work_a.has_finished
     assert comp.work_b.has_finished
@@ -357,11 +376,10 @@ class SimpleApp2(LightningApp):
         return True
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_app_restarting_move_to_blocking(runtime_cls, tmpdir):
+def test_app_restarting_move_to_blocking(tmpdir):
     """Validates sending restarting move the app to blocking again."""
     app = SimpleApp2(CounterFlow(), log_level="debug")
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 class FlowWithFrontend(LightningFlow):
@@ -411,7 +429,6 @@ class EmptyFlow(LightningFlow):
 @pytest.mark.parametrize(
     "queue_type_cls, default_timeout",
     [
-        (SingleProcessQueue, STATE_UPDATE_TIMEOUT),
         (MultiProcessQueue, STATE_UPDATE_TIMEOUT),
         pytest.param(
             RedisQueue,
@@ -463,7 +480,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
-class SimpleFlow(LightningFlow):
+class SimpleFlow2(LightningFlow):
     def __init__(self):
         super().__init__()
         self.counter = 0
@@ -476,8 +493,8 @@ class SimpleFlow(LightningFlow):
 def test_maybe_apply_changes_from_flow():
     """This test validates the app `_updated` is set to True only if the state was changed in the flow."""
 
-    app = LightningApp(SimpleFlow())
-    app.delta_queue = SingleProcessQueue("a", 0)
+    app = LightningApp(SimpleFlow2())
+    app.delta_queue = MultiProcessQueue("a", 0)
     assert app._has_updated
     app.maybe_apply_changes()
     app.root.run()
