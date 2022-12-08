@@ -113,21 +113,6 @@ class PythonServer(LightningWork, abc.ABC):
 
                 and this can be accessed as `response.json()["prediction"]` in the client if
                 you are using requests library
-
-        Example:
-
-            >>> from lightning_app.components.serve.python_server import PythonServer
-            >>> from lightning_app import LightningApp
-            ...
-            >>> class SimpleServer(PythonServer):
-            ...
-            ...     def setup(self):
-            ...         self._model = lambda x: x + " " + x
-            ...
-            ...     def predict(self, request):
-            ...         return {"prediction": self._model(request.image)}
-            ...
-            >>> app = LightningApp(SimpleServer())
         """
         super().__init__(parallel=True, host=host, port=port, **kwargs)
         if not issubclass(input_type, BaseModel):
