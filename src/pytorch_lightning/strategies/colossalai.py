@@ -363,9 +363,18 @@ class ColossalAIStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+        self.ignore_no_grad_parameters(self.root_device)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         self.model_to_device()
+
+    def ignore_no_grad_parameters(self, running_device) -> None:
+        # for those parameters with no gradients
+        # we shold ignore them on DDP and move them to CUDA
+        for param in self.model.parameters():
+            if not param.requires_grad:
+                param._ddp_to_ignore = True
+                param.data = param.data.to(running_device)
 
     def model_to_device(self) -> None:
         assert self.lightning_module is not None
