@@ -191,7 +191,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
         load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
-        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0
+        if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
     ]
     if not requires:
         return None
