@@ -114,26 +114,26 @@ class PythonServer(LightningWork, abc.ABC):
                 The default data type is good enough for the basic usecases and it expects the data
                 to be a json object that has one key called `payload`
 
-                ```
-                input_data = {"payload": "some data"}
-                ```
+                .. code-block:: python
+
+                    input_data = {"payload": "some data"}
 
                 and this can be accessed as `request.payload` in the `predict` method.
 
-                ```
-                def predict(self, request):
-                    data = request.payload
-                ```
+                .. code-block:: python
+
+                    def predict(self, request):
+                        data = request.payload
 
             output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases. It expects the return value of
                 the `predict` method to be a dictionary with one key called `prediction`.
 
-                ```
-                def predict(self, request):
-                    # some code
-                    return {"prediction": "some data"}
-                ```
+                .. code-block:: python
+
+                    def predict(self, request):
+                        # some code
+                        return {"prediction": "some data"}
 
                 and this can be accessed as `response.json()["prediction"]` in the client if
                 you are using requests library
