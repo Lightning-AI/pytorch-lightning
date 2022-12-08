@@ -30,7 +30,7 @@ defaults:
     shell: bash
 
 jobs:
-  lite-cpu:
+  fabric-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
