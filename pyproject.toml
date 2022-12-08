@@ -64,7 +64,6 @@ module = [
     "lightning_app.cli.commands.connection",
     "lightning_app.cli.commands.lightning_cli",
     "lightning_app.cli.commands.cmd_install",
-    "lightning_app.cli.react-ui-template.example_app",
     "lightning_app.cli.cmd_install",
     "lightning_app.components.database.client",
     "lightning_app.components.database.server",
