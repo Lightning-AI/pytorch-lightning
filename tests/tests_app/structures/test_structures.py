@@ -518,3 +518,20 @@ def test_structures_have_name_on_init():
     LightningApp(flow)  # wrap in app to init all component names
     assert flow.list_structure[0].name == "root.list_structure.0"
     assert flow.dict_structure["dict_child"].name == "root.dict_structure.dict_child"
+
+
+class FlowWiStructures(LightningFlow):
+    def __init__(self):
+        super().__init__()
+
+        self.ws = [EmptyFlow(), EmptyFlow()]
+
+        self.ws = {"a": EmptyFlow(), "b": EmptyFlow()}
+
+    def run(self):
+        pass
+
+
+def test_flow_without_structures():
+
+    FlowWiStructures()

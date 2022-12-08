@@ -142,6 +142,14 @@ class LightningFlow:
                 if name in self._works and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
+            if isinstance(value, list):
+                if all(isinstance(va, (LightningFlow, LightningWork)) for va in value):
+                    value = List(*value)
+
+            if isinstance(value, dict):
+                if all(isinstance(va, (LightningFlow, LightningWork)) for va in value.values()):
+                    value = Dict(**value)
+
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
                 _set_child_name(self, value, name)
@@ -163,10 +171,10 @@ class LightningFlow:
                 value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
-                value._backend = self._backend
                 self._structures.add(name)
                 _set_child_name(self, value, name)
                 if self._backend:
+                    value._backend = self._backend
                     for flow in value.flows:
                         LightningFlow._attach_backend(flow, self._backend)
                     for work in value.works:
