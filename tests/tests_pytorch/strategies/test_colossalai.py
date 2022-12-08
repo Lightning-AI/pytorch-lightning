@@ -189,9 +189,9 @@ class ModelParallelClassificationModel(LightningModule):
         self.lr = lr
         self.layers = None
 
-        self.train_acc = Accuracy()
-        self.valid_acc = Accuracy()
-        self.test_acc = Accuracy()
+        self.train_acc = Accuracy(task="multiclass")
+        self.valid_acc = Accuracy(task="multiclass")
+        self.test_acc = Accuracy(task="multiclass")
 
     def build_layers(self) -> nn.Module:
         layers = []

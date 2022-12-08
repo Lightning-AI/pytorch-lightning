@@ -390,6 +390,7 @@ def test_accuracy_metric_horovod():
         # TODO: test that we selected the correct strategy based on horovod flags
 
         metric = Accuracy(
+            task="binary",
             compute_on_step=True,
             dist_sync_on_step=True,
             dist_sync_fn=trainer.strategy.all_gather,
