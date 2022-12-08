@@ -486,7 +486,15 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
-        self.ready = self.root.ready
+
+        # TODO: Re-enable the `ready` property once issues are resolved
+        if not self.root.ready:
+            warnings.warn(
+                "One of your Flows returned `.ready` as `False`. "
+                "This feature is not yet enabled so this will be ignored.",
+                UserWarning,
+            )
+        self.ready = True
 
         self._start_with_flow_works()
 
