@@ -25,7 +25,6 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
-lock = asyncio.Lock()
 
 
 def _raise_granular_exception(exception: Exception) -> None:
@@ -209,6 +208,7 @@ class _LoadBalancer(LightningWork):
     def run(self):
 
         logger.info(f"servers: {self.servers}")
+        lock = asyncio.Lock()
 
         self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
