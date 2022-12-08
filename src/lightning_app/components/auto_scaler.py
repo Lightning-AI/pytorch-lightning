@@ -205,9 +205,7 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def run(self):
-
         logger.info(f"servers: {self.servers}")
-        lock = asyncio.Lock()
 
         self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
