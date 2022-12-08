@@ -318,7 +318,7 @@ export PACKAGE_LIGHTNING=1  # <- this is the magic to use dev version!!!
 lightning run app app.py --cloud
 ```
 
-By seting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code.
+By seting `PACKAGE_LIGHTNING=1`, lightning packages the lightning source code in your local directory in addition to your app source code and uploads them to the cloud.
 
 ### Bonus Workflow Tip
 
