@@ -15,7 +15,7 @@ on:
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
@@ -104,7 +104,7 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
-        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements/fabric/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         cat requirements/pytorch/base.txt

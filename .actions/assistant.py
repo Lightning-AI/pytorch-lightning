@@ -21,8 +21,8 @@ REQUIREMENT_FILES = {
         "requirements/app/cloud.txt",
     ),
     "lite": (
-        "requirements/lite/base.txt",
-        "requirements/lite/strategies.txt",
+        "requirements/fabric/base.txt",
+        "requirements/fabric/strategies.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))

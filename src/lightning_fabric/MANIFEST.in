@@ -2,6 +2,6 @@ include src/version.info
 include src/lightning_fabric/version.info
 include src/lightning_fabric/CHANGELOG.md
 include src/lightning_fabric/README.md
-recursive-include requirements/lite *.txt
+recursive-include requirements/fabric *.txt
 include .actions/setup_tools.py
 include .actions/assistant.py

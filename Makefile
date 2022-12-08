@@ -33,7 +33,7 @@ test: clean
 	pip install -e . \
 	-r requirements/pytorch/base.txt \
 	-r requirements/app/base.txt \
-	-r requirements/lite/base.txt \
+	-r requirements/fabric/base.txt \
 	-r requirements/pytorch/test.txt \
 	-r requirements/app/test.txt
 

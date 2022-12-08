@@ -10,7 +10,7 @@ on:
       - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "requirements/pytorch/**"

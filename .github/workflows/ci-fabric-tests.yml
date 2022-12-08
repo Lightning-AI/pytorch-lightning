@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
@@ -87,8 +87,8 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
-        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
-        cat requirements/lite/base.txt
+        python ./requirements/pytorch/adjust-versions.py requirements/fabric/base.txt ${{ matrix.pytorch-version }}
+        cat requirements/fabric/base.txt
 
     - name: Get pip cache dir
       id: pip-cache
@@ -98,7 +98,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/fabric/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
@@ -109,7 +109,7 @@ jobs:
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -e . "pytest-timeout" -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e . "pytest-timeout" -r requirements/fabric/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests

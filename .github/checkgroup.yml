@@ -7,7 +7,7 @@ subprojects:
     paths:
       - ".actions/**"
       - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
@@ -54,7 +54,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
@@ -79,7 +79,7 @@ subprojects:
       - ".actions/**"
       - ".azure/hpu-tests.yml"
       - "examples/pl_hpu/mnist_sample.py"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
@@ -95,7 +95,7 @@ subprojects:
     paths:
       - ".actions/**"
       - ".azure/ipu-tests.yml"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
@@ -114,7 +114,7 @@ subprojects:
   #    - ".actions/**"
   #    - ".github/workflows/tpu-tests.yml"
   #    - "dockers/base-xla/*"
-  #    - "requirements/lite/**"
+  #    - "requirements/fabric/**"
   #    - "src/lightning_fabric/**"
   #    - "tests/tests_lite/**"
   #    - "requirements/pytorch/**"
@@ -149,7 +149,7 @@ subprojects:
       - ".github/workflows/ci-pytorch-dockers.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"
@@ -174,7 +174,7 @@ subprojects:
   - id: "lightning_fabric: CPU workflow"
     paths:
       - ".actions/**"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
@@ -208,7 +208,7 @@ subprojects:
       - "examples/run_lite_examples.sh"
       - "tests/tests_lite/run_standalone_*.sh"
       - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
