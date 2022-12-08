@@ -65,9 +65,9 @@ def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expe
             {
                 "devices": 1,
                 "num_nodes": 1,
-                "accelerator": "gpu",
+                "accelerator": "gpu"
             },
-            {"devices": 8, "num_nodes": 7, "accelerator": "auto"},
+            {"devices": 8, "num_nodes": 7, "accelerator": "auto"}
         ),
         ({"strategy": "ddp_spawn"}, {"strategy": "ddp"}),
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),

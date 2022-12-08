@@ -59,7 +59,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         def pre_fn(trainer, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
-            if any(x.is_available() for x in mps_accelerators):
+            if any(acc.is_available() for acc in mps_accelerators):
                 old_acc_value = kwargs.get("accelerator", "auto")
                 kwargs["accelerator"] = "cpu"
 
