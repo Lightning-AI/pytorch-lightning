@@ -25,7 +25,6 @@ from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 logger = Logger(__name__)
-lock = asyncio.Lock()
 
 
 def _raise_granular_exception(exception: Exception) -> None:
@@ -207,8 +206,8 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def run(self):
-
         logger.info(f"servers: {self.servers}")
+        lock = asyncio.Lock()
 
         self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
@@ -271,7 +270,6 @@ class _LoadBalancer(LightningWork):
         async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
             async with lock:
                 self.servers = servers
-
             self._iter = cycle(self.servers)
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)

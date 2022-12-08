@@ -18,5 +18,4 @@ ______________
     :template: classtemplate.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime

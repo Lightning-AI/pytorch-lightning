@@ -120,7 +120,6 @@ We provide ``application_testing`` as a helper funtion to get your application u
        os.path.join(_PROJECT_ROOT, "examples/app_v0/app.py"),
        "--blocking",
        "False",
-       "--multiprocess",
        "--open-ui",
        "False",
    ]
@@ -129,9 +128,7 @@ First in the list for ``command_line`` is the location of your script. It is an 
 
 Next there are a couple of options you can leverage:
 
-
 * ``blocking`` - Blocking is an app status that says "Do not run until I click run in the UI". For our integration test, since we are not using the UI, we are setting this to "False".
-* ``multiprocess/singleprocess`` - This is the runtime your app is expected to run under.
 * ``open-ui`` - We set this to false since this is the routine that opens a browser for your local execution.
 
 Once you have your commandline ready, you will then be able to kick off the test and gather results:
