@@ -6,7 +6,6 @@ on:
     branches: [master, "release/*"]
   release:
     types: [published]
-  pull_request: {}  # Fixme
 
 defaults:
   run:
