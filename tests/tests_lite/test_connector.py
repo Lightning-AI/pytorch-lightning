@@ -389,12 +389,6 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
     assert isinstance(connector.strategy, strategy_class)
 
 
-# TODO: check if other test already does this
-def test_strategy_choice_cpu_instance():
-    connector = _Connector(strategy=DDPStrategy(), accelerator="cpu", devices=2)
-    assert isinstance(connector.strategy, DDPStrategy)
-
-
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
@@ -427,11 +421,10 @@ def test_strategy_choice_sharded(strategy, expected_strategy, precision, expecte
     assert isinstance(connector.precision, expected_precision)
 
 
-# TODO: check if redundant
-@RunIf(min_cuda_gpus=2)
-def test_strategy_choice_gpu_instance():
-    connector = _Connector(strategy=DDPStrategy(), accelerator="gpu", devices=2)
+def test_device_type_when_strategy_instance_cpu_passed():
+    connector = _Connector(strategy=DDPStrategy(), accelerator="cpu", devices=2)
     assert isinstance(connector.strategy, DDPStrategy)
+    assert isinstance(connector.accelerator, CPUAccelerator)
 
 
 @RunIf(min_cuda_gpus=2)
