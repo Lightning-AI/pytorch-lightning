@@ -3,11 +3,11 @@ from copy import deepcopy
 from functools import partial
 from unittest import mock
 
+import lightning_lite as ll
 import pytest
 from lightning_utilities.core.imports import module_available
 from tests_app.helpers.utils import no_warning_call
 
-import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
 
 
