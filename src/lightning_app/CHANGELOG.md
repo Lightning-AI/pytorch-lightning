@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Improved user error when a Lightning App is already running locally ([#15752](https://github.com/Lightning-AI/lightning/pull/15752))
 
 
+- Changed the default port of `PythonServer` from `7777` to a free port at runtime ([#15966](https://github.com/Lightning-AI/lightning/pull/15966))
+
+
+- Remove the `AutoScaler` dependency `aiohttp` from the base requirements ([#15971](https://github.com/Lightning-AI/lightning/pull/15971))
+
+
 ### Deprecated
 
 -
@@ -28,7 +34,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed `AutoScaler` failing due to port collision across works ([#15966](https://github.com/Lightning-AI/lightning/pull/15966))
 
 
 ## [1.8.4] - 2022-12-08
