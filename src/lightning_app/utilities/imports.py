@@ -141,4 +141,8 @@ def _is_sqlmodel_available() -> bool:
     return module_available("sqlmodel")
 
 
+def _is_aiohttp_available() -> bool:
+    return module_available("aiohttp")
+
+
 _CLOUD_TEST_RUN = bool(os.getenv("CLOUD", False))
