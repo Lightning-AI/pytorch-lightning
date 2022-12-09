@@ -94,7 +94,7 @@ jobs:
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}
-        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app,lightning_lite,pytorch_lightning" --target_import="lightning.app,lightning.lite,lightning.pytorch"
 
       - name: Adjust examples
         if: ${{ matrix.pkg-name != 'lightning' }}
