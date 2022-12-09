@@ -21,7 +21,7 @@ runs:
   - name: Install package - archive
     working-directory: ./dist
     run: |
-      pip install ${PKG_IMPORT}*.tar.gz ${{ inputs.pip-flags }}
+      pip install ${PKG_IMPORT} --no-binary ${PKG_IMPORT} --force-reinstall ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash
@@ -29,7 +29,7 @@ runs:
   - name: Install package - wheel
     working-directory: ./dist
     run: |
-      pip install ${PKG_IMPORT}*.whl ${{ inputs.pip-flags }}
+      pip install ${PKG_IMPORT} --only-binary ${PKG_IMPORT} --force-reinstall ${{ inputs.pip-flags }}
       pip list | grep lightning
       python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash
