@@ -115,12 +115,15 @@ def gallery_apps_and_components(
 
     elif kind == "component":
         # give the user the chance to do a manual install
-        git_url = _show_install_component_prompt(entry, app_or_component, org, yes_arg)
-
+        source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+            entry, app_or_component, org, yes_arg, resource_type="component"
+        )
+        if "@" in git_url:
+            git_url = git_url.split("git+")[1].split("@")[0]
         # run installation if requested
-        _install_component_from_source(git_url)
+        _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
-        return os.path.join(os.getcwd(), *entry["appEntrypointFile"].split("/"))
+        return os.path.join(os.getcwd(), *entry["EntrypointFile"].split("/"))
 
     return None
 
