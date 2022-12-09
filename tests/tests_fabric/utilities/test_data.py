@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pytest
 import torch
-from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
 from lightning_fabric.utilities.data import (

@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.accelerators.mps import MPSAccelerator
 from lightning_fabric.utilities.exceptions import MisconfigurationException

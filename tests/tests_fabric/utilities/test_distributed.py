@@ -2,7 +2,7 @@ from functools import partial
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_fabric.plugins.environments import LightningEnvironment

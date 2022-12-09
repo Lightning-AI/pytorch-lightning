@@ -23,8 +23,8 @@ import torch.distributed
 import torch.multiprocessing as mp
 import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
-from tests_lite.helpers.models import RandomDataset
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.runif import RunIf
 from torch import nn
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader

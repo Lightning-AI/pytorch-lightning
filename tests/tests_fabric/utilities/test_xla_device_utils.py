@@ -15,7 +15,7 @@ import time
 from unittest.mock import patch
 
 import pytest
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.accelerators.tpu import _multi_process, _XLA_AVAILABLE, TPUAccelerator
 

@@ -19,7 +19,7 @@ from unittest.mock import ANY, Mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.accelerators import CPUAccelerator
 from lightning_fabric.strategies import DeepSpeedStrategy

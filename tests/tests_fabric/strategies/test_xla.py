@@ -17,9 +17,9 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from tests_lite.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
 from lightning_fabric.accelerators import TPUAccelerator

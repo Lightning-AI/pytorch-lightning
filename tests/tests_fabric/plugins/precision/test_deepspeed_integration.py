@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.connector import _Connector
 from lightning_fabric.plugins import DeepSpeedPrecision

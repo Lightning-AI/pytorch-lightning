@@ -18,8 +18,8 @@ import sys
 from unittest import mock
 
 import pytest
-from tests_lite.helpers.runif import RunIf
-from tests_lite.helpers.utils import no_warning_call
+from tests_fabric.helpers.runif import RunIf
+from tests_fabric.helpers.utils import no_warning_call
 
 from lightning_fabric.plugins.environments import SLURMEnvironment
 from lightning_fabric.utilities.warnings import PossibleUserWarning

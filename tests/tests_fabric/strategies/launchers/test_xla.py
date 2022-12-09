@@ -1,7 +1,7 @@
 from unittest import mock
 from unittest.mock import Mock
 
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.strategies.launchers.xla import _XLALauncher
 

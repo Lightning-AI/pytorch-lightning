@@ -15,7 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 from torch.utils.data.dataloader import DataLoader
 
 from lightning_fabric.fabric import Fabric

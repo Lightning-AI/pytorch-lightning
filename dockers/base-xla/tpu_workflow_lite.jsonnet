@@ -49,7 +49,7 @@ local tputests = base.BaseTest {
       echo "Sanity check passed!"
 
       echo "--- Running Lite tests ---"
-      cd tests/tests_lite
+      cd tests/tests_fabric
       PL_RUN_TPU_TESTS=1 coverage run --source=lightning_fabric -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone Lite tests ---"

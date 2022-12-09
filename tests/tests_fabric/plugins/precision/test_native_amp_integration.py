@@ -15,8 +15,8 @@
 import pytest
 import torch
 import torch.nn as nn
-from tests_lite.helpers.models import BoringLite
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.models import BoringLite
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric import Fabric, seed_everything
 

@@ -18,7 +18,7 @@ from unittest.mock import ANY, MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 from torch.optim import Adam
 
 from lightning_fabric.strategies import FSDPStrategy

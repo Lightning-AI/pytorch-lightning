@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch.nn as nn
 import torch.optim
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.strategies import DDPShardedStrategy
 from lightning_fabric.strategies.fairscale import (

@@ -15,7 +15,7 @@
 
 import torch
 import torch.nn as nn
-from tests_lite.helpers.models import BoringLite
+from tests_fabric.helpers.models import BoringLite
 
 
 class BoringDoubleModule(nn.Module):

@@ -15,7 +15,7 @@ import subprocess
 import sys
 from textwrap import dedent
 
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE

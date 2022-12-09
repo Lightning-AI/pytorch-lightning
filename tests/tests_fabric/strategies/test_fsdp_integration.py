@@ -16,8 +16,8 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_lite.helpers.models import RandomDataset
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
 from lightning_fabric import Fabric

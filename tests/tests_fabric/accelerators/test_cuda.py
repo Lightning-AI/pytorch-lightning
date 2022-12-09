@@ -17,7 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_lite.helpers.runif import RunIf
+from tests_fabric.helpers.runif import RunIf
 
 import lightning_fabric
 from lightning_fabric.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
