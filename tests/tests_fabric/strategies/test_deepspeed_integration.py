@@ -21,7 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tests_fabric.helpers.models import BoringLite, RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
-from tests_fabric.test_lite import BoringModel
+from tests_fabric.helpers.models import BoringModel
 from torch.utils.data import DataLoader
 
 from lightning_fabric import Fabric
