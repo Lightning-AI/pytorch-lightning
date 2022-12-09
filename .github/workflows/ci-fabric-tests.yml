@@ -11,7 +11,7 @@ on:
       - ".actions/**"
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
-      - "tests/tests_lite/**"
+      - "tests/tests_fabric/**"
       - "setup.cfg"  # includes pytest config
       - ".github/workflows/ci-fabric-tests.yml"
       - "!requirements/*/docs.txt"
@@ -119,7 +119,7 @@ jobs:
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
       if: matrix.python-version != '3.7'
-      working-directory: tests/tests_lite
+      working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
@@ -127,7 +127,7 @@ jobs:
       run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
     - name: Testing Lite
-      working-directory: tests/tests_lite
+      working-directory: tests/tests_fabric
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=30 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
@@ -136,11 +136,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_lite/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        path: tests/tests_fabric/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Statistics
       if: success()
-      working-directory: tests/tests_lite
+      working-directory: tests/tests_fabric
       run: |
         coverage report
         coverage xml
@@ -151,7 +151,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_lite/coverage.xml
+        file: tests/tests_fabric/coverage.xml
         flags: ${COVERAGE_SCOPE},cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

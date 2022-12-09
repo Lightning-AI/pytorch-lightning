@@ -12,7 +12,7 @@ on:
       - "dockers/base-xla/*"
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
-      - "tests/tests_lite/**"
+      - "tests/tests_fabric/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
