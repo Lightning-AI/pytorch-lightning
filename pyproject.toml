@@ -30,14 +30,12 @@ files = [
     "src/lightning_lite",
     "src/lightning_app",
 ]
+# This section is for folders with "-" as they are not valid python modules
 exclude = [
+    "src/lightning_app/cli/app-template",
     "src/lightning_app/cli/component-template",
     "src/lightning_app/cli/pl-app-template",
     "src/lightning_app/cli/react-ui-template",
-    "src/lightning_app/cli/app-template",
-    "src/lightning_app/components/database",
-    "src/lightning_app/components/multi_node",
-    "src/lightning_app/frontend/just_py/just_py",
 ]
 install_types = "True"
 non_interactive = "True"
@@ -67,7 +65,9 @@ module = [
     "lightning_app.api.request_types",
     "lightning_app.cli.commands.app_commands",
     "lightning_app.cli.commands.connection",
-    "lightning_app.cli.react-ui-template.example_app",
+    "lightning_app.cli.commands.lightning_cli",
+    "lightning_app.cli.commands.cmd_install",
+    "lightning_app.cli.cmd_install",
     "lightning_app.components.database.client",
     "lightning_app.components.database.server",
     "lightning_app.components.database.utilities",
@@ -94,6 +94,7 @@ module = [
     "lightning_app.frontend.streamlit_base",
     "lightning_app.frontend.utils",
     "lightning_app.frontend.web",
+    "lightning_app.perf.pdb",
     "lightning_app.runners.backends.__init__",
     "lightning_app.runners.backends.backend",
     "lightning_app.runners.backends.cloud",
@@ -102,7 +103,6 @@ module = [
     "lightning_app.runners.cloud",
     "lightning_app.runners.multiprocess",
     "lightning_app.runners.runtime",
-    "lightning_app.runners.singleprocess",
     "lightning_app.source_code.copytree",
     "lightning_app.source_code.hashing",
     "lightning_app.source_code.local",

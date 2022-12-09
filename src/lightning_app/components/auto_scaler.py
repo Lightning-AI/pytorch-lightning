@@ -8,8 +8,6 @@ from base64 import b64encode
 from itertools import cycle
 from typing import Any, Dict, List, Tuple, Type
 
-import aiohttp
-import aiohttp.client_exceptions
 import requests
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -22,10 +20,14 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import _is_aiohttp_available, requires
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
+if _is_aiohttp_available():
+    import aiohttp
+    import aiohttp.client_exceptions
+
 logger = Logger(__name__)
-lock = asyncio.Lock()
 
 
 def _raise_granular_exception(exception: Exception) -> None:
@@ -115,6 +117,7 @@ class _LoadBalancer(LightningWork):
         \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
 
+    @requires(["aiohttp"])
     def __init__(
         self,
         input_type: BaseModel,
@@ -207,8 +210,8 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def run(self):
-
         logger.info(f"servers: {self.servers}")
+        lock = asyncio.Lock()
 
         self._iter = cycle(self.servers)
         self._last_batch_sent = time.time()
@@ -271,7 +274,6 @@ class _LoadBalancer(LightningWork):
         async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
             async with lock:
                 self.servers = servers
-
             self._iter = cycle(self.servers)
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
@@ -448,7 +450,8 @@ class AutoScaler(LightningFlow):
     def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         # TODO: Remove `start_with_flow=False` for faster initialization on the cloud
-        return self._work_cls(*self._work_args, **self._work_kwargs, start_with_flow=False)
+        self._work_kwargs.update(dict(start_with_flow=False))
+        return self._work_cls(*self._work_args, **self._work_kwargs)
 
     def add_work(self, work) -> str:
         """Adds a new LightningWork instance.
