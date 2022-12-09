@@ -7,6 +7,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
       - "requirements/lite/**"
@@ -16,8 +17,7 @@ on:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "setup.cfg"  # includes pytest config
-      - ".actions/**"
-      - "!requirements/**/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -30,13 +30,22 @@ env:
   GKE_CLUSTER: lightning-cluster
   GKE_ZONE: us-central1-a
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  # TODO: package parametrization
   test-on-tpus:
     runs-on: ubuntu-22.04
     if: github.event.pull_request.draft == false
     env:
       PYTHON_VER: 3.7
+    strategy:
+      fail-fast: false
+      max-parallel: 1  # run sequential
+      matrix:
+        # TODO: add also lightning
+        pkg-name: ["lite", "pytorch"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:
@@ -64,21 +73,31 @@ jobs:
 
     - name: Update jsonnet
       env:
+        SCOPE: ${{ matrix.pkg-name }}
         XLA_VER: 1.12
         PR_NUMBER: ${{ github.event.pull_request.number }}
         SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-       python -c "fname = 'dockers/base-xla/tpu_workflow.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
-       data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
-       cat dockers/base-xla/tpu_workflow.jsonnet
-      shell: bash
+        import os
+        fname = f'dockers/base-xla/tpu_workflow_{os.getenv("SCOPE")}.jsonnet'
+        with open(fname) as fo:
+            data = fo.read()
+        data = data.replace('{PYTORCH_VERSION}', os.getenv("XLA_VER"))
+        data = data.replace('{PYTHON_VERSION}', os.getenv("PYTHON_VER"))
+        data = data.replace('{PR_NUMBER}', os.getenv("PR_NUMBER"))
+        data = data.replace('{SHA}', os.getenv("SHA"))
+        with open(fname, "w") as fw:
+            fw.write(data)
+      shell: python
+    - name: Show jsonnet
+      run: cat dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet
 
     - uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GKE_SA_KEY_BASE64 }}
 
     # https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider/deploying-to-google-kubernetes-engine
-    - uses: google-github-actions/get-gke-credentials@v0
+    - uses: google-github-actions/get-gke-credentials@v1
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_ZONE }}
@@ -86,7 +105,7 @@ jobs:
     - name: Deploy cluster
       run: |
         export PATH=$PATH:$HOME/go/bin
-        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow.jsonnet | kubectl create -f -)
+        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/base-xla/tpu_workflow_${{ matrix.pkg-name }}.jsonnet | kubectl create -f -)
         job_name=${job_name#job.batch/}
         job_name=${job_name% created}
         pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')

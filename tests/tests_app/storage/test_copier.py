@@ -22,9 +22,13 @@ class MockPatch:
         return Path._handle_exists_request(work, request)
 
 
+@mock.patch("lightning_app.storage.path.pathlib.Path.is_dir")
+@mock.patch("lightning_app.storage.path.pathlib.Path.stat")
 @mock.patch("lightning_app.storage.copier._filesystem")
-def test_copier_copies_all_files(fs_mock, tmpdir):
+def test_copier_copies_all_files(fs_mock, stat_mock, dir_mock, tmpdir):
     """Test that the Copier calls the copy with the information provided in the request."""
+    stat_mock().st_size = 0
+    dir_mock.return_value = False
     copy_request_queue = _MockQueue()
     copy_response_queue = _MockQueue()
     work = mock.Mock()
@@ -38,9 +42,13 @@ def test_copier_copies_all_files(fs_mock, tmpdir):
         fs_mock().put.assert_called_once_with("file", tmpdir / ".shared" / "123")
 
 
-def test_copier_handles_exception(monkeypatch):
+@mock.patch("lightning_app.storage.path.pathlib.Path.is_dir")
+@mock.patch("lightning_app.storage.path.pathlib.Path.stat")
+def test_copier_handles_exception(stat_mock, dir_mock, monkeypatch):
     """Test that the Copier captures exceptions from the file copy and forwards them through the queue without
     raising it."""
+    stat_mock().st_size = 0
+    dir_mock.return_value = False
     copy_request_queue = _MockQueue()
     copy_response_queue = _MockQueue()
     fs = mock.Mock()

@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, Generator, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -35,7 +36,7 @@ from lightning_lite.utilities.distributed import (
 )
 from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import ReduceOp
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
 from lightning_lite.utilities.rank_zero import rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 
@@ -68,16 +69,19 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ for more information.
 
     Arguments:
-        cpu_offload: CPU offloading config. Currently, only parameter and gradient CPU offload is supported. It
-            can be enabled via passing in ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
+        cpu_offload: Enable offloading parameters and gradients to CPU to save GPU memory at the cost of speed.
+            You can also pass a config: ``cpu_offload=CPUOffload(offload_params=True)``. Note that this currently
             implicitly enables gradient offloading to CPU in order for parameters and gradients to be on same device
-            to work with the optimizer. This API is subject to change. Default is ``None`` in which case there
-            will be no offloading.
+            to work with the optimizer. This API is subject to change. Default: no offoading
         backward_prefetch: This is an experimental feature that is subject to change in the near future. It allows
             users to enable two different backward prefetching algorithms to help backward communication and
             computation overlapping. The pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
         mixed_precision: Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`` or BF16
             if ``precision=bf16`` unless a config is passed in. This is only available in PyTorch 1.12 and later.
+        activation_checkpointing: A single layer or a list of layer classes for which you want to enable activation
+            checkpointing. This is typically your transformer block (including attention + feed-forward).
+            Enabling this can free up a significant amount of memory at the cost of speed since activations in
+            these layers need to be recomputed during backpropagation.
         \**kwargs: Optional keywoard arguments passed to the FSDP context manager which will configure the FSDP class
             when wrapping modules.
     """
@@ -91,9 +95,10 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        cpu_offload: Optional["CPUOffload"] = None,
+        cpu_offload: Union[bool, "CPUOffload", None] = None,
         backward_prefetch: Optional["BackwardPrefetch"] = None,
         mixed_precision: Optional["MixedPrecision"] = None,
+        activation_checkpointing: Optional[Union[Type[Module], List[Type[Module]]]] = None,
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
@@ -112,7 +117,14 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         self._backward_sync_control = _FSDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
 
-        self.cpu_offload = cpu_offload
+        if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
+            raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
+        activation_checkpointing = activation_checkpointing or []
+        self._activation_checkpointing = (
+            [activation_checkpointing] if not isinstance(activation_checkpointing, list) else activation_checkpointing
+        )
+
+        self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
 
@@ -175,13 +187,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         :class:`~torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel` module."""
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-        if (
-            any(isinstance(mod, FullyShardedDataParallel) for mod in module.modules())
-            and "auto_wrap_policy" in self._ddp_kwargs
+        if "auto_wrap_policy" in self._ddp_kwargs and any(
+            isinstance(mod, FullyShardedDataParallel) for mod in module.modules()
         ):
             # If model is already wrapped, we need to avoid sending the `auto_wrap_policy`
             del self._ddp_kwargs["auto_wrap_policy"]
-        return FullyShardedDataParallel(
+        wrapped_module = FullyShardedDataParallel(
             module=module,
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
@@ -189,6 +200,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             device_id=self.root_device.index,
             **self._ddp_kwargs,
         )
+
+        # activation checkpointing needs to be set up after wrapping the model
+        if _TORCH_GREATER_EQUAL_1_13 and self._activation_checkpointing:
+            _setup_activation_checkpointing(module=wrapped_module, layers=self._activation_checkpointing)
+
+        return wrapped_module
 
     def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Set up an optimizer for a model wrapped with FSDP.
@@ -258,7 +275,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         if not _TORCH_GREATER_EQUAL_1_12 or not torch.distributed.is_available():
             return
-        from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
 
         strategy_registry.register(
             "fsdp",
@@ -269,7 +285,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             "fsdp_full_shard_offload",
             cls,
             description="Native FSDP with Full Sharding and CPU Offloading",
-            cpu_offload=CPUOffload(offload_params=True),
+            cpu_offload=True,
         )
 
     def _setup_distributed(self) -> None:
@@ -291,6 +307,21 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
 
+def _setup_activation_checkpointing(module: "FullyShardedDataParallel", layers: List[Type[Module]]) -> None:
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+        checkpoint_wrapper,
+        CheckpointImpl,
+    )
+
+    check_fn = lambda submodule: isinstance(submodule, tuple(layers))
+    wrapper = functools.partial(
+        checkpoint_wrapper,
+        checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+    )
+    apply_activation_checkpointing(module, checkpoint_wrapper_fn=wrapper, check_fn=check_fn)
+
+
 class _FSDPBackwardSyncControl(_BackwardSyncControl):
     @contextmanager
     def no_backward_sync(self, module: Module) -> Generator:
@@ -306,3 +337,15 @@ class _FSDPBackwardSyncControl(_BackwardSyncControl):
             )
         with module.no_sync():
             yield
+
+
+def _init_cpu_offload(cpu_offload: Optional[Union[bool, "CPUOffload"]]) -> "CPUOffload":
+    from torch.distributed.fsdp import CPUOffload
+
+    return cpu_offload if isinstance(cpu_offload, CPUOffload) else CPUOffload(offload_params=bool(cpu_offload))
+
+
+def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    from torch.distributed.fsdp import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])

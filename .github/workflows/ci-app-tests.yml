@@ -8,14 +8,13 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
+      - ".actions/**"
       - ".github/workflows/ci-app-tests.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
-      - "examples/app_*/**"  # some tests_app tests call examples files
       - "requirements/app/**"
       - "setup.py"
-      - ".actions/**"
-      - "!requirements/app/docs.txt"
+      - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
 
@@ -78,16 +77,11 @@ jobs:
       - name: Switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
-      - name: Install package
+      - name: Install package & depenencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          pip install -e . pytest --upgrade --find-links ${TORCH_URL}
-          pip list
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements/app/devel.txt --quiet --find-links ${TORCH_URL}
+          pip install -e . -r requirements/app/devel.txt -U -q --find-links ${TORCH_URL}
           pip list
 
       - name: Setup Node.js
@@ -100,7 +94,7 @@ jobs:
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}
-        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app" --target_import="lightning.app"
+        run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_app,lightning_lite,pytorch_lightning" --target_import="lightning.app,lightning.lite,lightning.pytorch"
 
       - name: Adjust examples
         if: ${{ matrix.pkg-name != 'lightning' }}

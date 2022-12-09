@@ -13,7 +13,6 @@
 # limitations under the License.
 import inspect
 import os
-from abc import ABC
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
@@ -26,7 +25,7 @@ from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
@@ -55,7 +54,7 @@ from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
-class LightningLite(ABC):
+class LightningLite:
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.
@@ -219,8 +218,9 @@ class LightningLite(ABC):
         module = self._strategy.setup_module(module)
         module = _LiteModule(module, self._precision, original_module=original_module)
 
-        # Update the _DeviceDtypeModuleMixin's device parameter
-        module.to(self.device if move_to_device else next(module.parameters()).device)
+        if not isinstance(self._strategy, FSDPStrategy):
+            # Update the _DeviceDtypeModuleMixin's device parameter
+            module.to(self.device if move_to_device else next(module.parameters()).device)
 
         self._models_setup += 1
         return module
@@ -582,6 +582,7 @@ class LightningLite(ABC):
 
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
+        kwargs.setdefault("shuffle", isinstance(dataloader.sampler, RandomSampler))
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 

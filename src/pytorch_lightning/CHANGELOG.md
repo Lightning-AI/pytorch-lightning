@@ -27,6 +27,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15301](https://github.com/Lightning-AI/lightning/pull/15301))
 
 
+- Added a warning when `self.log(..., logger=True)` is called without a configured logger ([#15814](https://github.com/Lightning-AI/lightning/pull/15814))
+
+
+- Added support for activation checkpointing for the `DDPFullyShardedNativeStrategy` strategy ([#15826](https://github.com/Lightning-AI/lightning/pull/15826))
+
+
+- Added the option to set `DDPFullyShardedNativeStrategy(cpu_offload=True|False)` via bool instead of needing to pass a configufation object ([#15832](https://github.com/Lightning-AI/lightning/pull/15832))
+
+
 ### Changed
 
 - Drop PyTorch 1.9 support ([#15347](https://github.com/Lightning-AI/lightning/pull/15347))
@@ -49,6 +58,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
+- Deprecated `description`, `env_prefix` and `env_parse` parameters in `LightningCLI.__init__` in favour of giving them through `parser_kwargs` ([#15651](https://github.com/Lightning-AI/lightning/pull/15651))
+
+
 -
 
 
@@ -56,7 +68,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `pytorch_lightning.utilities.memory.get_gpu_memory_map` in favor of `pytorch_lightning.accelerators.cuda.get_nvidia_gpu_stats` ([#15617](https://github.com/Lightning-AI/lightning/pull/15617))
 
+
 - Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
+
+
+- Removed deprecated `pytorch_lightning.profiler.base.AbstractProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#15637](https://github.com/Lightning-AI/lightning/pull/15637))
+
+
+- Removed deprecated `pytorch_lightning.profiler.base.BaseProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#15637](https://github.com/Lightning-AI/lightning/pull/15637))
+
+
+-
 
 
 ### Fixed
@@ -64,7 +86,26 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 
+## [1.8.4] - 2022-12-08
 
+### Changed
+
+- Direct support for compiled models ([#15922](https://github.com/Lightning-AI/lightning/pull/15922))
+
+### Fixed
+
+- Fixed issue with unsupported torch.inference_mode() on hpu backends ([#15918](https://github.com/Lightning-AI/lightning/pull/15918))
+- Fixed LRScheduler import for PyTorch 2.0 ([#15940](https://github.com/Lightning-AI/lightning/pull/15940))
+- Fixed `fit_loop.restarting` to be `False` for lr finder ([#15620](https://github.com/Lightning-AI/lightning/pull/15620))
+- Fixed `torch.jit.script`-ing a LightningModule causing an unintended error message about deprecated `use_amp` property ([#15947](https://github.com/Lightning-AI/lightning/pull/15947))
+
+
+## [1.8.3] - 2022-11-22
+
+### Changed
+
+- Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
+- Switch from `tensorboard` to `tensorboardx` in `TensorBoardLogger` ([#15728](https://github.com/Lightning-AI/lightning/pull/15728))
 
 
 ## [1.8.2] - 2022-11-17
@@ -73,6 +114,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Make sure save_dir can be empty str ([#15638](https://github.com/PyTorchLightning/pytorch-lightning/issues/15638))
 - Fixed the automatic fallback from `Trainer(strategy="ddp_spawn", ...)` to `Trainer(strategy="ddp", ...)` when on an LSF cluster ([#15103](https://github.com/PyTorchLightning/pytorch-lightning/issues/15103))
+
 
 
 ## [1.8.1] - 2022-11-10

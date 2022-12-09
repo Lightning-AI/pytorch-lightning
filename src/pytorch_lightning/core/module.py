@@ -45,7 +45,7 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
@@ -88,7 +88,6 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
-            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -117,6 +116,7 @@ class LightningModule(
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
+        self._compiler_ctx: Optional[Dict[str, Any]] = None
 
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
@@ -322,7 +322,7 @@ class LightningModule(
         name: str,
         value: _METRIC_COLLECTION,
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -402,7 +402,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        value = apply_to_collection(value, (torch.Tensor, numbers.Number), self.__to_tensor, name)
+        value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -438,6 +438,16 @@ class LightningModule(
                 "With `def training_step(self, dataloader_iter)`, `self.log(..., batch_size=...)` should be provided."
             )
 
+        if logger and self.trainer.logger is None:
+            rank_zero_warn(
+                f"You called `self.log({name!r}, ..., logger=True)` but have no logger configured. You can enable one"
+                " by doing `Trainer(logger=ALogger(...))`"
+            )
+        if logger is None:
+            # we could set false here if there's no configured logger, however, we still need to compute the "logged"
+            # metrics anyway because that's what the evaluation loops use as return value
+            logger = True
+
         results.log(
             self._current_fx_name,
             name,
@@ -463,7 +473,7 @@ class LightningModule(
         self,
         dictionary: Mapping[str, _METRIC_COLLECTION],
         prog_bar: bool = False,
-        logger: bool = True,
+        logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
         on_epoch: Optional[bool] = None,
         reduce_fx: Union[str, Callable] = "mean",
@@ -534,10 +544,10 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
+    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
         value = (
             value.clone().detach().to(self.device)
-            if isinstance(value, torch.Tensor)
+            if isinstance(value, Tensor)
             else torch.tensor(value, device=self.device)
         )
         if not torch.numel(value) == 1:
@@ -1814,13 +1824,6 @@ class LightningModule(
         input_sample = self._on_before_batch_transfer(input_sample)
         input_sample = self._apply_batch_transfer_handler(input_sample)
 
-        if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
-            self.eval()
-            if isinstance(input_sample, tuple):
-                kwargs["example_outputs"] = self(*input_sample)
-            else:
-                kwargs["example_outputs"] = self(input_sample)
-
         torch.onnx.export(self, input_sample, file_path, **kwargs)
         self.train(mode)
 
@@ -1928,7 +1931,7 @@ class LightningModule(
 
         These hooks ensure that ShardedTensors are included when saving, and are loaded the LightningModule correctly.
         """
-        if not _TORCH_GREATER_EQUAL_1_10 or _IS_WINDOWS or not torch.distributed.is_available():
+        if _IS_WINDOWS or not torch.distributed.is_available():
             rank_zero_debug("Could not register sharded tensor state dict hooks")
             return
 
@@ -1946,6 +1949,82 @@ class LightningModule(
             self.__class__._register_load_state_dict_pre_hook(
                 weakref.proxy(self), pre_load_state_dict_hook, True  # type: ignore[arg-type]
             )
+
+    @classmethod
+    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
+        """Returns an instance LightningModule from the output of ``torch.compile``.
+
+        The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
+        passed in as an argument, but doesn't inherit from it. This means that the output of ``torch.compile`` behaves
+        like a LightningModule but it doesn't inherit from it (i.e. `isinstance` will fail).
+
+        Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
+        """
+
+        from torch._dynamo import OptimizedModule
+
+        if not isinstance(model, OptimizedModule):
+            raise ValueError(
+                "`model` is required to be a `torch._dynamo.OptimizedModule`. " f"Found a `{type(model)}` instead."
+            )
+
+        orig_module = model._orig_mod
+
+        if not isinstance(orig_module, cls):
+            raise ValueError(
+                "`model` is expected to be a compiled LightingModule. " f"Found a compiled {type(orig_module)} instead"
+            )
+
+        orig_module._compiler_ctx = {
+            "compiler": "dynamo",
+            "dynamo_ctx": model.dynamo_ctx,
+            "original_forward": orig_module.forward,
+            "original_training_step": orig_module.training_step,
+            "original_validation_step": orig_module.validation_step,
+            "original_test_step": orig_module.test_step,
+            "original_predict_step": orig_module.predict_step,
+        }
+
+        orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
+        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
+        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
+        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
+        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
+        return orig_module
+
+    @classmethod
+    def to_uncompiled(cls, model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
+        """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
+
+        This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
+        returned by ``LightningModule.from_compiled``.
+
+        Note: this method will in-place modify the ``LightningModule`` that is passed in.
+        """
+
+        from torch._dynamo import OptimizedModule
+
+        if isinstance(model, OptimizedModule):
+            return model._orig_mod
+
+        elif isinstance(model, cls):
+            if model._compiler_ctx is None:
+                raise ValueError(
+                    "`model` is required to be a compiled LightningModule. "
+                    "Found a non-compiled LightningModule instead."
+                )
+
+        else:
+            raise ValueError("`model` must either be an instance of torch._dynamo.OptimizedModule or LightningModule")
+
+        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
+        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
+        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
+        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
+        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
+        model._compiler_ctx = None
+
+        return model
 
 
 @contextmanager

@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch.nn.parallel import DistributedDataParallel
 
 from lightning_lite.plugins.environments import ClusterEnvironment, LightningEnvironment
@@ -25,13 +26,10 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 
 class BoringModelGPU(BoringModel):
