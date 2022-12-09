@@ -77,6 +77,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed detection of a Lightning App running in debug mode ([#15951](https://github.com/Lightning-AI/lightning/pull/15951))
 
+- Fixed MultiNode Component to use separate cloud computes([#15965](https://github.com/Lightning-AI/lightning/pull/15965))
+
 
 ## [1.8.3] - 2022-11-22
 
