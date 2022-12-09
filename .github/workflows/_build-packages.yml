@@ -44,7 +44,7 @@ jobs:
     - uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.artifact-name }}
-        path: dist
+        path: pypi
     - uses: actions/setup-python@v4
       with:
         python-version: 3.9
@@ -55,7 +55,9 @@ jobs:
         pkg-name: ${{ matrix.pkg-name }}
         nb-dirs: ${{ env.NB_DIRS }}
 
+    - run: cp dist/* pypi/
+
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.artifact-name }}
-        path: dist
+        path: pypi
