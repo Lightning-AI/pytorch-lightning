@@ -25,9 +25,9 @@ from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, Sampler
 
-from lightning_lite.fabric import Fabric
-from lightning_lite.plugins import Precision
-from lightning_lite.strategies import (
+from lightning_fabric.fabric import Fabric
+from lightning_fabric.plugins import Precision
+from lightning_fabric.strategies import (
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DDPStrategy,
@@ -37,12 +37,12 @@ from lightning_lite.strategies import (
     Strategy,
     XLAStrategy,
 )
-from lightning_lite.strategies.strategy import _Sharded
-from lightning_lite.utilities import _StrategyType
-from lightning_lite.utilities.exceptions import MisconfigurationException
-from lightning_lite.utilities.seed import pl_worker_init_function
-from lightning_lite.utilities.warnings import PossibleUserWarning
-from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_fabric.strategies.strategy import _Sharded
+from lightning_fabric.utilities import _StrategyType
+from lightning_fabric.utilities.exceptions import MisconfigurationException
+from lightning_fabric.utilities.seed import pl_worker_init_function
+from lightning_fabric.utilities.warnings import PossibleUserWarning
+from lightning_fabric.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
 
 class EmptyLite(Fabric):
@@ -80,7 +80,7 @@ def test_run_input_output():
     assert lite.run_kwargs == {"three": 3}
 
 
-@mock.patch("lightning_lite.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
@@ -311,7 +311,7 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("lightning_lite.fabric._replace_dunder_methods")
+@mock.patch("lightning_fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
@@ -356,7 +356,7 @@ def test_setup_dataloaders_twice_fails():
 
 
 @mock.patch(
-    "lightning_lite.fabric.Fabric.device",
+    "lightning_fabric.fabric.Fabric.device",
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
@@ -579,7 +579,7 @@ def test_launch_without_function():
 
     # default: no launcher, single process
     lite = Fabric()
-    with mock.patch("lightning_lite.fabric._do_nothing") as nothing:
+    with mock.patch("lightning_fabric.fabric._do_nothing") as nothing:
         lite.launch()
     nothing.assert_called()
 

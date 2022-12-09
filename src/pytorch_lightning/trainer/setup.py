@@ -16,7 +16,7 @@
 from typing import Optional, Union
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import (
     CUDAAccelerator,
     HPUAccelerator,

@@ -15,8 +15,8 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators.mps import MPSAccelerator
-from lightning_lite.utilities.exceptions import MisconfigurationException
+from lightning_fabric.accelerators.mps import MPSAccelerator
+from lightning_fabric.utilities.exceptions import MisconfigurationException
 
 _MAYBE_MPS = "mps" if MPSAccelerator.is_available() else "cpu"  # torch.device(mps) only works on torch>=1.12
 

@@ -20,7 +20,7 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_fabric.plugins.environments import SLURMEnvironment
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf

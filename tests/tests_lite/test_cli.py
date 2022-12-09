@@ -18,8 +18,8 @@ from unittest.mock import Mock
 import pytest
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.cli import _run_model
-from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
+from lightning_fabric.cli import _run_model
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 if not (_IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13):
     import torch.distributed.run
@@ -58,7 +58,7 @@ def test_cli_env_vars_defaults(monkeypatch, fake_script):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("accelerator", ["cpu", "gpu", "cuda", pytest.param("mps", marks=RunIf(mps=True))])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -70,7 +70,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -82,7 +82,7 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 @skip_windows_pt_1_13()
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2)
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_devices_cuda(_, devices, monkeypatch, fake_script):
     monkeypatch.setattr(torch.distributed, "run", Mock())
     with pytest.raises(SystemExit) as e:
@@ -157,7 +157,7 @@ def test_cli_torchrun_defaults(monkeypatch, fake_script):
     ],
 )
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-@mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=5)
+@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=5)
 def test_cli_torchrun_num_processes_launched(_, devices, expected, monkeypatch, fake_script):
     torchrun_mock = Mock()
     monkeypatch.setattr(torch.distributed, "run", torchrun_mock)

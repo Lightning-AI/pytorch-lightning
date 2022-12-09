@@ -33,7 +33,7 @@ jobs:
       fail-fast: true
       max-parallel: 1  # run sequential to prevent download/upload collisions
       matrix:
-        pkg-name: ["lightning", "app", "lite", "pytorch"]
+        pkg-name: ["lightning", "app", "fabric", "pytorch"]
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
@@ -171,7 +171,7 @@ jobs:
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-pattern: "*fabric*"
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
@@ -200,7 +200,7 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-pattern: "*fabric*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:

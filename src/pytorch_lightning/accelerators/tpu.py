@@ -15,9 +15,9 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 
-from lightning_lite.accelerators.tpu import _parse_tpu_cores, _XLA_AVAILABLE
-from lightning_lite.accelerators.tpu import TPUAccelerator as LiteTPUAccelerator
-from lightning_lite.utilities.types import _DEVICE
+from lightning_fabric.accelerators.tpu import _parse_tpu_cores, _XLA_AVAILABLE
+from lightning_fabric.accelerators.tpu import TPUAccelerator as LiteTPUAccelerator
+from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 
 

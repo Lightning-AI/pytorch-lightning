@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_lite.utilities.types import _LRScheduler, ProcessGroup, ReduceLROnPlateau
+from lightning_fabric.utilities.types import _LRScheduler, ProcessGroup, ReduceLROnPlateau
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]

@@ -24,7 +24,7 @@ import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

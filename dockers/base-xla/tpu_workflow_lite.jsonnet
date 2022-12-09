@@ -38,22 +38,22 @@ local tputests = base.BaseTest {
       fi
 
       echo "--- Install packages ---"
-      PACKAGE_NAME=lite pip install .[dev]
+      PACKAGE_NAME=fabric pip install .[dev]
       pip list
 
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
 
       echo "--- Sanity check TPU availability ---"
-      python -c "from lightning_lite.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
+      python -c "from lightning_fabric.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       echo "Sanity check passed!"
 
       echo "--- Running Lite tests ---"
       cd tests/tests_lite
-      PL_RUN_TPU_TESTS=1 coverage run --source=lightning_lite -m pytest -vv --durations=0 ./
+      PL_RUN_TPU_TESTS=1 coverage run --source=lightning_fabric -m pytest -vv --durations=0 ./
 
       echo "--- Running standalone Lite tests ---"
-      PL_STANDALONE_TESTS_SOURCE=lightning_lite PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
+      PL_STANDALONE_TESTS_SOURCE=lightning_fabric PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
       coverage xml

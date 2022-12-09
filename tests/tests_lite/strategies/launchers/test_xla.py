@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.strategies.launchers.xla import _XLALauncher
+from lightning_fabric.strategies.launchers.xla import _XLALauncher
 
 
 @RunIf(skip_windows=True)
@@ -20,7 +20,7 @@ def test_xla_launcher_interactive_compatible(xla_available):
 
 @RunIf(skip_windows=True, tpu=True)
 @mock.patch("torch_xla.distributed.xla_multiprocessing")
-@mock.patch("lightning_lite.strategies.launchers.xla.get_context")
+@mock.patch("lightning_fabric.strategies.launchers.xla.get_context")
 def test_xla_launcher_xmp_spawn(get_context_mock, xmp_mock):
     strategy = Mock()
     launcher = _XLALauncher(strategy=strategy)

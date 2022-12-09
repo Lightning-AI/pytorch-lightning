@@ -33,7 +33,7 @@ from typing import Any, Callable, Dict, List
 
 from lightning_utilities.core.rank_zero import rank_zero_warn
 
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 

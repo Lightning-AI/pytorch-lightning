@@ -22,10 +22,10 @@ from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
 from tests_lite.helpers.runif import RunIf
 from torch.utils.data import DataLoader
 
-from lightning_lite.accelerators import TPUAccelerator
-from lightning_lite.strategies import XLAStrategy
-from lightning_lite.strategies.launchers.xla import _XLALauncher
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_fabric.accelerators import TPUAccelerator
+from lightning_fabric.strategies import XLAStrategy
+from lightning_fabric.strategies.launchers.xla import _XLALauncher
+from lightning_fabric.utilities.distributed import ReduceOp
 
 
 def wrap_launch_function(fn, strategy, *args, **kwargs):
@@ -81,7 +81,7 @@ def test_tpu_reduce():
 
 
 @RunIf(tpu=True)
-@mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
+@mock.patch("lightning_fabric.strategies.xla.XLAStrategy.root_device")
 def test_xla_mp_device_dataloader_attribute(_, monkeypatch):
     import torch_xla.distributed.parallel_loader as parallel_loader
 
@@ -103,7 +103,7 @@ _loader_no_len = CustomNotImplementedErrorDataloader(_loader)
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize("dataloader", [None, _iterable_loader, _loader_no_len])
-@mock.patch("lightning_lite.strategies.xla.XLAStrategy.root_device")
+@mock.patch("lightning_fabric.strategies.xla.XLAStrategy.root_device")
 def test_xla_validate_unsupported_iterable_dataloaders(_, dataloader, monkeypatch):
     """Test that the XLAStrategy validates against dataloaders with no length defined on datasets (iterable
     dataset)."""

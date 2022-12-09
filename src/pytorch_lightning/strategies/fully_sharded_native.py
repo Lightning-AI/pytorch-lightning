@@ -20,17 +20,17 @@ from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fsdp import _optimizer_has_flat_params, _setup_activation_checkpointing
-from lightning_lite.utilities.distributed import (
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.strategies.fsdp import _optimizer_has_flat_params, _setup_activation_checkpointing
+from lightning_fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
-from lightning_lite.utilities.distributed import group as _group
-from lightning_lite.utilities.optimizer import _optimizers_to_device
-from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import ProcessGroup, ReduceOp
+from lightning_fabric.utilities.distributed import group as _group
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.utilities.seed import reset_seed
+from lightning_fabric.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin

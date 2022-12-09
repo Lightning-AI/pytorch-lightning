@@ -14,9 +14,9 @@
 import pytest
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DeepSpeedPrecision
-from lightning_lite.strategies import DeepSpeedStrategy
+from lightning_fabric.connector import _Connector
+from lightning_fabric.plugins import DeepSpeedPrecision
+from lightning_fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(deepspeed=True)

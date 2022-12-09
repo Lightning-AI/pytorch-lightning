@@ -2,7 +2,7 @@ import torch
 
 import lightning as L
 from lightning.app.components import LiteMultiNode
-from lightning.lite import Fabric
+from lightning.fabric import Fabric
 
 
 class LitePyTorchDistributed(L.LightningWork):

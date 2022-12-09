@@ -16,7 +16,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_fabric.plugins.precision.native_amp import NativeMixedPrecision
 
 
 def test_native_amp_precision_default_scaler():

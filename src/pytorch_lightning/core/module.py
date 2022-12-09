@@ -33,11 +33,11 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import convert_to_tensors
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_lite.utilities.types import Steppable
+from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
+from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin

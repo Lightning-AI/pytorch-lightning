@@ -9,7 +9,7 @@ requires = [
 known_first_party = [
     "pl_examples",
     "pytorch_lightning",
-    "lightning_lite",
+    "lightning_fabric",
     "tests_pytorch",
 ]
 profile = "black"
@@ -27,7 +27,7 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
-    "src/lightning_lite",
+    "src/lightning_fabric",
     "src/lightning_app",
 ]
 exclude = [

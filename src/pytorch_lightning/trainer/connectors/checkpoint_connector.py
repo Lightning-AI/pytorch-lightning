@@ -25,9 +25,9 @@ from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments.slurm import SLURMEnvironment
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.plugins.environments.slurm import SLURMEnvironment
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
