@@ -22,9 +22,9 @@ from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
-from lightning_lite.utilities import move_data_to_device
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import _distributed_available
+from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training

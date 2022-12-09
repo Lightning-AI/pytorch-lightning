@@ -21,15 +21,15 @@ import torch.nn as nn
 from tests_lite.helpers.runif import RunIf
 from torch.optim import Adam
 
-from lightning_lite.strategies import FSDPStrategy
-from lightning_lite.strategies.fsdp import _FSDPBackwardSyncControl
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_fabric.strategies import FSDPStrategy
+from lightning_fabric.strategies.fsdp import _FSDPBackwardSyncControl
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
 
 
-@mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
+@mock.patch("lightning_fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_12", False)
 def test_fsdp_support(*_):
     with pytest.raises(NotImplementedError, match="`FSDPStrategy` is supported from PyTorch v1.12.0"):
         FSDPStrategy()
@@ -80,7 +80,7 @@ def test_fsdp_no_backward_sync():
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("lightning_lite.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
+@mock.patch("lightning_fabric.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
 def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):

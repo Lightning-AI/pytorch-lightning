@@ -20,10 +20,10 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.utilities.distributed import _distributed_available
-from lightning_lite.utilities.distributed import group as dist_group
-from lightning_lite.utilities.types import ReduceOp
+from lightning_fabric.plugins import CheckpointIO
+from lightning_fabric.utilities.distributed import _distributed_available
+from lightning_fabric.utilities.distributed import group as dist_group
+from lightning_fabric.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy

@@ -17,8 +17,8 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-import lightning_lite
-from lightning_lite.strategies.launchers.subprocess_script import _HYDRA_AVAILABLE, _SubprocessScriptLauncher
+import lightning_fabric
+from lightning_fabric.strategies.launchers.subprocess_script import _HYDRA_AVAILABLE, _SubprocessScriptLauncher
 
 
 def test_subprocess_script_launcher_interactive_compatible():
@@ -26,7 +26,7 @@ def test_subprocess_script_launcher_interactive_compatible():
     assert not launcher.is_interactive_compatible
 
 
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning_fabric.strategies.launchers.subprocess_script.subprocess.Popen")
 def test_subprocess_script_launcher_error_launching_on_non_zero_rank(popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
@@ -36,7 +36,7 @@ def test_subprocess_script_launcher_error_launching_on_non_zero_rank(popen_mock)
         launcher.launch(Mock())
 
 
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning_fabric.strategies.launchers.subprocess_script.subprocess.Popen")
 def test_subprocess_script_launcher_external_processes(popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = True
@@ -47,7 +47,7 @@ def test_subprocess_script_launcher_external_processes(popen_mock):
     popen_mock.assert_not_called()
 
 
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning_fabric.strategies.launchers.subprocess_script.subprocess.Popen")
 def test_subprocess_script_launcher_launch_processes(popen_mock):
     cluster_env = Mock()
     cluster_env.creates_processes_externally = False
@@ -79,13 +79,13 @@ def test_subprocess_script_launcher_launch_processes(popen_mock):
 
 
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="hydra-core is required")
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.sleep")
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
+@mock.patch("lightning_fabric.strategies.launchers.subprocess_script.sleep")
+@mock.patch("lightning_fabric.strategies.launchers.subprocess_script.subprocess.Popen")
 def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     basic_command = Mock(return_value="basic_command")
     hydra_command = Mock(return_value=("hydra_command", "hydra_cwd"))
-    monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_basic_subprocess_cmd", basic_command)
-    monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_hydra_subprocess_cmd", hydra_command)
+    monkeypatch.setattr(lightning_fabric.strategies.launchers.subprocess_script, "_basic_subprocess_cmd", basic_command)
+    monkeypatch.setattr(lightning_fabric.strategies.launchers.subprocess_script, "_hydra_subprocess_cmd", hydra_command)
 
     def simulate_launch():
         cluster_env = Mock()
@@ -98,7 +98,7 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
         launcher.launch(function)
 
     # when hydra not available
-    monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", False)
+    monkeypatch.setattr(lightning_fabric.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", False)
     simulate_launch()
     popen_mock.assert_called_with("basic_command", env=ANY, cwd=None)
     popen_mock.reset_mock()
@@ -106,7 +106,7 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     import hydra
 
     # when hydra available but not initialized
-    monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_fabric.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", True)
     HydraConfigMock = Mock()
     HydraConfigMock.initialized.return_value = False
     monkeypatch.setattr(hydra.core.hydra_config, "HydraConfig", HydraConfigMock)
@@ -115,7 +115,7 @@ def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
     popen_mock.reset_mock()
 
     # when hydra available and initialized
-    monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", True)
+    monkeypatch.setattr(lightning_fabric.strategies.launchers.subprocess_script, "_HYDRA_AVAILABLE", True)
     HydraConfigMock = Mock()
     HydraConfigMock.initialized.return_value = True
     monkeypatch.setattr(hydra.core.hydra_config, "HydraConfig", HydraConfigMock)

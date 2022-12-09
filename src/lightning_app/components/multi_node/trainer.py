@@ -30,7 +30,7 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
+        from lightning.fabric.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
         from lightning.pytorch import Trainer as LTrainer
         from pytorch_lightning import Trainer as PLTrainer
 

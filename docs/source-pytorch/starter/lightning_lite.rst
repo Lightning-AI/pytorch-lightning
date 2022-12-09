@@ -89,7 +89,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
     import torch
     from torch import nn
     from torch.utils.data import DataLoader, Dataset
-    from lightning.lite import Fabric
+    from lightning.fabric import Fabric
 
 
     class MyModel(nn.Module):

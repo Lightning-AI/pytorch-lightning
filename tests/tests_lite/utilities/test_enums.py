@@ -1,4 +1,4 @@
-from lightning_lite.utilities.enums import PrecisionType
+from lightning_fabric.utilities.enums import PrecisionType
 
 
 def test_precision_supported_types():

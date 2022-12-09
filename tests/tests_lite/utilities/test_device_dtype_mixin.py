@@ -3,7 +3,7 @@ import torch
 from tests_lite.helpers.runif import RunIf
 from torch import nn as nn
 
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 
 
 class SubSubModule(_DeviceDtypeModuleMixin):

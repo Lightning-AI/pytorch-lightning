@@ -36,7 +36,7 @@ from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
-from lightning.lite.fabric import Fabric  # noqa: E402
+from lightning.fabric.fabric import Fabric  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402

@@ -352,9 +352,9 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-lite"):
-    # lightning-lite may not be available when installing only standalone lightning-app package
-    from lightning_lite.cli import _run_model
+if RequirementCache("lightning-fabric"):
+    # lightning-fabric may not be available when installing only standalone lightning-app package
+    from lightning_fabric.cli import _run_model
 
     run.add_command(_run_model)
 

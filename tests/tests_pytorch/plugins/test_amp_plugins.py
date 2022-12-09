@@ -263,13 +263,13 @@ def test_precision_selection_raises(monkeypatch):
 
     mock_cuda_count(monkeypatch, 1)
     with pytest.raises(MisconfigurationException, match="Sharded plugins are not supported with apex"):
-        with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True):
+        with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
+    with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
     ):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

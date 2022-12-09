@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import os
 
-from lightning_lite.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
+from lightning_fabric.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 

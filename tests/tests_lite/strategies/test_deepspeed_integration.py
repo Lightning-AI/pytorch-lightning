@@ -24,9 +24,9 @@ from tests_lite.helpers.runif import RunIf
 from tests_lite.test_lite import BoringModel
 from torch.utils.data import DataLoader
 
-from lightning_lite import Fabric
-from lightning_lite.plugins import DeepSpeedPrecision
-from lightning_lite.strategies import DeepSpeedStrategy
+from lightning_fabric import Fabric
+from lightning_fabric.plugins import DeepSpeedPrecision
+from lightning_fabric.strategies import DeepSpeedStrategy
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)

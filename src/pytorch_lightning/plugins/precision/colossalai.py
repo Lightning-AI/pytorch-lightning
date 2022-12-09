@@ -18,7 +18,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import Steppable
+from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.enums import PrecisionType
 

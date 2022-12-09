@@ -18,7 +18,7 @@ import torch.nn as nn
 from tests_lite.helpers.models import BoringLite
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite import Fabric, seed_everything
+from lightning_fabric import Fabric, seed_everything
 
 
 class NativeMixedPrecisionModule(nn.Module):

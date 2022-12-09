@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter

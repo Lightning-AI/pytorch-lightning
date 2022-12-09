@@ -30,8 +30,8 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite import LightningLite
-        from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
+        from lightning.fabric import LightningLite
+        from lightning.fabric.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address

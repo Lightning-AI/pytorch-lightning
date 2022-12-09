@@ -8,12 +8,12 @@ import pytest
 import torch
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning_lite.plugins.collectives import TorchCollective
-from lightning_lite.plugins.environments import LightningEnvironment
-from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
-from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
+from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator
+from lightning_fabric.plugins.collectives import TorchCollective
+from lightning_fabric.plugins.environments import LightningEnvironment
+from lightning_fabric.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 
 if TorchCollective.is_available():
     from torch.distributed import ReduceOp
@@ -31,10 +31,10 @@ PASSED_OBJECT = mock.Mock()
 @contextlib.contextmanager
 def check_destroy_group():
     with mock.patch(
-        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
+        "lightning_fabric.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
     ) as mock_new, mock.patch(
-        "lightning_lite.plugins.collectives.torch_collective.TorchCollective.destroy_group",
+        "lightning_fabric.plugins.collectives.torch_collective.TorchCollective.destroy_group",
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield

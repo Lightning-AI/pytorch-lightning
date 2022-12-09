@@ -10,8 +10,8 @@ on:
       - ".actions/**"
       - ".github/workflows/tpu-tests.yml"
       - "dockers/base-xla/*"
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
+      - "requirements/fabric/**"
+      - "src/lightning_fabric/**"
       - "tests/tests_lite/**"
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
@@ -45,7 +45,7 @@ jobs:
       max-parallel: 1  # run sequential
       matrix:
         # TODO: add also lightning
-        pkg-name: ["lite", "pytorch"]
+        pkg-name: ["fabric", "pytorch"]
     timeout-minutes: 100  # should match the timeout in `tpu_workflow.jsonnet`
 
     steps:

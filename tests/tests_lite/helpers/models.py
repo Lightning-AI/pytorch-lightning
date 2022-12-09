@@ -7,7 +7,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from lightning_lite import Fabric
+from lightning_fabric import Fabric
 
 
 class RandomDataset(Dataset):

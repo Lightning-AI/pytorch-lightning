@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import torch
 
-from lightning_lite.strategies import DataParallelStrategy
+from lightning_fabric.strategies import DataParallelStrategy
 
 
 def test_data_parallel_root_device():
@@ -33,7 +33,7 @@ def test_data_parallel_ranks():
     assert strategy.is_global_zero
 
 
-@mock.patch("lightning_lite.strategies.dp.DataParallel")
+@mock.patch("lightning_fabric.strategies.dp.DataParallel")
 def test_data_parallel_setup_module(data_parallel_mock):
     strategy = DataParallelStrategy()
     strategy.parallel_devices = [0, 2, 1]

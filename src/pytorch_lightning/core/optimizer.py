@@ -21,7 +21,7 @@ from torch import optim
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _Stateful, ReduceLROnPlateau
+from lightning_fabric.utilities.types import _Stateful, ReduceLROnPlateau
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn

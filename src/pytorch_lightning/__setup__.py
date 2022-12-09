@@ -66,8 +66,8 @@ def _setup_args() -> Dict[str, Any]:
             include=[
                 "pytorch_lightning",
                 "pytorch_lightning.*",
-                "lightning_lite",
-                "lightning_lite.*",
+                "lightning_fabric",
+                "lightning_fabric.*",
             ],
         ),
         package_dir={"": "src"},
