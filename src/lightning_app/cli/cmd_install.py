@@ -123,7 +123,7 @@ def gallery_apps_and_components(
         # run installation if requested
         _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
-        return os.path.join(os.getcwd(), *entry["EntrypointFile"].split("/"))
+        return os.path.join(os.getcwd(), *entry["entrypointFile"].split("/"))
 
     return None
 
