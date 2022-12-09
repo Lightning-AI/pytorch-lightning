@@ -194,6 +194,7 @@ class PythonServer(LightningWork, abc.ABC):
 
     def configure_layout(self) -> None:
         from lightning_api_access import APIAccessFrontend
+
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"
 
