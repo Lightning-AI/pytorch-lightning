@@ -48,11 +48,11 @@ local tputests = base.BaseTest {
       python -c "from lightning_fabric.accelerators import TPUAccelerator; assert TPUAccelerator.is_available()"
       echo "Sanity check passed!"
 
-      echo "--- Running Lite tests ---"
+      echo "--- Running Fabric tests ---"
       cd tests/tests_fabric
       PL_RUN_TPU_TESTS=1 coverage run --source=lightning_fabric -m pytest -vv --durations=0 ./
 
-      echo "--- Running standalone Lite tests ---"
+      echo "--- Running standalone Fabric tests ---"
       PL_STANDALONE_TESTS_SOURCE=lightning_fabric PL_STANDALONE_TESTS_BATCH_SIZE=1 bash run_standalone_tests.sh
 
       echo "--- Generating coverage ---"
