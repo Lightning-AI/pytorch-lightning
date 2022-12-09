@@ -450,7 +450,8 @@ class AutoScaler(LightningFlow):
     def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
         # TODO: Remove `start_with_flow=False` for faster initialization on the cloud
-        return self._work_cls(*self._work_args, **self._work_kwargs, start_with_flow=False)
+        self._work_kwargs.update(dict(start_with_flow=False))
+        return self._work_cls(*self._work_args, **self._work_kwargs)
 
     def add_work(self, work) -> str:
         """Adds a new LightningWork instance.

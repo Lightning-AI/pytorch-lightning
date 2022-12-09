@@ -75,8 +75,6 @@ class PythonServer(LightningWork, abc.ABC):
     @requires(["torch", "lightning_api_access"])
     def __init__(  # type: ignore
         self,
-        host: str = "127.0.0.1",
-        port: int = 7777,
         input_type: type = _DefaultInputData,
         output_type: type = _DefaultOutputData,
         **kwargs,
@@ -84,8 +82,6 @@ class PythonServer(LightningWork, abc.ABC):
         """The PythonServer Class enables to easily get your machine learning server up and running.
 
         Arguments:
-            host: Address to be used for running the server.
-            port: Port to be used to running the server.
             input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases and it expects the data
                 to be a json object that has one key called `payload`
@@ -129,7 +125,7 @@ class PythonServer(LightningWork, abc.ABC):
             ...
             >>> app = LightningApp(SimpleServer())
         """
-        super().__init__(parallel=True, host=host, port=port, **kwargs)
+        super().__init__(parallel=True, **kwargs)
         if not issubclass(input_type, BaseModel):
             raise TypeError("input_type must be a pydantic BaseModel class")
         if not issubclass(output_type, BaseModel):
