@@ -414,9 +414,9 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 ----------
 
 
-**********************
+************************
 Lightning Fabric Methods
-**********************
+************************
 
 
 setup
