@@ -156,7 +156,7 @@ class MLFlowLogger(Logger):
             )
         if not RequirementCache("mlflow>=1.0.0"):
             # we require the log_batch APIs that were introduced in mlflow 1.0.0
-            raise RuntimeError("Incompatible mlflow version")
+            raise RuntimeError("`MLFlowLogger` requires mlflow >= 1.0.0. Hint: Run `pip install -U mlflow`")
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
