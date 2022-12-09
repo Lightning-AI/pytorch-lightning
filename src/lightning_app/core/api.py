@@ -71,7 +71,6 @@ responses_store = {}
 
 logger = Logger(__name__)
 
-
 # This can be replaced with a consumer that publishes states in a kv-store
 # in a serverless architecture
 
@@ -121,6 +120,27 @@ class UIRefresher(Thread):
 
 class StateUpdate(BaseModel):
     state: dict = {}
+
+
+class WorkStatus(BaseModel):
+    """The ``WorkStatus`` captures the status of a work according to the app."""
+
+    # The name of the work
+    name: str
+
+    # ``True`` when the work is running according to the app.
+    # Compute states in the cloud are owned by the platform.
+    is_running: bool
+
+
+class AppStatus(BaseModel):
+    """The ``AppStatus`` captures the current status of the app and its components."""
+
+    # ``True`` when the app UI is ready to be viewed
+    is_ui_ready: bool
+
+    # The statuses of ``LightningWork`` objects currently associated with this app
+    work_statuses: List[WorkStatus]
 
 
 openapi_tags = [
@@ -324,6 +344,25 @@ async def upload_file(response: Response, filename: str, uploaded_file: UploadFi
         with _context(ComponentContext.WORK):
             drive.put(filename)
     return f"Successfully uploaded '{filename}' to the Drive"
+
+
+@fastapi_service.get("/api/v1/status", response_class=JSONResponse)
+async def get_status(
+    response: Response,
+    x_lightning_session_uuid: Optional[str] = Header(None),
+    x_lightning_session_id: Optional[str] = Header(None),
+) -> Union[List, Dict]:
+    if x_lightning_session_uuid is None:
+        raise Exception("Missing X-Lightning-Session-UUID header")
+    if x_lightning_session_id is None:
+        raise Exception("Missing X-Lightning-Session-ID header")
+
+    if not ENABLE_PULLING_STATE_ENDPOINT:
+        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
+        return {"status": "failure", "reason": "This endpoint is disabled."}
+
+    global app_spec
+    return app_spec or []
 
 
 @fastapi_service.get("/healthz", status_code=200)
