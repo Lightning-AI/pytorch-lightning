@@ -33,8 +33,8 @@ T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 class _FabricOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
-        """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
-        step calls to the strategy plugin.
+        """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
+        optimizer step calls to the strategy plugin.
 
         The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
 
@@ -140,8 +140,8 @@ class _FabricModule(_DeviceDtypeModuleMixin):
 
 class _FabricDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
-        device automatically if the device is specified.
+        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to
+        the device automatically if the device is specified.
 
         Args:
             dataloader: The dataloader to wrap
