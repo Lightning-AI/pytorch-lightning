@@ -254,7 +254,7 @@ def _get_newer_version() -> Optional[str]:
         return None if __version__ == latest_version else latest_version
     except Exception:
         # Return None if any exception occurs
-        return "err"
+        return None
 
 
 def _redirect_command(executable: str):
@@ -277,7 +277,7 @@ def _check_version_and_upgrade():
         prompt = f"A newer version of {__package_name__} is available ({new_version}). Would you like to upgrade?"
 
         if click.confirm(prompt, default=True):
-            command = f"pip install --upgrade {__package_name__}"
+            command = f"pip install '{__package_name__}=={new_version}'"
 
             logger.info(f"⚡ RUN: {command}")
 

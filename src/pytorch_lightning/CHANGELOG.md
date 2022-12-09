@@ -9,9 +9,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added support for `torch.compile` ([#15922](https://github.com/Lightning-AI/lightning/pull/15922), [15957](https://github.com/Lightning-AI/lightning/pull/15957))
-
-
 - Added support for DDP with `LRFinder` ([#15304](https://github.com/Lightning-AI/lightning/pull/15304))
 
 
@@ -91,11 +88,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
+
+- Fixed the `XLAProfiler` not recording anything due to mismatching of action names ([#15885](https://github.com/Lightning-AI/lightning/pull/15885))
+
+
+## [1.8.4] - 2022-12-08
+
+### Changed
+
+- Direct support for compiled models ([#15922](https://github.com/Lightning-AI/lightning/pull/15922))
+
+### Fixed
+
 - Fixed issue with unsupported torch.inference_mode() on hpu backends ([#15918](https://github.com/Lightning-AI/lightning/pull/15918))
-
+- Fixed LRScheduler import for PyTorch 2.0 ([#15940](https://github.com/Lightning-AI/lightning/pull/15940))
 - Fixed `fit_loop.restarting` to be `False` for lr finder ([#15620](https://github.com/Lightning-AI/lightning/pull/15620))
-
-
 - Fixed `torch.jit.script`-ing a LightningModule causing an unintended error message about deprecated `use_amp` property ([#15947](https://github.com/Lightning-AI/lightning/pull/15947))
 
 
