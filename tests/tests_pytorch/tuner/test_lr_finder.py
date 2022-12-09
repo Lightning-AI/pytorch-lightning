@@ -441,6 +441,53 @@ def test_if_lr_finder_callback_already_configured():
         trainer.tune(model)
 
 
+def test_lr_finder_callback_restarting(tmpdir):
+    """Test that `LearningRateFinder` does not set restarting=True when loading checkpoint."""
+
+    num_lr_steps = 100
+
+    class MyBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.123
+
+        def on_train_batch_start(self, batch, batch_idx):
+            if getattr(self, "_expected_max_steps", None) is not None:
+                assert self.trainer.fit_loop.max_steps == self._expected_max_steps
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=self.learning_rate)
+
+    class CustomLearningRateFinder(LearningRateFinder):
+        milestones = (1,)
+
+        def lr_find(self, trainer, pl_module) -> None:
+            pl_module._expected_max_steps = trainer.global_step + self._num_training_steps
+            super().lr_find(trainer, pl_module)
+            pl_module._expected_max_steps = None
+            assert not trainer.fit_loop.restarting
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                self.lr_find(trainer, pl_module)
+
+    model = MyBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        callbacks=[
+            CustomLearningRateFinder(early_stop_threshold=None, update_attr=True, num_training_steps=num_lr_steps)
+        ],
+        limit_train_batches=10,
+        limit_val_batches=0,
+        limit_test_batches=0,
+        num_sanity_val_steps=0,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model)
+
+
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @RunIf(standalone=True)
 def test_lr_finder_with_ddp(tmpdir):

@@ -63,6 +63,9 @@ class ServeStreamlit(LightningWork, abc.ABC):
         if self._process is not None:
             self._process.kill()
 
+    def configure_layout(self) -> str:
+        return self.url
+
 
 class _PatchedWork:
     """The ``_PatchedWork`` is used to emulate a work instance from a subprocess. This is acheived by patching the
