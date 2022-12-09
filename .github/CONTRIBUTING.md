@@ -311,7 +311,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
 
 #### How to run an app on the cloud with a local version of lightning
 
-The lightning cloud uses the latest release by default. However, you might want to run your app with lightning that you have made changes to in your directory. To use your local version of lightning on the cloud, set the following environment variable:
+The lightning cloud uses the latest release by default. However, you might want to run your app with some local changes you've made to the lightning framework. To use your local version of lightning on the cloud, set the following environment variable:
 
 ```bash
 git clone https://github.com/Lightning-AI/lightning.git
