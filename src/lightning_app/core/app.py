@@ -87,7 +87,7 @@ class LightningApp:
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
