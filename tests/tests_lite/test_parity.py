@@ -202,7 +202,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
     ],
 )
 def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir):
-    LightningFabric.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4), shuffle=True)
     model = BoringModel()
     num_epochs = 1
@@ -216,7 +216,7 @@ def test_boring_lite_model_ddp(precision, strategy, devices, accelerator, tmpdir
     for w_pure, w_lite in zip(state_dict.values(), lite_model_state_dict.values()):
         assert not torch.allclose(w_pure.cpu(), w_lite.cpu())
 
-    LightningFabric.seed_everything(42)
+    Fabric.seed_everything(42)
     train_dataloader = DataLoader(RandomDataset(32, 4), shuffle=True)
     model = BoringModel()
     run(lite.global_rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdir)

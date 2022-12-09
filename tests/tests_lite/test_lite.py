@@ -387,7 +387,7 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
 def test_setup_dataloaders_distributed_sampler_shuffle():
     """Test that the DataLoader(shuffle=True|False) setting gets carried over correctly into the distributed
     sampler."""
-    lite = LightningLite(accelerator="cpu", strategy="ddp_spawn", devices=2)
+    lite = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
     # no lite.launch(): pretend we are on rank 0 now
 
     dataset = TensorDataset(torch.arange(8))
