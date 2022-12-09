@@ -23,7 +23,7 @@ import torch.nn.functional
 from tests_lite.helpers.runif import RunIf
 from tests_lite.helpers.utils import no_warning_call
 from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, Sampler
+from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
 from lightning_fabric.fabric import Fabric
 from lightning_fabric.plugins import Precision
@@ -40,7 +40,7 @@ from lightning_fabric.strategies import (
 from lightning_fabric.strategies.strategy import _Sharded
 from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.exceptions import MisconfigurationException
-from lightning_fabric.utilities.seed import pl_worker_init_function
+from lightning_fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from lightning_fabric.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
@@ -382,6 +382,32 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     lite = EmptyLite()
     lite_dataloader = lite.setup_dataloaders(dataloader, replace_sampler=True)
     assert lite_dataloader.sampler is custom_sampler
+
+
+def test_setup_dataloaders_distributed_sampler_shuffle():
+    """Test that the DataLoader(shuffle=True|False) setting gets carried over correctly into the distributed
+    sampler."""
+    lite = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
+    # no lite.launch(): pretend we are on rank 0 now
+
+    dataset = TensorDataset(torch.arange(8))
+
+    # shuffling turned off
+    no_shuffle_dataloaders = [
+        DataLoader(dataset),
+        DataLoader(dataset, shuffle=False),
+        DataLoader(dataset, sampler=SequentialSampler(dataset)),
+    ]
+    for dataloader in no_shuffle_dataloaders:
+        dataloader = lite.setup_dataloaders(dataloader)
+        assert list(t[0].item() for t in iter(dataloader)) == [0, 2, 4, 6]
+
+    # shuffling turned on
+    shuffle_dataloaders = [DataLoader(dataset, shuffle=True), DataLoader(dataset, sampler=RandomSampler(dataset))]
+    for dataloader in shuffle_dataloaders:
+        seed_everything(1)
+        dataloader = lite.setup_dataloaders(dataloader)
+        assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

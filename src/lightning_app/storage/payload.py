@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from time import sleep
 from typing import Any, Optional, TYPE_CHECKING, Union
 
+from lightning_app.core.constants import REMOTE_STORAGE_WAIT
 from lightning_app.core.queues import BaseQueue
 from lightning_app.storage.path import _filesystem, _shared_storage_path, Path
 from lightning_app.storage.requests import _ExistsRequest, _ExistsResponse, _GetRequest, _GetResponse
@@ -159,9 +160,8 @@ class _BasePayload(ABC):
         fs = _filesystem()
 
         # 3. Wait until the file appears in shared storage
-        while not fs.exists(response.path):
-            # TODO: Existence check on folder is not enough, files may not be completely transferred yet
-            sleep(0.5)
+        while not fs.exists(response.path) or fs.info(response.path)["size"] != response.size:
+            sleep(REMOTE_STORAGE_WAIT)
 
         # 4. Copy the file from the shared storage to the destination on the local filesystem
         local_path = self._path
@@ -234,6 +234,7 @@ class _BasePayload(ABC):
         try:
             payload = getattr(work, request.name)
             payload.save(payload.value, source_path)
+            response.size = source_path.stat().st_size
             _copy_files(source_path, destination_path)
             _logger.debug(f"All files copied from {request.path} to {response.path}.")
         except Exception as e:

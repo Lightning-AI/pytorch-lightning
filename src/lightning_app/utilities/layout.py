@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 
 import lightning_app
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable
+from lightning_app.utilities.app_helpers import _MagicMockJsonSerializable, is_overridden
 from lightning_app.utilities.cloud import is_running_in_cloud
 
 
@@ -45,9 +45,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         app.frontends.setdefault(flow.name, "mock")
         return flow._layout
     elif isinstance(layout, dict):
-        layout = _collect_content_layout([layout], flow)
+        layout = _collect_content_layout([layout], app, flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
-        layout = _collect_content_layout(layout, flow)
+        layout = _collect_content_layout(layout, app, flow)
     else:
         lines = _add_comment_to_literal_code(flow.configure_layout, contains="return", comment="  <------- this guy")
         m = f"""
@@ -76,7 +76,9 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
     return layout
 
 
-def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFlow") -> List[Dict]:
+def _collect_content_layout(
+    layout: List[Dict], app: "lightning_app.LightningApp", flow: "lightning_app.LightningFlow"
+) -> Union[List[Dict], Dict]:
     """Process the layout returned by the ``configure_layout()`` method if the returned format represents an
     aggregation of child layouts."""
     for entry in layout:
@@ -102,12 +104,43 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             entry["content"] = entry["content"].name
 
         elif isinstance(entry["content"], lightning_app.LightningWork):
-            if entry["content"].url and not entry["content"].url.startswith("/"):
-                entry["content"] = entry["content"].url
-                entry["target"] = entry["content"]
-            else:
+            work = entry["content"]
+            work_layout = _collect_work_layout(work)
+
+            if work_layout is None:
                 entry["content"] = ""
-                entry["target"] = ""
+            elif isinstance(work_layout, str):
+                entry["content"] = work_layout
+                entry["target"] = work_layout
+            elif isinstance(work_layout, (Frontend, _MagicMockJsonSerializable)):
+                if len(layout) > 1:
+                    lines = _add_comment_to_literal_code(
+                        flow.configure_layout, contains="return", comment="  <------- this guy"
+                    )
+                    m = f"""
+                    The return value of configure_layout() in `{flow.__class__.__name__}`  is an
+                    unsupported format:
+                    \n{lines}
+
+                    The tab containing a `{work.__class__.__name__}` must be the only tab in the
+                    layout of this flow.
+
+                    (see the docs for `LightningWork.configure_layout`).
+                    """
+                    raise TypeError(m)
+
+                if isinstance(work_layout, Frontend):
+                    # If the work returned a frontend, treat it as belonging to the flow.
+                    # NOTE: This could evolve in the future to run the Frontend directly in the work machine.
+                    frontend = work_layout
+                    frontend.flow = flow
+                elif isinstance(work_layout, _MagicMockJsonSerializable):
+                    # The import was mocked, we set a dummy `Frontend` so that `is_headless` knows there is a UI.
+                    frontend = "mock"
+
+                app.frontends.setdefault(flow.name, frontend)
+                return flow._layout
+
         elif isinstance(entry["content"], _MagicMockJsonSerializable):
             # The import was mocked, we just record dummy content so that `is_headless` knows there is a UI
             entry["content"] = "mock"
@@ -126,3 +159,43 @@ def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFl
             """
             raise ValueError(m)
     return layout
+
+
+def _collect_work_layout(work: "lightning_app.LightningWork") -> Union[None, str, Frontend, _MagicMockJsonSerializable]:
+    """Check if ``configure_layout`` is overridden on the given work and return the work layout (either a string, a
+    ``Frontend`` object, or an instance of a mocked import).
+
+    Args:
+        work: The work to collect the layout for.
+
+    Raises:
+        TypeError: If the value returned by ``configure_layout`` is not of a supported format.
+    """
+    if is_overridden("configure_layout", work):
+        work_layout = work.configure_layout()
+    else:
+        work_layout = work.url
+
+    if work_layout is None:
+        return None
+    elif isinstance(work_layout, str):
+        url = work_layout
+        # The URL isn't fully defined yet. Looks something like ``self.work.url + /something``.
+        if url and not url.startswith("/"):
+            return url
+        return ""
+    elif isinstance(work_layout, (Frontend, _MagicMockJsonSerializable)):
+        return work_layout
+    else:
+        m = f"""
+        The value returned by `{work.__class__.__name__}.configure_layout()` is of an unsupported type.
+
+        {repr(work_layout)}
+
+        Return a `Frontend` or a URL string, for example:
+
+        class {work.__class__.__name__}(LightningWork):
+            def configure_layout(self):
+                return MyFrontend() OR 'http://some/url'
+        """
+        raise TypeError(m)

@@ -48,7 +48,7 @@ from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.data import _auto_add_worker_init_fn
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -991,11 +991,11 @@ class Trainer:
         if model._compiler_ctx is not None:
             supported_strategies = [SingleDeviceStrategy, DDPStrategy, DDPFullyShardedNativeStrategy]
             if self.strategy is not None and not any(isinstance(self.strategy, s) for s in supported_strategies):
-                supported_strategy_names = " ".join(s.__name__ for s in supported_strategies)
+                supported_strategy_names = ", ".join(s.__name__ for s in supported_strategies)
                 raise RuntimeError(
                     "Using a compiled model is incompatible with the current strategy: "
                     f"{self.strategy.__class__.__name__}. "
-                    f"Only {supported_strategy_names} support compilation."
+                    f"Only {supported_strategy_names} support compilation. "
                     "Either switch to one of the supported strategies or avoid passing in "
                     "a compiled model."
                 )
@@ -2261,13 +2261,11 @@ class Trainer:
 
 @contextmanager
 def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
-    # inference mode is not supported with gloo backend (#9431),
-    # and HPU & TPU accelerators.
+    # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
     context_manager_class = (
         torch.inference_mode
         if inference_mode
         and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )
