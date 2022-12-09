@@ -40,7 +40,7 @@
 
 # Lightning Fabric
 /src/lightning_fabric                         @awaelchli @carmocca @justusschock
-/tests/tests_lite                           @awaelchli @carmocca @justusschock
+/tests/tests_fabric                           @awaelchli @carmocca @justusschock
 
 # Lightning App
 /src/lightning_app                          @tchaton @lantiga @awaelchli @hhsecond @ethanwharris
