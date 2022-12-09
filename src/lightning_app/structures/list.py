@@ -57,9 +57,6 @@ class List(t.List[T]):
     def append(self, v):
         from lightning_app import LightningFlow, LightningWork
 
-        if isinstance(v, LightningWork):
-            v._register_cloud_compute()
-
         _set_child_name(self, v, str(self._last_index))
         if self._backend:
             if isinstance(v, LightningFlow):

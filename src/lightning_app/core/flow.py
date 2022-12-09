@@ -166,10 +166,14 @@ class LightningFlow:
                 value._backend = self._backend
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if self._backend:
-                    for flow in value.flows:
+
+                for flow in value.flows:
+                    if self._backend:
                         LightningFlow._attach_backend(flow, self._backend)
-                    for work in value.works:
+
+                for work in value.works:
+                    work._register_cloud_compute()
+                    if self._backend:
                         self._backend._wrap_run_method(_LightningAppRef().get_current(), work)
 
             elif isinstance(value, Path):
