@@ -34,6 +34,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.component import _context
 from lightning_app.utilities.enum import ComponentContext, OpenAPITags
@@ -66,6 +67,8 @@ global_app_state_store.add(TEST_SESSION_UUID)
 lock = Lock()
 
 app_spec: Optional[List] = None
+app_status: Optional[AppStatus] = None
+
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
@@ -76,10 +79,17 @@ logger = Logger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
+    def __init__(
+        self,
+        api_publish_state_queue,
+        api_response_queue,
+        app_status_queue,
+        refresh_interval: float = 0.1,
+    ) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
+        self.app_status_queue = app_status_queue
         self._exit_event = Event()
         self.refresh_interval = refresh_interval
 
@@ -113,6 +123,12 @@ class UIRefresher(Thread):
         except queue.Empty:
             pass
 
+        try:
+            global app_status
+            app_status = self.app_status_queue.get(timeout=0)
+        except queue.Empty:
+            pass
+
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
         super().join(timeout)
@@ -120,27 +136,6 @@ class UIRefresher(Thread):
 
 class StateUpdate(BaseModel):
     state: dict = {}
-
-
-class WorkStatus(BaseModel):
-    """The ``WorkStatus`` captures the status of a work according to the app."""
-
-    # The name of the work
-    name: str
-
-    # ``True`` when the work is running according to the app.
-    # Compute states in the cloud are owned by the platform.
-    is_running: bool
-
-
-class AppStatus(BaseModel):
-    """The ``AppStatus`` captures the current status of the app and its components."""
-
-    # ``True`` when the app UI is ready to be viewed
-    is_ui_ready: bool
-
-    # The statuses of ``LightningWork`` objects currently associated with this app
-    work_statuses: List[WorkStatus]
 
 
 openapi_tags = [
@@ -346,23 +341,16 @@ async def upload_file(response: Response, filename: str, uploaded_file: UploadFi
     return f"Successfully uploaded '{filename}' to the Drive"
 
 
-@fastapi_service.get("/api/v1/status", response_class=JSONResponse)
+@fastapi_service.get("/api/v1/status", response_class=AppStatus)
 async def get_status(
     response: Response,
-    x_lightning_session_uuid: Optional[str] = Header(None),
-    x_lightning_session_id: Optional[str] = Header(None),
 ) -> Union[List, Dict]:
-    if x_lightning_session_uuid is None:
-        raise Exception("Missing X-Lightning-Session-UUID header")
-    if x_lightning_session_id is None:
-        raise Exception("Missing X-Lightning-Session-ID header")
+    if app_status is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"status": "failure", "reason": "App status hasn't been reported yet."}
 
-    if not ENABLE_PULLING_STATE_ENDPOINT:
-        response.status_code = status.HTTP_405_METHOD_NOT_ALLOWED
-        return {"status": "failure", "reason": "This endpoint is disabled."}
-
-    global app_spec
-    return app_spec or []
+    global app_status
+    return app_status
 
 
 @fastapi_service.get("/healthz", status_code=200)
@@ -448,6 +436,7 @@ def start_server(
     api_publish_state_queue,
     api_delta_queue,
     api_response_queue,
+    app_status_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,

@@ -35,6 +35,7 @@ from lightning_app.utilities.app_helpers import (
     _should_dispatch_app,
     Logger,
 )
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -117,6 +118,7 @@ class LightningApp:
         self.api_response_queue: Optional[BaseQueue] = None
         self.api_publish_state_queue: Optional[BaseQueue] = None
         self.api_delta_queue: Optional[BaseQueue] = None
+        self.app_status_queue: Optional[BaseQueue] = None
         self.error_queue: Optional[BaseQueue] = None
         self.request_queues: Optional[Dict[str, BaseQueue]] = None
         self.response_queues: Optional[Dict[str, BaseQueue]] = None
@@ -140,6 +142,7 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
+        self.status: Optional[AppStatus] = None
         # TODO: Enable ready locally for opening the UI.
         self.ready = False
 
@@ -534,6 +537,10 @@ class LightningApp:
             self.is_headless = is_headless
 
             _handle_is_headless(self)
+
+    def _update_status(self) -> None:
+        # old_status = self.status
+        pass
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()
