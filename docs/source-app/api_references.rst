@@ -32,11 +32,19 @@ ___________________
     :nosignatures:
     :template: classtemplate_no_index.rst
 
+    ~database.client.DatabaseClient
+    ~database.server.Database
     ~python.popen.PopenPythonScript
     ~python.tracer.TracerPythonScript
     ~training.LightningTrainerScript
     ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
+    ~serve.python_server.PythonServer
+    ~serve.streamlit.ServeStreamlit
+    ~multi_node.base.MultiNode
+    ~multi_node.lite.LiteMultiNode
+    ~multi_node.pytorch_spawn.PyTorchSpawnMultiNode
+    ~multi_node.trainer.LightningTrainerMultiNode
     ~auto_scaler.AutoScaler
 
 ----
@@ -72,6 +80,7 @@ _______
     ~path.Path
     ~drive.Drive
     ~payload.Payload
+    ~mount.Mount
 
 Learn more about :ref:`Storage <storage>`.
 
@@ -88,5 +97,19 @@ _______
     :template: classtemplate_no_index.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime
+
+----
+
+lightning_app.utilities.packaging
+_________________________________
+
+.. currentmodule:: lightning_app.utilities.packaging
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :template: classtemplate_no_index.rst
+
+    ~cloud_compute.CloudCompute
+    ~build_config.BuildConfig

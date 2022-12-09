@@ -1,6 +1,6 @@
 from typing import Any, List
 
-import torch
+from torch import Tensor
 
 from lightning_lite.plugins.collectives.collective import Collective
 from lightning_lite.utilities.types import CollectibleGroup
@@ -15,42 +15,42 @@ class SingleDeviceCollective(Collective):
     def world_size(self) -> int:
         return 1
 
-    def broadcast(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+    def broadcast(self, tensor: Tensor, *_: Any, **__: Any) -> Tensor:
         return tensor
 
-    def all_reduce(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+    def all_reduce(self, tensor: Tensor, *_: Any, **__: Any) -> Tensor:
         return tensor
 
-    def reduce(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+    def reduce(self, tensor: Tensor, *_: Any, **__: Any) -> Tensor:
         return tensor
 
-    def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor, **__: Any) -> List[torch.Tensor]:
+    def all_gather(self, tensor_list: List[Tensor], tensor: Tensor, **__: Any) -> List[Tensor]:
         return [tensor]
 
-    def gather(self, tensor: torch.Tensor, *_: Any, **__: Any) -> List[torch.Tensor]:
+    def gather(self, tensor: Tensor, *_: Any, **__: Any) -> List[Tensor]:
         return [tensor]
 
     def scatter(
         self,
-        tensor: torch.Tensor,
-        scatter_list: List[torch.Tensor],
+        tensor: Tensor,
+        scatter_list: List[Tensor],
         *_: Any,
         **__: Any,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         return scatter_list[0]
 
-    def reduce_scatter(self, output: torch.Tensor, input_list: List[torch.Tensor], *_: Any, **__: Any) -> torch.Tensor:
+    def reduce_scatter(self, output: Tensor, input_list: List[Tensor], *_: Any, **__: Any) -> Tensor:
         return input_list[0]
 
     def all_to_all(
-        self, output_tensor_list: List[torch.Tensor], input_tensor_list: List[torch.Tensor], *_: Any, **__: Any
-    ) -> List[torch.Tensor]:
+        self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor], *_: Any, **__: Any
+    ) -> List[Tensor]:
         return input_tensor_list
 
     def send(self, *_: Any, **__: Any) -> None:
         pass
 
-    def recv(self, tensor: torch.Tensor, *_: Any, **__: Any) -> torch.Tensor:
+    def recv(self, tensor: Tensor, *_: Any, **__: Any) -> Tensor:
         return tensor
 
     def barrier(self, *_: Any, **__: Any) -> None:

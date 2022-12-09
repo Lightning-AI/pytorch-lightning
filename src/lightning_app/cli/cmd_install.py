@@ -5,6 +5,7 @@ import subprocess
 import sys
 from typing import Dict, Optional, Tuple
 
+import click
 import requests
 from packaging.version import Version
 
@@ -14,7 +15,120 @@ from lightning_app.utilities.app_helpers import Logger
 logger = Logger(__name__)
 
 
-def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> None:
+@click.group(name="install")
+def install() -> None:
+    """Install Lightning AI selfresources."""
+    pass
+
+
+@install.command("app")
+@click.argument("name", type=str)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
+@click.option(
+    "--version",
+    "-v",
+    type=str,
+    help="Specify the version to install. By default it uses 'latest'",
+    default="latest",
+    show_default=True,
+)
+@click.option(
+    "--overwrite",
+    "-f",
+    is_flag=True,
+    default=False,
+    help="When set, overwrite the app directory without asking if it already exists.",
+)
+def install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
+    _install_app_command(name, yes, version, overwrite=overwrite)
+
+
+@install.command("component")
+@click.argument("name", type=str)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    help="disables prompt to ask permission to create env and run install cmds",
+)
+@click.option(
+    "--version",
+    "-v",
+    type=str,
+    help="Specify the version to install. By default it uses 'latest'",
+    default="latest",
+    show_default=True,
+)
+def install_component(name: str, yes: bool, version: str) -> None:
+    _install_component_command(name, yes, version)
+
+
+def _install_app_command(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
+    if "github.com" in name:
+        if version != "latest":
+            logger.warn(
+                "When installing from GitHub, only the 'latest' version is supported. "
+                f"The provided version ({version}) will be ignored."
+            )
+        return non_gallery_app(name, yes, overwrite=overwrite)
+    else:
+        return gallery_app(name, yes, version, overwrite=overwrite)
+
+
+def _install_component_command(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
+    if "github.com" in name:
+        if version != "latest":
+            logger.warn(
+                "When installing from GitHub, only the 'latest' version is supported. "
+                f"The provided version ({version}) will be ignored."
+            )
+        return non_gallery_component(name, yes)
+    else:
+        return gallery_component(name, yes, version)
+
+
+def gallery_apps_and_components(
+    name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False
+) -> Optional[str]:
+
+    try:
+        org, app_or_component = name.split("/")
+    except Exception:
+        return None
+
+    entry, kind = _resolve_entry(name, version_arg)
+
+    if kind == "app":
+        # give the user the chance to do a manual install
+        source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+            entry, app_or_component, org, yes_arg, resource_type="app"
+        )
+        # run installation if requested
+        _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+
+        return os.path.join(os.getcwd(), *entry["appEntrypointFile"].split("/"))
+
+    elif kind == "component":
+        # give the user the chance to do a manual install
+        source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+            entry, app_or_component, org, yes_arg, resource_type="component"
+        )
+        if "@" in git_url:
+            git_url = git_url.split("git+")[1].split("@")[0]
+        # run installation if requested
+        _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+
+        return os.path.join(os.getcwd(), *entry["entrypointFile"].split("/"))
+
+    return None
+
+
+def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = None) -> str:
     # make sure org/component-name name is correct
     org, component = _validate_name(name, resource_type="component", example="lightning/LAI-slack-component")
 
@@ -28,7 +142,9 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
     git_url = _show_install_component_prompt(component_entry, component, org, yes_arg)
 
     # run installation if requested
-    _install_component(git_url)
+    _install_component_from_source(git_url)
+
+    return os.path.join(os.getcwd(), component_entry["entrypointFile"])
 
 
 def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
@@ -37,10 +153,10 @@ def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
     git_url = _show_non_gallery_install_component_prompt(gh_url, yes_arg)
 
     # run installation if requested
-    _install_component(git_url)
+    _install_component_from_source(git_url)
 
 
-def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> None:
+def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
 
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
@@ -57,7 +173,9 @@ def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, ove
     )
 
     # run installation if requested
-    _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+    _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
+
+    return os.path.join(os.getcwd(), folder_name, app_entry["appEntrypointFile"])
 
 
 def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool = False) -> None:
@@ -66,7 +184,7 @@ def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool
     repo_url, folder_name = _show_non_gallery_install_app_prompt(gh_url, yes_arg)
 
     # run installation if requested
-    _install_app(repo_url, repo_url, folder_name, cwd=cwd, overwrite=overwrite)
+    _install_app_from_source(repo_url, repo_url, folder_name, cwd=cwd, overwrite=overwrite)
 
 
 def _show_install_component_prompt(entry: Dict[str, str], component: str, org: str, yes_arg: bool) -> str:
@@ -299,7 +417,35 @@ def _validate_name(name: str, resource_type: str, example: str) -> Tuple[str, st
     return org, resource
 
 
-def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_type: str) -> Dict[str, str]:
+def _resolve_entry(name, version_arg) -> Tuple[Optional[Dict], Optional[str]]:
+    entry = None
+    kind = None
+
+    # resolve registry (orgs can have a private registry through their environment variables)
+    registry_url = _resolve_app_registry()
+
+    # load the app resource
+    entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app", raise_error=False)
+
+    if not entry:
+
+        registry_url = _resolve_component_registry()
+
+        # load the component resource
+        entry = _resolve_resource(
+            registry_url, name=name, version_arg=version_arg, resource_type="component", raise_error=False
+        )
+        kind = "component" if entry else None
+
+    else:
+        kind = "app"
+
+    return entry, kind
+
+
+def _resolve_resource(
+    registry_url: str, name: str, version_arg: str, resource_type: str, raise_error: bool = True
+) -> Dict[str, str]:
     gallery_entries = []
     try:
         response = requests.get(registry_url)
@@ -327,7 +473,10 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
             all_versions.append(x["version"])
 
     if len(entries) == 0:
-        raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
+        if raise_error:
+            raise SystemExit(f"{resource_type}: '{name}' is not available on ⚡ Lightning AI ⚡")
+        else:
+            return None
 
     entry = None
     if version_arg == "latest":
@@ -337,11 +486,14 @@ def _resolve_resource(registry_url: str, name: str, version_arg: str, resource_t
             if e["version"] == version_arg:
                 entry = e
                 break
-    if entry is None:
-        raise Exception(
-            f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
-            f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
-        )
+    if entry is None and raise_error:
+        if raise_error:
+            raise Exception(
+                f"{resource_type}: 'Version {version_arg} for {name}' is not available on ⚡ Lightning AI ⚡. "
+                f"Here is the list of all availables versions:{os.linesep}{os.linesep.join(all_versions)}"
+            )
+        else:
+            return None
 
     return entry
 
@@ -381,7 +533,7 @@ def _install_with_env(repo_url: str, folder_name: str, cwd: str = None) -> None:
     logger.info(m)
 
 
-def _install_app(
+def _install_app_from_source(
     source_url: str, git_url: str, folder_name: str, cwd: str = None, overwrite: bool = False, git_sha: str = None
 ) -> None:
     """Installing lighting app from the `git_url`
@@ -458,7 +610,7 @@ def _install_app(
     logger.info(m)
 
 
-def _install_component(git_url: str) -> None:
+def _install_component_from_source(git_url: str) -> None:
     logger.info("⚡ RUN: pip install")
 
     out = subprocess.check_output(["pip", "install", git_url])
