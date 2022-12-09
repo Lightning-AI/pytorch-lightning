@@ -111,7 +111,7 @@ def gallery_apps_and_components(
         # run installation if requested
         _install_app_from_source(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
-        return os.path.join(os.getcwd(), folder_name, entry["appEntrypointFile"])
+        return os.path.join(os.getcwd(), entry["appEntrypointFile"])
 
     elif kind == "component":
         # give the user the chance to do a manual install
