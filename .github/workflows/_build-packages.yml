@@ -1,0 +1,62 @@
+name: Building packages
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Unique name for collecting artifacts, for example: dist-packages-${{ github.sha }}'
+        required: true
+        type: string
+      pkg-names:
+        description: 'list package names to be build in json format'
+        required: false
+        type: string
+        default: |
+          ["lightning", "app", "lite", "pytorch"]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  init:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - run: |
+        mkdir dist && touch dist/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist
+
+
+  build-packages:
+    needs: init
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 1  # run sequential to prevent download/upload collisions
+      matrix:
+        pkg-name: ${{ fromJSON(inputs.strategy-matrix) }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: pip install -U setuptools wheel
+    - name: Build packages
+      env:
+        PACKAGE_NAME: ${{ matrix.pkg-name }}
+      run: |
+        python setup.py sdist bdist_wheel
+        ls -lh dist/
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist
