@@ -254,7 +254,7 @@ def _get_newer_version() -> Optional[str]:
         return None if __version__ == latest_version else latest_version
     except Exception:
         # Return None if any exception occurs
-        return "err"
+        return None
 
 
 def _redirect_command(executable: str):
