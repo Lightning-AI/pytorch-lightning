@@ -1264,7 +1264,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added `pytorch_lightning.lite` package ([#10175](https://github.com/Lightning-AI/lightning/pull/10175))
     * Added `LightningLite` documentation ([#10043](https://github.com/Lightning-AI/lightning/pull/10043))
     * Added `LightningLite` examples ([#9987](https://github.com/Lightning-AI/lightning/pull/9987))
-    * Make the `_LiteDataLoader` an iterator and add supports for custom dataloader ([#10279](https://github.com/Lightning-AI/lightning/pull/10279))
+    * Make the `_FabricDataLoader` an iterator and add supports for custom dataloader ([#10279](https://github.com/Lightning-AI/lightning/pull/10279))
 - Added `use_omegaconf` argument to `save_hparams_to_yaml` plugin ([#9170](https://github.com/Lightning-AI/lightning/pull/9170))
 - Added `ckpt_path` argument for `Trainer.fit()` ([#10061](https://github.com/Lightning-AI/lightning/pull/10061))
 - Added `auto_device_count` method to `Accelerators` ([#10222](https://github.com/Lightning-AI/lightning/pull/10222))

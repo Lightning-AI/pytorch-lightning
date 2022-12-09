@@ -42,7 +42,7 @@ from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 from lightning_fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from lightning_fabric.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class EmptyLite(Fabric):
@@ -167,21 +167,21 @@ def test_setup_module_and_optimizers():
 
     # no optimizer
     lite_model = lite.setup(model)
-    assert isinstance(lite_model, _LiteModule)
+    assert isinstance(lite_model, _FabricModule)
     assert lite_model.module is model
 
     # single optimizer
     lite_model, lite_optimizer = lite.setup(model, optimizer0)
-    assert isinstance(lite_model, _LiteModule)
-    assert isinstance(lite_optimizer, _LiteOptimizer)
+    assert isinstance(lite_model, _FabricModule)
+    assert isinstance(lite_optimizer, _FabricOptimizer)
     assert lite_model.module is model
     assert lite_optimizer.optimizer is optimizer0
 
     # multiple optimizers
     lite_model, lite_optimizer0, lite_optimizer1 = lite.setup(model, optimizer0, optimizer1)
-    assert isinstance(lite_model, _LiteModule)
-    assert isinstance(lite_optimizer0, _LiteOptimizer)
-    assert isinstance(lite_optimizer1, _LiteOptimizer)
+    assert isinstance(lite_model, _FabricModule)
+    assert isinstance(lite_optimizer0, _FabricOptimizer)
+    assert isinstance(lite_optimizer1, _FabricOptimizer)
     assert lite_model.module is model
     assert lite_optimizer0.optimizer is optimizer0
     assert lite_optimizer1.optimizer is optimizer1
@@ -196,13 +196,13 @@ def test_setup_optimizers():
 
     # single optimizer
     lite_optimizer = lite.setup_optimizers(optimizer0)
-    assert isinstance(lite_optimizer, _LiteOptimizer)
+    assert isinstance(lite_optimizer, _FabricOptimizer)
     assert lite_optimizer.optimizer is optimizer0
 
     # multiple optimizers
     lite_optimizer0, lite_optimizer1 = lite.setup_optimizers(optimizer0, optimizer1)
-    assert isinstance(lite_optimizer0, _LiteOptimizer)
-    assert isinstance(lite_optimizer1, _LiteOptimizer)
+    assert isinstance(lite_optimizer0, _FabricOptimizer)
+    assert isinstance(lite_optimizer1, _FabricOptimizer)
     assert lite_optimizer0.optimizer is optimizer0
     assert lite_optimizer1.optimizer is optimizer1
 
@@ -292,12 +292,12 @@ def test_setup_dataloaders_unsupported_input():
 
 
 def test_setup_dataloaders_return_type():
-    """Test that the setup method returns the dataloaders wrapped as LiteDataLoader and in the right order."""
+    """Test that the setup method returns the dataloaders wrapped as FabricDataLoader and in the right order."""
     lite = EmptyLite()
 
     # single dataloader
     lite_dataloader = lite.setup_dataloaders(DataLoader(range(2)))
-    assert isinstance(lite_dataloader, _LiteDataLoader)
+    assert isinstance(lite_dataloader, _FabricDataLoader)
 
     # multiple dataloaders
     dataset0 = Mock()
@@ -305,8 +305,8 @@ def test_setup_dataloaders_return_type():
     dataloader0 = DataLoader(dataset0)
     dataloader1 = DataLoader(dataset1)
     lite_dataloader0, lite_dataloader1 = lite.setup_dataloaders(dataloader0, dataloader1)
-    assert isinstance(lite_dataloader0, _LiteDataLoader)
-    assert isinstance(lite_dataloader1, _LiteDataLoader)
+    assert isinstance(lite_dataloader0, _FabricDataLoader)
+    assert isinstance(lite_dataloader1, _FabricDataLoader)
     assert lite_dataloader0.dataset is dataset0
     assert lite_dataloader1.dataset is dataset1
 
@@ -361,7 +361,7 @@ def test_setup_dataloaders_twice_fails():
     return_value=torch.device("cuda", 1),
 )
 def test_setup_dataloaders_move_to_device(lite_device_mock):
-    """Test that the setup configures LiteDataLoader to move the data to the device automatically."""
+    """Test that the setup configures FabricDataLoader to move the data to the device automatically."""
     lite = EmptyLite()
     lite_dataloaders = lite.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
     assert all(dl.device is None for dl in lite_dataloaders)

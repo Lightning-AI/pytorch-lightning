@@ -124,7 +124,7 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("move_to_device", [True, False])
-@mock.patch("lightning_fabric.wrappers._LiteModule")
+@mock.patch("lightning_fabric.wrappers._FabricModule")
 def test_setup_module_move_to_device(lite_module_mock, move_to_device):
     """Test that `move_to_device` does nothing, FSDP decides which device parameters get moved to which device
     (sharding)."""

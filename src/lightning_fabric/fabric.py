@@ -51,7 +51,7 @@ from lightning_fabric.utilities.data import (
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning_fabric.utilities.seed import seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from lightning_fabric.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class Fabric:
@@ -177,12 +177,12 @@ class Fabric:
         else:
             module = self._strategy.setup_module(module)
 
-        module = _LiteModule(module, self._precision, original_module=original_module)
+        module = _FabricModule(module, self._precision, original_module=original_module)
 
         # Update the _DeviceDtypeModuleMixin's device parameter
         module.to(self.device if move_to_device else next(module.parameters()).device)
 
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
         self._models_setup += 1
 
@@ -191,7 +191,7 @@ class Fabric:
             return tuple((module, *optimizers))
         return module
 
-    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _LiteModule:
+    def setup_module(self, module: nn.Module, move_to_device: bool = True) -> _FabricModule:
         """Set up a model for accelerated training or inference.
 
         This is the same as calling ``.setup(model)`` with no optimizers. It is useful for inference or for certain
@@ -216,7 +216,7 @@ class Fabric:
 
         # Let strategy wrap and connect the module alone
         module = self._strategy.setup_module(module)
-        module = _LiteModule(module, self._precision, original_module=original_module)
+        module = _FabricModule(module, self._precision, original_module=original_module)
 
         if not isinstance(self._strategy, FSDPStrategy):
             # Update the _DeviceDtypeModuleMixin's device parameter
@@ -225,7 +225,7 @@ class Fabric:
         self._models_setup += 1
         return module
 
-    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_LiteOptimizer, Tuple[_LiteOptimizer, ...]]:
+    def setup_optimizers(self, *optimizers: Optimizer) -> Union[_FabricOptimizer, Tuple[_FabricOptimizer, ...]]:
         """Set up one or more optimizers for accelerated training.
 
         Some strategies do not allow setting up model and optimizer independently. For them, you should call
@@ -239,7 +239,7 @@ class Fabric:
         """
         self._validate_setup_optimizers(optimizers)
         optimizers = [self._strategy.setup_optimizer(optimizer) for optimizer in optimizers]
-        optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
+        optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         return optimizers[0] if len(optimizers) == 1 else tuple(optimizers)
 
     def setup_dataloaders(
@@ -295,11 +295,11 @@ class Fabric:
 
         dataloader = self._strategy.process_dataloader(dataloader)
         device = self.device if move_to_device and not isinstance(self._strategy, XLAStrategy) else None
-        lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=device)
+        lite_dataloader = _FabricDataLoader(dataloader=dataloader, device=device)
         lite_dataloader = cast(DataLoader, lite_dataloader)
         return lite_dataloader
 
-    def backward(self, tensor: Tensor, *args: Any, model: Optional[_LiteModule] = None, **kwargs: Any) -> None:
+    def backward(self, tensor: Tensor, *args: Any, model: Optional[_FabricModule] = None, **kwargs: Any) -> None:
         """Replaces ``loss.backward()`` in your training loop. Handles precision and automatically for you.
 
         Args:
@@ -324,7 +324,7 @@ class Fabric:
                     )
                 module = self._strategy.model
             else:
-                # requires to attach the current `DeepSpeedEngine` for the `_LiteOptimizer.step` call.
+                # requires to attach the current `DeepSpeedEngine` for the `_FabricOptimizer.step` call.
                 self._strategy._deepspeed_engine = module
 
         self._precision.backward(tensor, module, *args, **kwargs)
@@ -416,7 +416,7 @@ class Fabric:
         return self._strategy.broadcast(obj, src=src)
 
     @contextmanager
-    def no_backward_sync(self, module: _LiteModule, enabled: bool = True) -> Generator:
+    def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:
         """Skip gradient synchronization during backward to avoid redundant communication overhead.
 
         Use this context manager when performing gradient accumulation to speed up training with multiple devices.
@@ -439,7 +439,7 @@ class Fabric:
                 skip.
         """
 
-        if not isinstance(module, _LiteModule):
+        if not isinstance(module, _FabricModule):
             raise TypeError(
                 "You need to set up the model first before you can call `self.no_backward_sync()`:"
                 " `model = self.setup(model, ...)`"
@@ -590,16 +590,16 @@ class Fabric:
         if is_overridden("run", self, Fabric) and _is_using_cli():
             raise TypeError(
                 "Overriding `Fabric.run()` and launching from the CLI is not allowed. Run the script normally,"
-                " or change your code to directly call `lite = Fabric(...); lite.setup(...)` etc."
+                " or change your code to directly call `fabric = Fabric(...); fabric.setup(...)` etc."
             )
         # wrap the run method, so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
 
     def _validate_setup(self, module: nn.Module, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(module, _LiteModule):
+        if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup` method.")
 
-        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+        if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup` method.")
 
         if isinstance(self._strategy, FSDPStrategy):
@@ -610,7 +610,7 @@ class Fabric:
             )
 
     def _validate_setup_module(self, module: nn.Module) -> None:
-        if isinstance(module, _LiteModule):
+        if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
         if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
@@ -630,7 +630,7 @@ class Fabric:
         if not optimizers:
             raise ValueError("`setup_optimizers` requires at least one optimizer as input.")
 
-        if any(isinstance(opt, _LiteOptimizer) for opt in optimizers):
+        if any(isinstance(opt, _FabricOptimizer) for opt in optimizers):
             raise ValueError("An optimizer should be passed only once to the `setup_optimizers` method.")
 
     @staticmethod
@@ -638,7 +638,7 @@ class Fabric:
         if not dataloaders:
             raise ValueError("`setup_dataloaders` requires at least one dataloader as input.")
 
-        if any(isinstance(dl, _LiteDataLoader) for dl in dataloaders):
+        if any(isinstance(dl, _FabricDataLoader) for dl in dataloaders):
             raise ValueError("A dataloader should be passed only once to the `setup_dataloaders` method.")
 
         if any(not isinstance(dl, DataLoader) for dl in dataloaders):
