@@ -43,6 +43,7 @@ from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoin
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
+    BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
@@ -2247,12 +2248,14 @@ def test_trainer_compiled_model():
 
     model = torch.compile(model)
 
+    data = BoringDataModule()
+
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
     )
-    trainer.fit(model)
+    trainer.fit(model, data)
 
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
@@ -2260,7 +2263,7 @@ def test_trainer_compiled_model():
 
     assert model._compiler_ctx is None
 
-    trainer.train(model)
+    trainer.fit(model)
 
     assert trainer.model._compiler_ctx is None
 
