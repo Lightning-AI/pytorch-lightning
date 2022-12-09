@@ -454,7 +454,7 @@ class AutoScaler(LightningFlow):
             dict(
                 # TODO: Remove `start_with_flow=False` for faster initialization on the cloud
                 start_with_flow=False,
-                # don't try to create a work inside a running machine
+                # don't try to create multiple works in a single machine
                 cloud_compute=cloud_compute.clone() if cloud_compute else None,
             )
         )
