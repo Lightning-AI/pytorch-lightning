@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       artifact-name:
-        description: 'Unique name for collecting artifacts, for example: dist-packages-${{ github.sha }}'
+        description: 'Unique name for collecting artifacts'
         required: true
         type: string
       pkg-names:
@@ -38,7 +38,7 @@ jobs:
     strategy:
       max-parallel: 1  # run sequential to prevent download/upload collisions
       matrix:
-        pkg-name: ${{ fromJSON(inputs.strategy-matrix) }}
+        pkg-name: ${{ fromJSON(inputs.pkg-names) }}
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3

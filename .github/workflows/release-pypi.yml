@@ -16,7 +16,7 @@ jobs:
   build-packages:
     uses: ./.github/workflows/_build-packages.yml
     with:
-      azure-dir: dist-packages-${{ github.sha }}
+      artifact-name: dist-packages-${{ github.sha }}
 
 
   upload-packages:
