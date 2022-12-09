@@ -11,10 +11,8 @@ defaults:
   run:
     shell: bash
 
-env:
-  PUBLISH: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
-
 jobs:
+
   init:
     runs-on: ubuntu-20.04
     steps:
@@ -25,6 +23,7 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
+
 
   build-packages:
     needs: init
@@ -43,21 +42,19 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: 3.9
-
     - name: Install dependencies
       run: pip install -U setuptools wheel
-
     - name: Build packages
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
         python setup.py sdist bdist_wheel
         ls -lh dist/
-
     - uses: actions/upload-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
+
 
   upload-packages:
     runs-on: ubuntu-20.04
@@ -76,6 +73,7 @@ jobs:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+
   release-version:
     runs-on: ubuntu-20.04
     outputs:
@@ -90,9 +88,11 @@ jobs:
       id: lai-package
       run: python -c "import lightning as L; print(f'version={L.__version__}')" >> $GITHUB_OUTPUT
 
+
   signaling:
     runs-on: ubuntu-20.04
     needs: [release-version]
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     env:
       TAG: ${{ needs.release-version.outputs.tag }}
     steps:
@@ -103,12 +103,6 @@ jobs:
       with:
         repository: gridai/base-images
         token: ${{ secrets.PAT_GHOST }}
-        ref: main
-    - uses: fregante/setup-git-token@v1
-      with:
-        token: ${{ secrets.PAT_GHOST }}
-        name: PL Ghost
-        email: pl-github@grid.ai
     - name: Update lightning version
       run: |
         import json, os
@@ -118,18 +112,21 @@ jobs:
         with open("versions.json", "w") as fw:
             json.dump(vers, fw)
       shell: python
-    - name: GIT Commit
+    - run: cat versions.json
+    - name: GIT commit & push
+      env:
+        BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
       run: |
+        git config --global user.name "PL Ghost"
+        git config --global user.email pl-github@grid.ai
+        git checkout -b ${BRANCH_NAME}
         git add versions.json
-        git commit -m "bumping lightning version -> ${TAG}"
-        cat versions.json
-    - name: GIT Push
-      run: |
         git status
-        git push
+        git commit -m "bumping lightning version -> ${TAG}"
+        git push -u origin ${BRANCH_NAME} -f
+
 
   waiting:
-    # TODO: replace with back signal from build images/ loop checking for a specific branch?
     runs-on: ubuntu-20.04
     needs: [release-version, signaling]
     env:
@@ -152,6 +149,7 @@ jobs:
             break
           time.sleep(60)
       shell: python
+
 
   pre-publish-packages:
     runs-on: ubuntu-20.04
@@ -182,9 +180,10 @@ jobs:
         pkg-pattern: "*"
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
 
+
   publish-packages:
     runs-on: ubuntu-20.04
-    needs: waiting
+    needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
@@ -211,12 +210,13 @@ jobs:
         pkg-pattern: "*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
+
   legacy-checkpoints:
     needs: [build-packages]
     uses: ./.github/workflows/legacy-checkpoints.yml
     with:
-      push_to_s3: ${{ env.PUBLISH }}
-      create_pr: ${{ env.PUBLISH }}
+      push_to_s3: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
+      create_pr: ${{ startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release' }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_KEY_ID: ${{ secrets.AWS_SECRET_KEY_ID }}

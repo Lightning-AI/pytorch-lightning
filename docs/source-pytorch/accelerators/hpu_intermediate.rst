@@ -96,4 +96,4 @@ The below snippet shows how DeviceStatsMonitor can be enabled.
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(accelerator="hpu", callbacks=[device_stats])
 
-For more details, please refer to `Memory Stats APIs <https://docs.habana.ai/en/v1.5.0/PyTorch/PyTorch_User_Guide/Python_Packages.html#memory-stats-apis>`__.
+For more details, please refer to `Memory Stats APIs <https://docs.habana.ai/en/latest/PyTorch/PyTorch_User_Guide/Python_Packages.html#memory-stats-apis>`__.

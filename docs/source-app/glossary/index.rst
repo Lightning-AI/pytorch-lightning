@@ -113,6 +113,13 @@ Glossary
    :height: 100
 
 .. displayitem::
+   :header: Mounts
+   :description: Mount Cloud Data
+   :col_css: col-md-6
+   :button_link: mount.html
+   :height: 180
+
+.. displayitem::
    :header: Sharing Components
    :description: Let's create an ecosystem altogether
    :col_css: col-md-12

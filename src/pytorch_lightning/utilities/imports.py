@@ -52,6 +52,8 @@ if _HABANA_FRAMEWORK_AVAILABLE:
     from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
 
     _HPU_AVAILABLE = is_habana_avaialble()
+    if _HPU_AVAILABLE:
+        _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 else:
     _HPU_AVAILABLE = False
 
