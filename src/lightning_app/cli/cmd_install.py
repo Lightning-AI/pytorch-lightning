@@ -101,7 +101,7 @@ def gallery_apps_and_components(
     except Exception:
         return None
 
-    entry, kind = _resolve_entry(app_or_component, version_arg)
+    entry, kind = _resolve_entry(name, version_arg)
 
     if kind == "app":
         # give the user the chance to do a manual install
