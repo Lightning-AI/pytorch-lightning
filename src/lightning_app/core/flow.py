@@ -173,10 +173,10 @@ class LightningFlow:
             elif isinstance(value, (Dict, List)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                
+
                 _backend = getattr(self, "backend", None)
                 if _backend is not None:
-                     value._backend = _backend
+                    value._backend = _backend
 
                 for flow in value.flows:
                     if _backend is not None:
