@@ -143,6 +143,14 @@ class LightningFlow:
                 if name in self._works and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
+            if isinstance(value, (list, dict)) and value:
+                _type = (LightningFlow, LightningWork, List, Dict)
+                if isinstance(value, list) and all(isinstance(va, _type) for va in value):
+                    value = List(*value)
+
+                if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
+                    value = Dict(**value)
+
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
                 _set_child_name(self, value, name)
@@ -164,10 +172,10 @@ class LightningFlow:
                 value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
-                value._backend = self._backend
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if self._backend:
+                if getattr(self, "_backend", None) is not None:
+                    value._backend = self._backend
                     for flow in value.flows:
                         LightningFlow._attach_backend(flow, self._backend)
                     for work in value.works:
@@ -233,7 +241,10 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Override to customize when your App should be ready."""
+        """Not currently enabled.
+
+        Override to customize when your App should be ready.
+        """
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 

@@ -45,7 +45,6 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.demos.boring_classes import (
     BoringDataModule,
     BoringModel,
-    DemoModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
@@ -2245,7 +2244,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compiled_model():
-    model = DemoModel()
+    model = BoringModel()
 
     model = torch.compile(model)
 

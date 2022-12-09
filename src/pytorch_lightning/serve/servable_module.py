@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, Tuple
 
 import torch
+from torch import Tensor
 
 
 class ServableModule(torch.nn.Module):
@@ -70,7 +71,7 @@ class ServableModule(torch.nn.Module):
         """
         ...
 
-    def serve_step(self, *args: torch.Tensor, **kwargs: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def serve_step(self, *args: Tensor, **kwargs: Tensor) -> Dict[str, Tensor]:
         r"""
         Returns the predictions of your model as a dictionary.
 
