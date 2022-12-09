@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_utilities.core.imports import compare_version, module_available
+from lightning_utilities.core.imports import compare_version
 from pydantic import BaseModel
 
 from lightning_app.core.work import LightningWork
@@ -195,6 +195,7 @@ class PythonServer(LightningWork, abc.ABC):
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
             logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
 
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"
