@@ -52,6 +52,15 @@ The automatic saving of the config is done by the special callback :class:`~pyto
 This callback is automatically added to the ``Trainer``. To disable the save of the config, instantiate ``LightningCLI``
 with ``save_config_callback=None``.
 
+.. tip::
+
+    To change the file name of the saved configs to e.g. ``name.yaml``, do:
+
+    .. code:: python
+
+        cli = LightningCLI(..., save_config_kwargs={"config_filename": "name.yaml"})
+
+
 ----
 
 *********************************

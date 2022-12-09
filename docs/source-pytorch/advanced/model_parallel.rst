@@ -424,16 +424,38 @@ You can customize the strategy configuration by adjusting the arguments of :clas
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
-    from torch.distributed.fsdp.fully_sharded_data_parallel import CPUOffload
 
 
-    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=CPUOffload(offload_params=True))
-    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", device=4)
+    native_fsdp = DDPFullyShardedNativeStrategy(cpu_offload=True)
+    trainer = pl.Trainer(strategy=native_fsdp, accelerator="gpu", devices=4)
 
 
 Check out `this tutorial <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`__ to learn more about the native support.
 
 ----
+
+
+Activation Checkpointing
+========================
+
+Activation checkpointing reduces GPU memory usage by avoiding the storage of intermediate activation tensors in
+selected layers. The tradeoff is that computation cost for the backpropagation increases, as the dropped activations
+need to be recomputed.
+
+Enable checkpointing on large layers (like Transformers) by providing the layer class/type to the strategy:
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+
+    fsdp = DDPFullyShardedNativeStrategy(
+        activation_checkpointing=MyTransformerBlock,  # or pass a list with multiple types
+    )
+    trainer = pl.Trainer(strategy=fsdp, accelerator="gpu", devices=4)
+
+
+----
+
 
 .. _deepspeed_advanced:
 
@@ -1107,9 +1129,6 @@ Combine hooks for accumulated benefit:
 
 
 When using Post-localSGD, you must also pass ``model_averaging_period`` to allow for model parameter averaging:
-
-.. note::
-    Post-localSGD support requires PyTorch>=1.10.0
 
 .. code-block:: python
 

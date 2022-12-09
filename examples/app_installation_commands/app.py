@@ -13,6 +13,10 @@ class YourComponent(L.LightningWork):
         print("lmdb successfully installed")
         print("accessing a module in a Work or Flow body works!")
 
+    @property
+    def ready(self) -> bool:
+        return True
+
 
 print(f"accessing an object in main code body works!: version={lmdb.version()}")
 

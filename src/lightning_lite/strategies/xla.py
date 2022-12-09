@@ -70,6 +70,10 @@ class XLAStrategy(ParallelStrategy):
         return xm.xla_device()
 
     @property
+    def num_processes(self) -> int:
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+
+    @property
     def local_rank(self) -> int:
         return self._local_rank
 
@@ -161,20 +165,22 @@ class XLAStrategy(ParallelStrategy):
         return obj
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """
-        Function to gather a tensor from several distributed processes
+        """Function to gather a tensor from several distributed processes.
+
         Args:
             tensor: tensor of shape (batch, ...)
             group: not available with TPUs
-            sync_grads: not available with TPUs
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
         Return:
             A tensor of shape (world_size, batch, ...)
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
+
+        import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xm.all_gather(tensor)
+        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
@@ -207,9 +213,8 @@ class XLAStrategy(ParallelStrategy):
     def _set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
-        num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
-        self.cluster_environment.set_global_rank(self.node_rank * num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(num_processes)
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     @staticmethod
