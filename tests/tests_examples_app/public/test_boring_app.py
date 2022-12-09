@@ -30,5 +30,5 @@ def test_boring_app_example_cloud() -> None:
 
         assert result.exit_code == 0
         assert result.exception is None
-        assert any("--filepath=/content/.storage/boring_file.txt" in line for line in lines)
+        assert any("Received from root.dict.dst_w" in line for line in lines)
         print("Succeeded App!")
