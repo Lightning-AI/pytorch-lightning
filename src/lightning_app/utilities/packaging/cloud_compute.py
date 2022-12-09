@@ -124,7 +124,6 @@ class CloudCompute:
     def clone(self):
         new_dict = self.to_dict()
         new_dict["_internal_id"] = self._generate_id()
-
         return self.from_dict(new_dict)
 
 
