@@ -425,6 +425,17 @@ def test_proper_refcount():
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
 
 
+def test_lightning_module_scriptable():
+    """Test that the LightningModule is `torch.jit.script`-able.
+
+    Regression test for #15917.
+    """
+    model = BoringModel()
+    trainer = Trainer()
+    model.trainer = trainer
+    torch.jit.script(model)
+
+
 def test_trainer_reference_recursively():
     ensemble = LightningModule()
     inner = LightningModule()
@@ -440,3 +451,38 @@ def test_trainer_reference_recursively():
     assert ensemble.trainer is inner.trainer
     # and the trainer was weakly referenced
     assert inner.trainer is weakref.proxy(trainer)
+
+
+# TODO: replace with 1.14 when it is released
+@RunIf(min_torch="1.14.0.dev20221202")
+def test_compile_uncompile():
+
+    lit_model = BoringModel()
+    model_compiled = torch.compile(lit_model)
+
+    lit_model_compiled = LightningModule.from_compiled(model_compiled)
+
+    def has_dynamo(fn):
+        return any(el for el in dir(fn) if el.startswith("_torchdynamo"))
+
+    assert isinstance(lit_model_compiled, LightningModule)
+    assert lit_model_compiled._compiler_ctx is not None
+    assert has_dynamo(lit_model_compiled.forward)
+    assert has_dynamo(lit_model_compiled.training_step)
+    assert has_dynamo(lit_model_compiled.validation_step)
+    assert has_dynamo(lit_model_compiled.test_step)
+    assert has_dynamo(lit_model_compiled.predict_step)
+
+    lit_model_orig = LightningModule.to_uncompiled(lit_model)
+
+    assert lit_model_orig._compiler_ctx is None
+    assert lit_model_orig.forward == lit_model.forward
+    assert lit_model_orig.training_step == lit_model.training_step
+    assert lit_model_orig.validation_step == lit_model.validation_step
+    assert lit_model_orig.test_step == lit_model.test_step
+    assert lit_model_orig.predict_step == lit_model.predict_step
+    assert not has_dynamo(lit_model_orig.forward)
+    assert not has_dynamo(lit_model_orig.training_step)
+    assert not has_dynamo(lit_model_orig.validation_step)
+    assert not has_dynamo(lit_model_orig.test_step)
+    assert not has_dynamo(lit_model_orig.predict_step)

@@ -115,7 +115,7 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
-        self.n_averaged: Optional[torch.Tensor] = None
+        self.n_averaged: Optional[Tensor] = None
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
