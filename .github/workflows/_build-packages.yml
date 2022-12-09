@@ -48,14 +48,13 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: 3.9
-    - name: Install dependencies
-      run: pip install -U setuptools wheel
-    - name: Build packages
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-      run: |
-        python setup.py sdist bdist_wheel
-        ls -lh dist/
+
+    - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+    - uses: ./.github/actions/pkg-check
+      with:
+        pkg-name: ${{ matrix.pkg-name }}
+        nb-dirs: ${{ env.NB_DIRS }}
+
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.artifact-name }}

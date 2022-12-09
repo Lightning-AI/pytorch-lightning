@@ -28,6 +28,11 @@ defaults:
 
 jobs:
 
+  build-packages:
+    uses: ./.github/workflows/_build-packages.yml
+    with:
+      azure-dir: dist-packages-${{ github.sha }}
+
   install-pkg:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -38,32 +43,29 @@ jobs:
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist-packages-${{ github.sha }}
+          path: dist
+
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: ${{ matrix.pkg-name }}
+          pip-flags: "-f dist"
+
+      - name: Run CLI
+        # todo: add testing for `lightning_app`
+        if: ${{ matrix.pkg-name == 'lightning' }}
+        run: python -m lightning --version
 
       - name: DocTests actions
         working-directory: .actions/
         run: |
           pip install -q pytest
           python -m pytest setup_tools.py
-
-      - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
-
-      - uses: ./.github/actions/pkg-check
-        with:
-          pkg-name: ${{ matrix.pkg-name }}
-          nb-dirs: ${{ env.NB_DIRS }}
-
-      - uses: ./.github/actions/pkg-install
-        with:
-          pkg-name: ${{ matrix.pkg-name }}
-
-      - name: Run CLI
-        # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name == 'lightning' }}
-        run: python -m lightning --version
 
       - name: DocTest package
         env:
