@@ -40,6 +40,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where auto-upgrading to the latest lightning via the CLI could get stuck in a loop ([#15984](https://github.com/Lightning-AI/lightning/pull/15984))
 
 
+- Fixed Registration for CloudComputes of Works in `L.app.structures` ([#15964](https://github.com/Lightning-AI/lightning/pull/15964))
+
+
 ## [1.8.4] - 2022-12-08
 
 ### Added
