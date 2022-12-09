@@ -103,10 +103,6 @@ jobs:
       with:
         repository: gridai/base-images
         token: ${{ secrets.PAT_GHOST }}
-    - uses: fregante/setup-git-token@v1
-      with:
-        name: PL Ghost
-        email: pl-github@grid.ai
     - name: Update lightning version
       run: |
         import json, os
@@ -121,6 +117,8 @@ jobs:
       env:
         BRANCH_NAME: "trigger/lightning-${{ env.TAG }}"
       run: |
+        git config --global user.name "PL Ghost"
+        git config --global user.email pl-github@grid.ai
         git checkout -b ${BRANCH_NAME}
         git add versions.json
         git status
