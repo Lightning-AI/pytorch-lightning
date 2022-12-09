@@ -173,12 +173,19 @@ class LightningFlow:
             elif isinstance(value, (Dict, List)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if getattr(self, "_backend", None) is not None:
-                    value._backend = self._backend
-                    for flow in value.flows:
-                        LightningFlow._attach_backend(flow, self._backend)
-                    for work in value.works:
-                        self._backend._wrap_run_method(_LightningAppRef().get_current(), work)
+
+                _backend = getattr(self, "backend", None)
+                if _backend is not None:
+                    value._backend = _backend
+
+                for flow in value.flows:
+                    if _backend is not None:
+                        LightningFlow._attach_backend(flow, _backend)
+
+                for work in value.works:
+                    work._register_cloud_compute()
+                    if _backend is not None:
+                        _backend._wrap_run_method(_LightningAppRef().get_current(), work)
 
             elif isinstance(value, Path):
                 # In the init context, the full name of the Flow and Work is not known, i.e., we can't serialize
