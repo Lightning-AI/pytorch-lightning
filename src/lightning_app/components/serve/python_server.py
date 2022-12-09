@@ -193,7 +193,11 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
     def configure_layout(self) -> None:
-        from lightning_api_access import APIAccessFrontend
+        try:
+            from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+
         class_name = self.__class__.__name__
         url = f"{self.url}/predict"
 
