@@ -82,16 +82,16 @@ core
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
 
-lightninglite
--------------
+lightning_fabric
+----------------
 
-.. currentmodule:: pytorch_lightning.lite
+.. currentmodule:: lightning_fabric.fabric
 
 .. autosummary::
     :toctree: api
     :nosignatures:
 
-    LightningLite
+    Fabric
 
 loggers
 -------
