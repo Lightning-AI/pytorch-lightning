@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
-from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
+from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1LightningappInstanceState
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
@@ -556,7 +556,12 @@ def _handle_is_headless(app: "LightningApp"):
             "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
         )
 
-    if current_lightningapp_instance.spec.is_headless == app.is_headless:
+    if any(
+        [
+            current_lightningapp_instance.spec.is_headless == app.is_headless,
+            current_lightningapp_instance.status.phase != V1LightningappInstanceState.RUNNING,
+        ]
+    ):
         return
 
     current_lightningapp_instance.spec.is_headless = app.is_headless
