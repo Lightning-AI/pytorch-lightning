@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `AutoScaler` failing due to port collision across works ([#15966](https://github.com/Lightning-AI/lightning/pull/15966))
 
 
+- Fixed a bug where auto-upgrading to the latest lightning via the CLI could get stuck in a loop ([#15984](https://github.com/Lightning-AI/lightning/pull/15984))
+
+
 ## [1.8.4] - 2022-12-08
 
 ### Added
