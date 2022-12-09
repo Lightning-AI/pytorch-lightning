@@ -66,7 +66,7 @@ class MultiNode(LightningFlow):
             *[
                 work_cls(
                     *work_args,
-                    cloud_compute=cloud_compute,
+                    cloud_compute=cloud_compute.clone(),
                     **work_kwargs,
                     parallel=True,
                 )
