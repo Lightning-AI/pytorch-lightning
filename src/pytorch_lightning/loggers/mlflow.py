@@ -24,9 +24,9 @@ from pathlib import Path
 from time import time
 from typing import Any, Dict, Mapping, Optional, Union
 
-import torch
 import yaml
 from lightning_utilities.core.imports import module_available
+from torch import Tensor
 from typing_extensions import Literal
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -332,7 +332,7 @@ class MLFlowLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = {
                 # Ensure .item() is called to store Tensor contents
-                "score": s.item() if isinstance(s, torch.Tensor) else s,
+                "score": s.item() if isinstance(s, Tensor) else s,
                 "original_filename": Path(p).name,
                 "Checkpoint": {
                     k: getattr(checkpoint_callback, k)

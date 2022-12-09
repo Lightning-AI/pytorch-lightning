@@ -289,20 +289,22 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """
-        Function to gather a tensor from several distributed processes
+        """Function to gather a tensor from several distributed processes.
+
         Args:
             tensor: tensor of shape (batch, ...)
             group: not available with TPUs
-            sync_grads: not available with TPUs
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
         Return:
             A tensor of shape (world_size, batch, ...)
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
+
+        import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xm.all_gather(tensor)
+        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def teardown(self) -> None:
         super().teardown()

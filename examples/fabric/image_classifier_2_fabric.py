@@ -14,7 +14,7 @@
 
 """Here are 4 easy steps to use Fabric in your PyTorch code.
 
-1. Create the Lightning Lite object at the beginning of your script.
+1. Create the Lightning Fabric object at the beginning of your script.
 
 2. Remove all ``.to`` and ``.cuda`` calls since Fabric will take care of it.
 
@@ -25,7 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 
 Accelerate your training loop by setting the ``--accelerator``, ``--strategy``, ``--devices`` options directly from
 the command line. See ``lightning run model --help`` or learn more from the documentation:
-https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.lite.html.
+https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_fabric.html.
 """
 
 import argparse
@@ -47,18 +47,18 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
 
 def run(hparams):
-    # Create the Lightning Lite object. The parameters like accelerator, strategy, devices etc. will be proided
+    # Create the Lightning Fabric object. The parameters like accelerator, strategy, devices etc. will be proided
     # by the command line. See all options: `lightning run model --help`
-    lite = Fabric()
+    fabric = Fabric()
 
-    lite.hparams = hparams
+    fabric.hparams = hparams
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
     # This is meant to ensure the data are download only by 1 process.
-    if lite.is_global_zero:
+    if fabric.is_global_zero:
         MNIST(DATASETS_PATH, download=True)
-    lite.barrier()
+    fabric.barrier()
     train_dataset = MNIST(DATASETS_PATH, train=True, transform=transform)
     test_dataset = MNIST(DATASETS_PATH, train=False, transform=transform)
     train_loader = torch.utils.data.DataLoader(
@@ -68,19 +68,19 @@ def run(hparams):
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=hparams.batch_size)
 
     # don't forget to call `setup_dataloaders` to prepare for dataloaders for distributed training.
-    train_loader, test_loader = lite.setup_dataloaders(train_loader, test_loader)
+    train_loader, test_loader = fabric.setup_dataloaders(train_loader, test_loader)
 
     model = Net()  # remove call to .to(device)
     optimizer = optim.Adadelta(model.parameters(), lr=hparams.lr)
 
     # don't forget to call `setup` to prepare for model / optimizer for distributed training.
     # the model is moved automatically to the right device.
-    model, optimizer = lite.setup(model, optimizer)
+    model, optimizer = fabric.setup(model, optimizer)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=hparams.gamma)
 
     # use torchmetrics instead of manually computing the accuracy
-    test_acc = Accuracy().to(lite.device)
+    test_acc = Accuracy().to(fabric.device)
 
     # EPOCH LOOP
     for epoch in range(1, hparams.epochs + 1):
@@ -92,7 +92,7 @@ def run(hparams):
             optimizer.zero_grad()
             output = model(data)
             loss = F.nll_loss(output, target)
-            lite.backward(loss)  # instead of loss.backward()
+            fabric.backward(loss)  # instead of loss.backward()
 
             optimizer.step()
             if (batch_idx == 0) or ((batch_idx + 1) % hparams.log_interval == 0):
@@ -130,7 +130,7 @@ def run(hparams):
                     break
 
         # all_gather is used to aggregated the value across processes
-        test_loss = lite.all_gather(test_loss).sum() / len(test_loader.dataset)
+        test_loss = fabric.all_gather(test_loss).sum() / len(test_loader.dataset)
 
         print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({100 * test_acc.compute():.0f}%)\n")
         test_acc.reset()
@@ -138,10 +138,10 @@ def run(hparams):
         if hparams.dry_run:
             break
 
-    # When using distributed training, use `lite.save`
+    # When using distributed training, use `fabric.save`
     # to ensure the current process is allowed to save a checkpoint
     if hparams.save_model:
-        lite.save(model.state_dict(), "mnist_cnn.pt")
+        fabric.save(model.state_dict(), "mnist_cnn.pt")
 
 
 if __name__ == "__main__":

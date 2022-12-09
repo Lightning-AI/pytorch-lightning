@@ -15,19 +15,19 @@ class LitePyTorchDistributed(L.LightningWork):
         )
 
         # 2. Create Fabric.
-        lite = Fabric(strategy="ddp", precision=16)
-        model, optimizer = lite.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
+        fabric = Fabric(strategy="ddp", precision=16)
+        model, optimizer = fabric.setup(model, torch.optim.SGD(model.parameters(), lr=0.01))
         criterion = torch.nn.MSELoss()
 
         # 3. Train the model for 1000 steps.
         for step in range(1000):
             model.zero_grad()
-            x = torch.tensor([0.8]).to(lite.device)
-            target = torch.tensor([1.0]).to(lite.device)
+            x = torch.tensor([0.8]).to(fabric.device)
+            target = torch.tensor([1.0]).to(fabric.device)
             output = model(x)
             loss = criterion(output, target)
-            print(f"global_rank: {lite.global_rank} step: {step} loss: {loss}")
-            lite.backward(loss)
+            print(f"global_rank: {fabric.global_rank} step: {step} loss: {loss}")
+            fabric.backward(loss)
             optimizer.step()
 
 
