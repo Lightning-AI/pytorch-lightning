@@ -169,8 +169,9 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch):
     with pytest.warns(UserWarning, match="psutil` is not installed"):
         monitor.setup(trainer, Mock(), "fit")
 
+
 def test_device_stats_monitor_logs_for_different_stages(tmpdir):
-    """Test that metrics are logged for all stages that is training, testing and validation"""
+    """Test that metrics are logged for all stages that is training, testing and validation."""
 
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
@@ -191,9 +192,9 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     trainer.fit(model)
     trainer.test(model)
 
-    with open(f'{tmpdir}/lightning_logs/version_0/metrics.csv') as csvfile:
+    with open(f"{tmpdir}/lightning_logs/version_0/metrics.csv") as csvfile:
 
-        content = csv.reader(csvfile, delimiter=',')
+        content = csv.reader(csvfile, delimiter=",")
         it = iter(content).__next__()
 
         # searching for training stage logs
@@ -209,8 +210,3 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
         valid = any(validation_stage_results)
 
         assert all([train, test, valid])
-
-
-
-
-

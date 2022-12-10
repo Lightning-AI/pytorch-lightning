@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 class DeviceStatsMonitor(Callback):
     r"""
     Automatically monitors and logs device stats during training, validation and testing stage.
-    ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument 
+    ``DeviceStatsMonitor`` is a special callback as it requires a ``logger`` to passed as argument
     to the ``Trainer``.
 
     Args:
@@ -111,25 +111,36 @@ class DeviceStatsMonitor(Callback):
         self._get_and_log_device_stats(trainer, "on_train_batch_end")
 
     def on_validation_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule",  batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_start")
 
     def on_validation_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_validation_batch_end")
 
     def on_test_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule",  batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_test_batch_start")
 
     def on_test_batch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_test_batch_end")
-
 
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
