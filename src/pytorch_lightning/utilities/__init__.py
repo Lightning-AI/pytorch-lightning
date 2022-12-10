@@ -29,7 +29,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _IS_WINDOWS,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
     _TORCH_GREATER_EQUAL_1_12,
     _TORCH_QUANTIZE_AVAILABLE,

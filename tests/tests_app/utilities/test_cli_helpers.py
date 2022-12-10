@@ -99,7 +99,7 @@ def test_arrow_time_callback():
             "1.0.0dev",
             None,
         ),
-        ({"1.0.0": "this wil trigger an error"}, "1.0.0", "err"),
+        ({"1.0.0": "this wil trigger an error"}, "1.0.0", None),
         ({}, "1.0.0rc0", None),
     ],
 )

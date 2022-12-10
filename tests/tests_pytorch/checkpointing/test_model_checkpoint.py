@@ -301,7 +301,9 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
     max_epochs = 2
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs, logger=False
+    )
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / "checkpoints"
 
@@ -747,7 +749,12 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        logger=False,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -949,6 +956,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_checkpoint_content(ckpt_dir)
 
         # load from checkpoint
+        trainer_config["logger"] = TensorBoardLogger(tmpdir)
         trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 

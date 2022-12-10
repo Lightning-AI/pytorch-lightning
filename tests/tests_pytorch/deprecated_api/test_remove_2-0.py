@@ -19,6 +19,7 @@ import pytest
 
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
@@ -335,3 +336,12 @@ def test_v2_0_0_default_tensorboard(monkeypatch, tmp_path):
     ) as install_mock:
         TensorBoardLogger(tmp_path)
     install_mock.assert_called_with([ANY, "-m", "pip", "install", "tensorboard>=2.9.1"])
+
+
+@pytest.mark.parametrize(
+    ["name", "value"],
+    [("description", "description"), ("env_prefix", "PL"), ("env_parse", False)],
+)
+def test_lightningCLI_parser_init_params_deprecation_warning(name, value):
+    with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
+        LightningCLI(BoringModel, run=False, **{name: value})

@@ -2,6 +2,7 @@ import enum
 import json
 import os
 from copy import deepcopy
+from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from deepdiff import DeepDiff
@@ -149,16 +150,26 @@ class AppState:
             return
         app_url = f"{self._url}/api/v1/state"
         headers = headers_for(self._plugin.get_context()) if self._plugin else {}
-        try:
-            response = self._session.get(app_url, headers=headers, timeout=1)
-        except ConnectionError as e:
-            raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from e
 
-        self._authorized = response.status_code
-        if self._authorized != 200:
-            return
-        logger.debug(f"GET STATE {response} {response.json()}")
-        self._store_state(response.json())
+        response_json = {}
+
+        # Sometimes the state URL can return an empty JSON when things are being set-up,
+        # so we wait for it to be ready here.
+        while response_json == {}:
+            sleep(0.5)
+            try:
+                response = self._session.get(app_url, headers=headers, timeout=1)
+            except ConnectionError as e:
+                raise AttributeError("Failed to connect and fetch the app state. Is the app running?") from e
+
+            self._authorized = response.status_code
+            if self._authorized != 200:
+                return
+
+            response_json = response.json()
+
+        logger.debug(f"GET STATE {response} {response_json}")
+        self._store_state(response_json)
 
     def __getattr__(self, name: str) -> Union[Any, "AppState"]:
         if name in self._APP_PRIVATE_KEYS:

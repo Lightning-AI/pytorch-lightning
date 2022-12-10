@@ -48,7 +48,7 @@ from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.data import _auto_add_worker_init_fn
 from lightning_lite.utilities.types import _PATH
 from lightning_lite.utilities.warnings import PossibleUserWarning
-from pytorch_lightning.accelerators import Accelerator, HPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -65,7 +65,13 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
 )
 from pytorch_lightning.profilers import Profiler
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies import (
+    DDPFullyShardedNativeStrategy,
+    DDPStrategy,
+    ParallelStrategy,
+    SingleDeviceStrategy,
+    Strategy,
+)
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
@@ -546,6 +552,20 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
+    def _maybe_unwrap_optimized(self, model: Optional["pl.LightningModule"]) -> Optional["pl.LightningModule"]:
+        if model is None:
+            return None
+
+        try:
+            from torch._dynamo import OptimizedModule
+        except ImportError:
+            return model
+
+        if not isinstance(model, OptimizedModule):
+            return model
+
+        return pl.LightningModule.from_compiled(model)
+
     def fit(
         self,
         model: "pl.LightningModule",
@@ -572,6 +592,7 @@ class Trainer:
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
+        model = self._maybe_unwrap_optimized(model)
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model
@@ -655,6 +676,7 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
+        model = self._maybe_unwrap_optimized(model)
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
@@ -747,6 +769,7 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
+        model = self._maybe_unwrap_optimized(model)
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
@@ -840,6 +863,7 @@ class Trainer:
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
+        model = self._maybe_unwrap_optimized(model)
         if model is not None and not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model or self.lightning_module
@@ -931,6 +955,7 @@ class Trainer:
 
             method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
+        model = self._maybe_unwrap_optimized(model)
         if not isinstance(model, pl.LightningModule):
             raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
 
@@ -963,6 +988,18 @@ class Trainer:
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
+        if model._compiler_ctx is not None:
+            supported_strategies = [SingleDeviceStrategy, DDPStrategy, DDPFullyShardedNativeStrategy]
+            if self.strategy is not None and not any(isinstance(self.strategy, s) for s in supported_strategies):
+                supported_strategy_names = ", ".join(s.__name__ for s in supported_strategies)
+                raise RuntimeError(
+                    "Using a compiled model is incompatible with the current strategy: "
+                    f"{self.strategy.__class__.__name__}. "
+                    f"Only {supported_strategy_names} support compilation. "
+                    "Either switch to one of the supported strategies or avoid passing in "
+                    "a compiled model."
+                )
+
         if self.state.fn == TrainerFn.FITTING:
             min_epochs, max_epochs = _parse_loop_limits(
                 self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
@@ -2224,13 +2261,11 @@ class Trainer:
 
 @contextmanager
 def _evaluation_context(accelerator: Accelerator, inference_mode: bool = True) -> Generator:
-    # inference mode is not supported with gloo backend (#9431),
-    # and HPU & TPU accelerators.
+    # inference mode is not supported with gloo backend (#9431) and TPU accelerators.
     context_manager_class = (
         torch.inference_mode
         if inference_mode
         and not (dist.is_available() and dist.is_initialized() and dist.get_backend() == "gloo")
-        and not isinstance(accelerator, HPUAccelerator)
         and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )

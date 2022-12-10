@@ -303,6 +303,7 @@ def _swa_resume_training_from_checkpoint(tmpdir, model, resume_model, ddp=False)
         "limit_val_batches": 0,
         "accumulate_grad_batches": 2,
         "enable_progress_bar": False,
+        "logger": False,
     }
     trainer = Trainer(callbacks=SwaTestCallback(swa_epoch_start=swa_start, swa_lrs=0.1), **trainer_kwargs)
 
