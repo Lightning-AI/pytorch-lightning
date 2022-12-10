@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -10,6 +11,8 @@ from lightning_cloud.openapi import (
 )
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
+from lightning_app.core.flow import _RootFlow
+from lightning_app.frontend import StaticWebFrontend
 from lightning_app.utilities.app_helpers import (
     _handle_is_headless,
     _is_headless,
@@ -119,14 +122,9 @@ class FlowWithURLLayout(Flow):
         return {"name": "test", "content": "https://appurl"}
 
 
-class FlowWithWorkLayout(Flow):
-    def __init__(self):
-        super().__init__()
-
-        self.work = Work()
-
+class FlowWithFrontend(Flow):
     def configure_layout(self):
-        return {"name": "test", "content": self.work}
+        return StaticWebFrontend(".")
 
 
 class FlowWithMockedFrontend(Flow):
@@ -153,16 +151,62 @@ class NestedFlowWithURLLayout(Flow):
         self.flow = FlowWithURLLayout()
 
 
+class WorkWithStringLayout(Work):
+    def configure_layout(self):
+        return "http://appurl"
+
+
+class WorkWithMockedFrontendLayout(Work):
+    def configure_layout(self):
+        return _MagicMockJsonSerializable()
+
+
+class WorkWithFrontendLayout(Work):
+    def configure_layout(self):
+        return StaticWebFrontend(".")
+
+
+class WorkWithNoneLayout(Work):
+    def configure_layout(self):
+        return None
+
+
+class FlowWithWorkLayout(Flow):
+    def __init__(self, work):
+        super().__init__()
+
+        self.work = work()
+
+    def configure_layout(self):
+        return {"name": "test", "content": self.work}
+
+
+class WorkClassRootFlow(_RootFlow):
+    """A ``_RootFlow`` which takes a work class rather than the work itself."""
+
+    def __init__(self, work):
+        super().__init__(work())
+
+
 @pytest.mark.parametrize(
     "flow,expected",
     [
         (Flow, True),
         (FlowWithURLLayout, False),
-        (FlowWithWorkLayout, False),
+        (FlowWithFrontend, False),
         (FlowWithMockedFrontend, False),
         (FlowWithMockedContent, False),
         (NestedFlow, True),
         (NestedFlowWithURLLayout, False),
+        (partial(WorkClassRootFlow, WorkWithStringLayout), False),
+        (partial(WorkClassRootFlow, WorkWithMockedFrontendLayout), False),
+        (partial(WorkClassRootFlow, WorkWithFrontendLayout), False),
+        (partial(WorkClassRootFlow, WorkWithNoneLayout), True),
+        (partial(FlowWithWorkLayout, Work), False),
+        (partial(FlowWithWorkLayout, WorkWithStringLayout), False),
+        (partial(FlowWithWorkLayout, WorkWithMockedFrontendLayout), False),
+        (partial(FlowWithWorkLayout, WorkWithFrontendLayout), False),
+        (partial(FlowWithWorkLayout, WorkWithNoneLayout), True),
     ],
 )
 def test_is_headless(flow, expected):
