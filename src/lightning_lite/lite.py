@@ -25,7 +25,7 @@ from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
@@ -582,6 +582,7 @@ class LightningLite:
 
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
+        kwargs.setdefault("shuffle", isinstance(dataloader.sampler, RandomSampler))
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
