@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import csv
 import os
+import re
 from typing import Dict, Optional
 from unittest import mock
 from unittest.mock import Mock
@@ -166,3 +168,49 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch):
     # TODO: raise an exception from v1.9
     with pytest.warns(UserWarning, match="psutil` is not installed"):
         monitor.setup(trainer, Mock(), "fit")
+
+def test_device_stats_monitor_logs_for_different_stages(tmpdir):
+    """Test that metrics are logged for all stages that is training, testing and validation"""
+
+    model = BoringModel()
+    device_stats = DeviceStatsMonitor()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=7,
+        log_every_n_steps=1,
+        accelerator="cpu",
+        devices=1,
+        callbacks=[device_stats],
+        logger=CSVLogger(tmpdir),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+    trainer.test(model)
+
+    with open(f'{tmpdir}/lightning_logs/version_0/metrics.csv') as csvfile:
+
+        content = csv.reader(csvfile, delimiter=',')
+        it = iter(content).__next__()
+
+        # searching for training stage logs
+        train_stage_results = [re.match(r".+on_train_batch", i) for i in it]
+        train = any(train_stage_results)
+
+        # searching for testing stage logs
+        test_stage_results = [re.match(r".+on_test_batch", i) for i in it]
+        test = any(test_stage_results)
+
+        # searching for validation stage logs
+        validation_stage_results = [re.match(r".+on_validation_batch", i) for i in it]
+        valid = any(validation_stage_results)
+
+        assert all([train, test, valid])
+
+
+
+
+
