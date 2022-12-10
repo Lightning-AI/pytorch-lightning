@@ -148,6 +148,8 @@ jobs:
           if branch in remote_refs:
             break
           time.sleep(60)
+          for remote in repo.remotes:
+            remote.fetch()
       shell: python
 
 

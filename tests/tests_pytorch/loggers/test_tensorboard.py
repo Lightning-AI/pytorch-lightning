@@ -39,7 +39,7 @@ def test_tensorboard_hparams_reload(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=TensorBoardLogger(tmpdir))
     model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
