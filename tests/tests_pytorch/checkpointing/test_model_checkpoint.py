@@ -35,7 +35,7 @@ from lightning_lite.utilities.cloud_io import _load as pl_load
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
@@ -301,9 +301,11 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
     max_epochs = 2
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs, logger=False
+    )
     trainer.fit(model)
-    assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
+    assert checkpoint.dirpath == tmpdir / "checkpoints"
 
     if save_top_k == -1:
         ckpt_files = os.listdir(checkpoint.dirpath)
@@ -753,7 +755,12 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        logger=False,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -761,7 +768,7 @@ def test_default_checkpoint_behavior(tmpdir):
         results = trainer.test()
 
     assert len(results) == 1
-    save_dir = tmpdir / "lightning_logs" / "version_0" / "checkpoints"
+    save_dir = tmpdir / "checkpoints"
     save_weights_only = trainer.checkpoint_callback.save_weights_only
     save_mock.assert_has_calls(
         [
@@ -867,6 +874,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         "enable_model_summary": False,
         "log_every_n_steps": 1,
         "default_root_dir": tmpdir,
+        "logger": CSVLogger(tmpdir),
     }
     trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
     trainer.fit(model)
@@ -931,6 +939,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         limit_val_batches=3,
         limit_test_batches=4,
         callbacks=[checkpoint_cb],
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer = Trainer(**trainer_config)
     assert_trainer_init(trainer)
@@ -953,6 +962,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         assert_checkpoint_content(ckpt_dir)
 
         # load from checkpoint
+        trainer_config["logger"] = TensorBoardLogger(tmpdir)
         trainer = pl.Trainer(**trainer_config)
         assert_trainer_init(trainer)
 
