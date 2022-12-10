@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_utilities.core.imports import compare_version, module_available
+from lightning_utilities.core.imports import compare_version
 from pydantic import BaseModel
 
 from lightning_app.core.work import LightningWork
@@ -16,10 +16,8 @@ from lightning_app.utilities.imports import _is_torch_available, requires
 
 logger = Logger(__name__)
 
-__doctest_skip__ = []
-# Skip doctests if requirements aren't available
-if not module_available("lightning_api_access"):
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+__doctest_skip__ = ["PythonServer", "PythonServer.*"]
+
 
 # Skip doctests if requirements aren't available
 if not _is_torch_available():
@@ -72,7 +70,7 @@ class PythonServer(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    @requires(["torch", "lightning_api_access"])
+    @requires(["torch"])
     def __init__(  # type: ignore
         self,
         input_type: type = _DefaultInputData,
@@ -193,29 +191,32 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
     def configure_layout(self) -> None:
-        if module_available("lightning_api_access"):
+        try:
             from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
 
-            class_name = self.__class__.__name__
-            url = f"{self.url}/predict"
+        class_name = self.__class__.__name__
+        url = f"{self.url}/predict"
 
-            try:
-                request = self._get_sample_dict_from_datatype(self.configure_input_type())
-                response = self._get_sample_dict_from_datatype(self.configure_output_type())
-            except TypeError:
-                return None
+        try:
+            request = self._get_sample_dict_from_datatype(self.configure_input_type())
+            response = self._get_sample_dict_from_datatype(self.configure_output_type())
+        except TypeError:
+            return None
 
-            return APIAccessFrontend(
-                apis=[
-                    {
-                        "name": class_name,
-                        "url": url,
-                        "method": "POST",
-                        "request": request,
-                        "response": response,
-                    }
-                ]
-            )
+        return APIAccessFrontend(
+            apis=[
+                {
+                    "name": class_name,
+                    "url": url,
+                    "method": "POST",
+                    "request": request,
+                    "response": response,
+                }
+            ]
+        )
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
