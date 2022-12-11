@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Remove the `AutoScaler` dependency `aiohttp` from the base requirements ([#15971](https://github.com/Lightning-AI/lightning/pull/15971))
 
+- Added support for logging in different trainer stages with  `DeviceStatsMonitor`
+([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
+
 
 ### Deprecated
 
