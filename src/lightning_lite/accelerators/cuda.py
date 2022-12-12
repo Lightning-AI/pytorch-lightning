@@ -78,7 +78,7 @@ def _get_all_available_cuda_gpus() -> List[int]:
     return list(range(num_cuda_devices()))
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.14
+# TODO: Remove once minimum supported PyTorch version is 2.0
 @contextmanager
 def _patch_cuda_is_available() -> Generator:
     """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
