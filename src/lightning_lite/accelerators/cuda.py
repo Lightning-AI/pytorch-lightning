@@ -20,7 +20,7 @@ from typing import Dict, Generator, List, Optional, Set, Union
 import torch
 
 from lightning_lite.accelerators.accelerator import Accelerator
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_1_14
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
 
 class CUDAAccelerator(Accelerator):
@@ -83,7 +83,7 @@ def _get_all_available_cuda_gpus() -> List[int]:
 def _patch_cuda_is_available() -> Generator:
     """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
     possible."""
-    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_1_14:
+    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
         # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
         orig_check = torch.cuda.is_available
@@ -119,7 +119,7 @@ def is_cuda_available() -> bool:
     if the platform allows it.
     """
     # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning_lite.__init__.py
-    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_1_14 else num_cuda_devices() > 0
+    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
 
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
