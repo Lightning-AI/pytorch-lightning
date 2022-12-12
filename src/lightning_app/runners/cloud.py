@@ -292,8 +292,7 @@ class CloudRuntime(Runtime):
                 list_clusters_resp = self.backend.client.cluster_service_list_clusters()
                 cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
                 if cluster_id not in cluster_ids:
-                    msg = f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist."
-                    raise ValueError(msg)
+                    raise ValueError(f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist.")
 
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
@@ -326,11 +325,9 @@ class CloudRuntime(Runtime):
 
             # If instances exist but not on the cluster - choose a randomised name
             if len(instances) > 0 and existing_instance is None:
-                letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
                 name_exists = True
                 while name_exists:
-                    random_name = app_name + "-" + "".join(random.sample(letters, 4))
+                    random_name = self._randomise_name(app_name)
                     name_exists = any([instance.name == random_name for instance in instances])
 
                 app_name = random_name
@@ -496,6 +493,9 @@ class CloudRuntime(Runtime):
             project_id=project_id
         ).clusters
 
+        if not cluster_bindings:
+            raise ValueError(f"No clusters are bound to the project {project_id}.")
+
         if len(cluster_bindings) == 1:
             return cluster_bindings[0].cluster_id
 
@@ -508,6 +508,11 @@ class CloudRuntime(Runtime):
         clusters = [cluster for cluster in clusters if cluster.spec.cluster_type == V1ClusterType.GLOBAL]
 
         return random.choice(clusters).id
+
+    @staticmethod
+    def _randomise_name(app_name: str) -> str:
+        letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return app_name + "-" + "".join(random.sample(letters, 4))
 
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
