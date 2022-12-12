@@ -25,27 +25,24 @@ from time import time
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import yaml
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import Literal
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.imports import RequirementCache
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = module_available("mlflow")
-try:
+_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0")
+if _MLFLOW_AVAILABLE:
     import mlflow
     from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-# todo: there seems to be still some remaining import error with Conda env
-except ModuleNotFoundError:
-    _MLFLOW_AVAILABLE = False
+else:
     mlflow, MlflowClient, context = None, None, None
     Metric, Param = None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
@@ -150,13 +147,8 @@ class MLFlowLogger(Logger):
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
     ):
-        if mlflow is None:
-            raise ModuleNotFoundError(
-                "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
-            )
-        if not RequirementCache("mlflow>=1.0.0"):
-            # we require the log_batch APIs that were introduced in mlflow 1.0.0
-            raise RuntimeError("`MLFlowLogger` requires mlflow >= 1.0.0. Hint: Run `pip install -U mlflow`")
+        if not _MLFLOW_AVAILABLE:
+            raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
