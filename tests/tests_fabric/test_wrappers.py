@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import DataLoader
 
 from lightning_fabric.fabric import Fabric
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_fabric.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
 
 
 class EmptyLite(Fabric):
@@ -31,11 +31,11 @@ class EmptyLite(Fabric):
 def test_lite_module_wraps():
     """Test that the wrapped module is accessible via the property."""
     module = Mock()
-    assert _LiteModule(module, Mock()).module is module
+    assert _FabricModule(module, Mock()).module is module
 
     wrapped_module = Mock()
     original_module = Mock()
-    assert _LiteModule(wrapped_module, Mock(), original_module=original_module).module is original_module
+    assert _FabricModule(wrapped_module, Mock(), original_module=original_module).module is original_module
 
 
 def test_lite_module_attribute_lookup():
@@ -59,11 +59,11 @@ def test_lite_module_attribute_lookup():
 
     wrapped_module = ModuleWrapper()
 
-    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    lite_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
     assert lite_module.attribute == 1
     assert lite_module.layer is original_module.layer
     assert lite_module.method() == 2
-    assert lite_module.forward.__self__.__class__ == _LiteModule
+    assert lite_module.forward.__self__.__class__ == _FabricModule
 
     with pytest.raises(AttributeError):
         _ = lite_module.not_exists
@@ -86,7 +86,7 @@ def test_lite_module_state_dict_access():
 
     wrapped_module = ModuleWrapper()
 
-    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    lite_module = _FabricModule(wrapped_module, Mock(), original_module=original_module)
     state_dict = lite_module.state_dict()
     assert set(state_dict.keys()) == {"layer.weight", "layer.bias"}
 
@@ -134,7 +134,7 @@ def test_lite_module_state_dict_access():
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type, accelerator, device_str):
-    """Test that the LiteModule performs autocasting on the input tensors and during forward()."""
+    """Test that the FabricModule performs autocasting on the input tensors and during forward()."""
     lite = EmptyLite(precision=precision, accelerator=accelerator, devices=1)
     device = torch.device(device_str)
 
@@ -143,7 +143,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type, ac
         return forward_input
 
     module = Mock(wraps=torch.nn.Identity(), side_effect=check_autocast)
-    lite_module = _LiteModule(module, lite._precision).to(device)
+    lite_module = _FabricModule(module, lite._precision).to(device)
     out = lite_module(torch.tensor([1, 2, 3], dtype=input_type, device=device))
     assert module.call_args[0][0].dtype == expected_type
     assert out.dtype == input_type or out.dtype == torch.get_default_dtype()
@@ -159,7 +159,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type, ac
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_lite_module_device_dtype_propagation(device_str, dtype):
-    """Test that the LiteModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
+    """Test that the FabricModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
 
     device = torch.device(device_str)
 
@@ -167,7 +167,7 @@ def test_lite_module_device_dtype_propagation(device_str, dtype):
         pass
 
     device_module = DeviceModule()
-    lite_module = _LiteModule(device_module, Mock())
+    lite_module = _FabricModule(device_module, Mock())
     lite_module.to(device)
     assert device_module.device == device
     assert lite_module.device == device
@@ -178,10 +178,10 @@ def test_lite_module_device_dtype_propagation(device_str, dtype):
 
 
 def test_lite_dataloader_iterator():
-    """Test that the iteration over a LiteDataLoader wraps the iterator of the underlying dataloader (no automatic
-    device placement)."""
+    """Test that the iteration over a FabricDataLoader wraps the iterator of the underlying dataloader (no
+    automatic device placement)."""
     dataloader = DataLoader(range(5), batch_size=2)
-    lite_dataloader = _LiteDataLoader(dataloader)
+    lite_dataloader = _FabricDataLoader(dataloader)
     assert len(lite_dataloader) == len(dataloader) == 3
 
     iterator = iter(dataloader)
@@ -209,7 +209,7 @@ def test_lite_dataloader_iterator():
     ],
 )
 def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
-    """Test that the LiteDataLoader moves data to the device in its iterator."""
+    """Test that the FabricDataLoader moves data to the device in its iterator."""
     src_device = torch.device(src_device_str)
     dest_device = torch.device(dest_device_str)
 
@@ -218,7 +218,7 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     sample2 = {"data": torch.tensor(2, device=src_device)}
     sample3 = {"data": torch.tensor(3, device=src_device)}
     dataloader = DataLoader([sample0, sample1, sample2, sample3], batch_size=2)
-    lite_dataloader = _LiteDataLoader(dataloader=dataloader, device=dest_device)
+    lite_dataloader = _FabricDataLoader(dataloader=dataloader, device=dest_device)
     iterator = iter(lite_dataloader)
 
     batch0 = next(iterator)
@@ -231,29 +231,29 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
 
 
 def test_lite_optimizer_wraps():
-    """Test that the LiteOptimizer fully wraps the optimizer."""
+    """Test that the FabricOptimizer fully wraps the optimizer."""
     optimizer_cls = torch.optim.SGD
     optimizer = Mock(spec=optimizer_cls)
-    lite_optimizer = _LiteOptimizer(optimizer, Mock())
+    lite_optimizer = _FabricOptimizer(optimizer, Mock())
     assert lite_optimizer.optimizer is optimizer
     assert isinstance(lite_optimizer, optimizer_cls)
 
 
 def test_lite_optimizer_state_dict():
-    """Test that the LiteOptimizer calls into the strategy to collect the state."""
+    """Test that the FabricOptimizer calls into the strategy to collect the state."""
     optimizer = Mock()
     strategy = Mock()
-    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.state_dict()
     strategy.get_optimizer_state.assert_called_with(optimizer)
 
 
 def test_lite_optimizer_steps():
-    """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
+    """Test that the FabricOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
     strategy = Mock(spec=["optimizer_step"])
     strategy.optimizer_step.return_value = 123
-    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     step_output = lite_optimizer.step()
     assert step_output == 123
     strategy.optimizer_step.assert_called_once_with(optimizer)
@@ -267,6 +267,6 @@ def test_lite_optimizer_steps():
 
     # with model as optimizer
     strategy = Mock(spec=["optimizer_step", "model"])
-    lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
+    lite_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.step()
     strategy.optimizer_step.assert_called_once_with(strategy.model)

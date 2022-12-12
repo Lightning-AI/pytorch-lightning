@@ -31,10 +31,10 @@ from lightning_fabric.utilities.types import Optimizable
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
 
-class _LiteOptimizer:
+class _FabricOptimizer:
     def __init__(self, optimizer: Optimizer, strategy: Strategy) -> None:
-        """LiteOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the optimizer
-        step calls to the strategy plugin.
+        """FabricOptimizer is a thin wrapper around the :class:`~torch.optim.Optimizer` that delegates the
+        optimizer step calls to the strategy plugin.
 
         The underlying wrapped optimizer object can be accessed via the property :attr:`optimizer`.
 
@@ -43,7 +43,7 @@ class _LiteOptimizer:
             strategy: Reference to the strategy for handling the optimizer step
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
-        # not want to call on destruction of the `_LiteOptimizer
+        # not want to call on destruction of the `_FabricOptimizer
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "__del__")}
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
@@ -69,11 +69,11 @@ class _LiteOptimizer:
         )
 
 
-class _LiteModule(_DeviceDtypeModuleMixin):
+class _FabricModule(_DeviceDtypeModuleMixin):
     def __init__(
         self, forward_module: nn.Module, precision: Precision, original_module: Optional[nn.Module] = None
     ) -> None:
-        """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
+        """The FabricModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
 
         The underlying wrapped module can be accessed via the property :attr:`module`.
@@ -133,15 +133,15 @@ class _LiteModule(_DeviceDtypeModuleMixin):
             # call nn.Module's implementation first
             return super().__getattr__(item)
         except AttributeError:
-            # If the attribute is not available on the _LiteModule wrapper, redirect to the wrapped nn.Module
+            # If the attribute is not available on the _FabricModule wrapper, redirect to the wrapped nn.Module
             original_module = super().__getattr__("_original_module")
             return getattr(original_module, item)
 
 
-class _LiteDataLoader:
+class _FabricDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:
-        """The LiteDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to the
-        device automatically if the device is specified.
+        """The FabricDataLoader is a wrapper for the :class:`~torch.utils.data.DataLoader`. It moves the data to
+        the device automatically if the device is specified.
 
         Args:
             dataloader: The dataloader to wrap

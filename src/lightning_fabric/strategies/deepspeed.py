@@ -42,7 +42,7 @@ if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
     import deepspeed
 
 
-# TODO(lite): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
+# TODO(fabric): Links in the docstrings to PL-specific deepspeed user docs need to be replaced.
 class DeepSpeedStrategy(DDPStrategy, _Sharded):
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
 

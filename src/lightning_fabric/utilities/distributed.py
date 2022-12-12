@@ -249,7 +249,7 @@ def _get_default_process_group_backend_for_device(device: torch.device) -> str:
     return "nccl" if device.type == "cuda" else "gloo"
 
 
-# TODO(lite): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'
+# TODO(fabric): The error messages refer to 'replace_sampler_ddp' in PL but Fabric has it named 'replace_sampler'
 class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
