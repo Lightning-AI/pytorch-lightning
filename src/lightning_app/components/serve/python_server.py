@@ -17,10 +17,7 @@ from lightning_app.utilities.imports import _is_torch_available, requires
 logger = Logger(__name__)
 
 # Skip doctests if requirements aren't available
-if not module_available("lightning_api_access"):
-    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
-# Skip doctests if requirements aren't available
-elif not _is_torch_available():
+if not module_available("lightning_api_access") or not _is_torch_available():
     __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
