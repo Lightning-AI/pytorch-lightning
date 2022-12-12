@@ -11,13 +11,13 @@ from lightning_lite.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
     _replace_dunder_methods,
     _replace_value_in_saved_args,
+    _unpatch_dunder_methods,
     _update_dataloader,
     _WrapAttrTag,
     has_iterable_dataset,
-    has_len, _unpatch_dunder_methods,
+    has_len,
 )
 from lightning_lite.utilities.exceptions import MisconfigurationException
-
 
 # The classes already gets patched on import of LightningLite
 # We need to unpatch first to have a clean starting point for all assertions in the tests below

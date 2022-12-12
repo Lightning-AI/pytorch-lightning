@@ -44,8 +44,9 @@ from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
     _auto_add_worker_init_fn,
+    _patch_dunder_methods,
     _update_dataloader,
-    has_iterable_dataset, _patch_dunder_methods,
+    has_iterable_dataset,
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything

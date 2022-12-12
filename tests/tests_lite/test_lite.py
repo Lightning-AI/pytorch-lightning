@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import subprocess
+import sys
 from re import escape
+from textwrap import dedent
 from unittest import mock
 from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
@@ -23,7 +26,15 @@ import torch.nn.functional
 from tests_lite.helpers.runif import RunIf
 from tests_lite.helpers.utils import no_warning_call
 from torch import nn
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
+from torch.utils.data import (
+    BatchSampler,
+    DataLoader,
+    DistributedSampler,
+    RandomSampler,
+    Sampler,
+    SequentialSampler,
+    TensorDataset,
+)
 
 from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
@@ -657,8 +668,32 @@ def test_module_sharding_context():
 
 
 def test_patching_dataloader_classes_on_import():
-    dataloader = DataLoader(TensorDataset(torch.rand(2, 5)))
-    assert hasattr(dataloader, "__pl_saved_args")
-    lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
-    dataloader = lite.setup_dataloaders(dataloader)
-    assert hasattr(dataloader, "__pl_saved_args")
+    """Test that Lightning Lite patches the `__init__` of DataLoader and BatchSampler at import time."""
+    # run the code in isolation to avoid global side effects in other tests
+    code = dedent(
+        """
+        import torch
+        from torch.utils.data import BatchSampler, DataLoader, SequentialSampler
+        
+        # DataLoader
+        dataloader = DataLoader(torch.rand(2))
+        assert not hasattr(dataloader, "__pl_saved_args")
+        
+        # BatchSampler
+        sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
+        assert not hasattr(sampler, "__pl_saved_args")
+        
+        # this import is expected to trigger patching all dataloader and batch sampler classes
+        import lightning_lite
+        
+        # DataLoader
+        dataloader = DataLoader(torch.rand(2))
+        assert hasattr(dataloader, "__pl_saved_args")
+        
+        # BatchSampler
+        sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
+        assert hasattr(sampler, "__pl_saved_args")
+        """
+    )
+    # run in complete isolation
+    assert subprocess.call([sys.executable, "-c", code]) == 0
