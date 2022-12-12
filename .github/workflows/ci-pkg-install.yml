@@ -67,6 +67,20 @@ jobs:
         if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'app' }}
         run: lightning --version
 
+      - name: Adjust code for Lit
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
+        run: |
+          python .actions/assistant.py copy_replace_imports --source_dir="./src" \
+            --source_import="pytorch_lightning,lightning_lite,lightning_app" \
+            --target_import="lightning.pytorch,lightning.lite,lightning.app"
+          rm -rf src/lightning
+      - name: Rename src folders
+        working-directory: src/
+        run: |
+          mv pytorch_lightning pl
+          mv lightning_lite lit_lite
+          mv lightning_app lit_app
+
       - name: DocTests actions
         working-directory: .actions/
         run: |
@@ -79,5 +93,5 @@ jobs:
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
           pip list
-          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))")
+          PKG_NAME=$(python -c "print({'app': 'lit_app', 'lite': 'lit_lite', 'pytorch': 'pl'}.get('${{matrix.pkg-name}}', ''))")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
