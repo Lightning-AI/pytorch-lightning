@@ -60,6 +60,8 @@ class CollectibleGroup(Protocol):
         ...
 
 
+# Inferred from `torch.optim.lr_scheduler.pyi`
+# Missing attributes were added to improve typing
 @runtime_checkable
 class LRScheduler(_Stateful[str], Protocol):
     optimizer: Optimizer

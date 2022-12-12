@@ -418,7 +418,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def _initialize_engine(
         self,
         model: Module,
-        optimizer: Optional[Optimizer],
+        optimizer: Optional[Optimizer] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
