@@ -58,7 +58,6 @@ jobs:
       - uses: ./.github/actions/pkg-install
         with:
           pkg-name: ${{ matrix.pkg-name }}
-          pip-flags: "-f dist"
 
       - name: Run CLI (via python)
         if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
