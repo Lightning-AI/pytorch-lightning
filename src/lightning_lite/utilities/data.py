@@ -18,7 +18,7 @@ import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union, Set
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Set, Tuple, Type, Union
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, Dataset, IterableDataset, Sampler
