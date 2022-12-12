@@ -40,8 +40,9 @@ from tests_pytorch.loggers.test_neptune import create_neptune_mock
 LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.comet.comet_ml"),
     mock.patch("pytorch_lightning.loggers.comet.CometOfflineExperiment"),
-    mock.patch("pytorch_lightning.loggers.mlflow.mlflow"),
+    mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True),
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
+    mock.patch("pytorch_lightning.loggers.mlflow.Metric"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
     mock.patch("pytorch_lightning.loggers.neptune._NEPTUNE_AVAILABLE", return_value=True),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
@@ -282,7 +283,7 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger.experiment.log_metrics.assert_called_once_with({"tmp-test": 1.0}, epoch=None, step=0)
 
     # MLflow
-    with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
+    with mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
         "pytorch_lightning.loggers.mlflow.Metric"
     ) as Metric, mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"):
         logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir, prefix=prefix)
@@ -342,7 +343,7 @@ def test_logger_default_name(tmpdir, monkeypatch):
     assert logger.name == "lightning_logs"
 
     # MLflow
-    with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
+    with mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True), mock.patch(
         "pytorch_lightning.loggers.mlflow.MlflowClient"
     ) as mlflow_client:
         mlflow_client().get_experiment_by_name.return_value = None
