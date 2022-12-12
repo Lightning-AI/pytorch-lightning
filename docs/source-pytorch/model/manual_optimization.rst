@@ -127,8 +127,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
         opt.step()
 
 .. warning::
-   * Note that overwriting ``configure_gradient_clipping()`` in the case of Manual Optimization will be ignored. Instead
-   consider using ``self.gradient_clipping()`` manually like the example below.
+   * Note that overwriting ``configure_gradient_clipping()`` in the case of Manual Optimization will be ignored. Instead consider using ``self.gradient_clipping()`` manually like the example below.
 
 Use Multiple Optimizers (like GANs)
 ===================================
@@ -218,7 +217,7 @@ defined in your :meth:`~pytorch_lightning.core.module.LightningModule.configure_
 
 .. warning::
    * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` in case of automatic optimization.
-   * Note that configuring ```` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
+   * Note that the ``lr_scheduler_config`` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
      your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
