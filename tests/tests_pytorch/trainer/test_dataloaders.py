@@ -32,6 +32,7 @@ from pytorch_lightning.demos.boring_classes import (
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
 )
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -689,11 +690,13 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
     model.train_dataloader = lambda: dataloader
 
     with pytest.warns(UserWarning, match=r"The number of training batches \(10\) is smaller than the logging interval"):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=11)
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=11, logger=CSVLogger(tmpdir))
         trainer.fit(model)
 
     with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
+        trainer = Trainer(
+            default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1, logger=CSVLogger(".")
+        )
         trainer.fit(model)
 
 
