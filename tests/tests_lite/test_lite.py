@@ -311,19 +311,6 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("lightning_lite.lite._replace_dunder_methods")
-def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
-
-    class Lite(LightningLite):
-        def run(self):
-            # One for BatchSampler, another for DataLoader
-            assert ctx_manager().__enter__.call_count == 2
-
-    Lite().run()
-    assert ctx_manager().__exit__.call_count == 2
-
-
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
     method."""
