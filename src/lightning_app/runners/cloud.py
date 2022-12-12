@@ -529,7 +529,7 @@ class CloudRuntime(Runtime):
                 f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
                 f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
                 + largest_paths_msg
-                + " Perhaps you should try running the app in an empty directory."
+                + "Perhaps you should try running the app in an empty directory."
             )
             if not (root / DOT_IGNORE_FILENAME).is_file():
                 warning_msg += (
