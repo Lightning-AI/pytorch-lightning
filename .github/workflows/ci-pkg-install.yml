@@ -79,5 +79,5 @@ jobs:
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
           pip list
-          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning', 'notset': 'lightning'}['${{matrix.pkg-name}}'])")
+          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning')")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
