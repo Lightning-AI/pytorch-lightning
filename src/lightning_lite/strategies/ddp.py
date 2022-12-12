@@ -173,7 +173,7 @@ class DDPStrategy(ParallelStrategy):
             strategy_registry.register(
                 name,
                 cls,
-                description=f"DDP strategy with `start_method` '{start_method}'",
+                description=f"DDP strategy with `start_method={start_method!r}`",
                 start_method=start_method,
             )
 
@@ -187,7 +187,7 @@ class DDPStrategy(ParallelStrategy):
             strategy_registry.register(
                 name,
                 cls,
-                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method={start_method!r}`",
                 find_unused_parameters=False,
                 start_method=start_method,
             )
