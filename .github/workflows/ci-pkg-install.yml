@@ -70,6 +70,7 @@ jobs:
       - name: Adjust code for Lit
         if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
         run: |
+          pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./src" \
             --source_import="pytorch_lightning,lightning_lite,lightning_app" \
             --target_import="lightning.pytorch,lightning.lite,lightning.app"
