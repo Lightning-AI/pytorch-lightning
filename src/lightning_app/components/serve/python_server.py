@@ -57,15 +57,19 @@ class Image(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return """import base64
+        return (
+            """import base64
 from pathlib import Path
 import requests
 
 img = requests.get("https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png").content
 img = base64.b64encode(img).decode("UTF-8")
-response = requests.post('""" + url + """', json={
+response = requests.post('"""
+            + url
+            + """', json={
     "image": img
 })"""
+        )
 
     @staticmethod
     def response_code_sample() -> str:
@@ -84,7 +88,7 @@ class Category(BaseModel):
 
     @staticmethod
     def response_code_sample() -> str:
-        return """print("Predicted category is: ", response.json()["category"]) 
+        return """print("Predicted category is: ", response.json()["category"])
 """
 
 
@@ -97,14 +101,18 @@ class Text(BaseModel):
 
     @staticmethod
     def request_code_sample(url: str) -> str:
-        return """import base64
+        return (
+            """import base64
 from pathlib import Path
 import requests
 
-response = requests.post('""" + url + """', json={
+response = requests.post('"""
+            + url
+            + """', json={
     "text": "A portrait of a person looking away from the camera"
 })
 """
+        )
 
 
 class Number(BaseModel):
