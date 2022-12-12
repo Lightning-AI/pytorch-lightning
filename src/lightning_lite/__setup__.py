@@ -22,19 +22,22 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_ROOT, ".actions", "assistant.py"))
+def _load_assistant():
+    location = os.path.join(_PROJECT_ROOT, ".actions", "assistant.py")
+    return _load_py_module("assistant", location)
 
 
 def _prepare_extras() -> Dict[str, Any]:
+    assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
     extras = {
-        "examples": _ASSISTANT.load_requirements(file_name="examples.txt", **common_args),
-        "strategies": _ASSISTANT.load_requirements(file_name="strategies.txt", **common_args),
-        "test": _ASSISTANT.load_requirements(file_name="test.txt", **common_args),
+        "examples": assistant.load_requirements(file_name="examples.txt", **common_args),
+        "strategies": assistant.load_requirements(file_name="strategies.txt", **common_args),
+        "test": assistant.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
@@ -44,9 +47,10 @@ def _prepare_extras() -> Dict[str, Any]:
 
 
 def _setup_args() -> Dict[str, Any]:
+    assistant = _load_assistant()
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-    long_description = _ASSISTANT.load_readme_description(
+    long_description = assistant.load_readme_description(
         _PACKAGE_ROOT, homepage=about.__homepage__, version=version.version
     )
 
@@ -68,7 +72,7 @@ def _setup_args() -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=["wheel"],
-        install_requires=_ASSISTANT.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
+        install_requires=assistant.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

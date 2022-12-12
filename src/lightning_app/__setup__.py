@@ -21,10 +21,13 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_ROOT, ".actions", "assistant.py"))
+def _load_assistant():
+    location = os.path.join(_PROJECT_ROOT, ".actions", "assistant.py")
+    return _load_py_module("assistant", location)
 
 
 def _prepare_extras() -> Dict[str, Any]:
+    assistant = _load_assistant()
     # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
@@ -32,9 +35,9 @@ def _prepare_extras() -> Dict[str, Any]:
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": _ASSISTANT.load_requirements(file_name="cloud.txt", **common_args),
-        "ui": _ASSISTANT.load_requirements(file_name="ui.txt", **common_args),
-        "test": _ASSISTANT.load_requirements(file_name="test.txt", **common_args),
+        "cloud": assistant.load_requirements(file_name="cloud.txt", **common_args),
+        "ui": assistant.load_requirements(file_name="ui.txt", **common_args),
+        "test": assistant.load_requirements(file_name="test.txt", **common_args),
     }
     extras["extra"] = extras["cloud"] + extras["ui"]
     extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
@@ -43,14 +46,15 @@ def _prepare_extras() -> Dict[str, Any]:
 
 
 def _setup_args() -> Dict[str, Any]:
+    assistant = _load_assistant()
     about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
     version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-    long_description = _ASSISTANT.load_readme_description(
+    long_description = assistant.load_readme_description(
         _PACKAGE_ROOT, homepage=about.__homepage__, version=version.version
     )
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _ASSISTANT._download_frontend(_PACKAGE_ROOT)
+    assistant._download_frontend(_PACKAGE_ROOT)
 
     return dict(
         name="lightning-app",
@@ -75,7 +79,7 @@ def _setup_args() -> Dict[str, Any]:
             ],
         },
         setup_requires=["wheel"],
-        install_requires=_ASSISTANT.load_requirements(
+        install_requires=assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="major" if _FREEZE_REQUIREMENTS else "all"
         ),
         extras_require=_prepare_extras(),
