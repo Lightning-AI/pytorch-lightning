@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from lightning_app import LightningWork
+from lightning_app import CloudCompute, LightningWork
 from lightning_app.components import AutoScaler
 
 
@@ -90,3 +90,11 @@ def test_scale(replicas, metrics, expected_replicas):
     )
 
     assert auto_scaler.scale(replicas, metrics) == expected_replicas
+
+
+def test_create_work_cloud_compute_cloned():
+    """Test CloudCompute is cloned to avoid creating multiple works in a single machine."""
+    cloud_compute = CloudCompute("gpu")
+    auto_scaler = AutoScaler(EmptyWork, cloud_compute=cloud_compute)
+    _ = auto_scaler.create_work()
+    assert auto_scaler._work_kwargs["cloud_compute"] is not cloud_compute
