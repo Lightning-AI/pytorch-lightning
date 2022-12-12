@@ -34,7 +34,6 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -148,7 +147,7 @@ class ColossalAIStrategy(DDPStrategy):
         precision_plugin: Optional[ColossalAIPrecisionPlugin] = None,
     ) -> None:
         if not _COLOSSALAI_AVAILABLE:
-            raise MisconfigurationException(
+            raise ModuleNotFoundError(
                 "To use the `ColossalAIStrategy`, please install `colossalai` first. "
                 "Download `colossalai` by consulting `https://colossalai.org/download`."
             )
@@ -291,9 +290,7 @@ class ColossalAIStrategy(DDPStrategy):
                     from colossalai.nn.parallel import GeminiDDP
                     from colossalai.utils import get_current_device
                 if not self.use_chunk:
-                    raise MisconfigurationException(
-                        "`ColossalAIStrategy` must use chunk in versions higher than 0.1.10"
-                    )
+                    raise ValueError("`ColossalAIStrategy` must use chunk in versions higher than 0.1.10")
                 chunk_search_range = self.chunk_size_search_kwargs["search_range"]
                 search_range_mb = self.chunk_size_search_kwargs["search_range"] / 1024**2
                 search_interval = math.ceil(chunk_search_range / self.chunk_size_search_kwargs["n_grids"])
