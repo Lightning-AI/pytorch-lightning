@@ -120,7 +120,7 @@ class Number(BaseModel):
     prediction: Optional[int]
 
     @staticmethod
-    def _get_sample_data() -> Dict[Any, Any]:
+    def get_sample_data() -> Dict[Any, Any]:
         return {"prediction": 463}
 
 
@@ -215,8 +215,8 @@ class PythonServer(LightningWork, abc.ABC):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
-        if hasattr(datatype, "_get_sample_data"):
-            return datatype._get_sample_data()
+        if hasattr(datatype, "get_sample_data"):
+            return datatype.get_sample_data()
 
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
