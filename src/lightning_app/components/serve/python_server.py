@@ -2,7 +2,6 @@ import abc
 import base64
 import os
 import platform
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import requests
