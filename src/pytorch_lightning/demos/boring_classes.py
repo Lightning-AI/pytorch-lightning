@@ -18,9 +18,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 
+from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning import LightningDataModule, LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -137,7 +137,7 @@ class BoringModel(LightningModule):
         outputs = cast(List[Dict[str, Tensor]], outputs)
         torch.stack([x["y"] for x in outputs]).mean()
 
-    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_LRScheduler]]:
+    def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[_TORCH_LRSCHEDULER]]:
         optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
         return [optimizer], [lr_scheduler]
