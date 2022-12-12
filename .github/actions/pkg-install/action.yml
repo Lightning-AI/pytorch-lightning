@@ -15,7 +15,7 @@ runs:
   steps:
   - name: Choose package import
     run: |
-      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])" >> $GITHUB_ENV
+      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning', 'notset': 'lightning'}['${{matrix.pkg-name}}'])" >> $GITHUB_ENV
     shell: bash
 
   - name: Install package - archive

@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macOS-12, windows-2022]
-        pkg-name: ["app", "lite", "pytorch", "lightning"]
+        pkg-name: ["app", "lite", "pytorch", "lightning", "notset"]
         python-version: ["3.7" , "3.10"]
     steps:
       - uses: actions/checkout@v3
@@ -60,10 +60,13 @@ jobs:
         with:
           pkg-name: ${{ matrix.pkg-name }}
 
-      - name: Run CLI
-        # todo: add testing for `lightning_app`
-        if: ${{ matrix.pkg-name == 'lightning' }}
+      - name: Run CLI (via python)
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'notset' }}
         run: python -m lightning --version
+
+      - name: Run CLI (direct bash)
+        if: ${{ matrix.pkg-name == 'lightning' || matrix.pkg-name == 'app' }}
+        run: lightning --version
 
       - name: DocTest package
         env:
@@ -72,5 +75,5 @@ jobs:
         run: |
           pip install -q "pytest-doctestplus>=0.9.0"
           pip list
-          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning'}['${{matrix.pkg-name}}'])")
+          PKG_NAME=$(python -c "print({'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning', 'lightning': 'lightning', 'notset': 'lightning'}['${{matrix.pkg-name}}'])")
           python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
