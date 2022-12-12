@@ -33,7 +33,7 @@ jobs:
     - name: Upload to release
       uses: AButler/upload-release-assets@v2.0
       with:
-        files: 'dist/*'
+        files: 'dist/*/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
 
@@ -121,28 +121,28 @@ jobs:
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
-    - run: mkdir pypi/
+    - run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*app*"
+        pkg-folder: dist/app
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-folder: dist/lite
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*pytorch*"
+        pkg-folder: dist/pytorch
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*"
+        pkg-folder: dist/lightning
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
 
 
@@ -151,28 +151,28 @@ jobs:
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
-    - run: mkdir pypi/
+    - run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*app*"
+        pkg-folder: dist/app
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-folder: dist/lite
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*pytorch*"
+        pkg-folder: dist/pytorch
         pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*"
+        pkg-folder: dist/lightning
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
 

@@ -55,8 +55,11 @@ jobs:
           name: dist-packages-${{ github.sha }}
           path: dist
 
+      - run: |
+          python -c "print('PKG_DIR=' + {'notset': 'lightning'}.get('${{matrix.pkg-name}}', '${{matrix.pkg-name}}'))" >> $GITHUB_ENV
       - uses: ./.github/actions/pkg-install
         with:
+          pkg-folder: dist/${{ env.PKG_DIR }}
           pkg-name: ${{ matrix.pkg-name }}
 
       - name: Run CLI (via python)

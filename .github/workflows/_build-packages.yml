@@ -55,7 +55,9 @@ jobs:
         pkg-name: ${{ matrix.pkg-name }}
         nb-dirs: ${{ env.NB_DIRS }}
 
-    - run: cp dist/* pypi/
+    - run: |
+        mkdir pypi/${{ matrix.pkg-name }}
+        cp dist/* pypi/${{ matrix.pkg-name }}/
 
     - uses: actions/upload-artifact@v3
       with:
