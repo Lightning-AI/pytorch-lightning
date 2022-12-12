@@ -224,7 +224,7 @@ class CloudRuntime(Runtime):
         children = self.app.flows + self.app.works
         lightningignores = [c.lightningignore for c in children]
         if lightningignores:
-            merged = sum(lightningignores, [])
+            merged = sum(lightningignores, tuple())
             logger.debug(f"Found the following lightningignores: {merged}")
             patterns = _parse_lightningignore(merged)
             ignore_functions = [partial(_filter_ignored, root, patterns)]

@@ -1443,6 +1443,8 @@ def test_incompatible_cloud_compute_and_build_config():
 
 
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
+    monkeypatch.setenv("LIGHTNING_DISPATCHED", "0")  # this is not cleaned up
+
     mock_client = mock.MagicMock()
     mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1459,24 +1461,26 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     class MyWork(LightningWork):
         def __init__(self):
             super().__init__()
-            self.lightningignore = ["foo", "lightning_logs"]
+            self.lightningignore += ("foo", "lightning_logs")
 
         def run(self):
-            # this is ignored
-            self.lightningignore.append("foobar")
+            with pytest.raises(RuntimeError, match="w.lightningignore` does not"):
+                self.lightningignore += ("foobar",)
 
     class MyFlow(LightningFlow):
         def __init__(self):
             super().__init__()
-            self.lightningignore = ["foo"]
+            self.lightningignore = ("foo",)
             self.w = MyWork()
 
         def run(self):
-            # this is ignored
-            self.lightningignore.append("baz")
+            with pytest.raises(RuntimeError, match="root.lightningignore` does not"):
+                self.lightningignore = ("baz",)
             self.w.run()
 
-    app = LightningApp(MyFlow())
+    flow = MyFlow()
+    app = LightningApp(flow)
+
     monkeypatch.setattr(app, "_update_index_file", mock.MagicMock())
 
     path = Path(tmpdir)
@@ -1499,13 +1503,17 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     ):
         cloud_runtime.dispatch()
 
-    parse_mock.assert_called_once_with(["foo", "foo", "lightning_logs"])
+    parse_mock.assert_called_once_with(("foo", "foo", "lightning_logs"))
     assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
 
     assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
     assert "The total size is 5.0 MB" in caplog.text
     assert "2 files were uploaded"  # a.txt and .lightningignore
     assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
+
+    # replicate how the app would dispatch the app, and call `run`
+    monkeypatch.setenv("LIGHTNING_DISPATCHED", "1")
+    flow.run()
 
 
 @pytest.mark.parametrize(

@@ -45,7 +45,7 @@ If you are a component author and your components creates local files that you w
     class MyComponent(L.LightningWork):  # or L.LightningFlow
         def __init__(self):
             super().__init__()
-            self.lightningignore = ["model.pt", "data_dir"]
+            self.lightningignore = ("model.pt", "data_dir")
 
 
 This has the benefit that the files will be ignored automatically for all the component users, making an easier

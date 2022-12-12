@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash, Delta
 
@@ -11,7 +11,12 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_helpers import (
+    _is_json_serializable,
+    _lightning_dispatched,
+    _LightningAppRef,
+    is_overridden,
+)
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -154,7 +159,8 @@ class LightningWork:
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
-        self._lightningignore: List[str] = []
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -255,12 +261,17 @@ class LightningWork:
         self._cloud_compute = cloud_compute
 
     @property
-    def lightningignore(self) -> List[str]:
+    def lightningignore(self) -> Tuple[str, ...]:
         """Programmatic equivalent of the ``.lightningignore`` file."""
         return self._lightningignore
 
     @lightningignore.setter
-    def lightningignore(self, lightningignore: List[str]) -> None:
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if _lightning_dispatched():
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
         self._lightningignore = lightningignore
 
     @property

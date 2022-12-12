@@ -116,4 +116,4 @@ class LightningTrainerMultiNode(MultiNode):
         )
 
         # the Trainer enables TensorBoard by default, so this is often an undesired directory to upload to the cloud
-        self.lightningignore.append("lightning_logs")
+        self.lightningignore += ("lightning_logs",)
