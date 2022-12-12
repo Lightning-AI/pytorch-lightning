@@ -1473,12 +1473,38 @@ class LightningModule(
         Note:
             Do not override this method. If you want to customize gradient clipping, consider
             using :meth:`configure_gradient_clipping` method.
-
+        
         Args:
             optimizer: Current optimizer being used.
             gradient_clip_val: The value at which to clip gradients.
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
                 to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm.
+
+        Note:
+            For manual optimization (``self.automatic_optimization = False``), if you want to use gradient clipping,
+            consider calling ``self.clip_gradients(opt, gradient_clip_val, gradient_clip_algorithm)`` as shown in the 
+            example (with a single optimizer) below,
+    
+        Example::
+
+            def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
+                super().__init__()
+                self.automatic_optimization = False
+                self.gradient_clip_val = gradient_clip_val
+                self.gradient_clip_algorithm = gradient_clip_algorithm
+
+
+            def training_step(self, batch, batch_idx):
+                opt = self.optimizers()
+
+                # compute loss
+                loss = self.compute_loss(batch)
+                
+                opt.zero_grad()
+                self.manual_backward(loss)
+                # clip gradients
+                self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+                opt.step()
         """
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0

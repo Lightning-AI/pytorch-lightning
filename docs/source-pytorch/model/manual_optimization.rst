@@ -98,6 +98,37 @@ after every ``N`` steps, you can do as such.
             opt.step()
             opt.zero_grad()
 
+Gradient Clipping
+=====================
+
+You can clip optimizer gradients during manual optimization similar to passing ``gradient_clip_val`` and 
+``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization. 
+To perform gradient clipping with one optimizer with manual optimization, you can do as such.
+
+.. testcode:: python
+
+    def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
+        super().__init__()
+        self.automatic_optimization = False
+        self.gradient_clip_val = gradient_clip_val
+        self.gradient_clip_algorithm = gradient_clip_algorithm
+
+
+    def training_step(self, batch, batch_idx):
+        opt = self.optimizers()
+
+        # compute loss
+        loss = self.compute_loss(batch)
+        
+        opt.zero_grad()
+        self.manual_backward(loss)
+        # clip gradients
+        self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+        opt.step()
+
+.. warning::
+   * Note that overwriting ``configure_gradient_clipping()`` in the case of Manual Optimization will be ignored. Instead
+   consider using ``self.gradient_clipping()`` manually like the example below.
 
 Use Multiple Optimizers (like GANs)
 ===================================
@@ -187,7 +218,7 @@ defined in your :meth:`~pytorch_lightning.core.module.LightningModule.configure_
 
 .. warning::
    * ``lr_scheduler.step()`` can be called at arbitrary intervals by the user in case of manual optimization, or by Lightning if ``"interval"`` is defined in :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` in case of automatic optimization.
-   * Note that the ``lr_scheduler_config`` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
+   * Note that configuring ```` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
      your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` during manual optimization.
 
 Here is an example calling ``lr_scheduler.step()`` every step.
