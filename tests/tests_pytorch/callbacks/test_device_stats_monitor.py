@@ -208,7 +208,7 @@ def test_device_stats_monitor_logs_for_different_stages(tmpdir):
     validation_stage_results = [re.match(r".+on_validation_batch", i) for i in it]
     valid = any(validation_stage_results)
     assert valid, "validation stage logs not found"
-    
+
     # testing stage will run
     trainer.test(model)
 
