@@ -45,7 +45,6 @@ from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hpara
 from pytorch_lightning.demos.boring_classes import (
     BoringDataModule,
     BoringModel,
-    DemoModel,
     RandomDataset,
     RandomIterableDataset,
     RandomIterableDatasetWithLen,
@@ -1344,6 +1343,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
@@ -2245,7 +2245,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compiled_model():
-    model = DemoModel()
+    model = BoringModel()
 
     model = torch.compile(model)
 

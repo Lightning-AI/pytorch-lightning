@@ -22,6 +22,9 @@ class Code(TypedDict):
 
 
 class TracerPythonScript(LightningWork):
+
+    _start_method = "spawn"
+
     def on_before_run(self):
         """Called before the python script is executed."""
 
