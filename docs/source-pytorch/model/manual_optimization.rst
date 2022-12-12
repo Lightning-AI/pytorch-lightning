@@ -101,13 +101,13 @@ after every ``N`` steps, you can do as such.
 Gradient Clipping
 =====================
 
-You can clip optimizer gradients during manual optimization similar to passing ``gradient_clip_val`` and 
-``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization. 
+You can clip optimizer gradients during manual optimization similar to passing ``gradient_clip_val`` and
+``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization.
 To perform gradient clipping with one optimizer with manual optimization, you can do as such.
 
 .. testcode:: python
 
-    def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
+    def __init__(self, gradient_clip_val=0.5, gradient_clip_algorithm="norm"):
         super().__init__()
         self.automatic_optimization = False
         self.gradient_clip_val = gradient_clip_val
@@ -119,7 +119,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
         # compute loss
         loss = self.compute_loss(batch)
-        
+
         opt.zero_grad()
         self.manual_backward(loss)
         # clip gradients
