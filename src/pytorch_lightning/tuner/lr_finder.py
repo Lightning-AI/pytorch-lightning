@@ -423,7 +423,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -458,7 +458,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
