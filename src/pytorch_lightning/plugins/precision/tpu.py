@@ -29,7 +29,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(*args, **kwargs)
 
-    def _tpu_wrap_closure(self, optimizer, closure: Callable[[], Any]) -> Any:
+    def _tpu_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
         import torch_xla.core.xla_model as xm
 
         closure_result = closure()
