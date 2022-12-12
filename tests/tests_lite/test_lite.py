@@ -669,7 +669,7 @@ def test_module_sharding_context():
     lite._strategy.module_sharded_context.assert_called_once()
 
 
-def test_lite_dataloader_patching_on_import():
+def test_patching_dataloader_classes_on_import():
     dataloader = DataLoader(TensorDataset(torch.rand(2, 5)))
     assert hasattr(dataloader, "__pl_saved_args")
     lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)

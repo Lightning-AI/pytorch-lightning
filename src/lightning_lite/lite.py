@@ -52,10 +52,6 @@ from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
-# TODO: Will there be pickling issues?
-_patch_dunder_methods(DataLoader, "dataset")
-_patch_dunder_methods(BatchSampler)
-
 
 class LightningLite:
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
@@ -652,3 +648,10 @@ def _is_using_cli() -> bool:
 
 def _do_nothing(*_: Any) -> None:
     pass
+
+
+# We patch the __init__ of all dataloader (sub)classes in order to collect the arguments. This allows us to
+# re-instantiate the object with different argument values for the user, for example when substituting the
+# sampler with DistributedSampler in the distributed setting. The same applies to the BatchSampler.
+_patch_dunder_methods(DataLoader, "dataset")
+_patch_dunder_methods(BatchSampler)
