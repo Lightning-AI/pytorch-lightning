@@ -14,10 +14,11 @@ runs:
   using: "composite"
   steps:
   - name: Choose package import
+    working-directory: ./dist
     run: |
       python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))" >> $GITHUB_ENV
-      python -c "import glob, os ; ls = glob.glob(os.path.join('dist', '*${{matrix.pkg-name}}*.gz')) ; print('PKG_SOURCE=' + str(ls[0]))" >> $GITHUB_ENV
-      python -c "import glob, os ; ls = glob.glob(os.path.join('dist', '*${{matrix.pkg-name}}*.whl')) ; print('PKG_WHEEL=' + str(ls[0]))" >> $GITHUB_ENV
+      python -c "import glob ; ls = glob.glob('*${{matrix.pkg-name}}*.gz') ; print('PKG_SOURCE=' + str(ls[0]))" >> $GITHUB_ENV
+      python -c "import glob ; ls = glob.glob('*${{matrix.pkg-name}}*.whl') ; print('PKG_WHEEL=' + str(ls[0]))" >> $GITHUB_ENV
     shell: bash
 
   - name: Install package - archive
