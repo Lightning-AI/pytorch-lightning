@@ -202,10 +202,6 @@ class ChangingDataLoader(DataLoader):
     ],
 )
 def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
-    # the class already gets patched on import of LightningLite
-    # we need to unpatch first to have a clean starting point for all assertions below
-    _unpatch_dunder_methods(DataLoader)
-
     with _replace_dunder_methods(DataLoader, "dataset"):
         dataloader = cls(*args, **kwargs)
 
