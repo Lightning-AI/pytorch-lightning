@@ -46,13 +46,15 @@ from lightning_lite.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
     _update_dataloader,
-    has_iterable_dataset,
+    has_iterable_dataset, _patch_dunder_methods,
 )
 from lightning_lite.utilities.distributed import DistributedSamplerWrapper
 from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
+_patch_dunder_methods(DataLoader, "dataset")
+_patch_dunder_methods(BatchSampler)
 
 class LightningLite:
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
@@ -541,9 +543,7 @@ class LightningLite:
     def _run_with_setup(self, run_function: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         # apply sharded context to prevent OOM
-        with self.sharded_model(), _replace_dunder_methods(DataLoader, "dataset"), _replace_dunder_methods(
-            BatchSampler
-        ):
+        with self.sharded_model():
             return run_function(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:

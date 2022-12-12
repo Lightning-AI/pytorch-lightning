@@ -18,7 +18,7 @@ import os
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Type, Union, Set
 
 from lightning_utilities.core.inheritance import get_all_subclasses
 from torch.utils.data import BatchSampler, DataLoader, Dataset, IterableDataset, Sampler
@@ -360,6 +360,18 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
     """
+    classes = _patch_dunder_methods(base_cls, store_explicit_arg)
+    yield
+    for cls in classes:
+        for patched_name in ("__setattr__", "__delattr__", "__init__"):
+            # Check that __old__{init,setattr,delattr} belongs to the class
+            # https://stackoverflow.com/a/5253424
+            if f"__old{patched_name}" in cls.__dict__:
+                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
+                delattr(cls, f"__old{patched_name}")
+
+
+def _patch_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Set[Type]:
     classes = get_all_subclasses(base_cls) | {base_cls}
     for cls in classes:
         # Check that __init__ belongs to the class
@@ -375,14 +387,7 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
                 saved_name = f"__old{patch_fn_name}"
                 setattr(cls, saved_name, getattr(cls, patch_fn_name))
                 setattr(cls, patch_fn_name, _wrap_attr_method(getattr(cls, patch_fn_name), tag))
-    yield
-    for cls in classes:
-        for patched_name in ("__setattr__", "__delattr__", "__init__"):
-            # Check that __old__{init,setattr,delattr} belongs to the class
-            # https://stackoverflow.com/a/5253424
-            if f"__old{patched_name}" in cls.__dict__:
-                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
-                delattr(cls, f"__old{patched_name}")
+    return classes
 
 
 def _replace_value_in_saved_args(
