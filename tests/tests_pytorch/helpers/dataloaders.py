@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Custom dataloaders for testing."""
+from torch.utils.data import BatchSampler, DataLoader
+
+from lightning_lite.utilities.data import _unpatch_dunder_methods
 
 
 class CustomInfDataloader:
@@ -50,3 +53,9 @@ class CustomNotImplementedErrorDataloader(CustomInfDataloader):
         except StopIteration:
             self.iter = iter(self.dataloader)
             return next(self.iter)
+
+
+def unpatch_dataloaders() -> None:
+    """Undo the __init__ patching from all the DataLoader classes."""
+    _unpatch_dunder_methods(DataLoader)
+    _unpatch_dunder_methods(BatchSampler)
