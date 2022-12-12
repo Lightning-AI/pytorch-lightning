@@ -5,6 +5,7 @@ import platform
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import requests
 import uvicorn
 from fastapi import FastAPI
 from lightning_utilities.core.imports import compare_version, module_available
@@ -48,14 +49,67 @@ class Image(BaseModel):
     image: Optional[str]
 
     @staticmethod
-    def _get_sample_data() -> Dict[Any, Any]:
-        imagepath = Path(__file__).parent / "catimage.png"
-        with open(imagepath, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read())
-        return {"image": encoded_string.decode("UTF-8")}
+    def get_sample_data() -> Dict[Any, Any]:
+        url = "https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png"
+        img = requests.get(url).content
+        img = base64.b64encode(img).decode("UTF-8")
+        return {"image": img}
+
+    @staticmethod
+    def request_code_sample(url: str) -> str:
+        return """import base64
+from pathlib import Path
+import requests
+
+img = requests.get("https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png").content
+img = base64.b64encode(img).decode("UTF-8")
+response = requests.post('""" + url + """', json={
+    "image": img
+})"""
+
+    @staticmethod
+    def response_code_sample() -> str:
+        return """img = response.json()["image"]
+img = base64.b64decode(img.encode("utf-8"))
+Path("response.png").write_bytes(img)
+"""
+
+
+class Category(BaseModel):
+    category: Optional[int]
+
+    @staticmethod
+    def get_sample_data() -> Dict[Any, Any]:
+        return {"prediction": 463}
+
+    @staticmethod
+    def response_code_sample() -> str:
+        return """print("Predicted category is: ", response.json()["category"]) 
+"""
+
+
+class Text(BaseModel):
+    text: Optional[str]
+
+    @staticmethod
+    def get_sample_data() -> Dict[Any, Any]:
+        return {"text": "A portrait of a person looking away from the camera"}
+
+    @staticmethod
+    def request_code_sample(url: str) -> str:
+        return """import base64
+from pathlib import Path
+import requests
+
+response = requests.post('""" + url + """', json={
+    "text": "A portrait of a person looking away from the camera"
+})
+"""
 
 
 class Number(BaseModel):
+    # deprecated
+    # TODO remove this in favour of Category
     prediction: Optional[int]
 
     @staticmethod
