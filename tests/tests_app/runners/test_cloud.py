@@ -159,7 +159,6 @@ class TestAppCreationClient:
         with pytest.raises(ValueError, match="that cluster doesn't exist"):
             cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
 
-    # TODO: remove this test once there is support for multiple instances
     @pytest.mark.parametrize(
         "old_cluster,new_cluster",
         [
@@ -210,6 +209,7 @@ class TestAppCreationClient:
         app.frontend = {}
 
         existing_instance = MagicMock()
+        existing_instance.name = app_name
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = old_cluster or DEFAULT_CLUSTER
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
@@ -449,9 +449,11 @@ class TestAppCreationClient:
         Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
@@ -621,9 +623,11 @@ class TestAppCreationClient:
         Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
@@ -763,9 +767,11 @@ class TestAppCreationClient:
         Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
@@ -887,9 +893,11 @@ class TestAppCreationClient:
         Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (
@@ -1100,9 +1108,11 @@ class TestAppCreationClient:
         Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
             mock_client.projects_service_list_project_cluster_bindings.return_value = (

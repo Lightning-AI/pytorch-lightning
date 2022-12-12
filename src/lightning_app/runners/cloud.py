@@ -1,6 +1,7 @@
 import fnmatch
 import json
 import random
+import re
 import string
 import sys
 import time
@@ -306,11 +307,12 @@ class CloudRuntime(Runtime):
                 project_id=project.project_id
             )
 
-            # Seach for instances whose name starts with the given name
+            # Seach for instances with the given name (possibly with some random characters appended)
+            pattern = re.escape(f"{app_name}-") + ".{4}"
             instances = [
                 lightningapp
                 for lightningapp in find_instances_resp.lightningapps
-                if lightningapp.name.startswith(app_name)
+                if lightningapp.name == app_name or (re.fullmatch(pattern, lightningapp.name) is not None)
             ]
 
             # If instances exist and cluster is None, mimic cluster selection logic to choose a default
@@ -318,7 +320,7 @@ class CloudRuntime(Runtime):
                 # Determine the cluster ID
                 cluster_id = self._get_default_cluster(project.project_id)
 
-            # If an instance exists on the cluster with the base name - restart it
+            # If an instance exists on the cluster with the same base name - restart it
             for instance in instances:
                 if instance.spec.cluster_id == cluster_id:
                     existing_instance = instance
