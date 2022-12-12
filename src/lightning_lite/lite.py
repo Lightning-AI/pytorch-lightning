@@ -44,7 +44,6 @@ from lightning_lite.utilities import move_data_to_device
 from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.data import (
     _auto_add_worker_init_fn,
-    _replace_dunder_methods,
     _update_dataloader,
     has_iterable_dataset, _patch_dunder_methods,
 )
@@ -53,8 +52,10 @@ from lightning_lite.utilities.seed import seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 
+# TODO: Will there be pickling issues?
 _patch_dunder_methods(DataLoader, "dataset")
 _patch_dunder_methods(BatchSampler)
+
 
 class LightningLite:
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
