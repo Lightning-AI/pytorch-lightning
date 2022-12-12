@@ -10,7 +10,8 @@ from unittest.mock import ANY, MagicMock
 import pytest
 from deepdiff import DeepDiff, Delta
 
-from lightning_app import LightningApp
+import lightning_app
+from lightning_app import CloudCompute, LightningApp
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
@@ -901,3 +902,29 @@ def test_flow_ready():
     state = app.api_publish_state_queue.put._mock_call_args[0][0]
     call_hash = state["works"]["w"]["calls"]["latest_call_hash"]
     assert state["works"]["w"]["calls"][call_hash]["statuses"][0]["stage"] == "succeeded"
+
+
+def test_structures_register_work_cloudcompute():
+    class MyDummyWork(LightningWork):
+        def run(self):
+            return
+
+    class MyDummyFlow(LightningFlow):
+        def __init__(self):
+            super().__init__()
+            self.w_list = LList(*[MyDummyWork(cloud_compute=CloudCompute("gpu")) for i in range(5)])
+            self.w_dict = LDict(**{str(i): MyDummyWork(cloud_compute=CloudCompute("gpu")) for i in range(5)})
+
+        def run(self):
+            for w in self.w_list:
+                w.run()
+
+            for w in self.w_dict.values():
+                w.run()
+
+    MyDummyFlow()
+    assert len(lightning_app.utilities.packaging.cloud_compute._CLOUD_COMPUTE_STORE) == 10
+    for v in lightning_app.utilities.packaging.cloud_compute._CLOUD_COMPUTE_STORE.values():
+        assert len(v.component_names) == 1
+        assert v.component_names[0][:-1] in ("root.w_list.", "root.w_dict.")
+        assert v.component_names[0][-1].isdigit()
