@@ -49,8 +49,9 @@ logger = Logger(__name__)
 
 
 def main() -> None:
-    # Check environment and versions if not in the cloud
-    if "LIGHTNING_APP_STATE_URL" not in os.environ:
+    # Check environment and versions if not in the cloud and not testing
+    is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
+    if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
         # Enforce running in PATH Python
         _check_environment_and_redirect()
 

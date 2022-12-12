@@ -41,3 +41,21 @@ def test_cloud_compute_with_non_unique_mount_root_dirs():
 
     with pytest.raises(ValueError, match="Every Mount attached to a work must have a unique"):
         CloudCompute("gpu", mounts=[mount_1, mount_2])
+
+
+def test_cloud_compute_clone():
+    c1 = CloudCompute("gpu")
+    c2 = c1.clone()
+
+    assert isinstance(c2, CloudCompute)
+
+    c1_dict = c1.to_dict()
+    c2_dict = c2.to_dict()
+
+    assert len(c1_dict) == len(c2_dict)
+
+    for k in c1_dict.keys():
+        if k == "_internal_id":
+            assert c1_dict[k] != c2_dict[k]
+        else:
+            assert c1_dict[k] == c2_dict[k]
