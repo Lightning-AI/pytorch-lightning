@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-import operator
 from typing import Any, Callable, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
-from lightning_utilities.core.imports import compare_version, RequirementCache
+from lightning_utilities.core.imports import RequirementCache
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.nn import Module
@@ -40,6 +39,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
+_COLOSSALAI_GREATER_EQUAL_0_1_10 = RequirementCache("colossalai>=0.1.10")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
@@ -268,10 +268,8 @@ class ColossalAIStrategy(DDPStrategy):
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         pl_module = self.model
 
-        new_version_flag = compare_version("colossalai", operator.gt, "0.1.10")
-
         if not hasattr(pl_module, "_colossalai_zero"):
-            if not new_version_flag:
+            if not _COLOSSALAI_GREATER_EQUAL_0_1_10:
                 if self.use_chunk:
                     chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
                         self.model, **self.chunk_size_search_kwargs
