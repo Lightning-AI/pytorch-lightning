@@ -526,14 +526,11 @@ class LightningApp:
             component._layout = layout
 
     def _update_is_headless(self) -> None:
-        is_headless = _is_headless(self)
+        self.is_headless = _is_headless(self)
 
         # If `is_headless` changed, handle it.
         # This ensures support for apps which dynamically add a UI at runtime.
-        if self.is_headless != is_headless:
-            self.is_headless = is_headless
-
-            _handle_is_headless(self)
+        _handle_is_headless(self)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()
