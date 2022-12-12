@@ -36,7 +36,9 @@ from pytorch_lightning.cli import (
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
+    LRSchedulerCallable,
     LRSchedulerTypeTuple,
+    OptimizerCallable,
     SaveConfigCallback,
 )
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
@@ -704,6 +706,56 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_generic_base
     assert isinstance(cli.model.optim2, torch.optim.SGD)
     assert cli.model.optim2.param_groups[0]["lr"] == 0.01
     assert isinstance(cli.model.scheduler, torch.optim.lr_scheduler.ExponentialLR)
+
+
+def test_lightning_cli_optimizers_and_lr_scheduler_with_callable_type():
+    class TestModel(BoringModel):
+        def __init__(
+            self,
+            optim1: OptimizerCallable = torch.optim.Adam,
+            optim2: OptimizerCallable = torch.optim.Adagrad,
+            scheduler: LRSchedulerCallable = torch.optim.lr_scheduler.ConstantLR,
+        ):
+            super().__init__()
+            self.optim1 = optim1
+            self.optim2 = optim2
+            self.scheduler = scheduler
+
+        def configure_optimizers(self):
+            optim1 = self.optim1(self.parameters())
+            optim2 = self.optim2(self.parameters())
+            scheduler = self.scheduler(optim2)
+            return (
+                {"optimizer": optim1},
+                {"optimizer": optim2, "lr_scheduler": scheduler},
+            )
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py", "-h"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(TestModel, run=False, auto_configure_optimizers=False)
+    out = out.getvalue()
+    assert "--optimizer" not in out
+    assert "--lr_scheduler" not in out
+    assert "--model.optim1" in out
+    assert "--model.optim2" in out
+    assert "--model.scheduler" in out
+
+    cli_args = [
+        "--model.optim1=Adagrad",
+        "--model.optim2=SGD",
+        "--model.optim2.lr=0.007",
+        "--model.scheduler=ExponentialLR",
+        "--model.scheduler.gamma=0.3",
+    ]
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(TestModel, run=False, auto_configure_optimizers=False)
+
+    init = cli.model.configure_optimizers()
+    assert isinstance(init[0]["optimizer"], torch.optim.Adagrad)
+    assert isinstance(init[1]["optimizer"], torch.optim.SGD)
+    assert isinstance(init[1]["lr_scheduler"], torch.optim.lr_scheduler.ExponentialLR)
+    assert init[1]["optimizer"].param_groups[0]["lr"] == 0.007
+    assert init[1]["lr_scheduler"].gamma == 0.3
 
 
 @pytest.mark.parametrize("fn", [fn.value for fn in TrainerFn])
