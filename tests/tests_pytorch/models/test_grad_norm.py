@@ -18,6 +18,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.loggers import CSVLogger
 
 
 class ModelWithManualGradTracker(BoringModel):
@@ -86,7 +87,13 @@ def test_grad_tracking(tmpdir, norm_type, rtol=5e-3):
 @pytest.mark.parametrize("log_every_n_steps", [1, 2, 3])
 def test_grad_tracking_interval(tmpdir, log_every_n_steps):
     """Test that gradient norms get tracked in the right interval and that everytime the same keys get logged."""
-    trainer = Trainer(default_root_dir=tmpdir, track_grad_norm=2, log_every_n_steps=log_every_n_steps, max_steps=10)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        track_grad_norm=2,
+        log_every_n_steps=log_every_n_steps,
+        max_steps=10,
+        logger=CSVLogger(tmpdir),
+    )
 
     with patch.object(trainer.logger, "log_metrics") as mocked:
         model = BoringModel()

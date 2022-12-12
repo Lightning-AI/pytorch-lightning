@@ -19,15 +19,16 @@ runs:
     run: pip install "twine==4.0.1" setuptools wheel flake8
     shell: bash
 
+  - name: Set PACKAGE_NAME envvar
+    if: ${{ inputs.pkg-name != 'notset' }}
+    run: echo "PACKAGE_NAME=${{ inputs.pkg-name }}" >> $GITHUB_ENV
+    shell: bash
+
   - name: Source check
-    env:
-      PACKAGE_NAME: ${{ inputs.pkg-name }}
     run: python setup.py check --metadata --strict
     shell: bash
 
   - name: Create package
-    env:
-      PACKAGE_NAME: ${{ inputs.pkg-name }}
     run: python setup.py sdist bdist_wheel
     shell: bash
 
@@ -39,13 +40,13 @@ runs:
     shell: bash
 
   - name: Unzip packages
-    if: ${{ inputs.pkg-name != 'lightning' }}
+    if: ${{ inputs.pkg-name != 'lightning' && inputs.pkg-name != 'notset' }}
     working-directory: dist
     run: for file in `ls *.gz`; do tar -xzf $file; done
     shell: bash
 
   - name: Check single pkg/folder
-    if: ${{ inputs.pkg-name != 'lightning' }}
+    if: ${{ inputs.pkg-name != 'lightning' && inputs.pkg-name != 'notset' }}
     working-directory: dist
     run: |
       import os, glob, pathlib, shutil
