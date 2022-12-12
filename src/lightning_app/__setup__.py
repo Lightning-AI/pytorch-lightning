@@ -21,7 +21,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _load_assistant():
+def _load_assistant() -> ModuleType:
     location = os.path.join(_PROJECT_ROOT, ".actions", "assistant.py")
     return _load_py_module("assistant", location)
 
