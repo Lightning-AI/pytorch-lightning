@@ -14,9 +14,15 @@ from lightning_lite.utilities.data import (
     _update_dataloader,
     _WrapAttrTag,
     has_iterable_dataset,
-    has_len,
+    has_len, _unpatch_dunder_methods,
 )
 from lightning_lite.utilities.exceptions import MisconfigurationException
+
+
+# The classes already gets patched on import of LightningLite
+# We need to unpatch first to have a clean starting point for all assertions in the tests below
+_unpatch_dunder_methods(DataLoader)
+_unpatch_dunder_methods(BatchSampler)
 
 
 def test_has_iterable_dataset():
@@ -196,6 +202,10 @@ class ChangingDataLoader(DataLoader):
     ],
 )
 def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
+    # the class already gets patched on import of LightningLite
+    # we need to unpatch first to have a clean starting point for all assertions below
+    _unpatch_dunder_methods(DataLoader)
+
     with _replace_dunder_methods(DataLoader, "dataset"):
         dataloader = cls(*args, **kwargs)
 
@@ -476,7 +486,7 @@ def test_custom_batch_sampler_no_sampler():
 
     # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
-        dataloader = _update_dataloader(dataloader, dataloader.sampler)
+        _update_dataloader(dataloader, dataloader.sampler)
 
 
 def test_dataloader_disallow_batch_sampler():

@@ -360,15 +360,9 @@ def _replace_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = 
 
     It patches the ``__init__``, ``__setattr__`` and ``__delattr__`` methods.
     """
-    classes = _patch_dunder_methods(base_cls, store_explicit_arg)
+    _patch_dunder_methods(base_cls, store_explicit_arg)
     yield
-    for cls in classes:
-        for patched_name in ("__setattr__", "__delattr__", "__init__"):
-            # Check that __old__{init,setattr,delattr} belongs to the class
-            # https://stackoverflow.com/a/5253424
-            if f"__old{patched_name}" in cls.__dict__:
-                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
-                delattr(cls, f"__old{patched_name}")
+    _unpatch_dunder_methods(base_cls)
 
 
 def _patch_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = None) -> Set[Type]:
@@ -388,6 +382,17 @@ def _patch_dunder_methods(base_cls: Type, store_explicit_arg: Optional[str] = No
                 setattr(cls, saved_name, getattr(cls, patch_fn_name))
                 setattr(cls, patch_fn_name, _wrap_attr_method(getattr(cls, patch_fn_name), tag))
     return classes
+
+
+def _unpatch_dunder_methods(base_cls: Type) -> None:
+    classes = get_all_subclasses(base_cls) | {base_cls}
+    for cls in classes:
+        for patched_name in ("__setattr__", "__delattr__", "__init__"):
+            # Check that __old__{init,setattr,delattr} belongs to the class
+            # https://stackoverflow.com/a/5253424
+            if f"__old{patched_name}" in cls.__dict__:
+                setattr(cls, patched_name, getattr(cls, f"__old{patched_name}"))
+                delattr(cls, f"__old{patched_name}")
 
 
 def _replace_value_in_saved_args(
