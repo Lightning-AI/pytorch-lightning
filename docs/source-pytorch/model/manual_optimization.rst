@@ -99,7 +99,7 @@ after every ``N`` steps, you can do as such.
             opt.zero_grad()
 
 Gradient Clipping
-=====================
+=================
 
 You can clip optimizer gradients during manual optimization similar to passing ``gradient_clip_val`` and
 ``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization.
