@@ -1,4 +1,7 @@
 import random
+import subprocess
+import sys
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -530,3 +533,42 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
     dataloader = ArrayAttributeDataloader(dataset)
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
+
+
+def test_patching_dataloader_classes_on_import():
+    """Test that Lightning Lite patches the `__init__` of DataLoader and BatchSampler at import time."""
+    # run the code in isolation to avoid global side effects in other tests
+    code = dedent(
+        """
+        import torch
+        from torch.utils.data import BatchSampler, DataLoader, SequentialSampler
+
+        # DataLoader
+        dataloader = DataLoader(torch.rand(2))
+        assert not hasattr(dataloader, "__pl_saved_args")
+
+        # BatchSampler
+        sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
+        assert not hasattr(sampler, "__pl_saved_args")
+        """
+    )
+    assert subprocess.call([sys.executable, "-c", code]) == 0
+    code = dedent(
+        """
+        # this import is expected to trigger patching all dataloader and batch sampler classes
+        import lightning_lite
+
+        # the import order should not matter, importing the DataLoader class after lightning_lite works
+        import torch
+        from torch.utils.data import BatchSampler, DataLoader, SequentialSampler
+
+        # DataLoader
+        dataloader = DataLoader(torch.rand(2))
+        assert hasattr(dataloader, "__pl_saved_args")
+
+        # BatchSampler
+        sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
+        assert hasattr(sampler, "__pl_saved_args")
+        """
+    )
+    assert subprocess.call([sys.executable, "-c", code]) == 0
