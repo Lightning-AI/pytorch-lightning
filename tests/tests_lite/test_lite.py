@@ -674,22 +674,22 @@ def test_patching_dataloader_classes_on_import():
         """
         import torch
         from torch.utils.data import BatchSampler, DataLoader, SequentialSampler
-        
+
         # DataLoader
         dataloader = DataLoader(torch.rand(2))
         assert not hasattr(dataloader, "__pl_saved_args")
-        
+
         # BatchSampler
         sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
         assert not hasattr(sampler, "__pl_saved_args")
-        
+
         # this import is expected to trigger patching all dataloader and batch sampler classes
         import lightning_lite
-        
+
         # DataLoader
         dataloader = DataLoader(torch.rand(2))
         assert hasattr(dataloader, "__pl_saved_args")
-        
+
         # BatchSampler
         sampler = BatchSampler(sampler=SequentialSampler(torch.rand(2)), batch_size=1, drop_last=False)
         assert hasattr(sampler, "__pl_saved_args")
