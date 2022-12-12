@@ -29,6 +29,7 @@ from torchmetrics import Accuracy
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
@@ -298,6 +299,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
         fast_dev_run=True,
         precision=16,
         callbacks=[TestCB(), lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -337,6 +339,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
         max_epochs=2,
         precision=16,
         callbacks=[TestCB(), lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
