@@ -99,7 +99,7 @@ def connect(app_name_or_id: str):
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
-        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
