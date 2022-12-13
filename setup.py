@@ -138,7 +138,7 @@ if __name__ == "__main__":
     is_source_install = len(local_pkgs) > 2
     print(f"Installing from source: {is_source_install}")
     if is_source_install:
-        if _PACKAGE_NAME not in _PACKAGE_MAPPING:
+        if _PACKAGE_NAME is not None and _PACKAGE_NAME not in _PACKAGE_MAPPING:
             raise ValueError(
                 f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}"
             )
