@@ -59,10 +59,9 @@ def test_get_parallel_devices(devices, expected):
 
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.get_device_capability", return_value=(7, 0))
-def test_set_cuda_device(get_device_capability_mock, set_device_mock):
+def test_set_cuda_device(_, set_device_mock):
     device = torch.device("cuda", 1)
     CUDAAccelerator().setup_device(device)
-    get_device_capability_mock.assert_called_once_with(device)
     set_device_mock.assert_called_once_with(device)
 
 
