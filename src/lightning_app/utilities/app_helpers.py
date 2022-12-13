@@ -507,19 +507,6 @@ def _mock_missing_imports():
         builtins.__import__ = original_fn
 
 
-@contextmanager
-def _mock_is_running_in_cloud(return_value: bool = True):
-    import lightning_app.utilities.cloud as cloud
-
-    original_fn = cloud.is_running_in_cloud
-    assert False
-    try:
-        cloud.is_running_in_cloud = lambda: return_value
-        yield
-    finally:
-        cloud.is_running_in_cloud = original_fn
-
-
 def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
 
