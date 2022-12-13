@@ -2,8 +2,11 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 #     http://www.apache.org/licenses/LICENSE-2.0
 
+import functools
 import importlib
 import operator
+import os
+import warnings
 from functools import lru_cache
 from importlib.util import find_spec
 from types import ModuleType
@@ -121,7 +124,7 @@ class RequirementCache:
 def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> str:
     """Returns the minimum version specifier of a dependency of a package.
 
-    >>> get_dependency_min_version_spec("pytorch-lightning", "jsonargparse")
+    >>> get_dependency_min_version_spec("pytorch-lightning==1.8.0", "jsonargparse")
     '>=4.12.0'
     """
     dependencies = metadata.requires(package_name) or []
@@ -189,3 +192,37 @@ def lazy_import(module_name: str, callback: Optional[Callable] = None) -> LazyMo
         a proxy module object that will be lazily imported when first used
     """
     return LazyModule(module_name, callback=callback)
+
+
+def requires(*module_path: str, raise_exception: bool = True) -> Callable:
+    """Wrapper for early import failure with some nice exception message.
+
+    Example:
+
+        >>> @requires("libpath", raise_exception=bool(int(os.getenv("LIGHTING_TESTING", "0"))))
+        ... def my_cwd():
+        ...     from pathlib import Path
+        ...     return Path(__file__).parent
+
+        >>> class MyRndPower:
+        ...     @requires("math", "random")
+        ...     def __init__(self):
+        ...         from math import pow
+        ...         from random import randint
+        ...         self._rnd = pow(randint(1, 9), 2)
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            unavailable_modules = [module for module in module_path if not module_available(module)]
+            if any(unavailable_modules):
+                msg = f"Required dependencies not available. Please run `pip install {' '.join(unavailable_modules)}`"
+                if raise_exception:
+                    raise ModuleNotFoundError(msg)
+                warnings.warn(msg)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator

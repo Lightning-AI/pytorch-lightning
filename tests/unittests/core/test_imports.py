@@ -9,6 +9,7 @@ from lightning_utilities.core.imports import (
     lazy_import,
     module_available,
     RequirementCache,
+    requires,
 )
 
 try:
@@ -27,8 +28,6 @@ def test_module_exists():
 
 
 def testcompare_version(monkeypatch):
-    import pytest
-
     monkeypatch.setattr(pytest, "__version__", "1.8.9")
     assert not compare_version("pytest", operator.ge, "1.10.0")
     assert compare_version("pytest", operator.lt, "1.10.0")
@@ -48,8 +47,6 @@ def testcompare_version(monkeypatch):
 
 
 def test_requirement_cache():
-    import pytest
-
     assert RequirementCache(f"pytest>={pytest.__version__}")
     assert not RequirementCache(f"pytest<{pytest.__version__}")
     assert "pip install -U '-'" in str(RequirementCache("-"))
@@ -78,3 +75,58 @@ def test_lazy_import():
         print(module)
     os = lazy_import("os")
     assert os.getcwd()
+
+
+@requires("torch")
+def my_torch_func(i: int) -> int:
+    import torch  # noqa
+
+    return i
+
+
+def test_torch_func_raised():
+    with pytest.raises(
+        ModuleNotFoundError, match="Required dependencies not available. Please run `pip install torch`"
+    ):
+        my_torch_func(42)
+
+
+@requires("random")
+def my_random_func(nb: int) -> int:
+    from random import randint
+
+    return randint(0, nb)
+
+
+def test_rand_func_passed():
+    assert 0 <= my_random_func(42) <= 42
+
+
+class MyTorchClass:
+    @requires("torch", "random")
+    def __init__(self):
+        from random import randint
+
+        import torch  # noqa
+
+        self._rnd = randint(1, 9)
+
+
+def test_torch_class_raised():
+    with pytest.raises(
+        ModuleNotFoundError, match="Required dependencies not available. Please run `pip install torch`"
+    ):
+        MyTorchClass()
+
+
+class MyRandClass:
+    @requires("random")
+    def __init__(self, nb: int):
+        from random import randint
+
+        self._rnd = randint(1, nb)
+
+
+def test_rand_class_passed():
+    cls = MyRandClass(42)
+    assert 0 <= cls._rnd <= 42

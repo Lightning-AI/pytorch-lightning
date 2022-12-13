@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added method to lazily import modules ([#71](https://github.com/Lightning-AI/utilities/pull/71))
 
+
+- Added `requires` wrapper ([#70](https://github.com/Lightning-AI/utilities/pull/70))
+
+
 ### Changed
 
 ### Removed
