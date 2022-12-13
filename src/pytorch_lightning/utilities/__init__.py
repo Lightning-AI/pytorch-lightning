@@ -18,6 +18,7 @@ import numpy
 from lightning_lite.utilities import LightningEnum  # noqa: F401
 from lightning_lite.utilities import move_data_to_device  # noqa: F401
 from pytorch_lightning.utilities.distributed import AllGatherGrad  # noqa: F401
+from pytorch_lightning.utilities.enums import AMPType  # noqa: F401
 from pytorch_lightning.utilities.enums import GradClipAlgorithmType  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
@@ -38,7 +39,6 @@ from pytorch_lightning.utilities.rank_zero import (  # noqa: F401
     rank_zero_only,
     rank_zero_warn,
 )
-from pytorch_lightning.utiltiies.enums import AMPType  # noqa: F401
 
 FLOAT16_EPSILON = numpy.finfo(numpy.float16).eps
 FLOAT32_EPSILON = numpy.finfo(numpy.float32).eps

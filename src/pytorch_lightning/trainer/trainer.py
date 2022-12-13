@@ -58,12 +58,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
-from pytorch_lightning.plugins import (
-    ApexMixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PLUGIN_INPUT,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, MixedPrecisionPlugin, PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import (
     DDPFullyShardedNativeStrategy,
@@ -164,8 +159,7 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        # FIXME: deprecate these
-        amp_backend: str = "native",  # TODO: Remove in 1.10
+        amp_backend: Optional[str] = None,  # TODO: Remove in 1.10
         amp_level: Optional[str] = None,  # # TODO: Remove in 1.10
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
@@ -194,7 +188,7 @@ class Trainer:
 
                 .. deprecated:: v1.8
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
+                    in v1.10.0.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -1780,7 +1774,7 @@ class Trainer:
     def amp_backend(self) -> Optional[str]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return "apex"
-        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
+        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
             return "native"
         return None
 

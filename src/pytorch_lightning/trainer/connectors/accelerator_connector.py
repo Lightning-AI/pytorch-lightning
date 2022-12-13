@@ -79,10 +79,10 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.utilities.enums import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from src.pytorch_lightning.utilities.enums import AMPType
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class AcceleratorConnector:
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         precision: Union[int, str] = 32,
-        amp_type: str = "native",
+        amp_type: Optional[str] = None,
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -179,12 +179,6 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
-        if amp_level is not None:
-            rank_zero_deprecation(
-                "Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0 and will be removed"
-                " in v1.10.0. Please set it inside the specific precision plugin and pass it to the `Trainer`."
-            )
-
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -244,7 +238,7 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]],
         precision: Union[int, str],
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
-        amp_type: str,
+        amp_type: Optional[str],
         amp_level: Optional[str],
         sync_batchnorm: bool,
     ) -> None:
@@ -381,13 +375,28 @@ class AcceleratorConnector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-        amp_type = amp_type if isinstance(amp_type, str) else None
+        if amp_type is not None:
+            rank_zero_deprecation(
+                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                f" The `Trainer(amp_backend={amp_type!r})` argument is deprecated. Removing this argument will avoid"
+                f" this message, it will select PyTorch's implementation automatically."
+            )
+        else:
+            amp_type = "native"
         self._amp_type_flag = AMPType.from_str(amp_type).value
 
-        if amp_level is not None and self._amp_type_flag != "apex":
-            raise MisconfigurationException(
-                f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
+        if amp_level is not None:
+            rank_zero_deprecation(
+                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                f" The `Trainer(amp_level={amp_level!r})` argument is deprecated. Removing this argument will avoid"
+                f" this message."
             )
+            if self._amp_type_flag != "apex":
+                raise MisconfigurationException(
+                    f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
+                )
 
     def _check_device_config_and_set_final_flags(
         self,

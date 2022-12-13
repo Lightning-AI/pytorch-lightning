@@ -26,7 +26,7 @@ from lightning_lite.accelerators.tpu import TPUAccelerator
 from lightning_lite.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
-    NativeMixedPrecision,
+    MixedPrecision,
     Precision,
     TPUBf16Precision,
     TPUPrecision,
@@ -476,7 +476,7 @@ class _Connector:
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPPrecision(precision=self._precision_input, device=device)
-            return NativeMixedPrecision(precision=self._precision_input, device=device)
+            return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 
