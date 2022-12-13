@@ -73,25 +73,25 @@ def test_run_input_output():
             self.run_kwargs = kwargs
             return "result"
 
-    fabric = Lite()
-    result = fabric.run(1, 2, three=3)
+    lite = Lite()
+    result = lite.run(1, 2, three=3)
     assert result == "result"
-    assert fabric.run_args == (1, 2)
-    assert fabric.run_kwargs == {"three": 3}
+    assert lite.run_args == (1, 2)
+    assert lite.run_kwargs == {"three": 3}
 
 
 @mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
 @pytest.mark.parametrize("setup_method", ["setup", "setup_module"])
 def test_setup_module(ddp_mock, setup_method):
     """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
-    fabric = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
+    lite = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
     model = nn.Linear(1, 2)
-    setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(model)
+    setup_method = getattr(lite, setup_method)
+    lite_model = setup_method(model)
     ddp_mock.assert_called_with(module=model, device_ids=ANY)
-    assert fabric_model.module == model
-    assert fabric_model.weight is model.weight
-    assert fabric_model.forward != model.forward
+    assert lite_model.module == model
+    assert lite_model.weight is model.weight
+    assert lite_model.forward != model.forward
 
 
 @pytest.mark.parametrize(
@@ -114,18 +114,18 @@ def test_setup_module_move_to_device(setup_method, move_to_device, accelerator, 
     target_device = torch.device(target_device)
     expected_device = target_device if move_to_device else initial_device
 
-    fabric = EmptyLite(accelerator=accelerator, devices=1)
+    lite = EmptyLite(accelerator=accelerator, devices=1)
     model = nn.Linear(1, 2)
     model.to(initial_device)
-    setup_method = getattr(fabric, setup_method)
-    fabric_model = setup_method(model, move_to_device=move_to_device)
+    setup_method = getattr(lite, setup_method)
+    lite_model = setup_method(model, move_to_device=move_to_device)
 
     # all parameters on the expected device
     assert all(param.device == expected_device for param in model.parameters())
-    assert all(param.device == expected_device for param in fabric_model.parameters())
+    assert all(param.device == expected_device for param in lite_model.parameters())
 
-    assert fabric_model.device == expected_device
-    assert fabric.device == target_device
+    assert lite_model.device == expected_device
+    assert lite.device == target_device
 
 
 @RunIf(min_cuda_gpus=1)
@@ -137,20 +137,20 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
     device0 = torch.device("cpu")
     device1 = torch.device("cuda", 0)
 
-    fabric = EmptyLite(accelerator="cuda", devices=1)
+    lite = EmptyLite(accelerator="cuda", devices=1)
 
     module0 = nn.Linear(1, 2).to(device0)
     module1 = nn.Linear(1, 2).to(device1)
     model = nn.Sequential(module0, module1)
 
-    setup_method = getattr(fabric, setup_method)
+    setup_method = getattr(lite, setup_method)
 
     if move_to_device:
         with pytest.warns(PossibleUserWarning, match="has parameters on different devices"):
-            fabric_model = setup_method(model, move_to_device=move_to_device)
+            lite_model = setup_method(model, move_to_device=move_to_device)
 
         # both have the same device now
-        assert fabric_model.device == device1
+        assert lite_model.device == device1
         assert module0.weight.device == module0.bias.device == device1
         assert module1.weight.device == module1.bias.device == device1
     else:
@@ -160,155 +160,155 @@ def test_setup_module_parameters_on_different_devices(setup_method, move_to_devi
 
 def test_setup_module_and_optimizers():
     """Test that `setup()` can handle no optimizers, one optimizer, or multiple optimizers."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
     optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
 
     # no optimizer
-    fabric_model = fabric.setup(model)
-    assert isinstance(fabric_model, _FabricModule)
-    assert fabric_model.module is model
+    lite_model = lite.setup(model)
+    assert isinstance(lite_model, _FabricModule)
+    assert lite_model.module is model
 
     # single optimizer
-    fabric_model, fabric_optimizer = fabric.setup(model, optimizer0)
-    assert isinstance(fabric_model, _FabricModule)
-    assert isinstance(fabric_optimizer, _FabricOptimizer)
-    assert fabric_model.module is model
-    assert fabric_optimizer.optimizer is optimizer0
+    lite_model, lite_optimizer = lite.setup(model, optimizer0)
+    assert isinstance(lite_model, _FabricModule)
+    assert isinstance(lite_optimizer, _FabricOptimizer)
+    assert lite_model.module is model
+    assert lite_optimizer.optimizer is optimizer0
 
     # multiple optimizers
-    fabric_model, fabric_optimizer0, fabric_optimizer1 = fabric.setup(model, optimizer0, optimizer1)
-    assert isinstance(fabric_model, _FabricModule)
-    assert isinstance(fabric_optimizer0, _FabricOptimizer)
-    assert isinstance(fabric_optimizer1, _FabricOptimizer)
-    assert fabric_model.module is model
-    assert fabric_optimizer0.optimizer is optimizer0
-    assert fabric_optimizer1.optimizer is optimizer1
+    lite_model, lite_optimizer0, lite_optimizer1 = lite.setup(model, optimizer0, optimizer1)
+    assert isinstance(lite_model, _FabricModule)
+    assert isinstance(lite_optimizer0, _FabricOptimizer)
+    assert isinstance(lite_optimizer1, _FabricOptimizer)
+    assert lite_model.module is model
+    assert lite_optimizer0.optimizer is optimizer0
+    assert lite_optimizer1.optimizer is optimizer1
 
 
 def test_setup_optimizers():
     """Test that `setup_optimizers()` can handle one or more optimizers."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer0 = torch.optim.SGD(model.parameters(), lr=0.1)
     optimizer1 = torch.optim.Adam(model.parameters(), lr=0.1)
 
     # single optimizer
-    fabric_optimizer = fabric.setup_optimizers(optimizer0)
-    assert isinstance(fabric_optimizer, _FabricOptimizer)
-    assert fabric_optimizer.optimizer is optimizer0
+    lite_optimizer = lite.setup_optimizers(optimizer0)
+    assert isinstance(lite_optimizer, _FabricOptimizer)
+    assert lite_optimizer.optimizer is optimizer0
 
     # multiple optimizers
-    fabric_optimizer0, fabric_optimizer1 = fabric.setup_optimizers(optimizer0, optimizer1)
-    assert isinstance(fabric_optimizer0, _FabricOptimizer)
-    assert isinstance(fabric_optimizer1, _FabricOptimizer)
-    assert fabric_optimizer0.optimizer is optimizer0
-    assert fabric_optimizer1.optimizer is optimizer1
+    lite_optimizer0, lite_optimizer1 = lite.setup_optimizers(optimizer0, optimizer1)
+    assert isinstance(lite_optimizer0, _FabricOptimizer)
+    assert isinstance(lite_optimizer1, _FabricOptimizer)
+    assert lite_optimizer0.optimizer is optimizer0
+    assert lite_optimizer1.optimizer is optimizer1
 
 
 def test_setup_twice_fails():
     """Test that calling `setup` with a model or optimizer that is already wrapped fails."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    fabric_model, fabric_optimizer = fabric.setup(model, optimizer)
+    lite_model, lite_optimizer = lite.setup(model, optimizer)
     with pytest.raises(ValueError, match="A model should be passed only once to the"):
-        fabric.setup(fabric_model, optimizer)
+        lite.setup(lite_model, optimizer)
 
-    fabric_model, fabric_optimizer = fabric.setup(model, optimizer)
+    lite_model, lite_optimizer = lite.setup(model, optimizer)
     with pytest.raises(ValueError, match="An optimizer should be passed only once to the"):
-        fabric.setup(model, fabric_optimizer)
+        lite.setup(model, lite_optimizer)
 
 
 def test_setup_module_twice_fails():
     """Test that calling `setup_module` with a model that is already wrapped fails."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
 
-    fabric_model = fabric.setup_module(model)
+    lite_model = lite.setup_module(model)
     with pytest.raises(ValueError, match="A model should be passed only once to the"):
-        fabric.setup_module(fabric_model)
+        lite.setup_module(lite_model)
 
 
 def test_setup_optimizers_twice_fails():
     """Test that calling `setup_module` with a model that is already wrapped fails."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    fabric_optimizer = fabric.setup_optimizers(optimizer)
+    lite_optimizer = lite.setup_optimizers(optimizer)
     with pytest.raises(ValueError, match="An optimizer should be passed only once to"):
-        fabric.setup_optimizers(fabric_optimizer)
+        lite.setup_optimizers(lite_optimizer)
 
 
 @pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_setup_module_not_supported(strategy_cls):
     """Test that `setup_module` validates the strategy supports setting up model and optimizers independently."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
-    fabric._strategy = Mock(spec=strategy_cls)
+    lite._strategy = Mock(spec=strategy_cls)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
-        fabric.setup_module(model)
+        lite.setup_module(model)
 
 
 @pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
-    fabric._strategy = Mock(spec=strategy_cls)
+    lite._strategy = Mock(spec=strategy_cls)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
-        fabric.setup_optimizers(optimizer)
+        lite.setup_optimizers(optimizer)
 
 
 def test_setup_tracks_num_models():
     """Test that setup() tracks how many times it has setup a model."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(1, 2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    assert fabric._models_setup == 0
-    fabric.setup(model, optimizer)
-    assert fabric._models_setup == 1
+    assert lite._models_setup == 0
+    lite.setup(model, optimizer)
+    assert lite._models_setup == 1
 
-    fabric.setup(model, optimizer)
-    assert fabric._models_setup == 2
+    lite.setup(model, optimizer)
+    assert lite._models_setup == 2
 
-    fabric.setup_module(model)
-    assert fabric._models_setup == 3
+    lite.setup_module(model)
+    assert lite._models_setup == 3
 
 
 def test_setup_dataloaders_unsupported_input():
     """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     with pytest.raises(ValueError, match="`setup_dataloaders` requires at least one dataloader"):
-        fabric.setup_dataloaders()
+        lite.setup_dataloaders()
     with pytest.raises(TypeError, match="Only PyTorch DataLoader are currently supported"):
-        fabric.setup_dataloaders(range(2))  # type: ignore
+        lite.setup_dataloaders(range(2))  # type: ignore
 
 
 def test_setup_dataloaders_return_type():
     """Test that the setup method returns the dataloaders wrapped as LiteDataLoader and in the right order."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
 
     # single dataloader
-    fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(2)))
-    assert isinstance(fabric_dataloader, _FabricDataLoader)
+    lite_dataloader = lite.setup_dataloaders(DataLoader(range(2)))
+    assert isinstance(lite_dataloader, _FabricDataLoader)
 
     # multiple dataloaders
     dataset0 = Mock()
     dataset1 = Mock()
     dataloader0 = DataLoader(dataset0)
     dataloader1 = DataLoader(dataset1)
-    fabric_dataloader0, fabric_dataloader1 = fabric.setup_dataloaders(dataloader0, dataloader1)
-    assert isinstance(fabric_dataloader0, _FabricDataLoader)
-    assert isinstance(fabric_dataloader1, _FabricDataLoader)
-    assert fabric_dataloader0.dataset is dataset0
-    assert fabric_dataloader1.dataset is dataset1
+    lite_dataloader0, lite_dataloader1 = lite.setup_dataloaders(dataloader0, dataloader1)
+    assert isinstance(lite_dataloader0, _FabricDataLoader)
+    assert isinstance(lite_dataloader1, _FabricDataLoader)
+    assert lite_dataloader0.dataset is dataset0
+    assert lite_dataloader1.dataset is dataset1
 
 
 @mock.patch("lightning_fabric.fabric._replace_dunder_methods")
@@ -327,7 +327,7 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 def test_setup_dataloaders_raises_for_unknown_custom_args():
     """Test that an error raises when custom dataloaders with unknown arguments are created from outside Lite's run
     method."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
 
     class CustomDataLoader(DataLoader):
         def __init__(self, new_arg, *args, **kwargs):
@@ -342,17 +342,17 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
     ):
         # The dataloader was not created within the run function, and therefore init args were not intercepted
         dataloader = CustomDataLoader(2, batch_size=2)
-        fabric.setup_dataloaders(dataloader)
+        lite.setup_dataloaders(dataloader)
 
 
 def test_setup_dataloaders_twice_fails():
     """Test that calling setup_dataloaders with a dataloader that is already wrapped fails."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     dataloader = DataLoader(range(2))
-    fabric_dataloader = fabric.setup_dataloaders(dataloader)
+    lite_dataloader = lite.setup_dataloaders(dataloader)
 
     with pytest.raises(ValueError, match="A dataloader should be passed only once to the"):
-        fabric.setup_dataloaders(fabric_dataloader)
+        lite.setup_dataloaders(lite_dataloader)
 
 
 @mock.patch(
@@ -360,17 +360,17 @@ def test_setup_dataloaders_twice_fails():
     new_callable=PropertyMock,
     return_value=torch.device("cuda", 1),
 )
-def test_setup_dataloaders_move_to_device(fabric_device_mock):
+def test_setup_dataloaders_move_to_device(lite_device_mock):
     """Test that the setup configures LiteDataLoader to move the data to the device automatically."""
-    fabric = EmptyLite()
-    fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
-    assert all(dl.device is None for dl in fabric_dataloaders)
-    fabric_device_mock.assert_not_called()
+    lite = EmptyLite()
+    lite_dataloaders = lite.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
+    assert all(dl.device is None for dl in lite_dataloaders)
+    lite_device_mock.assert_not_called()
 
-    fabric = EmptyLite()
-    fabric_dataloaders = fabric.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=True)
-    assert all(dl.device == torch.device("cuda", 1) for dl in fabric_dataloaders)
-    fabric_device_mock.assert_called()
+    lite = EmptyLite()
+    lite_dataloaders = lite.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=True)
+    assert all(dl.device == torch.device("cuda", 1) for dl in lite_dataloaders)
+    lite_device_mock.assert_called()
 
 
 def test_setup_dataloaders_distributed_sampler_not_needed():
@@ -379,16 +379,16 @@ def test_setup_dataloaders_distributed_sampler_not_needed():
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # keep the custom sampler when not needed to replace
-    fabric = EmptyLite()
-    fabric_dataloader = fabric.setup_dataloaders(dataloader, replace_sampler=True)
-    assert fabric_dataloader.sampler is custom_sampler
+    lite = EmptyLite()
+    lite_dataloader = lite.setup_dataloaders(dataloader, replace_sampler=True)
+    assert lite_dataloader.sampler is custom_sampler
 
 
 def test_setup_dataloaders_distributed_sampler_shuffle():
     """Test that the DataLoader(shuffle=True|False) setting gets carried over correctly into the distributed
     sampler."""
-    fabric = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
-    # no fabric.launch(): pretend we are on rank 0 now
+    lite = Fabric(accelerator="cpu", strategy="ddp_spawn", devices=2)
+    # no lite.launch(): pretend we are on rank 0 now
 
     dataset = TensorDataset(torch.arange(8))
 
@@ -399,14 +399,14 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
         DataLoader(dataset, sampler=SequentialSampler(dataset)),
     ]
     for dataloader in no_shuffle_dataloaders:
-        dataloader = fabric.setup_dataloaders(dataloader)
+        dataloader = lite.setup_dataloaders(dataloader)
         assert list(t[0].item() for t in iter(dataloader)) == [0, 2, 4, 6]
 
     # shuffling turned on
     shuffle_dataloaders = [DataLoader(dataset, shuffle=True), DataLoader(dataset, sampler=RandomSampler(dataset))]
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
-        dataloader = fabric.setup_dataloaders(dataloader)
+        dataloader = lite.setup_dataloaders(dataloader)
         assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
 
 
@@ -415,10 +415,10 @@ def test_seed_everything():
     """Test that seed everything is static and sets the worker init function on the dataloader."""
     EmptyLite.seed_everything(3)
 
-    fabric = EmptyLite()
-    fabric_dataloader = fabric.setup_dataloaders(DataLoader(Mock()))
+    lite = EmptyLite()
+    lite_dataloader = lite.setup_dataloaders(DataLoader(Mock()))
 
-    assert fabric_dataloader.worker_init_fn.func is pl_worker_init_function
+    assert lite_dataloader.worker_init_fn.func is pl_worker_init_function
     assert os.environ == {"PL_GLOBAL_SEED": "3", "PL_SEED_WORKERS": "1"}
 
 
@@ -441,14 +441,14 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
     dataloader = DataLoader(Mock(), sampler=custom_sampler)
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
-    fabric = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
-    if fabric._connector.is_distributed:
+    lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
+    if lite._connector.is_distributed:
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
-            fabric.setup_dataloaders(dataloader, replace_sampler=True)
+            lite.setup_dataloaders(dataloader, replace_sampler=True)
 
     # setting `replace_sampler=False` leaves the sampler untouched
-    fabric_dataloader = fabric.setup_dataloaders(dataloader, replace_sampler=False)
-    assert fabric_dataloader.sampler is custom_sampler
+    lite_dataloader = lite.setup_dataloaders(dataloader, replace_sampler=False)
+    assert lite_dataloader.sampler is custom_sampler
 
 
 @pytest.mark.parametrize(
@@ -466,10 +466,10 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 @pytest.mark.parametrize("shuffle", [True, False])
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Lite replaces the default samplers with DistributedSampler automatically."""
-    fabric = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
-    is_distributed = fabric._connector.is_distributed
-    fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
-    assert not is_distributed or isinstance(fabric_dataloader.sampler, DistributedSampler)
+    lite = EmptyLite(accelerator="cpu", strategy=strategy, devices=2)
+    is_distributed = lite._connector.is_distributed
+    lite_dataloader = lite.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
+    assert not is_distributed or isinstance(lite_dataloader.sampler, DistributedSampler)
 
 
 @pytest.mark.parametrize(
@@ -493,50 +493,50 @@ def test_to_device(accelerator, expected):
 
             # module
             module = torch.nn.Linear(2, 3)
-            module = fabric.to_device(module)
+            module = lite.to_device(module)
             assert all(param.device == expected_device for param in module.parameters())
 
             # tensor
             tensor = torch.rand(2, 2)
-            tensor = fabric.to_device(tensor)
+            tensor = lite.to_device(tensor)
             assert tensor.device == expected_device
 
             # collection
             collection = {"data": torch.rand(2, 2), "int": 1}
-            collection = fabric.to_device(collection)
+            collection = lite.to_device(collection)
             assert collection["data"].device == expected_device
 
-    fabric = Lite(accelerator=accelerator, devices=1)
-    fabric.run()
+    lite = Lite(accelerator=accelerator, devices=1)
+    lite.run()
 
 
 def test_rank_properties():
     """Test that the rank properties are determined by the strategy."""
-    fabric = EmptyLite()
-    fabric._strategy = Mock(spec=Strategy)
-    fabric._strategy.world_size = 1000
-    assert fabric.world_size == 1000
-    fabric._strategy.global_rank = 100
-    assert fabric.global_rank == 100
-    fabric._strategy.local_rank = 10
-    assert fabric.local_rank == 10
-    fabric._strategy.node_rank = 1
-    assert fabric.node_rank == 1
+    lite = EmptyLite()
+    lite._strategy = Mock(spec=Strategy)
+    lite._strategy.world_size = 1000
+    assert lite.world_size == 1000
+    lite._strategy.global_rank = 100
+    assert lite.global_rank == 100
+    lite._strategy.local_rank = 10
+    assert lite.local_rank == 10
+    lite._strategy.node_rank = 1
+    assert lite.node_rank == 1
 
 
 def test_backward():
     """Test that backward() calls into the precision plugin."""
-    fabric = EmptyLite()
-    fabric._precision = Mock(spec=Precision)
+    lite = EmptyLite()
+    lite._precision = Mock(spec=Precision)
     loss = Mock()
-    fabric.backward(loss, "arg", keyword="kwarg")
-    fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
+    lite.backward(loss, "arg", keyword="kwarg")
+    lite._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
 @RunIf(deepspeed=True)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
-    fabric = EmptyLite(strategy="deepspeed")
+    lite = EmptyLite(strategy="deepspeed")
 
     model0 = nn.Linear(1, 2)
     model1 = nn.Linear(1, 2)
@@ -544,76 +544,76 @@ def test_backward_model_input_required():
     optimizer0 = torch.optim.Adam(model0.parameters())
     optimizer1 = torch.optim.Adam(model1.parameters())
 
-    fabric._strategy.setup_module_and_optimizers = lambda *args: args
+    lite._strategy.setup_module_and_optimizers = lambda *args: args
 
-    fabric.setup(model0, optimizer0)
-    fabric.setup(model1, optimizer1)
+    lite.setup(model0, optimizer0)
+    lite.setup(model1, optimizer1)
 
     loss = model0(torch.randn(1, 1)).sum()
 
     with pytest.raises(ValueError, match="please provide the model used to perform"):
-        fabric.backward(loss)
+        lite.backward(loss)
 
 
 def test_autocast():
     """Test that the Lite autocast context manager lets the precision plugin handle casting."""
-    fabric = EmptyLite()
-    fabric._precision.forward_context = MagicMock()
+    lite = EmptyLite()
+    lite._precision.forward_context = MagicMock()
 
-    fabric._precision.forward_context().__enter__.assert_not_called()
-    with fabric.autocast():
-        fabric._precision.forward_context().__enter__.assert_called()
-    fabric._precision.forward_context().__exit__.assert_called()
+    lite._precision.forward_context().__enter__.assert_not_called()
+    with lite.autocast():
+        lite._precision.forward_context().__enter__.assert_called()
+    lite._precision.forward_context().__exit__.assert_called()
 
 
 def test_no_backward_sync():
     """Test that `Lite.no_backward_sync()` validates the strategy and model is compatible."""
-    fabric = EmptyLite()
+    lite = EmptyLite()
     model = nn.Linear(3, 3)
     with pytest.raises(TypeError, match="You need to set up the model first"):
-        with fabric.no_backward_sync(model):
+        with lite.no_backward_sync(model):
             pass
 
-    model = fabric.setup(model)
+    model = lite.setup(model)
 
     # pretend that the strategy does not support skipping backward sync
-    fabric._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
+    lite._strategy = Mock(spec=ParallelStrategy, _backward_sync_control=None)
     with pytest.warns(PossibleUserWarning, match="The `ParallelStrategy` does not support skipping the"):
-        with fabric.no_backward_sync(model):
+        with lite.no_backward_sync(model):
             pass
 
     # for single-device strategies, it becomes a no-op without warning
-    fabric._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
-    with fabric.no_backward_sync(model):
+    lite._strategy = Mock(spec=SingleDeviceStrategy, _backward_sync_control=MagicMock())
+    with lite.no_backward_sync(model):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
 
     # pretend that the strategy supports skipping backward sync
-    fabric._strategy = Mock(_backward_sync_control=MagicMock())
+    lite._strategy = Mock(_backward_sync_control=MagicMock())
     # disabling the context manager makes it a no-op
-    with fabric.no_backward_sync(model, enabled=False):
+    with lite.no_backward_sync(model, enabled=False):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_not_called()
+    lite._strategy._backward_sync_control.no_backward_sync.assert_not_called()
     # when enabld, the wrapped module gets passed down
-    with fabric.no_backward_sync(model):
+    with lite.no_backward_sync(model):
         pass
-    fabric._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
+    lite._strategy._backward_sync_control.no_backward_sync.assert_called_once_with(model._forward_module)
 
 
 def test_launch_without_function():
     """Test the various ways `Fabric.launch()` can be called."""
 
     # default: no launcher, single process
-    fabric = Fabric()
+    lite = Fabric()
     with mock.patch("lightning_fabric.fabric._do_nothing") as nothing:
-        fabric.launch()
+        lite.launch()
     nothing.assert_called()
 
     # with a launcher on the strategy
-    fabric = Fabric()
-    fabric._strategy._launcher = Mock()
-    fabric.launch()
-    fabric._strategy._launcher.launch.assert_called()
+    lite = Fabric()
+    lite._strategy._launcher = Mock()
+    lite.launch()
+    lite._strategy._launcher.launch.assert_called()
 
 
 def test_launch_with_function():
@@ -622,24 +622,24 @@ def test_launch_with_function():
     def fn_without_args():
         pass
 
-    fabric = Fabric()
+    lite = Fabric()
     with pytest.raises(TypeError, match="The function passed to .* needs to take at least one argument"):
-        fabric.launch(fn_without_args)
+        lite.launch(fn_without_args)
 
     def fn_with_one_arg(arg):
         assert isinstance(arg, Fabric)
         fn_with_one_arg.called = True
 
-    fabric = Fabric()
-    fabric.launch(fn_with_one_arg)
+    lite = Fabric()
+    lite.launch(fn_with_one_arg)
     assert fn_with_one_arg.called
 
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
 def test_launch_and_cli_not_allowed():
-    fabric = Fabric()
+    lite = Fabric()
     with pytest.raises(RuntimeError, match=escape("Calling  `.launch()` again is not allowed")):
-        fabric.launch()
+        lite.launch()
 
 
 @mock.patch.dict(os.environ, {"LT_CLI_USED": "1"})  # pretend we are using the CLI
@@ -648,20 +648,22 @@ def test_overridden_run_and_cli_not_allowed():
         def run(self):
             pass
 
-    with pytest.raises(TypeError, match=escape("Overriding `Fabric.run()` and launching from the CLI is not allowed")):
+    with pytest.raises(
+        TypeError, match=escape("Overriding `Fabric.run()` and launching from the CLI is not allowed")
+    ):
         LiteWithRun()
 
 
 def test_module_sharding_context():
     """Test that the sharding context manager gets applied when the strategy supports it and is a no-op
     otherwise."""
-    fabric = EmptyLite()
-    fabric._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
-    with fabric.sharded_model():
+    lite = EmptyLite()
+    lite._strategy = MagicMock(spec=DDPStrategy, module_sharded_context=Mock())
+    with lite.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_not_called()
+    lite._strategy.module_sharded_context.assert_not_called()
 
-    fabric._strategy = MagicMock(spec=_Sharded)
-    with fabric.sharded_model():
+    lite._strategy = MagicMock(spec=_Sharded)
+    with lite.sharded_model():
         pass
-    fabric._strategy.module_sharded_context.assert_called_once()
+    lite._strategy.module_sharded_context.assert_called_once()
