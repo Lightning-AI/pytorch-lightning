@@ -70,7 +70,7 @@ class TracerPythonScript(LightningWork):
         This method takes any python globals before executing the script,
         e.g., you can modify classes or function from the script.
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app.components.python import TracerPythonScript
             >>> f = open("a.py", "w")
