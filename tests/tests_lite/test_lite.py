@@ -29,7 +29,6 @@ from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -243,17 +242,16 @@ def test_setup_optimizers_twice_fails():
         lite.setup_optimizers(lite_optimizer)
 
 
-@pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_setup_module_not_supported(strategy_cls):
+def test_setup_module_not_supported():
     """Test that `setup_module` validates the strategy supports setting up model and optimizers independently."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
-    lite._strategy = Mock(spec=strategy_cls)
+    lite._strategy = Mock(spec=DDPShardedStrategy)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
         lite.setup_module(model)
 
 
-@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
+@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
