@@ -154,7 +154,7 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
 
     messages = []
     connect("example")
-    assert "The lightning CLI now respond to app commands" in messages[0]
+    assert "The lightning CLI now responds to app commands" in messages[0]
 
     messages = []
     disconnect()
