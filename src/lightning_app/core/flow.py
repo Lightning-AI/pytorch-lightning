@@ -77,7 +77,7 @@ class LightningFlow:
         can be distributed (each LightningWork will be run within its own process
         or different arrangements).
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):

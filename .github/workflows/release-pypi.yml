@@ -13,47 +13,10 @@ defaults:
 
 jobs:
 
-  init:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-    - run: |
-        mkdir dist && touch dist/.placeholder
-    - uses: actions/upload-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
-
-
   build-packages:
-    needs: init
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: true
-      max-parallel: 1  # run sequential to prevent download/upload collisions
-      matrix:
-        pkg-name: ["lightning", "app", "lite", "pytorch"]
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: pip install -U setuptools wheel
-    - name: Build packages
-      env:
-        PACKAGE_NAME: ${{ matrix.pkg-name }}
-      run: |
-        python setup.py sdist bdist_wheel
-        ls -lh dist/
-    - uses: actions/upload-artifact@v3
-      with:
-        name: dist-packages-${{ github.sha }}
-        path: dist
+    uses: ./.github/workflows/_build-packages.yml
+    with:
+      artifact-name: dist-packages-${{ github.sha }}
 
 
   upload-packages:
@@ -70,7 +33,7 @@ jobs:
     - name: Upload to release
       uses: AButler/upload-release-assets@v2.0
       with:
-        files: 'dist/*'
+        files: 'dist/*/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
 
@@ -158,28 +121,28 @@ jobs:
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
-    - run: mkdir pypi/
+    - run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*app*"
+        pkg-folder: dist/app
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-folder: dist/lite
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*pytorch*"
+        pkg-folder: dist/pytorch
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*"
+        pkg-folder: dist/lightning
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
 
 
@@ -188,28 +151,28 @@ jobs:
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
-    - run: mkdir pypi/
+    - run: |
+        sudo apt install -q -y tree
+        tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*app*"
+        pkg-folder: dist/app
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*lite*"
+        pkg-folder: dist/lite
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*pytorch*"
+        pkg-folder: dist/pytorch
         pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*"
+        pkg-folder: dist/lightning
         pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
 
 
