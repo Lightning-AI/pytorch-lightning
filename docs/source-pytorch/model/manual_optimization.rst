@@ -125,8 +125,10 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
             opt.zero_grad()
             self.manual_backward(loss)
+            
             # clip gradients
             self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+            
             opt.step()
 
 .. warning::
