@@ -789,9 +789,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)]
-)
+@pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)
