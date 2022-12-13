@@ -142,7 +142,7 @@ def connect(app_name_or_id: str):
                 project = _get_project(client)
                 apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
                 click.echo(
-                    "We didn't find a matching App. Here are the available Apps that could be "
+                    "We didn't find a matching App. Here are the available Apps that you can"
                     f"connected to {[app.name for app in apps.lightningapps]}."
                 )
                 return
