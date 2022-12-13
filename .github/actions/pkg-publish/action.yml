@@ -2,8 +2,8 @@ name: Publish package
 description: publishing whl and src to PyPI
 
 inputs:
-  pkg-pattern:
-    description: what file pattern is searched in folder, so for example `*_app*`
+  pkg-folder:
+    description: define folder with packages
     required: true
   pypi-test-token:
     description: login token for PyPI
@@ -18,10 +18,7 @@ runs:
   using: "composite"
   steps:
 
-  - name: filter packages
-    run: |
-      mv dist/${{ inputs.pkg-pattern }} pypi/
-      ls -l pypi/
+  - run: ls -lh ${{ inputs.pkg-folder }}
     shell: bash
 
   # We do this, since failures on test.pypi aren't that bad
@@ -32,7 +29,7 @@ runs:
       user: __token__
       password: ${{ inputs.pypi-test-token }}
       repository_url: https://test.pypi.org/legacy/
-      packages_dir: pypi/
+      packages_dir: ${{ inputs.pkg-folder }}
       verbose: true
 
   - name: Publish distribution 📦 to PyPI
@@ -41,9 +38,5 @@ runs:
     with:
       user: __token__
       password: ${{ inputs.pypi-token }}
-      packages_dir: pypi/
+      packages_dir: ${{ inputs.pkg-folder }}
       verbose: true
-
-  - name: filter packages
-    run: rm pypi/*
-    shell: bash
