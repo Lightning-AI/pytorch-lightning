@@ -107,24 +107,27 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
 .. testcode:: python
 
-    def __init__(self, gradient_clip_val=0.5, gradient_clip_algorithm="norm"):
-        super().__init__()
-        self.automatic_optimization = False
-        self.gradient_clip_val = gradient_clip_val
-        self.gradient_clip_algorithm = gradient_clip_algorithm
+    from pytorch_lightning import LightningModule
+
+    class SimpleModel(LightningModule):
+        def __init__(self, gradient_clip_val=0.5, gradient_clip_algorithm="norm"):
+            super().__init__()
+            self.automatic_optimization = False
+            self.gradient_clip_val = gradient_clip_val
+            self.gradient_clip_algorithm = gradient_clip_algorithm
 
 
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
 
-        # compute loss
-        loss = self.compute_loss(batch)
+            # compute loss
+            loss = self.compute_loss(batch)
 
-        opt.zero_grad()
-        self.manual_backward(loss)
-        # clip gradients
-        self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
-        opt.step()
+            opt.zero_grad()
+            self.manual_backward(loss)
+            # clip gradients
+            self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+            opt.step()
 
 .. warning::
    * Note that overriding/implementing ``configure_gradient_clipping()`` in the case of Manual Optimization will not perform gradient clipping / will be ignored. Instead consider using ``self.gradient_clipping()`` manually like the example above.

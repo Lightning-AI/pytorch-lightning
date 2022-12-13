@@ -1486,25 +1486,27 @@ class LightningModule(
             example (with a single optimizer) below,
 
         Example::
+            from pytorch_lightning import LightningModule
 
-            def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
-                super().__init__()
-                self.automatic_optimization = False
-                self.gradient_clip_val = gradient_clip_val
-                self.gradient_clip_algorithm = gradient_clip_algorithm
+            class SimpleModel(LightningModule):        
+                def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
+                    super().__init__()
+                    self.automatic_optimization = False
+                    self.gradient_clip_val = gradient_clip_val
+                    self.gradient_clip_algorithm = gradient_clip_algorithm
 
 
-            def training_step(self, batch, batch_idx):
-                opt = self.optimizers()
+                def training_step(self, batch, batch_idx):
+                    opt = self.optimizers()
 
-                # compute loss
-                loss = self.compute_loss(batch)
+                    # compute loss
+                    loss = self.compute_loss(batch)
 
-                opt.zero_grad()
-                self.manual_backward(loss)
-                # clip gradients
-                self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
-                opt.step()
+                    opt.zero_grad()
+                    self.manual_backward(loss)
+                    # clip gradients
+                    self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+                    opt.step()
         """
         if gradient_clip_val is None:
             gradient_clip_val = self.trainer.gradient_clip_val or 0.0
