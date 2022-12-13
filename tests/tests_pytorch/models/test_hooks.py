@@ -302,7 +302,6 @@ class HookedModel(BoringModel):
     def _auto_train_batch(
         trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
     ):
-        using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(current_batch, batches):
@@ -344,7 +343,7 @@ class HookedModel(BoringModel):
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
+                        kwargs=dict(on_tpu=False, using_lbfgs=False),
                     ),
                     *(
                         [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
