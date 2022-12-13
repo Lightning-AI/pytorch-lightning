@@ -18,6 +18,7 @@ import torch
 from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
 
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
+_TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 
 _APEX_AVAILABLE = module_available("apex.amp")
 _DALI_AVAILABLE = module_available("nvidia.dali")
