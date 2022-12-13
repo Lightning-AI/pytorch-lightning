@@ -36,10 +36,10 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         strategies = []
         mps_accelerators = []
 
-        for pkg_name in ("lightning.lite", "lightning_" + "fabric"):
+        for pkg_name in ("lightning.fabric", "lightning_" + "fabric"):
             try:
                 pkg = importlib.import_module(pkg_name)
-                fabrics.append(pkg.LightningFabric)
+                fabrics.append(pkg.Fabric)
                 strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
                 strategies.append(pkg.strategies.DDPSpawnStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
