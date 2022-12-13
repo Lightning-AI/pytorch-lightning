@@ -134,9 +134,9 @@ if __name__ == "__main__":
     print(f"Installing the `{package_to_install}` package")  # requires `-v` to appear
     is_pkg_install = "PEP517_BUILD_BACKEND" in os.environ
     print("Installing from package/wheel: ", is_pkg_install)
-    is_pkg_install &= _PACKAGE_NAME is None
-    if package_to_install not in _PACKAGE_MAPPING or not is_pkg_install:
+    if package_to_install not in _PACKAGE_MAPPING or (not is_pkg_install and _PACKAGE_NAME is None):
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
+    is_pkg_install &= _PACKAGE_NAME is None
 
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
