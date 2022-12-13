@@ -4,7 +4,7 @@ Run Apps on your own cloud (BYOC)
 #################################
 
 **Audience:** Users looking to run Lightning Apps on their own private cloud infrastructure. The following document assumes
-basic familiarity with cloud provider infrastructure.
+basic familiarity with cloud provider infrastructure management.
 
 ----
 
