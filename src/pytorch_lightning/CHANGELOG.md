@@ -86,7 +86,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated code in `pytorch_lightning.utilities.meta` ([#16038](https://github.com/Lightning-AI/lightning/pull/16038))
 
 
-- Removed the deprecated `LightningDeepSpeedModule` ([#14000](https://github.com/Lightning-AI/lightning/pull/14000))
+- Removed the deprecated `LightningDeepSpeedModule` ([#16041](https://github.com/Lightning-AI/lightning/pull/16041))
 
 
 ### Fixed
