@@ -61,7 +61,8 @@ class Image(BaseModel):
 from pathlib import Path
 import requests
 
-img = requests.get("https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png").content
+imgurl = "https://raw.githubusercontent.com/Lightning-AI/LAI-Triton-Server-Component/main/catimage.png"
+img = requests.get(imgurl).content
 img = base64.b64encode(img).decode("UTF-8")
 response = requests.post('"""
             + url
