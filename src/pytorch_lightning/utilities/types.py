@@ -28,7 +28,6 @@ from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
 from lightning_fabric.utilities.types import (
-    _LRScheduler,
     _TORCH_LRSCHEDULER,
     LRScheduler,
     ProcessGroup,

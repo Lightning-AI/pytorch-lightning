@@ -16,7 +16,7 @@ from typing import cast, Dict, Iterator, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
+from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
