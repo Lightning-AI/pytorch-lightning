@@ -1488,7 +1488,7 @@ class LightningModule(
         Example::
             from pytorch_lightning import LightningModule
 
-            class SimpleModel(LightningModule):        
+            class SimpleModel(LightningModule):
                 def __init__(self, gradient_clip_val = 0.5, gradient_clip_algorithm = "norm"):
                     super().__init__()
                     self.automatic_optimization = False
