@@ -568,6 +568,8 @@ class CloudRuntime(Runtime):
             # Create a generic app.
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
         return app
 
     @staticmethod
