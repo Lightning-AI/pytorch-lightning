@@ -72,6 +72,7 @@ jobs:
       working-directory: ./
       env:
         PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         pip install . -f https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
@@ -131,7 +132,7 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
       with:
-        title: Adding test for legacy checkpiont created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
+        title: Adding test for legacy checkpoint created with ${{ needs.create-legacy-ckpts.outputs.pl-version }}
         delete-branch: true
         labels: |
           tests

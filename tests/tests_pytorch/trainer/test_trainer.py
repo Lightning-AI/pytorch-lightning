@@ -43,6 +43,7 @@ from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoin
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
+    BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
@@ -1342,6 +1343,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]
@@ -2247,12 +2249,14 @@ def test_trainer_compiled_model():
 
     model = torch.compile(model)
 
+    data = BoringDataModule()
+
     trainer = Trainer(
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
     )
-    trainer.fit(model)
+    trainer.fit(model, data)
 
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
@@ -2260,7 +2264,7 @@ def test_trainer_compiled_model():
 
     assert model._compiler_ctx is None
 
-    trainer.train(model)
+    trainer.fit(model)
 
     assert trainer.model._compiler_ctx is None
 

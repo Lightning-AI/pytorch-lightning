@@ -1,71 +1,39 @@
 import abc
 import base64
 import os
+import platform
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import compare_version, module_available
 from pydantic import BaseModel
-from starlette.staticfiles import StaticFiles
 
-from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_torch_available, requires
-from lightning_app.utilities.proxies import _proxy_setattr, unwrap, WorkRunExecutor, WorkStateObserver
 
 logger = Logger(__name__)
 
-__doctest_skip__ = []
 # Skip doctests if requirements aren't available
-if not module_available("lightning_api_access"):
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
-
-# Skip doctests if requirements aren't available
-if not _is_torch_available():
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+if not module_available("lightning_api_access") or not _is_torch_available():
+    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
-class _PyTorchSpawnRunExecutor(WorkRunExecutor):
+def _get_device():
+    import operator
 
-    """This Executor enables to move PyTorch tensors on GPU.
+    import torch
 
-    Without this executor, it would raise the following exception:
-    RuntimeError: Cannot re-initialize CUDA in forked subprocess.
-    To use CUDA with multiprocessing, you must use the 'spawn' start method
-    """
+    _TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
 
-    enable_start_observer: bool = False
+    local_rank = int(os.getenv("LOCAL_RANK", "0"))
 
-    def __call__(self, *args: Any, **kwargs: Any):
-        import torch
-
-        with self.enable_spawn():
-            queue = self.delta_queue if isinstance(self.delta_queue, MultiProcessQueue) else self.delta_queue.to_dict()
-            torch.multiprocessing.spawn(
-                self.dispatch_run,
-                args=(self.__class__, self.work, queue, args, kwargs),
-                nprocs=1,
-            )
-
-    @staticmethod
-    def dispatch_run(local_rank, cls, work, delta_queue, args, kwargs):
-        if local_rank == 0:
-            if isinstance(delta_queue, dict):
-                delta_queue = cls.process_queue(delta_queue)
-                work._request_queue = cls.process_queue(work._request_queue)
-                work._response_queue = cls.process_queue(work._response_queue)
-
-            state_observer = WorkStateObserver(work, delta_queue=delta_queue)
-            state_observer.start()
-            _proxy_setattr(work, delta_queue, state_observer)
-
-        unwrap(work.run)(*args, **kwargs)
-
-        if local_rank == 0:
-            state_observer.join(0)
+    if _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available() and platform.processor() in ("arm", "arm64"):
+        return torch.device("mps", local_rank)
+    else:
+        return torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
 
 
 class _DefaultInputData(BaseModel):
@@ -96,11 +64,12 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
-    @requires(["torch", "lightning_api_access"])
+
+    _start_method = "spawn"
+
+    @requires(["torch"])
     def __init__(  # type: ignore
         self,
-        host: str = "127.0.0.1",
-        port: int = 7777,
         input_type: type = _DefaultInputData,
         output_type: type = _DefaultOutputData,
         **kwargs,
@@ -108,32 +77,30 @@ class PythonServer(LightningWork, abc.ABC):
         """The PythonServer Class enables to easily get your machine learning server up and running.
 
         Arguments:
-            host: Address to be used for running the server.
-            port: Port to be used to running the server.
             input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases and it expects the data
                 to be a json object that has one key called `payload`
 
-                ```
-                input_data = {"payload": "some data"}
-                ```
+                .. code-block:: python
+
+                    input_data = {"payload": "some data"}
 
                 and this can be accessed as `request.payload` in the `predict` method.
 
-                ```
-                def predict(self, request):
-                    data = request.payload
-                ```
+                .. code-block:: python
+
+                    def predict(self, request):
+                        data = request.payload
 
             output_type: Optional `output_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases. It expects the return value of
                 the `predict` method to be a dictionary with one key called `prediction`.
 
-                ```
-                def predict(self, request):
-                    # some code
-                    return {"prediction": "some data"}
-                ```
+                .. code-block:: python
+
+                    def predict(self, request):
+                        # some code
+                        return {"prediction": "some data"}
 
                 and this can be accessed as `response.json()["prediction"]` in the client if
                 you are using requests library
@@ -153,18 +120,13 @@ class PythonServer(LightningWork, abc.ABC):
             ...
             >>> app = LightningApp(SimpleServer())
         """
-        super().__init__(parallel=True, host=host, port=port, **kwargs)
+        super().__init__(parallel=True, **kwargs)
         if not issubclass(input_type, BaseModel):
             raise TypeError("input_type must be a pydantic BaseModel class")
         if not issubclass(output_type, BaseModel):
             raise TypeError("output_type must be a pydantic BaseModel class")
         self._input_type = input_type
         self._output_type = output_type
-
-        # Note: Enable to run inference on GPUs.
-        self._run_executor_cls = (
-            WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
-        )
 
     def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
@@ -211,49 +173,37 @@ class PythonServer(LightningWork, abc.ABC):
         return out
 
     def _attach_predict_fn(self, fastapi_app: FastAPI) -> None:
-        from torch import inference_mode
+        from torch import inference_mode, no_grad
 
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
+        device = _get_device()
+        context = no_grad if device.type == "mps" else inference_mode
+
         def predict_fn(request: input_type):  # type: ignore
-            with inference_mode():
+            with context():
                 return self.predict(request)
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def _attach_frontend(self, fastapi_app: FastAPI) -> None:
-        from lightning_api_access import APIAccessFrontend
-
-        class_name = self.__class__.__name__
-        url = self._future_url if self._future_url else self.url
-        if not url:
-            # if the url is still empty, point it to localhost
-            url = f"http://127.0.0.1:{self.port}"
-        url = f"{url}/predict"
-        datatype_parse_error = False
+    def configure_layout(self) -> None:
         try:
-            request = self._get_sample_dict_from_datatype(self.configure_input_type())
-        except TypeError:
-            datatype_parse_error = True
-
-        try:
-            response = self._get_sample_dict_from_datatype(self.configure_output_type())
-        except TypeError:
-            datatype_parse_error = True
-
-        if datatype_parse_error:
-
-            @fastapi_app.get("/")
-            def index() -> str:
-                return (
-                    "Automatic generation of the UI is only supported for simple, "
-                    "non-nested datatype with types string, integer, float and boolean"
-                )
-
+            from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
             return
 
-        frontend = APIAccessFrontend(
+        class_name = self.__class__.__name__
+        url = f"{self.url}/predict"
+
+        try:
+            request = self._get_sample_dict_from_datatype(self.configure_input_type())
+            response = self._get_sample_dict_from_datatype(self.configure_output_type())
+        except TypeError:
+            return None
+
+        return APIAccessFrontend(
             apis=[
                 {
                     "name": class_name,
@@ -264,7 +214,6 @@ class PythonServer(LightningWork, abc.ABC):
                 }
             ]
         )
-        fastapi_app.mount("/", StaticFiles(directory=frontend.serve_dir, html=True), name="static")
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
@@ -275,7 +224,6 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
-        self._attach_frontend(fastapi_app)
 
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")

@@ -13,7 +13,6 @@ from lightning_app.runners.runtime_type import RuntimeType
 @pytest.mark.parametrize(
     "runtime_type",
     [
-        RuntimeType.SINGLEPROCESS,
         RuntimeType.MULTIPROCESS,
         RuntimeType.CLOUD,
     ],

@@ -21,14 +21,14 @@ from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 import numpy as np
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
+from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
+from pytorch_lightning.utilities.types import LRScheduler, LRSchedulerConfig, STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
@@ -124,7 +124,7 @@ class _LRFinder:
 
         args = (optimizer, self.lr_max, self.num_training)
         scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-        scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
+        scheduler = cast(LRScheduler, scheduler)
 
         trainer.strategy.optimizers = [optimizer]
         trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
@@ -208,7 +208,7 @@ def lr_find(
     max_lr: float = 1,
     num_training: int = 100,
     mode: str = "exponential",
-    early_stop_threshold: float = 4.0,
+    early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
 ) -> Optional[_LRFinder]:
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
@@ -224,6 +224,8 @@ def lr_find(
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
     ckpt_path = trainer.strategy.broadcast(ckpt_path)
     trainer.save_checkpoint(ckpt_path)
+
+    start_steps = trainer.global_step
 
     # Arguments we adjust during the lr finder, save for restoring
     params = __lr_finder_dump_params(trainer)
@@ -245,7 +247,7 @@ def lr_find(
     _try_loop_run(trainer, params)
 
     # Prompt if we stopped early
-    if trainer.global_step != num_training:
+    if trainer.global_step != num_training + start_steps:
         log.info(f"LR finder stopped early after {trainer.global_step} steps due to diverging loss.")
 
     # Transfer results from callback to lr finder object
@@ -270,6 +272,7 @@ def lr_find(
     # Restore initial state of model
     trainer._checkpoint_connector.restore(ckpt_path)
     trainer.strategy.remove_checkpoint(ckpt_path)
+    trainer.fit_loop.restarting = False  # reset restarting flag as checkpoint restoring sets it to True
 
     return lr_finder
 
@@ -289,7 +292,7 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     }
 
 
-def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: Optional[float]) -> None:
     from pytorch_lightning.loggers.logger import DummyLogger
 
     trainer.strategy.lr_scheduler_configs = []
@@ -300,8 +303,8 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
     trainer.logger = DummyLogger() if trainer.logger is not None else None
-    # Max step set to number of iterations
-    trainer.fit_loop.max_steps = num_training
+    # Max step set to number of iterations starting at current number of iterations
+    trainer.fit_loop.max_steps = num_training + trainer.global_step
     trainer.limit_val_batches = num_training
 
 
@@ -340,7 +343,7 @@ class _LRCallback(Callback):
     def __init__(
         self,
         num_training: int,
-        early_stop_threshold: float = 4.0,
+        early_stop_threshold: Optional[float] = 4.0,
         progress_bar_refresh_rate: int = 0,
         beta: float = 0.98,
     ):
@@ -401,7 +404,7 @@ class _LRCallback(Callback):
         self.losses.append(smoothed_loss)
 
 
-class _LinearLR(_LRScheduler):
+class _LinearLR(_TORCH_LRSCHEDULER):
     """Linearly increases the learning rate between two boundaries over a number of iterations.
 
     Args:
@@ -420,7 +423,7 @@ class _LinearLR(_LRScheduler):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 
@@ -436,7 +439,7 @@ class _LinearLR(_LRScheduler):
         return self._lr
 
 
-class _ExponentialLR(_LRScheduler):
+class _ExponentialLR(_TORCH_LRSCHEDULER):
     """Exponentially increases the learning rate between two boundaries over a number of iterations.
 
     Arguments:
@@ -455,7 +458,7 @@ class _ExponentialLR(_LRScheduler):
         self.num_iter = num_iter
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
 

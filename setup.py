@@ -49,7 +49,7 @@ from typing import Generator, Optional
 import setuptools
 import setuptools.command.egg_info
 
-_PACKAGE_NAME = os.environ.get("PACKAGE_NAME")
+_PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "lightning")
 _PACKAGE_MAPPING = {
     "lightning": "lightning",
     "pytorch": "pytorch_lightning",
@@ -90,7 +90,15 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         del mapping["lightning"]
         lines = ["include src/lightning/version.info\n"]
         for pkg in mapping.values():
-            with open(os.path.join(_PATH_SRC, pkg, "MANIFEST.in")) as fh:
+            pkg_path = os.path.join(_PATH_SRC, pkg)
+            if not os.path.exists(pkg_path):
+                # this function is getting called with `pip install .` and `pip install *.tar.gz`, however, it only
+                # should be called with the former. i haven't found a way to differentiate the two so this is the hacky
+                # solution to avoid an error
+                print(f"{pkg_path!r} does not exist")
+                yield
+                return
+            with open(os.path.join(pkg_path, "MANIFEST.in")) as fh:
                 lines.extend(fh.readlines())
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
@@ -112,12 +120,11 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
 
 
 if __name__ == "__main__":
-    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     if os.path.exists(_PATH_SRC):
         # copy the version information to all packages
-        setup_tools.distribute_version(_PATH_SRC)
+        assistant.distribute_version(_PATH_SRC)
 
     package_to_install = _PACKAGE_NAME or "lightning"
     print(f"Installing the {package_to_install} package")  # requires `-v` to appear
@@ -129,7 +136,7 @@ if __name__ == "__main__":
 
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
-        setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+        assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
         # replace imports and copy the code
         assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
 
@@ -143,11 +150,12 @@ if __name__ == "__main__":
             print(f"{pkg_setup} exists. Running `setuptools.setup`")
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
-            if is_wheel_install:
+            is_main_pkg = pkg == "lightning"
+            if is_wheel_install and not is_main_pkg:
                 setuptools.setup(**setup_args)
             else:
                 # we are installing from source, set the correct manifest path
-                with _set_manifest_path(pkg_path, aggregate=pkg == "lightning"):
+                with _set_manifest_path(pkg_path, aggregate=is_main_pkg):
                     setuptools.setup(**setup_args)
             break
     else:
