@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash, Delta
 
@@ -11,7 +11,12 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_helpers import (
+    _is_json_serializable,
+    _lightning_dispatched,
+    _LightningAppRef,
+    is_overridden,
+)
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -32,6 +37,9 @@ from lightning_app.utilities.packaging.cloud_compute import (
     CloudCompute,
 )
 from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunExecutor
+
+if TYPE_CHECKING:
+    from lightning_app.frontend import Frontend
 
 
 class LightningWork:
@@ -151,6 +159,8 @@ class LightningWork:
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -249,6 +259,20 @@ class LightningWork:
             compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
             compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if _lightning_dispatched():
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     @property
     def status(self) -> WorkStatus:
@@ -629,3 +653,45 @@ class LightningWork:
                 property_object.fset(self, value)
             else:
                 self._default_setattr(name, value)
+
+    def configure_layout(self) -> Union[None, str, "Frontend"]:
+        """Configure the UI of this LightningWork.
+
+        You can either
+
+        1.  Return a single :class:`~lightning_app.frontend.frontend.Frontend` object to serve a user interface
+            for this Work.
+        2.  Return a string containing a URL to act as the user interface for this Work.
+        3.  Return ``None`` to indicate that this Work doesn't currently have a user interface.
+
+        **Example:** Serve a static directory (with at least a file index.html inside).
+
+        .. code-block:: python
+
+            from lightning_app.frontend import StaticWebFrontend
+
+
+            class Work(LightningWork):
+                def configure_layout(self):
+                    return StaticWebFrontend("path/to/folder/to/serve")
+
+        **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
+
+        .. code-block:: python
+
+            class Work(LightningWork):
+                def configure_layout(self):
+                    return [
+                        dict(name="First Tab", content=self.child0),
+                        dict(name="Second Tab", content=self.child1),
+                        dict(name="Lightning", content="https://lightning.ai"),
+                    ]
+
+        If you don't implement ``configure_layout``, Lightning will use ``self.url``.
+
+        Note:
+            This hook gets called at the time of app creation and then again as part of the loop. If desired, a
+            returned URL can depend on the state. This is not the case if the work returns a
+            :class:`~lightning_app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
+            in order for the runtime to start the server.
+        """

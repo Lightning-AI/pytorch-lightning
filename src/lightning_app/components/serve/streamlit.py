@@ -58,10 +58,14 @@ class ServeStreamlit(LightningWork, abc.ABC):
             ],
             env=env,
         )
+        self._process.wait()
 
     def on_exit(self) -> None:
         if self._process is not None:
             self._process.kill()
+
+    def configure_layout(self) -> str:
+        return self.url
 
 
 class _PatchedWork:

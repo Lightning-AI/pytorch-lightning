@@ -22,11 +22,11 @@ import tempfile
 from argparse import Namespace
 from pathlib import Path
 from time import time
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
-import torch
 import yaml
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 from typing_extensions import Literal
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -36,15 +36,14 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = module_available("mlflow")
-try:
-    import mlflow
+_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0")
+if _MLFLOW_AVAILABLE:
+    from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-# todo: there seems to be still some remaining import error with Conda env
-except ModuleNotFoundError:
-    _MLFLOW_AVAILABLE = False
-    mlflow, MlflowClient, context = None, None, None
+else:
+    MlflowClient, context = None, None
+    Metric, Param = None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
 
 # before v1.1.0
@@ -147,10 +146,8 @@ class MLFlowLogger(Logger):
         artifact_location: Optional[str] = None,
         run_id: Optional[str] = None,
     ):
-        if mlflow is None:
-            raise ModuleNotFoundError(
-                "You want to use `mlflow` logger which is not installed yet, install it with `pip install mlflow`."
-            )
+        if not _MLFLOW_AVAILABLE:
+            raise ModuleNotFoundError(str(_MLFLOW_AVAILABLE))
         super().__init__()
         if not tracking_uri:
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
@@ -240,20 +237,25 @@ class MLFlowLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
+        params_list: List[Param] = []
+
         for k, v in params.items():
+            # TODO: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
             if len(str(v)) > 250:
                 rank_zero_warn(
                     f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
                 )
                 continue
+            params_list.append(Param(key=v, value=v))
 
-            self.experiment.log_param(self.run_id, k, v)
+        self.experiment.log_batch(run_id=self.run_id, params=params_list)
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+        metrics_list: List[Metric] = []
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -269,8 +271,9 @@ class MLFlowLogger(Logger):
                     category=RuntimeWarning,
                 )
                 k = new_k
+            metrics_list.append(Metric(key=k, value=v, timestamp=timestamp_ms, step=step or 0))
 
-            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+        self.experiment.log_batch(run_id=self.run_id, metrics=metrics_list)
 
     @rank_zero_only
     def finalize(self, status: str = "success") -> None:
@@ -332,7 +335,7 @@ class MLFlowLogger(Logger):
         for t, p, s, tag in checkpoints:
             metadata = {
                 # Ensure .item() is called to store Tensor contents
-                "score": s.item() if isinstance(s, torch.Tensor) else s,
+                "score": s.item() if isinstance(s, Tensor) else s,
                 "original_filename": Path(p).name,
                 "Checkpoint": {
                     k: getattr(checkpoint_callback, k)

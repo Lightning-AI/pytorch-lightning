@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
@@ -27,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import getattr_recursive, no_warning_call
+from tests_pytorch.helpers.utils import getattr_recursive
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -439,6 +440,53 @@ def test_if_lr_finder_callback_already_configured():
 
     with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
         trainer.tune(model)
+
+
+def test_lr_finder_callback_restarting(tmpdir):
+    """Test that `LearningRateFinder` does not set restarting=True when loading checkpoint."""
+
+    num_lr_steps = 100
+
+    class MyBoringModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.123
+
+        def on_train_batch_start(self, batch, batch_idx):
+            if getattr(self, "_expected_max_steps", None) is not None:
+                assert self.trainer.fit_loop.max_steps == self._expected_max_steps
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.parameters(), lr=self.learning_rate)
+
+    class CustomLearningRateFinder(LearningRateFinder):
+        milestones = (1,)
+
+        def lr_find(self, trainer, pl_module) -> None:
+            pl_module._expected_max_steps = trainer.global_step + self._num_training_steps
+            super().lr_find(trainer, pl_module)
+            pl_module._expected_max_steps = None
+            assert not trainer.fit_loop.restarting
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch in self.milestones or trainer.current_epoch == 0:
+                self.lr_find(trainer, pl_module)
+
+    model = MyBoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        callbacks=[
+            CustomLearningRateFinder(early_stop_threshold=None, update_attr=True, num_training_steps=num_lr_steps)
+        ],
+        limit_train_batches=10,
+        limit_val_batches=0,
+        limit_test_batches=0,
+        num_sanity_val_steps=0,
+        enable_model_summary=False,
+    )
+
+    trainer.fit(model)
 
 
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
