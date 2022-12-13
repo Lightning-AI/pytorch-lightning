@@ -163,9 +163,9 @@ if __name__ == "__main__":
     setup_args = setup_module._setup_args()
     is_main_pkg = package_to_install == "lightning"
     print(f"Installing as the main package: {is_main_pkg}")
-    if not is_source_install and not is_main_pkg:
-        setuptools.setup(**setup_args)
-    else:
+    if is_main_pkg and is_source_install:
         # we are installing from source, set the correct manifest path
         with _set_manifest_path(pkg_path, aggregate=is_main_pkg):
             setuptools.setup(**setup_args)
+    else:
+        setuptools.setup(**setup_args)
