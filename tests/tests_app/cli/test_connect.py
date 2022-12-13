@@ -154,18 +154,17 @@ def test_connect_disconnect_cloud(tmpdir, monkeypatch):
 
     messages = []
     connect("example")
-    assert "The lightning CLI will now respond to the commands exposed by App." in messages[0]
+    assert "The lightning CLI now respond to app commands" in messages[0]
 
     messages = []
     disconnect()
-    print(messages)
     assert messages == ["You are disconnected from the cloud Lightning App: example."]
 
     _ = monkeypatch_connection(monkeypatch, tmpdir, ppid=ppid_1)
 
     messages = []
     disconnect()
-    assert messages == ["You are disconnected from the cloud Lightning App: example."]
+    assert "You aren't connected to any Lightning App" in messages[0]
 
     messages = []
     disconnect()

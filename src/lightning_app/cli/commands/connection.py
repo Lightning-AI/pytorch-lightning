@@ -99,7 +99,7 @@ def connect(app_name_or_id: str):
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
-        click.echo("The lightning CLI can now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
@@ -118,7 +118,7 @@ def connect(app_name_or_id: str):
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
 
-        click.echo("The lightning CLI can now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
@@ -176,7 +176,7 @@ def connect(app_name_or_id: str):
             f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
 
-        click.echo("The lightning CLI can now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
@@ -260,7 +260,7 @@ def _list_app_commands(echo: bool = True) -> List[str]:
 
     app_info = metadata[command_names[0]].get("app_info", None)
 
-    title, description = "Lightning", None
+    title, description, on_after_connect = "Lightning", None, None
     if app_info:
         title = app_info["title"]
         description = app_info["description"]
