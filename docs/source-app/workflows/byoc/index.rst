@@ -4,7 +4,7 @@ Run Apps on your own cloud (BYOC)
 #################################
 
 **Audience:** Users looking to run Lightning Apps on their own private cloud infrastructure. The following document assumes
-basic familiarity with configuration cloud provider infrastructure.
+basic familiarity with cloud provider infrastructure.
 
 ----
 
@@ -13,27 +13,125 @@ A bit of background
 *******************
 
 BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
-BYOC separates the control- and dataplane. The data plane, that includes
-Lightning clusters, services and Lightning Apps, reside inside the user’s own cloud provider account.
-The controlplane resides on Lightning Cloud.
+BYOC separates the control- and dataplane. The dataplane, that includes Lightning clusters, services and Lightning Apps,
+reside inside the user’s own cloud provider account. The controlplane resides on Lightning Cloud.
 
-Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
-delegated access and an identity provider for secure access to the data plane.
+Using BYOC requires configuring of a cloud provider to grant Lightning Cloud permissions to manage
+infrastructure on your behalf. Once the access has been configured, Lightning Cloud controlplane will take over,
+managing the lifecycle of the cloud infrastructure required to run Lightning Apps.
 
-Next, as part of the environment creation process, you can configure networking,
-security, and select among cluster configuration options based on their own use cases.
+Only AWS is supported as of now.
 
-After submitting a cluster creation request, the Lightning Control Plane creates the required cloud infrastructure on the user account. This
-sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
+**************************
+Configuring access for AWS
+**************************
 
+To grant the Lightning controlplane access to your AWS account you need to configure an IAM role and establish a
+cross account trust relationship. The role can be named anything.
+Here, we'll create an IAM role called `lightning-cloud`, set the session duration to 12 hours and grant the lightning
+controlplane access:
+
+.. code:: bash
+
+   aws iam create-role \
+     --role-name lightning-cloud \
+     --assume-role-policy-document '{"Statement":[{"Action":"sts:AssumeRole","Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::748115360335:root"}, "Condition": {"StringEquals": {"sts:ExternalId": "dummy"}}}]}' \
+     --description "grant lightning controlplane access" \
+     --max-session-duration 43200
+
+The lightning controlplane runs on AWS account `748115360335`. To follow AWS security practice, we're also using an
+external id. The external id should be set to a random value and only be used for lightning cloud.
+
+Lightning controlplane will assume this IAM role to manage your cloud infrastructure. Next, you need to grant it
+permissions to do so.
+As we manage a lot of cloud infrastructure for you, we need a bunch of permissions:
+
+.. code:: json
+
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "autoscaling:*",
+          "cloudwatch:*",
+          "ec2:*",
+          "ecr:*",
+          "eks:*",
+          "elasticloadbalancing:*",
+          "events:*",
+          "guardduty:*",
+          "iam:*",
+          "logs:*",
+          "route53resolver:*",
+          "s3:*",
+          "sns:*",
+          "sqs:*",
+          "tag:GetResources",
+          "resource-groups:SearchResources"
+        ],
+        "Effect": "Allow",
+        "Resource": "*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": "iam:CreateServiceLinkedRole",
+        "Resource": "*",
+        "Condition": {
+          "StringLike": {
+            "iam:AWSServiceName": [
+              "guardduty.amazonaws.com",
+              "malware-protection.guardduty.amazonaws.com"
+            ]
+          }
+        }
+      },
+      {
+        "Effect": "Allow",
+        "Action": "iam:CreateServiceLinkedRole",
+        "Resource": "*",
+        "Condition": {
+          "StringEquals": {
+            "iam:AWSServiceName": [
+              "autoscaling.amazonaws.com",
+              "ec2scheduled.amazonaws.com",
+              "elasticloadbalancing.amazonaws.com",
+              "spot.amazonaws.com",
+              "spotfleet.amazonaws.com",
+              "transitgateway.amazonaws.com"
+            ]
+          }
+        }
+      }
+    ]
+  }
+
+Save this into a file, and create a IAM policy and associate it with the role we just created:
+
+.. code:: bash
+
+   aws iam create-policy \
+     --policy-name lightning-cloud \
+     --description "policy granting lightning controlplane permissions" \
+     --policy-document file:///tmp/iam-policy.json
+
+Lastly, attach the policy to the IAM role you just created:
+
+.. code:: bash
+
+   aws iam attach-role-policy \
+     --role-name lightning-cloud \
+     --policy-arn arn:aws:iam::158793097533:policy/lightning-cloud
+
+You are now ready to create a BYOC cluster in your own AWS account!
+
+Reach out to support@lightning.ai if you want to use terraform or CloudFormation to provision these resources.
 
 *******************************
 Create a Lightning BYOC cluster
 *******************************
 
 You must have your cloud configured before you try and create a BYOC cluster.
-
-And to make your life a little easier, we've made a `Terraform module to help with that <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
 
 Create a Lightning BYOC cluster using the following command:
 
