@@ -101,7 +101,7 @@ after every ``N`` steps, you can do as such.
 Gradient Clipping
 =================
 
-You can clip optimizer gradients during manual optimization similar to passing ``gradient_clip_val`` and
+You can clip optimizer gradients during manual optimization similar to passing the ``gradient_clip_val`` and
 ``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization.
 To perform gradient clipping with one optimizer with manual optimization, you can do as such.
 
