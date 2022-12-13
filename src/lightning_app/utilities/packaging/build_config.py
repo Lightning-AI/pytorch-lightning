@@ -91,7 +91,7 @@ class BuildConfig:
 
         .. note:: If you provide your own dockerfile, this would be ignored.
 
-        .. doctest::
+        Example:
 
             from dataclasses import dataclass
             from lightning_app import BuildConfig
