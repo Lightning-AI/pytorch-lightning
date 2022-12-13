@@ -116,12 +116,11 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
 
 
 if __name__ == "__main__":
-    setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     if os.path.isdir(_PATH_SRC):
         # copy the version information to all packages
-        setup_tools.distribute_version(_PATH_SRC)
+        assistant.distribute_version(_PATH_SRC)
     print(f"Requested package: '{_PACKAGE_NAME}'")  # requires `-v` to appear
 
     local_pkgs = [
@@ -140,7 +139,7 @@ if __name__ == "__main__":
         package_to_install = _PACKAGE_MAPPING.get(_PACKAGE_NAME, "lightning")
         if package_to_install == "lightning":  # install everything
             # merge all requirements files
-            setup_tools._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
+            assistant._load_aggregate_requirements(_PATH_REQUIRE, _FREEZE_REQUIREMENTS)
             # replace imports and copy the code
             assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:

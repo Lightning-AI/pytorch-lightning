@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import module_available
-from tests_app.helpers.utils import no_warning_call
+from lightning_utilities.test.warning import no_warning_call
 
 import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
