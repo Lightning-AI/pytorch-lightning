@@ -6,6 +6,7 @@ import string
 import sys
 import time
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from textwrap import dedent
 from typing import Any, List, Optional, Union
@@ -63,6 +64,7 @@ from lightning_app.core.constants import (
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
+from lightning_app.source_code.copytree import _filter_ignored, _parse_lightningignore
 from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import _is_headless, Logger
 from lightning_app.utilities.cloud import _get_project
@@ -218,7 +220,19 @@ class CloudRuntime(Runtime):
         root = Path(self.entrypoint_file).absolute().parent
         cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
         self.app._update_index_file()
-        repo = LocalSourceCodeDir(path=root)
+
+        # gather and merge all lightningignores
+        children = self.app.flows + self.app.works
+        lightningignores = [c.lightningignore for c in children]
+        if lightningignores:
+            merged = sum(lightningignores, tuple())
+            logger.debug(f"Found the following lightningignores: {merged}")
+            patterns = _parse_lightningignore(merged)
+            ignore_functions = [partial(_filter_ignored, root, patterns)]
+        else:
+            ignore_functions = None
+
+        repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
         # The entry point file needs to be relative to the root of the uploaded source file directory,
@@ -494,24 +508,34 @@ class CloudRuntime(Runtime):
     @staticmethod
     def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
         """This method is used to inform the users if their folder files are large and how to filter them."""
-        lightning_tar = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
-        app_folder_size = sum(Path(p).stat().st_size for p in repo.files if p not in lightning_tar)
-        app_folder_size_in_mb = round(app_folder_size / (1000 * 1000), 5)
+        excludes = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
+        excludes.update(fnmatch.filter(repo.files, ".lightningignore"))
+        files = [Path(f) for f in repo.files if f not in excludes]
+        file_sizes = {f: f.stat().st_size for f in files}
+        mb = 1000_000
+        app_folder_size_in_mb = sum(file_sizes.values()) / mb
         if app_folder_size_in_mb > CLOUD_UPLOAD_WARNING:
-            path_sizes = [(p, Path(p).stat().st_size / (1000 * 1000)) for p in repo.files]
-            largest_paths = sorted((x for x in path_sizes if x[-1] > 0.01), key=lambda x: x[1], reverse=True)[:25]
-            largest_paths_msg = "\n".join(f"{round(s, 5)} MB: {p}" for p, s in largest_paths)
+            # filter out files under 0.01mb
+            relevant_files = {f: sz for f, sz in file_sizes.items() if sz > 0.01 * mb}
+            if relevant_files:
+                by_largest = dict(sorted(relevant_files.items(), key=lambda x: x[1], reverse=True))
+                by_largest = dict(list(by_largest.items())[:25])  # trim
+                largest_paths_msg = "\n".join(
+                    f"{round(sz / mb, 5)} MB: {p.relative_to(root)}" for p, sz in by_largest.items()
+                )
+                largest_paths_msg = f"Here are the largest files:\n{largest_paths_msg}\n"
+            else:
+                largest_paths_msg = ""
             warning_msg = (
                 f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
-                f"The total size is {app_folder_size_in_mb} MB\n"
-                f"Here are the largest files: \n{largest_paths_msg}\n"
-                "Perhaps you should try running the app in an empty directory."
+                f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
+                + largest_paths_msg
+                + "Perhaps you should try running the app in an empty directory."
             )
             if not (root / DOT_IGNORE_FILENAME).is_file():
-                warning_msg = (
-                    warning_msg
-                    + "\nIn order to ignore some files or folder, "
-                    + "create a `.lightningignore` file and add the paths to ignore."
+                warning_msg += (
+                    "\nIn order to ignore some files or folder, create a `.lightningignore` file and add the paths to"
+                    " ignore. You can also set the `lightningingore` attribute in a Flow or Work."
                 )
             else:
                 warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
