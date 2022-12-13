@@ -1343,6 +1343,7 @@ def test_log_every_n_steps(log_metrics_mock, tmpdir, train_batches, max_steps, l
         limit_train_batches=train_batches,
         limit_val_batches=0,
         max_steps=max_steps,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
     expected_calls = [call(metrics=ANY, step=s) for s in range(log_interval - 1, max_steps, log_interval)]

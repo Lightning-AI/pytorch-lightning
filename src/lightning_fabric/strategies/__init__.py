@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning_fabric.strategies.ddp import DDPStrategy  # noqa: F401
-from lightning_fabric.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from lightning_fabric.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from lightning_fabric.strategies.dp import DataParallelStrategy  # noqa: F401
 from lightning_fabric.strategies.fairscale import DDPShardedStrategy  # noqa: F401
-from lightning_fabric.strategies.fairscale import DDPSpawnShardedStrategy  # noqa: F401
 from lightning_fabric.strategies.fsdp import FSDPStrategy  # noqa: F401
 from lightning_fabric.strategies.parallel import ParallelStrategy  # noqa: F401
 from lightning_fabric.strategies.registry import _call_register_strategies, _StrategyRegistry

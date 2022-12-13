@@ -761,7 +761,7 @@ def test_lr_scheduler_step_hook(tmpdir):
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
-    # first step is called by PyTorch _LRScheduler
+    # first step is called by PyTorch LRScheduler
     assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
 
 
