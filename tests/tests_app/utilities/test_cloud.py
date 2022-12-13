@@ -10,7 +10,7 @@ def test_is_running_locally():
     assert not is_running_in_cloud()
 
 
-@mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_PROJECT_ID": "project-x"})
+@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
 def test_is_running_cloud():
     """We can determine if Lightning is running in the cloud."""
     assert is_running_in_cloud()
