@@ -36,7 +36,7 @@ def monkeypatch_connection(monkeypatch, tmpdir, ppid):
 def test_connect_disconnect_local(tmpdir, monkeypatch):
     disconnect()
 
-    with pytest.raises(Exception, match="The commands weren't found. Is your app localhost running ?"):
+    with pytest.raises(Exception, match="Connection wasn't successful. Is your app localhost running ?"):
         connect("localhost")
 
     with open(os.path.join(os.path.dirname(__file__), "jsons/connect_1.json")) as f:
