@@ -118,7 +118,7 @@ def connect(app_name_or_id: str):
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
 
-        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
