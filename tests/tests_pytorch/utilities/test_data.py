@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
@@ -21,7 +22,6 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_extract_batch_size():

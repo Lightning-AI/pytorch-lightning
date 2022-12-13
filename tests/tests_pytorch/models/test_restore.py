@@ -23,6 +23,7 @@ import cloudpickle
 import pytest
 import torch
 import torch.nn.functional as F
+from lightning_utilities.test.warning import no_warning_call
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
@@ -809,12 +810,12 @@ def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_c
     trainer = Trainer(max_epochs=2, **trainer_kwargs)
     model.stop_batch_idx = -1
 
-    context_manager = pytest.warns if stop_in_the_middle else tutils.no_warning_call
+    context_manager = pytest.warns if stop_in_the_middle else no_warning_call
     with context_manager(UserWarning, match="resuming from a checkpoint that ended"):
         trainer.fit(model, ckpt_path=ckpt_path)
 
     if stop_in_the_middle:
         with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"}):
             trainer = Trainer(max_epochs=2, **trainer_kwargs)
-            with tutils.no_warning_call(UserWarning, match="resuming from a checkpoint that ended"):
+            with no_warning_call(UserWarning, match="resuming from a checkpoint that ended"):
                 trainer.fit(model, ckpt_path=ckpt_path)
