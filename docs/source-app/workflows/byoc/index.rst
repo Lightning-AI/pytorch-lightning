@@ -27,9 +27,32 @@ Configuring access for AWS
 **************************
 
 To grant the Lightning controlplane access to your AWS account you need to configure an IAM role and establish a
-cross account trust relationship. The role can be named anything.
-Here, we'll create an IAM role called `lightning-cloud`, set the session duration to 12 hours and grant the lightning
-controlplane access:
+cross account trust relationship. The lightning controlplane runs on AWS account `748115360335`, so the trust relationship
+will look like this:
+
+.. code:: json
+
+   {
+       "Statement": [
+           {
+               "Action": "sts:AssumeRole",
+               "Effect": "Allow",
+               "Principal": {
+                   "AWS": "arn:aws:iam::748115360335:root"
+               },
+               "Condition": {
+                   "StringEquals": {
+                       "sts:ExternalId": "dummy"
+                   }
+               }
+           }
+       ]
+   }
+
+To follow AWS security practice, we're also using an external id.
+The external id should be set to a random value and only be used for lightning cloud. Above example uses 'dummy'.
+
+Now we'll create an IAM role called  `lightning-cloud` using above trust relationship:
 
 .. code:: bash
 
@@ -39,12 +62,9 @@ controlplane access:
      --description "grant lightning controlplane access" \
      --max-session-duration 43200
 
-The lightning controlplane runs on AWS account `748115360335`. To follow AWS security practice, we're also using an
-external id. The external id should be set to a random value and only be used for lightning cloud.
-
-Lightning controlplane will assume this IAM role to manage your cloud infrastructure. Next, you need to grant it
-permissions to do so.
-As we manage a lot of cloud infrastructure for you, we need a bunch of permissions:
+Lightning controlplane will assume this IAM role to manage your cloud infrastructure.
+Next, you need to grant permissions to the IAM role to enable the Lightning controlplane to manage cloud infrastructure
+for you:
 
 .. code:: json
 
@@ -211,7 +231,7 @@ Deletion retains any artifacts created in the object storage of your cluster.
 .. warning::
 
    Under the hood the deletion selects cloud provider resources via the tags
-   lightning/cluster: <name> and
-   kubernetes.io/cluster/<name>: owned
+   `lightning/cluster` and
+   `kubernetes.io/cluster/<name>`
 
    Do not use these tags in any cloud resources you create yourself, as they will be subject to deletion when the cluster is deleted.
