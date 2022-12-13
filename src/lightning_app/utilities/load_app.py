@@ -12,7 +12,7 @@ from lightning_app.utilities.exceptions import MisconfigurationException
 if TYPE_CHECKING:
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-from lightning_app.utilities.app_helpers import _mock_missing_imports, Logger, _mock_is_running_in_cloud
+from lightning_app.utilities.app_helpers import _mock_is_running_in_cloud, _mock_missing_imports, Logger
 
 logger = Logger(__name__)
 
