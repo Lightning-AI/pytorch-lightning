@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import module_available
-from tests_app.helpers.utils import no_warning_call
+from lightning_utilities.test.warning import no_warning_call
 
 import lightning_lite as ll
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
@@ -97,7 +97,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
 @pytest.mark.skipif(not module_available("lightning"), reason="Lightning not available")
 def test_lite_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPSpawnStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPStrategy(start_method="spawn"))
 
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPSpawnShardedStrategy())
+        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPShardedStrategy(start_method="spawn"))

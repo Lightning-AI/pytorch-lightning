@@ -123,7 +123,7 @@ def test_deepspeed_config_zero_offload(deepspeed_zero_config):
 
 
 @RunIf(deepspeed=True)
-@mock.patch("lightning_lite.strategies.deepspeed.deepspeed.initialize")
+@mock.patch("deepspeed.initialize")
 def test_deepspeed_setup_module(init_mock):
     """Test that the DeepSpeed strategy can set up the model for inference (no optimizer required)."""
     model = Mock()
