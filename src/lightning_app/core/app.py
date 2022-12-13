@@ -21,7 +21,7 @@ from lightning_app.core.constants import (
     FRONTEND_DIR,
     STATE_ACCUMULATE_WAIT,
 )
-from lightning_app.core.queues import BaseQueue, SingleProcessQueue
+from lightning_app.core.queues import BaseQueue
 from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Drive, Path, Payload
@@ -29,6 +29,8 @@ from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
+    _handle_is_headless,
+    _is_headless,
     _LightningAppRef,
     _should_dispatch_app,
     Logger,
@@ -85,18 +87,16 @@ class LightningApp:
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
-            ...         print("Hello World!")
             ...         self._exit()
             ...
             >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             >>> MultiProcessRuntime(app).dispatch()
-            Hello World!
         """
 
         self.root_path = root_path  # when running behind a proxy
@@ -140,6 +140,9 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
+        # TODO: Enable ready locally for opening the UI.
+        self.ready = False
+
         # NOTE: Checkpointing is disabled by default for the time being.  We
         # will enable it when resuming from full checkpoint is supported. Also,
         # we will need to revisit the logic at _should_snapshot, since right now
@@ -147,6 +150,8 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+
+        self.is_headless: Optional[bool] = None
 
         self._original_state = None
         self._last_state = self.state
@@ -412,6 +417,7 @@ class LightningApp:
             self.backend.update_work_statuses(self.works)
 
         self._update_layout()
+        self._update_is_headless()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -440,6 +446,9 @@ class LightningApp:
         except (ExitAppException, KeyboardInterrupt):
             done = True
             self.stage = AppStage.STOPPING
+
+        if not self.ready:
+            self.ready = self.root.ready
 
         self._last_run_time = time() - t0
 
@@ -476,12 +485,18 @@ class LightningApp:
         self._original_state = deepcopy(self.state)
         done = False
 
+        # TODO: Re-enable the `ready` property once issues are resolved
+        if not self.root.ready:
+            warnings.warn(
+                "One of your Flows returned `.ready` as `False`. "
+                "This feature is not yet enabled so this will be ignored.",
+                UserWarning,
+            )
+        self.ready = True
+
         self._start_with_flow_works()
 
-        if self.should_publish_changes_to_api and self.api_publish_state_queue:
-            logger.debug("Publishing the state with changes")
-            # Push two states to optimize start in the cloud.
-            self.api_publish_state_queue.put(self.state_vars)
+        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
@@ -491,7 +506,7 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
+            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
             self._has_updated = False
@@ -509,6 +524,13 @@ class LightningApp:
         for component in breadth_first(self.root, types=(lightning_app.LightningFlow,)):
             layout = _collect_layout(self, component)
             component._layout = layout
+
+    def _update_is_headless(self) -> None:
+        self.is_headless = _is_headless(self)
+
+        # If `is_headless` changed, handle it.
+        # This ensures support for apps which dynamically add a UI at runtime.
+        _handle_is_headless(self)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()
@@ -529,8 +551,6 @@ class LightningApp:
 
     def _should_snapshot(self) -> bool:
         if len(self.works) == 0:
-            return True
-        elif isinstance(self.delta_queue, SingleProcessQueue):
             return True
         elif self._has_updated:
             work_finished_status = self._collect_work_finish_status()

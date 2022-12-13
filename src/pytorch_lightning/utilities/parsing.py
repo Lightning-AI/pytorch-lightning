@@ -185,7 +185,7 @@ def collect_init_args(
         path_args.append(local_args)
         return collect_init_args(frame.f_back, path_args, inside=True, classes=classes)
     if not inside:
-        return collect_init_args(frame.f_back, path_args, inside, classes=classes)
+        return collect_init_args(frame.f_back, path_args, inside=False, classes=classes)
     return path_args
 
 

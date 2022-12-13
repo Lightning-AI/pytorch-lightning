@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Union
 
 import torch
 import torch.distributed as dist
+from torch import Tensor
 from typing_extensions import Self
 
 from lightning_lite.plugins.collectives.collective import Collective
@@ -33,49 +34,47 @@ class TorchCollective(Collective):
     def world_size(self) -> int:
         return dist.get_world_size(self.group)
 
-    def broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+    def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         dist.broadcast(tensor, src, group=self.group)
         return tensor
 
-    def all_reduce(self, tensor: torch.Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
+    def all_reduce(self, tensor: Tensor, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.all_reduce(tensor, op=op, group=self.group)
         return tensor
 
-    def reduce(self, tensor: torch.Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> torch.Tensor:
+    def reduce(self, tensor: Tensor, dst: int, op: Union[str, ReduceOp, RedOpType] = "sum") -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce(tensor, dst, op=op, group=self.group)
         return tensor
 
-    def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor) -> List[torch.Tensor]:
+    def all_gather(self, tensor_list: List[Tensor], tensor: Tensor) -> List[Tensor]:
         dist.all_gather(tensor_list, tensor, group=self.group)
         return tensor_list
 
-    def gather(self, tensor: torch.Tensor, gather_list: List[torch.Tensor], dst: int = 0) -> List[torch.Tensor]:
+    def gather(self, tensor: Tensor, gather_list: List[Tensor], dst: int = 0) -> List[Tensor]:
         dist.gather(tensor, gather_list, dst, group=self.group)
         return gather_list
 
-    def scatter(self, tensor: torch.Tensor, scatter_list: List[torch.Tensor], src: int = 0) -> torch.Tensor:
+    def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:
         dist.scatter(tensor, scatter_list, src, group=self.group)
         return tensor
 
     def reduce_scatter(
-        self, output: torch.Tensor, input_list: List[torch.Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
-    ) -> torch.Tensor:
+        self, output: Tensor, input_list: List[Tensor], op: Union[str, ReduceOp, RedOpType] = "sum"
+    ) -> Tensor:
         op = self._convert_to_native_op(op)
         dist.reduce_scatter(output, input_list, op=op, group=self.group)
         return output
 
-    def all_to_all(
-        self, output_tensor_list: List[torch.Tensor], input_tensor_list: List[torch.Tensor]
-    ) -> List[torch.Tensor]:
+    def all_to_all(self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor]) -> List[Tensor]:
         dist.all_to_all(output_tensor_list, input_tensor_list, group=self.group)
         return output_tensor_list
 
-    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
+    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
         dist.send(tensor, dst, tag=tag, group=self.group)
 
-    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
         dist.recv(tensor, src, tag=tag, group=self.group)
         return tensor
 

@@ -20,20 +20,14 @@ import torch.nn as nn
 import torch.optim
 from tests_lite.helpers.runif import RunIf
 
-from lightning_lite.strategies import DDPShardedStrategy
-from lightning_lite.strategies.fairscale import (
-    _FairscaleBackwardSyncControl,
-    DDPSpawnShardedStrategy,
-    ShardedDataParallel,
-)
+from lightning_lite.strategies.fairscale import _FairscaleBackwardSyncControl, DDPShardedStrategy, ShardedDataParallel
 
 
 @RunIf(fairscale=True)
 @mock.patch("lightning_lite.strategies.fairscale._reinit_optimizers_with_oss", autospec=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_custom_kwargs(_, cls):
+def test_fairscale_custom_kwargs(_):
     """Test that if custom kwargs are passed, they are set correctly."""
-    strategy = cls(reduce_fp16=True)
+    strategy = DDPShardedStrategy(reduce_fp16=True)
     assert strategy._ddp_kwargs["reduce_fp16"] is True
 
     model = nn.Linear(3, 3)
@@ -71,12 +65,11 @@ def test_fairscale_custom_kwargs_reduce_buffer_size(_, kwargs, expected_buffer_s
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_no_backward_sync(cls):
+def test_fairscale_no_backward_sync():
     """Test that the backward sync control calls `.no_sync()`, and only on a module wrapped in
     ShardedDataParallel."""
 
-    strategy = cls()
+    strategy = DDPShardedStrategy()
     assert isinstance(strategy._backward_sync_control, _FairscaleBackwardSyncControl)
 
     with pytest.raises(
@@ -92,10 +85,9 @@ def test_fairscale_no_backward_sync(cls):
     module.no_sync.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_fairscale_requires_joint_setup(cls):
+def test_fairscale_requires_joint_setup():
     """Test that the fairscale sharded strategy does not support setting up model and optimizer independently."""
-    strategy = cls()
+    strategy = DDPShardedStrategy()
     with pytest.raises(
         NotImplementedError, match=escape("does not support setting up the module and optimizer(s) independently")
     ):
