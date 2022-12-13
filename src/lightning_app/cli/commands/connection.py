@@ -66,7 +66,7 @@ def connect(app_name_or_id: str):
             retriever = _LightningAppOpenAPIRetriever(None)
 
             if retriever.api_commands is None:
-                raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
+                raise Exception(f"Connection wasn't successful. Is your app {app_name_or_id} running?")
 
             commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             if not os.path.exists(commands_folder):
