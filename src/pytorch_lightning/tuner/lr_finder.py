@@ -20,10 +20,10 @@ from typing import Any, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
-from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
+from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
