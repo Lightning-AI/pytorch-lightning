@@ -23,7 +23,6 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
@@ -43,7 +42,7 @@ def _import_amp_without_deprecation() -> ModuleType:
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
-    backend = AMPType.APEX
+    backend = "apex"
 
     def __init__(self, amp_level: str = "O2") -> None:
         # deprecate before the availability check so users don't install without knowning that it's deprecated

@@ -28,7 +28,7 @@ from lightning_lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
+from lightning_lite.utilities import _StrategyType, LightningEnum
 from lightning_lite.utilities.device_parser import _determine_root_gpu_device
 from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -82,6 +82,7 @@ from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from src.pytorch_lightning.utilities.enums import AMPType
 
 log = logging.getLogger(__name__)
 
@@ -381,9 +382,9 @@ class AcceleratorConnector:
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
-        self._amp_type_flag = AMPType.from_str(amp_type)
+        self._amp_type_flag = AMPType.from_str(amp_type).value
 
-        if amp_level is not None and self._amp_type_flag != AMPType.APEX:
+        if amp_level is not None and self._amp_type_flag != "apex":
             raise MisconfigurationException(
                 f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
             )
@@ -712,7 +713,7 @@ class AcceleratorConnector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
-            if self._amp_type_flag == AMPType.NATIVE:
+            if self._amp_type_flag == "native":
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
@@ -723,7 +724,7 @@ class AcceleratorConnector:
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 
-            if self._amp_type_flag == AMPType.APEX:
+            if self._amp_type_flag == "apex":
                 self._amp_level_flag = self._amp_level_flag or "O2"
                 return ApexMixedPrecisionPlugin(self._amp_level_flag)
 
@@ -753,18 +754,18 @@ class AcceleratorConnector:
         if (
             self._precision_flag == 16
             and isinstance(self.accelerator, CPUAccelerator)
-            and self._amp_type_flag == AMPType.APEX
+            and self._amp_type_flag == "apex"
         ):
             raise MisconfigurationException(
                 "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
                 " but apex AMP not supported on CPU."
             )
-        if self._precision_flag == "bf16" and self._amp_type_flag != AMPType.NATIVE:
+        if self._precision_flag == "bf16" and self._amp_type_flag != "native":
             raise MisconfigurationException(
                 f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "  # type: ignore
                 "it's not supported. Try using `amp_type='native'` instead."
             )
-        if self._precision_flag in (16, "bf16") and self._amp_type_flag == AMPType.APEX:
+        if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":
             if isinstance(
                 self.strategy,
                 (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy),

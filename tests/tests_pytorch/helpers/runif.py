@@ -154,7 +154,7 @@ class RunIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
-        # TODO: remove in v1.9.0
+        # TODO: remove in v1.10.0
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")

@@ -31,7 +31,6 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -341,7 +340,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # wraps into LightningOptimizer only for running step
-        if self.trainer.amp_backend == AMPType.APEX:
+        if self.trainer.amp_backend == "apex":
             # apex overrides .step function and need to be wrapped on each step
             optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
         else:
@@ -362,7 +361,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            using_native_amp=(self.trainer.amp_backend == AMPType.NATIVE),
+            using_native_amp=(self.trainer.amp_backend == "native"),
             using_lbfgs=is_lbfgs,
         )
 

@@ -15,9 +15,56 @@
 from __future__ import annotations
 
 import os
+from enum import Enum, EnumMeta
+from typing import Any
 
-from lightning_lite.utilities.enums import AMPType, LightningEnum, PrecisionType  # noqa: F401
+from lightning_lite.utilities.enums import LightningEnum, PrecisionType  # noqa: F401
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+
+
+class _DeprecatedEnumMeta(EnumMeta):
+    """Enum that calls `deprecate()` whenever a member is accessed.
+
+    Adapted from: https://stackoverflow.com/a/62309159/208880
+    """
+
+    def __getattribute__(cls, name: str) -> Any:
+        obj = super().__getattribute__(name)
+        # ignore __dunder__ names -- prevents potential recursion errors
+        if not (name.startswith("__") and name.endswith("__")) and isinstance(obj, Enum):
+            obj.deprecate()
+        return obj
+
+    def __getitem__(cls, name: str) -> Any:
+        member: _DeprecatedEnumMeta = super().__getitem__(name)
+        member.deprecate()
+        return member
+
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+        obj = super().__call__(*args, **kwargs)
+        if isinstance(obj, Enum):
+            obj.deprecate()
+        return obj
+
+
+class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
+    """_DeprecatedEnum calls an enum's `deprecate()` method on member access."""
+
+    pass
+
+
+class AMPType(LightningEnum):
+    """Type of Automatic Mixed Precision used for training."""
+
+    APEX = "apex"
+    NATIVE = "native"
+
+    def deprecate(self) -> None:
+        rank_zero_deprecation(
+            f"`{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            f" Use the string value `{self.value!r}` instead."
+        )
 
 
 class GradClipAlgorithmType(LightningEnum):

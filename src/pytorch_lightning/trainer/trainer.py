@@ -84,7 +84,7 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
-from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType, parsing
+from pytorch_lightning.utilities import GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -164,6 +164,7 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
+        # FIXME: deprecate these
         amp_backend: str = "native",  # TODO: Remove in 1.10
         amp_level: Optional[str] = None,  # # TODO: Remove in 1.10
         move_metrics_to_cpu: bool = False,
@@ -1776,11 +1777,11 @@ class Trainer:
         self.strategy.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[AMPType]:
+    def amp_backend(self) -> Optional[str]:
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            return AMPType.APEX
+            return "apex"
         if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
-            return AMPType.NATIVE
+            return "native"
         return None
 
     @property
