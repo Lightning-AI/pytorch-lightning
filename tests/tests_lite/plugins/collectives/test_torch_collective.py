@@ -1,5 +1,6 @@
 import contextlib
 import datetime
+import inspect
 import os
 from functools import partial
 from unittest import mock
@@ -9,7 +10,7 @@ import torch
 from tests_lite.helpers.runif import RunIf
 
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
-from lightning_lite.plugins.collectives import TorchCollective
+from lightning_lite.plugins.collectives import torch_collective, TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
 from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
@@ -29,7 +30,7 @@ PASSED_OBJECT = mock.Mock()
 
 
 @contextlib.contextmanager
-def check_destroy_group():
+def check_destroy_group(autosetup_strategy):
     with mock.patch(
         "lightning_lite.plugins.collectives.torch_collective.TorchCollective.new_group",
         wraps=TorchCollective.new_group,
@@ -38,10 +39,12 @@ def check_destroy_group():
         wraps=TorchCollective.destroy_group,
     ) as mock_destroy:
         yield
-    # 0 to account for tests that mock distributed
-    # -1 to account for destroying the default process group
-    expected = 0 if mock_new.call_count == 0 else mock_destroy.call_count - 1
-    assert mock_new.call_count == expected, f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
+
+    # if autosetup_strategy, setup_environment calls `init_process_group` which is then not managed by collective
+    extra = 0 if autosetup_strategy else 1
+    assert (
+        mock_new.call_count + extra == mock_destroy.call_count
+    ), f"new_group={mock_new.call_count}, destroy_group={mock_destroy.call_count}"
     if TorchCollective.is_available():
         assert not torch.distributed.distributed_c10d._pg_map
         assert not TorchCollective.is_initialized()
@@ -178,61 +181,88 @@ def test_repeated_create_and_destroy():
         collective.create_group().teardown()
 
 
-def collective_launch(fn, parallel_devices, num_groups=1):
+def collective_launch(fn, device_type, num_devices=1, autosetup_strategy=False, num_groups=1):
     device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
-    accelerator_cls = device_to_accelerator[parallel_devices[0].type]
+    accelerator_cls = device_to_accelerator[device_type]
+    devices = [torch.device(f"{device_type}:{i}") for i in range(num_devices)]
     strategy = DDPSpawnStrategy(
-        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+        accelerator=accelerator_cls(), parallel_devices=devices, cluster_environment=LightningEnvironment()
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]
-    wrapped = partial(wrap_launch_function, fn, strategy, collectives)
+    wrapped = partial(wrap_launch_function, fn, strategy, collectives, devices, autosetup_strategy)
     return launcher.launch(wrapped, strategy, *collectives)
 
 
-def wrap_launch_function(fn, strategy, collectives, *args, **kwargs):
-    strategy._set_world_ranks()
-    collectives[0].setup(  # only one needs to setup
-        world_size=strategy.num_processes,
-        main_address="localhost",
-        backend=strategy._get_process_group_backend(),
-        rank=strategy.global_rank,
-    )
-    with check_destroy_group():  # manually use the fixture for the assertions
+def wrap_launch_function(fn, strategy, collectives, devices, autosetup_strategy, *args, **kwargs):
+    with check_destroy_group(autosetup_strategy):  # manually use the fixture for the assertions
+        if autosetup_strategy:
+            strategy.setup_environment()
+        else:
+            strategy._set_world_ranks()
+            collectives[0].setup(  # only one needs to setup
+                world_size=strategy.num_processes,
+                main_address=strategy.cluster_environment.main_address,
+                backend=strategy._get_process_group_backend(),
+                rank=strategy.global_rank,
+                timeout=torch_collective.default_pg_timeout,
+            )
+
+        fn_params = inspect.signature(fn).parameters
+        if "device" in fn_params:
+            kwargs["device"] = devices[strategy.global_rank]
+
         fn(*args, **kwargs)
+        torch.distributed.barrier()
+
         # not necessary since they will be destroyed on process destruction, only added to fulfill the assertions
         for c in collectives:
             c.teardown()
 
+        if autosetup_strategy:
+            torch.distributed.destroy_process_group()
 
-def _test_distributed_collectives_fn(strategy, collective):
+
+def _test_distributed_collectives_fn(strategy, collective, device):
     collective.create_group()
 
     # all_gather
-    tensor_list = [torch.zeros(2, dtype=torch.long) for _ in range(strategy.num_processes)]
-    this = torch.arange(2, dtype=torch.long) + 2 * strategy.global_rank
+    tensor_list = [torch.zeros(2, dtype=torch.long, device=device) for _ in range(strategy.num_processes)]
+    this = torch.arange(2, dtype=torch.long, device=device) + 2 * strategy.global_rank
     out = collective.all_gather(tensor_list, this)
-    expected = torch.arange(2 * strategy.num_processes).split(2)
+    expected = torch.arange(2 * strategy.num_processes, device=device).split(2)
     torch.testing.assert_close(tuple(out), expected)
 
     # reduce
-    this = torch.tensor(strategy.global_rank + 1)
+    this = torch.tensor(strategy.global_rank + 1, device=device)
     out = collective.reduce(this, dst=0, op="max")
-    expected = torch.tensor(strategy.num_processes) if strategy.global_rank == 0 else this
+    expected = torch.tensor(strategy.num_processes, device=device) if strategy.global_rank == 0 else this
     torch.testing.assert_close(out, expected)
 
     # all_reduce
-    this = torch.tensor(strategy.global_rank + 1)
+    this = torch.tensor(strategy.global_rank + 1, device=device)
     out = collective.all_reduce(this, op=ReduceOp.MIN)
-    expected = torch.tensor(1)
+    expected = torch.tensor(1, device=device)
     torch.testing.assert_close(out, expected)
 
 
 @skip_distributed_unavailable
-@pytest.mark.parametrize("n", (1, 2))
+@pytest.mark.parametrize(
+    ["device_type", "num_devices", "autosetup_strategy"],
+    [
+        ("cpu", 1, True),
+        ("cpu", 2, True),
+        ("cpu", 1, False),
+        ("cpu", 2, False),
+        pytest.param("cuda", 1, True, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", 2, True, marks=RunIf(min_cuda_gpus=2)),
+        pytest.param("cuda", 1, False, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", 2, False, marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
-def test_collectives_distributed(n):
-    collective_launch(_test_distributed_collectives_fn, [torch.device("cpu")] * n)
+def test_collectives_distributed(device_type, num_devices, autosetup_strategy):
+    collective_launch(_test_distributed_collectives_fn, device_type, num_devices, autosetup_strategy)
 
 
 def _test_distributed_collectives_cuda_fn(strategy, collective):
@@ -246,15 +276,17 @@ def _test_distributed_collectives_cuda_fn(strategy, collective):
 
 @skip_distributed_unavailable
 @RunIf(min_cuda_gpus=1, min_torch="1.13")
-def test_collectives_distributed_cuda():
-    collective_launch(_test_distributed_collectives_cuda_fn, [torch.device("cuda")])
+@pytest.mark.parametrize("autosetup_strategy", (False, True))
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+def test_collectives_distributed_cuda(autosetup_strategy):
+    collective_launch(_test_distributed_collectives_cuda_fn, "cuda", 1, autosetup_strategy)
 
 
-def _test_two_groups(strategy, left_collective, right_collective):
+def _test_two_groups(strategy, left_collective, right_collective, device):
     left_collective.create_group(ranks=[0, 1])
     right_collective.create_group(ranks=[1, 2])
 
-    tensor = torch.tensor(strategy.global_rank)
+    tensor = torch.tensor(strategy.global_rank, device=device)
     if strategy.global_rank in (0, 1):
         tensor = left_collective.all_reduce(tensor)
         assert tensor == 1
@@ -265,6 +297,9 @@ def _test_two_groups(strategy, left_collective, right_collective):
 
 
 @skip_distributed_unavailable
-@pytest.mark.skip(reason="TODO(carmocca): causing hangs in CI")
-def test_two_groups():
-    collective_launch(_test_two_groups, [torch.device("cpu")] * 3, num_groups=2)
+@RunIf(skip_windows=True)  # flaky test on Windows - RuntimeError: Socket Timeout
+@pytest.mark.parametrize("device_type", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))))
+@pytest.mark.parametrize("autosetup_strategy", (False, True))
+@mock.patch.dict(os.environ, os.environ.copy(), clear=True)  # sets CUDA_MODULE_LOADING in torch==1.13
+def test_two_groups(device_type, autosetup_strategy):
+    collective_launch(_test_two_groups, device_type, 3, autosetup_strategy, num_groups=2)
