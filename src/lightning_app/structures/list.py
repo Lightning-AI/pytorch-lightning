@@ -19,7 +19,7 @@ class List(t.List[T]):
         :class:`~lightning_app.core.work.LightningWork`
         or :class:`~lightning_app.core.flow.LightningFlow`.
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningWork
             >>> from lightning_app.structures import List
