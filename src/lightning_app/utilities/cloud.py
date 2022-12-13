@@ -1,5 +1,6 @@
 import os
 import warnings
+from contextlib import contextmanager
 
 from lightning_cloud.openapi import V1Membership
 
@@ -40,3 +41,18 @@ def _sigterm_flow_handler(*_, app: "lightning_app.LightningApp"):
 def is_running_in_cloud() -> bool:
     """Returns True if the Lightning App is running in the cloud."""
     return "LIGHTNING_CLOUD_PROJECT_ID" in os.environ
+
+
+@contextmanager
+def _pretend_running_in_cloud():
+    global is_running_in_cloud
+    original = is_running_in_cloud
+    is_running_in_cloud = lambda: True
+    yield
+    is_running_in_cloud = original
+
+
+
+if __name__ == "__main__":
+    with _pretend_running_in_cloud():
+        print(is_running_in_cloud())

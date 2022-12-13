@@ -63,7 +63,7 @@ from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
-from lightning_app.utilities.app_helpers import _is_headless, Logger
+from lightning_app.utilities.app_helpers import _is_headless, Logger, _mock_is_running_in_cloud
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
@@ -530,7 +530,8 @@ class CloudRuntime(Runtime):
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
         try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+            with _mock_is_running_in_cloud():
+                app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
             raise e
         except Exception:
