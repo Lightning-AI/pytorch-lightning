@@ -11,7 +11,7 @@ from tests_lite.helpers.runif import RunIf
 from lightning_lite.accelerators import CPUAccelerator, CUDAAccelerator
 from lightning_lite.plugins.collectives import TorchCollective
 from lightning_lite.plugins.environments import LightningEnvironment
-from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
+from lightning_lite.strategies import DDPStrategy
 from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 
@@ -181,8 +181,11 @@ def test_repeated_create_and_destroy():
 def collective_launch(fn, parallel_devices, num_groups=1):
     device_to_accelerator = {"cuda": CUDAAccelerator, "cpu": CPUAccelerator}
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
-    strategy = DDPSpawnStrategy(
-        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    strategy = DDPStrategy(
+        accelerator=accelerator_cls(),
+        parallel_devices=parallel_devices,
+        cluster_environment=LightningEnvironment(),
+        start_method="spawn",
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     collectives = [TorchCollective() for _ in range(num_groups)]

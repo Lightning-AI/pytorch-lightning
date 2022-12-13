@@ -32,7 +32,6 @@ from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
     SingleDeviceStrategy,
@@ -613,7 +612,7 @@ class LightningLite:
         if isinstance(module, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
-        if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
+        if isinstance(self._strategy, DDPShardedStrategy):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
@@ -621,7 +620,7 @@ class LightningLite:
             )
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."
