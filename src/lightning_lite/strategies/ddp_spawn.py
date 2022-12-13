@@ -40,12 +40,7 @@ from lightning_lite.utilities.distributed import group as _group
 from lightning_lite.utilities.distributed import ReduceOp
 from lightning_lite.utilities.rank_zero import rank_zero_only
 
-_DDP_FORK_ALIASES = (
-    "ddp_fork",
-    "ddp_fork_find_unused_parameters_false",
-    "ddp_notebook",
-    "ddp_notebook_find_unused_parameters_false",
-)
+_DDP_FORK_ALIASES = ("ddp_fork", "ddp_notebook")
 
 
 class DDPSpawnStrategy(ParallelStrategy):
@@ -169,20 +164,6 @@ class DDPSpawnStrategy(ParallelStrategy):
                 name,
                 cls,
                 description=f"DDP strategy with `start_method` '{start_method}'",
-                start_method=start_method,
-            )
-
-        entries = (
-            ("ddp_spawn_find_unused_parameters_false", "spawn"),
-            ("ddp_fork_find_unused_parameters_false", "fork"),
-            ("ddp_notebook_find_unused_parameters_false", "fork"),
-        )
-        for name, start_method in entries:
-            strategy_registry.register(
-                name,
-                cls,
-                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
-                find_unused_parameters=False,
                 start_method=start_method,
             )
 
