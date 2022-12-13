@@ -39,9 +39,9 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         for pkg_name in ("lightning.fabric", "lightning_" + "fabric"):
             try:
                 pkg = importlib.import_module(pkg_name)
-                fabrics.append(pkg.Fabric)
-                strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
-                strategies.append(pkg.strategies.DDPSpawnStrategy)
+                lites.append(pkg.Fabric)
+                strategies.append(pkg.strategies.DDPShardedStrategy)
+                strategies.append(pkg.strategies.DDPStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
             except (ImportError, ModuleNotFoundError):
                 continue
@@ -81,7 +81,7 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
                         strategy = "ddp"
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
-                elif isinstance(strategy, tuple(strategies)):
+                elif isinstance(strategy, tuple(strategies)) and strategy._start_method in ("spawn", "fork"):
                     raise ValueError("DDP Spawned strategies aren't supported yet.")
 
             kwargs["strategy"] = strategy
