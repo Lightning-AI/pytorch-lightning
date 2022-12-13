@@ -43,8 +43,6 @@ from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning_fabric.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -53,7 +51,7 @@ from lightning_fabric.strategies import (
     STRATEGY_REGISTRY,
     XLAStrategy,
 )
-from lightning_fabric.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
 from lightning_fabric.utilities import _StrategyType, rank_zero_info, rank_zero_warn
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
@@ -566,9 +564,7 @@ class _Connector:
             return self.strategy.is_distributed
         distributed_strategy = (
             DDPStrategy,
-            DDPSpawnShardedStrategy,
             DDPShardedStrategy,
-            DDPSpawnStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
         )

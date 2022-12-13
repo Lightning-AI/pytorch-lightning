@@ -6,7 +6,7 @@ from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_fabric.plugins.environments import LightningEnvironment
-from lightning_fabric.strategies import DDPSpawnStrategy
+from lightning_fabric.strategies import DDPStrategy
 from lightning_fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from lightning_fabric.utilities.distributed import _gather_all_tensors
 
@@ -24,8 +24,11 @@ def spawn_launch(fn, parallel_devices):
     # initialization to be implemented
     device_to_accelerator = {"cuda": CUDAAccelerator, "mps": MPSAccelerator, "cpu": CPUAccelerator}
     accelerator_cls = device_to_accelerator[parallel_devices[0].type]
-    strategy = DDPSpawnStrategy(
-        accelerator=accelerator_cls(), parallel_devices=parallel_devices, cluster_environment=LightningEnvironment()
+    strategy = DDPStrategy(
+        accelerator=accelerator_cls(),
+        parallel_devices=parallel_devices,
+        cluster_environment=LightningEnvironment(),
+        start_method="spawn",
     )
     launcher = _MultiProcessingLauncher(strategy=strategy)
     wrapped = partial(wrap_launch_function, fn, strategy)
