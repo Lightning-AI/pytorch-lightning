@@ -120,7 +120,6 @@ if __name__ == "__main__":
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
     if os.path.isdir(_PATH_SRC):
-        print(f"Distribute version for {_PATH_SRC}")
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
     print(f"Requested package: '{_PACKAGE_NAME}'")  # requires `-v` to appear
