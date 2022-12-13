@@ -176,7 +176,7 @@ def connect(app_name_or_id: str):
             f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
 
-        click.echo("The lightning CLI now respond to app commands. Use 'lightning --help' to see them.")
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
 
         Popen(
