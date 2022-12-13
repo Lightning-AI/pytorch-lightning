@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -25,7 +26,6 @@ from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):

@@ -35,8 +35,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added support for activation checkpointing for the `DDPFullyShardedNativeStrategy` strategy ([#15826](https://github.com/Lightning-AI/lightning/pull/15826))
 
+
 - Added the option to set `DDPFullyShardedNativeStrategy(cpu_offload=True|False)` via bool instead of needing to pass a configufation object ([#15832](https://github.com/Lightning-AI/lightning/pull/15832))
 
+
+- Added info message for Ampere CUDA GPU users to enable tf32 matmul precision ([#16037](https://github.com/Lightning-AI/lightning/pull/16037))
 
 ### Changed
 
@@ -83,7 +86,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `pytorch_lightning.profiler.base.BaseProfiler` in favor of `pytorch_lightning.profilers.profiler.Profiler` ([#15637](https://github.com/Lightning-AI/lightning/pull/15637))
 
 
--
+- Removed deprecated code in `pytorch_lightning.utilities.meta` ([#16038](https://github.com/Lightning-AI/lightning/pull/16038))
 
 
 ### Fixed
