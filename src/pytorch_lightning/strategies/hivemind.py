@@ -9,7 +9,7 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.types import _LRScheduler, ReduceLROnPlateau
+from lightning_lite.utilities.types import LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -312,7 +312,7 @@ class HiveMindScheduler:
 
     base_lrs: List[float]
 
-    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: _LRScheduler) -> None:
+    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRScheduler) -> None:
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
