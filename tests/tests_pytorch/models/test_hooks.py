@@ -485,17 +485,31 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=train_batches,
-        limit_val_batches=val_batches,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        callbacks=[callback],
-        track_grad_norm=1,
-        **kwargs,
-    )
+    if kwargs.get("amp_backend") == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                max_epochs=1,
+                limit_train_batches=train_batches,
+                limit_val_batches=val_batches,
+                enable_progress_bar=False,
+                enable_model_summary=False,
+                callbacks=[callback],
+                track_grad_norm=1,
+                **kwargs,
+            )
+    else:
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=train_batches,
+            limit_val_batches=val_batches,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            callbacks=[callback],
+            track_grad_norm=1,
+            **kwargs,
+        )
     trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,

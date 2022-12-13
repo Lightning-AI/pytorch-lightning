@@ -25,11 +25,11 @@ from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
-    _APEX_AVAILABLE,
     _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
@@ -154,6 +154,7 @@ class RunIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
+        # TODO: remove in v1.9.0
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")

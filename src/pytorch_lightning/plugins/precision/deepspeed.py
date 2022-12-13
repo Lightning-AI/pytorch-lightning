@@ -21,11 +21,12 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.types import Steppable
+from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _APEX_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -39,20 +40,19 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     Args:
         precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-        amp_type: The mixed precision backend to use ("native" or "apex").
-        amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
-            if ``amp_type`` is set to "apex".
-
     Raises:
-        MisconfigurationException:
-            If using ``bfloat16`` precision and ``deepspeed<v0.6``.
-
         ValueError:
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
+    def __init__(self, precision: Union[str, int], amp_type: str = "native", amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
+            # TODO: remove in v1.10.0
+            rank_zero_deprecation(
+                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+                " PyTorch Lightning has been deprecated in v1.9.0. Support for using it through the DeepSpeed"
+                " implementation will be removed in v1.10.0."
+            )
             if not _APEX_AVAILABLE:
                 raise MisconfigurationException(
                     "You have asked for Apex AMP but `apex` is not installed."
@@ -60,6 +60,15 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 )
 
             amp_level = amp_level or "O2"
+        else:
+            if amp_level is not None:
+                raise ValueError(
+                    f"`{type(self).__name__}(amp_level={amp_level!r})` is only relevant when using NVIDIA/apex"
+                )
+            rank_zero_deprecation(
+                f"Passing `{type(self).__name__}(amp_type=...)` been deprecated in v1.9.0 and will be removed in"
+                " v1.10.0. This argument is no longer necessary."
+            )
 
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
         if precision not in supported_precision:

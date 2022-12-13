@@ -205,6 +205,8 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
             assert self.trainer.precision_plugin._connected
             return super().training_step(batch, batch_idx)
 
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        plugin = ApexMixedPrecisionPlugin(amp_level=amp_level)
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
@@ -213,7 +215,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
-        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        plugins=plugin,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -226,16 +228,17 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
 @RunIf(min_cuda_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=16,
-        amp_backend="apex",
-        accelerator="gpu",
-        devices=2,
-        strategy="ddp_spawn",
-        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
-    )
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            precision=16,
+            amp_backend="apex",
+            accelerator="gpu",
+            devices=2,
+            strategy="ddp_spawn",
+            plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = BoringModel()
     trainer.fit(model)
@@ -271,5 +274,5 @@ def test_precision_selection_raises(monkeypatch):
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
     with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
-    ):
+    ), pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

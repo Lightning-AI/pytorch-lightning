@@ -469,9 +469,6 @@ Validation and test step have the same option when using DP.
 Distributed and 16-bit precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to an issue with Apex and DataParallel (PyTorch and NVIDIA issue), Lightning does
-not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.
-
 Below are the possible configurations we support.
 
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
@@ -487,7 +484,7 @@ Below are the possible configurations we support.
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
 |       | Y       |     | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-
+# FIXME(carlos): check native amp and DP
 
 Implement Your Own Distributed (DDP) training
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

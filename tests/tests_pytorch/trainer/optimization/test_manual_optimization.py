@@ -114,7 +114,11 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     model.val_dataloader = None
 
     limit_train_batches = 2
-    plugins = [ApexMixedPrecisionPlugin(amp_level="O2")] if kwargs.get("amp_backend") == "apex" else []
+    plugins = []
+    if kwargs.get("amp_backend") == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
+        plugins.append(apex_plugin)
 
     trainer = Trainer(
         default_root_dir=tmpdir,

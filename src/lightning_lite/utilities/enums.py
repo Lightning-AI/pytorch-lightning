@@ -29,6 +29,7 @@ else:
     LightningEnum = StrEnum
 
 
+# FIXME(carlos): Deprecate this on PL
 class AMPType(LightningEnum):
     """Type of Automatic Mixed Precission used for training."""
 

@@ -26,6 +26,7 @@ from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
+# FIXME(carlos): deprecate Native
 class NativeMixedPrecisionPlugin(PrecisionPlugin):
     """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 

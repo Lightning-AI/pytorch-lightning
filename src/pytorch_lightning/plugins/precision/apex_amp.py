@@ -11,27 +11,48 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
+import warnings
+from types import ModuleType
 from typing import Any, Callable, Dict, Optional
 
+from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.types import _PARAMETERS, Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import _APEX_AVAILABLE, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
-if _APEX_AVAILABLE:
-    from apex import amp
+_APEX_AVAILABLE = RequirementCache("apex")
 
 
+@functools.lru_cache(maxsize=1)
+def _import_amp_without_deprecation() -> ModuleType:
+    # hide the warning upstream in favor of our deprecation
+    with warnings.filterwarnings(action="ignore", message="apex.amp is deprecated", category=FutureWarning):
+        from apex import amp
+
+        return amp
+
+
+# TODO: remove in v1.10.0
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
     backend = AMPType.APEX
 
     def __init__(self, amp_level: str = "O2") -> None:
+        # deprecate before the availability check so users don't install without knowning that it's deprecated
+        rank_zero_deprecation(
+            "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+            f" PyTorch Lightning has been deprecated in v1.9.0. The `{type(self).__name__}` class will be removed in"
+            " v1.10.0. Please use PyTorch's AMP implementation available in"
+            " `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
+        )
         if not _APEX_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for Apex AMP but `apex` is not installed."
@@ -43,11 +64,13 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         self._state_dict_loaded = False
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
+        amp = _import_amp_without_deprecation()
         return amp.master_params(optimizer)
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         if not self._connected:
             strategy = trainer.strategy
+            amp = _import_amp_without_deprecation()
             _, strategy.optimizers = amp.initialize(
                 trainer.lightning_module, strategy.optimizers, opt_level=self.amp_level
             )
@@ -73,6 +96,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         opt = optimizer or model.trainer.optimizers
+        amp = _import_amp_without_deprecation()
         with amp.scale_loss(tensor, opt) as tensor:
             super().backward(tensor, model, optimizer, *args, **kwargs)
 
@@ -102,6 +126,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         return closure_result
 
     def state_dict(self) -> Dict[str, Any]:
+        amp = _import_amp_without_deprecation()
         return amp.state_dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:

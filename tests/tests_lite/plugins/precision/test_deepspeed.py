@@ -36,7 +36,8 @@ def test_deepspeed_precision_apex_not_installed(monkeypatch):
 
 @mock.patch("lightning_lite.plugins.precision.deepspeed._APEX_AVAILABLE", return_value=True)
 def test_deepspeed_precision_apex_default_level(_):
-    precision = DeepSpeedPrecision(precision=16, amp_type="apex")
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        precision = DeepSpeedPrecision(precision=16, amp_type="apex")
     assert isinstance(precision, DeepSpeedPrecision)
     assert precision.amp_level == "O2"
 

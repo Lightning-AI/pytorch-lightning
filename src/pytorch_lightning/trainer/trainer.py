@@ -164,8 +164,8 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: str = "native",
-        amp_level: Optional[str] = None,
+        amp_backend: str = "native",  # TODO: Remove in 1.10
+        amp_level: Optional[str] = None,  # # TODO: Remove in 1.10
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -183,6 +183,10 @@ class Trainer:
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
                 Default: ``'native''``.
+
+                .. deprecated:: v1.9
+                    Setting ``amp_backend`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
+                    in v1.10.0. This argument was only relevant for apex which is being removed.
 
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
