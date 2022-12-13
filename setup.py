@@ -124,7 +124,8 @@ if __name__ == "__main__":
     setup_tools = _load_py_module(name="setup_tools", location=os.path.join(_PATH_ROOT, ".actions", "setup_tools.py"))
     assistant = _load_py_module(name="assistant", location=os.path.join(_PATH_ROOT, ".actions", "assistant.py"))
 
-    if os.path.exists(_PATH_SRC):
+    if os.path.isdir(_PATH_SRC):
+        print(f"Distribute version for {_PATH_SRC}")
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
     print(f"Requested package: '{_PACKAGE_NAME}'")  # requires `-v` to appear
@@ -163,7 +164,7 @@ if __name__ == "__main__":
     setup_args = setup_module._setup_args()
     is_main_pkg = package_to_install == "lightning"
     print(f"Installing as the main package: {is_main_pkg}")
-    if is_main_pkg and is_source_install:
+    if is_main_pkg or is_source_install:
         # we are installing from source, set the correct manifest path
         with _set_manifest_path(pkg_path, aggregate=is_main_pkg):
             setuptools.setup(**setup_args)
