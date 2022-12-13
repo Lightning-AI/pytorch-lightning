@@ -111,11 +111,9 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
 
 
     class SimpleModel(LightningModule):
-        def __init__(self, gradient_clip_val=0.5, gradient_clip_algorithm="norm"):
+        def __init__(self):
             super().__init__()
             self.automatic_optimization = False
-            self.gradient_clip_val = gradient_clip_val
-            self.gradient_clip_algorithm = gradient_clip_algorithm
 
         def training_step(self, batch, batch_idx):
             opt = self.optimizers()
@@ -127,7 +125,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
             self.manual_backward(loss)
 
             # clip gradients
-            self.clip_gradients(opt, self.gradient_clip_val, self.gradient_clip_algorithm)
+            self.clip_gradients(opt, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
 
             opt.step()
 
