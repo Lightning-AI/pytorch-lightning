@@ -25,7 +25,7 @@ def test_commands_and_api_example_cloud() -> None:
 
         # 2: Connect to the App and send the first & second command with the client
         # Requires to be run within the same process.
-        cmd_1 = f"python -m lightning connect {app_id} -y"
+        cmd_1 = f"python -m lightning connect {app_id}"
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
         cmd_4 = "lightning disconnect"
