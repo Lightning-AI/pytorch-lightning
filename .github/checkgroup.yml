@@ -314,6 +314,9 @@ subprojects:
   - id: "install"
     paths:
       - ".actions/**"
+      - ".github/actions/pkg-check/*"
+      - ".github/actions/pkg-install/*"
+      - ".github/workflows/_build-packages.yml"
       - ".github/workflows/ci-pkg-install.yml"
       - "setup.py"
       - "src/**"

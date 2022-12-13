@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -21,24 +22,24 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
-from lightning_fabric.accelerators.accelerator import Accelerator
-from lightning_fabric.plugins.collectives.torch_collective import default_pg_timeout
-from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_fabric.plugins.io.checkpoint_io import CheckpointIO
-from lightning_fabric.plugins.precision import Precision
-from lightning_fabric.strategies.ddp import _DDPBackwardSyncControl
-from lightning_fabric.strategies.launchers.multiprocessing import _MultiProcessingLauncher
-from lightning_fabric.strategies.parallel import ParallelStrategy
-from lightning_fabric.strategies.strategy import TBroadcast
-from lightning_fabric.utilities.distributed import (
+from lightning_lite.accelerators.accelerator import Accelerator
+from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
+from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
+from lightning_lite.plugins.precision import Precision
+from lightning_lite.strategies.launchers.multiprocessing import _MultiProcessingLauncher
+from lightning_lite.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
+from lightning_lite.strategies.parallel import ParallelStrategy
+from lightning_lite.strategies.strategy import _BackwardSyncControl, TBroadcast
+from lightning_lite.utilities.distributed import (
     _distributed_available,
     _get_default_process_group_backend_for_device,
     _init_dist_connection,
     _sync_ddp_if_available,
 )
-from lightning_fabric.utilities.distributed import group as _group
-from lightning_fabric.utilities.distributed import ReduceOp
-from lightning_fabric.utilities.rank_zero import rank_zero_only
+from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.distributed import ReduceOp
+from lightning_lite.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
     "ddp_fork",
@@ -48,9 +49,8 @@ _DDP_FORK_ALIASES = (
 )
 
 
-class DDPSpawnStrategy(ParallelStrategy):
-    """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
-    finishes."""
+class DDPStrategy(ParallelStrategy):
+    """Strategy for multi-process single-device training on one or multiple nodes."""
 
     def __init__(
         self,
@@ -61,9 +61,9 @@ class DDPSpawnStrategy(ParallelStrategy):
         precision: Optional[Precision] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
+        start_method: Literal["popen", "spawn", "fork", "forkserver"] = "popen",
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -74,15 +74,18 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
-        self._backward_sync_control = _DDPBackwardSyncControl()
         self._start_method = start_method
+        self._backward_sync_control = _DDPBackwardSyncControl()
         self._ddp_kwargs = kwargs
-        self._local_rank = 0
 
     @property
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def is_distributed(self) -> bool:
+        return True
 
     @property
     def num_nodes(self) -> int:
@@ -98,25 +101,26 @@ class DDPSpawnStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     @property
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
 
-    @property
-    def local_rank(self) -> int:
-        return self._local_rank
-
     def _configure_launcher(self) -> None:
-        self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
+        assert self.cluster_environment is not None
+        if self._start_method == "popen":
+            self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+        else:
+            self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
     def setup_environment(self) -> None:
         self._setup_distributed()
         super().setup_environment()
 
-    def setup_module(self, module: Module) -> Module:
+    def setup_module(self, module: Module) -> DistributedDataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=module, device_ids=self._determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def module_to_device(self, module: Module) -> None:
@@ -160,6 +164,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         entries = (
+            ("ddp", "popen"),
             ("ddp_spawn", "spawn"),
             ("ddp_fork", "fork"),
             ("ddp_notebook", "fork"),
@@ -168,11 +173,12 @@ class DDPSpawnStrategy(ParallelStrategy):
             strategy_registry.register(
                 name,
                 cls,
-                description=f"DDP strategy with `start_method` '{start_method}'",
+                description=f"DDP strategy with `start_method={start_method!r}`",
                 start_method=start_method,
             )
 
         entries = (
+            ("ddp_find_unused_parameters_false", "popen"),
             ("ddp_spawn_find_unused_parameters_false", "spawn"),
             ("ddp_fork_find_unused_parameters_false", "fork"),
             ("ddp_notebook_find_unused_parameters_false", "fork"),
@@ -181,7 +187,7 @@ class DDPSpawnStrategy(ParallelStrategy):
             strategy_registry.register(
                 name,
                 cls,
-                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method={start_method!r}`",
                 find_unused_parameters=False,
                 start_method=start_method,
             )
@@ -191,13 +197,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
-        _init_dist_connection(
-            self.cluster_environment,
-            self._process_group_backend,
-            self.global_rank,
-            self.world_size,
-            timeout=self._timeout,
-        )
+        _init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
         return self._process_group_backend or _get_default_process_group_backend_for_device(self.root_device)
@@ -213,3 +213,18 @@ class DDPSpawnStrategy(ParallelStrategy):
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
+
+
+class _DDPBackwardSyncControl(_BackwardSyncControl):
+    @contextmanager
+    def no_backward_sync(self, module: Module) -> Generator:
+        """Blocks gradient synchronization inside the
+        :class:`~torch.nn.parallel.distributed.DistributedDataParallel` wrapper."""
+        if not isinstance(module, DistributedDataParallel):
+            raise TypeError(
+                "Blocking backward sync is only possible if the module passed to"
+                f" `{self.__class__.__name__}.no_backward_sync` is wrapped in `DistributedDataParallel`."
+                f" Got: {module.__class__.__name__}."
+            )
+        with module.no_sync():  # type: ignore[operator]
+            yield
