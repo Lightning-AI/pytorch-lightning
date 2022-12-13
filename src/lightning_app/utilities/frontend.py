@@ -12,6 +12,7 @@ class AppInfo:
     image: Optional[str] = None
     # ensure the meta tags are correct or the UI might fail to load.
     meta_tags: Optional[List[str]] = None
+    on_after_connect: Optional[str] = None
 
 
 def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: str = "") -> None:

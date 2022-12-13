@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 import click
 import psutil
 from lightning_utilities.core.imports import package_available
-from rich.progress import Progress
+from rich.progress import Progress, Task
 
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
@@ -22,11 +22,11 @@ _HOME = os.path.expanduser("~")
 _PPID = os.getenv("LIGHTNING_CONNECT_PPID", str(psutil.Process(os.getpid()).ppid()))
 _LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
 _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
+_PROGRESS_TOTAL = 60
 
 
 @click.argument("app_name_or_id", required=True)
-@click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
-def connect(app_name_or_id: str, yes: bool = False):
+def connect(app_name_or_id: str):
     """Connect to a Lightning App."""
     from lightning_app.utilities.commands.base import _download_command
 
@@ -50,16 +50,14 @@ def connect(app_name_or_id: str, yes: bool = False):
                 click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
         else:
             disconnect()
-            connect(app_name_or_id, yes)
+            connect(app_name_or_id)
 
     elif app_name_or_id.startswith("localhost"):
 
         with Progress() as progress_bar:
-            total = 30
             event = Event()
-            connecting = progress_bar.add_task("[green]Connecting...", total=total)
-
-            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting, total], daemon=True)
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=_PROGRESS_TOTAL)
+            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting], daemon=True)
             thread.start()
 
             if app_name_or_id != "localhost":
@@ -98,15 +96,15 @@ def connect(app_name_or_id: str, yes: bool = False):
             event.set()
             thread.join()
 
-        click.echo(" ")
-        click.echo(f"You can review all the downloaded commands at {commands_folder}")
-        click.echo(" ")
-
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
-        click.echo("Use ``lightning --help`` in your terminal to get the following information:")
+        click.echo(
+            "The lightning CLI will now respond to the commands exposed by App."
+            " Use ``lightning --help`` in your terminal to get the following information:"
+        )
         click.echo(" ")
+
         Popen(
             f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
             shell=True,
@@ -123,11 +121,12 @@ def connect(app_name_or_id: str, yes: bool = False):
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
 
+        click.echo(
+            "The lightning CLI will now respond to the commands exposed by App."
+            " Use ``lightning --help`` in your terminal to get the following information:"
+        )
         click.echo(" ")
-        click.echo(f"You can review all the downloaded commands at {commands_folder}")
-        click.echo(" ")
-        click.echo("Use ``lightning --help`` in your terminal to get the following information:")
-        click.echo(" ")
+
         Popen(
             f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
             shell=True,
@@ -137,11 +136,9 @@ def connect(app_name_or_id: str, yes: bool = False):
 
     else:
         with Progress() as progress_bar:
-            total = 30
             event = Event()
-            connecting = progress_bar.add_task("[green]Connecting...", total=total)
-
-            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting, total], daemon=True)
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=_PROGRESS_TOTAL)
+            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting], daemon=True)
             thread.start()
 
             retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
@@ -158,47 +155,39 @@ def connect(app_name_or_id: str, yes: bool = False):
 
             _install_missing_requirements(retriever)
 
-            if not yes:
-                yes = click.confirm(
-                    f"The Lightning App `{app_name_or_id}` provides a command-line (CLI). "
-                    "Do you want to proceed and install its CLI ?"
-                )
-                click.echo(" ")
+            commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
+            if not os.path.exists(commands_folder):
+                os.makedirs(commands_folder)
 
-            if yes:
-                commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
-                if not os.path.exists(commands_folder):
-                    os.makedirs(commands_folder)
+            _write_commands_metadata(retriever.api_commands)
 
-                _write_commands_metadata(retriever.api_commands)
-
-                for command_name, metadata in retriever.api_commands.items():
-                    if "cls_path" in metadata:
-                        target_file = os.path.join(commands_folder, f"{command_name}.py")
-                        _download_command(
-                            command_name,
-                            metadata["cls_path"],
-                            metadata["cls_name"],
-                            retriever.app_id,
-                            target_file=target_file,
-                        )
-                    else:
-                        with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
-                            f.write(command_name)
+            for command_name, metadata in retriever.api_commands.items():
+                if "cls_path" in metadata:
+                    target_file = os.path.join(commands_folder, f"{command_name}.py")
+                    _download_command(
+                        command_name,
+                        metadata["cls_path"],
+                        metadata["cls_name"],
+                        retriever.app_id,
+                        target_file=target_file,
+                    )
+                else:
+                    with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
+                        f.write(command_name)
 
             event.set()
             thread.join()
-
-        click.echo(" ")
-        click.echo(f"You can review all the downloaded commands at {commands_folder}")
-        click.echo(" ")
 
         with open(connected_file, "w") as f:
             f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
 
-        click.echo("Use ``lightning --help`` in your terminal to get the following information:")
+        click.echo(
+            "The lightning CLI will now respond to the commands exposed by App."
+            " Use ``lightning --help`` in your terminal to get the following information:"
+        )
         click.echo(" ")
+
         Popen(
             f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
             shell=True,
@@ -278,16 +267,32 @@ def _list_app_commands(echo: bool = True) -> List[str]:
         click.echo("The current Lightning App doesn't have commands.")
         return []
 
+    app_info = metadata[command_names[0]].get("app_info", None)
+
+    title, description = "Lightning", None
+    if app_info:
+        title = app_info["title"]
+        description = app_info["description"]
+        on_after_connect = app_info["on_after_connect"]
+
     if echo:
-        click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
+        click.echo(f"{title} App")
+        if description:
+            click.echo("")
+            click.echo("Description:")
+            if description.endswith("\n"):
+                description = description[:-2]
+            click.echo(f"  {description}")
         click.echo("")
-        click.echo("  --help     Show this message and exit.")
-        click.echo("")
-        click.echo("Lightning App Commands")
+        click.echo("Commands:")
         max_length = max(len(n) for n in command_names)
         for command_name in command_names:
             padding = (max_length + 1 - len(command_name)) * " "
             click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
+        if "LIGHTNING_CONNECT_PPID" in os.environ and on_after_connect:
+            if on_after_connect.endswith("\n"):
+                on_after_connect = on_after_connect[:-2]
+            click.echo(on_after_connect)
     return command_names
 
 
@@ -362,14 +367,15 @@ def _scan_lightning_connections(app_name_or_id):
     return None
 
 
-def update_progresss(exit_event, progress_bar, task, total):
+def update_progresss(exit_event: Event, progress_bar: Progress, task: Task) -> None:
     t0 = time()
     while not exit_event.is_set():
         sleep(0.5)
         progress_bar.update(task, advance=0.5)
 
-    # Note: Not required but make progress feel more natural
-    remaning = total - (time() - t0)
-    for _ in range(10):
-        progress_bar.update(task, advance=remaning / 10.0)
+    # Note: This is required to make progress feel more naturally progressing.
+    remaning = _PROGRESS_TOTAL - (time() - t0)
+    num_updates = 10
+    for _ in range(num_updates):
+        progress_bar.update(task, advance=remaning / float(num_updates))
         sleep(0.2)
