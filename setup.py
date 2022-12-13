@@ -88,22 +88,17 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
         # aggregate all MANIFEST.in contents into a single temporary file
         manifest_path = _named_temporary_file(manifest_dir)
         mapping = _PACKAGE_MAPPING.copy()
-        del mapping["lightning"]
-        lines = ["include src/lightning/version.info\n"]
+        lines = ["include src/lightning/version.info\n", "include requirements/base.txt\n"]
+        # load manifest and aggregated all manifests
         for pkg in mapping.values():
-            pkg_path = os.path.join(_PATH_SRC, pkg)
-            if not os.path.exists(pkg_path):
-                # this function is getting called with `pip install .` and `pip install *.tar.gz`, however, it only
-                # should be called with the former. i haven't found a way to differentiate the two so this is the hacky
-                # solution to avoid an error
-                print(f"{pkg_path!r} does not exist")
-                yield
-                return
-            with open(os.path.join(pkg_path, "MANIFEST.in")) as fh:
-                lines.extend(fh.readlines())
+            pkg_manifest = os.path.join(_PATH_SRC, pkg, "MANIFEST.in")
+            if os.path.isfile(pkg_manifest):
+                with open(pkg_manifest) as fh:
+                    lines.extend(fh.readlines())
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
-            lines = [line.replace(old, f"lightning/{new}") for line in lines]
+            lines += [line.replace(old, f"lightning/{new}") for line in lines]
+        lines = sorted(set(filter(lambda ln: not ln.strip().startswith("#"), lines)))
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
     else:
@@ -170,3 +165,4 @@ if __name__ == "__main__":
             setuptools.setup(**setup_args)
     else:
         setuptools.setup(**setup_args)
+    print("Finished install process.")
