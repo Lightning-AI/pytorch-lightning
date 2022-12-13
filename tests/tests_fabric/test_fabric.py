@@ -292,7 +292,7 @@ def test_setup_dataloaders_unsupported_input():
 
 
 def test_setup_dataloaders_return_type():
-    """Test that the setup method returns the dataloaders wrapped as LiteDataLoader and in the right order."""
+    """Test that the setup method returns the dataloaders wrapped as FabricDataLoader and in the right order."""
     lite = EmptyLite()
 
     # single dataloader
@@ -361,7 +361,7 @@ def test_setup_dataloaders_twice_fails():
     return_value=torch.device("cuda", 1),
 )
 def test_setup_dataloaders_move_to_device(lite_device_mock):
-    """Test that the setup configures LiteDataLoader to move the data to the device automatically."""
+    """Test that the setup configures FabricDataLoader to move the data to the device automatically."""
     lite = EmptyLite()
     lite_dataloaders = lite.setup_dataloaders(DataLoader(Mock()), DataLoader(Mock()), move_to_device=False)
     assert all(dl.device is None for dl in lite_dataloaders)
