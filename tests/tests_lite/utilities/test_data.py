@@ -555,11 +555,12 @@ def test_patching_dataloader_classes_on_import():
     assert subprocess.call([sys.executable, "-c", code]) == 0
     code = dedent(
         """
+        import torch
+
         # this import is expected to trigger patching all dataloader and batch sampler classes
         import lightning_lite
 
         # the import order should not matter, importing the DataLoader class after lightning_lite works
-        import torch
         from torch.utils.data import BatchSampler, DataLoader, SequentialSampler
 
         # DataLoader
