@@ -18,6 +18,9 @@ from lightning_cloud.openapi import (
     V1CreateClusterRequest,
     V1GetClusterResponse,
     V1KubernetesClusterDriver,
+    V1LightningappInstanceState,
+    V1ListLightningappInstancesResponse,
+    V1Membership,
 )
 from lightning_utilities.core.enums import StrEnum
 from rich.console import Console
@@ -25,6 +28,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightning_app.cli.core import Formatable
+from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.openapi import create_openapi_object, string2dict
 
@@ -198,6 +202,36 @@ class AWSClusterManager:
             )
             click.confirm("Do you want to continue?", abort=True)
 
+        else:
+            if _has_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING]):
+                raise click.ClickException(
+                    dedent(
+                        f"""
+                        Unable to delete cluster because there are apps running on it.
+                        Please stop or delete the apps before deleting the cluster.
+
+                        To see the status of all apps on this cluster:
+                            lightning list apps --cluster-id {cluster_id}
+
+                        To delete apps from the CLI:
+                            lighting delete app <app-name>
+                        """
+                    )
+                )
+
+            if _has_apps(self.api_client, cluster_id=cluster_id, phase_not_in=[V1LightningappInstanceState.DELETED]):
+                click.echo(
+                    dedent(
+                        """
+                        This cluster has non-running apps.
+                        Deleting this cluster will delete those apps and their logs.
+
+                        App data will still be available in the S3 bucket for the cluster.
+                        """
+                    )
+                )
+                click.confirm("Are you sure you want to continue?", abort=True)
+
         resp: V1GetClusterResponse = self.api_client.cluster_service_get_cluster(id=cluster_id)
         bucket_name = resp.spec.driver.kubernetes.aws.bucket_name
 
@@ -224,6 +258,29 @@ class AWSClusterManager:
                 _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
             except KeyboardInterrupt:
                 click.echo(background_message)
+
+
+def _has_apps(
+    api_client: LightningClient,
+    **filters,
+) -> bool:
+    """
+    _has_apps wraps the lightningapp_instance_service_list_lightningapp_instances method.
+
+    Args:
+        api_client (LightningClient): Used for listing app instances
+        **filters: keyword arguments passed to the list method
+
+    Returns:
+        bool: whether or not the response had apps matching the filters
+    """
+    project: V1Membership = _get_project(api_client)
+    resp: V1ListLightningappInstancesResponse = api_client.lightningapp_instance_service_list_lightningapp_instances(
+        project.project_id,
+        **filters,
+    )
+
+    return len(resp.lightningapps) > 0
 
 
 def _wait_for_cluster_state(
