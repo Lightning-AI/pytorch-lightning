@@ -40,6 +40,7 @@ There are considered three main scenarios for installing this project:
     c) validate packages and publish to PyPI
 """
 import contextlib
+import glob
 import os
 import tempfile
 from importlib.util import module_from_spec, spec_from_file_location
@@ -127,13 +128,15 @@ if __name__ == "__main__":
         # copy the version information to all packages
         setup_tools.distribute_version(_PATH_SRC)
 
+    local_pkgs = [os.path.basename(p) for p in glob.glob(os.path.join(_PATH_SRC, "*")) if os.path.isdir(p)]
+    print("Local package candidates: ", local_pkgs)
     package_to_install = _PACKAGE_NAME or "lightning"
-    print(f"Installing the {package_to_install} package")  # requires `-v` to appear
-    is_wheel_install = "PEP517_BUILD_BACKEND" in os.environ
-    print("is_wheel_install:", is_wheel_install)
-    if package_to_install not in _PACKAGE_MAPPING or (not is_wheel_install and _PACKAGE_NAME is None):
+    print(f"Installing the `{package_to_install}` package")  # requires `-v` to appear
+    is_pkg_install = "PEP517_BUILD_BACKEND" in os.environ
+    print("Installing from package/wheel: ", is_pkg_install)
+    is_pkg_install &= _PACKAGE_NAME is None
+    if package_to_install not in _PACKAGE_MAPPING or not is_pkg_install:
         raise ValueError(f"Unexpected package name: {_PACKAGE_NAME}. Possible choices are: {list(_PACKAGE_MAPPING)}")
-    is_wheel_install &= _PACKAGE_NAME is None
 
     if package_to_install == "lightning":  # install everything
         # merge all requirements files
@@ -143,7 +146,7 @@ if __name__ == "__main__":
 
     # if it's a wheel install (hence _PACKAGE_NAME should not be set), iterate over all possible packages until we find
     # one that can be installed. the wheel should have included only the relevant files of the package to install
-    possible_packages = _PACKAGE_MAPPING.values() if is_wheel_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
+    possible_packages = _PACKAGE_MAPPING.values() if is_pkg_install else [_PACKAGE_MAPPING[_PACKAGE_NAME]]
     for pkg in possible_packages:
         pkg_path = os.path.join(_PATH_SRC, pkg)
         pkg_setup = os.path.join(pkg_path, "__setup__.py")
@@ -152,7 +155,7 @@ if __name__ == "__main__":
             setup_module = _load_py_module(name=f"{pkg}_setup", location=pkg_setup)
             setup_args = setup_module._setup_args()
             is_main_pkg = pkg == "lightning"
-            if is_wheel_install and not is_main_pkg:
+            if is_pkg_install and not is_main_pkg:
                 setuptools.setup(**setup_args)
             else:
                 # we are installing from source, set the correct manifest path
