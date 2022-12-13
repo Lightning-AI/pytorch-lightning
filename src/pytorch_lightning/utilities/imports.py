@@ -13,11 +13,15 @@
 # limitations under the License.
 """General utilities."""
 import operator
+import sys
 
 import torch
 from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
 
+_PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
+_PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
+# duplicated from lite because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 
 _APEX_AVAILABLE = module_available("apex.amp")
