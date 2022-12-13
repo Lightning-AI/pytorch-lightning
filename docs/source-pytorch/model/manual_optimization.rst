@@ -132,7 +132,7 @@ To perform gradient clipping with one optimizer with manual optimization, you ca
             opt.step()
 
 .. warning::
-   * Note that overriding/implementing ``configure_gradient_clipping()`` in the case of Manual Optimization will not perform gradient clipping / will be ignored. Instead consider using ``self.gradient_clipping()`` manually like the example above.
+   * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
 
 Use Multiple Optimizers (like GANs)
 ===================================
