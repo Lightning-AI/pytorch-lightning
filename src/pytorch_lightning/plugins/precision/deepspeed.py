@@ -66,8 +66,8 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                     f"`{type(self).__name__}(amp_level={amp_level!r})` is only relevant when using NVIDIA/apex"
                 )
             rank_zero_deprecation(
-                f"Passing `{type(self).__name__}(amp_type=...)` been deprecated in v1.9.0 and will be removed in"
-                " v1.10.0. This argument is no longer necessary."
+                f"Passing `{type(self).__name__}(amp_type={amp_type!r})` been deprecated in v1.9.0 and will be removed"
+                f" in v1.10.0. This argument is no longer necessary."
             )
 
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)

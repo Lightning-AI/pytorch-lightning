@@ -20,7 +20,9 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_invalid_precision_with_deepspeed_precision():
-    with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
+    with pytest.deprecated_call(match=r"amp_type='native'\)` been deprecated in v1.9.0"), pytest.raises(
+        ValueError, match="is not supported. `precision` must be one of"
+    ):
         DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
 
 

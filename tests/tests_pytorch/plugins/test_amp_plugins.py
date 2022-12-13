@@ -20,13 +20,13 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-class MyNativeAMP(NativeMixedPrecisionPlugin):
+class MyNativeAMP(MixedPrecisionPlugin):
     pass
 
 
@@ -52,7 +52,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
-        ("native", False, NativeMixedPrecisionPlugin),
+        ("native", False, MixedPrecisionPlugin),
         ("native", True, MyNativeAMP),
         pytest.param("apex", False, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
@@ -189,9 +189,7 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, amp_backend="native", precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision=16)
     model = CustomBoringModel()
     trainer.fit(model)
 
@@ -246,7 +244,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    plugin = NativeMixedPrecisionPlugin("bf16", "cpu")
+    plugin = MixedPrecisionPlugin("bf16", "cpu")
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
@@ -256,16 +254,20 @@ def test_cpu_amp_precision_context_manager(tmpdir):
 
 
 def test_precision_selection_raises(monkeypatch):
-    with pytest.raises(
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
     ):
         Trainer(amp_backend="apex", precision=16)
 
-    with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
+        MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"
+    ):
         Trainer(amp_backend="apex", precision="bf16")
 
     mock_cuda_count(monkeypatch, 1)
-    with pytest.raises(MisconfigurationException, match="Sharded plugins are not supported with apex"):
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
+        MisconfigurationException, match="Sharded plugins are not supported with apex"
+    ):
         with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
@@ -274,5 +276,5 @@ def test_precision_selection_raises(monkeypatch):
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
     with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
-    ), pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+    ), pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

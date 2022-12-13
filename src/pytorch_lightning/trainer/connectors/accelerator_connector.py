@@ -48,7 +48,7 @@ from pytorch_lightning.plugins import (
     FullyShardedNativeMixedPrecisionPlugin,
     HPUPrecisionPlugin,
     IPUPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
+    MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
     ShardedNativeMixedPrecisionPlugin,
@@ -717,7 +717,7 @@ class AcceleratorConnector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16bit {self._amp_type_flag.value} Automatic Mixed Precision (AMP)"  # type: ignore
+                f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"  # type: ignore
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
@@ -731,7 +731,7 @@ class AcceleratorConnector:
                     return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                return NativeMixedPrecisionPlugin(self._precision_flag, device)
+                return MixedPrecisionPlugin(self._precision_flag, device)
 
             if self._amp_type_flag == "apex":
                 self._amp_level_flag = self._amp_level_flag or "O2"
@@ -771,7 +771,7 @@ class AcceleratorConnector:
             )
         if self._precision_flag == "bf16" and self._amp_type_flag != "native":
             raise MisconfigurationException(
-                f"You passed `Trainer(amp_type={self._amp_type_flag.value!r}, precision='bf16')` but "  # type: ignore
+                f"You passed `Trainer(amp_type={self._amp_type_flag!r}, precision='bf16')` but "  # type: ignore
                 "it's not supported. Try using `amp_type='native'` instead."
             )
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":

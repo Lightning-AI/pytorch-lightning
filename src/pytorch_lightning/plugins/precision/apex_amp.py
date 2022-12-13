@@ -32,10 +32,10 @@ _APEX_AVAILABLE = RequirementCache("apex")
 @functools.lru_cache(maxsize=1)
 def _import_amp_without_deprecation() -> ModuleType:
     # hide the warning upstream in favor of our deprecation
-    with warnings.filterwarnings(action="ignore", message="apex.amp is deprecated", category=FutureWarning):
-        from apex import amp
+    warnings.filterwarnings(action="ignore", message="apex.amp is deprecated", category=FutureWarning)
+    from apex import amp
 
-        return amp
+    return amp
 
 
 # TODO: remove in v1.10.0

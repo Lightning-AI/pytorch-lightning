@@ -65,19 +65,51 @@ class ManualOptModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
-    [
-        {},
-        pytest.param(
-            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_cuda_gpus=1)
-        ),
-        pytest.param(
-            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex"},
-            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
-        ),
-    ],
+    "kwargs", [{}, pytest.param({"accelerator": "gpu", "devices": 1, "precision": 16}, marks=RunIf(min_cuda_gpus=1))]
 )
 def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
+    class TestModel(ManualOptModel):
+        def training_step(self, batch, batch_idx):
+            # avoid returning a value
+            super().training_step(batch, batch_idx)
+
+        def training_epoch_end(self, outputs):
+            # outputs is empty as training_step does not return
+            # and it is not automatic optimization
+            assert not outputs
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    limit_train_batches = 2
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        **kwargs,
+    )
+
+    if kwargs.get("precision") == 16:
+        # mock the scaler instead of the optimizer step because it can be skipped with NaNs
+        scaler_step_patch = mock.patch.object(
+            trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
+        )
+        scaler_step = scaler_step_patch.start()
+
+    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
+        trainer.fit(model)
+    assert bwd_mock.call_count == limit_train_batches * 3
+
+    if kwargs.get("precision") == 16:
+        scaler_step_patch.stop()
+        assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
+
+
+@RunIf(min_cuda_gpus=1, amp_apex=True)
+def test_multiple_optimizers_manual_no_return_apex(tmpdir):
     apex_optimizer_patches = []
     apex_optimizer_steps = []
 
@@ -92,8 +124,6 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
             assert not outputs
 
         def on_train_start(self):
-            if kwargs.get("amp_backend") != "apex":
-                return
             # extremely ugly. APEX patches all the native torch optimizers on `_initialize` which we call on
             # `ApexMixedPrecisionPlugin.dispatch`. Additionally, their replacement `new_step` functions are locally
             # defined so can't even patch those, thus we need to create the mock after APEX has been initialized
@@ -106,19 +136,15 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
                 apex_optimizer_steps.append(patch.start())
 
         def on_train_end(self):
-            if kwargs.get("amp_backend") == "apex":
-                for p in apex_optimizer_patches:
-                    p.stop()
+            for p in apex_optimizer_patches:
+                p.stop()
 
     model = TestModel()
     model.val_dataloader = None
 
     limit_train_batches = 2
-    plugins = []
-    if kwargs.get("amp_backend") == "apex":
-        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-            apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
-        plugins.append(apex_plugin)
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        plugins = [ApexMixedPrecisionPlugin(amp_level="O2")]
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -128,25 +154,16 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
         log_every_n_steps=1,
         enable_model_summary=False,
         plugins=plugins,
-        **kwargs,
+        accelerator="gpu",
+        devices=1,
+        precision=16,
     )
-
-    if kwargs.get("amp_backend") == "native":
-        # mock the scaler instead of the optimizer step because it can be skipped with NaNs
-        scaler_step_patch = mock.patch.object(
-            trainer.precision_plugin.scaler, "step", wraps=trainer.precision_plugin.scaler.step
-        )
-        scaler_step = scaler_step_patch.start()
 
     with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
         trainer.fit(model)
     assert bwd_mock.call_count == limit_train_batches * 3
 
-    if kwargs.get("amp_backend") == "native":
-        scaler_step_patch.stop()
-        assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
-    if kwargs.get("amp_backend") == "apex":
-        assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
+    assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
 
 
 def test_multiple_optimizers_manual_return(tmpdir):
@@ -396,7 +413,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         precision=16,
-        amp_backend="native",
         accelerator="gpu",
         devices=1,
     )
@@ -480,7 +496,6 @@ def test_multiple_optimizers_step(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         precision=16,
-        amp_backend="native",
         accelerator="gpu",
         devices=1,
         track_grad_norm=2,
