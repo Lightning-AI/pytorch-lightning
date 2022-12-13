@@ -22,7 +22,7 @@ _HOME = os.path.expanduser("~")
 _PPID = os.getenv("LIGHTNING_CONNECT_PPID", str(psutil.Process(os.getpid()).ppid()))
 _LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
 _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
-_PROGRESS_TOTAL = 60
+_PROGRESS_TOTAL = 100
 
 
 @click.argument("app_name_or_id", required=True)
