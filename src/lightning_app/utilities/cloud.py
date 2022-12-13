@@ -52,7 +52,6 @@ def _pretend_running_in_cloud():
     is_running_in_cloud = original
 
 
-
 if __name__ == "__main__":
     with _pretend_running_in_cloud():
         print(is_running_in_cloud())
