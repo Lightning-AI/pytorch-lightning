@@ -200,10 +200,18 @@ Deletes a Lightning BYOC cluster. Lightning AI removes cluster artifacts and any
 
 .. warning:: Using the ``--force`` parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
 
-Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
+Deletion retains any artifacts created in the object storage of your cluster.
 
 .. warning:: This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
 
 .. code:: bash
 
    lightning delete cluster <cluster-name>
+
+.. warning::
+
+   Under the hood the deletion selects cloud provider resources via the tags
+   lightning/cluster: <name> and
+   kubernetes.io/cluster/<name>: owned
+
+   Do not use these tags in any cloud resources you create yourself, as they will be subject to deletion when the cluster is deleted.
