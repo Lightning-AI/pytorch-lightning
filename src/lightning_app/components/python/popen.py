@@ -41,8 +41,7 @@ class PopenPythonScript(LightningWork):
         Raises:
             FileNotFoundError: If the provided `script_path` doesn't exists.
 
-        .. doctest::
-
+        Example:
 
             >>> from lightning_app.components.python import PopenPythonScript
             >>> f = open("a.py", "w")

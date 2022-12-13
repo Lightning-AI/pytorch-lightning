@@ -169,7 +169,10 @@ jobs:
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name == 'lightning' }}
-      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+          --source_import="pytorch_lightning,lightning_lite" \
+          --target_import="lightning.pytorch,lightning.lite"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
