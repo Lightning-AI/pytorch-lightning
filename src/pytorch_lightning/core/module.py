@@ -1472,11 +1472,11 @@ class LightningModule(
 
         Note:
             - Do not override this method. If you want to customize gradient clipping, consider using
-            :meth:`configure_gradient_clipping` method.
+              :meth:`configure_gradient_clipping` method.
             - For manual optimization (``self.automatic_optimization = False``), if you want to use
-            gradient clipping, consider calling
-            ``self.clip_gradients(opt, gradient_clip_val=0.5, gradient_clip_algorithm="norm")``
-            manually in the training step.
+              gradient clipping, consider calling
+              ``self.clip_gradients(opt, gradient_clip_val=0.5, gradient_clip_algorithm="norm")``
+              manually in the training step.
 
         Args:
             optimizer: Current optimizer being used.
