@@ -27,7 +27,7 @@ from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQU
 from lightning_lite.utilities.seed import _collect_rng_states, _set_rng_states
 
 if TYPE_CHECKING:
-    from lightning_lite.strategies.ddp_spawn import DDPSpawnStrategy
+    from lightning_lite.strategies.ddp_spawn import DDPStrategy
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -55,7 +55,7 @@ class _MultiProcessingLauncher(_Launcher):
 
     def __init__(
         self,
-        strategy: "DDPSpawnStrategy",
+        strategy: "DDPStrategy",
         start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
     ) -> None:
         self._strategy = strategy
@@ -121,7 +121,7 @@ class _MultiProcessingLauncher(_Launcher):
     ) -> None:
         if global_states:
             global_states.restore()
-        self._strategy._local_rank = process_idx
+        os.environ["LOCAL_RANK"] = str(process_idx)
         results = function(*args, **kwargs)
 
         if process_idx == 0:

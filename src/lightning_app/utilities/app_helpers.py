@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
-from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance
+from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1LightningappInstanceState
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
@@ -511,11 +511,15 @@ def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
 
 
+def _lightning_dispatched() -> bool:
+    return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
+
+
 def _should_dispatch_app() -> bool:
     return (
         __debug__
         and "_pytest.doctest" not in sys.modules
-        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
     )
 
@@ -556,7 +560,12 @@ def _handle_is_headless(app: "LightningApp"):
             "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
         )
 
-    if current_lightningapp_instance.spec.is_headless == app.is_headless:
+    if any(
+        [
+            current_lightningapp_instance.spec.is_headless == app.is_headless,
+            current_lightningapp_instance.status.phase != V1LightningappInstanceState.RUNNING,
+        ]
+    ):
         return
 
     current_lightningapp_instance.spec.is_headless = app.is_headless
