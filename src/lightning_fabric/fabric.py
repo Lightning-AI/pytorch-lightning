@@ -197,6 +197,8 @@ class Fabric:
 
         if isinstance(original_module, LightningModule):
             original_module._trainer = self
+            # TODO(fabric): should these be the original or the _FabricOptimizers?
+            original_module._optimizers = optimizers
 
         if optimizers:
             # join both types in a tuple for API convenience

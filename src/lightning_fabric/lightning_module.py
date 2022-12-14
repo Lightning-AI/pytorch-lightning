@@ -92,6 +92,9 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
+        # set by Fabric when .setup() is called
+        self._optimizers: List[Optimizer] = []
+
         # optionally can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
@@ -125,7 +128,7 @@ class LightningModule(
         """
         # TODO(fabric): Attach optimizers when fabric.setup(pl_module, optimizer, ...) is called
         # TODO(fabric): Remove the use_pl_optimizers argument
-        raise NotImplementedError("Not supported in Fabric at the moment.")
+        return self._optimizers
 
     def lr_schedulers(self) -> Union[None, List[LRSchedulerPLType], LRSchedulerPLType]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
@@ -140,12 +143,11 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        # TODO(fabric): The trainer will become the reference to the Fabric object
-        raise NotImplementedError("Not supported in Fabric at the moment.")
+        return self._trainer
 
     @trainer.setter
     def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
-        raise NotImplementedError("Not supported in Fabric at the moment.")
+        self._trainer = trainer
 
     @property
     def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
@@ -1172,7 +1174,8 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        raise NotImplementedError("Not supported in Fabric at the moment.")
+        # self.trainer is the fabric object here
+        self.trainer.backward(loss, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
