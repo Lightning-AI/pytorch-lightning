@@ -191,7 +191,7 @@ def test_delete_cluster_with_running_apps(
 
     with pytest.raises(click.ClickException) as exception:
         cluster_manager.delete(cluster_id="test-7")
-    exception.match("there are apps running")
+    exception.match("apps running")
 
 
 class Test_check_cluster_id_is_valid:

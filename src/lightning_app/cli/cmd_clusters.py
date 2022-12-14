@@ -204,26 +204,23 @@ class AWSClusterManager:
             click.confirm("Do you want to continue?", abort=True)
 
         else:
-            if _list_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING]):
+            apps = _list_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING])
+            if apps:
                 raise click.ClickException(
                     dedent(
-                        f"""
-                        Unable to delete cluster because there are apps running on it.
-                        Please stop or delete the apps before deleting the cluster.
+                        f"""\
+                        To delete the cluster, you must first delete the apps running on it.
+                        Use the following commands to delete the apps, then delete the cluster again:
 
-                        To see the status of all apps on this cluster:
-                            lightning list apps --cluster-id {cluster_id}
-
-                        To delete apps from the CLI:
-                            lighting delete app <app-name>
                         """
                     )
+                    + "\n".join([f"\tlightning delete app {app.name} --cluster-id {cluster_id}" for app in apps])
                 )
 
             if _list_apps(self.api_client, cluster_id=cluster_id, phase_not_in=[V1LightningappInstanceState.DELETED]):
                 click.echo(
                     dedent(
-                        """
+                        """\
                         This cluster has non-running apps.
                         Deleting this cluster will delete those apps and their logs.
 
