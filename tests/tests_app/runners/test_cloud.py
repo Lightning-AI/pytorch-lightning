@@ -46,13 +46,15 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import BuildConfig, LightningApp, LightningWork
+from lightning_app import BuildConfig, LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
 from lightning_app.runners.cloud import (
     _generate_works_json_gallery,
     _generate_works_json_web,
     _validate_build_spec_and_compute,
 )
+from lightning_app.source_code.copytree import _copytree, _parse_lightningignore
+from lightning_app.source_code.local import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
 from lightning_app.testing.helpers import EmptyWork
 from lightning_app.utilities.cloud import _get_project
@@ -1302,31 +1304,38 @@ def test_get_project(monkeypatch):
         assert ret.project_id == "test-project-id1"
 
 
+def write_file_of_size(path, size):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.seek(size)
+        f.write(b"\0")
+
+
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
 @mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
-
-    monkeypatch.setattr(cloud, "logger", logging.getLogger())
-
     app = MagicMock()
-    repo = MagicMock()
+    root = Path(tmpdir)
+    repo = LocalSourceCodeDir(root)
     backend = cloud.CloudRuntime(app)
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(Path(tmpdir), repo)
+        backend._check_uploaded_folder(root, repo)
     assert caplog.messages == []
 
-    mock = MagicMock()
-    mock.st_mode = 33188
-    mock.st_size = 5 * 1000 * 1000
-    repo.files = [str(Path("./a.png"))]
-    monkeypatch.setattr(Path, "stat", MagicMock(return_value=mock))
+    # write some files to assert the message below.
+    write_file_of_size(root / "a.png", 4 * 1000 * 1000)
+    write_file_of_size(root / "b.txt", 5 * 1000 * 1000)
+    write_file_of_size(root / "c.jpg", 6 * 1000 * 1000)
 
-    path = Path(".")
+    repo._non_ignored_files = None  # force reset
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(path, repo)
-    assert caplog.messages[0].startswith(
-        f"Your application folder '{path.absolute()}' is more than 2 MB. The total size is 5.0 MB"
-    )
+        backend._check_uploaded_folder(root, repo)
+    assert f"Your application folder '{root.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 15.0 MB" in caplog.text
+    assert "3 files were uploaded" in caplog.text
+    assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
+    assert "create a `.lightningignore` file" in caplog.text
+    assert "lightningingore` attribute in a Flow or Work" in caplog.text
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
@@ -1486,6 +1495,80 @@ def test_incompatible_cloud_compute_and_build_config():
 
     with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
         _validate_build_spec_and_compute(Work())
+
+
+def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
+    monkeypatch.setenv("LIGHTNING_DISPATCHED", "0")  # this is not cleaned up
+
+    mock_client = mock.MagicMock()
+    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+    )
+    mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+        V1ListLightningappInstancesResponse(lightningapps=[])
+    )
+    mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+        cluster_id="test"
+    )
+    cloud_backend = mock.MagicMock(client=mock_client)
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+
+    class MyWork(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.lightningignore += ("foo", "lightning_logs")
+
+        def run(self):
+            with pytest.raises(RuntimeError, match="w.lightningignore` does not"):
+                self.lightningignore += ("foobar",)
+
+    class MyFlow(LightningFlow):
+        def __init__(self):
+            super().__init__()
+            self.lightningignore = ("foo",)
+            self.w = MyWork()
+
+        def run(self):
+            with pytest.raises(RuntimeError, match="root.lightningignore` does not"):
+                self.lightningignore = ("baz",)
+            self.w.run()
+
+    flow = MyFlow()
+    app = LightningApp(flow)
+
+    monkeypatch.setattr(app, "_update_index_file", mock.MagicMock())
+
+    path = Path(tmpdir)
+    cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=path / "entrypoint.py")
+    monkeypatch.setattr(LocalSourceCodeDir, "upload", mock.MagicMock())
+
+    # write some files
+    write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
+    write_file_of_size(path / "foo.png", 4 * 1000 * 1000)
+    write_file_of_size(path / "lightning_logs" / "foo.ckpt", 6 * 1000 * 1000)
+    # also an actual .lightningignore file
+    (path / ".lightningignore").write_text("foo.png")
+
+    with mock.patch(
+        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+    ) as parse_mock, mock.patch(
+        "lightning_app.source_code.local._copytree", wraps=_copytree
+    ) as copy_mock, caplog.at_level(
+        logging.WARN
+    ):
+        cloud_runtime.dispatch()
+
+    parse_mock.assert_called_once_with(("foo", "foo", "lightning_logs"))
+    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
+
+    assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 5.0 MB" in caplog.text
+    assert "2 files were uploaded"  # a.txt and .lightningignore
+    assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
+
+    # replicate how the app would dispatch the app, and call `run`
+    monkeypatch.setenv("LIGHTNING_DISPATCHED", "1")
+    flow.run()
 
 
 @pytest.mark.parametrize(

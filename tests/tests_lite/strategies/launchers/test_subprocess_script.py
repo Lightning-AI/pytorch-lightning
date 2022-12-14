@@ -79,9 +79,8 @@ def test_subprocess_script_launcher_launch_processes(popen_mock):
 
 
 @pytest.mark.skipif(not _HYDRA_AVAILABLE, reason="hydra-core is required")
-@mock.patch("lightning_lite.strategies.launchers.subprocess_script.sleep")
 @mock.patch("lightning_lite.strategies.launchers.subprocess_script.subprocess.Popen")
-def test_subprocess_script_launcher_hydra_in_use(popen_mock, _, monkeypatch):
+def test_subprocess_script_launcher_hydra_in_use(popen_mock, monkeypatch):
     basic_command = Mock(return_value="basic_command")
     hydra_command = Mock(return_value=("hydra_command", "hydra_cwd"))
     monkeypatch.setattr(lightning_lite.strategies.launchers.subprocess_script, "_basic_subprocess_cmd", basic_command)
