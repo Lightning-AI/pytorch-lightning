@@ -23,13 +23,47 @@ def _signature_proxy_function():
 
 @dataclass
 class FastApiMockRequest:
-    headers: Optional[str] = None
+    _body: Optional[str] = None
+    _json: Optional[str] = None
+    _method: Optional[str] = None
+    _headers: Optional[Dict] = None
+
+    @property
+    def receive(self):
+        raise NotImplementedError
+
+    @property
+    def method(self):
+        raise self._method
+
+    @property
+    def headers(self):
+        return self._headers
+
+    def body(self):
+        return self._body
+
+    def json(self):
+        return self._json
+
+    def stream(self):
+        raise NotImplementedError
+
+    def form(self):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
+    def is_disconnected(self):
+        raise NotImplementedError
 
 
 async def _mock_fastapi_request(request: Request):
-    data = await request.json()
     # TODO: Add more requests parameters.
-    return FastApiMockRequest(data)
+    return FastApiMockRequest(
+        _body=await request.body(), _json=await request.json(), _headers=request.headers, _method=request.method
+    )
 
 
 class _HttpMethod:

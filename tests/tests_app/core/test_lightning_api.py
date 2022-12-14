@@ -483,7 +483,7 @@ class FlowAPI(LightningFlow):
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
-        print(request.headers)
+        print(request.body())
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
