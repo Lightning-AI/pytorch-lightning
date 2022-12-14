@@ -105,6 +105,14 @@ class Fabric:
             self._strategy.setup_environment()
 
     @property
+    def accelerator(self) -> Accelerator:
+        return self._accelerator
+
+    @property
+    def strategy(self) -> Strategy:
+        return self._strategy
+
+    @property
     def device(self) -> torch.device:
         """The current device this process runs on.
 
