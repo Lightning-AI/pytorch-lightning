@@ -163,9 +163,9 @@ class AuthServer:
 
         logger.info(
             "\nAttempting to automatically open the login page in your default browser.\n"
-            "If the browser does not open, navigate to the \"Keys\" tab on your Lightning AI profile page:\n\n"
+            'If the browser does not open, navigate to the "Keys" tab on your Lightning AI profile page:\n\n'
             f"{get_lightning_cloud_url()}/me/keys\n\n"
-            "Copy the \"Headless CLI Login\" command, and execute it in your terminal.\n"
+            'Copy the "Headless CLI Login" command, and execute it in your terminal.\n'
         )
         click.launch(url)
 
