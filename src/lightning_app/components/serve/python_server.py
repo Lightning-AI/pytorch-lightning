@@ -253,14 +253,11 @@ class PythonServer(LightningWork, abc.ABC):
         input_type: Any = self.configure_input_type()
         output_type: Any = self.configure_output_type()
 
-        if not (
-                hasattr(input_type, "request_code_sample") and
-                hasattr(output_type, "response_code_sample")
-        ):
+        if not (hasattr(input_type, "request_code_sample") and hasattr(output_type, "response_code_sample")):
             return None
         return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
 
-    def configure_layout(self) -> Optional['APIAccessFrontend']:
+    def configure_layout(self) -> Optional["APIAccessFrontend"]:
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
