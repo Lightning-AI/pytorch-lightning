@@ -307,21 +307,24 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     duration = _format_elapsed_seconds(elapsed)
 
     if current_state == V1ClusterState.FAILED:
-        return dedent(
-            f"""\
-            The requested cluster operation for cluster {cluster_id} has errors:
-            {current_reason}
+        if not _is_retryable_error(current_reason):
+            return dedent(
+                f"""\
+                The requested cluster operation for cluster {cluster_id} has errors:
 
-            ---
-            We are automatically retrying, and an automated alert has been created
+                {current_reason}
 
-            WARNING: Any non-deleted cluster may be using resources.
-            To avoid incuring cost on your cloud provider, delete the cluster using the following command:
-                lightning delete cluster {cluster_id}
+                --------------------------------------------------------------
 
-            Contact support@lightning.ai for additional help
-            """
-        )
+                We are automatically retrying, and an automated alert has been created
+
+                WARNING: Any non-deleted cluster may be using resources.
+                To avoid incuring cost on your cloud provider, delete the cluster using the following command:
+                    lightning delete cluster {cluster_id}
+
+                Contact support@lightning.ai for additional help
+                """
+            )
 
     if desired_state == current_state == V1ClusterState.RUNNING:
         return dedent(
@@ -350,6 +353,10 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         return f"Cluster {cluster_id} is being deleted [elapsed={duration}]"
 
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
+
+
+def _is_retryable_error(error_message: str) -> bool:
+    return "resources failed to delete" in error_message
 
 
 def _format_elapsed_seconds(seconds: Union[float, int]) -> str:
