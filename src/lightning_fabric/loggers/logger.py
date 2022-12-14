@@ -1,3 +1,2 @@
-
 class Logger:
-    """Placeholder"""
+    """Placeholder."""

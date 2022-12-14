@@ -28,13 +28,14 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from typing_extensions import Literal
 
-from lightning_fabric.utilities.apply_func import convert_to_tensors
-from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.callbacks import Callback
 from lightning_fabric.loggers import Logger
+from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from lightning_fabric.utilities.rank_zero import rank_zero_debug, rank_zero_warn
+from lightning_fabric.utilities.types import Steppable
+
 # from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 # from pytorch_lightning.core.mixins import HyperparametersMixin
 # from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -51,8 +52,6 @@ EPOCH_OUTPUT = object
 
 
 MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
-
-
 
 
 class LightningModule(

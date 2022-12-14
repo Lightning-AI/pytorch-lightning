@@ -1,3 +1,2 @@
-
 class Callback:
-    """Placeholder"""
+    """Placeholder."""
