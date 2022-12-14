@@ -3,18 +3,20 @@ import os
 from functools import partial
 from pathlib import Path
 from shutil import copy2, copystat, Error
-from typing import Callable, List, Set, Union
+from typing import Callable, List, Optional, Set, Union
 
 from lightning_app.core.constants import DOT_IGNORE_FILENAME
 from lightning_app.utilities.app_helpers import Logger
 
 logger = Logger(__name__)
 
+_IGNORE_FUNCTION = Callable[[Path, List[Path]], List[Path]]
+
 
 def _copytree(
     src: Union[Path, str],
     dst: Union[Path, str],
-    ignore_functions: List[Callable] = None,
+    ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None,
     dirs_exist_ok=False,
     dry_run=False,
 ) -> List[str]:

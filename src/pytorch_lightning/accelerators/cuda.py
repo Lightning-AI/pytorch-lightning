@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import num_cuda_devices
+from lightning_lite.accelerators.cuda import _check_cuda_matmul_precision, num_cuda_devices
 from lightning_lite.utilities.device_parser import _parse_gpu_ids
 from lightning_lite.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
@@ -40,6 +40,7 @@ class CUDAAccelerator(Accelerator):
         """
         if device.type != "cuda":
             raise MisconfigurationException(f"Device should be GPU, got {device} instead")
+        _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
     def setup(self, trainer: "pl.Trainer") -> None:

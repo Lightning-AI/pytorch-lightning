@@ -85,7 +85,9 @@ jobs:
         if: ${{ matrix.pkg-name == 'app' }}
         run: |
           pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports --source_dir="./docs" --source_import="pytorch_lightning,lightning_lite" --target_import="lightning.pytorch,lightning.lite"
+          python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
+            --source_import="pytorch_lightning,lightning_lite" \
+            --target_import="lightning.pytorch,lightning.lite"
 
       - name: Install this package
         env:
