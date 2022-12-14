@@ -19,10 +19,10 @@ class GPUAccelerator:
         )
 
 
-def _patch_plugin_classes() -> None:
+def _patch_classes() -> None:
     # TODO: Remove in v2.0.0
     setattr(pl.accelerators, "GPUAccelerator", GPUAccelerator)
 
 
 _patch_sys_modules()
-_patch_plugin_classes()
+_patch_classes()
