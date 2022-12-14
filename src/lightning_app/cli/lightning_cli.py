@@ -204,7 +204,7 @@ def login() -> None:
     auth.clear()
 
     try:
-        auth._run_server()
+        auth.authenticate()
     except ConnectionError:
         click.echo(f"Unable to connect to {get_lightning_cloud_url()}. Please check your internet connection.")
         exit(1)
