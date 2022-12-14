@@ -184,7 +184,8 @@ class LightningApp:
     def _update_index_file(self):
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
+        if self.root_path != "":
+            frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""

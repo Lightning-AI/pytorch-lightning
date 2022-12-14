@@ -2,12 +2,14 @@ import asyncio
 import inspect
 import time
 from copy import deepcopy
+from dataclasses import dataclass
 from functools import wraps
 from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
 from lightning_app.utilities.app_helpers import Logger
@@ -17,6 +19,17 @@ logger = Logger(__name__)
 
 def _signature_proxy_function():
     pass
+
+
+@dataclass
+class FastApiMockRequest:
+    headers: Optional[str] = None
+
+
+async def _mock_fastapi_request(request: Request):
+    data = await request.json()
+    # TODO: Add more requests parameters.
+    return FastApiMockRequest(data)
 
 
 class _HttpMethod:
@@ -34,6 +47,7 @@ class _HttpMethod:
         self.method_annotations = method.__annotations__
         # TODO: Validate the signature contains only pydantic models.
         self.method_signature = inspect.signature(method)
+
         if not self.attached_to_flow:
             self.component_name = method.__name__
             self.method = method
@@ -43,9 +57,13 @@ class _HttpMethod:
         self.timeout = timeout
         self.kwargs = kwargs
 
+        self._patch_fast_api_request()
+
     def add_route(self, app: FastAPI, request_queue: Queue, responses_store: Dict[str, Any]) -> None:
         # 1: Get the route associated with the http method.
         route = getattr(app, self.__class__.__name__.lower())
+
+        self._unpatch_fast_api_request()
 
         # 2: Create a proxy function with the signature of the wrapped method.
         fn = deepcopy(_signature_proxy_function)
@@ -69,6 +87,11 @@ class _HttpMethod:
             @wraps(_signature_proxy_function)
             async def _handle_request(*args, **kwargs):
                 async def fn(*args, **kwargs):
+                    args, kwargs = apply_to_collection((args, kwargs), Request, _mock_fastapi_request)
+                    for k, v in kwargs.items():
+                        if hasattr(v, "__await__"):
+                            kwargs[k] = await v
+
                     request_id = str(uuid4()).split("-")[0]
                     logger.debug(f"Processing request {request_id} for route: {self.route}")
                     request_queue.put(
@@ -100,6 +123,26 @@ class _HttpMethod:
 
         # 4: Register the user provided route to the Rest API.
         route(self.route, **self.kwargs)(_handle_request)
+
+    def _patch_fast_api_request(self):
+        for k, v in self.method_annotations.items():
+            if v == Request:
+                v = FastApiMockRequest
+            self.method_annotations[k] = v
+
+        for v in self.method_signature.parameters.values():
+            if v._annotation == Request:
+                v._annotation = FastApiMockRequest
+
+    def _unpatch_fast_api_request(self):
+        for k, v in self.method_annotations.items():
+            if v == FastApiMockRequest:
+                v = Request
+            self.method_annotations[k] = v
+
+        for v in self.method_signature.parameters.values():
+            if v._annotation == FastApiMockRequest:
+                v._annotation = Request
 
 
 class Post(_HttpMethod):
