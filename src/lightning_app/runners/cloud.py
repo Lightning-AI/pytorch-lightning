@@ -236,12 +236,7 @@ class CloudRuntime(Runtime):
                 f.write("venv/\n")
                 if (root / "bin" / "activate").is_file() or (root / "pyvenv.cfg").is_file():
                     # the user is developing inside venv
-                    f.write(
-                        "bin/\n"
-                        "include/\n"
-                        "lib/\n"
-                        "pyvenv.cfg\n"
-                    )
+                    f.write("bin/\n" "include/\n" "lib/\n" "pyvenv.cfg\n")
 
         repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
         self._check_uploaded_folder(root, repo)
