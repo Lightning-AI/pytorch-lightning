@@ -249,7 +249,18 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
-    def configure_layout(self) -> None:
+    def get_code_sample(self, url: str) -> Optional[str]:
+        input_type: Any = self.configure_input_type()
+        output_type: Any = self.configure_output_type()
+
+        if not (
+                hasattr(input_type, "request_code_sample") and
+                hasattr(output_type, "response_code_sample")
+        ):
+            return None
+        return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
+
+    def configure_layout(self) -> Optional['APIAccessFrontend']:
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
@@ -265,17 +276,19 @@ class PythonServer(LightningWork, abc.ABC):
         except TypeError:
             return None
 
-        return APIAccessFrontend(
-            apis=[
-                {
-                    "name": class_name,
-                    "url": url,
-                    "method": "POST",
-                    "request": request,
-                    "response": response,
-                }
-            ]
-        )
+        frontend_payload = {
+            "name": class_name,
+            "url": url,
+            "method": "POST",
+            "request": request,
+            "response": response,
+        }
+
+        code_sample = self.get_code_sample(url)
+        if code_sample:
+            frontend_payload["code_sample"] = code_sample
+
+        return APIAccessFrontend(apis=[frontend_payload])
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.
