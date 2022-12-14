@@ -5,6 +5,7 @@ import os.path as osp
 import shutil
 import sys
 import traceback
+from dataclasses import asdict
 from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 
 from lightning_app.api.http_methods import Post
 from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
+from lightning_app.utilities import frontend
 from lightning_app.utilities.app_helpers import is_overridden, Logger
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
@@ -250,7 +252,7 @@ def _process_requests(app, requests: List[Union[_APIRequest, _CommandRequest]]) 
     app.api_response_queue.put(responses)
 
 
-def _collect_open_api_extras(command) -> Dict:
+def _collect_open_api_extras(command, info) -> Dict:
     if not isinstance(command, ClientCommand):
         if command.__doc__ is not None:
             return {"description": command.__doc__}
@@ -263,10 +265,14 @@ def _collect_open_api_extras(command) -> Dict:
     }
     if command.requirements:
         extras.update({"requirements": command.requirements})
+    if info:
+        extras.update({"app_info": asdict(info)})
     return extras
 
 
-def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) -> List:
+def _commands_to_api(
+    commands: List[Dict[str, Union[Callable, ClientCommand]]], info: Optional[frontend.AppInfo] = None
+) -> List:
     """Convert user commands to API endpoint."""
     api = []
     for command in commands:
@@ -278,7 +284,7 @@ def _commands_to_api(commands: List[Dict[str, Union[Callable, ClientCommand]]]) 
                     v.method if isinstance(v, ClientCommand) else v,
                     method_name=k,
                     tags=["app_client_command"] if isinstance(v, ClientCommand) else ["app_command"],
-                    openapi_extra=_collect_open_api_extras(v),
+                    openapi_extra=_collect_open_api_extras(v, info),
                 )
             )
     return api
