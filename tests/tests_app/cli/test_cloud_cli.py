@@ -11,7 +11,6 @@ from click.testing import CliRunner
 from lightning_cloud.openapi import (
     V1LightningappV2,
     V1ListLightningappInstancesResponse,
-    V1ListLightningappsV2Response,
     V1ListMembershipsResponse,
     V1Membership,
 )
@@ -102,8 +101,8 @@ class FakeLightningClientCreate(FakeLightningClient):
         super().__init__()
         self.create_response = create_response
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
-        return V1ListLightningappsV2Response(lightningapps=[V1LightningappV2(id="my_app", name="app")])
+    def lightningapp_v2_service_create_lightningapp_v2(self, *args, **kwargs):
+        return V1LightningappV2(id="my_app", name="app")
 
     def lightningapp_v2_service_create_lightningapp_release(self, project_id, app_id, body):
         assert project_id == "test-project-id"
@@ -183,7 +182,7 @@ class FakeLightningClientException(FakeLightningClient):
         super().__init__()
         self.message = message
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
+    def lightningapp_instance_service_list_lightningapp_instances(self, *args, **kwargs):
         raise ApiException(
             http_resp=HttpHeaderDict(
                 data=self.message,
