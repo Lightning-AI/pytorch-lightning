@@ -32,7 +32,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, R
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -82,27 +82,6 @@ class ModelParallelBoringModelManualOptim(BoringModel):
     @property
     def automatic_optimization(self) -> bool:
         return False
-
-
-@RunIf(min_cuda_gpus=1)
-def test_deepspeed_lightning_module_precision():
-    """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
-    16."""
-    model = BoringModel()
-    with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
-        module = LightningDeepSpeedModule(model, precision=16)
-
-    module.to(device="cuda", dtype=torch.half)
-    assert module.dtype == torch.half
-    assert model.dtype == torch.half
-
-    x = torch.randn((1, 32), device="cuda", dtype=torch.float)
-    out = module(x)
-    assert out.dtype == torch.half
-
-    module.to(torch.double)
-    assert module.dtype == torch.double
-    assert model.dtype == torch.double
 
 
 @pytest.fixture

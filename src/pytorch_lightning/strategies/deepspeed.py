@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -65,28 +65,6 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
         module._forward_pre_hooks = OrderedDict()
         module._state_dict_hooks = OrderedDict()
         module._load_state_dict_pre_hooks = OrderedDict()
-
-
-class LightningDeepSpeedModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.1
-        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
-    """
-
-    def __init__(
-        self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        precision: Union[str, int] = 32,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
-        return super().forward(*inputs, **kwargs)
 
 
 class DeepSpeedStrategy(DDPStrategy):
