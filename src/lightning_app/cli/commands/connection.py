@@ -27,22 +27,23 @@ _PROGRESS_TOTAL = 100
 
 @click.argument("app_name_or_id", required=True)
 def connect(app_name_or_id: str):
-    """Connect your local terminal to a lightning app running locally or in the cloud.
+    """Connect your local terminal to a running lightning app.
 
     After connecting, the lightning CLI will respond to commands exposed by the app.
 
     Example:
 
+    \b
     # connect to an app named pizza-cooker-123
     lightning connect pizza-cooker-123 --yes
-
+    \b
     # this will now show the commands exposed by pizza-cooker-123
     lightning --help
-
-    # while connected, you can run the cook-pizza command exposed by pizza-cooker-123
-    # BTW, this should arguably generate an exception :-)
+    \b
+    # while connected, you can run the cook-pizza command exposed
+    # by pizza-cooker-123.BTW, this should arguably generate an exception :-)
     lightning cook-pizza --flavor pineapple
-
+    \b
     # once done, disconnect and go back to the standard lightning CLI commands
     lightning disconnect
     """
