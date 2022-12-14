@@ -208,7 +208,7 @@ class AWSClusterManager:
             if apps:
                 raise click.ClickException(
                     dedent(
-                        f"""\
+                        """\
                         To delete the cluster, you must first delete the apps running on it.
                         Use the following commands to delete the apps, then delete the cluster again:
 
