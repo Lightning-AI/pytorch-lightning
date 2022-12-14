@@ -76,8 +76,6 @@ def main() -> None:
                 else:
                     message = f"You are connected to the cloud Lightning App: {app_name}."
 
-                click.echo(" ")
-
                 if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
                 else:
