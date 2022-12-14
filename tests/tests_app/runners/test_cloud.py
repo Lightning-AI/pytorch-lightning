@@ -1334,8 +1334,7 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     assert "The total size is 15.0 MB" in caplog.text
     assert "3 files were uploaded" in caplog.text
     assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
-    assert "create a `.lightningignore` file" in caplog.text
-    assert "lightningingore` attribute in a Flow or Work" in caplog.text
+    assert "adding them to `.lightningignore`." in caplog.text
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
