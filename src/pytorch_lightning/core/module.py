@@ -64,6 +64,7 @@ log = logging.getLogger(__name__)
 MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
 
 
+# TODO(fabric): inherit from lightning_lite.LightningModule
 class LightningModule(
     _DeviceDtypeModuleMixin,
     HyperparametersMixin,
