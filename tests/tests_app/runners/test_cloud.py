@@ -1608,7 +1608,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         cloud_runtime.dispatch()
 
     parse_mock.assert_called_once_with(())
-    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
+    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == set()
 
     assert (path / ".lightningignore").exists()
 
