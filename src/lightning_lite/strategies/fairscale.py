@@ -22,11 +22,8 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.optim import Optimizer
 
 from lightning_lite.accelerators import Accelerator
+from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_lite.plugins.collectives.torch_collective import default_pg_timeout
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.plugins.io.checkpoint_io import CheckpointIO
-from lightning_lite.plugins.precision.precision import Precision
-from lightning_lite.strategies import DDPSpawnStrategy
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.strategies.strategy import _BackwardSyncControl
 from lightning_lite.utilities.enums import PrecisionType
@@ -117,84 +114,14 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description=cls.__class__.__name__,
         )
-
-
-class DDPSpawnShardedStrategy(DDPSpawnStrategy):
-    """Optimizer and gradient sharded training provided by FairScale with Spawn."""
-
-    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
-
-    def __init__(
-        self,
-        accelerator: Optional[Accelerator] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision: Optional[Precision] = None,
-        process_group_backend: Optional[str] = None,
-        timeout: Optional[timedelta] = default_pg_timeout,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            accelerator=accelerator,
-            parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io,
-            precision=precision,
-            process_group_backend=process_group_backend,
-            timeout=timeout,
-            **kwargs,
-        )
-        self._backward_sync_control = _FairscaleBackwardSyncControl()
-        if "reduce_buffer_size" not in self._ddp_kwargs:
-            # For multi-node training, enabling bucketing will improve performance.
-            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
-
-    def setup_module_and_optimizers(
-        self, module: Module, optimizers: List[Optimizer]
-    ) -> Tuple["ShardedDataParallel", List[Optimizer]]:
-        """Wraps the model and optimizers with fairscale components.
-
-        Return:
-            The model wrapped into a :class:`~fairscale.nn.data_parallel.ShardedDataParallel` module
-            and a list of optimizer wrapped in :class:~`fairscale.optim.OSS`.
-        """
-        optimizers = _reinit_optimizers_with_oss(optimizers, self.precision, self.num_nodes)
-        for optimizer in optimizers:
-            # This forces buckets to be rebuilt on the first forward pass
-            # We are not sure why this is needed, but it prevents an error resulting from buckets having a different
-            # device than the params
-            optimizer._clear_cache()
-        model = ShardedDataParallel(module, sharded_optimizer=optimizers, **self._ddp_kwargs)
-        return model, optimizers
-
-    def setup_module(self, module: Module) -> DistributedDataParallel:
-        """Setting up the module without optimizers in this strategy is not supported.
-
-        Please use :meth:`setup_module_and_optimizers` instead.
-        """
-        raise NotImplementedError(self._err_msg_joint_setup_required())
-
-    def setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
-        """Optimizers can only be set up jointly with the model in this strategy.
-
-        Please use :meth:`setup_module_and_optimizers` to set up both module and optimizer(s) together.
-        """
-        raise NotImplementedError(self._err_msg_joint_setup_required())
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "ddp_sharded_spawn_find_unused_parameters_false",
             cls,
             description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+            start_method="spawn",
         )
-        strategy_registry.register(
-            "ddp_sharded_spawn",
-            cls,
-            description=cls.__class__.__name__,
-        )
+        strategy_registry.register("ddp_sharded_spawn", cls, description=cls.__class__.__name__, start_method="spawn")
 
 
 def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
