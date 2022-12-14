@@ -27,6 +27,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
+from lightning_fabric.lightning_module import LightningModule
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
@@ -192,6 +193,9 @@ class Fabric:
         optimizers = [_FabricOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
 
         self._models_setup += 1
+
+        if isinstance(original_module, LightningModule):
+            original_module._trainer = self
 
         if optimizers:
             # join both types in a tuple for API convenience

@@ -28,40 +28,40 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from typing_extensions import Literal
 
-import pytorch_lightning as pl
 from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Steppable
-from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
-from pytorch_lightning.core.mixins import HyperparametersMixin
-from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger
-from pytorch_lightning.utilities import _IS_WINDOWS
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
-from pytorch_lightning.utilities.types import (
-    _METRIC_COLLECTION,
-    EPOCH_OUTPUT,
-    LRSchedulerPLType,
-    LRSchedulerTypeUnion,
-    STEP_OUTPUT,
-)
+from lightning_fabric.callbacks import Callback
+from lightning_fabric.loggers import Logger
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
+from lightning_fabric.utilities.rank_zero import rank_zero_debug, rank_zero_warn
+# from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
+# from pytorch_lightning.core.mixins import HyperparametersMixin
+# from pytorch_lightning.core.optimizer import LightningOptimizer
+# from pytorch_lightning.core.saving import ModelIO
+
+
+# TODO(fabric): Update the type here once these classes are defined in lightning_fabric
+LightningOptimizer = object
+_METRIC_COLLECTION = object
+LRSchedulerPLType = object
+LRSchedulerTypeUnion = object
+STEP_OUTPUT = object
+EPOCH_OUTPUT = object
+
 
 MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
 
-# TODO(fabric): Update the type here once Callback class defined in Fabric
-Callback = object
+
 
 
 class LightningModule(
     _DeviceDtypeModuleMixin,
-    HyperparametersMixin,
-    ModelIO,
-    ModelHooks,
-    DataHooks,
-    CheckpointHooks,
+    # HyperparametersMixin,
+    # ModelIO,
+    # ModelHooks,
+    # DataHooks,
+    # CheckpointHooks,
     Module,
 ):
     # Below is for property support of JIT
@@ -79,7 +79,7 @@ class LightningModule(
             "trainer",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
-        + HyperparametersMixin.__jit_unused_properties__
+        # + HyperparametersMixin.__jit_unused_properties__
     )
     _jit_is_scripting = False
 
@@ -97,10 +97,7 @@ class LightningModule(
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
-        self._truncated_bptt_steps: int = 0
-        self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
-        self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
@@ -1336,7 +1333,7 @@ class LightningModule(
 
     def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
-            raise MisconfigurationException(
+            raise ValueError(
                 f"to use {fn_name}, please disable automatic optimization:"
                 " set model property `automatic_optimization` as False"
             )
