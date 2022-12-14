@@ -3,14 +3,12 @@ import os
 import shutil
 import sys
 from subprocess import Popen
-from threading import Event, Thread
-from time import sleep, time
 from typing import List, Optional, Tuple
 
 import click
 import psutil
 from lightning_utilities.core.imports import package_available
-from rich.progress import Progress, Task
+from rich.progress import Progress
 
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
@@ -22,7 +20,6 @@ _HOME = os.path.expanduser("~")
 _PPID = os.getenv("LIGHTNING_CONNECT_PPID", str(psutil.Process(os.getpid()).ppid()))
 _LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
 _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
-_PROGRESS_TOTAL = 100
 
 
 @click.argument("app_name_or_id", required=True)
@@ -35,7 +32,7 @@ def connect(app_name_or_id: str):
 
     \b
     # connect to an app named pizza-cooker-123
-    lightning connect pizza-cooker-123 --yes
+    lightning connect pizza-cooker-123
     \b
     # this will now show the commands exposed by pizza-cooker-123
     lightning --help
@@ -74,10 +71,7 @@ def connect(app_name_or_id: str):
     elif app_name_or_id.startswith("localhost"):
 
         with Progress() as progress_bar:
-            event = Event()
-            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=_PROGRESS_TOTAL)
-            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting], daemon=True)
-            thread.start()
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
             if app_name_or_id != "localhost":
                 raise Exception("You need to pass localhost to connect to the local Lightning App.")
@@ -86,6 +80,10 @@ def connect(app_name_or_id: str):
 
             if retriever.api_commands is None:
                 raise Exception(f"Connection wasn't successful. Is your app {app_name_or_id} running?")
+
+            increment = 1 / (1 + len(retriever.api_commands))
+
+            progress_bar.update(connecting, advance=increment)
 
             commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             if not os.path.exists(commands_folder):
@@ -112,8 +110,7 @@ def connect(app_name_or_id: str):
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
 
-            event.set()
-            thread.join()
+                progress_bar.update(connecting, advance=increment)
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
@@ -149,10 +146,7 @@ def connect(app_name_or_id: str):
 
     else:
         with Progress() as progress_bar:
-            event = Event()
-            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=_PROGRESS_TOTAL)
-            thread = Thread(target=update_progresss, args=[event, progress_bar, connecting], daemon=True)
-            thread.start()
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
             retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
 
@@ -165,6 +159,10 @@ def connect(app_name_or_id: str):
                     f"connect to {[app.name for app in apps.lightningapps]}."
                 )
                 return
+
+            increment = 1 / (1 + len(retriever.api_commands))
+
+            progress_bar.update(connecting, advance=increment)
 
             _install_missing_requirements(retriever)
 
@@ -188,8 +186,7 @@ def connect(app_name_or_id: str):
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
 
-            event.set()
-            thread.join()
+                progress_bar.update(connecting, advance=increment)
 
         with open(connected_file, "w") as f:
             f.write(retriever.app_name + "\n")
@@ -375,17 +372,3 @@ def _scan_lightning_connections(app_name_or_id):
             return connection_path
 
     return None
-
-
-def update_progresss(exit_event: Event, progress_bar: Progress, task: Task) -> None:
-    t0 = time()
-    while not exit_event.is_set():
-        sleep(0.5)
-        progress_bar.update(task, advance=0.5)
-
-    # Note: This is required to make progress feel more naturally progressing.
-    remaning = _PROGRESS_TOTAL - (time() - t0)
-    num_updates = 10
-    for _ in range(num_updates):
-        progress_bar.update(task, advance=remaning / float(num_updates))
-        sleep(0.2)
