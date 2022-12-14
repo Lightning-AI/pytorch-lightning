@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import click
 import pytest
 from lightning_cloud.openapi import (
+    Externalv1LightningappInstance,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
@@ -14,12 +15,11 @@ from lightning_cloud.openapi import (
     V1CreateClusterRequest,
     V1GetClusterResponse,
     V1KubernetesClusterDriver,
-    V1Membership,
-    V1ListMembershipsResponse,
-    V1ListLightningappInstancesResponse,
-    Externalv1LightningappInstance,
-    V1LightningappInstanceStatus,
     V1LightningappInstanceState,
+    V1LightningappInstanceStatus,
+    V1ListLightningappInstancesResponse,
+    V1ListMembershipsResponse,
+    V1Membership,
 )
 
 from lightning_app.cli import cmd_clusters

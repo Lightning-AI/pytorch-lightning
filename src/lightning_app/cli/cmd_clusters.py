@@ -262,8 +262,7 @@ def _list_apps(
     api_client: LightningClient,
     **filters,
 ) -> List[Externalv1LightningappInstance]:
-    """
-    _list_apps is a thin wrapper around lightningapp_instance_service_list_lightningapp_instances.
+    """_list_apps is a thin wrapper around lightningapp_instance_service_list_lightningapp_instances.
 
     Args:
         api_client (LightningClient): Used for listing app instances
