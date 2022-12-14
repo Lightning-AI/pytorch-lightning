@@ -1,5 +1,4 @@
 import enum
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -37,7 +36,7 @@ class WorkPendingReason(enum.Enum):
     REQUESTING_RESOURCE = "requesting_ressource"
 
 
-class WorkStageStatus:
+class WorkStageStatus(str, enum.Enum):
     NOT_STARTED = "not_started"
     STARTED = "started"
     STOPPED = "stopped"
@@ -45,18 +44,6 @@ class WorkStageStatus:
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
-
-
-@dataclass
-class WorkStatus:
-    stage: WorkStageStatus
-    timestamp: float
-    reason: Optional[str] = None
-    message: Optional[str] = None
-    count: int = 1
-
-    def __post_init__(self):
-        assert self.timestamp > 0 and self.timestamp < (int(datetime.now().timestamp()) + 10)
 
 
 def make_status(stage: str, message: Optional[str] = None, reason: Optional[str] = None):

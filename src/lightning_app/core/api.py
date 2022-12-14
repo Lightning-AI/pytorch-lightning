@@ -341,15 +341,12 @@ async def upload_file(response: Response, filename: str, uploaded_file: UploadFi
     return f"Successfully uploaded '{filename}' to the Drive"
 
 
-@fastapi_service.get("/api/v1/status", response_class=AppStatus)
-async def get_status(
-    response: Response,
-) -> Union[List, Dict]:
-    if app_status is None:
-        response.status_code = status.HTTP_404_NOT_FOUND
-        return {"status": "failure", "reason": "App status hasn't been reported yet."}
-
+@fastapi_service.get("/api/v1/status", response_model=AppStatus)
+async def get_status() -> AppStatus:
+    """Get the current status of the app and works."""
     global app_status
+    if app_status is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App status hasn't been reported yet.")
     return app_status
 
 
@@ -436,7 +433,7 @@ def start_server(
     api_publish_state_queue,
     api_delta_queue,
     api_response_queue,
-    app_status_queue,
+    app_status_queue: Optional[Queue] = None,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
@@ -458,7 +455,7 @@ def start_server(
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue, api_response_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_response_queue, app_status_queue)
     refresher.setDaemon(True)
     refresher.start()
 

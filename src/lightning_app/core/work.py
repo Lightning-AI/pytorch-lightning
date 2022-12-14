@@ -12,13 +12,13 @@ from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
     make_status,
     WorkFailureReasons,
     WorkStageStatus,
-    WorkStatus,
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -267,8 +267,8 @@ class LightningWork:
             latest_status = statuses[-1]
             if latest_status.get("reason") == WorkFailureReasons.TIMEOUT:
                 return self._aggregate_status_timeout(statuses)
-            return WorkStatus(**latest_status)
-        return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
+            return WorkStatus(name=self.name, **latest_status)
+        return WorkStatus(name=self.name, stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
     @property
     def statuses(self) -> List[WorkStatus]:

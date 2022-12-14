@@ -1,17 +1,19 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
+
+from lightning_app.utilities.enum import WorkStageStatus
 
 
 class WorkStatus(BaseModel):
     """The ``WorkStatus`` captures the status of a work according to the app."""
 
-    # The name of the work
     name: str
-
-    # ``True`` when the work is running according to the app.
-    # Compute states in the cloud are owned by the platform.
-    is_running: bool
+    stage: WorkStageStatus
+    timestamp: float
+    reason: Optional[str] = None
+    message: Optional[str] = None
+    count: int = 1
 
 
 class AppStatus(BaseModel):

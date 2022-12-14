@@ -421,6 +421,7 @@ class LightningApp:
 
         self._update_layout()
         self._update_is_headless()
+        self._update_status()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -488,14 +489,7 @@ class LightningApp:
         self._original_state = deepcopy(self.state)
         done = False
 
-        # TODO: Re-enable the `ready` property once issues are resolved
-        if not self.root.ready:
-            warnings.warn(
-                "One of your Flows returned `.ready` as `False`. "
-                "This feature is not yet enabled so this will be ignored.",
-                UserWarning,
-            )
-        self.ready = True
+        self.ready = self.root.ready
 
         self._start_with_flow_works()
 
@@ -539,8 +533,20 @@ class LightningApp:
             _handle_is_headless(self)
 
     def _update_status(self) -> None:
-        # old_status = self.status
-        pass
+        old_status = self.status
+
+        work_statuses = []
+        for work in breadth_first(self.root, types=(lightning_app.LightningWork,)):
+            work_statuses.append(work.status)
+
+        new_status = AppStatus(
+            is_ui_ready=self.ready,
+            work_statuses=work_statuses,
+        )
+
+        if new_status != old_status:
+            self.status = new_status
+            self.app_status_queue.put(self.status)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()
