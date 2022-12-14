@@ -174,7 +174,7 @@ class _FxValidator:
             )
 
         if cls.functions[fx_name] is None:
-            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`.")
+            raise MisconfigurationException(f"You can't `self.log()` inside `{fx_name}`. HINT: You can still log directly to the logger by using `self.logger.experiment`.")
 
     @classmethod
     def get_default_logging_levels(
