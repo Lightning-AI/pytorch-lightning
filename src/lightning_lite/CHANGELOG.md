@@ -34,6 +34,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The patching of dunder methods for re-instantiating `DataLoader` and `BatchSampler` now happens at import time ([#16019](https://github.com/Lightning-AI/lightning/issues/16019))
 
 
+- Merged the implementation of `DDPSpawnStrategy` into `DDPStrategy` and removed `DDPSpawnStrategy` ([#14952](https://github.com/Lightning-AI/lightning/issues/14952))
+
+
 ### Deprecated
 
 -

@@ -4,7 +4,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import List, Optional
 
-from lightning_app.source_code.copytree import _copytree
+from lightning_app.source_code.copytree import _copytree, _IGNORE_FUNCTION
 from lightning_app.source_code.hashing import _get_hash
 from lightning_app.source_code.tar import _tar_path
 from lightning_app.source_code.uploader import FileUploader
@@ -15,8 +15,9 @@ class LocalSourceCodeDir:
 
     cache_location: Path = Path.home() / ".lightning" / "cache" / "repositories"
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, ignore_functions: Optional[List[_IGNORE_FUNCTION]] = None) -> None:
         self.path = path
+        self.ignore_functions = ignore_functions
 
         # cache checksum version
         self._version: Optional[str] = None
@@ -33,7 +34,7 @@ class LocalSourceCodeDir:
     def files(self) -> List[str]:
         """Returns a set of files that are not ignored by .lightningignore."""
         if self._non_ignored_files is None:
-            self._non_ignored_files = _copytree(self.path, "", dry_run=True)
+            self._non_ignored_files = _copytree(self.path, "", ignore_functions=self.ignore_functions, dry_run=True)
         return self._non_ignored_files
 
     @property
@@ -59,7 +60,7 @@ class LocalSourceCodeDir:
         session_path = self.cache_location / "packaging_sessions" / self.version
         try:
             rmtree(session_path, ignore_errors=True)
-            _copytree(self.path, session_path)
+            _copytree(self.path, session_path, ignore_functions=self.ignore_functions)
             yield session_path
         finally:
             rmtree(session_path, ignore_errors=True)
