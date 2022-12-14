@@ -221,10 +221,10 @@ class AWSClusterManager:
                 click.echo(
                     dedent(
                         """\
-                        This cluster has non-running apps.
+                        This cluster has stopped apps.
                         Deleting this cluster will delete those apps and their logs.
 
-                        App data will still be available in the S3 bucket for the cluster.
+                        App artifacts aren't deleted and will still be available in the S3 bucket for the cluster.
                         """
                     )
                 )
