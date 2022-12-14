@@ -231,7 +231,7 @@ def _wait_for_cluster_state(
     cluster_id: str,
     target_state: V1ClusterState,
     timeout_seconds: int = MAX_CLUSTER_WAIT_TIME,
-    poll_duration_seconds: int = 10,
+    poll_duration_seconds: int = 60,
 ) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
