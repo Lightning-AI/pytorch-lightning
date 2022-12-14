@@ -19,7 +19,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import Protocol, runtime_checkable
 
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_1_14
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_2_0
 
 _PATH = Union[str, Path]
 _DEVICE = Union[torch.device, str, int]
@@ -75,7 +75,7 @@ class LRScheduler(_Stateful[str], Protocol):
 
 
 _TORCH_LRSCHEDULER = (
-    torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_1_14 else torch.optim.lr_scheduler._LRScheduler
+    torch.optim.lr_scheduler.LRScheduler if _TORCH_GREATER_EQUAL_2_0 else torch.optim.lr_scheduler._LRScheduler
 )
 
 
