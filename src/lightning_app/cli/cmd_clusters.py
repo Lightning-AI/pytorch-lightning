@@ -9,6 +9,7 @@ import click
 import lightning_cloud
 from lightning_cloud.openapi import (
     Externalv1Cluster,
+    Externalv1LightningappInstance,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
@@ -203,7 +204,7 @@ class AWSClusterManager:
             click.confirm("Do you want to continue?", abort=True)
 
         else:
-            if _has_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING]):
+            if _list_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING]):
                 raise click.ClickException(
                     dedent(
                         f"""
@@ -219,7 +220,7 @@ class AWSClusterManager:
                     )
                 )
 
-            if _has_apps(self.api_client, cluster_id=cluster_id, phase_not_in=[V1LightningappInstanceState.DELETED]):
+            if _list_apps(self.api_client, cluster_id=cluster_id, phase_not_in=[V1LightningappInstanceState.DELETED]):
                 click.echo(
                     dedent(
                         """
@@ -260,19 +261,19 @@ class AWSClusterManager:
                 click.echo(background_message)
 
 
-def _has_apps(
+def _list_apps(
     api_client: LightningClient,
     **filters,
-) -> bool:
+) -> List[Externalv1LightningappInstance]:
     """
-    _has_apps wraps the lightningapp_instance_service_list_lightningapp_instances method.
+    _list_apps is a thin wrapper around lightningapp_instance_service_list_lightningapp_instances.
 
     Args:
         api_client (LightningClient): Used for listing app instances
         **filters: keyword arguments passed to the list method
 
     Returns:
-        bool: whether or not the response had apps matching the filters
+        List[Externalv1LightningappInstance]: List of apps matching the filters
     """
     project: V1Membership = _get_project(api_client)
     resp: V1ListLightningappInstancesResponse = api_client.lightningapp_instance_service_list_lightningapp_instances(
@@ -280,7 +281,7 @@ def _has_apps(
         **filters,
     )
 
-    return len(resp.lightningapps) > 0
+    return resp.lightningapps
 
 
 def _wait_for_cluster_state(
