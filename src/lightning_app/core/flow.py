@@ -813,7 +813,6 @@ class _RootFlow(LightningFlow):
     def run(self):
         if self.work.has_succeeded:
             self.work.stop()
-            self._exit()
         self.work.run()
 
     def configure_layout(self):
