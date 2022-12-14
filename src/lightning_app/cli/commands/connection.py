@@ -276,11 +276,11 @@ def _list_app_commands(echo: bool = True) -> List[str]:
 
     app_info = metadata[command_names[0]].get("app_info", None)
 
-    title, description, on_after_connect = "Lightning", None, None
+    title, description, on_connect_end = "Lightning", None, None
     if app_info:
-        title = app_info["title"]
-        description = app_info["description"]
-        on_after_connect = app_info["on_after_connect"]
+        title = app_info.get("title")
+        description = app_info.get("description")
+        on_connect_end = app_info.get("on_connect_end")
 
     if echo:
         click.echo(f"{title} App")
@@ -296,10 +296,10 @@ def _list_app_commands(echo: bool = True) -> List[str]:
         for command_name in command_names:
             padding = (max_length + 1 - len(command_name)) * " "
             click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
-        if "LIGHTNING_CONNECT_PPID" in os.environ and on_after_connect:
-            if on_after_connect.endswith("\n"):
-                on_after_connect = on_after_connect[:-2]
-            click.echo(on_after_connect)
+        if "LIGHTNING_CONNECT_PPID" in os.environ and on_connect_end:
+            if on_connect_end.endswith("\n"):
+                on_connect_end = on_connect_end[:-2]
+            click.echo(on_connect_end)
     return command_names
 
 
