@@ -1570,6 +1570,54 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     flow.run()
 
 
+def test_default_lightningignore(monkeypatch, caplog, tmpdir):
+    mock_client = mock.MagicMock()
+    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+    )
+    mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+        V1ListLightningappInstancesResponse(lightningapps=[])
+    )
+    mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+        cluster_id="test"
+    )
+    cloud_backend = mock.MagicMock(client=mock_client)
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+
+    class MyWork(LightningWork):
+        def run(self):
+            pass
+
+    app = LightningApp(MyWork())
+
+    path = Path(tmpdir)
+    cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=path / "entrypoint.py")
+    monkeypatch.setattr(LocalSourceCodeDir, "upload", mock.MagicMock())
+
+    # write some files
+    write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
+    write_file_of_size(path / "venv" / "foo.txt", 4 * 1000 * 1000)
+
+    with mock.patch(
+        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+    ) as parse_mock, mock.patch(
+        "lightning_app.source_code.local._copytree", wraps=_copytree
+    ) as copy_mock, caplog.at_level(
+        logging.WARN
+    ):
+        cloud_runtime.dispatch()
+
+    parse_mock.assert_called_once_with(())
+    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
+
+    assert (path / ".lightningignore").exists()
+
+    assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 5.0 MB" in caplog.text
+    assert "2 files were uploaded"  # a.txt and .lightningignore
+    assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
+
+
 @pytest.mark.parametrize(
     "lightning_app_instance, lightning_cloud_url, expected_url",
     [
