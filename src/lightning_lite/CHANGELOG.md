@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
+
+## [1.8.5] - 2022-12-14
+
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+
 ## [1.8.4] - 2022-12-08
 
 - Fixed `shuffle=False` having no effect when using DDP/DistributedSampler ([#15931](https://github.com/Lightning-AI/lightning/issues/15931))
