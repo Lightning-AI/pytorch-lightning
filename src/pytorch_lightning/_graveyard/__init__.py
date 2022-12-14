@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytorch_lightning._graveyard.accelerator
 import pytorch_lightning._graveyard.callbacks
 import pytorch_lightning._graveyard.core
 import pytorch_lightning._graveyard.legacy_import_unpickler

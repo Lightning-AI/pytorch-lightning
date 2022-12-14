@@ -20,7 +20,6 @@ import pytest
 import pytorch_lightning.loggers.base as logger_base
 import pytorch_lightning.utilities.cli as old_cli
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.cli import LightningCLI, SaveConfigCallback
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -207,13 +206,3 @@ def test_pytorch_profiler_schedule_wrapper_deprecation_warning():
 def test_pytorch_profiler_register_record_function_deprecation_warning():
     with pytest.deprecated_call(match="RegisterRecordFunction` is deprecated in v1.7 and will be removed in in v1.9."):
         _ = RegisterRecordFunction(None)
-
-
-def test_gpu_accelerator_deprecation_warning():
-    with pytest.deprecated_call(
-        match=(
-            "The `GPUAccelerator` has been renamed to `CUDAAccelerator` and will be removed in v1.9."
-            + " Please use the `CUDAAccelerator` instead!"
-        )
-    ):
-        GPUAccelerator()
