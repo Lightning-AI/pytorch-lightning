@@ -32,6 +32,7 @@ from lightning_lite.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning_lite.utilities.distributed import group as _group
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import ProcessGroup, ReduceOp
@@ -43,7 +44,7 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12, _TORCH_GREATER_EQUAL_1_13
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
