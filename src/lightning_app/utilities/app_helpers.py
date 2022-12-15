@@ -535,7 +535,6 @@ def _using_debugger() -> bool:
 def _should_dispatch_app() -> bool:
     return (
         not _lightning_dispatched()
-        and "_pytest.doctest" not in sys.modules
         and "LIGHTNING_APP_STATE_URL" not in os.environ
         # Keep last to avoid running it if already dispatched
         and _using_debugger()
