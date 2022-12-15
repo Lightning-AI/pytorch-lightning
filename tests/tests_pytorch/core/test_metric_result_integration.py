@@ -20,8 +20,8 @@ from unittest import mock
 import pytest
 import torch
 import torchmetrics
-from torch import Tensor, tensor
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
