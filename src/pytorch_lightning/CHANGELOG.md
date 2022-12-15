@@ -69,7 +69,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `description`, `env_prefix` and `env_parse` parameters in `LightningCLI.__init__` in favour of giving them through `parser_kwargs` ([#15651](https://github.com/Lightning-AI/lightning/pull/15651))
 
 
-- Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/PyTorchLightning/pytorch-lightning/pull/12308))
+- Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
 
 
 ### Removed
@@ -95,7 +95,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `pytorch_lightning.accelerators.GPUAccelerator` in favor of `pytorch_lightning.accelerators.CUDAAccelerator` ([#16050](https://github.com/Lightning-AI/lightning/pull/16050))
 
 
-- Removed the deprecated `pytorch_lightning.profiler.*` classes in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/PyTorchLightning/pytorch-lightning/pull/12308))
+- Removed the deprecated `pytorch_lightning.profiler.*` classes in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
 
 
 ### Fixed
