@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import click
 import pytest
 from lightning_cloud.openapi import (
+    Externalv1LightningappInstance,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
@@ -14,6 +15,11 @@ from lightning_cloud.openapi import (
     V1CreateClusterRequest,
     V1GetClusterResponse,
     V1KubernetesClusterDriver,
+    V1LightningappInstanceState,
+    V1LightningappInstanceStatus,
+    V1ListLightningappInstancesResponse,
+    V1ListMembershipsResponse,
+    V1Membership,
 )
 
 from lightning_app.cli import cmd_clusters
@@ -95,15 +101,97 @@ def test_list_clusters(api: mock.MagicMock):
     api.assert_called_once_with(phase_not_in=[V1ClusterState.DELETED])
 
 
+@pytest.fixture()
+def fixture_list_instances_empty():
+    return V1ListLightningappInstancesResponse([])
+
+
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
 @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_delete_cluster")
 @mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
-def test_delete_cluster_api(api_get: mock.MagicMock, api_delete: mock.MagicMock, async_or_interrupt, spec):
+def test_delete_cluster_api(
+    api_get: mock.MagicMock,
+    api_delete: mock.MagicMock,
+    api_list_instances: mock.MagicMock,
+    api_list_memberships: mock.MagicMock,
+    async_or_interrupt,
+    spec,
+    fixture_list_instances_empty,
+):
+    api_list_memberships.return_value = V1ListMembershipsResponse([V1Membership(project_id="test-project")])
+    api_list_instances.return_value = fixture_list_instances_empty
     api_get.return_value = V1GetClusterResponse(spec=spec)
     cluster_manager = AWSClusterManager()
     cluster_manager.delete(cluster_id="test-7", do_async=async_or_interrupt)
 
     api_delete.assert_called_once_with(id="test-7", force=False)
+
+
+@mock.patch("click.confirm")
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_delete_cluster")
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
+def test_delete_cluster_with_stopped_apps(
+    api_get: mock.MagicMock,
+    api_delete: mock.MagicMock,
+    api_list_instances: mock.MagicMock,
+    api_list_memberships: mock.MagicMock,
+    click_mock: mock.MagicMock,
+    spec,
+):
+    api_list_memberships.return_value = V1ListMembershipsResponse([V1Membership(project_id="test-project")])
+    api_list_instances.side_effect = [
+        # when querying for running apps
+        V1ListLightningappInstancesResponse([]),
+        # when querying for stopped apps
+        V1ListLightningappInstancesResponse(
+            lightningapps=[
+                Externalv1LightningappInstance(
+                    status=V1LightningappInstanceStatus(
+                        phase=V1LightningappInstanceState.STOPPED,
+                    )
+                )
+            ]
+        ),
+    ]
+    api_get.return_value = V1GetClusterResponse(spec=spec)
+    cluster_manager = AWSClusterManager()
+
+    cluster_manager.delete(cluster_id="test-7", do_async=True)
+    api_delete.assert_called_once_with(id="test-7", force=False)
+    click_mock.assert_called_once_with("Are you sure you want to continue?", abort=True)
+
+
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
+@mock.patch("lightning_app.utilities.network.LightningClient.projects_service_list_memberships")
+@mock.patch("lightning_app.utilities.network.LightningClient.lightningapp_instance_service_list_lightningapp_instances")
+@mock.patch("lightning_app.utilities.network.LightningClient.cluster_service_get_cluster")
+def test_delete_cluster_with_running_apps(
+    api_get: mock.MagicMock,
+    api_list_instances: mock.MagicMock,
+    api_list_memberships: mock.MagicMock,
+    spec,
+):
+    api_list_memberships.return_value = V1ListMembershipsResponse([V1Membership(project_id="test-project")])
+    api_list_instances.return_value = V1ListLightningappInstancesResponse(
+        lightningapps=[
+            Externalv1LightningappInstance(
+                status=V1LightningappInstanceStatus(
+                    phase=V1LightningappInstanceState.RUNNING,
+                )
+            )
+        ]
+    )
+    api_get.return_value = V1GetClusterResponse(spec=spec)
+    cluster_manager = AWSClusterManager()
+
+    with pytest.raises(click.ClickException) as exception:
+        cluster_manager.delete(cluster_id="test-7")
+    exception.match("apps running")
 
 
 class Test_check_cluster_id_is_valid:

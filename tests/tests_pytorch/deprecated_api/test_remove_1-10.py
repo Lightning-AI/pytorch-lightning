@@ -18,8 +18,10 @@ from unittest import mock
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
+import pytorch_lightning.profiler as profiler
 from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
 from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
 from pytorch_lightning import Trainer
@@ -33,7 +35,6 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
-from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.apply_func import (
@@ -70,7 +71,6 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_deprecated_amp_level():
@@ -84,7 +84,6 @@ def test_deprecated_amp_level():
         LightningParallelModule,
         LightningDistributedModule,
         LightningBaguaModule,
-        LightningDeepSpeedModule,
         pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
     ],
 )
@@ -339,3 +338,21 @@ def test_v1_8_1_deprecated_rank_zero_only():
 
     with pytest.deprecated_call(match="rank_zero_only` has been deprecated in v1.8.1"):
         rank_zero_only(lambda: None)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        profiler.AdvancedProfiler,
+        profiler.PassThroughProfiler,
+        profiler.PyTorchProfiler,
+        profiler.SimpleProfiler,
+        pytest.param(profiler.XLAProfiler, marks=RunIf(tpu=True)),
+    ],
+)
+def test_profiler_classes_deprecated_warning(cls):
+    with pytest.deprecated_call(
+        match=f"profiler.{cls.__name__}` is deprecated in v1.9.0 and will be removed in v1.10.0."
+        f" Use .*profilers.{cls.__name__}` class instead."
+    ):
+        cls()

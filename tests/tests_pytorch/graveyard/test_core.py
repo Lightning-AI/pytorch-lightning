@@ -53,18 +53,3 @@ def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
         match="`LightningDataModule.on_load_checkpoint`.*no longer supported as of v1.8.",
     ):
         trainer.fit(model, OnLoadDataModule())
-
-
-def test_v2_0_0_lightning_module_unsupported_use_amp():
-    model = BoringModel()
-    with pytest.raises(
-        RuntimeError,
-        match="`LightningModule.use_amp`.*no longer accessible as of v1.8.",
-    ):
-        model.use_amp
-
-    with pytest.raises(
-        RuntimeError,
-        match="`LightningModule.use_amp`.*no longer accessible as of v1.8.",
-    ):
-        model.use_amp = False

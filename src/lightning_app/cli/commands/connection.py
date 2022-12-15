@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 import click
 import psutil
 from lightning_utilities.core.imports import package_available
+from rich.progress import Progress
 
 from lightning_app.utilities.cli_helpers import _LightningAppOpenAPIRetriever
 from lightning_app.utilities.cloud import _get_project
@@ -16,15 +17,33 @@ from lightning_app.utilities.log import get_logfile
 from lightning_app.utilities.network import LightningClient
 
 _HOME = os.path.expanduser("~")
-_PPID = str(psutil.Process(os.getpid()).ppid())
+_PPID = os.getenv("LIGHTNING_CONNECT_PPID", str(psutil.Process(os.getpid()).ppid()))
 _LIGHTNING_CONNECTION = os.path.join(_HOME, ".lightning", "lightning_connection")
 _LIGHTNING_CONNECTION_FOLDER = os.path.join(_LIGHTNING_CONNECTION, _PPID)
 
 
 @click.argument("app_name_or_id", required=True)
-@click.option("-y", "--yes", required=False, is_flag=True, help="Whether to download the commands automatically.")
-def connect(app_name_or_id: str, yes: bool = False):
-    """Connect to a Lightning App."""
+def connect(app_name_or_id: str):
+    """Connect your local terminal to a running lightning app.
+
+    After connecting, the lightning CLI will respond to commands exposed by the app.
+
+    Example:
+
+    \b
+    # connect to an app named pizza-cooker-123
+    lightning connect pizza-cooker-123
+    \b
+    # this will now show the commands exposed by pizza-cooker-123
+    lightning --help
+    \b
+    # while connected, you can run the cook-pizza command exposed
+    # by pizza-cooker-123.BTW, this should arguably generate an exception :-)
+    lightning cook-pizza --flavor pineapple
+    \b
+    # once done, disconnect and go back to the standard lightning CLI commands
+    lightning disconnect
+    """
     from lightning_app.utilities.commands.base import _download_command
 
     _clean_lightning_connection()
@@ -47,51 +66,64 @@ def connect(app_name_or_id: str, yes: bool = False):
                 click.echo(f"You are already connected to the cloud Lightning App: {app_name_or_id}.")
         else:
             disconnect()
-            connect(app_name_or_id, yes)
+            connect(app_name_or_id)
 
     elif app_name_or_id.startswith("localhost"):
 
-        if app_name_or_id != "localhost":
-            raise Exception("You need to pass localhost to connect to the local Lightning App.")
+        with Progress() as progress_bar:
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
-        retriever = _LightningAppOpenAPIRetriever(None)
+            if app_name_or_id != "localhost":
+                raise Exception("You need to pass localhost to connect to the local Lightning App.")
 
-        if retriever.api_commands is None:
-            raise Exception(f"The commands weren't found. Is your app {app_name_or_id} running ?")
+            retriever = _LightningAppOpenAPIRetriever(None)
 
-        commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
-        if not os.path.exists(commands_folder):
-            os.makedirs(commands_folder)
+            if retriever.api_commands is None:
+                raise Exception(f"Connection wasn't successful. Is your app {app_name_or_id} running?")
 
-        _write_commands_metadata(retriever.api_commands)
+            increment = 1 / (1 + len(retriever.api_commands))
 
-        with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
-            json.dump(retriever.openapi, f)
+            progress_bar.update(connecting, advance=increment)
 
-        _install_missing_requirements(retriever, yes)
+            commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
+            if not os.path.exists(commands_folder):
+                os.makedirs(commands_folder)
 
-        for command_name, metadata in retriever.api_commands.items():
-            if "cls_path" in metadata:
-                target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
-                _download_command(
-                    command_name,
-                    metadata["cls_path"],
-                    metadata["cls_name"],
-                    None,
-                    target_file=target_file,
-                )
-                repr_command_name = command_name.replace("_", " ")
-                click.echo(f"Storing `{repr_command_name}` at {target_file}")
-            else:
-                with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
-                    f.write(command_name)
+            _write_commands_metadata(retriever.api_commands)
 
-        click.echo(f"You can review all the downloaded commands at {commands_folder}")
+            with open(os.path.join(commands_folder, "openapi.json"), "w") as f:
+                json.dump(retriever.openapi, f)
+
+            _install_missing_requirements(retriever)
+
+            for command_name, metadata in retriever.api_commands.items():
+                if "cls_path" in metadata:
+                    target_file = os.path.join(commands_folder, f"{command_name.replace(' ','_')}.py")
+                    _download_command(
+                        command_name,
+                        metadata["cls_path"],
+                        metadata["cls_name"],
+                        None,
+                        target_file=target_file,
+                    )
+                else:
+                    with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
+                        f.write(command_name)
+
+                progress_bar.update(connecting, advance=increment)
 
         with open(connected_file, "w") as f:
             f.write(app_name_or_id + "\n")
 
-        click.echo("You are connected to the local Lightning App.")
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
+        click.echo(" ")
+
+        Popen(
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            shell=True,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        ).wait()
 
     elif matched_connection_path:
 
@@ -101,40 +133,39 @@ def connect(app_name_or_id: str, yes: bool = False):
             commands = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             shutil.copytree(matched_commands, commands)
             shutil.copy(matched_connected_file, connected_file)
-            copied_files = [el for el in os.listdir(commands) if os.path.splitext(el)[1] == ".py"]
-            click.echo("Found existing connection, reusing cached commands")
-            for target_file in copied_files:
-                pretty_command_name = os.path.splitext(target_file)[0].replace("_", " ")
-                click.echo(f"Storing `{pretty_command_name}` at {os.path.join(commands, target_file)}")
 
-        click.echo(f"You can review all the commands at {commands}")
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
-        click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
+
+        Popen(
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            shell=True,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        ).wait()
 
     else:
+        with Progress() as progress_bar:
+            connecting = progress_bar.add_task("[magenta]Setting things up for you...", total=1.0)
 
-        retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
+            retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
 
-        if not retriever.api_commands:
-            client = LightningClient()
-            project = _get_project(client)
-            apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
-            click.echo(
-                "We didn't find a matching App. Here are the available Apps that could be "
-                f"connected to {[app.name for app in apps.lightningapps]}."
-            )
-            return
+            if not retriever.api_commands:
+                client = LightningClient()
+                project = _get_project(client)
+                apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
+                click.echo(
+                    "We didn't find a matching App. Here are the available Apps that you can"
+                    f"connect to {[app.name for app in apps.lightningapps]}."
+                )
+                return
 
-        _install_missing_requirements(retriever, yes)
+            increment = 1 / (1 + len(retriever.api_commands))
 
-        if not yes:
-            yes = click.confirm(
-                f"The Lightning App `{app_name_or_id}` provides a command-line (CLI). "
-                "Do you want to proceed and install its CLI ?"
-            )
-            click.echo(" ")
+            progress_bar.update(connecting, advance=increment)
 
-        if yes:
+            _install_missing_requirements(retriever)
+
             commands_folder = os.path.join(_LIGHTNING_CONNECTION_FOLDER, "commands")
             if not os.path.exists(commands_folder):
                 os.makedirs(commands_folder)
@@ -151,26 +182,25 @@ def connect(app_name_or_id: str, yes: bool = False):
                         retriever.app_id,
                         target_file=target_file,
                     )
-                    pretty_command_name = command_name.replace("_", " ")
-                    click.echo(f"Storing `{pretty_command_name}` at {target_file}")
                 else:
                     with open(os.path.join(commands_folder, f"{command_name}.txt"), "w") as f:
                         f.write(command_name)
 
-            click.echo(f"You can review all the downloaded commands at {commands_folder}")
-
-            click.echo(" ")
-            click.echo("The client interface has been successfully installed. ")
-            click.echo("You can now run the following commands:")
-            for command in retriever.api_commands:
-                pretty_command_name = command.replace("_", " ")
-                click.echo(f"    lightning {pretty_command_name}")
+                progress_bar.update(connecting, advance=increment)
 
         with open(connected_file, "w") as f:
             f.write(retriever.app_name + "\n")
             f.write(retriever.app_id + "\n")
+
+        click.echo("The lightning CLI now responds to app commands. Use 'lightning --help' to see them.")
         click.echo(" ")
-        click.echo(f"You are connected to the cloud Lightning App: {app_name_or_id}.")
+
+        Popen(
+            f"LIGHTNING_CONNECT_PPID={_PPID} {sys.executable} -m lightning --help",
+            shell=True,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+        ).wait()
 
 
 def disconnect(logout: bool = False):
@@ -244,22 +274,37 @@ def _list_app_commands(echo: bool = True) -> List[str]:
         click.echo("The current Lightning App doesn't have commands.")
         return []
 
+    app_info = metadata[command_names[0]].get("app_info", None)
+
+    title, description, on_connect_end = "Lightning", None, None
+    if app_info:
+        title = app_info.get("title")
+        description = app_info.get("description")
+        on_connect_end = app_info.get("on_connect_end")
+
     if echo:
-        click.echo("Usage: lightning [OPTIONS] COMMAND [ARGS]...")
+        click.echo(f"{title} App")
+        if description:
+            click.echo("")
+            click.echo("Description:")
+            if description.endswith("\n"):
+                description = description[:-2]
+            click.echo(f"  {description}")
         click.echo("")
-        click.echo("  --help     Show this message and exit.")
-        click.echo("")
-        click.echo("Lightning App Commands")
+        click.echo("Commands:")
         max_length = max(len(n) for n in command_names)
         for command_name in command_names:
             padding = (max_length + 1 - len(command_name)) * " "
             click.echo(f"  {command_name}{padding}{metadata[command_name].get('description', '')}")
+        if "LIGHTNING_CONNECT_PPID" in os.environ and on_connect_end:
+            if on_connect_end.endswith("\n"):
+                on_connect_end = on_connect_end[:-2]
+            click.echo(on_connect_end)
     return command_names
 
 
 def _install_missing_requirements(
     retriever: _LightningAppOpenAPIRetriever,
-    yes_global: bool = False,
     fail_if_missing: bool = False,
 ):
     requirements = set()
@@ -281,20 +326,15 @@ def _install_missing_requirements(
                 sys.exit(0)
 
             for req in missing_requirements:
-                if not yes_global:
-                    yes = click.confirm(
-                        f"The Lightning App CLI `{retriever.app_id}` requires `{req}`. Do you want to install it ?"
-                    )
-                else:
-                    print(f"Installing missing `{req}` requirement.")
-                    yes = yes_global
-                if yes:
-                    std_out_out = get_logfile("output.log")
-                    with open(std_out_out, "wb") as stdout:
-                        Popen(
-                            f"{sys.executable} -m pip install {req}", shell=True, stdout=stdout, stderr=sys.stderr
-                        ).wait()
-                    print()
+                std_out_out = get_logfile("output.log")
+                with open(std_out_out, "wb") as stdout:
+                    Popen(
+                        f"{sys.executable} -m pip install {req}",
+                        shell=True,
+                        stdout=stdout,
+                        stderr=stdout,
+                    ).wait()
+                os.remove(std_out_out)
 
 
 def _clean_lightning_connection():

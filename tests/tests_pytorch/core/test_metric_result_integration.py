@@ -21,6 +21,7 @@ import pytest
 import torch
 import torchmetrics
 from torch import Tensor, tensor
+from lightning_utilities.test.warning import no_warning_call
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
@@ -37,7 +38,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
 )
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 class DummyMetric(Metric):

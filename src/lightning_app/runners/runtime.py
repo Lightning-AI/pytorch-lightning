@@ -55,9 +55,6 @@ def dispatch(
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
 
-    # Used to indicate Lightning has been dispatched
-    os.environ["LIGHTNING_DISPATCHED"] = "1"
-
     _set_flow_context()
 
     runtime_type = RuntimeType(runtime_type)
@@ -80,6 +77,8 @@ def dispatch(
         secrets=secrets,
         run_app_comment_commands=run_app_comment_commands,
     )
+    # Used to indicate Lightning has been dispatched
+    os.environ["LIGHTNING_DISPATCHED"] = "1"
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
     return runtime.dispatch(open_ui=open_ui, name=name, no_cache=no_cache, cluster_id=cluster_id)

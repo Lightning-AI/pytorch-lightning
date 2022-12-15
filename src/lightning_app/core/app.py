@@ -87,18 +87,16 @@ class LightningApp:
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
-            ...         print("Hello World!")
             ...         self._exit()
             ...
             >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             >>> MultiProcessRuntime(app).dispatch()
-            Hello World!
         """
 
         self.root_path = root_path  # when running behind a proxy
@@ -486,7 +484,15 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
-        self.ready = self.root.ready
+
+        # TODO: Re-enable the `ready` property once issues are resolved
+        if not self.root.ready:
+            warnings.warn(
+                "One of your Flows returned `.ready` as `False`. "
+                "This feature is not yet enabled so this will be ignored.",
+                UserWarning,
+            )
+        self.ready = True
 
         self._start_with_flow_works()
 
@@ -520,14 +526,11 @@ class LightningApp:
             component._layout = layout
 
     def _update_is_headless(self) -> None:
-        is_headless = _is_headless(self)
+        self.is_headless = _is_headless(self)
 
         # If `is_headless` changed, handle it.
         # This ensures support for apps which dynamically add a UI at runtime.
-        if self.is_headless != is_headless:
-            self.is_headless = is_headless
-
-            _handle_is_headless(self)
+        _handle_is_headless(self)
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()

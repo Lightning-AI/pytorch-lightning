@@ -37,6 +37,7 @@ from lightning_lite.utilities.apply_func import convert_to_tensors
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
+from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
 from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -45,9 +46,9 @@ from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -88,7 +89,6 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
-            "use_amp",  # from graveyard
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -403,7 +403,7 @@ class LightningModule(
                 " but it should not contain information about `dataloader_idx`"
             )
 
-        value = apply_to_collection(value, (torch.Tensor, numbers.Number), self.__to_tensor, name)
+        value = apply_to_collection(value, (Tensor, numbers.Number), self.__to_tensor, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -545,10 +545,10 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
+    def __to_tensor(self, value: Union[Tensor, numbers.Number], name: str) -> Tensor:
         value = (
             value.clone().detach().to(self.device)
-            if isinstance(value, torch.Tensor)
+            if isinstance(value, Tensor)
             else torch.tensor(value, device=self.device)
         )
         if not torch.numel(value) == 1:
@@ -1472,8 +1472,12 @@ class LightningModule(
         """Handles gradient clipping internally.
 
         Note:
-            Do not override this method. If you want to customize gradient clipping, consider
-            using :meth:`configure_gradient_clipping` method.
+            - Do not override this method. If you want to customize gradient clipping, consider using
+              :meth:`configure_gradient_clipping` method.
+            - For manual optimization (``self.automatic_optimization = False``), if you want to use
+              gradient clipping, consider calling
+              ``self.clip_gradients(opt, gradient_clip_val=0.5, gradient_clip_algorithm="norm")``
+              manually in the training step.
 
         Args:
             optimizer: Current optimizer being used.
@@ -1980,9 +1984,17 @@ class LightningModule(
             "compiler": "dynamo",
             "dynamo_ctx": model.dynamo_ctx,
             "original_forward": orig_module.forward,
+            "original_training_step": orig_module.training_step,
+            "original_validation_step": orig_module.validation_step,
+            "original_test_step": orig_module.test_step,
+            "original_predict_step": orig_module.predict_step,
         }
 
         orig_module.forward = model.dynamo_ctx(orig_module.forward)  # type: ignore[assignment]
+        orig_module.training_step = model.dynamo_ctx(orig_module.training_step)  # type: ignore[assignment]
+        orig_module.validation_step = model.dynamo_ctx(orig_module.validation_step)  # type: ignore[assignment]
+        orig_module.test_step = model.dynamo_ctx(orig_module.test_step)  # type: ignore[assignment]
+        orig_module.predict_step = model.dynamo_ctx(orig_module.predict_step)  # type: ignore[assignment]
         return orig_module
 
     @classmethod
@@ -2011,6 +2023,10 @@ class LightningModule(
             raise ValueError("`model` must either be an instance of torch._dynamo.OptimizedModule or LightningModule")
 
         model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
+        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
+        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
+        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
+        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
         model._compiler_ctx = None
 
         return model
