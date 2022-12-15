@@ -45,7 +45,7 @@ class BoringApp(L.LightningFlow):
 
     @property
     def ready(self) -> bool:
-        return self.source_work.has_succeeded and self.dest_work.is_running
+        return self.dest_work.is_running
 
     def run(self):
         self.source_work.run()
