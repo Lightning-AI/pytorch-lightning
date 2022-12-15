@@ -522,7 +522,6 @@ class Fabric:
         return function(*args, **kwargs)
 
     def call(self, hook_name: str, *args, **kwargs: Any) -> None:
-        # TODO(fabric): Support also passing down positional arguments
         for callback in self._callbacks:
             method = getattr(callback, hook_name, None)
             if method is None:
