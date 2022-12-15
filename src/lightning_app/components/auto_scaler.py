@@ -18,11 +18,11 @@ from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from lightning.app.core.flow import LightningFlow
-from lightning.app.core.work import LightningWork
-from lightning.app.utilities.app_helpers import Logger
-from lightning.app.utilities.imports import _is_aiohttp_available, requires
-from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.core.flow import LightningFlow
+from lightning_app.core.work import LightningWork
+from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.imports import _is_aiohttp_available, requires
+from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 if _is_aiohttp_available():
     import aiohttp
