@@ -666,6 +666,7 @@ def test_module_sharding_context():
 
 
 def test_callbacks_input():
+    """Test the various ways in which callbacks can be registered with Fabric."""
     callback0 = Mock()
     callback1 = Mock()
 
@@ -694,7 +695,7 @@ def test_call_callbacks():
     callback0.on_train_end.assert_called_with("positional", keyword="keyword")
     callback1.on_train_end.assert_called_with("positional", keyword="keyword")
 
-    # only a subset of callbacks implement the given hook name
+    # Some callbacks don't implement the requested hook
     callback0 = Mock()
     callback1 = Mock(spec_set={})  # `on_train_end` not defined for this callback
     fabric = Fabric(callbacks=[callback0, callback1])

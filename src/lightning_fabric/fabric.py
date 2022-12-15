@@ -539,7 +539,7 @@ class Fabric:
                     ...
 
             fabric = Fabric(callbacks=[MyCallback]))
-            fabric.call("on_train_batch_end", results={...})
+            fabric.call("on_train_epoch_end", results={...})
         """
         for callback in self._callbacks:
             method = getattr(callback, hook_name, None)
