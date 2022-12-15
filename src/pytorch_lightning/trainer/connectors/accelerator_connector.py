@@ -18,7 +18,6 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
-from lightning_lightning_fabriclite.utilities.device_parser import _determine_root_gpu_device
 from typing_extensions import Literal
 
 from lightning_fabric.plugins.environments import (
@@ -30,6 +29,7 @@ from lightning_fabric.plugins.environments import (
     TorchElasticEnvironment,
 )
 from lightning_fabric.utilities import _StrategyType, AMPType, LightningEnum
+from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator

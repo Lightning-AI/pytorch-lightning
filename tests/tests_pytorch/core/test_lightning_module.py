@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from torch import nn
 from torch.optim import Adam, SGD
 

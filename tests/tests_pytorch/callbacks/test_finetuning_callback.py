@@ -15,7 +15,7 @@ from collections import OrderedDict
 
 import pytest
 import torch
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 from torch import nn
 from torch.optim import Optimizer, SGD
 from torch.utils.data import DataLoader

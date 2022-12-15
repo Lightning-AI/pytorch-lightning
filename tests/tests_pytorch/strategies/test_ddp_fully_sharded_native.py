@@ -6,7 +6,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 import torch.nn as nn
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
