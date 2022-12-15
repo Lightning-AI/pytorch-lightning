@@ -516,7 +516,7 @@ def _lightning_dispatched() -> bool:
 
 
 def _using_debugger() -> bool:
-    """This method is used to detect whether the app is runned run a debugger attached to it."""
+    """This method is used to detect whether the app is run with a debugger attached."""
     if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
         return True
 
