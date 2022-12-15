@@ -21,10 +21,9 @@ os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] = "1"
 
 
 from lightning_fabric.fabric import Fabric  # noqa: E402
-from lightning_fabric.utilities.module import LightningModule  # noqa: E402
 from lightning_fabric.utilities.seed import seed_everything  # noqa: E402
 
-__all__ = ["Fabric", "LightningModule", "seed_everything"]
+__all__ = ["Fabric", "seed_everything"]
 
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
