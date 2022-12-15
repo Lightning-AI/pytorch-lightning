@@ -5,23 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.8.5] - 2022-12-14
+## [1.8.5] - 2022-12-15
 
 ### Added
 
 - Added `Lightning{Flow,Work}.lightningignores` attributes to programmatically ignore files before uploading to the cloud ([#15818](https://github.com/Lightning-AI/lightning/pull/15818))
-
 - Added a progres bar while connecting to an app through the CLI ([#16035](https://github.com/Lightning-AI/lightning/pull/16035))
-
+- Support running on multiple clusters ([#16016](https://github.com/Lightning-AI/lightning/pull/16016))
+- Added guards to cluster deletion from cli ([#16053](https://github.com/Lightning-AI/lightning/pull/16053))
 
 ### Changed
 
+- Cleanup cluster waiting ([#16054](https://github.com/Lightning-AI/lightning/pull/16054))
 
 ### Fixed
 
-
+- Fixed `DDPStrategy` import in app framework ([#16029](https://github.com/Lightning-AI/lightning/pull/16029))
 - Fixed `AutoScaler` raising an exception when non-default cloud compute is specified ([#15991](https://github.com/Lightning-AI/lightning/pull/15991))
-
+- Fixed and improvements of login flow ([#16052](https://github.com/Lightning-AI/lightning/pull/16052))
 - Fixed the debugger detection mechanism for lightning App in VSCode ([#16068](https://github.com/Lightning-AI/lightning/pull/16068))
 
 
