@@ -67,8 +67,6 @@ def dispatch(
     if blocking:
         app.stage = AppStage.BLOCKING
 
-    # Used to indicate Lightning has been dispatched
-    os.environ["LIGHTNING_DISPATCHED"] = "1"
     runtime = runtime_cls(
         app=app,
         entrypoint_file=entrypoint_file,
@@ -79,6 +77,8 @@ def dispatch(
         secrets=secrets,
         run_app_comment_commands=run_app_comment_commands,
     )
+    # Used to indicate Lightning has been dispatched
+    os.environ["LIGHTNING_DISPATCHED"] = "1"
     # a cloud dispatcher will return the result while local
     # dispatchers will be running the app in the main process
     return runtime.dispatch(open_ui=open_ui, name=name, no_cache=no_cache, cluster_id=cluster_id)
