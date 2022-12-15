@@ -31,6 +31,7 @@ from lightning_cloud.openapi import (
     V1LightningworkSpec,
     V1ListClustersResponse,
     V1ListLightningappInstancesResponse,
+    V1ListLightningappsV2Response,
     V1ListMembershipsResponse,
     V1ListProjectClusterBindingsResponse,
     V1Membership,
@@ -209,6 +210,13 @@ class TestAppCreationClient:
         app = mock.MagicMock()
         app.flows = []
         app.frontend = {}
+
+        existing_app = MagicMock()
+        existing_app.name = app_name
+        existing_app.id = "test-id"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=[existing_app]
+        )
 
         existing_instance = MagicMock()
         existing_instance.name = app_name
@@ -458,6 +466,9 @@ class TestAppCreationClient:
             lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -632,6 +643,9 @@ class TestAppCreationClient:
             lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -786,6 +800,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -912,6 +929,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -1127,6 +1147,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
