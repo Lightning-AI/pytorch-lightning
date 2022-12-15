@@ -44,13 +44,7 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
 
 @pytest.mark.parametrize(
     "app_name",
-    [
-        "train_pytorch.py",
-        "train_any.py",
-        "train_lite.py",
-        "train_pytorch_spawn.py",
-        "train_lt.py"
-    ],
+    ["train_pytorch.py", "train_any.py", "train_lite.py", "train_pytorch_spawn.py", "train_lt.py"],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="flaky")
 @pytest.mark.skipif(not module_available("lightning"), reason="lightning not available")
