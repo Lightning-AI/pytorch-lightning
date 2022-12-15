@@ -3,6 +3,7 @@ import sys
 from unittest import mock
 
 import pytest
+from lightning_utilities.core.imports import module_available
 from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import application_testing, LightningTestApp
@@ -46,12 +47,13 @@ class LightningTestMultiNodeWorksApp(LightningTestApp):
     [
         "train_pytorch.py",
         "train_any.py",
-        # "app_lite_work.py",
+        "train_lite.py",
         "train_pytorch_spawn.py",
-        # "app_pl_work.py": TODO Add once https://github.com/Lightning-AI/lightning/issues/15556 is resolved.
+        "train_lt.py"
     ],
 )
 @pytest.mark.skipif(sys.platform == "win32", reason="flaky")
+@pytest.mark.skipif(not module_available("lightning"), reason="lightning not available")
 @mock.patch("lightning_app.components.multi_node.base.is_running_in_cloud", return_value=True)
 def test_multi_node_examples(_, app_name, monkeypatch):
     monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
