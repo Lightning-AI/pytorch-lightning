@@ -27,7 +27,7 @@ formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
 _logger.addHandler(_console)
 
-from lightning.__about__ import *  # noqa: E402, F401, F403
+from lightning.__about__ import *  # noqa: E402, F403
 from lightning.__version__ import version as __version__  # noqa: E402, F401
 from lightning.app import storage  # noqa: E402
 from lightning.app.core.app import LightningApp  # noqa: E402

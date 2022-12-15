@@ -17,10 +17,10 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from torch import nn
 from torch.optim import Adam, SGD
 
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
