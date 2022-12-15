@@ -84,6 +84,7 @@ class Fabric:
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        callbacks: Optional[Union[List[Any], Any]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -96,6 +97,8 @@ class Fabric:
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
         self._precision: Precision = self._strategy.precision
+        callbacks = callbacks if callbacks is not None else []
+        self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
         self._models_setup: int = 0
 
         self._prepare_run_method()
@@ -517,6 +520,20 @@ class Fabric:
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(function, *args, **kwargs)
         return function(*args, **kwargs)
+
+    def call(self, hook_name: str, *args, **kwargs: Any) -> None:
+        # TODO(fabric): Support also passing down positional arguments
+        for callback in self._callbacks:
+            method = getattr(callback, hook_name, None)
+            if method is None:
+                continue
+            method(*args, **kwargs)
+
+            # TODO(fabric): handle the following signatures
+            # method(self, fabric, x, y=1)
+            # method(self, fabric, *args, x, y=1)
+            # method(self, *args, y=1)
+            # method(self, *args, **kwargs)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:

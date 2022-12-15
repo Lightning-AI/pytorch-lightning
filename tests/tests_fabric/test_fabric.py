@@ -663,3 +663,27 @@ def test_module_sharding_context():
     with lite.sharded_model():
         pass
     lite._strategy.module_sharded_context.assert_called_once()
+
+
+def test_callbacks_input():
+    callback0 = Mock()
+    callback1 = Mock()
+
+    # single callback
+    fabric = Fabric(callbacks=callback0)
+    assert fabric._callbacks == [callback0]
+
+    # multiple callbacks
+    fabric = Fabric(callbacks=[callback0, callback1])
+    assert fabric._callbacks == [callback0, callback1]
+
+
+def test_call_callbacks():
+    callback0 = Mock()
+    callback1 = Mock()
+
+    fabric = Fabric(callbacks=[callback0, callback1])
+    fabric.call("on_train_end")
+
+    callback0.on_train_end.assert_called_once()
+    callback1.on_train_end.assert_called_once()
