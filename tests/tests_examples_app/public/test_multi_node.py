@@ -2,6 +2,7 @@ import os
 from unittest import mock
 
 import pytest
+from lightning_utilities.core.imports import package_available
 from tests_examples_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.helpers import _RunIf
@@ -17,15 +18,18 @@ class LightningTestMultiNodeApp(LightningTestApp):
         return res
 
 
+_SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightning"), reason="script requires lightning")
+
+
 @pytest.mark.parametrize(
     "app_name",
     [
-        "train_lt_script.py",
         "train_pytorch.py",
         "train_any.py",
-        "train_lite.py",
         "train_pytorch_spawn.py",
-        "train_lt.py",
+        pytest.param("train_lite.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
+        pytest.param("train_lt_script.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
+        pytest.param("train_lt.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
     ],
 )
 @_RunIf(skip_windows=True)  # flaky
