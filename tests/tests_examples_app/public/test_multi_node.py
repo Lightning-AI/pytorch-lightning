@@ -37,9 +37,9 @@ _SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightnin
 def test_multi_node_examples(_, app_name, monkeypatch):
     # note: this test will fail locally:
     # * if you installed `lightning_app`, then the examples need to be
-    # rewritten to use `lightning_app` imports (CI does this)
+    #   rewritten to use `lightning_app` imports (CI does this)
     # * if you installed `lightning`, then the imports in this file and mocks
-    # need to be changed to use `lightning`.
+    #   need to be changed to use `lightning`.
     monkeypatch.chdir(os.path.join(_PATH_EXAMPLES, "app_multi_node"))
     command_line = [app_name, "--blocking", "False", "--open-ui", "False", "--setup"]
     result = application_testing(LightningTestMultiNodeApp, command_line)
