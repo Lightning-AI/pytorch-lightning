@@ -516,11 +516,12 @@ def _lightning_dispatched() -> bool:
 
 
 def _using_debugger() -> bool:
-    """This method is used to detect whether the app is runned with a debugger attached."""
+    """This method is used to detect whether the app is runned run a debugger attached to it."""
     if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
         return True
     parent_process = os.popen(f"ps -ej | grep -i {os.getpid()}").read()
-    use_debugger = "debugpy" in parent_process
+
+    use_debugger = "debugpy" in parent_process or "pydev" in parent_process  # VSCode  # PyCharm
     if use_debugger:
         os.environ["LIGHTNING_DETECTED_DEBUGGER"] = "1"
     return use_debugger
