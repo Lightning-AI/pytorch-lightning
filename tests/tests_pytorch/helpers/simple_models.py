@@ -29,9 +29,9 @@ class ClassificationModel(LightningModule):
             setattr(self, f"layer_{i}a", torch.nn.ReLU())
         setattr(self, "layer_end", nn.Linear(num_features, 3))
 
-        self.train_acc = Accuracy(task='multiclass')
-        self.valid_acc = Accuracy(task='multiclass')
-        self.test_acc = Accuracy(task='multiclass')
+        self.train_acc = Accuracy(task="multiclass")
+        self.valid_acc = Accuracy(task="multiclass")
+        self.test_acc = Accuracy(task="multiclass")
 
     def forward(self, x):
         x = self.layer_0(x)
