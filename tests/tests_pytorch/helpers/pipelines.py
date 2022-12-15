@@ -100,7 +100,7 @@ def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     x = x.flatten(1)
 
     y_hat = trained_model(x)
-    acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2).item()
+    acc = accuracy(y_hat.cpu(), y.cpu(), top_k=2, task='multiclass', num_classes=y_hat.size(-1)).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
     trained_model.to(orig_device)

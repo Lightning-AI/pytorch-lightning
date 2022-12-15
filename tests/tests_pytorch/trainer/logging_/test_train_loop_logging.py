@@ -561,7 +561,7 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self) -> None:
             super().__init__()
-            self.val_acc = Accuracy()
+            self.val_acc = Accuracy(task='multiclass', num_classes=2)
 
         def training_step(self, batch, batch_idx):
             output = super().training_step(batch, batch_idx)
@@ -656,10 +656,10 @@ def test_logging_raises(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
-            self.bar = Accuracy()
+            self.bar = Accuracy(task='multiclass', num_classes=2)
 
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task='multiclass', num_classes=2))
 
     model = TestModel()
     with pytest.raises(

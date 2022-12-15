@@ -407,9 +407,9 @@ def test_metrics_reset(tmpdir):
             self.layer = torch.nn.Linear(32, 1)
 
         def _create_metrics(self):
-            acc = Accuracy()
+            acc = Accuracy(task='binary')
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AveragePrecision(num_classes=1, pos_label=1)
+            ap = AveragePrecision(task='binary', pos_label=1)
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
