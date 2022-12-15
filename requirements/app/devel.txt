@@ -12,5 +12,3 @@
 
 # extended list of dependencies for UI
 -r ./components.txt
-
--r ./examples.txt

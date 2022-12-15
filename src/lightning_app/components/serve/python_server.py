@@ -16,14 +16,9 @@ from lightning_app.utilities.imports import _is_torch_available, requires
 
 logger = Logger(__name__)
 
-__doctest_skip__ = []
 # Skip doctests if requirements aren't available
-if not module_available("lightning_api_access"):
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
-
-# Skip doctests if requirements aren't available
-if not _is_torch_available():
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+if not module_available("lightning_api_access") or not _is_torch_available():
+    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
 def _get_device():
@@ -72,11 +67,9 @@ class PythonServer(LightningWork, abc.ABC):
 
     _start_method = "spawn"
 
-    @requires(["torch", "lightning_api_access"])
+    @requires(["torch"])
     def __init__(  # type: ignore
         self,
-        host: str = "127.0.0.1",
-        port: int = 7777,
         input_type: type = _DefaultInputData,
         output_type: type = _DefaultOutputData,
         **kwargs,
@@ -84,8 +77,6 @@ class PythonServer(LightningWork, abc.ABC):
         """The PythonServer Class enables to easily get your machine learning server up and running.
 
         Arguments:
-            host: Address to be used for running the server.
-            port: Port to be used to running the server.
             input_type: Optional `input_type` to be provided. This needs to be a pydantic BaseModel class.
                 The default data type is good enough for the basic usecases and it expects the data
                 to be a json object that has one key called `payload`
@@ -129,7 +120,7 @@ class PythonServer(LightningWork, abc.ABC):
             ...
             >>> app = LightningApp(SimpleServer())
         """
-        super().__init__(parallel=True, host=host, port=port, **kwargs)
+        super().__init__(parallel=True, **kwargs)
         if not issubclass(input_type, BaseModel):
             raise TypeError("input_type must be a pydantic BaseModel class")
         if not issubclass(output_type, BaseModel):
@@ -197,29 +188,32 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 
     def configure_layout(self) -> None:
-        if module_available("lightning_api_access"):
+        try:
             from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
 
-            class_name = self.__class__.__name__
-            url = f"{self.url}/predict"
+        class_name = self.__class__.__name__
+        url = f"{self.url}/predict"
 
-            try:
-                request = self._get_sample_dict_from_datatype(self.configure_input_type())
-                response = self._get_sample_dict_from_datatype(self.configure_output_type())
-            except TypeError:
-                return None
+        try:
+            request = self._get_sample_dict_from_datatype(self.configure_input_type())
+            response = self._get_sample_dict_from_datatype(self.configure_output_type())
+        except TypeError:
+            return None
 
-            return APIAccessFrontend(
-                apis=[
-                    {
-                        "name": class_name,
-                        "url": url,
-                        "method": "POST",
-                        "request": request,
-                        "response": response,
-                    }
-                ]
-            )
+        return APIAccessFrontend(
+            apis=[
+                {
+                    "name": class_name,
+                    "url": url,
+                    "method": "POST",
+                    "request": request,
+                    "response": response,
+                }
+            ]
+        )
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """Run method takes care of configuring and setting up a FastAPI server behind the scenes.

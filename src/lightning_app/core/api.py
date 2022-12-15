@@ -83,7 +83,7 @@ class UIRefresher(Thread):
         self,
         api_publish_state_queue,
         api_response_queue,
-        app_status_queue,
+        app_status_queue: Optional[Queue],
         refresh_interval: float = 0.1,
     ) -> None:
         super().__init__(daemon=True)
@@ -123,11 +123,12 @@ class UIRefresher(Thread):
         except queue.Empty:
             pass
 
-        try:
-            global app_status
-            app_status = self.app_status_queue.get(timeout=0)
-        except queue.Empty:
-            pass
+        if self.app_status_queue is not None:
+            try:
+                global app_status
+                app_status = self.app_status_queue.get(timeout=0)
+            except queue.Empty:
+                pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()

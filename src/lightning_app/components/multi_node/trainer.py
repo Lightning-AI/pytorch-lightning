@@ -37,11 +37,14 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
         mps_accelerators = []
 
         for pkg_name in ("lightning.pytorch", "pytorch_" + "lightning"):
-            pkg = importlib.import_module(pkg_name)
-            trainers.append(pkg.Trainer)
-            strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
-            strategies.append(pkg.strategies.DDPSpawnStrategy)
-            mps_accelerators.append(pkg.accelerators.MPSAccelerator)
+            try:
+                pkg = importlib.import_module(pkg_name)
+                trainers.append(pkg.Trainer)
+                strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
+                strategies.append(pkg.strategies.DDPSpawnStrategy)
+                mps_accelerators.append(pkg.accelerators.MPSAccelerator)
+            except (ImportError, ModuleNotFoundError):
+                continue
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -111,3 +114,6 @@ class LightningTrainerMultiNode(MultiNode):
             cloud_compute=cloud_compute,
             **work_kwargs,
         )
+
+        # the Trainer enables TensorBoard by default, so this is often an undesired directory to upload to the cloud
+        self.lightningignore += ("lightning_logs",)

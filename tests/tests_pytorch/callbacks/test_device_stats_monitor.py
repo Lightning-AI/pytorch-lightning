@@ -155,13 +155,13 @@ def test_prefix_metric_keys():
     assert converted_metrics == {"foo.1": 1.0, "foo.2": 2.0, "foo.3": 3.0}
 
 
-def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch):
+def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch, tmp_path):
     """Test that warning is raised when psutil is not available."""
     import pytorch_lightning.callbacks.device_stats_monitor as imports
 
     monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
     monitor = DeviceStatsMonitor()
-    trainer = Trainer()
+    trainer = Trainer(logger=CSVLogger(tmp_path))
     assert trainer.strategy.root_device == torch.device("cpu")
     # TODO: raise an exception from v1.9
     with pytest.warns(UserWarning, match="psutil` is not installed"):

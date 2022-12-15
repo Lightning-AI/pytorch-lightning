@@ -217,8 +217,8 @@ If the CLI is implemented as ``LightningCLI(MyMainModel)`` the configuration wou
 It is also possible to combine ``subclass_mode_model=True`` and submodules, thereby having two levels of ``class_path``.
 
 
-Optimizers
-^^^^^^^^^^
+Fixed optimizer and scheduler
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In some cases, fixing the optimizer and/or learning scheduler might be desired instead of allowing multiple. For this,
 you can manually add the arguments for specific classes by subclassing the CLI. The following code snippet shows how to
@@ -251,58 +251,88 @@ where the arguments can be passed directly through the command line without spec
 
     $ python trainer.py fit --optimizer.lr=0.01 --lr_scheduler.gamma=0.2
 
-The automatic implementation of ``configure_optimizers`` can be disabled by linking the configuration group. An example
-can be when someone wants to add support for multiple optimizers:
+
+Multiple optimizers and schedulers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, the CLIs support multiple optimizers and/or learning schedulers, automatically implementing
+``configure_optimizers``. This behavior can be disabled by providing ``auto_configure_optimizers=False`` on
+instantiation of :class:`~pytorch_lightning.cli.LightningCLI`. This would be required for example to support multiple
+optimizers, for each selecting a particular optimizer class. Similar to multiple submodules, this can be done via
+`dependency injection <https://en.wikipedia.org/wiki/Dependency_injection>`__. Unlike the submodules, it is not possible
+to expect an instance of a class, because optimizers require the module's parameters to optimize, which are only
+available after instantiation of the module. Learning schedulers are a similar situation, requiring an optimizer
+instance. For these cases, dependency injection involves providing a function that instantiates the respective class
+when called.
+
+An example of a model that uses two optimizers is the following:
 
 .. code-block:: python
 
-    from pytorch_lightning.cli import instantiate_class
+    from typing import Iterable
+    from torch.optim import Optimizer
+
+
+    OptimizerCallable = Callable[[Iterable], Optimizer]
 
 
     class MyModel(LightningModule):
-        def __init__(self, optimizer1_init: dict, optimizer2_init: dict):
+        def __init__(self, optimizer1: OptimizerCallable, optimizer2: OptimizerCallable):
             super().__init__()
-            self.optimizer1_init = optimizer1_init
-            self.optimizer2_init = optimizer2_init
+            self.optimizer1 = optimizer1
+            self.optimizer2 = optimizer2
 
         def configure_optimizers(self):
-            optimizer1 = instantiate_class(self.parameters(), self.optimizer1_init)
-            optimizer2 = instantiate_class(self.parameters(), self.optimizer2_init)
+            optimizer1 = self.optimizer1(self.parameters())
+            optimizer2 = self.optimizer2(self.parameters())
             return [optimizer1, optimizer2]
 
 
-    class MyLightningCLI(LightningCLI):
-        def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(nested_key="optimizer1", link_to="model.optimizer1_init")
-            parser.add_optimizer_args(nested_key="optimizer2", link_to="model.optimizer2_init")
+    cli = MyLightningCLI(MyModel, auto_configure_optimizers=False)
 
-
-    cli = MyLightningCLI(MyModel)
-
-The value given to ``optimizer*_init`` will always be a dictionary including ``class_path`` and ``init_args`` entries.
-The function :func:`~pytorch_lightning.cli.instantiate_class` takes care of importing the class defined in
-``class_path`` and instantiating it using some positional arguments, in this case ``self.parameters()``, and the
-``init_args``. Any number of optimizers and learning rate schedulers can be added when using ``link_to``.
-
-With shorthand notation:
+Note the type ``Callable[[Iterable], Optimizer]``, which denotes a function that receives a singe argument, some
+learnable parameters, and returns an optimizer instance. With this, from the command line it is possible to select the
+class and init arguments for each of the optimizers, as follows:
 
 .. code-block:: bash
 
     $ python trainer.py fit \
-        --optimizer1=Adam \
-        --optimizer1.lr=0.01 \
-        --optimizer2=AdamW \
-        --optimizer2.lr=0.0001
+        --model.optimizer1=Adam \
+        --model.optimizer1.lr=0.01 \
+        --model.optimizer2=AdamW \
+        --model.optimizer2.lr=0.0001
 
-You can also pass the class path directly, for example, if the optimizer hasn't been imported:
+In the example above, the ``OptimizerCallable`` type alias was created to illustrate what the type hint means. For
+convenience, this type alias and one for learning schedulers is available in the ``cli`` module. An example of a model
+that uses dependency injection for an optimizer and a learning scheduler is:
 
-.. code-block:: bash
+.. code-block:: python
 
-    $ python trainer.py fit \
-        --optimizer1=torch.optim.Adam \
-        --optimizer1.lr=0.01 \
-        --optimizer2=torch.optim.AdamW \
-        --optimizer2.lr=0.0001
+    from pytorch_lightning.cli import OptimizerCallable, LRSchedulerCallable, LightningCLI
+
+
+    class MyModel(LightningModule):
+        def __init__(
+            self,
+            optimizer: OptimizerCallable = torch.optim.Adam,
+            scheduler: LRSchedulerCallable = torch.optim.lr_scheduler.ConstantLR,
+        ):
+            super().__init__()
+            self.optimizer = optimizer
+            self.scheduler = scheduler
+
+        def configure_optimizers(self):
+            optimizer = self.optimizer(self.parameters())
+            scheduler = self.scheduler(self.parameters())
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+
+    cli = MyLightningCLI(MyModel, auto_configure_optimizers=False)
+
+Note that for this example, classes are used as defaults. This is compatible with the type hints, since they are also
+callables that receive the same first argument and return an instance of the class. Classes that have more than one
+required argument will not work as default. For these cases a lambda function can be used, e.g. ``optimizer:
+OptimizerCallable = lambda p: torch.optim.SGD(p, lr=0.01)``.
 
 
 Run from Python
