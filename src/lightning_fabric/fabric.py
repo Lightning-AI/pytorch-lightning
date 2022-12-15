@@ -521,7 +521,27 @@ class Fabric:
             return self._strategy.launcher.launch(function, *args, **kwargs)
         return function(*args, **kwargs)
 
-    def call(self, hook_name: str, *args, **kwargs: Any) -> None:
+    def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
+        """Trigger the callback methods with the given name and arguments.
+
+        Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name. The ones
+        that have a matching method name will get called.
+
+        Args:
+            hook_name: The name of the callback method.
+            *args: Optional positional arguments that get passed down to the callback method.
+            **kwargs: Optional keyword arguments that get passed down to the callback method.
+
+        Example::
+
+            class MyCallback:
+                def on_train_epoch_end(self, results):
+                    ...
+
+            fabric = Fabric(callbacks=[MyCallback]))
+            fabric.call("on_train_batch_end", results={...})
+
+        """
         for callback in self._callbacks:
             method = getattr(callback, hook_name, None)
             if method is None:

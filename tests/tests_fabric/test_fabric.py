@@ -679,11 +679,25 @@ def test_callbacks_input():
 
 
 def test_call_callbacks():
+    """Test that `fabric.call` triggers the callback implementations."""
     callback0 = Mock()
     callback1 = Mock()
-
     fabric = Fabric(callbacks=[callback0, callback1])
-    fabric.call("on_train_end")
 
+    # No arguments
+    fabric.call("on_train_end")
     callback0.on_train_end.assert_called_once()
     callback1.on_train_end.assert_called_once()
+
+    # Optional arguments
+    fabric.call("on_train_end", "positional", keyword="keyword")
+    callback0.on_train_end.assert_called_with("positional", keyword="keyword")
+    callback1.on_train_end.assert_called_with("positional", keyword="keyword")
+
+    # only a subset of callbacks implement the given hook name
+    callback0 = Mock()
+    callback1 = Mock(spec_set={})  # `on_train_end` not defined for this callback
+    fabric = Fabric(callbacks=[callback0, callback1])
+    fabric.call("on_train_end")
+    callback0.on_train_end.assert_called_once()
+    assert not callback1.mock_calls  # no methods were called on callback1
