@@ -647,7 +647,7 @@ def test_logging_raises(tmpdir):
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            self.log("foo", Accuracy())
+            self.log("foo", Accuracy(task='multiclass', num_classes=2))
 
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
