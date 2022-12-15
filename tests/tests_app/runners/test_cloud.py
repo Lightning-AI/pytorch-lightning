@@ -1335,6 +1335,7 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
     assert "3 files were uploaded" in caplog.text
     assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
     assert "adding them to `.lightningignore`." in caplog.text
+    assert "lightningingore` attribute in a Flow or Work" in caplog.text
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
@@ -1597,6 +1598,8 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
     # write some files
     write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
     write_file_of_size(path / "venv" / "foo.txt", 4 * 1000 * 1000)
+
+    assert not (path / ".lightningignore").exists()
 
     with mock.patch(
         "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore

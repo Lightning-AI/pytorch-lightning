@@ -236,7 +236,7 @@ class CloudRuntime(Runtime):
                 f.write("venv/\n")
                 if (root / "bin" / "activate").is_file() or (root / "pyvenv.cfg").is_file():
                     # the user is developing inside venv
-                    f.write("bin/\n" "include/\n" "lib/\n" "pyvenv.cfg\n")
+                    f.write("bin/\ninclude/\nlib/\npyvenv.cfg\n")
 
         repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
         self._check_uploaded_folder(root, repo)
@@ -565,7 +565,8 @@ class CloudRuntime(Runtime):
                 f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
                 + largest_paths_msg
                 + "Perhaps you should try running the app in an empty directory.\n"
-                "You can ignore some files or folders by adding them to `.lightningignore`."
+                + "You can ignore some files or folders by adding them to `.lightningignore`.\n"
+                + " You can also set the `self.lightningingore` attribute in a Flow or Work."
             )
 
             logger.warn(warning_msg)
