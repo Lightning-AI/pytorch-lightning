@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed `AutoScaler` raising an exception when non-default cloud compute is specified ([#15991](https://github.com/Lightning-AI/lightning/pull/15991))
 
+- Fixed the debugger detection mechanism for lightning App in VSCode ([#16068](https://github.com/Lightning-AI/lightning/pull/16068))
+
 
 ## [1.8.4] - 2022-12-08
 
