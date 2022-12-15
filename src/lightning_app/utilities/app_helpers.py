@@ -515,7 +515,7 @@ def _lightning_dispatched() -> bool:
     return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
 
 
-def _use_debugger() -> bool:
+def _using_debugger() -> bool:
     """This method is used to detect whether the app is runned with a debugger attached."""
     if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
         return True
@@ -528,7 +528,7 @@ def _use_debugger() -> bool:
 
 def _should_dispatch_app() -> bool:
     return (
-        _use_debugger()
+        _using_debugger()
         and "_pytest.doctest" not in sys.modules
         and not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
