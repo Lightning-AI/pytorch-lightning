@@ -18,6 +18,7 @@ class LightningTestMultiNodeApp(LightningTestApp):
         return res
 
 
+# for the skip to work, the package needs to be installed without editable mode
 _SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightning"), reason="script requires lightning")
 
 
