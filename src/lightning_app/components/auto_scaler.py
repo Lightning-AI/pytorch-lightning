@@ -280,6 +280,8 @@ class _LoadBalancer(LightningWork):
         async def balance_api(inputs: self._input_type):
             return await self.process_request(inputs)
 
+        logger.info(f"Your load balancer has started. The endpoint is 'http://{self.host}:{self.port}{self.endpoint}'")
+
         uvicorn.run(
             fastapi_app,
             host=self.host,
@@ -331,6 +333,51 @@ class _LoadBalancer(LightningWork):
         }
         response = requests.put(f"{self.url}/system/update-servers", json=servers, headers=headers, timeout=10)
         response.raise_for_status()
+
+    @staticmethod
+    def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if hasattr(datatype, "_get_sample_data"):
+            return datatype._get_sample_data()
+
+        datatype_props = datatype.schema()["properties"]
+        out: Dict[str, Any] = {}
+        for k, v in datatype_props.items():
+            if v["type"] == "string":
+                out[k] = "data string"
+            elif v["type"] == "number":
+                out[k] = 0.0
+            elif v["type"] == "integer":
+                out[k] = 0
+            elif v["type"] == "boolean":
+                out[k] = False
+            else:
+                raise TypeError("Unsupported type")
+        return out
+
+    def configure_layout(self) -> None:
+        try:
+            from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
+
+        try:
+            request = self._get_sample_dict_from_datatype(self._input_type)
+            response = self._get_sample_dict_from_datatype(self._output_type)
+        except (AttributeError, TypeError):
+            return
+
+        return APIAccessFrontend(
+            apis=[
+                {
+                    "name": self.__class__.__name__,
+                    "url": f"{self.url}{self.endpoint}",
+                    "method": "POST",
+                    "request": request,
+                    "response": response,
+                }
+            ]
+        )
 
 
 class AutoScaler(LightningFlow):
@@ -574,5 +621,5 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
 
     def configure_layout(self):
-        tabs = [{"name": "Swagger", "content": self.load_balancer.url}]
-        return tabs
+        layout = self.load_balancer.configure_layout()
+        return layout if layout else super().configure_layout()
