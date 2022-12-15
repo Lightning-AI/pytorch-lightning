@@ -193,7 +193,7 @@ class Fabric:
 
         self._models_setup += 1
 
-        if hasattr(original_module, "fabric"):  # this is probably a LightningModule
+        if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self
             # TODO(fabric): should these be the original or the _FabricOptimizers?
             original_module._optimizers = optimizers
@@ -234,7 +234,7 @@ class Fabric:
             # Update the _DeviceDtypeModuleMixin's device parameter
             module.to(self.device if move_to_device else next(module.parameters()).device)
 
-        if hasattr(original_module, "fabric"):  # this is probably a LightningModule
+        if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self
 
         self._models_setup += 1
