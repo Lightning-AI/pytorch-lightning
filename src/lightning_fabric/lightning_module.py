@@ -1349,21 +1349,22 @@ class LightningModule(
             input_sample: An input for tracing. Default: None (Use self.example_input_array)
             **kwargs: Will be passed to torch.onnx.export function.
 
-        Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
+        Example::
 
-            >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
-            ...     model = SimpleModel()
-            ...     input_sample = torch.randn((1, 64))
-            ...     model.to_onnx(tmpfile.name, input_sample, export_params=True)
-            ...     os.path.isfile(tmpfile.name)
-            True
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+            with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
+                model = SimpleModel()
+                input_sample = torch.randn((1, 64))
+                model.to_onnx(tmpfile.name, input_sample, export_params=True)
+                os.path.isfile(tmpfile.name)
+
         """
         raise NotImplementedError("Not supported in Fabric at the moment.")
 
@@ -1397,22 +1398,23 @@ class LightningModule(
               to use this feature without limitations. See also the :mod:`torch.jit`
               documentation for supported features.
 
-        Example:
-            >>> class SimpleModel(LightningModule):
-            ...     def __init__(self):
-            ...         super().__init__()
-            ...         self.l1 = torch.nn.Linear(in_features=64, out_features=4)
-            ...
-            ...     def forward(self, x):
-            ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
-            ...
-            >>> model = SimpleModel()
-            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
-            >>> os.path.isfile("model.pt")  # doctest: +SKIP
-            >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
-            ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
-            >>> os.path.isfile("model_trace.pt")  # doctest: +SKIP
-            True
+        Example::
+
+            class SimpleModel(LightningModule):
+                def __init__(self):
+                    super().__init__()
+                    self.l1 = torch.nn.Linear(in_features=64, out_features=4)
+
+                def forward(self, x):
+                    return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+            model = SimpleModel()
+            model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
+            os.path.isfile("model.pt")  # doctest: +SKIP
+            torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
+                                                example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
+            os.path.isfile("model_trace.pt")  # doctest: +SKIP
+
 
         Return:
             This LightningModule as a torchscript, regardless of whether `file_path` is
