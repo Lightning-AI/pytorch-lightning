@@ -20,6 +20,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -32,7 +33,12 @@ def test_lr_monitor_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -70,6 +76,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -96,6 +103,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -117,7 +125,12 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
 
     trainer.fit(model)
@@ -154,6 +167,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -179,6 +193,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
         limit_train_batches=5,
         log_every_n_steps=1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     with pytest.warns(RuntimeWarning, match="optimizers do not have momentum."):
         trainer.fit(model)
@@ -226,6 +241,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -269,6 +285,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
         limit_train_batches=7,
         limit_val_batches=0.1,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -305,7 +322,12 @@ def test_lr_monitor_param_groups(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(model, datamodule=dm)
 
@@ -330,6 +352,7 @@ def test_lr_monitor_custom_name(tmpdir):
         callbacks=[lr_monitor],
         enable_progress_bar=False,
         enable_model_summary=False,
+        logger=CSVLogger(tmpdir),
     )
     trainer.fit(TestModel())
     assert list(lr_monitor.lrs) == ["my_logging_name"]
@@ -349,6 +372,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -384,6 +408,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -475,6 +500,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
         limit_val_batches=0,
         limit_train_batches=2,
         callbacks=[TestFinetuning(), lr_monitor, Check()],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
@@ -533,6 +559,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
         limit_val_batches=2,
         limit_train_batches=2,
         callbacks=[lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )

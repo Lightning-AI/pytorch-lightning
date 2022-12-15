@@ -5,7 +5,6 @@ inputs:
   pkg-name:
     description: package name inside lightning.*
     required: true
-    default: ""
   nb-dirs:
     description: nb of packages in the wrap/distribution
     required: false

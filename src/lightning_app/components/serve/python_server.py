@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 import uvicorn
 from fastapi import FastAPI
-from lightning_utilities.core.imports import compare_version
+from lightning_utilities.core.imports import compare_version, module_available
 from pydantic import BaseModel
 
 from lightning_app.core.work import LightningWork
@@ -16,12 +16,9 @@ from lightning_app.utilities.imports import _is_torch_available, requires
 
 logger = Logger(__name__)
 
-__doctest_skip__ = ["PythonServer", "PythonServer.*"]
-
-
 # Skip doctests if requirements aren't available
-if not _is_torch_available():
-    __doctest_skip__ += ["PythonServer", "PythonServer.*"]
+if not module_available("lightning_api_access") or not _is_torch_available():
+    __doctest_skip__ = ["PythonServer", "PythonServer.*"]
 
 
 def _get_device():

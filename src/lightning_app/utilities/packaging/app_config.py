@@ -1,6 +1,6 @@
 import pathlib
 from dataclasses import asdict, dataclass, field
-from typing import Optional, Union
+from typing import Union
 
 import yaml
 
@@ -18,7 +18,6 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
-    cluster_id: Optional[str] = field(default=None)
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""
@@ -35,6 +34,8 @@ class AppConfig:
         """Load the configuration from the given file."""
         with open(path) as file:
             config = yaml.safe_load(file)
+        # Ignore `cluster_id` without error for backwards compatibility.
+        config.pop("cluster_id", None)
         return cls(**config)
 
     @classmethod
