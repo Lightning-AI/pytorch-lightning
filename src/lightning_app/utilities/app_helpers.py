@@ -515,8 +515,30 @@ def _lightning_dispatched() -> bool:
     return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
 
 
+def _using_debugger() -> bool:
+    """This method is used to detect whether the app is run with a debugger attached."""
+    if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
+        return True
+
+    # Collect the information about the process.
+    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()
+
+    # Detect whether VSCode or PyCharm debugger are used
+    use_debugger = "debugpy" in parent_process or "pydev" in parent_process
+
+    # Store the result to avoid multiple popen calls.
+    if use_debugger:
+        os.environ["LIGHTNING_DETECTED_DEBUGGER"] = "1"
+    return use_debugger
+
+
 def _should_dispatch_app() -> bool:
-    return not _lightning_dispatched() and "LIGHTNING_APP_STATE_URL" not in os.environ
+    return (
+        not _lightning_dispatched()
+        and "LIGHTNING_APP_STATE_URL" not in os.environ
+        # Keep last to avoid running it if already dispatched
+        and _using_debugger()
+    )
 
 
 def _is_headless(app: "LightningApp") -> bool:
