@@ -37,14 +37,14 @@ from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL
 from lightning_fabric.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from lightning_fabric.utilities.types import Steppable
 
+# TODO(fabric): Update the type here once these classes are defined in lightning_fabric
+from lightning_fabric.wrappers import _FabricOptimizer
+
 # from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 # from pytorch_lightning.core.mixins import HyperparametersMixin
 # from pytorch_lightning.core.optimizer import LightningOptimizer
 # from pytorch_lightning.core.saving import ModelIO
 
-
-# TODO(fabric): Update the type here once these classes are defined in lightning_fabric
-from lightning_fabric.wrappers import _FabricOptimizer
 
 LightningOptimizer = object
 _METRIC_COLLECTION = object
@@ -1374,7 +1374,6 @@ class LightningModule(
                 input_sample = torch.randn((1, 64))
                 model.to_onnx(tmpfile.name, input_sample, export_params=True)
                 os.path.isfile(tmpfile.name)
-
         """
         raise NotImplementedError("Not supported in Fabric at the moment.")
 
