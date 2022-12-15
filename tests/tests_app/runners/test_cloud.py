@@ -1498,8 +1498,6 @@ def test_incompatible_cloud_compute_and_build_config():
 
 
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
-    monkeypatch.setenv("LIGHTNING_DISPATCHED", "0")  # this is not cleaned up
-
     mock_client = mock.MagicMock()
     mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1567,7 +1565,6 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
 
     # replicate how the app would dispatch the app, and call `run`
-    monkeypatch.setenv("LIGHTNING_DISPATCHED", "1")
     flow.run()
 
 
