@@ -515,9 +515,20 @@ def _lightning_dispatched() -> bool:
     return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
 
 
+def _use_debugger() -> bool:
+    """This method is used to detect whether the app is runned with a debugger attached."""
+    if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
+        return True
+    parent_process = os.popen(f"ps -ej | grep -i {os.getpid()}").read()
+    use_debugger = "debugpy" in parent_process
+    if use_debugger:
+        os.environ["LIGHTNING_DETECTED_DEBUGGER"] = "1"
+    return use_debugger
+
+
 def _should_dispatch_app() -> bool:
     return (
-        __debug__
+        _use_debugger()
         and "_pytest.doctest" not in sys.modules
         and not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
