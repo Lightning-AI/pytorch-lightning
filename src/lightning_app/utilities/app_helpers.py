@@ -516,12 +516,7 @@ def _lightning_dispatched() -> bool:
 
 
 def _should_dispatch_app() -> bool:
-    return (
-        __debug__
-        and "_pytest.doctest" not in sys.modules
-        and not _lightning_dispatched()
-        and "LIGHTNING_APP_STATE_URL" not in os.environ
-    )
+    return not _lightning_dispatched() and "LIGHTNING_APP_STATE_URL" not in os.environ
 
 
 def _is_headless(app: "LightningApp") -> bool:

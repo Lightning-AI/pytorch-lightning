@@ -55,9 +55,6 @@ def dispatch(
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
 
-    # Used to indicate Lightning has been dispatched
-    os.environ["LIGHTNING_DISPATCHED"] = "1"
-
     _set_flow_context()
 
     runtime_type = RuntimeType(runtime_type)
@@ -70,6 +67,8 @@ def dispatch(
     if blocking:
         app.stage = AppStage.BLOCKING
 
+    # Used to indicate Lightning has been dispatched
+    os.environ["LIGHTNING_DISPATCHED"] = "1"
     runtime = runtime_cls(
         app=app,
         entrypoint_file=entrypoint_file,
