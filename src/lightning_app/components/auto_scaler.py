@@ -584,11 +584,9 @@ class AutoScaler(LightningFlow):
             The target number of running works. The value will be adjusted after this method runs
             so that it satisfies ``min_replicas<=replicas<=max_replicas``.
         """
-        pending_requests_per_running_or_pending_work = 0
-        if replicas:
-            pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
-                replicas + metrics["pending_works"]
-            )
+        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
+            replicas + metrics["pending_works"]
+        )
 
         # scale out if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
