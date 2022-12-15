@@ -5,7 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from time import time
-from unittest.mock import ANY, MagicMock
+from unittest.mock import ANY
 
 import pytest
 from deepdiff import DeepDiff, Delta
@@ -19,7 +19,7 @@ from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.structures import Dict as LDict
 from lightning_app.structures import List as LList
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
@@ -887,21 +887,28 @@ class FlowReady(LightningFlow):
 
 
 def test_flow_ready():
-    """This test validates the api publish state queue is populated only once ready is True."""
+    """This test validates that the app status queue is populated correctly."""
+
+    mock_queue = _MockQueue("app_status_queue")
 
     def run_patch(method):
-        app.api_publish_state_queue = MagicMock()
-        app.should_publish_changes_to_api = False
+        app.app_status_queue = mock_queue
         method()
 
     app = LightningApp(FlowReady())
     app._run = partial(run_patch, method=app._run)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    # Validates the state has been added only when ready was true.
-    state = app.api_publish_state_queue.put._mock_call_args[0][0]
-    call_hash = state["works"]["w"]["calls"]["latest_call_hash"]
-    assert state["works"]["w"]["calls"][call_hash]["statuses"][0]["stage"] == "succeeded"
+    # Run the app once to ensure it updates the queues
+    app.run_once()
+
+    first_status = mock_queue.get()
+    assert not first_status.is_ui_ready
+
+    last_status = mock_queue.get()
+    while len(mock_queue) > 0:
+        last_status = mock_queue.get()
+    assert last_status.is_ui_ready
 
 
 def test_structures_register_work_cloudcompute():

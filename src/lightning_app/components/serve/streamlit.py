@@ -4,6 +4,7 @@ import os
 import pydoc
 import subprocess
 import sys
+import time
 from typing import Any, Callable, Type
 
 from lightning_app.core.work import LightningWork
@@ -19,6 +20,8 @@ class ServeStreamlit(LightningWork, abc.ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.ready = False
 
         self._process = None
 
@@ -38,6 +41,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
         return None
 
     def run(self) -> None:
+        time.sleep(100)
         env = os.environ.copy()
         env["LIGHTNING_COMPONENT_NAME"] = self.name
         env["LIGHTNING_WORK"] = self.__class__.__name__
@@ -58,6 +62,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
             ],
             env=env,
         )
+        self.ready = True
         self._process.wait()
 
     def on_exit(self) -> None:

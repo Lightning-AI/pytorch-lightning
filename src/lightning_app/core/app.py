@@ -493,7 +493,7 @@ class LightningApp:
 
         self._start_with_flow_works()
 
-        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
+        if self.should_publish_changes_to_api and self.api_publish_state_queue:
             self.api_publish_state_queue.put(self.state_vars)
 
         self._reset_run_time_monitor()
@@ -503,7 +503,7 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
+            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
                 self.api_publish_state_queue.put(self.state_vars)
 
             self._has_updated = False
