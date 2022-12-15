@@ -520,8 +520,8 @@ def _using_debugger() -> bool:
     if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
         return True
 
-    # Collect the information about the parent process.
-    parent_process = os.popen(f"ps -aux | grep -i {os.getpid()} | grep -v grep").read()
+    # Collect the information about the process.
+    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()
 
     # Detect whether VSCode or PyCharm debugger are used
     use_debugger = "debugpy" in parent_process or "pydev" in parent_process
