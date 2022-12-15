@@ -28,6 +28,7 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from typing_extensions import Literal
 
+import lightning_fabric as lf
 from lightning_fabric.callbacks import Callback
 from lightning_fabric.loggers import Logger
 from lightning_fabric.utilities.apply_func import convert_to_tensors
@@ -43,6 +44,8 @@ from lightning_fabric.utilities.types import Steppable
 
 
 # TODO(fabric): Update the type here once these classes are defined in lightning_fabric
+from lightning_fabric.wrappers import _FabricOptimizer
+
 LightningOptimizer = object
 _METRIC_COLLECTION = object
 LRSchedulerPLType = object
@@ -90,10 +93,10 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self._trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional["lf.Fabric"] = None
 
         # set by Fabric when .setup() is called
-        self._optimizers: List[Optimizer] = []
+        self._optimizers: List[_FabricOptimizer] = []
 
         # optionally can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
@@ -142,11 +145,18 @@ class LightningModule(
         raise NotImplementedError("Not supported in Fabric at the moment.")
 
     @property
-    def trainer(self) -> "pl.Trainer":
-        return self._trainer
+    def trainer(self) -> "lf.Fabric":
+        if not self._jit_is_scripting and self._trainer is None:
+            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        return self._trainer  # type: ignore[return-value]
 
     @trainer.setter
-    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
+    def trainer(self, trainer: Optional["lf.Fabric"]) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.trainer = trainer  # type: ignore[assignment]
+        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
     @property
@@ -388,7 +398,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -1447,7 +1457,7 @@ class LightningModule(
             )
 
     @classmethod
-    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "pl.LightningModule":
+    def from_compiled(cls, model: "torch._dynamo.OptimizedModule") -> "lf.LightningModule":
         """Returns an instance LightningModule from the output of ``torch.compile``.
 
         The ``torch.compile`` function returns a ``torch._dynamo.OptimizedModule``, which wraps the LightningModule
@@ -1489,7 +1499,7 @@ class LightningModule(
         return orig_module
 
     @classmethod
-    def to_uncompiled(cls, model: Union["pl.LightningModule", "torch._dynamo.OptimizedModule"]) -> "pl.LightningModule":
+    def to_uncompiled(cls, model: Union["lf.LightningModule", "torch._dynamo.OptimizedModule"]) -> "lf.LightningModule":
         """Returns an instance of LightningModule without any compilation optimizations from a compiled model.
 
         This takes either a ``torch._dynamo.OptimizedModule`` returned by ``torch.compile()`` or a ``LightningModule``
