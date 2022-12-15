@@ -149,7 +149,7 @@ class LightningModule(
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
-        if self.fabric:
+        if self._fabric:
             opts: MODULE_OPTIMIZERS = self._optimizers
         elif use_pl_optimizer:
             opts: MODULE_OPTIMIZERS = list(self.trainer.strategy._lightning_optimizers.values())
@@ -1424,7 +1424,7 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        if self.fabric:
+        if self._fabric:
             self.fabric.backward(loss, *args, **kwargs)
         else:
             self._verify_is_manual_optimization("manual_backward")
@@ -1447,7 +1447,7 @@ class LightningModule(
             def backward(self, loss, optimizer, optimizer_idx):
                 loss.backward()
         """
-        if self.fabric:
+        if self._fabric:
             self.fabric.backward(loss, *args, **kwargs)
         else:
             loss.backward(*args, **kwargs)
@@ -1466,7 +1466,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        optimizers = self._optimizers if self.fabric is not None else self.trainer.optimizers
+        optimizers = self._optimizers if self._fabric is not None else self.trainer.optimizers
         for opt in optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
@@ -1491,7 +1491,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        optimizers = self._optimizers if self.fabric is not None else self.trainer.optimizers
+        optimizers = self._optimizers if self._fabric is not None else self.trainer.optimizers
         for opt_idx, opt in enumerate(optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
