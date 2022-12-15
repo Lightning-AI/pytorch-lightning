@@ -14,8 +14,6 @@
 """The LightningModule - an nn.Module with many additional features."""
 
 import numbers
-import os
-import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path

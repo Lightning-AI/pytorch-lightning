@@ -27,7 +27,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
-from lightning_fabric.lightning_module import LightningModule
+from lightning_fabric.utilities.module import LightningModule
 
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
