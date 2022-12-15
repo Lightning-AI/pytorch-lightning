@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the debugger detection mechanism for lightning App in VSCode ([#16068](https://github.com/Lightning-AI/lightning/pull/16068))
 
+- Fixed bug where components that are re-instantiated several times failed to initialize if they were modifying `self.lightningignore` ([#16080](https://github.com/Lightning-AI/lightning/pull/16080))
 
 ## [1.8.4] - 2022-12-08
 
