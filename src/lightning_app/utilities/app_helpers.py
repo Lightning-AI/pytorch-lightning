@@ -521,7 +521,7 @@ def _using_debugger() -> bool:
         return True
 
     # Collect the information about the parent process.
-    parent_process = os.popen(f"ps -ej | grep -i {os.getppid()}").read()
+    parent_process = os.popen(f"ps -ej | grep -i {os.getppid()} | grep -i {os.getpid()} | grep -v grep").read()
 
     # Detect whether VSCode or PyCharm debugger are used
     use_debugger = "debugpy" in parent_process or "pydev" in parent_process
