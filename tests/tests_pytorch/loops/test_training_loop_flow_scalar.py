@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
@@ -22,7 +23,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests_pytorch.helpers.deterministic_model import DeterministicModel
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test__training_step__flow_scalar(tmpdir):

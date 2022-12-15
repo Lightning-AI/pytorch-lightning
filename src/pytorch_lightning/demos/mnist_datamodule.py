@@ -24,8 +24,9 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
+from lightning_fabric.utilities.imports import _IS_WINDOWS
 from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib

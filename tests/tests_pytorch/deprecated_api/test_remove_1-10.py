@@ -17,6 +17,7 @@ from unittest import mock
 import numpy
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
@@ -29,7 +30,6 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
-from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.apply_func import (
@@ -66,7 +66,6 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_deprecated_amp_level():
@@ -80,7 +79,6 @@ def test_deprecated_amp_level():
         LightningParallelModule,
         LightningDistributedModule,
         LightningBaguaModule,
-        LightningDeepSpeedModule,
         pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
     ],
 )

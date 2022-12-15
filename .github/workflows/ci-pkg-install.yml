@@ -89,7 +89,7 @@ jobs:
         working-directory: .actions/
         run: |
           pip install -q pytest
-          python -m pytest setup_tools.py
+          python -m pytest assistant.py
       - name: DocTest package
         env:
           LIGHTING_TESTING: 1  # path for require wrapper
