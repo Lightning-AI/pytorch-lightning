@@ -23,15 +23,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.cli import LightningCLI, SaveConfigCallback
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.profiler.advanced import AdvancedProfiler
-from pytorch_lightning.profiler.base import PassThroughProfiler
-from pytorch_lightning.profiler.profiler import Profiler
-from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
-from pytorch_lightning.profiler.simple import SimpleProfiler
-from pytorch_lightning.profiler.xla import XLAProfiler
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.runif import RunIf
 
 
 def test_lightning_logger_base_deprecation_warning():
@@ -173,36 +165,3 @@ def test_lightningCLI_old_module_deprecation():
 
     with pytest.deprecated_call(match=r"instantiate_class.*deprecated in v1.7.*Use the equivalent function"):
         assert isinstance(old_cli.instantiate_class(tuple(), {"class_path": "pytorch_lightning.Trainer"}), Trainer)
-
-
-def test_profiler_deprecation_warning():
-    assert "Profiler` is deprecated in v1.7" in Profiler.__doc__
-
-
-@pytest.mark.parametrize(
-    "cls",
-    [
-        AdvancedProfiler,
-        PassThroughProfiler,
-        PyTorchProfiler,
-        SimpleProfiler,
-        pytest.param(XLAProfiler, marks=RunIf(tpu=True)),
-    ],
-)
-def test_profiler_classes_deprecated_warning(cls):
-    with pytest.deprecated_call(
-        match=f"profiler.{cls.__name__}` is deprecated in v1.7 and will be removed in v1.9."
-        f" Use .*profilers.{cls.__name__}` class instead."
-    ):
-        cls()
-
-
-@pytest.mark.skipif(not _KINETO_AVAILABLE, reason="Requires PyTorch Profiler Kineto")
-def test_pytorch_profiler_schedule_wrapper_deprecation_warning():
-    with pytest.deprecated_call(match="ScheduleWrapper` is deprecated in v1.7 and will be removed in v1.9."):
-        _ = ScheduleWrapper(None)
-
-
-def test_pytorch_profiler_register_record_function_deprecation_warning():
-    with pytest.deprecated_call(match="RegisterRecordFunction` is deprecated in v1.7 and will be removed in in v1.9."):
-        _ = RegisterRecordFunction(None)
