@@ -33,11 +33,13 @@ from torchmetrics import Metric
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+import lightning_fabric as lf
 from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
 from lightning_fabric.utilities.types import Steppable
+from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -61,10 +63,9 @@ from pytorch_lightning.utilities.types import (
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
-MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
+MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]]
 
 
-# TODO(fabric): inherit from lightning_lite.LightningModule
 class LightningModule(
     _DeviceDtypeModuleMixin,
     HyperparametersMixin,
@@ -119,6 +120,10 @@ class LightningModule(
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
+        # attributes only used when using fabric
+        self._fabric: Optional["lf.Fabric"] = None
+        self._optimizers: List[_FabricOptimizer] = []
+
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
         ...
@@ -142,13 +147,15 @@ class LightningModule(
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
-        if use_pl_optimizer:
+        if self.fabric:
+            opts: MODULE_OPTIMIZERS = self._optimizers
+        elif use_pl_optimizer:
             opts: MODULE_OPTIMIZERS = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
         # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer)):
+        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer, _FabricOptimizer)):
             return opts[0]
         # multiple opts
         return opts
@@ -178,6 +185,8 @@ class LightningModule(
     def trainer(self) -> "pl.Trainer":
         if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        if self._fabric is not None:
+            return _TrainerFabricShim(self._fabric)  # type: ignore[return-value]
         return self._trainer  # type: ignore[return-value]
 
     @trainer.setter
@@ -188,6 +197,21 @@ class LightningModule(
         if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
             trainer = weakref.proxy(trainer)
         self._trainer = trainer
+
+    @property
+    def fabric(self) -> "lf.Fabric":
+        if not self._jit_is_scripting and self._fabric is None:
+            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Fabric`.")
+        return self._fabric
+
+    @fabric.setter
+    def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.fabric = fabric  # type: ignore[assignment]
+        if fabric is not None and not isinstance(fabric, weakref.ProxyTypes):
+            fabric = weakref.proxy(fabric)
+        self._fabric = fabric
 
     @property
     def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
@@ -1394,8 +1418,11 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        self._verify_is_manual_optimization("manual_backward")
-        self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
+        if self.fabric:
+            self.fabric.backward(loss, *args, **kwargs)
+        else:
+            self._verify_is_manual_optimization("manual_backward")
+            self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
@@ -1414,7 +1441,10 @@ class LightningModule(
             def backward(self, loss, optimizer, optimizer_idx):
                 loss.backward()
         """
-        loss.backward(*args, **kwargs)
+        if self.fabric:
+            self.fabric.backward(loss, *args, **kwargs)
+        else:
+            loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
@@ -1430,7 +1460,8 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt in self.trainer.optimizers:
+        optimizers = self._optimizers if self.fabric is not None else self.trainer.optimizers
+        for opt in optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1454,7 +1485,8 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.trainer.optimizers):
+        optimizers = self._optimizers if self.fabric is not None else self.trainer.optimizers
+        for opt_idx, opt in enumerate(optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
@@ -2036,3 +2068,13 @@ def _jit_is_scripting() -> Generator:
         yield
     finally:
         LightningModule._jit_is_scripting = False
+
+
+class _TrainerFabricShim:
+    def __init__(self, fabric: lf.Fabric) -> None:
+        super().__init__()
+        self._fabric = fabric
+
+    def __getattr__(self, item: Any) -> Any:
+        return getattr(self._fabric, item)
+

@@ -27,8 +27,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
-from lightning_fabric.utilities.module import LightningModule
-
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
@@ -195,8 +193,8 @@ class Fabric:
 
         self._models_setup += 1
 
-        if isinstance(original_module, LightningModule):
-            original_module._trainer = self
+        if hasattr(original_module, "fabric"):  # this is probably a LightningModule
+            original_module._fabric = self
             # TODO(fabric): should these be the original or the _FabricOptimizers?
             original_module._optimizers = optimizers
 
@@ -236,8 +234,8 @@ class Fabric:
             # Update the _DeviceDtypeModuleMixin's device parameter
             module.to(self.device if move_to_device else next(module.parameters()).device)
 
-        if isinstance(original_module, LightningModule):
-            original_module._trainer = self
+        if hasattr(original_module, "fabric"):  # this is probably a LightningModule
+            original_module._fabric = self
 
         self._models_setup += 1
         return module
