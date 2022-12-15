@@ -1564,7 +1564,6 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     assert "2 files were uploaded"  # a.txt and .lightningignore
     assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
 
-    # replicate how the app would dispatch the app, and call `run`
     flow.run()
 
 
