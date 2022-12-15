@@ -287,6 +287,8 @@ class _LoadBalancer(LightningWork):
                 "/endpoint-info", StaticFiles(directory=endpoint_info_page.serve_dir, html=True), name="static"
             )
 
+        logger.info(f"Your load balancer has started. The endpoint is 'http://{self.host}:{self.port}{self.endpoint}'")
+
         uvicorn.run(
             fastapi_app,
             host=self.host,
