@@ -32,8 +32,8 @@ from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 from typing_extensions import Literal
 
-import pytorch_lightning as pl
 import lightning_fabric as lf
+import pytorch_lightning as pl
 from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -63,7 +63,9 @@ from pytorch_lightning.utilities.types import (
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
-MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]]
+MODULE_OPTIMIZERS = Union[
+    Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]
+]
 
 
 class LightningModule(
@@ -155,7 +157,11 @@ class LightningModule(
             opts = self.trainer.optimizers
 
         # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer, _FabricOptimizer)):
+        if (
+            isinstance(opts, list)
+            and len(opts) == 1
+            and isinstance(opts[0], (Optimizer, LightningOptimizer, _FabricOptimizer))
+        ):
             return opts[0]
         # multiple opts
         return opts
@@ -2077,4 +2083,3 @@ class _TrainerFabricShim:
 
     def __getattr__(self, item: Any) -> Any:
         return getattr(self._fabric, item)
-
