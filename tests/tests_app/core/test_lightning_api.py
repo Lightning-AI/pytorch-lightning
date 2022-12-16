@@ -12,7 +12,7 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -479,10 +479,13 @@ class FlowAPI(LightningFlow):
         if self.counter == 501:
             self._exit()
 
-    def request(self, config: InputRequestModel) -> OutputRequestModel:
+    def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
+        assert request.body()
+        assert request.json()
+        assert request.headers
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
