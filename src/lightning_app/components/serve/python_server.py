@@ -64,7 +64,6 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
-
     @requires(["torch"])
     def __init__(  # type: ignore
         self,
