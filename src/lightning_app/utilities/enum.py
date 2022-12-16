@@ -36,7 +36,7 @@ class WorkPendingReason(enum.Enum):
     REQUESTING_RESOURCE = "requesting_ressource"
 
 
-class WorkStageStatus(str, enum.Enum):
+class WorkStageStatus:
     NOT_STARTED = "not_started"
     STARTED = "started"
     STOPPED = "stopped"

@@ -2,14 +2,12 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from lightning_app.utilities.enum import WorkStageStatus
-
 
 class WorkStatus(BaseModel):
     """The ``WorkStatus`` captures the status of a work according to the app."""
 
     name: str
-    stage: WorkStageStatus
+    stage: str
     timestamp: float
     reason: Optional[str] = None
     message: Optional[str] = None
