@@ -41,8 +41,21 @@ class ColdStartProxy:
             raise TypeError("handle_request must be an `async` function")
 
     async def handle_request(self, request: BaseModel) -> Any:
-        # TODO default handler
-        pass
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "accept": "application/json",
+                    "Content-Type": "application/json",
+                }
+                async with session.post(
+                        self.proxy_url,
+                        json=request.dict(),
+                        timeout=self.proxy_timeout,
+                        headers=headers,
+                ) as response:
+                    return await response.json()
+        except Exception as ex:
+            raise HTTPException(status_code=500, detail=f"Error in proxy: {ex}")
 
 
 def _maybe_raise_granular_exception(exception: Exception) -> None:
