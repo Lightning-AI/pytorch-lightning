@@ -523,8 +523,8 @@ def test_fabric_attributes():
     assert isinstance(module.trainer, _TrainerFabricShim)
     assert module.trainer.global_rank == 0
     with pytest.raises(
-            AttributeError, match="Your LightningModule code tried to access `self.trainer.early_stopping_callback`"
+            AttributeError, match="Your LightningModule code tried to access `self.trainer.current_epoch`"
     ):
-        _ = module.trainer.early_stopping_callback
+        _ = module.trainer.current_epoch
 
     assert module.optimizers() == wrapped_optimizer
