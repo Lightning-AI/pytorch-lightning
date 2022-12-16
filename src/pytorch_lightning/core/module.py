@@ -2083,4 +2083,10 @@ class _TrainerFabricShim:
         self._module = module
 
     def __getattr__(self, item: Any) -> Any:
-        return getattr(self._fabric, item)
+        try:
+            return getattr(self._fabric, item)
+        except AttributeError:
+            raise AttributeError(
+                f"Your LightningModule code tried to access `self.trainer.{item}` but this attribute is not available"
+                f" when using Fabric with a LightningModule."
+            )

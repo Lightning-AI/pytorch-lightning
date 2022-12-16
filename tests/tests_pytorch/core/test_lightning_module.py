@@ -20,7 +20,9 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
+from lightning_fabric import Fabric
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.module import _TrainerFabricShim
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -486,3 +488,26 @@ def test_compile_uncompile():
     assert not has_dynamo(lit_model_orig.validation_step)
     assert not has_dynamo(lit_model_orig.test_step)
     assert not has_dynamo(lit_model_orig.predict_step)
+
+
+def test_fabric_attributes():
+    module = BoringModel()
+    optimizer = module.configure_optimizers()[0][0]
+
+    with pytest.raises(RuntimeError, match="BoringModel is not attached to `Fabric`"):
+        _ = module.fabric
+
+    fabric = Fabric()
+    wrapped_module, wrapped_optimizer = fabric.setup(module, optimizer)
+    assert module.fabric is fabric
+    assert module._fabric_optimizers == [wrapped_optimizer]
+
+    # Attribute access on LightningModule.trainer gets redirected to Fabric
+    assert isinstance(module.trainer, _TrainerFabricShim)
+    assert module.trainer.global_rank == 0
+    with pytest.raises(
+            AttributeError, match="Your LightningModule code tried to access `self.trainer.early_stopping_callback`"
+    ):
+        _ = module.trainer.early_stopping_callback
+
+    assert module.optimizers() == wrapped_optimizer
