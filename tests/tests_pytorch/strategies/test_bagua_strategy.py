@@ -45,6 +45,8 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+@pytest.mark.skip(reason="Bagua has issues in 1.8.x release.")
+# Exception: Warning! autotune service not ready after 300 seconds...
 @RunIf(min_cuda_gpus=1, bagua=True)
 def test_manual_optimization(tmpdir):
     model = ManualOptimBoringModel()

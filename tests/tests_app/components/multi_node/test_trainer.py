@@ -66,7 +66,7 @@ def test_trainer_run_executor_mps_forced_cpu(accelerator_given, accelerator_expe
         ({"strategy": "ddp_sharded_spawn"}, {"strategy": "ddp_sharded"}),
     ],
 )
-@pytest.mark.skipif(not module_available("pytorch"), reason="Lightning is not available")
+@pytest.mark.skipif(not module_available("torch"), reason="PyTorch is not available")
 def test_trainer_run_executor_arguments_choices(
     args_given: dict,
     args_expected: dict,
