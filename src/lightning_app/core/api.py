@@ -339,7 +339,9 @@ async def get_status() -> AppStatus:
     """Get the current status of the app and works."""
     global app_status
     if app_status is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="App status hasn't been reported yet.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="App status hasn't been reported yet."
+        )
     return app_status
 
 
