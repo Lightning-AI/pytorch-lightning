@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 import requests
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from lightning_utilities.core.imports import compare_version, module_available
 from pydantic import BaseModel
 
@@ -299,6 +300,14 @@ class PythonServer(LightningWork, abc.ABC):
 
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
+
+        fastapi_app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
         logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")
