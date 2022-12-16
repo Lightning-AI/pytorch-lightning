@@ -23,6 +23,29 @@ def _signature_proxy_function():
 
 @dataclass
 class FastApiMockRequest:
+    """This class is meant to mock FastAPI Request class that isn't pickalable.
+
+    If a user relies on FastAPI Request annotation, the Lightning framework
+    patches the annotation before pickling and replace them right after.
+
+    Finally, the FastAPI request is converting back to the FastApiMockRequest
+    before being delivered to the users.
+
+    Example:
+
+        import lightning as L
+        from fastapi import Request
+        from lightning.app.api import Post
+
+        class Flow(L.LightningFlow):
+
+            def request(self, request: Request) -> OutputRequestModel:
+                ...
+
+            def configure_api(self):
+                return [Post("/api/v1/request", self.request)]
+    """
+
     _body: Optional[str] = None
     _json: Optional[str] = None
     _method: Optional[str] = None
@@ -62,7 +85,10 @@ class FastApiMockRequest:
 async def _mock_fastapi_request(request: Request):
     # TODO: Add more requests parameters.
     return FastApiMockRequest(
-        _body=await request.body(), _json=await request.json(), _headers=request.headers, _method=request.method
+        _body=await request.body(),
+        _json=await request.json(),
+        _headers=request.headers,
+        _method=request.method,
     )
 
 
@@ -91,6 +117,8 @@ class _HttpMethod:
         self.timeout = timeout
         self.kwargs = kwargs
 
+        # Enable the users to rely on FastAPI annotation typing with Request.
+        # Note: Only a part of the Request functionatilities are supported.
         self._patch_fast_api_request()
 
     def add_route(self, app: FastAPI, request_queue: Queue, responses_store: Dict[str, Any]) -> None:
@@ -159,6 +187,7 @@ class _HttpMethod:
         route(self.route, **self.kwargs)(_handle_request)
 
     def _patch_fast_api_request(self):
+        """This function replaces signature annotation for Request with its mock."""
         for k, v in self.method_annotations.items():
             if v == Request:
                 v = FastApiMockRequest
@@ -169,6 +198,7 @@ class _HttpMethod:
                 v._annotation = FastApiMockRequest
 
     def _unpatch_fast_api_request(self):
+        """This function replaces bacl signature annotation to fastapi Request."""
         for k, v in self.method_annotations.items():
             if v == FastApiMockRequest:
                 v = Request
