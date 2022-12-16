@@ -23,12 +23,12 @@ def _signature_proxy_function():
 
 @dataclass
 class _FastApiMockRequest:
-    """This class is meant to mock FastAPI Request class that isn't pickalable.
+    """This class is meant to mock FastAPI Request class that isn't pickle-able.
 
     If a user relies on FastAPI Request annotation, the Lightning framework
     patches the annotation before pickling and replace them right after.
 
-    Finally, the FastAPI request is converting back to the _FastApiMockRequest
+    Finally, the FastAPI request is converted back to the _FastApiMockRequest
     before being delivered to the users.
 
     Example:
@@ -198,7 +198,7 @@ class _HttpMethod:
                 v._annotation = _FastApiMockRequest
 
     def _unpatch_fast_api_request(self):
-        """This function replaces bacl signature annotation to fastapi Request."""
+        """This function replaces back signature annotation to fastapi Request."""
         for k, v in self.method_annotations.items():
             if v == _FastApiMockRequest:
                 v = Request
