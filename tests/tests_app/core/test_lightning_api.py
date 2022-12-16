@@ -196,7 +196,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
 
-    publish_state_queue.put(app.state_with_changes)
+    publish_state_queue.put((app.state_with_changes, None))
 
     thread = UIRefresher(publish_state_queue, api_response_queue, None)
     thread.run_once()
@@ -226,16 +226,13 @@ async def test_start_server(x_lightning_type, monkeypatch):
     change_state_queue = _MockQueue("change_state_queue")
     has_started_queue = _MockQueue("has_started_queue")
     api_response_queue = _MockQueue("api_response_queue")
-    app_status_queue = _MockQueue("app_status_queue")
     state = app.state_with_changes
-    publish_state_queue.put(state)
-    app_status_queue.put(AppStatus(is_ui_ready=True, work_statuses=[]))
+    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses=[])))
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
         change_state_queue,
         api_response_queue,
-        app_status_queue=app_status_queue,
         has_started_queue=has_started_queue,
         uvicorn_run=False,
         spec=spec,

@@ -889,25 +889,34 @@ class FlowReady(LightningFlow):
 def test_flow_ready():
     """This test validates that the app status queue is populated correctly."""
 
-    mock_queue = _MockQueue("app_status_queue")
+    mock_queue = _MockQueue("api_publish_state_queue")
 
     def run_patch(method):
-        app.app_status_queue = mock_queue
+        app.should_publish_changes_to_api = True
+        app.api_publish_state_queue = mock_queue
         method()
+
+    state = {"done": False}
+
+    def lagged_run_once(method):
+        """Ensure that the full loop is run after the app exits."""
+        new_done = method()
+        if state["done"]:
+            return True
+        state["done"] = new_done
+        return False
 
     app = LightningApp(FlowReady())
     app._run = partial(run_patch, method=app._run)
+    app.run_once = partial(lagged_run_once, method=app.run_once)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    # Run the app once to ensure it updates the queues
-    app.run_once()
-
-    first_status = mock_queue.get()
+    _, first_status = mock_queue.get()
     assert not first_status.is_ui_ready
 
-    last_status = mock_queue.get()
+    _, last_status = mock_queue.get()
     while len(mock_queue) > 0:
-        last_status = mock_queue.get()
+        _, last_status = mock_queue.get()
     assert last_status.is_ui_ready
 
 

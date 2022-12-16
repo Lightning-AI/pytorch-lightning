@@ -91,7 +91,6 @@ class MultiProcessRuntime(Runtime):
                     api_response_queue=self.app.api_response_queue,
                     api_publish_state_queue=self.app.api_publish_state_queue,
                     api_delta_queue=self.app.api_delta_queue,
-                    app_status_queue=self.app.app_status_queue,
                     has_started_queue=has_started_queue,
                     spec=extract_metadata_from_app(self.app),
                     root_path=self.app.root_path,

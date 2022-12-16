@@ -83,13 +83,11 @@ class UIRefresher(Thread):
         self,
         api_publish_state_queue,
         api_response_queue,
-        app_status_queue: Optional[Queue],
         refresh_interval: float = 0.1,
     ) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
-        self.app_status_queue = app_status_queue
         self._exit_event = Event()
         self.refresh_interval = refresh_interval
 
@@ -107,7 +105,8 @@ class UIRefresher(Thread):
 
     def run_once(self):
         try:
-            state = self.api_publish_state_queue.get(timeout=0)
+            global app_status
+            state, app_status = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
         except queue.Empty:
@@ -122,13 +121,6 @@ class UIRefresher(Thread):
                     responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
-
-        if self.app_status_queue is not None:
-            try:
-                global app_status
-                app_status = self.app_status_queue.get(timeout=0)
-            except queue.Empty:
-                pass
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()
@@ -434,7 +426,6 @@ def start_server(
     api_publish_state_queue,
     api_delta_queue,
     api_response_queue,
-    app_status_queue: Optional[Queue] = None,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
@@ -456,7 +447,7 @@ def start_server(
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue, api_response_queue, app_status_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_response_queue)
     refresher.setDaemon(True)
     refresher.start()
 

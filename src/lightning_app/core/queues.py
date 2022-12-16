@@ -38,7 +38,6 @@ HAS_SERVER_STARTED_CONSTANT = "HAS_SERVER_STARTED_QUEUE"
 CALLER_QUEUE_CONSTANT = "CALLER_QUEUE"
 API_STATE_PUBLISH_QUEUE_CONSTANT = "API_STATE_PUBLISH_QUEUE"
 API_DELTA_QUEUE_CONSTANT = "API_DELTA_QUEUE"
-APP_STATUS_QUEUE_CONSTANT = "APP_STATUS_QUEUE"
 API_REFRESH_QUEUE_CONSTANT = "API_REFRESH_QUEUE"
 ORCHESTRATOR_REQUEST_CONSTANT = "ORCHESTRATOR_REQUEST"
 ORCHESTRATOR_RESPONSE_CONSTANT = "ORCHESTRATOR_RESPONSE"
@@ -95,10 +94,6 @@ class QueuingSystem(Enum):
     # TODO: This is hack, so we can remove this queue entirely when fully optimized.
     def get_api_delta_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
         queue_name = f"{queue_id}_{DELTA_QUEUE_CONSTANT}" if queue_id else DELTA_QUEUE_CONSTANT
-        return self.get_queue(queue_name)
-
-    def get_app_status_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{APP_STATUS_QUEUE_CONSTANT}" if queue_id else APP_STATUS_QUEUE_CONSTANT
         return self.get_queue(queue_name)
 
     def get_orchestrator_request_queue(self, work_name: str, queue_id: Optional[str] = None) -> "BaseQueue":

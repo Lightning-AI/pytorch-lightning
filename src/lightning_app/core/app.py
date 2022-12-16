@@ -118,7 +118,6 @@ class LightningApp:
         self.api_response_queue: Optional[BaseQueue] = None
         self.api_publish_state_queue: Optional[BaseQueue] = None
         self.api_delta_queue: Optional[BaseQueue] = None
-        self.app_status_queue: Optional[BaseQueue] = None
         self.error_queue: Optional[BaseQueue] = None
         self.request_queues: Optional[Dict[str, BaseQueue]] = None
         self.response_queues: Optional[Dict[str, BaseQueue]] = None
@@ -153,6 +152,7 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+        self._update_status()
 
         self.is_headless: Optional[bool] = None
 
@@ -494,7 +494,7 @@ class LightningApp:
         self._start_with_flow_works()
 
         if self.should_publish_changes_to_api and self.api_publish_state_queue:
-            self.api_publish_state_queue.put(self.state_vars)
+            self.api_publish_state_queue.put((self.state_vars, self.status))
 
         self._reset_run_time_monitor()
 
@@ -504,7 +504,7 @@ class LightningApp:
             self._update_run_time_monitor()
 
             if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
-                self.api_publish_state_queue.put(self.state_vars)
+                self.api_publish_state_queue.put((self.state_vars, self.status))
 
             self._has_updated = False
 
@@ -536,14 +536,13 @@ class LightningApp:
         for work in breadth_first(self.root, types=(lightning_app.LightningWork,)):
             work_statuses.append(work.status)
 
-        new_status = AppStatus(
+        self.status = AppStatus(
             is_ui_ready=self.ready,
             work_statuses=work_statuses,
         )
 
-        if new_status != old_status:
-            self.status = new_status
-            self.app_status_queue.put(self.status)
+        if self.status != old_status:
+            self._has_updated = True
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()
