@@ -348,17 +348,11 @@ class _LoadBalancer(LightningWork):
 
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
+        lut = {"string": "data string", "number": 0.0, "integer": 0, "boolean": False}
         for k, v in datatype_props.items():
-            if v["type"] == "string":
-                out[k] = "data string"
-            elif v["type"] == "number":
-                out[k] = 0.0
-            elif v["type"] == "integer":
-                out[k] = 0
-            elif v["type"] == "boolean":
-                out[k] = False
-            else:
+            if v["type"] not in lut:
                 raise TypeError("Unsupported type")
+            out[k] = lut[v["type"]]
         return out
 
     def get_code_sample(self, url: str) -> Optional[str]:
