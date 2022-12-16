@@ -545,6 +545,12 @@ class Fabric:
             method = getattr(callback, hook_name, None)
             if method is None:
                 continue
+            if not callable(method):
+                rank_zero_warn(
+                    f"Skipping the callback `{type(callback).__name__}.{hook_name}` because it is not callable."
+                )
+                continue
+
             method(*args, **kwargs)
 
             # TODO(fabric): handle the following signatures

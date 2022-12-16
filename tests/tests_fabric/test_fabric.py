@@ -702,3 +702,10 @@ def test_call_callbacks():
     fabric.call("on_train_end")
     callback0.on_train_end.assert_called_once()
     assert not callback1.mock_calls  # no methods were called on callback1
+
+    # Skip callback attributes that are not callable
+    callback = Mock(not_a_method=1)
+    fabric = Fabric(callbacks=[callback])
+    with pytest.warns(UserWarning, match="Skipping the callback `Mock.not_a_method`"):
+        fabric.call("not_a_method")
+    assert not callback1.mock_calls
