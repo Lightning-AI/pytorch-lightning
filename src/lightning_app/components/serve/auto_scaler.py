@@ -21,10 +21,9 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import _is_aiohttp_available, requires
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
-from lightning_app.utilities.cloud import is_running_in_cloud
-
 
 if _is_aiohttp_available():
     import aiohttp
@@ -501,7 +500,7 @@ class AutoScaler(LightningFlow):
             timeout_batching=timeout_batching,
             cache_calls=True,
             parallel=True,
-            work_name=self._work_cls.__name__
+            work_name=self._work_cls.__name__,
         )
         for _ in range(min_replicas):
             work = self.create_work()
