@@ -11,7 +11,7 @@ Intel Neural Compressor, is an open-source Python library that runs on Intel CPU
 
 Model Quantization
 ==================
-Model quantization is an efficient model optimization tool that can accelerate the model inference speed and decrease the memory load while still maintaining the model accuracy. 
+Model quantization is an efficient model optimization tool that can accelerate the model inference speed and decrease the memory load while still maintaining the model accuracy.
 
 Different from the inherent model quantization callback ''QuantizationAwareTraining'' in Pytorch Lightning, Intel Neural Compressor provides a convenient model quantization API to quantize the already-trained Lightning module with Post-training Quantization and Quantization Aware Training. This extension API exhibits the merits of an ease-of-use coding environment and multi-functional quantization options. The user can easily quantize their fine-tuned model by adding a few clauses to their original code.  We only introduce post-training quantization in this document.
 
@@ -35,14 +35,14 @@ Install Dependencies
 
 Install Intel Neural Compressor
 -------------------------------
-Release binary install: 
+Release binary install:
 ::
     # install stable basic version from pip
     pip install neural-compressor
     # Or install stable full version from pip (including GUI)
     pip install neural-compressor-full
 
-More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_. 
+More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_.
 
 Usage
 =====
@@ -72,7 +72,7 @@ Pytorch Lightning model
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, config=self.config)
         def forward(self, **inputs):
             return self.model(**inputs)
-    
+
     model = GLUETransformer(model_name_or_path=" Intel/bert-base-uncased-mrpc",)
 
 The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
@@ -156,4 +156,3 @@ For more model quantization performance, please refer to `our model list <https:
 Technique Support
 =================
 Visit the Intel Neural Compressor online document website at: https://intel.github.io/neural-compressor.
-
