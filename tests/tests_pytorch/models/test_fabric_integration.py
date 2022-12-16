@@ -22,6 +22,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBorin
 
 def test_fabric_boring_lightning_module_automatic():
     """Test that basic LightningModules written for 'automatic optimization' work with Fabric."""
+
     fabric = Fabric(accelerator="cpu", devices=1)
 
     module = BoringModel()
