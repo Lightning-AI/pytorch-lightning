@@ -31,7 +31,7 @@ class LitePyTorchDistributed(L.LightningWork):
             optimizer.step()
 
 
-# 8 GPU: (2 nodes of 4 x v100)
+# 8 GPUs: (2 nodes of 4 x v100)
 app = L.LightningApp(
     LiteMultiNode(
         LitePyTorchDistributed,
