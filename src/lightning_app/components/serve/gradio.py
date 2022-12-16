@@ -34,8 +34,6 @@ class ServeGradio(LightningWork, abc.ABC):
     title: Optional[str] = None
     description: Optional[str] = None
 
-    _start_method = "spawn"
-
     def __init__(self, *args, **kwargs):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
