@@ -113,4 +113,3 @@ def test_API_ACCESS_ENDPOINT_creation():
 
     auto_scaler.load_balancer.run()
     fastapi_mock.mount.assert_called_once_with("/endpoint-info", mock.ANY, name="static")
-
