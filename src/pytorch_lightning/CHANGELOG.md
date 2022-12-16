@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [1.8.5] - 2022-12-15
 
-- minor cleaning
+- Add function to remove checkpoint to allow override for extended classes ([#16067](https://github.com/Lightning-AI/lightning/pull/16067))
 
 
 ## [1.8.4] - 2022-12-08
