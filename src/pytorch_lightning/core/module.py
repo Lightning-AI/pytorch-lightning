@@ -214,7 +214,7 @@ class LightningModule(
     def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
-                v.fabric = fabric  # type: ignore[assignment]
+                v.fabric = fabric
         if fabric is not None and not isinstance(fabric, weakref.ProxyTypes):
             fabric = weakref.proxy(fabric)
         self._fabric = fabric
