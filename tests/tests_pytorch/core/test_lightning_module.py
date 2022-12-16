@@ -523,9 +523,7 @@ def test_fabric_attributes():
     # Attribute access on LightningModule.trainer gets redirected to Fabric
     assert isinstance(module.trainer, _TrainerFabricShim)
     assert module.trainer.global_rank == 0
-    with pytest.raises(
-            AttributeError, match="Your LightningModule code tried to access `self.trainer.current_epoch`"
-    ):
+    with pytest.raises(AttributeError, match="Your LightningModule code tried to access `self.trainer.current_epoch`"):
         _ = module.trainer.current_epoch
 
     assert module.optimizers() == wrapped_optimizer
