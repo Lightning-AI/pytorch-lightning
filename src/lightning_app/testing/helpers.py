@@ -136,9 +136,6 @@ class _MockQueue(BaseQueue):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._queue})"
 
-    def __bool__(self) -> bool:
-        return True
-
 
 class EmptyFlow(LightningFlow):
     """A LightningFlow that implements all abstract methods to do nothing.
