@@ -194,8 +194,8 @@ class Fabric:
         self._models_setup += 1
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self
-            original_module._fabric_optimizers = optimizers
+            original_module._fabric = self  # type: ignore[assignment]
+            original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
 
         if optimizers:
             # join both types in a tuple for API convenience
@@ -234,7 +234,7 @@ class Fabric:
             module.to(self.device if move_to_device else next(module.parameters()).device)
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
-            original_module._fabric = self
+            original_module._fabric = self  # type: ignore[assignment]
 
         self._models_setup += 1
         return module
