@@ -1,6 +1,10 @@
 from copy import deepcopy
 
 import torch
+
+from lightning_fabric import Fabric
+from pytorch_lightning.demos.boring_classes import BoringModel
+
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
