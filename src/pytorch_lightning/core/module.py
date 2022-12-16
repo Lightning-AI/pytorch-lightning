@@ -153,7 +153,7 @@ class LightningModule(
         if self._fabric:
             opts: MODULE_OPTIMIZERS = self._fabric_optimizers
         elif use_pl_optimizer:
-            opts: MODULE_OPTIMIZERS = list(self.trainer.strategy._lightning_optimizers.values())
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -209,7 +209,7 @@ class LightningModule(
     def fabric(self) -> "lf.Fabric":
         if not self._jit_is_scripting and self._fabric is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to `Fabric`.")
-        return self._fabric
+        return self._fabric  # type: ignore[return-value]
 
     @fabric.setter
     def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
@@ -1467,8 +1467,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        optimizers = self._fabric_optimizers if self._fabric is not None else self.trainer.optimizers
-        for opt in optimizers:
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1492,8 +1491,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        optimizers = self._fabric_optimizers if self._fabric is not None else self.trainer.optimizers
-        for opt_idx, opt in enumerate(optimizers):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
