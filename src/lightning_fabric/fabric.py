@@ -195,7 +195,7 @@ class Fabric:
 
         if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
             original_module._fabric = self
-            original_module._optimizers = optimizers
+            original_module._fabric_optimizers = optimizers
 
         if optimizers:
             # join both types in a tuple for API convenience
