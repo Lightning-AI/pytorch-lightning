@@ -219,12 +219,12 @@ class LightningWork:
 
     @property
     def display_name(self):
-        """Returns the display name of the LightningWork."""
+        """Returns the display name of the LightningWork in the cloud."""
         return self._display_name
 
     @display_name.setter
     def display_name(self, display_name: str):
-        """Returns the display name of the LightningWork."""
+        """Returns the display name of the LightningWork in the cloud."""
         self._display_name = display_name
 
     @property
