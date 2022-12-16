@@ -462,8 +462,6 @@ def test_fabric_reference_recursively():
     ensemble.inner = inner
 
     assert inner._fabric is None
-    with pytest.raises(RuntimeError, match="attached to `Fabric"):
-        _ = ensemble.fabric
 
     fabric = Mock()
     ensemble.fabric = fabric
@@ -512,8 +510,7 @@ def test_fabric_attributes():
     module = BoringModel()
     optimizer = module.configure_optimizers()[0][0]
 
-    with pytest.raises(RuntimeError, match="BoringModel is not attached to `Fabric`"):
-        _ = module.fabric
+    assert module.fabric is None
 
     fabric = Fabric()
     wrapped_module, wrapped_optimizer = fabric.setup(module, optimizer)

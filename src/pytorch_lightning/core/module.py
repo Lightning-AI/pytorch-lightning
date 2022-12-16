@@ -207,10 +207,8 @@ class LightningModule(
         self._trainer = trainer
 
     @property
-    def fabric(self) -> "lf.Fabric":
-        if not self._jit_is_scripting and self._fabric is None:
-            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to `Fabric`.")
-        return self._fabric  # type: ignore[return-value]
+    def fabric(self) -> Optional["lf.Fabric"]:
+        return self._fabric
 
     @fabric.setter
     def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
@@ -1427,7 +1425,7 @@ class LightningModule(
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
         if self._fabric:
-            self.fabric.backward(loss, *args, **kwargs)
+            self._fabric.backward(loss, *args, **kwargs)
         else:
             self._verify_is_manual_optimization("manual_backward")
             self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
@@ -1450,7 +1448,7 @@ class LightningModule(
                 loss.backward()
         """
         if self._fabric:
-            self.fabric.backward(loss, *args, **kwargs)
+            self._fabric.backward(loss, *args, **kwargs)
         else:
             loss.backward(*args, **kwargs)
 
