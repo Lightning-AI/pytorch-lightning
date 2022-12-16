@@ -191,7 +191,7 @@ class LightningModule(
     @property
     def trainer(self) -> "pl.Trainer":
         if self._fabric is not None:
-            return _TrainerFabricShim(fabric=self._fabric, module=self)  # type: ignore[return-value]
+            return _TrainerFabricShim(fabric=self._fabric)  # type: ignore[return-value]
         if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
@@ -2082,10 +2082,11 @@ def _jit_is_scripting() -> Generator:
 
 
 class _TrainerFabricShim:
-    def __init__(self, fabric: lf.Fabric, module: LightningModule) -> None:
+    """Intercepts attribute access on LightningModule's trainer reference and redirects it to the Fabric object."""
+
+    def __init__(self, fabric: lf.Fabric) -> None:
         super().__init__()
         self._fabric = fabric
-        self._module = module
 
     def __getattr__(self, item: Any) -> Any:
         try:
