@@ -13,7 +13,7 @@ def test_multi_node_warn_running_locally():
         def run(self):
             pass
 
-    with pytest.warns(UserWarning, match=escape("You set MultiNode(num_nodes=1, ...)` but ")):
+    with pytest.warns(UserWarning, match=escape("You set MultiNode(num_nodes=2, ...)` but ")):
         MultiNode(Work, num_nodes=2, cloud_compute=CloudCompute("gpu"))
 
     with no_warning_call(UserWarning, match=escape("You set MultiNode(num_nodes=1, ...)` but ")):
