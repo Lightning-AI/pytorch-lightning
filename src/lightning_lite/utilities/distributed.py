@@ -184,10 +184,10 @@ def _functional_all_gather(tensor: Any, group: Any) -> Any:
     if sys.platform == "win32" and not _TORCH_GREATER_EQUAL_1_12:
         # TODO: also remove `_AllGather` when support for 1.12 is dropped
         return _AllGather.apply(tensor, group)
-    else:
-        import torch.distributed.nn
 
-        return torch.distributed.nn.functional.all_gather(tensor, group)
+    import torch.distributed.nn
+
+    return torch.distributed.nn.functional.all_gather(tensor, group)
 
 
 def _all_gather_ddp_if_available(
