@@ -11,12 +11,7 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import (
-    _is_json_serializable,
-    _lightning_dispatched,
-    _LightningAppRef,
-    is_overridden,
-)
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
 from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
@@ -267,7 +262,7 @@ class LightningWork:
 
     @lightningignore.setter
     def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
-        if _lightning_dispatched():
+        if self._backend is not None:
             raise RuntimeError(
                 f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
                 " effect"
