@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 
 from lightning_fabric import Fabric
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 # Copyright The PyTorch Lightning team.
 #
@@ -18,9 +18,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from lightning_fabric import Fabric
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 
 def test_fabric_boring_lightning_module_automatic():
