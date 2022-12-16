@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
-_COLOSSALAI_GREATER_EQUAL_0_1_10 = RequirementCache("colossalai>=0.1.10")
+_COLOSSALAI_GREATER_0_1_10 = RequirementCache("colossalai>0.1.10")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
@@ -268,7 +268,7 @@ class ColossalAIStrategy(DDPStrategy):
         pl_module = self.model
 
         if not hasattr(pl_module, "_colossalai_zero"):
-            if not _COLOSSALAI_GREATER_EQUAL_0_1_10:
+            if not _COLOSSALAI_GREATER_0_1_10:
                 if self.use_chunk:
                     chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
                         self.model, **self.chunk_size_search_kwargs
