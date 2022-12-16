@@ -548,8 +548,8 @@ class Fabric:
             method(*args, **kwargs)
 
             # TODO(fabric): handle the following signatures
-            # method(self, fabric, x, y=1)
-            # method(self, fabric, *args, x, y=1)
+            # method(self, fabric|trainer, x, y=1)
+            # method(self, fabric|trainer, *args, x, y=1)
             # method(self, *args, y=1)
             # method(self, *args, **kwargs)
 
