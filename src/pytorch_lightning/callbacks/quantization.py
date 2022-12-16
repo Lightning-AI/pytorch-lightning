@@ -26,8 +26,8 @@ from torch.ao.quantization.qconfig import QConfig
 from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_11:

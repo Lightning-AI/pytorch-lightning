@@ -16,9 +16,9 @@ from typing import Any, Optional, Union
 import torch
 
 from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
     from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision

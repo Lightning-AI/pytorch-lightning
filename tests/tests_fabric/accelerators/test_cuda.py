@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
+import logging
 import os
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
 
 import lightning_fabric
-from lightning_fabric.accelerators.cuda import CUDAAccelerator, is_cuda_available, num_cuda_devices
+from lightning_fabric.accelerators.cuda import (
+    _check_cuda_matmul_precision,
+    CUDAAccelerator,
+    is_cuda_available,
+    num_cuda_devices,
+)
 
 
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
@@ -51,9 +58,11 @@ def test_get_parallel_devices(devices, expected):
 
 
 @mock.patch("torch.cuda.set_device")
-def test_set_cuda_device(set_device_mock):
-    CUDAAccelerator().setup_device(torch.device("cuda", 1))
-    set_device_mock.assert_called_once_with(torch.device("cuda", 1))
+@mock.patch("torch.cuda.get_device_capability", return_value=(7, 0))
+def test_set_cuda_device(_, set_device_mock):
+    device = torch.device("cuda", 1)
+    CUDAAccelerator().setup_device(device)
+    set_device_mock.assert_called_once_with(device)
 
 
 @mock.patch("lightning_fabric.accelerators.cuda._device_count_nvml", return_value=-1)
@@ -73,3 +82,35 @@ def test_force_nvml_based_cuda_check():
     importlib.reload(lightning_fabric)  # reevaluate top-level code, without becoming a different object
 
     assert os.environ["PYTORCH_NVML_BASED_CUDA_CHECK"] == "1"
+
+
+@RunIf(min_torch="1.12")
+@mock.patch("torch.cuda.get_device_capability", return_value=(10, 1))
+@mock.patch("torch.cuda.get_device_name", return_value="Z100")
+def test_tf32_message(_, __, caplog):
+    device = Mock()
+    expected = "Z100') that has Tensor Cores"
+    assert torch.get_float32_matmul_precision() == "highest"  # default in torch
+    with caplog.at_level(logging.INFO):
+        _check_cuda_matmul_precision(device)
+    assert expected in caplog.text
+
+    caplog.clear()
+    torch.backends.cuda.matmul.allow_tf32 = True  # changing this changes the string
+    assert torch.get_float32_matmul_precision() == "high"
+    with caplog.at_level(logging.INFO):
+        _check_cuda_matmul_precision(device)
+    assert not caplog.text
+
+    caplog.clear()
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.set_float32_matmul_precision("medium")  # also the other way around
+    assert torch.backends.cuda.matmul.allow_tf32
+    with caplog.at_level(logging.INFO):
+        _check_cuda_matmul_precision(device)
+    assert not caplog.text
+
+    torch.set_float32_matmul_precision("highest")  # can be reverted
+    with caplog.at_level(logging.INFO):
+        _check_cuda_matmul_precision(device)
+    assert expected in caplog.text

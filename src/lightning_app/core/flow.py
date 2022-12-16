@@ -10,7 +10,13 @@ from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
+from lightning_app.utilities.app_helpers import (
+    _is_json_serializable,
+    _lightning_dispatched,
+    _LightningAppRef,
+    _set_child_name,
+    is_overridden,
+)
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
@@ -104,6 +110,8 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
 
     @property
     def name(self):
@@ -309,6 +317,20 @@ class LightningFlow:
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if _lightning_dispatched():
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""

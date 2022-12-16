@@ -511,11 +511,15 @@ def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
 
 
+def _lightning_dispatched() -> bool:
+    return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
+
+
 def _should_dispatch_app() -> bool:
     return (
         __debug__
         and "_pytest.doctest" not in sys.modules
-        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        and not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
     )
 

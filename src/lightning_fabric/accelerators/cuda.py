@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 import warnings
 from contextlib import contextmanager
@@ -20,7 +21,13 @@ from typing import Dict, Generator, List, Optional, Set, Union
 import torch
 
 from lightning_fabric.accelerators.accelerator import Accelerator
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCH_GREATER_EQUAL_1_14
+from lightning_fabric.utilities.imports import (
+    _TORCH_GREATER_EQUAL_1_12,
+    _TORCH_GREATER_EQUAL_1_13,
+    _TORCH_GREATER_EQUAL_2_0,
+)
+
+_log = logging.getLogger(__name__)
 
 
 class CUDAAccelerator(Accelerator):
@@ -34,6 +41,7 @@ class CUDAAccelerator(Accelerator):
         """
         if device.type != "cuda":
             raise ValueError(f"Device should be CUDA, got {device} instead.")
+        _check_cuda_matmul_precision(device)
         torch.cuda.set_device(device)
 
     def teardown(self) -> None:
@@ -78,12 +86,12 @@ def _get_all_available_cuda_gpus() -> List[int]:
     return list(range(num_cuda_devices()))
 
 
-# TODO: Remove once minimum supported PyTorch version is 1.14
+# TODO: Remove once minimum supported PyTorch version is 2.0
 @contextmanager
 def _patch_cuda_is_available() -> Generator:
     """Context manager that safely patches :func:`torch.cuda.is_available` with its NVML-based version if
     possible."""
-    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_1_14:
+    if hasattr(torch._C, "_cuda_getDeviceCount") and _device_count_nvml() >= 0 and not _TORCH_GREATER_EQUAL_2_0:
         # we can safely patch is_available if both torch has CUDA compiled and the NVML count is succeeding
         # otherwise, patching is_available could lead to attribute errors or infinite recursion
         orig_check = torch.cuda.is_available
@@ -119,7 +127,7 @@ def is_cuda_available() -> bool:
     if the platform allows it.
     """
     # We set `PYTORCH_NVML_BASED_CUDA_CHECK=1` in lightning_fabric.__init__.py
-    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_1_14 else num_cuda_devices() > 0
+    return torch.cuda.is_available() if _TORCH_GREATER_EQUAL_2_0 else num_cuda_devices() > 0
 
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
@@ -179,3 +187,24 @@ def _device_count_nvml() -> int:
         return -1
     except AttributeError:
         return -1
+
+
+def _check_cuda_matmul_precision(device: torch.device) -> None:
+    if not _TORCH_GREATER_EQUAL_1_12:
+        # before 1.12, tf32 was used by default
+        return
+    major, _ = torch.cuda.get_device_capability(device)
+    ampere_or_later = major >= 8  # Ampere and later leverage tensor cores, where this setting becomes useful
+    if not ampere_or_later:
+        return
+    # check that the user hasn't changed the precision already, this works for both `allow_tf32 = True` and
+    # `set_float32_matmul_precision`
+    if torch.get_float32_matmul_precision() == "highest":  # default
+        _log.info(
+            f"You are using a CUDA device ({torch.cuda.get_device_name(device)!r}) that has Tensor Cores. To properly"
+            " utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off"
+            " precision for performance. For more details, read https://pytorch.org/docs/stable/generated/"
+            "torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision"
+        )
+    # note: no need change `torch.backends.cudnn.allow_tf32` as it's enabled by default:
+    # https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices

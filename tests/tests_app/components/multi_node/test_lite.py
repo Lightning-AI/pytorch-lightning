@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import module_available
-from tests_app.helpers.utils import no_warning_call
+from lightning_utilities.test.warning import no_warning_call
 
 import lightning_fabric as lf
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
@@ -41,7 +41,7 @@ def _get_args_after_tracer_injection(**kwargs):
 
 
 def check_lightning_lite_mps():
-    if module_available("lightning_lite"):
+    if module_available("lightning_fabric"):
         return lf.accelerators.MPSAccelerator.is_available()
     return False
 
