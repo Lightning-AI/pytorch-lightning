@@ -455,6 +455,23 @@ def test_trainer_reference_recursively():
     assert inner.trainer is weakref.proxy(trainer)
 
 
+def test_fabric_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._fabric is None
+    with pytest.raises(RuntimeError, match="attached to `Fabric"):
+        _ = ensemble.fabric
+
+    fabric = Mock()
+    ensemble.fabric = fabric
+    # references match
+    assert ensemble.fabric is inner.fabric
+    # and the fabric was weakly referenced
+    assert inner.fabric is weakref.proxy(fabric)
+
+
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_compile_uncompile():
