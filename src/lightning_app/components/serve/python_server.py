@@ -2,7 +2,7 @@ import abc
 import base64
 import os
 import platform
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import requests
 import uvicorn
@@ -13,6 +13,9 @@ from pydantic import BaseModel
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_torch_available, requires
+
+if TYPE_CHECKING:
+    from lightning_app.frontend.frontend import Frontend
 
 logger = Logger(__name__)
 
@@ -257,7 +260,7 @@ class PythonServer(LightningWork, abc.ABC):
             return None
         return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
 
-    def configure_layout(self) -> Optional["APIAccessFrontend"]:
+    def configure_layout(self) -> Optional["Frontend"]:
         try:
             from lightning_api_access import APIAccessFrontend
         except ModuleNotFoundError:
