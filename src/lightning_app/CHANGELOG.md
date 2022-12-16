@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Lightning{Flow,Work}.lightningignores` attributes to programmatically ignore files before uploading to the cloud ([#15818](https://github.com/Lightning-AI/lightning/pull/15818))
 
 
+- Added partial support for fastapi `Request` annotation in `configure_api` handlers ([#16047](https://github.com/Lightning-AI/lightning/pull/16047))
+
+
 ### Changed
 
 -
