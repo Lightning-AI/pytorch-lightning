@@ -190,8 +190,7 @@ class _HttpMethod:
         """This function replaces signature annotation for Request with its mock."""
         for k, v in self.method_annotations.items():
             if v == Request:
-                v = _FastApiMockRequest
-            self.method_annotations[k] = v
+                self.method_annotations[k] = _FastApiMockRequest
 
         for v in self.method_signature.parameters.values():
             if v._annotation == Request:
@@ -201,8 +200,7 @@ class _HttpMethod:
         """This function replaces back signature annotation to fastapi Request."""
         for k, v in self.method_annotations.items():
             if v == _FastApiMockRequest:
-                v = Request
-            self.method_annotations[k] = v
+                self.method_annotations[k] = Request
 
         for v in self.method_signature.parameters.values():
             if v._annotation == _FastApiMockRequest:
