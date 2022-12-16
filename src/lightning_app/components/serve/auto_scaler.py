@@ -23,6 +23,8 @@ from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_aiohttp_available, requires
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
+from lightning_app.utilities.cloud import is_running_in_cloud
+
 
 if _is_aiohttp_available():
     import aiohttp
@@ -115,7 +117,7 @@ class _LoadBalancer(LightningWork):
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
         timeout_keep_alive: The number of seconds until it closes Keep-Alive connections if no new data is received.
         timeout_inference_request: The number of seconds to wait for inference.
-        \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
+        **kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
 
     @requires(["aiohttp"])
@@ -129,6 +131,7 @@ class _LoadBalancer(LightningWork):
         timeout_batching: float = 1,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
+        work_name: Optional[str] = "API",  # used for displaying the name in the UI
         **kwargs: Any,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
@@ -143,6 +146,7 @@ class _LoadBalancer(LightningWork):
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
+        self._work_name = work_name
 
         if not endpoint.startswith("/"):
             endpoint = "/" + endpoint
@@ -370,33 +374,25 @@ class _LoadBalancer(LightningWork):
             logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
             return
 
-        # TODO - change this name and url path
-        class_name = "Loadbalanced"
-        # TODO - make it work for local host too
-        url = f"{self._future_url}/predict"
+        if is_running_in_cloud():
+            url = f"{self._future_url}{self.endpoint}"
+        else:
+            url = f"http://localhost:{self.port}{self.endpoint}"
 
-        # TODO - sample data below cannot be None
-
-        try:
-            request = self._get_sample_dict_from_datatype(self._input_type)
-        except TypeError:
-            request = None
-        try:
-            response = self._get_sample_dict_from_datatype(self._output_type)
-        except TypeError:
-            response = None
-
-        frontend_objects = {
-            "name": class_name,
-            "url": url,
-            "method": "POST",
-            "request": request,
-            "response": response,
-        }
+        frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
         code_samples = self.get_code_sample(url)
         if code_samples:
-            frontend_objects["code_sample"] = self.get_code_sample(url)
-
+            frontend_objects["code_samples"] = code_samples
+            # TODO also set request/response for JS UI
+        else:
+            try:
+                request = self._get_sample_dict_from_datatype(self._input_type)
+                response = self._get_sample_dict_from_datatype(self._output_type)
+            except TypeError:
+                return None
+            else:
+                frontend_objects["request"] = request
+                frontend_objects["response"] = response
         return APIAccessFrontend(apis=[frontend_objects])
 
 
@@ -505,6 +501,7 @@ class AutoScaler(LightningFlow):
             timeout_batching=timeout_batching,
             cache_calls=True,
             parallel=True,
+            work_name=self._work_cls.__name__
         )
         for _ in range(min_replicas):
             work = self.create_work()
