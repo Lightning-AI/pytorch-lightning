@@ -1,10 +1,3 @@
-from copy import deepcopy
-
-import torch
-
-from lightning_fabric import Fabric
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-
 # Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +11,13 @@ from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBorin
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from copy import deepcopy
+
+import torch
+
+from lightning_fabric import Fabric
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 
 def test_fabric_boring_lightning_module_automatic():
