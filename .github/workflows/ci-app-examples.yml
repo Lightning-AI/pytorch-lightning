@@ -89,7 +89,8 @@ jobs:
       - name: Install Lightning package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: pip install -e .
+        # do not use -e because it will make both packages available since it adds `src` to `sys.path` automatically
+        run: pip install .
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}
