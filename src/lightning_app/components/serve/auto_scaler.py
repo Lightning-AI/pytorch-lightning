@@ -346,6 +346,10 @@ class _LoadBalancer(LightningWork):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if not hasattr(datatype, "schema"):
+            # not a pydantic model
+            raise TypeError(f"datatype must be a pydantic model, for the UI to be generated. but got {datatype}")
+
         if hasattr(datatype, "_get_sample_data"):
             return datatype._get_sample_data()
 
