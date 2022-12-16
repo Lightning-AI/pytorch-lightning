@@ -16,10 +16,11 @@ import torch
 # limitations under the License.
 
 from lightning_fabric import Fabric
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 
 
-def test_fabric_boring_lightning_module():
+def test_fabric_boring_lightning_module_automatic():
+    """Test that basic LightningModules written for 'automatic optimization' work with Fabric."""
     fabric = Fabric(accelerator="cpu", devices=1)
 
     module = BoringModel()
@@ -35,5 +36,25 @@ def test_fabric_boring_lightning_module():
     output = model.training_step(batch, 0)
     fabric.backward(output["loss"])
     optimizer.step()
+
+    assert all(not torch.equal(before, after) for before, after in zip(parameters_before, model.parameters()))
+
+
+def test_fabric_boring_lightning_module_manual():
+    """Test that basic LightningModules written for 'manual optimization' work with Fabric."""
+
+    fabric = Fabric(accelerator="cpu", devices=1)
+
+    module = ManualOptimBoringModel()
+    parameters_before = deepcopy(list(module.parameters()))
+
+    optimizers, _ = module.configure_optimizers()
+    dataloader = module.train_dataloader()
+
+    model, optimizer = fabric.setup(module, optimizers[0])
+    dataloader = fabric.setup_dataloaders(dataloader)
+
+    batch = next(iter(dataloader))
+    model.training_step(batch, 0)  # .backward() and optimizer.step() happen inside training_step()
 
     assert all(not torch.equal(before, after) for before, after in zip(parameters_before, model.parameters()))
