@@ -108,6 +108,14 @@ class Fabric:
             self._strategy.setup_environment()
 
     @property
+    def accelerator(self) -> Accelerator:
+        return self._accelerator
+
+    @property
+    def strategy(self) -> Strategy:
+        return self._strategy
+
+    @property
     def device(self) -> torch.device:
         """The current device this process runs on.
 
@@ -188,6 +196,10 @@ class Fabric:
 
         self._models_setup += 1
 
+        if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
+            original_module._fabric = self  # type: ignore[assignment]
+            original_module._fabric_optimizers = optimizers  # type: ignore[assignment]
+
         if optimizers:
             # join both types in a tuple for API convenience
             return tuple((module, *optimizers))
@@ -223,6 +235,9 @@ class Fabric:
         if not isinstance(self._strategy, FSDPStrategy):
             # Update the _DeviceDtypeModuleMixin's device parameter
             module.to(self.device if move_to_device else next(module.parameters()).device)
+
+        if hasattr(original_module, "_fabric"):  # this is probably a LightningModule
+            original_module._fabric = self  # type: ignore[assignment]
 
         self._models_setup += 1
         return module
