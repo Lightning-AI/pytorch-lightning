@@ -86,7 +86,7 @@ jobs:
       - name: Install Yarn
         run: npm install -g yarn
 
-      - name: Install package
+      - name: Install Lightning package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         # do not use -e because it will make both packages available since it adds `src` to `sys.path` automatically
