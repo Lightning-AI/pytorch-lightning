@@ -23,6 +23,60 @@ def test_v2_0_0_base_profilers():
         AbstractProfiler()
 
     with pytest.raises(
-        RuntimeError, match="AbstractProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
+        RuntimeError, match="BaseProfiler` was deprecated in v1.6 and is no longer supported as of v1.9."
     ):
         BaseProfiler()
+
+    from pytorch_lightning.profiler.advanced import AdvancedProfiler
+
+    with pytest.raises(
+        RuntimeError, match="AdvancedProfiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        AdvancedProfiler()
+
+    from pytorch_lightning.profiler.base import PassThroughProfiler
+
+    with pytest.raises(
+        RuntimeError, match="PassThroughProfiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        PassThroughProfiler()
+
+    from pytorch_lightning.profiler.profiler import Profiler
+
+    with pytest.raises(RuntimeError, match="Profiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"):
+        Profiler()
+
+    from pytorch_lightning.profiler.pytorch import PyTorchProfiler
+
+    with pytest.raises(
+        RuntimeError, match="PyTorchProfiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        PyTorchProfiler()
+
+    from pytorch_lightning.profiler.pytorch import RegisterRecordFunction
+
+    with pytest.raises(
+        RuntimeError, match="RegisterRecordFunction` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        RegisterRecordFunction()
+
+    from pytorch_lightning.profiler.pytorch import ScheduleWrapper
+
+    with pytest.raises(
+        RuntimeError, match="ScheduleWrapper` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        ScheduleWrapper()
+
+    from pytorch_lightning.profiler.simple import SimpleProfiler
+
+    with pytest.raises(
+        RuntimeError, match="SimpleProfiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        SimpleProfiler()
+
+    from pytorch_lightning.profiler.xla import XLAProfiler
+
+    with pytest.raises(
+        RuntimeError, match="XLAProfiler` was deprecated in v1.7.0 and is not longer supported as of v1.9"
+    ):
+        XLAProfiler()
