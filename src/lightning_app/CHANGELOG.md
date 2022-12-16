@@ -12,9 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a progres bar while connecting to an app through the CLI ([#16035](https://github.com/Lightning-AI/lightning/pull/16035))
 
-
 - Added partial support for fastapi `Request` annotation in `configure_api` handlers ([#16047](https://github.com/Lightning-AI/lightning/pull/16047))
 
+- Added more datatypes to serving component ([#16018](https://github.com/Lightning-AI/lightning/pull/16018))
 
 ### Changed
 
