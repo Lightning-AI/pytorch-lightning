@@ -219,7 +219,10 @@ class LightningWork:
 
     @property
     def display_name(self):
-        """Returns the display name of the LightningWork in the cloud."""
+        """Returns the display name of the LightningWork in the cloud.
+
+        The display name needs to set before the run method of the work is called.
+        """
         return self._display_name
 
     @display_name.setter

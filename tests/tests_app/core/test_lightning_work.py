@@ -384,3 +384,18 @@ class FlowStart(LightningFlow):
 def test_lightning_app_work_start(cache_calls, parallel):
     app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+class WorkDisplay(LightningWork):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        pass
+
+
+def test_lightning_work_display_name():
+    work = WorkDisplay()
+    assert work.state_vars["vars"]["_display_name"] == ""
+    work.display_name = "Hello"
+    assert work.state_vars["vars"]["_display_name"] == "Hello"
