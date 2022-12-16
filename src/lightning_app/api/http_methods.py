@@ -22,13 +22,13 @@ def _signature_proxy_function():
 
 
 @dataclass
-class FastApiMockRequest:
+class _FastApiMockRequest:
     """This class is meant to mock FastAPI Request class that isn't pickalable.
 
     If a user relies on FastAPI Request annotation, the Lightning framework
     patches the annotation before pickling and replace them right after.
 
-    Finally, the FastAPI request is converting back to the FastApiMockRequest
+    Finally, the FastAPI request is converting back to the _FastApiMockRequest
     before being delivered to the users.
 
     Example:
@@ -84,7 +84,7 @@ class FastApiMockRequest:
 
 async def _mock_fastapi_request(request: Request):
     # TODO: Add more requests parameters.
-    return FastApiMockRequest(
+    return _FastApiMockRequest(
         _body=await request.body(),
         _json=await request.json(),
         _headers=request.headers,
@@ -190,22 +190,22 @@ class _HttpMethod:
         """This function replaces signature annotation for Request with its mock."""
         for k, v in self.method_annotations.items():
             if v == Request:
-                v = FastApiMockRequest
+                v = _FastApiMockRequest
             self.method_annotations[k] = v
 
         for v in self.method_signature.parameters.values():
             if v._annotation == Request:
-                v._annotation = FastApiMockRequest
+                v._annotation = _FastApiMockRequest
 
     def _unpatch_fast_api_request(self):
         """This function replaces bacl signature annotation to fastapi Request."""
         for k, v in self.method_annotations.items():
-            if v == FastApiMockRequest:
+            if v == _FastApiMockRequest:
                 v = Request
             self.method_annotations[k] = v
 
         for v in self.method_signature.parameters.values():
-            if v._annotation == FastApiMockRequest:
+            if v._annotation == _FastApiMockRequest:
                 v._annotation = Request
 
 
