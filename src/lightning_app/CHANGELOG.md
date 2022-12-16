@@ -9,9 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-
 - Added partial support for fastapi `Request` annotation in `configure_api` handlers ([#16047](https://github.com/Lightning-AI/lightning/pull/16047))
 
+- Added more datatypes to serving component ([#16018](https://github.com/Lightning-AI/lightning/pull/16018))
 
 ### Changed
 
