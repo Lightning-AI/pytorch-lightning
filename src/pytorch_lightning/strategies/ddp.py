@@ -39,6 +39,7 @@ from lightning_fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning_fabric.utilities.distributed import group as _group
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import ReduceOp
@@ -53,7 +54,6 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
