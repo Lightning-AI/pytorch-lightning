@@ -14,6 +14,7 @@ from uvicorn import run
 from lightning_app.components.database.utilities import _create_database, _Delete, _Insert, _SelectAll, _Update
 from lightning_app.core.work import LightningWork
 from lightning_app.storage import Drive
+from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.imports import _is_sqlmodel_available
 from lightning_app.utilities.packaging.build_config import BuildConfig
 
@@ -21,6 +22,9 @@ if _is_sqlmodel_available():
     from sqlmodel import SQLModel
 else:
     SQLModel = object
+
+
+logger = Logger(__name__)
 
 
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
@@ -167,7 +171,7 @@ class Database(LightningWork):
                 drive = Drive("lit://database", component_name=self.name, root_folder=tmpdir)
                 drive.put(os.path.basename(tmp_db_filename))
 
-            print("Stored the database to the Drive.")
+            logger.debug("Stored the database to the Drive.")
         except Exception:
             print(traceback.print_exc())
 
