@@ -224,6 +224,8 @@ class _LoadBalancer(LightningWork):
         security = HTTPBasic()
         fastapi_app.SEND_TASK = None
 
+        input_type = self._input_type
+
         @fastapi_app.middleware("http")
         async def current_request_counter(request: Request, call_next):
             if not request.scope["path"] == self.endpoint:
@@ -281,7 +283,7 @@ class _LoadBalancer(LightningWork):
             self._iter = cycle(self.servers)
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
-        async def balance_api(inputs: self._input_type):
+        async def balance_api(inputs: input_type):
             return await self.process_request(inputs)
 
         endpoint_info_page = self._get_endpoint_info_page()
@@ -574,9 +576,14 @@ class AutoScaler(LightningFlow):
             The target number of running works. The value will be adjusted after this method runs
             so that it satisfies ``min_replicas<=replicas<=max_replicas``.
         """
-        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
-            replicas + metrics["pending_works"]
-        )
+        pending_requests = metrics["pending_requests"]
+        pending_requests_per_running_or_pending_work = pending_requests
+        active_or_pending_works = replicas + metrics["pending_works"]
+        if active_or_pending_works:
+            pending_requests_per_running_or_pending_work = pending_requests / active_or_pending_works
+
+        if replicas == 0 and pending_requests_per_running_or_pending_work > 0:
+            return 1
 
         # scale out if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
