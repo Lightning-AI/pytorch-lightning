@@ -84,6 +84,7 @@ class Fabric:
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
+        callbacks: Optional[Union[List[Any], Any]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -96,6 +97,8 @@ class Fabric:
         self._strategy: Strategy = self._connector.strategy
         self._accelerator: Accelerator = self._connector.accelerator
         self._precision: Precision = self._strategy.precision
+        callbacks = callbacks if callbacks is not None else []
+        self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
         self._models_setup: int = 0
 
         self._prepare_run_method()
@@ -517,6 +520,44 @@ class Fabric:
         if self._strategy.launcher is not None:
             return self._strategy.launcher.launch(function, *args, **kwargs)
         return function(*args, **kwargs)
+
+    def call(self, hook_name: str, *args: Any, **kwargs: Any) -> None:
+        """Trigger the callback methods with the given name and arguments.
+
+        Not all objects registered via ``Fabric(callbacks=...)`` must implement a method with the given name. The ones
+        that have a matching method name will get called.
+
+        Args:
+            hook_name: The name of the callback method.
+            *args: Optional positional arguments that get passed down to the callback method.
+            **kwargs: Optional keyword arguments that get passed down to the callback method.
+
+        Example::
+
+            class MyCallback:
+                def on_train_epoch_end(self, results):
+                    ...
+
+            fabric = Fabric(callbacks=[MyCallback]))
+            fabric.call("on_train_epoch_end", results={...})
+        """
+        for callback in self._callbacks:
+            method = getattr(callback, hook_name, None)
+            if method is None:
+                continue
+            if not callable(method):
+                rank_zero_warn(
+                    f"Skipping the callback `{type(callback).__name__}.{hook_name}` because it is not callable."
+                )
+                continue
+
+            method(*args, **kwargs)
+
+            # TODO(fabric): handle the following signatures
+            # method(self, fabric|trainer, x, y=1)
+            # method(self, fabric|trainer, *args, x, y=1)
+            # method(self, *args, y=1)
+            # method(self, *args, **kwargs)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:

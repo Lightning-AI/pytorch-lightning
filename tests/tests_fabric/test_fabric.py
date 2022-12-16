@@ -663,3 +663,49 @@ def test_module_sharding_context():
     with lite.sharded_model():
         pass
     lite._strategy.module_sharded_context.assert_called_once()
+
+
+def test_callbacks_input():
+    """Test the various ways in which callbacks can be registered with Fabric."""
+    callback0 = Mock()
+    callback1 = Mock()
+
+    # single callback
+    fabric = Fabric(callbacks=callback0)
+    assert fabric._callbacks == [callback0]
+
+    # multiple callbacks
+    fabric = Fabric(callbacks=[callback0, callback1])
+    assert fabric._callbacks == [callback0, callback1]
+
+
+def test_call_callbacks():
+    """Test that `fabric.call` triggers the callback implementations."""
+    callback0 = Mock()
+    callback1 = Mock()
+    fabric = Fabric(callbacks=[callback0, callback1])
+
+    # No arguments
+    fabric.call("on_train_end")
+    callback0.on_train_end.assert_called_once()
+    callback1.on_train_end.assert_called_once()
+
+    # Optional arguments
+    fabric.call("on_train_end", "positional", keyword="keyword")
+    callback0.on_train_end.assert_called_with("positional", keyword="keyword")
+    callback1.on_train_end.assert_called_with("positional", keyword="keyword")
+
+    # Some callbacks don't implement the requested hook
+    callback0 = Mock()
+    callback1 = Mock(spec_set={})  # `on_train_end` not defined for this callback
+    fabric = Fabric(callbacks=[callback0, callback1])
+    fabric.call("on_train_end")
+    callback0.on_train_end.assert_called_once()
+    assert not callback1.mock_calls  # no methods were called on callback1
+
+    # Skip callback attributes that are not callable
+    callback = Mock(not_a_method=1)
+    fabric = Fabric(callbacks=[callback])
+    with pytest.warns(UserWarning, match="Skipping the callback `Mock.not_a_method`"):
+        fabric.call("not_a_method")
+    assert not callback1.mock_calls
