@@ -541,6 +541,8 @@ class LightningApp:
             work_statuses=work_statuses,
         )
 
+        # If the work statuses changed, the state delta will trigger an update.
+        # If ready has changed, we trigger an update manually.
         if self.status != old_status:
             self._has_updated = True
 
