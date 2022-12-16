@@ -515,8 +515,6 @@ def test_configure_api():
             sleep(0.1)
             time_left -= 0.1
 
-    # sleep(1000)
-
     # Test Upload File
     files = {"uploaded_file": open(__file__, "rb")}
 
