@@ -42,7 +42,6 @@ from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function, seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
-from tests_lite.helpers.models import RandomDataset
 
 
 class EmptyLite(LightningLite):
@@ -410,24 +409,26 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
-@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     """Test that the distributed sampler setup in Lite leads to the same sequence of data as in raw PyTorch."""
     torch.manual_seed(1)
     lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
     # no lite.launch(): pretend we are on rank 0 now
 
-    dataset = RandomDataset(2, 6)
+    dataset = torch.rand(10, 1)
     torch_dataloader = DataLoader(
         dataset,
         sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
         batch_size=batch_size,
     )
-    lite_dataloader = lite.setup_dataloaders(DataLoader(dataset, shuffle=shuffle, batch_size=batch_size))
+    lite_dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
+    lite_dataloader = lite.setup_dataloaders(lite_dataloader)
 
     def fetch_epoch(loader):
         iterator = iter(loader)
-        return torch.stack((next(iterator), next(iterator)))
+        # we fetch 2 batches per epoch
+        return torch.cat([next(iterator).flatten() for _ in range(2)])
 
     # 1st epoch
     # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
@@ -441,11 +442,9 @@ def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     torch_dataloader.sampler.set_epoch(1)
     torch_data = fetch_epoch(torch_dataloader)
     lite_data = fetch_epoch(lite_dataloader)
-
+    assert torch.equal(torch_data, lite_data)
     assert torch_dataloader.sampler.epoch == 1
     assert lite_dataloader._dataloader.sampler.epoch == 1
-
-    assert torch.equal(torch_data, lite_data)
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
