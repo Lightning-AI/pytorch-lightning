@@ -90,32 +90,23 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
         Arguments:
             cpu_offload: Offload FP32 params to CPU. Only usable in precision=16 mode.
-                (Default: False).
             move_grads_to_cpu: Moves gradient shards to CPU after reduction.
                 Only disable if using CPU based optimizers
-                (Default to ``cpu_offload``).
-            flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency
-                (Default: True).
+            flatten_parameters: Flattens parameter into single contiguous tensor for speed efficiency.
             reshard_after_forward: Reshard parameters after the forward pass, which saves memory but slows
                 down training. This is only relevant when resharding individual layers.
-                (Default: True).
             fp32_reduce_scatter: Reduce-Scatter gradients in FP32. Only relevant in mixed precision
-                (Default: None).
             compute_dtype: dtype for full parameters for computation. Default to torch.float32,
                 unless using mixed precision, in which case defaults to torch.float16.
-                (Default: None).
             bucket_cap_mb: bucket parameters so that gradient reduction
                 can potentially overlap with backward computation.
                 bucket_cap_mb controls the bucket size in MegaBytes (MB).
                 Buckets are sub-divided based on world_size,
                 so the max shard size is roughly bucket_cap_mb / world_size.
                 Values <= 0 disable bucketing.
-                (Default: 25).
             min_num_params: Number of parameters to wrap when using FairScale ``auto_wrap``.
-                (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Default: True).
         """
 
         super().__init__(

@@ -78,7 +78,7 @@ class StochasticWeightAveraging(Callback):
                 the ``swa_epoch_start``-th epoch. If provided as float between 0 and 1,
                 the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
 
-            annealing_epochs: number of epochs in the annealing phase (default: 10)
+            annealing_epochs: number of epochs in the annealing phase.
 
             annealing_strategy: Specifies the annealing strategy (default: "cos"):
 
@@ -89,11 +89,10 @@ class StochasticWeightAveraging(Callback):
                 the function must take in the current value of the
                 :class:`AveragedModel` parameter, the current value of :attr:`model`
                 parameter and the number of models already averaged; if None,
-                equally weighted average is used (default: ``None``)
+                equally weighted average is used (default: ``None``).
 
             device: if provided, the averaged model will be stored on the ``device``.
                 When None is provided, it will infer the `device` from ``pl_module``.
-                (default: ``"cpu"``)
 
         """
 

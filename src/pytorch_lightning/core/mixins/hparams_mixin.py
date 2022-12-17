@@ -44,7 +44,7 @@ class HyperparametersMixin:
             ignore: an argument name or a list of argument names from
                 class ``__init__`` to be ignored
             frame: a frame object. Default is None
-            logger: Whether to send the hyperparameters to the logger. Default: True
+            logger: Whether to send the hyperparameters to the logger.
 
         Example::
             >>> from pytorch_lightning.core.mixins import HyperparametersMixin

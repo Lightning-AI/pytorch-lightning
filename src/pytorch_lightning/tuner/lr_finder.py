@@ -415,7 +415,7 @@ class _LinearLR(_TORCH_LRSCHEDULER):
 
         num_iter: the number of iterations over which the test occurs.
 
-        last_epoch: the index of last epoch. Default: -1.
+        last_epoch: the index of last epoch.
     """
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
@@ -450,7 +450,7 @@ class _ExponentialLR(_TORCH_LRSCHEDULER):
 
         num_iter: the number of iterations over which the test occurs.
 
-        last_epoch: the index of last epoch. Default: -1.
+        last_epoch: the index of last epoch.
     """
 
     def __init__(self, optimizer: torch.optim.Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):

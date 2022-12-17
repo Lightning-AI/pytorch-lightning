@@ -82,10 +82,10 @@ class ModelCheckpoint(Checkpoint):
                 ... )
 
             By default, filename is ``None`` and will be set to ``'{epoch}-{step}'``.
-        monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
-        verbose: verbosity mode. Default: ``False``.
+        monitor: quantity to monitor. By default, it is ``None`` which saves a checkpoint only for the last epoch.
+        verbose: verbosity mode.
         save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
-            file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
+            file gets saved. This allows accessing the latest checkpoint in a deterministic manner.
         save_top_k: if ``save_top_k == k``,
             the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.

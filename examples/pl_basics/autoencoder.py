@@ -50,18 +50,18 @@ class ImageSampler(callbacks.Callback):
     ) -> None:
         """
         Args:
-            num_samples: Number of images displayed in the grid. Default: ``3``.
+            num_samples: Number of images displayed in the grid.
             nrow: Number of images displayed in each row of the grid.
-                The final grid size is ``(B / nrow, nrow)``. Default: ``8``.
-            padding: Amount of padding. Default: ``2``.
+                The final grid size is ``(B / nrow, nrow)``.
+            padding: Amount of padding.
             normalize: If ``True``, shift the image to the range (0, 1),
-                by the min and max values specified by :attr:`range`. Default: ``False``.
+                by the min and max values specified by :attr:`range`.
             norm_range: Tuple (min, max) where min and max are numbers,
                 then these numbers are used to normalize the image. By default, min and max
                 are computed from the tensor.
             scale_each: If ``True``, scale each image in the batch of
-                images separately rather than the (min, max) over all images. Default: ``False``.
-            pad_value: Value for the padded pixels. Default: ``0``.
+                images separately rather than the (min, max) over all images.
+            pad_value: Value for the padded pixels.
         """
         if not _TORCHVISION_AVAILABLE:  # pragma: no cover
             raise ModuleNotFoundError("You want to use `torchvision` which is not installed yet.")

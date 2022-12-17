@@ -1848,7 +1848,7 @@ class LightningModule(
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).
-            method: Whether to use TorchScript's script or trace method. Default: 'script'
+            method: Whether to use TorchScript's script or trace method.
             example_inputs: An input to be used to do tracing when method is set to 'trace'.
               Default: None (uses :attr:`example_input_array`)
             **kwargs: Additional arguments that will be passed to the :func:`torch.jit.script` or

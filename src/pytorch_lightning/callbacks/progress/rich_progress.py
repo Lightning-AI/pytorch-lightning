@@ -223,7 +223,7 @@ class RichProgressBar(ProgressBarBase):
     Args:
         refresh_rate: Determines at which rate (in number of batches) the progress bars get updated.
             Set it to ``0`` to disable the display.
-        leave: Leaves the finished progress bar in the terminal at the end of the epoch. Default: False
+        leave: Leaves the finished progress bar in the terminal at the end of the epoch.
         theme: Contains styles used to stylize the progress bar.
         console_kwargs: Args for constructing a `Console`
 

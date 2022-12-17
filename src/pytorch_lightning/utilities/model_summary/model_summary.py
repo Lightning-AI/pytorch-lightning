@@ -423,7 +423,7 @@ def summarize(lightning_module: "pl.LightningModule", max_depth: int = 1) -> Mod
         lightning_module: `LightningModule` to summarize.
 
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
-            layer summary off. Default: 1.
+            layer summary off.
 
     Return:
         The model summary object

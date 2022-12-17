@@ -179,12 +179,10 @@ class Trainer:
                 as well as custom accelerator instances.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
-                Default: ``None``.
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
-                Default: ``'native''``.
 
-            amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
+            amp_level: The optimization level to use (O1, O2, etc...). By default, it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
                 .. deprecated:: v1.8
@@ -195,7 +193,6 @@ class Trainer:
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
                 set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
                 To use a different key set a string instead of True with the key name.
-                Default: ``False``.
 
             auto_scale_batch_size: If set to True, will `initially` run a batch size
                 finder trying to find the largest batch size that fits into memory.
@@ -203,54 +200,43 @@ class Trainer:
                 or LightningDataModule depending on your setup.
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
-                Default: ``False``.
 
             auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
-                Default: ``False``.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
                 (``False`` if not manually set). If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set
                 to ``True``, this will default to ``False``. Override to manually set a different value.
-                Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
-                Default: ``None``.
 
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
-                Default: ``True``.
 
             check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
                 validation will be done solely based on the number of training batches, requiring ``val_check_interval``
                 to be an integer value.
-                Default: ``1``.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
-                Default: ``os.getcwd()``.
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
 
             detect_anomaly: Enable anomaly detection for the autograd engine.
-                Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
                 that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
-                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
-                Default: ``False``.
 
-            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
-                Default: ``None``.
+            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node.
 
                 .. deprecated:: v1.7
                     ``gpus`` has been deprecated in v1.7 and will be removed in v2.0.
@@ -258,48 +244,36 @@ class Trainer:
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
-                Default: ``None``.
 
             gradient_clip_algorithm: The gradient clipping algorithm to use. Pass ``gradient_clip_algorithm="value"``
-                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default it will
+                to clip by value, and ``gradient_clip_algorithm="norm"`` to clip by norm. By default, it will
                 be set to ``"norm"``.
 
             limit_train_batches: How much of training dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
 
             limit_val_batches: How much of validation dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
 
             limit_test_batches: How much of test dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
 
             limit_predict_batches: How much of prediction dataset to check (float = fraction, int = num_batches).
-                Default: ``1.0``.
 
             logger: Logger (or iterable collection of loggers) for experiment tracking. A ``True`` value uses
                 the default ``TensorBoardLogger``. ``False`` will disable logging. If multiple loggers are
                 provided, local files (checkpoints, profiler traces, etc.) are saved in the ``log_dir`` of
                 the first logger.
-                Default: ``True``.
 
             log_every_n_steps: How often to log within steps.
-                Default: ``50``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``True``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
-                Default: ``None``.
 
             overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
-                Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
-                Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
-                Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.
@@ -319,10 +293,8 @@ class Trainer:
                 :class:`datetime.timedelta`.
 
             num_nodes: Number of GPU nodes for distributed training.
-                Default: ``1``.
 
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
-                Default: ``1``.
 
                 .. deprecated:: v1.7
                     ``num_processes`` has been deprecated in v1.7 and will be removed in v2.0.
@@ -330,10 +302,8 @@ class Trainer:
 
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
-                Default: ``2``.
 
             reload_dataloaders_every_n_epochs: Set to a non-negative integer to reload dataloaders every n epochs.
-                Default: ``0``.
 
             replace_sampler_ddp: Explicitly enables or disables sampler replacement. If not specified this
                 will toggled automatically when DDP is used. By default it will add ``shuffle=True`` for
@@ -350,20 +320,16 @@ class Trainer:
 
             strategy: Supports different training strategies with aliases
                 as well custom strategies.
-                Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
-                Default: ``False``.
 
-            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
-                Default: ``None``.
+            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1).
 
                 .. deprecated:: v1.7
                     ``tpu_cores`` has been deprecated in v1.7 and will be removed in v2.0.
                     Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
             ipus: How many IPUs to train on.
-                Default: ``None``.
 
                 .. deprecated:: v1.7
                     ``ipus`` has been deprecated in v1.7 and will be removed in v2.0.
@@ -371,27 +337,22 @@ class Trainer:
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
-                Default: ``-1``.
 
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
                 ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
                 across epochs or during iteration-based training.
-                Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
-                Default: ``True``.
 
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
-                Default: ``False``.
 
             multiple_trainloader_mode: How to loop over the datasets when there are multiple train loaders.
                 In 'max_size_cycle' mode, the trainer ends one epoch when the largest dataset is traversed,
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
-                Default: ``"max_size_cycle"``.
 
             inference_mode: Whether to use :func:`torch.inference_mode` or :func:`torch.no_grad` during
                 evaluation (``validate``/``test``/``predict``).
