@@ -1,7 +1,5 @@
 import typing as t
 
-from pyparsing import Optional
-
 from lightning_app.utilities.app_helpers import _LightningAppRef, _set_child_name
 
 T = t.TypeVar("T")
@@ -21,7 +19,7 @@ class List(t.List[T]):
         :class:`~lightning_app.core.work.LightningWork`
         or :class:`~lightning_app.core.flow.LightningFlow`.
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningWork
             >>> from lightning_app.structures import List
@@ -52,23 +50,21 @@ class List(t.List[T]):
 
         self._name: t.Optional[str] = ""
         self._last_index = 0
-        self._backend: Optional[Backend] = None
+        self._backend: t.Optional[Backend] = None
         for item in items:
             self.append(item)
-            _set_child_name(self, item, str(self._last_index))
-            self._last_index += 1
 
     def append(self, v):
         from lightning_app import LightningFlow, LightningWork
 
+        _set_child_name(self, v, str(self._last_index))
         if self._backend:
             if isinstance(v, LightningFlow):
                 LightningFlow._attach_backend(v, self._backend)
-                _set_child_name(self, v, str(self._last_index))
             elif isinstance(v, LightningWork):
                 self._backend._wrap_run_method(_LightningAppRef().get_current(), v)
-            v._name = f"{self.name}.{self._last_index}"
-            self._last_index += 1
+        v._name = f"{self.name}.{self._last_index}"
+        self._last_index += 1
         super().append(v)
 
     @property

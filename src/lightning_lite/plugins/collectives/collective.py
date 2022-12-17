@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
-import torch
+from torch import Tensor
 from typing_extensions import Self
 
 from lightning_lite.utilities.types import CollectibleGroup
@@ -38,45 +38,43 @@ class Collective(ABC):
         return self._group
 
     @abstractmethod
-    def broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
+    def broadcast(self, tensor: Tensor, src: int) -> Tensor:
         ...
 
     @abstractmethod
-    def all_reduce(self, tensor: torch.Tensor, op: str) -> torch.Tensor:
+    def all_reduce(self, tensor: Tensor, op: str) -> Tensor:
         ...
 
     @abstractmethod
-    def reduce(self, tensor: torch.Tensor, dst: int, op: str) -> torch.Tensor:
+    def reduce(self, tensor: Tensor, dst: int, op: str) -> Tensor:
         ...
 
     @abstractmethod
-    def all_gather(self, tensor_list: List[torch.Tensor], tensor: torch.Tensor) -> List[torch.Tensor]:
+    def all_gather(self, tensor_list: List[Tensor], tensor: Tensor) -> List[Tensor]:
         ...
 
     @abstractmethod
-    def gather(self, tensor: torch.Tensor, gather_list: List[torch.Tensor], dst: int = 0) -> List[torch.Tensor]:
+    def gather(self, tensor: Tensor, gather_list: List[Tensor], dst: int = 0) -> List[Tensor]:
         ...
 
     @abstractmethod
-    def scatter(self, tensor: torch.Tensor, scatter_list: List[torch.Tensor], src: int = 0) -> torch.Tensor:
+    def scatter(self, tensor: Tensor, scatter_list: List[Tensor], src: int = 0) -> Tensor:
         ...
 
     @abstractmethod
-    def reduce_scatter(self, output: torch.Tensor, input_list: List[torch.Tensor], op: str) -> torch.Tensor:
+    def reduce_scatter(self, output: Tensor, input_list: List[Tensor], op: str) -> Tensor:
         ...
 
     @abstractmethod
-    def all_to_all(
-        self, output_tensor_list: List[torch.Tensor], input_tensor_list: List[torch.Tensor]
-    ) -> List[torch.Tensor]:
+    def all_to_all(self, output_tensor_list: List[Tensor], input_tensor_list: List[Tensor]) -> List[Tensor]:
         ...
 
     @abstractmethod
-    def send(self, tensor: torch.Tensor, dst: int, tag: Optional[int] = 0) -> None:
+    def send(self, tensor: Tensor, dst: int, tag: Optional[int] = 0) -> None:
         ...
 
     @abstractmethod
-    def recv(self, tensor: torch.Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> torch.Tensor:
+    def recv(self, tensor: Tensor, src: Optional[int] = None, tag: Optional[int] = 0) -> Tensor:
         ...
 
     @abstractmethod

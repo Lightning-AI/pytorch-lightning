@@ -1,5 +1,6 @@
 import abc
 import asyncio
+import builtins
 import enum
 import functools
 import inspect
@@ -10,15 +11,19 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Type, TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import websockets
 from deepdiff import Delta
+from lightning_cloud.openapi import AppinstancesIdBody, Externalv1LightningappInstance, V1LightningappInstanceState
 
 import lightning_app
 from lightning_app.utilities.exceptions import LightningAppStateException
+from lightning_app.utilities.tree import breadth_first
 
 if TYPE_CHECKING:
     from lightning_app.core.app import LightningApp
@@ -123,13 +128,6 @@ class InMemoryStateStore(StateStore):
 
     def set_served_session_id(self, k, v):
         self.store[k].session_id = v
-
-
-class DistributedMode(enum.Enum):
-    SINGLEPROCESS = enum.auto()
-    MULTIPROCESS = enum.auto()
-    CONTAINER = enum.auto()
-    GRID = enum.auto()
 
 
 class _LightningAppRef:
@@ -486,18 +484,111 @@ def _load_state_dict(root_flow: "LightningFlow", state: Dict[str, Any], strict: 
                 raise Exception(f"The component {component_name} was re-created during state reloading.")
 
 
+class _MagicMockJsonSerializable(MagicMock):
+    @staticmethod
+    def __json__():
+        return "{}"
+
+
+def _mock_import(*args, original_fn=None):
+    try:
+        return original_fn(*args)
+    except Exception:
+        return _MagicMockJsonSerializable()
+
+
+@contextmanager
+def _mock_missing_imports():
+    original_fn = builtins.__import__
+    builtins.__import__ = functools.partial(_mock_import, original_fn=original_fn)
+    try:
+        yield
+    finally:
+        builtins.__import__ = original_fn
+
+
 def is_static_method(klass_or_instance, attr) -> bool:
     return isinstance(inspect.getattr_static(klass_or_instance, attr), staticmethod)
 
 
-def _debugger_is_active() -> bool:
-    """Return if the debugger is currently active."""
-    return hasattr(sys, "gettrace") and sys.gettrace() is not None
+def _lightning_dispatched() -> bool:
+    return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
+
+
+def _using_debugger() -> bool:
+    """This method is used to detect whether the app is run with a debugger attached."""
+    if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
+        return True
+
+    # Collect the information about the process.
+    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()
+
+    # Detect whether VSCode or PyCharm debugger are used
+    use_debugger = "debugpy" in parent_process or "pydev" in parent_process
+
+    # Store the result to avoid multiple popen calls.
+    if use_debugger:
+        os.environ["LIGHTNING_DETECTED_DEBUGGER"] = "1"
+    return use_debugger
 
 
 def _should_dispatch_app() -> bool:
     return (
-        _debugger_is_active()
-        and not bool(int(os.getenv("LIGHTNING_DISPATCHED", "0")))
+        not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
+        # Keep last to avoid running it if already dispatched
+        and _using_debugger()
+    )
+
+
+def _is_headless(app: "LightningApp") -> bool:
+    """Utility which returns True if the given App has no ``Frontend`` objects or URLs exposed through
+    ``configure_layout``."""
+    if app.frontends:
+        return False
+    for component in breadth_first(app.root, types=(lightning_app.LightningFlow,)):
+        for entry in component._layout:
+            if "target" in entry:
+                return False
+    return True
+
+
+def _handle_is_headless(app: "LightningApp"):
+    """Utility for runtime-specific handling of changes to the ``is_headless`` property."""
+    app_id = os.getenv("LIGHTNING_CLOUD_APP_ID", None)
+    project_id = os.getenv("LIGHTNING_CLOUD_PROJECT_ID", None)
+
+    if app_id is None or project_id is None:
+        return
+
+    from lightning_app.utilities.network import LightningClient
+
+    client = LightningClient()
+    list_apps_response = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project_id)
+
+    current_lightningapp_instance: Optional[Externalv1LightningappInstance] = None
+    for lightningapp_instance in list_apps_response.lightningapps:
+        if lightningapp_instance.id == app_id:
+            current_lightningapp_instance = lightningapp_instance
+            break
+
+    if not current_lightningapp_instance:
+        raise RuntimeError(
+            "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
+        )
+
+    if any(
+        [
+            current_lightningapp_instance.spec.is_headless == app.is_headless,
+            current_lightningapp_instance.status.phase != V1LightningappInstanceState.RUNNING,
+        ]
+    ):
+        return
+
+    current_lightningapp_instance.spec.is_headless = app.is_headless
+
+    client.lightningapp_instance_service_update_lightningapp_instance(
+        project_id=project_id,
+        id=current_lightningapp_instance.id,
+        body=AppinstancesIdBody(name=current_lightningapp_instance.name, spec=current_lightningapp_instance.spec),
     )

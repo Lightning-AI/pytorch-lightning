@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+import sys
 from copy import copy
 from pathlib import Path
 from unittest import mock
@@ -10,22 +12,28 @@ from lightning_cloud.openapi import (
     Body8,
     Body9,
     Externalv1Cluster,
+    Externalv1LightningappInstance,
     Gridv1ImageSpec,
     IdGetBody,
     V1BuildSpec,
+    V1ClusterSpec,
+    V1ClusterType,
     V1DependencyFileInfo,
     V1Drive,
     V1DriveSpec,
     V1DriveStatus,
     V1DriveType,
     V1EnvVar,
+    V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappRelease,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1ListClustersResponse,
     V1ListLightningappInstancesResponse,
+    V1ListLightningappsV2Response,
     V1ListMembershipsResponse,
+    V1ListProjectClusterBindingsResponse,
     V1Membership,
     V1Metadata,
     V1NetworkConfig,
@@ -39,10 +47,17 @@ from lightning_cloud.openapi import (
     V1Work,
 )
 
-from lightning_app import _PROJECT_ROOT, LightningApp, LightningWork
+from lightning_app import BuildConfig, LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import backends, cloud, CloudRuntime
+from lightning_app.runners.cloud import (
+    _generate_works_json_gallery,
+    _generate_works_json_web,
+    _validate_build_spec_and_compute,
+)
+from lightning_app.source_code.copytree import _copytree, _parse_lightningignore
+from lightning_app.source_code.local import LocalSourceCodeDir
 from lightning_app.storage import Drive, Mount
-from lightning_app.testing.helpers import EmptyFlow
+from lightning_app.testing.helpers import EmptyWork
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
@@ -54,8 +69,8 @@ class MyWork(LightningWork):
 
 
 class WorkWithSingleDrive(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.drive = None
 
     def run(self):
@@ -63,8 +78,8 @@ class WorkWithSingleDrive(LightningWork):
 
 
 class WorkWithTwoDrives(LightningWork):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lit_drive_1 = None
         self.lit_drive_2 = None
 
@@ -76,6 +91,7 @@ def get_cloud_runtime_request_body(**kwargs) -> "Body8":
     default_request_body = dict(
         app_entrypoint_file=mock.ANY,
         enable_app_server=True,
+        is_headless=True,
         flow_servers=[],
         image_spec=None,
         works=[],
@@ -94,32 +110,40 @@ def get_cloud_runtime_request_body(**kwargs) -> "Body8":
     return Body8(**default_request_body)
 
 
+@pytest.fixture
+def cloud_backend(monkeypatch):
+    cloud_backend = mock.MagicMock()
+    monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+    monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+    return cloud_backend
+
+
+@pytest.fixture
+def project_id():
+    return "test-project-id"
+
+
+DEFAULT_CLUSTER = "litng-ai-03"
+
+
 class TestAppCreationClient:
     """Testing the calls made using GridRestClient to create the app."""
 
-    # TODO: remove this test once there is support for multiple instances
-    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
-    def test_new_instance_on_different_cluster(self, monkeypatch):
-        app_name = "test-app-name"
-        original_cluster = "cluster-001"
-        new_cluster = "cluster-002"
+    def test_run_on_deleted_cluster(self, cloud_backend):
+        app_name = "test-app"
 
         mock_client = mock.MagicMock()
         mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
-            memberships=[V1Membership(name="Default Project", project_id="default-project-id")]
-        )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id=new_cluster
-        )
-        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
-            [Externalv1Cluster(id=original_cluster), Externalv1Cluster(id=new_cluster)]
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
 
-        cloud_backend = mock.MagicMock()
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [
+                Externalv1Cluster(id=DEFAULT_CLUSTER),
+            ]
+        )
         cloud_backend.client = mock_client
-        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
-        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
-        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
         app = mock.MagicMock()
         app.flows = []
@@ -127,7 +151,7 @@ class TestAppCreationClient:
 
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
-        existing_instance.spec.cluster_id = original_cluster
+        existing_instance.spec.cluster_id = DEFAULT_CLUSTER
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[existing_instance])
         )
@@ -135,34 +159,149 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
-        # without requirements file
-        # setting is_file to False so requirements.txt existence check will return False
-        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
-        monkeypatch.setattr(cloud, "Path", Path)
+        with pytest.raises(ValueError, match="that cluster doesn't exist"):
+            cloud_runtime.dispatch(name=app_name, cluster_id="unknown-cluster")
+
+    @pytest.mark.parametrize(
+        "old_cluster,new_cluster",
+        [
+            ("test", "other"),
+            ("test", "test"),
+            (None, None),
+            (None, "litng-ai-03"),
+            ("litng-ai-03", None),
+        ],
+    )
+    def test_new_instance_on_different_cluster(self, cloud_backend, project_id, old_cluster, new_cluster):
+        app_name = "test-app"
+
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id=new_cluster
+        )
+
+        # Note:
+        # backend converts "None" cluster to "litng-ai-03"
+        # dispatch should receive None, but API calls should return "litng-ai-03"
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [
+                Externalv1Cluster(id=old_cluster or DEFAULT_CLUSTER),
+                Externalv1Cluster(id=new_cluster or DEFAULT_CLUSTER),
+            ]
+        )
+
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[
+                V1ProjectClusterBinding(cluster_id=old_cluster or DEFAULT_CLUSTER),
+                V1ProjectClusterBinding(cluster_id=new_cluster or DEFAULT_CLUSTER),
+            ]
+        )
+
+        # Mock all clusters as global clusters
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+
+        cloud_backend.client = mock_client
+
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+
+        existing_app = MagicMock()
+        existing_app.name = app_name
+        existing_app.id = "test-id"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=[existing_app]
+        )
+
+        existing_instance = MagicMock()
+        existing_instance.name = app_name
+        existing_instance.status.phase = V1LightningappInstanceState.STOPPED
+        existing_instance.spec.cluster_id = old_cluster or DEFAULT_CLUSTER
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[existing_instance])
+        )
+
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
         # This is the main assertion:
         # we have an existing instance on `cluster-001`
         # but we want to run this app on `cluster-002`
         cloud_runtime.dispatch(name=app_name, cluster_id=new_cluster)
 
-        body = Body8(
-            cluster_id=new_cluster,
-            app_entrypoint_file=mock.ANY,
-            enable_app_server=True,
-            flow_servers=[],
-            image_spec=None,
-            works=[],
-            local_source=True,
-            dependency_cache_key=mock.ANY,
-            user_requested_flow_compute_config=mock.ANY,
+        if new_cluster != old_cluster and None not in (old_cluster, new_cluster):
+            # If we switched cluster, check that a new name was used which starts with the old name
+            mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once()
+            args = mock_client.lightningapp_v2_service_create_lightningapp_release_instance.call_args
+            assert args[1]["body"].name != app_name
+            assert args[1]["body"].name.startswith(app_name)
+            assert args[1]["body"].cluster_id == new_cluster
+
+    def test_running_deleted_app(self, cloud_backend, project_id):
+        """Deleted apps show up in list apps but not in list instances.
+
+        This tests that we don't try to reacreate a previously deleted app.
+        """
+        app_name = "test-app"
+
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
         )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
-            project_id="default-project-id", app_id=mock.ANY, body=body
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id=DEFAULT_CLUSTER
         )
-        cloud_runtime.backend.client.projects_service_create_project_cluster_binding.assert_called_once_with(
-            project_id="default-project-id",
-            body=V1ProjectClusterBinding(cluster_id=new_cluster, project_id="default-project-id"),
+
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [
+                Externalv1Cluster(id=DEFAULT_CLUSTER),
+            ]
         )
+
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[
+                V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER),
+            ]
+        )
+
+        # Mock all clusters as global clusters
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+
+        cloud_backend.client = mock_client
+
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+
+        existing_app = MagicMock()
+        existing_app.name = app_name
+        existing_app.id = "test-id"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=[existing_app]
+        )
+
+        # Simulate the app as deleted so no instance to return
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        cloud_runtime.dispatch(name=app_name)
+
+        # Check that a new name was used which starts with and does not equal the old name
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once()
+        args = mock_client.lightningapp_v2_service_create_lightningapp_release_instance.call_args
+        assert args[1]["body"].name != app_name
+        assert args[1]["body"].name.startswith(app_name)
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -231,6 +370,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
         app.flows = []
         app.frontend = {}
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
@@ -245,6 +385,7 @@ class TestAppCreationClient:
             cluster_id="test1234",
             app_entrypoint_file=mock.ANY,
             enable_app_server=True,
+            is_headless=False,
             flow_servers=[],
             image_spec=None,
             works=[],
@@ -269,9 +410,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
-        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -279,6 +418,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
+        app.is_headless = False
         app.flows = []
         app.frontend = {}
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
@@ -292,6 +432,7 @@ class TestAppCreationClient:
         body = Body8(
             app_entrypoint_file=mock.ANY,
             enable_app_server=True,
+            is_headless=False,
             flow_servers=[],
             image_spec=None,
             works=[],
@@ -314,7 +455,6 @@ class TestAppCreationClient:
                 path="requirements.txt",
             ),
         )
-        body.cluster_id = "test"
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
         )
@@ -377,20 +517,31 @@ class TestAppCreationClient:
     def test_call_with_work_app(self, lightningapps, start_with_flow, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[
+                V1ProjectClusterBinding(cluster_id="test"),
+            ]
         )
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance.return_value = MagicMock()
         existing_instance = MagicMock()
@@ -402,18 +553,17 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
+        app.is_headless = False
 
-        work = MyWork(start_with_flow=start_with_flow)
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = MyWork(start_with_flow=start_with_flow, cloud_compute=CloudCompute("custom"))
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -427,6 +577,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -452,7 +603,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -492,9 +643,7 @@ class TestAppCreationClient:
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
-        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         cloud_backend = mock.MagicMock()
         cloud_backend.client = mock_client
@@ -515,7 +664,6 @@ class TestAppCreationClient:
 
         # calling with no env variable set
         body = IdGetBody(
-            cluster_id="test",
             desired_state=V1LightningappInstanceState.STOPPED,
             env=[],
             name=mock.ANY,
@@ -531,7 +679,6 @@ class TestAppCreationClient:
         cloud_runtime.backend.client.reset_mock()
         cloud_runtime.dispatch()
         body = IdGetBody(
-            cluster_id="test",
             desired_state=V1LightningappInstanceState.STOPPED,
             env=[],
             name=mock.ANY,
@@ -547,20 +694,31 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[
+                V1ProjectClusterBinding(cluster_id="test"),
+            ]
         )
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         lightning_app_instance = MagicMock()
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
@@ -575,7 +733,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
+        app.is_headless = False
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -588,7 +746,7 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_drive.__deepcopy__.return_value = copy(mocked_drive)
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -598,8 +756,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -613,6 +770,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -646,11 +804,10 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -684,20 +841,33 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_app_comment_command_execution_set(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+            mock_client.projects_service_list_project_cluster_bindings.return_value = (
+                V1ListProjectClusterBindingsResponse(
+                    clusters=[
+                        V1ProjectClusterBinding(cluster_id="test"),
+                    ]
+                )
+            )
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+                id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+            )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
-        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
-            cluster_id="test"
-        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
         lightning_app_instance = MagicMock()
         mock_client.lightningapp_v2_service_create_lightningapp_release_instance = MagicMock(
@@ -712,19 +882,18 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
+        app.is_headless = False
 
-        work = MyWork()
-        monkeypatch.setattr(work, "_state", {"_port"})
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = MyWork(cloud_compute=CloudCompute("custom"))
+        work._state = {"_port"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -739,6 +908,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -761,7 +931,7 @@ class TestAppCreationClient:
                             ),
                             drives=[],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
+                                name="custom", count=1, disk_size=0, shm_size=0, preemptible=mock.ANY
                             ),
                             network_config=[V1NetworkConfig(name=mock.ANY, host=None, port=8080)],
                             cluster_id=mock.ANY,
@@ -788,7 +958,6 @@ class TestAppCreationClient:
                 app_id=mock.ANY,
                 id=mock.ANY,
                 body=Body9(
-                    cluster_id="test",
                     desired_state=V1LightningappInstanceState.STOPPED,
                     name=mock.ANY,
                     env=[V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1")],
@@ -801,14 +970,29 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_multiple_attached_drives(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+            mock_client.projects_service_list_project_cluster_bindings.return_value = (
+                V1ListProjectClusterBindingsResponse(
+                    clusters=[
+                        V1ProjectClusterBinding(cluster_id="test"),
+                    ]
+                )
+            )
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+                id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+            )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -829,7 +1013,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
+        app.is_headless = False
 
         mocked_lit_drive = MagicMock(spec=Drive)
         setattr(mocked_lit_drive, "id", "foobar")
@@ -842,19 +1026,18 @@ class TestAppCreationClient:
         # should be the results of the deepcopy operation (an instance of the original class)
         mocked_lit_drive.__deepcopy__.return_value = copy(mocked_lit_drive)
 
-        work = WorkWithTwoDrives()
-        monkeypatch.setattr(work, "lit_drive_1", mocked_lit_drive)
-        monkeypatch.setattr(work, "lit_drive_2", mocked_lit_drive)
-        monkeypatch.setattr(work, "_state", {"_port", "_name", "lit_drive_1", "lit_drive_2"})
-        monkeypatch.setattr(work, "_name", "test-work")
-        monkeypatch.setattr(work._cloud_build_config, "build_commands", lambda: ["echo 'start'"])
-        monkeypatch.setattr(work._cloud_build_config, "requirements", ["torch==1.0.0", "numpy==1.0.0"])
-        monkeypatch.setattr(work._cloud_build_config, "image", "random_base_public_image")
-        monkeypatch.setattr(work._cloud_compute, "disk_size", 0)
-        monkeypatch.setattr(work, "_port", 8080)
+        work = WorkWithTwoDrives(cloud_compute=CloudCompute("custom"))
+        work.lit_drive_1 = mocked_lit_drive
+        work.lit_drive_2 = mocked_lit_drive
+        work._state = {"_port", "_name", "lit_drive_1", "lit_drive_2"}
+        work._name = "test-work"
+        work._cloud_build_config.build_commands = lambda: ["echo 'start'"]
+        work._cloud_build_config.requirements = ["torch==1.0.0", "numpy==1.0.0"]
+        work._cloud_build_config.image = "random_base_public_image"
+        work._cloud_compute.disk_size = 0
+        work._port = 8080
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -875,7 +1058,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
             lit_drive_2_spec = V1LightningworkDrives(
                 drive=V1Drive(
@@ -889,7 +1071,6 @@ class TestAppCreationClient:
                     ),
                     status=V1DriveStatus(),
                 ),
-                mount_location=str(tmpdir),
             )
 
             # order of drives in the spec is non-deterministic, so there are two options
@@ -900,6 +1081,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -922,7 +1104,7 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_2_spec, lit_drive_1_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -939,6 +1121,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 user_requested_flow_compute_config=mock.ANY,
@@ -961,7 +1144,7 @@ class TestAppCreationClient:
                             ),
                             drives=[lit_drive_1_spec, lit_drive_2_spec],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -1005,14 +1188,29 @@ class TestAppCreationClient:
     def test_call_with_work_app_and_attached_mount_and_drive(self, lightningapps, monkeypatch, tmpdir):
         source_code_root_dir = Path(tmpdir / "src").absolute()
         source_code_root_dir.mkdir()
-        Path(source_code_root_dir / ".lightning").write_text("cluster_id: test\nname: myapp")
+        Path(source_code_root_dir / ".lightning").write_text("name: myapp")
         requirements_file = Path(source_code_root_dir / "requirements.txt")
         Path(requirements_file).touch()
+        (source_code_root_dir / "entrypoint.py").touch()
 
         mock_client = mock.MagicMock()
         if lightningapps:
+            lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+            mock_client.projects_service_list_project_cluster_bindings.return_value = (
+                V1ListProjectClusterBindingsResponse(
+                    clusters=[
+                        V1ProjectClusterBinding(cluster_id="test"),
+                    ]
+                )
+            )
+            mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+                id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+            )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -1034,7 +1232,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
         monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
         app = mock.MagicMock()
-        flow = mock.MagicMock()
+        app.is_headless = False
 
         mocked_drive = MagicMock(spec=Drive)
         setattr(mocked_drive, "id", "foobar")
@@ -1052,7 +1250,7 @@ class TestAppCreationClient:
         setattr(mocked_mount, "mount_path", "/content/foo")
         setattr(mocked_mount, "protocol", "s3://")
 
-        work = WorkWithSingleDrive()
+        work = WorkWithSingleDrive(cloud_compute=CloudCompute("custom"))
         monkeypatch.setattr(work, "drive", mocked_drive)
         monkeypatch.setattr(work, "_state", {"_port", "drive"})
         monkeypatch.setattr(work, "_name", "test-work")
@@ -1063,8 +1261,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(work._cloud_compute, "mounts", mocked_mount)
         monkeypatch.setattr(work, "_port", 8080)
 
-        flow.works = lambda recurse: [work]
-        app.flows = [flow]
+        app.works = [work]
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=(source_code_root_dir / "entrypoint.py"))
         monkeypatch.setattr(
             "lightning_app.runners.cloud._get_project",
@@ -1078,6 +1275,7 @@ class TestAppCreationClient:
                 local_source=True,
                 app_entrypoint_file="entrypoint.py",
                 enable_app_server=True,
+                is_headless=False,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
                 image_spec=Gridv1ImageSpec(
@@ -1111,7 +1309,6 @@ class TestAppCreationClient:
                                         ),
                                         status=V1DriveStatus(),
                                     ),
-                                    mount_location=str(tmpdir),
                                 ),
                                 V1LightningworkDrives(
                                     drive=V1Drive(
@@ -1129,7 +1326,7 @@ class TestAppCreationClient:
                                 ),
                             ],
                             user_requested_compute_config=V1UserRequestedComputeConfig(
-                                name="default",
+                                name="custom",
                                 count=1,
                                 disk_size=0,
                                 shm_size=0,
@@ -1191,27 +1388,38 @@ def test_get_project(monkeypatch):
         assert ret.project_id == "test-project-id1"
 
 
+def write_file_of_size(path, size):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.seek(size)
+        f.write(b"\0")
+
+
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
 @mock.patch("lightning_app.runners.backends.cloud.LightningClient", MagicMock())
 def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
-
-    monkeypatch.setattr(cloud, "logger", logging.getLogger())
-
     app = MagicMock()
-    repo = MagicMock()
+    root = Path(tmpdir)
+    repo = LocalSourceCodeDir(root)
     backend = cloud.CloudRuntime(app)
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(Path(tmpdir), repo)
+        backend._check_uploaded_folder(root, repo)
     assert caplog.messages == []
 
-    mock = MagicMock()
-    mock.st_size = 5 * 1000 * 1000
-    repo.files = [str(Path("./a.png"))]
-    monkeypatch.setattr(Path, "stat", MagicMock(return_value=mock))
+    # write some files to assert the message below.
+    write_file_of_size(root / "a.png", 4 * 1000 * 1000)
+    write_file_of_size(root / "b.txt", 5 * 1000 * 1000)
+    write_file_of_size(root / "c.jpg", 6 * 1000 * 1000)
 
+    repo._non_ignored_files = None  # force reset
     with caplog.at_level(logging.WARN):
-        backend._check_uploaded_folder(Path("."), repo)
-    assert caplog.messages[0].startswith("Your application folder . is more than 2 MB. Found 5.0 MB")
+        backend._check_uploaded_folder(root, repo)
+    assert f"Your application folder '{root.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 15.0 MB" in caplog.text
+    assert "3 files were uploaded" in caplog.text
+    assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
+    assert "adding them to `.lightningignore`." in caplog.text
+    assert "lightningingore` attribute in a Flow or Work" in caplog.text
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
@@ -1229,11 +1437,287 @@ def test_project_has_sufficient_credits():
         assert cloud_runtime._project_has_sufficient_credits(project) is result
 
 
-@mock.patch(
-    "lightning_app.runners.cloud.load_app_from_file",
-    MagicMock(side_effect=ModuleNotFoundError("Module X not found")),
+@pytest.mark.parametrize(
+    "lines",
+    [
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from this_package_is_not_real import this_module_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ],
+        [
+            "import this_package_is_not_real",
+            "from lightning_app import LightningApp",
+            "from lightning_app.core.flow import _RootFlow",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "class MyFlow(_RootFlow):",
+            "    def configure_layout(self):",
+            "        return [{'name': 'test', 'content': this_package_is_not_real()}]",
+            "app = LightningApp(MyFlow(EmptyWork()))",
+        ],
+    ],
 )
-def test_load_app_from_file_module_error():
-    empty_app = CloudRuntime.load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
-    assert isinstance(empty_app, LightningApp)
-    assert isinstance(empty_app.root, EmptyFlow)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_load_app_from_file_mock_imports(tmpdir, lines):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        f.write("\n".join(lines))
+
+    app = CloudRuntime.load_app_from_file(app_file)
+    assert isinstance(app, LightningApp)
+    assert isinstance(app.root.work, EmptyWork)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
+
+
+@pytest.mark.parametrize(
+    "generator,expected",
+    [
+        (
+            _generate_works_json_web,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "buildSpec": {
+                            "commands": [],
+                            "pythonDependencies": {"packageManager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "networkConfig": [{"name": "*", "port": "*"}],
+                        "userRequestedComputeConfig": {
+                            "count": 1,
+                            "diskSize": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shmSize": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+        (
+            _generate_works_json_gallery,
+            [
+                {
+                    "name": "root.work",
+                    "spec": {
+                        "build_spec": {
+                            "commands": [],
+                            "python_dependencies": {"package_manager": "PACKAGE_MANAGER_PIP", "packages": ""},
+                        },
+                        "drives": [],
+                        "network_config": [{"name": "*", "port": "*"}],
+                        "user_requested_compute_config": {
+                            "count": 1,
+                            "disk_size": 0,
+                            "name": "default",
+                            "preemptible": "*",
+                            "shm_size": 0,
+                        },
+                    },
+                }
+            ],
+        ),
+    ],
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Causing conflicts on non-linux")
+def test_generate_works_json(tmpdir, generator, expected):
+    path = copy(sys.path)
+    app_file = os.path.join(tmpdir, "app.py")
+
+    with open(app_file, "w") as f:
+        lines = [
+            "from lightning_app import LightningApp",
+            "from lightning_app.testing.helpers import EmptyWork",
+            "app = LightningApp(EmptyWork())",
+        ]
+        f.write("\n".join(lines))
+
+    works_string = generator(app_file)
+    expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
+    assert re.fullmatch(expected, works_string)
+
+    # Cleanup PATH to prevent conflict with other tests
+    sys.path = path
+    os.remove(app_file)
+
+
+def test_incompatible_cloud_compute_and_build_config():
+    """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
+    the default.
+
+    This combination is not supported by the platform.
+    """
+
+    class Work(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.cloud_compute = CloudCompute(name="default")
+            self.cloud_build_config = BuildConfig(image="custom")
+
+        def run(self):
+            pass
+
+    with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
+        _validate_build_spec_and_compute(Work())
+
+
+def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
+    mock_client = mock.MagicMock()
+    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+    )
+    mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+        V1ListLightningappInstancesResponse(lightningapps=[])
+    )
+    mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+        cluster_id="test"
+    )
+    cloud_backend = mock.MagicMock(client=mock_client)
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+
+    class MyWork(LightningWork):
+        def __init__(self):
+            super().__init__()
+            self.lightningignore += ("foo", "lightning_logs")
+
+        def run(self):
+            with pytest.raises(RuntimeError, match="w.lightningignore` does not"):
+                self.lightningignore += ("foobar",)
+
+    class MyFlow(LightningFlow):
+        def __init__(self):
+            super().__init__()
+            self.lightningignore = ("foo",)
+            self.w = MyWork()
+
+        def run(self):
+            with pytest.raises(RuntimeError, match="root.lightningignore` does not"):
+                self.lightningignore = ("baz",)
+            self.w.run()
+
+    flow = MyFlow()
+    app = LightningApp(flow)
+
+    monkeypatch.setattr(app, "_update_index_file", mock.MagicMock())
+
+    path = Path(tmpdir)
+    cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=path / "entrypoint.py")
+    monkeypatch.setattr(LocalSourceCodeDir, "upload", mock.MagicMock())
+
+    # write some files
+    write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
+    write_file_of_size(path / "foo.png", 4 * 1000 * 1000)
+    write_file_of_size(path / "lightning_logs" / "foo.ckpt", 6 * 1000 * 1000)
+    # also an actual .lightningignore file
+    (path / ".lightningignore").write_text("foo.png")
+
+    with mock.patch(
+        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+    ) as parse_mock, mock.patch(
+        "lightning_app.source_code.local._copytree", wraps=_copytree
+    ) as copy_mock, caplog.at_level(
+        logging.WARN
+    ):
+        cloud_runtime.dispatch()
+
+    parse_mock.assert_called_once_with(("foo", "foo", "lightning_logs"))
+    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == {"lightning_logs", "foo"}
+
+    assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 5.0 MB" in caplog.text
+    assert "2 files were uploaded"  # a.txt and .lightningignore
+    assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
+
+    flow.run()
+
+
+def test_default_lightningignore(monkeypatch, caplog, tmpdir):
+    mock_client = mock.MagicMock()
+    mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+        memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+    )
+    mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+        V1ListLightningappInstancesResponse(lightningapps=[])
+    )
+    mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+        cluster_id="test"
+    )
+    cloud_backend = mock.MagicMock(client=mock_client)
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+
+    class MyWork(LightningWork):
+        def run(self):
+            pass
+
+    app = LightningApp(MyWork())
+
+    path = Path(tmpdir)
+    cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file=path / "entrypoint.py")
+    monkeypatch.setattr(LocalSourceCodeDir, "upload", mock.MagicMock())
+
+    # write some files
+    write_file_of_size(path / "a.txt", 5 * 1000 * 1000)
+    write_file_of_size(path / "venv" / "foo.txt", 4 * 1000 * 1000)
+
+    assert not (path / ".lightningignore").exists()
+
+    with mock.patch(
+        "lightning_app.runners.cloud._parse_lightningignore", wraps=_parse_lightningignore
+    ) as parse_mock, mock.patch(
+        "lightning_app.source_code.local._copytree", wraps=_copytree
+    ) as copy_mock, caplog.at_level(
+        logging.WARN
+    ):
+        cloud_runtime.dispatch()
+
+    parse_mock.assert_called_once_with(())
+    assert copy_mock.mock_calls[0].kwargs["ignore_functions"][0].args[1] == set()
+
+    assert (path / ".lightningignore").exists()
+
+    assert f"Your application folder '{path.absolute()}' is more than 2 MB" in caplog.text
+    assert "The total size is 5.0 MB" in caplog.text
+    assert "2 files were uploaded"  # a.txt and .lightningignore
+    assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
+
+
+@pytest.mark.parametrize(
+    "lightning_app_instance, lightning_cloud_url, expected_url",
+    [
+        (
+            Externalv1LightningappInstance(id="test-app-id"),
+            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai",
+            "https://b975913c4b22eca5f0f9e8eff4c4b1c315340a0d.staging.lightning.ai/me/apps/test-app-id",
+        ),
+        (
+            Externalv1LightningappInstance(id="test-app-id"),
+            "http://localhost:9800",
+            "http://localhost:9800/me/apps/test-app-id",
+        ),
+    ],
+)
+def test_get_app_url(lightning_app_instance, lightning_cloud_url, expected_url):
+    with mock.patch(
+        "lightning_app.runners.cloud.get_lightning_cloud_url", mock.MagicMock(return_value=lightning_cloud_url)
+    ):
+        assert CloudRuntime._get_app_url(lightning_app_instance) == expected_url

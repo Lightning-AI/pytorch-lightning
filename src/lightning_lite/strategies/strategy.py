@@ -118,7 +118,7 @@ class Strategy(ABC):
         """Set up a model and multiple optimizers together.
 
         The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        call :meth:`setup_module` and :meth:`setup_optimizer` on the inputs.
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
@@ -287,6 +287,12 @@ class Strategy(ABC):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
+
+    def _err_msg_joint_setup_required(self) -> str:
+        return (
+            f"The `{type(self).__name__}` does not support setting up the module and optimizer(s) independently."
+            " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
+        )
 
 
 class _BackwardSyncControl(ABC):

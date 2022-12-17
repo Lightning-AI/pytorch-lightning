@@ -12,7 +12,7 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ from lightning_app.core.api import (
     UIRefresher,
 )
 from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import _MockQueue
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
@@ -42,7 +42,7 @@ register_global_routes()
 
 class WorkA(LightningWork):
     def __init__(self):
-        super().__init__(parallel=True)
+        super().__init__(parallel=True, start_with_flow=False)
         self.var_a = 0
         self.drive = Drive("lit://test_app_state_api")
 
@@ -71,12 +71,10 @@ class _A(LightningFlow):
         self.work_a.run()
 
 
-# TODO: Resolve singleprocess - idea: explore frame calls recursively.
-@pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
-def test_app_state_api(runtime_cls):
+def test_app_state_api():
     """This test validates the AppState can properly broadcast changes from work within its own process."""
     app = LightningApp(_A(), log_level="debug")
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
     assert app.root.work_a.var_a == -1
     _set_work_context()
     assert app.root.work_a.drive.list(".") == ["test_app_state_api.txt"]
@@ -105,13 +103,10 @@ class A2(LightningFlow):
             self._exit()
 
 
-# TODO: Find why this test is flaky.
-@pytest.mark.skipif(True, reason="flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
-def test_app_state_api_with_flows(runtime_cls, tmpdir):
+def test_app_state_api_with_flows(tmpdir):
     """This test validates the AppState can properly broadcast changes from flows."""
     app = LightningApp(A2(), log_level="debug")
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
     assert app.root.var_a == -1
 
 
@@ -180,14 +175,13 @@ class AppStageTestingApp(LightningApp):
 
 
 # FIXME: This test doesn't assert anything
-@pytest.mark.skipif(True, reason="TODO: Resolve flaky test.")
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_app_stage_from_frontend(runtime_cls):
+@pytest.mark.skip(reason="TODO: Resolve flaky test.")
+def test_app_stage_from_frontend():
     """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
     start and stop the app."""
     app = AppStageTestingApp(FlowA(), log_level="debug")
     app.stage = AppStage.BLOCKING
-    runtime_cls(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=True).dispatch()
 
 
 def test_update_publish_state_and_maybe_refresh_ui():
@@ -485,10 +479,13 @@ class FlowAPI(LightningFlow):
         if self.counter == 501:
             self._exit()
 
-    def request(self, config: InputRequestModel) -> OutputRequestModel:
+    def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
+        assert request.body()
+        assert request.json()
+        assert request.headers
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):

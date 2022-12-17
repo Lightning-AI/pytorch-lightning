@@ -36,10 +36,11 @@ from lightning.app.core.work import LightningWork  # noqa: E402
 from lightning.app.perf import pdb  # noqa: E402
 from lightning.app.utilities.packaging.build_config import BuildConfig  # noqa: E402
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute  # noqa: E402
+from lightning.lite.lite import LightningLite  # noqa: E402
+from lightning.lite.utilities.seed import seed_everything  # noqa: E402
 from lightning.pytorch.callbacks import Callback  # noqa: E402
 from lightning.pytorch.core import LightningDataModule, LightningModule  # noqa: E402
 from lightning.pytorch.trainer import Trainer  # noqa: E402
-from lightning.pytorch.utilities.seed import seed_everything  # noqa: E402
 
 import lightning.app  # isort: skip # noqa: E402
 
@@ -59,6 +60,7 @@ __all__ = [
     "LightningModule",
     "Callback",
     "seed_everything",
+    "LightningLite",
     "storage",
     "pdb",
 ]

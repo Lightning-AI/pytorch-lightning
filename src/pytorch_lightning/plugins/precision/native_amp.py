@@ -22,13 +22,8 @@ import pytorch_lightning as pl
 from lightning_lite.accelerators.cuda import _patch_cuda_is_available
 from lightning_lite.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType, GradClipAlgorithmType
+from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-if _TORCH_GREATER_EQUAL_1_10:
-    from torch import autocast as new_autocast
-else:
-    from torch.cuda.amp import autocast as old_autocast
 
 
 class NativeMixedPrecisionPlugin(PrecisionPlugin):
@@ -46,10 +41,6 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
         self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
-        if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
-            raise MisconfigurationException(
-                "To use bfloat16 with native amp you must install torch greater or equal to 1.10."
-            )
         if scaler is None and precision == 16:
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
@@ -113,12 +104,10 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
             )
         super().clip_gradients(optimizer=optimizer, clip_val=clip_val, gradient_clip_algorithm=gradient_clip_algorithm)
 
-    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
-        if _TORCH_GREATER_EQUAL_1_10:
-            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-            # https://github.com/pytorch/pytorch/issues/67233
-            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return old_autocast()
+    def autocast_context_manager(self) -> torch.autocast:
+        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+        # https://github.com/pytorch/pytorch/issues/67233
+        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:

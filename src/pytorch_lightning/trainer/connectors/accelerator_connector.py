@@ -30,7 +30,7 @@ from lightning_lite.plugins.environments import (
 )
 from lightning_lite.utilities import _StrategyType, AMPType, LightningEnum
 from lightning_lite.utilities.device_parser import _determine_root_gpu_device
-from lightning_lite.utilities.imports import _IS_INTERACTIVE
+from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -80,12 +80,7 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_11,
-)
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -499,7 +494,7 @@ class AcceleratorConnector:
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
-            if _HPU_AVAILABLE:
+            if HPUAccelerator.is_available():
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
@@ -614,7 +609,10 @@ class AcceleratorConnector:
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
-            TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or SLURMEnvironment.detect()
+            TorchElasticEnvironment.detect()
+            or KubeflowEnvironment.detect()
+            or SLURMEnvironment.detect()
+            or LSFEnvironment.detect()
         ):
             strategy_flag = "ddp"
         if strategy_flag == "dp" and self._accelerator_flag == "cpu":

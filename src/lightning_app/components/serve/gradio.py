@@ -31,6 +31,10 @@ class ServeGradio(LightningWork, abc.ABC):
     outputs: Any
     examples: Optional[List] = None
     enable_queue: bool = False
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+    _start_method = "spawn"
 
     def __init__(self, *args, **kwargs):
         requires("gradio")(super().__init__(*args, **kwargs))
@@ -58,8 +62,18 @@ class ServeGradio(LightningWork, abc.ABC):
             self._model = self.build_model()
         fn = partial(self.predict, *args, **kwargs)
         fn.__name__ = self.predict.__name__
-        gradio.Interface(fn=fn, inputs=self.inputs, outputs=self.outputs, examples=self.examples).launch(
+        gradio.Interface(
+            fn=fn,
+            inputs=self.inputs,
+            outputs=self.outputs,
+            examples=self.examples,
+            title=self.title,
+            description=self.description,
+        ).launch(
             server_name=self.host,
             server_port=self.port,
             enable_queue=self.enable_queue,
         )
+
+    def configure_layout(self) -> str:
+        return self.url

@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Generator, Optional, Set, Tuple, Type, T
 from deepdiff import DeepDiff, Delta
 from lightning_utilities.core.apply_func import apply_to_collection
 
+from lightning_app.core.queues import MultiProcessQueue
 from lightning_app.storage import Path
 from lightning_app.storage.copier import _Copier, _copy_files
 from lightning_app.storage.drive import _maybe_create_drive, Drive
@@ -103,8 +104,6 @@ class ProxyWorkRun:
     caller_queue: "BaseQueue"
 
     def __post_init__(self):
-        self.cache_calls = self.work.cache_calls
-        self.parallel = self.work.parallel
         self.work_state = None
 
     def __call__(self, *args, **kwargs):
@@ -123,7 +122,7 @@ class ProxyWorkRun:
 
         # The if/else conditions are left un-compressed to simplify readability
         # for the readers.
-        if self.cache_calls:
+        if self.work.cache_calls:
             if not entered or stopped_on_sigterm:
                 _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
             else:
@@ -137,7 +136,7 @@ class ProxyWorkRun:
                     # the previous task has completed and we can re-queue the next one.
                     # overriding the return value for next loop iteration.
                     _send_data_to_caller_queue(self, self.work, self.caller_queue, data, call_hash)
-        if not self.parallel:
+        if not self.work.parallel:
             raise CacheMissException("Task never called before. Triggered now")
 
     def _validate_call_args(self, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
@@ -359,7 +358,7 @@ class WorkRunExecutor:
         yield
 
     def _clean_queues(self):
-        if "LIGHTNING_APP_STATE_URL" in os.environ:
+        if not isinstance(self.work._request_queue, MultiProcessQueue):
             self.work._request_queue = self.work._request_queue.to_dict()
             self.work._response_queue = self.work._response_queue.to_dict()
 

@@ -23,7 +23,7 @@ from torch import nn, Tensor
 from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _LRScheduler
+from lightning_lite.utilities.types import LRScheduler
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.strategies import DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy
@@ -115,7 +115,7 @@ class StochasticWeightAveraging(Callback):
         if device is not None and not isinstance(device, (torch.device, str)):
             raise MisconfigurationException(f"device is expected to be a torch.device or a str. Found {device}")
 
-        self.n_averaged: Optional[torch.Tensor] = None
+        self.n_averaged: Optional[Tensor] = None
         self._swa_epoch_start = swa_epoch_start
         self._swa_lrs = swa_lrs
         self._annealing_epochs = annealing_epochs
@@ -125,7 +125,7 @@ class StochasticWeightAveraging(Callback):
         self._model_contains_batch_norm: Optional[bool] = None
         self._average_model: Optional["pl.LightningModule"] = None
         self._initialized = False
-        self._swa_scheduler: Optional[_LRScheduler] = None
+        self._swa_scheduler: Optional[LRScheduler] = None
         self._scheduler_state: Optional[Dict] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
@@ -192,7 +192,7 @@ class StochasticWeightAveraging(Callback):
 
             assert trainer.max_epochs is not None
             self._swa_scheduler = cast(
-                _LRScheduler,
+                LRScheduler,
                 SWALR(
                     optimizer,
                     swa_lr=self._swa_lrs,  # type: ignore[arg-type]

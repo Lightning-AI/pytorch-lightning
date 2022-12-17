@@ -2,13 +2,13 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Tuple, Union
+from typing import Tuple, Union
 
 import arrow
 import click
 import inquirer
 import rich
-from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState
+from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
@@ -25,11 +25,9 @@ from lightning_app.cli.commands.connection import (
     disconnect,
 )
 from lightning_app.cli.commands.logs import logs
-from lightning_app.cli.lightning_cli_add import cli_add
 from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
-from lightning_app.cli.lightning_cli_remove import cli_remove
 from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -50,18 +48,10 @@ from lightning_app.utilities.network import LightningClient
 logger = Logger(__name__)
 
 
-def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
-    if runtime_type == RuntimeType.CLOUD:
-        lit_app: Externalv1LightningappInstance = args[0]
-        action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
-    else:
-        return "http://127.0.0.1:7501/view"
-
-
 def main() -> None:
-    # Check environment and versions if not in the cloud
-    if "LIGHTNING_APP_STATE_URL" not in os.environ:
+    # Check environment and versions if not in the cloud and not testing
+    is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
+    if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
         # Enforce running in PATH Python
         _check_environment_and_redirect()
 
@@ -86,8 +76,6 @@ def main() -> None:
                     message = "You are connected to the local Lightning App."
                 else:
                     message = f"You are connected to the cloud Lightning App: {app_name}."
-
-                click.echo(" ")
 
                 if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
@@ -124,7 +112,7 @@ def cluster() -> None:
 
 
 @cluster.command(name="logs")
-@click.argument("cluster_name", required=True)
+@click.argument("cluster_id", required=True)
 @click.option(
     "--from",
     "from_time",
@@ -143,7 +131,7 @@ def cluster() -> None:
 )
 @click.option("--limit", default=10000, help="The max number of log lines returned.")
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
-def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
+def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, limit: int, follow: bool) -> None:
     """Show cluster logs.
 
     Example uses:
@@ -172,26 +160,26 @@ def cluster_logs(cluster_name: str, to_time: arrow.Arrow, from_time: arrow.Arrow
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
 
-    clusters = {cluster.name: cluster.id for cluster in existing_cluster_list.clusters}
+    clusters = {cluster.id: cluster.id for cluster in existing_cluster_list.clusters}
 
     if not clusters:
         raise click.ClickException("You don't have any clusters.")
 
-    if not cluster_name:
+    if not cluster_id:
         raise click.ClickException(
             f"You have not specified any clusters. Please select one of available: [{', '.join(clusters.keys())}]"
         )
 
-    if cluster_name not in clusters:
+    if cluster_id not in clusters:
         raise click.ClickException(
-            f"The cluster '{cluster_name}' does not exist."
+            f"The cluster '{cluster_id}' does not exist."
             f" Please select one of the following: [{', '.join(clusters.keys())}]"
         )
 
     try:
         log_reader = _cluster_logs_reader(
             logs_api_client=_ClusterLogsSocketAPI(client.api_client),
-            cluster_id=clusters[cluster_name],
+            cluster_id=cluster_id,
             start=from_time.int_timestamp,
             end=to_time.int_timestamp if not follow else None,
             limit=limit,
@@ -217,7 +205,7 @@ def login() -> None:
     auth.clear()
 
     try:
-        auth._run_server()
+        auth.authenticate()
     except ConnectionError:
         click.echo(f"Unable to connect to {get_lightning_cloud_url()}. Please check your internet connection.")
         exit(1)
@@ -243,7 +231,14 @@ def _run_app(
     secret: tuple,
     run_app_comment_commands: bool,
 ) -> None:
-    file = _prepare_file(file)
+
+    if not os.path.exists(file):
+        original_file = file
+        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=False)  # type: ignore[assignment]  # noqa E501
+        if file is None:
+            click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
+            sys.exit(1)
+        run_app_comment_commands = True
 
     if not cloud and cluster_id is not None:
         raise click.ClickException("Using the flag --cluster-id in local execution is not supported.")
@@ -271,10 +266,6 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
-    def on_before_run(*args: Any, **kwargs: Any) -> None:
-        if open_ui and not without_server:
-            click.launch(get_app_url(runtime_type, *args, **kwargs))
-
     click.echo("Your Lightning App is starting. This won't take long.")
 
     # TODO: Fixme when Grid utilities are available.
@@ -286,7 +277,7 @@ def _run_app(
         start_server=not without_server,
         no_cache=no_cache,
         blocking=blocking,
-        on_before_run=on_before_run,
+        open_ui=open_ui,
         name=name,
         env_vars=env_vars,
         secrets=secrets,
@@ -303,7 +294,7 @@ def run() -> None:
 
 
 @run.command("app")
-@click.argument("file", type=click.Path(exists=True))
+@click.argument("file", type=str)
 @click.option("--cloud", type=bool, default=False, is_flag=True)
 @click.option(
     "--cluster-id",
@@ -367,8 +358,8 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-lite"):
-    # lightning-lite may not be available when installing only standalone lightning-app package
+if RequirementCache("lightning-lite>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
+    # lightning.lite.cli may not be available when installing only standalone lightning-app package
     from lightning_lite.cli import _run_model
 
     run.add_command(_run_model)
@@ -376,8 +367,7 @@ if RequirementCache("lightning-lite"):
 _main.add_command(get_list)
 _main.add_command(delete)
 _main.add_command(create)
-_main.add_command(cli_add)
-_main.add_command(cli_remove)
+_main.add_command(cmd_install.install)
 
 
 @_main.command("ssh")
@@ -424,7 +414,7 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
     except ApiException:
         raise click.ClickException("failed fetching app instance")
 
-    components = app_manager.list_components(app_id=app_id)
+    components = app_manager.list_components(app_id=app_id, phase_in=[V1LightningworkState.RUNNING])
     available_component_names = [work.name for work in components] + ["flow"]
     if component_name is None:
         available_components = [
@@ -459,74 +449,6 @@ def ssh(app_name: str = None, component_name: str = None) -> None:
             "Unable to find the ssh binary. You must install ssh first to use this functionality."
         )
     os.execv(ssh_path, ["-tt", f"{component_id}@{ssh_endpoint}"])
-
-
-@_main.group()
-def install() -> None:
-    """Install a Lightning App and/or component."""
-
-
-@install.command("app")
-@click.argument("name", type=str)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="disables prompt to ask permission to create env and run install cmds",
-)
-@click.option(
-    "--version",
-    "-v",
-    type=str,
-    help="Specify the version to install. By default it uses 'latest'",
-    default="latest",
-    show_default=True,
-)
-@click.option(
-    "--overwrite",
-    "-f",
-    is_flag=True,
-    default=False,
-    help="When set, overwrite the app directory without asking if it already exists.",
-)
-def install_app(name: str, yes: bool, version: str, overwrite: bool = False) -> None:
-    if "github.com" in name:
-        if version != "latest":
-            logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
-            )
-        cmd_install.non_gallery_app(name, yes, overwrite=overwrite)
-    else:
-        cmd_install.gallery_app(name, yes, version, overwrite=overwrite)
-
-
-@install.command("component")
-@click.argument("name", type=str)
-@click.option(
-    "--yes",
-    "-y",
-    is_flag=True,
-    help="disables prompt to ask permission to create env and run install cmds",
-)
-@click.option(
-    "--version",
-    "-v",
-    type=str,
-    help="Specify the version to install. By default it uses 'latest'",
-    default="latest",
-    show_default=True,
-)
-def install_component(name: str, yes: bool, version: str) -> None:
-    if "github.com" in name:
-        if version != "latest":
-            logger.warn(
-                f"The provided version {version} isn't the officially supported one. "
-                f"The provided version will be ignored."
-            )
-        cmd_install.non_gallery_component(name, yes)
-    else:
-        cmd_install.gallery_component(name, yes, version)
 
 
 @_main.group()

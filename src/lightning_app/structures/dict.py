@@ -19,7 +19,7 @@ class Dict(t.Dict[str, T]):
         :class:`~lightning_app.core.work.LightningWork`
         or :class:`~lightning_app.core.flow.LightningFlow`.
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningWork
             >>> from lightning_app.structures import Dict
@@ -64,10 +64,10 @@ class Dict(t.Dict[str, T]):
         if isinstance(k, str) and "." in k:
             raise Exception(f"The provided name {k} contains . which is forbidden.")
 
+        _set_child_name(self, v, k)
         if self._backend:
             if isinstance(v, LightningFlow):
                 LightningFlow._attach_backend(v, self._backend)
-                _set_child_name(self, v, k)
             elif isinstance(v, LightningWork):
                 self._backend._wrap_run_method(_LightningAppRef().get_current(), v)
         v._name = f"{self.name}.{k}"

@@ -1,9 +1,10 @@
+import warnings
 from typing import Any, Type
 
 from lightning_app import structures
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
 
@@ -46,52 +47,46 @@ class MultiNode(LightningFlow):
 
         Arguments:
             work_cls: The work to be executed
-            num_nodes: Number of nodes.
-            cloud_compute: The cloud compute object used in the cloud.
+            num_nodes: Number of nodes. Gets ignored when running locally. Launch the app with --cloud to run on
+                multiple cloud machines.
+            cloud_compute: The cloud compute object used in the cloud. The value provided here gets ignored when
+                running locally.
             work_args: Arguments to be provided to the work on instantiation.
             work_kwargs: Keywords arguments to be provided to the work on instantiation.
         """
         super().__init__()
-        self.ws = structures.List()
-        self._work_cls = work_cls
-        self.num_nodes = num_nodes
-        self._cloud_compute = cloud_compute
-        self._work_args = work_args
-        self._work_kwargs = work_kwargs
-        self.has_started = False
+        if num_nodes > 1 and not is_running_in_cloud():
+            warnings.warn(
+                f"You set {type(self).__name__}(num_nodes={num_nodes}, ...)` but this app is running locally."
+                " We assume you are debugging and will ignore the `num_nodes` argument."
+                " To run on multiple nodes in the cloud, launch your app with `--cloud`."
+            )
+            num_nodes = 1
+        self.ws = structures.List(
+            *[
+                work_cls(
+                    *work_args,
+                    cloud_compute=cloud_compute.clone(),
+                    **work_kwargs,
+                    parallel=True,
+                )
+                for _ in range(num_nodes)
+            ]
+        )
 
     def run(self) -> None:
-        if not self.has_started:
+        # 1. Wait for all works to be started !
+        if not all(w.internal_ip for w in self.ws):
+            return
 
-            # 1. Create & start the works
-            if not self.ws:
-                for node_rank in range(self.num_nodes):
-                    self.ws.append(
-                        self._work_cls(
-                            *self._work_args,
-                            cloud_compute=self._cloud_compute,
-                            **self._work_kwargs,
-                            parallel=True,
-                        )
-                    )
-
-                    # Starting node `node_rank`` ...
-                    self.ws[-1].start()
-
-            # 2. Wait for all machines to be started !
-            if not all(w.status.stage == WorkStageStatus.STARTED for w in self.ws):
-                return
-
-            self.has_started = True
-
-        # Loop over all node machines
-        for node_rank in range(self.num_nodes):
+        # 2. Loop over all node machines
+        for node_rank in range(len(self.ws)):
 
             # 3. Run the user code in a distributed way !
             self.ws[node_rank].run(
                 main_address=self.ws[0].internal_ip,
                 main_port=self.ws[0].port,
-                num_nodes=self.num_nodes,
+                num_nodes=len(self.ws),
                 node_rank=node_rank,
             )
 

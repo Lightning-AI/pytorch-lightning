@@ -3,16 +3,18 @@ import pickle
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import partial
 from time import time
-from unittest.mock import ANY
+from unittest.mock import ANY, MagicMock
 
 import pytest
 from deepdiff import DeepDiff, Delta
 
-from lightning_app import LightningApp
+import lightning_app
+from lightning_app import CloudCompute, LightningApp
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.structures import Dict as LDict
@@ -236,7 +238,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
     flow = StateTransformationTest()
     assert flow.x == attribute
     app = LightningApp(flow)
-    SingleProcessRuntime(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     return app.state["vars"]["x"]
 
 
@@ -518,11 +520,10 @@ class CFlow(LightningFlow):
             self._exit()
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime])
 @pytest.mark.parametrize("run_once", [False, True])
-def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
+def test_lightning_flow_iterate(tmpdir, run_once):
     app = LightningApp(CFlow(run_once))
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 0
     assert app.root.tracker == 4
     call_hash = list(v for v in app.root._calls if "experimental_iterate" in v)[0]
@@ -536,7 +537,7 @@ def test_lightning_flow_iterate(tmpdir, runtime_cls, run_once):
     app.root.restarting = True
     assert app.root.looping == 0
     assert app.root.tracker == 4
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.looping == 2
     assert app.root.tracker == 10 if run_once else 20
     iterate_call = app.root._calls[call_hash]
@@ -554,12 +555,11 @@ class FlowCounter(LightningFlow):
         self.counter += 1
 
 
-@pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
-def test_lightning_flow_counter(runtime_cls, tmpdir):
+def test_lightning_flow_counter(tmpdir):
 
     app = LightningApp(FlowCounter())
     app.checkpointing = True
-    runtime_cls(app, start_server=False).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.counter == 3
 
     checkpoint_dir = os.path.join(_storage_root_dir(), "checkpoints")
@@ -570,7 +570,7 @@ def test_lightning_flow_counter(runtime_cls, tmpdir):
         with open(checkpoint_path, "rb") as f:
             app = LightningApp(FlowCounter())
             app.set_state(pickle.load(f))
-            runtime_cls(app, start_server=False).dispatch()
+            MultiProcessRuntime(app, start_server=False).dispatch()
             assert app.root.counter == 3
 
 
@@ -859,3 +859,72 @@ def test_lightning_flow_flows_and_works():
         "root.flows_dict.a.w",
         "root.flows_list.0.w",
     ]
+
+
+class WorkReady(LightningWork):
+    def __init__(self):
+        super().__init__(parallel=True)
+        self.counter = 0
+
+    def run(self):
+        self.counter += 1
+
+
+class FlowReady(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.w = WorkReady()
+
+    @property
+    def ready(self) -> bool:
+        return self.w.has_succeeded
+
+    def run(self):
+        self.w.run()
+
+        if self.ready:
+            self._exit()
+
+
+def test_flow_ready():
+    """This test validates the api publish state queue is populated only once ready is True."""
+
+    def run_patch(method):
+        app.api_publish_state_queue = MagicMock()
+        app.should_publish_changes_to_api = False
+        method()
+
+    app = LightningApp(FlowReady())
+    app._run = partial(run_patch, method=app._run)
+    MultiProcessRuntime(app, start_server=False).dispatch()
+
+    # Validates the state has been added only when ready was true.
+    state = app.api_publish_state_queue.put._mock_call_args[0][0]
+    call_hash = state["works"]["w"]["calls"]["latest_call_hash"]
+    assert state["works"]["w"]["calls"][call_hash]["statuses"][0]["stage"] == "succeeded"
+
+
+def test_structures_register_work_cloudcompute():
+    class MyDummyWork(LightningWork):
+        def run(self):
+            return
+
+    class MyDummyFlow(LightningFlow):
+        def __init__(self):
+            super().__init__()
+            self.w_list = LList(*[MyDummyWork(cloud_compute=CloudCompute("gpu")) for i in range(5)])
+            self.w_dict = LDict(**{str(i): MyDummyWork(cloud_compute=CloudCompute("gpu")) for i in range(5)})
+
+        def run(self):
+            for w in self.w_list:
+                w.run()
+
+            for w in self.w_dict.values():
+                w.run()
+
+    MyDummyFlow()
+    assert len(lightning_app.utilities.packaging.cloud_compute._CLOUD_COMPUTE_STORE) == 10
+    for v in lightning_app.utilities.packaging.cloud_compute._CLOUD_COMPUTE_STORE.values():
+        assert len(v.component_names) == 1
+        assert v.component_names[0][:-1] in ("root.w_list.", "root.w_dict.")
+        assert v.component_names[0][-1].isdigit()

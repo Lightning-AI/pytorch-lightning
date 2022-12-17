@@ -64,6 +64,8 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
+We are fully compatible with any stable PyTorch version v1.10 and above.
+
 .. raw:: html
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
@@ -206,6 +208,7 @@ Current Lightning Users
    Train on single or multiple TPUs <accelerators/tpu>
    Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
+   Inject Custom Data Iterables <data/custom_data_iterables>
    model/own_your_loop
 
 .. toctree::

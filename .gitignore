@@ -49,6 +49,7 @@ wheels/
 .installed.cfg
 *.egg
 src/lightning/*/
+src/*/version.info
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -109,8 +110,8 @@ celerybeat-schedule
 
 # dotenv
 .env
-.env_staging
-.env_local
+.env.staging
+.env.local
 
 # virtualenv
 .venv
