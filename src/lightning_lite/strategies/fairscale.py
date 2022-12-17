@@ -108,12 +108,7 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description=cls.__class__.__name__,
         )
-        strategy_registry.register(
-            "ddp_sharded_spawn",
-            cls,
-            description=cls.__class__.__name__,
-            start_method="spawn",
-        )
+        strategy_registry.register("ddp_sharded_spawn", cls, description=cls.__class__.__name__, start_method="spawn")
 
 
 def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
