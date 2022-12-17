@@ -294,6 +294,11 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     Allows you to use any sampler in distributed mode. It will be automatically used by Lightning in distributed mode if
     sampler replacement is enabled.
+
+    Note:
+        The purpose of this wrapper is to take care of sharding the sampler indices. It is up to the underlying
+        sampler to handle randomness and shuffling. The ``shuffle`` and ``seed`` arguments on this wrapper won't
+        have any effect.
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
@@ -301,7 +306,4 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
-
-        it = (self.dataset[index] for index in super().__iter__())
-        self.epoch += 1
-        return it
+        return (self.dataset[index] for index in super().__iter__())
