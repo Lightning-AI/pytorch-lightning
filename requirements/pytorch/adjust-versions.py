@@ -30,7 +30,7 @@ def find_latest(ver: str) -> Dict[str, str]:
     raise ValueError(f"Missing {ver} in {VERSIONS}")
 
 
-def main(req: str, torch_version: Optional[str] = None) -> str:
+def replace(req: str, torch_version: Optional[str] = None) -> str:
     if not torch_version:
         import torch
 
@@ -69,7 +69,7 @@ def test_check():
     torchvision==0.13.1
     torchmetrics>=0.4.1
     """.strip()
-    actual = main(requirements, "1.12")
+    actual = replace(requirements, "1.12")
     assert actual == expected, (actual, expected)
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     with open(requirements_path) as fp:
         requirements = fp.read()
-    requirements = main(requirements, torch_version)
+    requirements = replace(requirements, torch_version)
     print(requirements)  # on purpose - to debug
     with open(requirements_path, "w") as fp:
         fp.write(requirements)
