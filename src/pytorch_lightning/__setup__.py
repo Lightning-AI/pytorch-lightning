@@ -1,5 +1,7 @@
+import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -34,17 +36,16 @@ def _prepare_extras() -> Dict[str, Any]:
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     extras = {
-        # 'docs': load_requirements(file_name='docs.txt'),
-        "examples": assistant.load_requirements(file_name="examples.txt", **common_args),
-        "extra": assistant.load_requirements(file_name="extra.txt", **common_args),
-        "strategies": assistant.load_requirements(file_name="strategies.txt", **common_args),
-        "test": assistant.load_requirements(file_name="test.txt", **common_args),
+        p.stem: assistant.load_requirements(file_name=p.name, **common_args)
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["extra"] + extras["test"]
-    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
+    extras["all"] = extras["extra"] + extras["strategies"] + extras["examples"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
 
 
