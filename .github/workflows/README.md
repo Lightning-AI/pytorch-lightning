@@ -4,9 +4,9 @@
 
 ## Unit and Integration Testing
 
-| workflow name              | workflow file                               | action                                                                                                                                                                      | accelerator\* |
-| -------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| Test PyTorch full          | .github/workflows/ci-tests-pytorch.yml      | Run all tests except for accelerator-specific, standalone and slow tests.                                                                                                   | CPU           |
+| workflow name     | workflow file                          | action                                                                    | accelerator\* |
+| ----------------- | -------------------------------------- | ------------------------------------------------------------------------- | ------------- |
+| Test PyTorch full | .github/workflows/ci-tests-pytorch.yml | Run all tests except for accelerator-specific, standalone and slow tests. | CPU           |
 
 | pytorch-lightning (IPUs)   | .azure-pipelines/ipu-tests.yml              | Run only IPU-specific tests.                                                                                                                                                | IPU           |
 | pytorch-lightning (HPUs)   | .azure-pipelines/hpu-tests.yml              | Run only HPU-specific tests.                                                                                                                                                | HPU           |
