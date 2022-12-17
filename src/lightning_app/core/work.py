@@ -618,6 +618,16 @@ class LightningWork:
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)
 
+    def delete(self):
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        if not self._backend:
+            raise Exception(
+                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
+                "Make sure to assign the Work to a flow instance."
+            )
+        app = _LightningAppRef().get_current()
+        self._backend.delete_work(app, self)
+
     def _check_run_is_implemented(self) -> None:
         if not is_overridden("run", instance=self, parent=LightningWork):
             raise TypeError(
