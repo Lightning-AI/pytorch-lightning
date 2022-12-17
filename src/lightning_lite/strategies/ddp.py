@@ -43,9 +43,7 @@ from lightning_lite.utilities.rank_zero import rank_zero_only
 
 _DDP_FORK_ALIASES = (
     "ddp_fork",
-    "ddp_fork_find_unused_parameters_false",
     "ddp_notebook",
-    "ddp_notebook_find_unused_parameters_false",
 )
 
 
