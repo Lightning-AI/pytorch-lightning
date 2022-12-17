@@ -80,6 +80,7 @@ jobs:
           FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
+          pip list
 
       - name: Setup Node.js
         uses: actions/setup-node@v3

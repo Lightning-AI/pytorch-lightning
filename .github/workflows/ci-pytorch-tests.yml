@@ -137,7 +137,8 @@ jobs:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
         FREEZE_REQUIREMENTS: 1
       run: |
-        pip install -e .[extra,strategies,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
+        # TODO: installing the strategies from file as deepspeed expects already installed pytoch and extras does not bistall base first
+        pip install -e .[extra,test] "pytest-timeout" -r requirememts/pytorch/strategies.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Reinstall Horovod if necessary
