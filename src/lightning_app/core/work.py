@@ -619,10 +619,13 @@ class LightningWork:
         self._backend.stop_work(app, self)
 
     def delete(self):
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        Locally, the work.delete() behaves as work.stop().
+        """
         if not self._backend:
             raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
+                "Can't delete the work, it looks like it isn't attached to a LightningFlow. "
                 "Make sure to assign the Work to a flow instance."
             )
         app = _LightningAppRef().get_current()
