@@ -405,7 +405,7 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = lite.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
+        assert list(t[0].item() for t in iter(dataloader)) == [5, 2, 7, 1]
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
