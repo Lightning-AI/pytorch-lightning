@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytorch_lightning._graveyard.accelerator
 import pytorch_lightning._graveyard.callbacks
 import pytorch_lightning._graveyard.core
 import pytorch_lightning._graveyard.legacy_import_unpickler
 import pytorch_lightning._graveyard.loggers
 import pytorch_lightning._graveyard.profiler
+import pytorch_lightning._graveyard.strategies
 import pytorch_lightning._graveyard.trainer
 import pytorch_lightning._graveyard.training_type
 import pytorch_lightning._graveyard.utilities  # noqa: F401
