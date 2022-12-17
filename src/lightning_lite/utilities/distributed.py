@@ -301,4 +301,7 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
-        return (self.dataset[index] for index in super().__iter__())
+
+        it = (self.dataset[index] for index in super().__iter__())
+        self.epoch += 1
+        return it

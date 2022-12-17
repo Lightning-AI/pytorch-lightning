@@ -19,7 +19,7 @@ from torch import nn as nn
 from torch import Tensor
 from torch.nn.modules.module import _IncompatibleKeys
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 from lightning_lite.plugins import Precision
 from lightning_lite.plugins.precision.utils import _convert_fp_tensor
@@ -151,6 +151,7 @@ class _LiteDataLoader:
         self.__dict__.update(dataloader.__dict__)
         self._dataloader = dataloader
         self._device = device
+        self._epoch = 0
 
     @property
     def device(self) -> Optional[torch.device]:
@@ -160,6 +161,13 @@ class _LiteDataLoader:
         return len(self._dataloader)
 
     def __iter__(self) -> Union[Iterator[Any], Generator[Any, None, None]]:
+        if hasattr(self._dataloader.sampler, "set_epoch"):
+            # Without setting the epoch, the distributed sampler would return the same indices every time, even when
+            # shuffling is enabled. In PyTorch, the user would normally have to call `.set_epoch()` on the sampler.
+            # In Lite, we take care of this boilerplate code.
+            self._dataloader.sampler.set_epoch(self._epoch)
+        self._epoch += 1
+
         iterator = iter(self._dataloader)
         if self._device is None:
             yield from iterator

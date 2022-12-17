@@ -4,9 +4,8 @@ import numpy as np
 import pytest
 import torch
 from tests_lite.helpers.models import RandomDataset, RandomIterableDataset
-from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler, DistributedSampler
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
-from lightning_lite import LightningLite, seed_everything
 from lightning_lite.utilities.data import (
     _dataloader_init_kwargs_resolve_sampler,
     _get_dataloader_init_args_and_kwargs,
@@ -525,34 +524,3 @@ def test_dataloader_kwargs_replacement_with_array_default_comparison():
     dataloader = ArrayAttributeDataloader(dataset)
     dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler)
     assert dl_kwargs["indices"] is dataloader.indices
-
-
-@pytest.mark.parametrize("shuffle", [True, False])
-def test_distributed_sampler_parity(shuffle):
-    torch.manual_seed(1)
-    dataset = RandomDataset(1, 5)
-
-    torch_dataloader = DataLoader(
-        dataset,
-        sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
-    )
-    lite_dataloader = DataLoader(dataset, shuffle=shuffle)
-
-    lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
-    # no `lite.launch()`, we pretend we are on rank 0
-    lite_dataloader = lite.setup_dataloaders(lite_dataloader)
-
-    def fetch_data(loader):
-        # epoch 0
-        iterator = iter(loader)
-        data0 = next(iterator)
-        data1 = next(iterator)
-        # epoch 1
-        iterator = iter(loader)
-        data2 = next(iterator)
-        data3 = next(iterator)
-        return torch.stack((data0, data1, data2, data3))
-
-    torch_data = fetch_data(torch_dataloader)
-    lite_data = fetch_data(lite_dataloader)
-    assert torch.equal(torch_data, lite_data)

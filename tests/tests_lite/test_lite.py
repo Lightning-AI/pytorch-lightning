@@ -42,6 +42,7 @@ from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_lite.utilities.seed import pl_worker_init_function, seed_everything
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from lightning_lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from tests_lite.helpers.models import RandomDataset
 
 
 class EmptyLite(LightningLite):
@@ -406,6 +407,40 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
         seed_everything(1)
         dataloader = lite.setup_dataloaders(dataloader)
         assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_setup_dataloaders_distributed_sampler_parity(shuffle):
+    """Test that the distributed sampler setup in Lite leads to the same sequence of data as in raw PyTorch."""
+    torch.manual_seed(1)
+    lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
+    # no lite.launch(): pretend we are on rank 0 now
+
+    dataset = RandomDataset(1, 5)
+    torch_dataloader = DataLoader(
+        dataset,
+        sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
+    )
+    lite_dataloader = lite.setup_dataloaders(DataLoader(dataset, shuffle=shuffle))
+
+    def fetch_epoch(loader):
+        iterator = iter(loader)
+        return torch.stack((next(iterator), next(iterator)))
+
+    # 1st epoch
+    torch_dataloader.sampler.set_epoch(0)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+    assert torch.equal(torch_data, lite_data)
+
+    # 2nd epoch
+    torch_dataloader.sampler.set_epoch(1)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+
+    assert lite_dataloader._dataloader.sampler.epoch == 1
+
+    assert torch.equal(torch_data, lite_data)
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
