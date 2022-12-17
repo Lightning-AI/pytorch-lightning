@@ -410,34 +410,39 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
 
 
 @pytest.mark.parametrize("shuffle", [True, False])
-def test_setup_dataloaders_distributed_sampler_parity(shuffle):
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     """Test that the distributed sampler setup in Lite leads to the same sequence of data as in raw PyTorch."""
     torch.manual_seed(1)
     lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
     # no lite.launch(): pretend we are on rank 0 now
 
-    dataset = RandomDataset(1, 5)
+    dataset = RandomDataset(2, 6)
     torch_dataloader = DataLoader(
         dataset,
         sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
+        batch_size=batch_size,
     )
-    lite_dataloader = lite.setup_dataloaders(DataLoader(dataset, shuffle=shuffle))
+    lite_dataloader = lite.setup_dataloaders(DataLoader(dataset, shuffle=shuffle, batch_size=batch_size))
 
     def fetch_epoch(loader):
         iterator = iter(loader)
         return torch.stack((next(iterator), next(iterator)))
 
     # 1st epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
     torch_dataloader.sampler.set_epoch(0)
     torch_data = fetch_epoch(torch_dataloader)
     lite_data = fetch_epoch(lite_dataloader)
     assert torch.equal(torch_data, lite_data)
 
     # 2nd epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
     torch_dataloader.sampler.set_epoch(1)
     torch_data = fetch_epoch(torch_dataloader)
     lite_data = fetch_epoch(lite_dataloader)
 
+    assert torch_dataloader.sampler.epoch == 1
     assert lite_dataloader._dataloader.sampler.epoch == 1
 
     assert torch.equal(torch_data, lite_data)
