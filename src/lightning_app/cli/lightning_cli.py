@@ -284,6 +284,7 @@ def _run_app(
         secrets=secrets,
         cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
+        enable_basic_auth=enable_basic_auth,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
