@@ -230,6 +230,7 @@ def _run_app(
     env: tuple,
     secret: tuple,
     run_app_comment_commands: bool,
+    enable_basic_auth: str,
 ) -> None:
 
     if not os.path.exists(file):
@@ -328,6 +329,12 @@ def run() -> None:
     default=False,
     help="run environment setup commands from the app comments.",
 )
+@click.option(
+    "--enable-basic-auth",
+    type=str,
+    default="",
+    help="Enable basic authentication for the app" "and use credentials provided in the format `username:password`",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -341,6 +348,7 @@ def run_app(
     secret: tuple,
     app_args: tuple,
     run_app_comment_commands: bool,
+    enable_basic_auth: str,
 ) -> None:
     """Run an app from a file."""
     _run_app(
@@ -355,6 +363,7 @@ def run_app(
         env,
         secret,
         run_app_comment_commands,
+        enable_basic_auth,
     )
 
 
