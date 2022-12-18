@@ -11,7 +11,7 @@ from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.enum import make_status, WorkStageStatus
 from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
@@ -399,3 +399,9 @@ def test_lightning_work_display_name():
     assert work.state_vars["vars"]["_display_name"] == ""
     work.display_name = "Hello"
     assert work.state_vars["vars"]["_display_name"] == "Hello"
+
+    work._calls["latest_call_hash"] = "test"
+    work._calls["test"] = {"statuses": [make_status(WorkStageStatus.PENDING)]}
+    with pytest.raises(RuntimeError, match="The display name can be set only before the work has started."):
+        work.display_name = "HELLO"
+    work.display_name = "Hello"

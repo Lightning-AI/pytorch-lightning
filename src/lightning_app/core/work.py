@@ -227,8 +227,11 @@ class LightningWork:
 
     @display_name.setter
     def display_name(self, display_name: str):
-        """Returns the display name of the LightningWork in the cloud."""
-        self._display_name = display_name
+        """Sets the display name of the LightningWork in the cloud."""
+        if not self.has_started:
+            self._display_name = display_name
+        elif self._display_name != display_name:
+            raise RuntimeError("The display name can be set only before the work has started.")
 
     @property
     def cache_calls(self) -> bool:
