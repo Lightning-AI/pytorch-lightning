@@ -16,6 +16,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.callbacks import BatchSizeFinder, LearningRateFinder
 
 
 def test_tuner_with_distributed_strategies():
@@ -24,4 +25,36 @@ def test_tuner_with_distributed_strategies():
     model = BoringModel()
 
     with pytest.raises(MisconfigurationException, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
+        trainer.tune(model)
+
+
+def test_tuner_with_already_configured_BatchSizeFinder():
+    """Test that an error is raised when tuner is already configured with BatchSizeFinder."""
+    trainer = Trainer(auto_scale_batch_size=True, callbacks=[BatchSizeFinder()])
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException,
+        match=r"Trainer is already configured with a `BatchSizeFinder`"):
+        trainer.tune(model)
+
+
+def test_tuner_with_already_configured_LearningRateFinder():
+    """Test that an error is raised when tuner is already configured with LearningRateFinder."""
+    trainer = trainer = Trainer(auto_lr_find=True, callbacks=[LearningRateFinder()])
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException,
+        match=r"Trainer is already configured with a `LearningRateFinder`"):
+        trainer.tune(model)
+
+
+def test_tuner_with_already_configured_LearningRateFinder_and_BatchSizeFinder():
+    """Test that an error is raised when tuner are already configured with LearningRateFinder and BatchSizeFinder."""
+    trainer = trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True,
+                                callbacks=[LearningRateFinder(),BatchSizeFinder()])
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException,
+        match=r"Trainer is already configured with `LearningRateFinder` and "
+              r"`BatchSizeFinder` callbacks. Please remove it if you want to use tuner."):
         trainer.tune(model)
