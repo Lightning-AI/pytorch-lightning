@@ -11,12 +11,7 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import (
-    _is_json_serializable,
-    _lightning_dispatched,
-    _LightningAppRef,
-    is_overridden,
-)
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
@@ -123,7 +118,16 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
+        self._state = {
+            "_host",
+            "_port",
+            "_url",
+            "_future_url",
+            "_internal_ip",
+            "_restarting",
+            "_cloud_compute",
+            "_display_name",
+        }
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -133,6 +137,7 @@ class LightningWork:
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
+        self._display_name = ""
         # The ``self._calls`` is used to track whether the run
         # method with a given set of input arguments has already been called.
         # Example of its usage:
@@ -212,6 +217,22 @@ class LightningWork:
         return self._name
 
     @property
+    def display_name(self):
+        """Returns the display name of the LightningWork in the cloud.
+
+        The display name needs to set before the run method of the work is called.
+        """
+        return self._display_name
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        """Sets the display name of the LightningWork in the cloud."""
+        if not self.has_started:
+            self._display_name = display_name
+        elif self._display_name != display_name:
+            raise RuntimeError("The display name can be set only before the work has started.")
+
+    @property
     def cache_calls(self) -> bool:
         """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
         the same arguments in subsequent calls."""
@@ -266,7 +287,7 @@ class LightningWork:
 
     @lightningignore.setter
     def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
-        if _lightning_dispatched():
+        if self._backend is not None:
             raise RuntimeError(
                 f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
                 " effect"
