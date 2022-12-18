@@ -8,7 +8,7 @@ from multiprocessing import Queue
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from lightning_utilities.core.apply_func import apply_to_collection
 
 from lightning_app.api.request_types import _APIRequest, _CommandRequest, _RequestResponse
@@ -170,7 +170,10 @@ class _HttpMethod:
                     while request_id not in responses_store:
                         await asyncio.sleep(0.01)
                         if (time.time() - t0) > self.timeout:
-                            raise Exception("The response was never received.")
+                            raise HTTPException(
+                                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="The response was never received.",
+                            )
 
                     logger.debug(f"Processed request {request_id} for route: {self.route}")
 
