@@ -119,7 +119,16 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
+        self._state = {
+            "_host",
+            "_port",
+            "_url",
+            "_future_url",
+            "_internal_ip",
+            "_restarting",
+            "_cloud_compute",
+            "_display_name",
+        }
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -129,6 +138,7 @@ class LightningWork:
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
+        self._display_name = ""
         # The ``self._calls`` is used to track whether the run
         # method with a given set of input arguments has already been called.
         # Example of its usage:
@@ -206,6 +216,22 @@ class LightningWork:
     def name(self):
         """Returns the name of the LightningWork."""
         return self._name
+
+    @property
+    def display_name(self):
+        """Returns the display name of the LightningWork in the cloud.
+
+        The display name needs to set before the run method of the work is called.
+        """
+        return self._display_name
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        """Sets the display name of the LightningWork in the cloud."""
+        if not self.has_started:
+            self._display_name = display_name
+        elif self._display_name != display_name:
+            raise RuntimeError("The display name can be set only before the work has started.")
 
     @property
     def cache_calls(self) -> bool:
