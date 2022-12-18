@@ -37,6 +37,9 @@ class FakeResponse:
 
 
 class FakeLightningClient:
+    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
+        return V1ListLightningappsV2Response(lightningapps=[])
+
     def lightningapp_instance_service_list_lightningapp_instances(self, *args, **kwargs):
         return V1ListLightningappInstancesResponse(lightningapps=[])
 
@@ -102,8 +105,8 @@ class FakeLightningClientCreate(FakeLightningClient):
         super().__init__()
         self.create_response = create_response
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
-        return V1ListLightningappsV2Response(lightningapps=[V1LightningappV2(id="my_app", name="app")])
+    def lightningapp_v2_service_create_lightningapp_v2(self, *args, **kwargs):
+        return V1LightningappV2(id="my_app", name="app")
 
     def lightningapp_v2_service_create_lightningapp_release(self, project_id, app_id, body):
         assert project_id == "test-project-id"

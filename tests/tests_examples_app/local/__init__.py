@@ -1,5 +1,3 @@
-import os
+from pathlib import Path
 
-from lightning_app import _PROJECT_ROOT
-
-_PATH_APPS = os.path.join(_PROJECT_ROOT, "tests", "tests_examples_app", "apps")
+_PATH_APPS = Path(__file__).resolve().parents[1] / "apps"

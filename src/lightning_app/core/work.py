@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash, Delta
 
@@ -154,6 +154,8 @@ class LightningWork:
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -252,6 +254,20 @@ class LightningWork:
             compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
             compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     @property
     def status(self) -> WorkStatus:
