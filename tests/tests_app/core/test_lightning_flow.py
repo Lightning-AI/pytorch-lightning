@@ -329,6 +329,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -352,6 +353,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -391,6 +393,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -414,6 +417,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
