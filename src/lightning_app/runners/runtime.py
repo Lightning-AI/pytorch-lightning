@@ -79,6 +79,7 @@ def dispatch(
         env_vars=env_vars,
         secrets=secrets,
         run_app_comment_commands=run_app_comment_commands,
+        enable_basic_auth=enable_basic_auth,
     )
     # Used to indicate Lightning has been dispatched
     os.environ["LIGHTNING_DISPATCHED"] = "1"
