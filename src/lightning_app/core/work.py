@@ -630,12 +630,12 @@ class LightningWork:
         pass
 
     def stop(self):
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        This can only be called from a ``LightningFlow``.
+        """
         if not self._backend:
-            raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
-                "Make sure to assign the Work to a flow instance."
-            )
+            raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
         if self.status.stage == WorkStageStatus.STOPPED:
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
