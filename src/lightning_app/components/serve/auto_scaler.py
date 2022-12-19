@@ -620,11 +620,11 @@ class AutoScaler(LightningFlow):
             min(self.max_replicas, self.scale(self.num_replicas, metrics)),
         )
 
-        # upscale
+        # scale-out
         if time.time() - self._last_autoscale > self.scale_out_interval:
             num_workers_to_add = num_target_workers - self.num_replicas
             for _ in range(num_workers_to_add):
-                logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
+                logger.info(f"Scaling out from {self.num_replicas} to {self.num_replicas + 1}")
                 work = self.create_work()
                 # TODO: move works into structures
                 new_work_id = self.add_work(work)
@@ -632,11 +632,11 @@ class AutoScaler(LightningFlow):
             if num_workers_to_add > 0:
                 self._last_autoscale = time.time()
 
-        # downscale
+        # scale-in
         if time.time() - self._last_autoscale > self.scale_in_interval:
             num_workers_to_remove = self.num_replicas - num_target_workers
             for _ in range(num_workers_to_remove):
-                logger.info(f"Downscaling from {self.num_replicas} to {self.num_replicas - 1}")
+                logger.info(f"Scaling in from {self.num_replicas} to {self.num_replicas - 1}")
                 removed_work_id = self.remove_work(self.num_replicas - 1)
                 logger.info(f"Work removed: '{removed_work_id}'")
             if num_workers_to_remove > 0:
