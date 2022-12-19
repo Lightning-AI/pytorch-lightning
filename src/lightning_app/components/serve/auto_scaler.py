@@ -183,6 +183,7 @@ class _LoadBalancer(LightningWork):
             self._responses.update(result)
 
     async def consumer(self):
+        self._last_batch_sent = time.time()
         while True:
             await asyncio.sleep(0.05)
             batch = self._batch[: self.max_batch_size]
