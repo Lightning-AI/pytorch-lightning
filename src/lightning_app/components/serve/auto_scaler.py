@@ -626,6 +626,7 @@ class AutoScaler(LightningFlow):
             for _ in range(num_workers_to_add):
                 logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
                 work = self.create_work()
+                # TODO: move works into structures
                 new_work_id = self.add_work(work)
                 logger.info(f"Work created: '{new_work_id}'")
             if num_workers_to_add > 0:
