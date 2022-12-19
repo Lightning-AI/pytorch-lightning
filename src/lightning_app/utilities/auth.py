@@ -15,9 +15,9 @@ def _credential_string_to_basic_auth_params(credential_string: str) -> Dict[str,
     username, password = credential_string.split(":")
 
     if username == "":
-        raise ValueError("Username cannot be empty")
+        raise ValueError("Username cannot be empty.")
 
     if password == "":
-        raise ValueError("Password cannot be empty")
+        raise ValueError("Password cannot be empty.")
 
     return {"username": username, "password": password}

@@ -334,7 +334,7 @@ def run() -> None:
     "--enable-basic-auth",
     type=str,
     default="",
-    help="Enable basic authentication for the app" "and use credentials provided in the format `username:password`",
+    help="Enable basic authentication for the app" "and use credentials provided in the format username:password",
 )
 def run_app(
     file: str,
