@@ -16,8 +16,10 @@ from typing import List
 
 import pytest
 import torch.distributed
+from torch.utils.data import DataLoader, BatchSampler
 
 import lightning_lite
+from lightning_lite.utilities.data import _unpatch_dunder_methods
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -73,6 +75,14 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def unpatch_dataloader():
+    # The classes already get patched on import of LightningLite
+    # We need to unpatch first to have a clean starting point for all assertions in the test
+    _unpatch_dunder_methods(DataLoader)
+    _unpatch_dunder_methods(BatchSampler)
 
 
 @pytest.fixture(scope="function")

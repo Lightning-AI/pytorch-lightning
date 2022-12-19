@@ -57,10 +57,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests_pytorch.core.test_results import spawn_launch
-from tests_pytorch.helpers.dataloaders import unpatch_dataloaders
 from tests_pytorch.helpers.runif import RunIf
-
-unpatch_dataloaders()
 
 
 def test_fast_forward_getattr():

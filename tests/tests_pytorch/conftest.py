@@ -21,10 +21,12 @@ from typing import List
 
 import pytest
 import torch.distributed
+from torch.utils.data import DataLoader, BatchSampler
 
 import lightning_lite
 import pytorch_lightning
 from lightning_lite.plugins.environments.lightning import find_free_network_port
+from lightning_lite.utilities.data import _unpatch_dunder_methods
 from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from tests_pytorch import _PATH_DATASETS
@@ -111,6 +113,14 @@ def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
     torch.use_deterministic_algorithms(False)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def unpatch_dataloader():
+    # The classes already get patched on import of LightningLite
+    # We need to unpatch first to have a clean starting point for all assertions in the test
+    _unpatch_dunder_methods(DataLoader)
+    _unpatch_dunder_methods(BatchSampler)
 
 
 def mock_cuda_count(monkeypatch, n: int) -> None:

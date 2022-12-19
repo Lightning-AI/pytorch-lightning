@@ -22,9 +22,6 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.dataloaders import unpatch_dataloaders
-
-unpatch_dataloaders()
 
 
 def test_extract_batch_size():

@@ -28,10 +28,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.dataloaders import unpatch_dataloaders
 from tests_pytorch.helpers.runif import RunIf
-
-unpatch_dataloaders()
 
 
 class NestedLoop(Loop):

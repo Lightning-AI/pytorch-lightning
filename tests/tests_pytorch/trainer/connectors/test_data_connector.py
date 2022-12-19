@@ -32,10 +32,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.dataloaders import unpatch_dataloaders
 from tests_pytorch.helpers.runif import RunIf
-
-unpatch_dataloaders()
 
 
 @RunIf(skip_windows=True)
