@@ -12,6 +12,7 @@ class AppInfo:
     image: Optional[str] = None
     # ensure the meta tags are correct or the UI might fail to load.
     meta_tags: Optional[List[str]] = None
+    on_connect_end: Optional[str] = None
 
 
 def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: str = "") -> None:
@@ -21,11 +22,12 @@ def update_index_file(ui_root: str, info: Optional[AppInfo] = None, root_path: s
     entry_file = Path(ui_root) / "index.html"
     original_file = Path(ui_root) / "index.original.html"
 
-    if not original_file.exists():
-        shutil.copyfile(entry_file, original_file)  # keep backup
-    else:
-        # revert index.html in case it was modified after creating original.html
-        shutil.copyfile(original_file, entry_file)
+    if root_path:
+        if not original_file.exists():
+            shutil.copyfile(entry_file, original_file)  # keep backup
+        else:
+            # revert index.html in case it was modified after creating original.html
+            shutil.copyfile(original_file, entry_file)
 
     if info:
         with original_file.open() as f:

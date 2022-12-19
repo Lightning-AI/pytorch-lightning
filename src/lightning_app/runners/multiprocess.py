@@ -92,7 +92,7 @@ class MultiProcessRuntime(Runtime):
 
                 if is_overridden("configure_commands", self.app.root):
                     commands = _prepare_commands(self.app)
-                    apis += _commands_to_api(commands)
+                    apis += _commands_to_api(commands, info=self.app.info)
 
                 kwargs = dict(
                     apis=apis,

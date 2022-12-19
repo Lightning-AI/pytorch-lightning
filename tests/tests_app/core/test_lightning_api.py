@@ -12,7 +12,7 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -31,6 +31,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import _MockQueue
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -195,7 +196,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
 
-    publish_state_queue.put(app.state_with_changes)
+    publish_state_queue.put((app.state_with_changes, None))
 
     thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
@@ -226,7 +227,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
     has_started_queue = _MockQueue("has_started_queue")
     api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
-    publish_state_queue.put(state)
+    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses={})))
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
@@ -283,6 +284,9 @@ async def test_start_server(x_lightning_type, monkeypatch):
             {"name": "main_3", "content": "https://te"},
             {"name": "main_4", "content": "https://te"},
         ]
+
+        response = await client.get("/api/v1/status")
+        assert response.json() == {"is_ui_ready": True, "work_statuses": {}}
 
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {
@@ -479,10 +483,13 @@ class FlowAPI(LightningFlow):
         if self.counter == 501:
             self._exit()
 
-    def request(self, config: InputRequestModel) -> OutputRequestModel:
+    def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
+        assert request.body()
+        assert request.json()
+        assert request.headers
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
