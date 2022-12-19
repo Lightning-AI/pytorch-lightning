@@ -156,8 +156,6 @@ def test_work_runner(parallel, cache_calls, *_):
         assert delta_queue._queue[1].delta.to_dict() == {
             "values_changed": {"root['vars']['counter']": {"new_value": 1}}
         }
-        res = delta_queue._queue[2].delta.to_dict()["dictionary_item_added"]
-        assert res[f"root['calls']['{call_hash}']['ret']"] is None
 
     # Stop blocking and let the thread join
     BlockingQueue.keep_blocking = False

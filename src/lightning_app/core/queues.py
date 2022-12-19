@@ -368,6 +368,13 @@ class HTTPQueue(BaseQueue):
             try:
                 return self._get()
             except queue.Empty:
+                # Note: In theory, there isn't a need for a sleep as the queue shouldn't
+                # block the flow if the queue is empty.
+                # However, as the Http Server can saturate,
+                # let's add a sleep here if a higher timeout is provided
+                # than the default timeout
+                if timeout > self.default_timeout:
+                    time.sleep(0.05)
                 pass
 
     def _get(self):
