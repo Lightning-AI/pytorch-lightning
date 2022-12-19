@@ -158,6 +158,7 @@ class _LoadBalancer(LightningWork):
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
         try:
+            self._server_status[server_url] = False
             async with aiohttp.ClientSession() as session:
                 headers = {
                     "accept": "application/json",
@@ -187,9 +188,12 @@ class _LoadBalancer(LightningWork):
         except Exception as ex:
             result = {request[0]: ex for request in batch}
             self._responses.update(result)
+        finally:
+            self._server_status[server_url] = True
 
     def _find_free_server(self) -> Optional[str]:
-        for server in self._server_status:
+        existing = set(self._server_status.keys())
+        for server in existing:
             status = self._server_status.get(server, None)
             if status is None:
                 logger.error("Server is not found in the status list. This should not happen.")
@@ -206,7 +210,6 @@ class _LoadBalancer(LightningWork):
             server_url = self._find_free_server()
             # setting the server status to be busy! This will be reset by
             # the send_batch function after the server responds
-            self._server_status[server_url] = False
             if server_url is None:
                 # TODO - a timeout until we try looking for servers
                 logger.error("No servers available")
@@ -306,12 +309,16 @@ class _LoadBalancer(LightningWork):
                 self.servers = servers
             self._iter = cycle(self.servers)
             updated_servers = set()
+            # do not try to loop over the dict keys as the dict might change from other places
+            existing_servers = list(self._server_status.keys())
             for server in servers:
                 updated_servers.add(server)
-                if server not in self._server_status:
+                if server not in existing_servers:
                     self._server_status[server] = True
-            for existing in self._server_status:
+                    logger.info(f"Registering server {server}", self._server_status)
+            for existing in existing_servers:
                 if existing not in updated_servers:
+                    logger.info(f"De-Registering server {existing}", self._server_status)
                     del self._server_status[existing]
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
