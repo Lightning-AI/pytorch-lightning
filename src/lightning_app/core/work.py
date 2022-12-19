@@ -51,7 +51,7 @@ class LightningWork:
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
     # TODO: Move to spawn for all Operating System.
-    _start_method = "spawn" if sys.platform == "win32" else "fork"
+    _start_method = "spawn" if sys.platform in ("darwin", "win32") else "fork"
 
     def __init__(
         self,
