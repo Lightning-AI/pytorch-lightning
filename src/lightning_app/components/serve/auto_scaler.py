@@ -185,15 +185,13 @@ class _LoadBalancer(LightningWork):
     async def consumer(self):
         while True:
             await asyncio.sleep(0.05)
-
-            batch = self._batch[: self.max_batch_size]
-            while batch and (
-                (len(batch) == self.max_batch_size) or ((time.time() - self._last_batch_sent) > self.timeout_batching)
-            ):
+            batch = self._batch[:self.max_batch_size]
+            is_batch_ready = len(batch) == self.max_batch_size
+            is_batch_timeout = time.time() - self._last_batch_sent > self.timeout_batching
+            if batch and (is_batch_ready or is_batch_timeout):
                 asyncio.create_task(self.send_batch(batch))
-
-                self._batch = self._batch[self.max_batch_size :]
-                batch = self._batch[: self.max_batch_size]
+                # resetting the batch array, TODO - not locking the array
+                self._batch = self._batch[len(batch):]
                 self._last_batch_sent = time.time()
 
     async def process_request(self, data: BaseModel):
