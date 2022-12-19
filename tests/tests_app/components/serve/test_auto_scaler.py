@@ -32,8 +32,8 @@ def test_num_replicas_after_init():
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
+@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_above_max_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     max_replicas = 6
@@ -52,8 +52,8 @@ def test_num_replicas_not_above_max_replicas(*_):
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
+@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_belo_min_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     min_replicas = 1
@@ -91,6 +91,23 @@ def test_scale(replicas, metrics, expected_replicas):
 
     assert auto_scaler.scale(replicas, metrics) == expected_replicas
 
+
+def test_scale_from_zero_min_replica():
+    auto_scaler = AutoScaler(
+        EmptyWork,
+        min_replicas=0,
+        max_replicas=2,
+        max_batch_size=10,
+    )
+
+    resp = auto_scaler.scale(0, {"pending_requests": 0, "pending_works": 0})
+    assert resp == 0
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 0})
+    assert resp == 1
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 1})
+    assert resp <= 0
 
 def test_create_work_cloud_compute_cloned():
     """Test CloudCompute is cloned to avoid creating multiple works in a single machine."""
