@@ -227,7 +227,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
     has_started_queue = _MockQueue("has_started_queue")
     api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
-    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses=[])))
+    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses={})))
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
@@ -286,7 +286,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
         ]
 
         response = await client.get("/api/v1/status")
-        assert response.json() == {"is_ui_ready": True, "work_statuses": []}
+        assert response.json() == {"is_ui_ready": True, "work_statuses": {}}
 
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {
