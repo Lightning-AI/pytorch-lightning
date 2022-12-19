@@ -28,7 +28,7 @@ from lightning_lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.utilities import _StrategyType, LightningEnum
+from lightning_lite.utilities import _StrategyType
 from lightning_lite.utilities.device_parser import _determine_root_gpu_device
 from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -174,8 +174,8 @@ class AcceleratorConnector:
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._amp_type_flag: Optional[LightningEnum] = None
-        self._amp_level_flag: Optional[str] = amp_level
+        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v1.10.0
+        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v1.10.0
         self._auto_select_gpus: bool = auto_select_gpus
 
         self._check_config_and_set_final_flags(
@@ -382,8 +382,8 @@ class AcceleratorConnector:
                 f" this message, it will select PyTorch's implementation automatically."
             )
         else:
-            amp_type = "native"
-        self._amp_type_flag = amp_type.lower()
+            amp_type = None
+        self._amp_type_flag = amp_type
 
         if amp_level is not None:
             rank_zero_deprecation(
@@ -721,7 +721,7 @@ class AcceleratorConnector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
-            if self._amp_type_flag == "native":
+            if self._amp_type_flag in (None, "native"):
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):

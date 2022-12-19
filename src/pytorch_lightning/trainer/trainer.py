@@ -159,8 +159,8 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: Optional[str] = None,  # TODO: Remove in 1.10
-        amp_level: Optional[str] = None,  # # TODO: Remove in 1.10
+        amp_backend: Optional[str] = None,  # TODO: Remove in v1.10.0
+        amp_level: Optional[str] = None,  # TODO: Remove in v1.10.0
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,

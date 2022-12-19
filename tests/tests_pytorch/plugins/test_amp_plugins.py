@@ -61,16 +61,21 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 def test_amp_apex_ddp(cuda_count_2, strategy, devices, amp, custom_plugin, plugin_cls):
     plugin = None
     if custom_plugin:
-        plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
-    trainer = Trainer(
-        fast_dev_run=True,
-        precision=16,
-        amp_backend=amp,
-        accelerator="gpu",
-        devices=devices,
-        strategy=strategy,
-        plugins=plugin,
-    )
+        if amp == "native":
+            plugin = plugin_cls(16, "cpu")
+        else:
+            with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+                plugin = plugin_cls()
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            fast_dev_run=True,
+            precision=16,
+            amp_backend=amp,
+            accelerator="gpu",
+            devices=devices,
+            strategy=strategy,
+            plugins=plugin,
+        )
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
