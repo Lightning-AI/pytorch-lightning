@@ -93,6 +93,24 @@ def test_scale(replicas, metrics, expected_replicas):
     assert auto_scaler.scale(replicas, metrics) == expected_replicas
 
 
+def test_scale_from_zero_min_replica():
+    auto_scaler = AutoScaler(
+        EmptyWork,
+        min_replicas=0,
+        max_replicas=2,
+        max_batch_size=10,
+    )
+
+    resp = auto_scaler.scale(0, {"pending_requests": 0, "pending_works": 0})
+    assert resp == 0
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 0})
+    assert resp == 1
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 1})
+    assert resp <= 0
+
+
 def test_create_work_cloud_compute_cloned():
     """Test CloudCompute is cloned to avoid creating multiple works in a single machine."""
     cloud_compute = CloudCompute("gpu")
