@@ -1,5 +1,6 @@
 import os
 import shutil
+import signal
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -9,6 +10,7 @@ import py
 import pytest
 
 from lightning_app.storage.path import _storage_root_dir
+from lightning_app.utilities.app_helpers import _collect_child_process_pids
 from lightning_app.utilities.component import _set_context
 from lightning_app.utilities.packaging import cloud_compute
 from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
@@ -39,6 +41,9 @@ def pytest_sessionfinish(session, exitstatus):
     for t in threading.enumerate():
         if t is not main_thread:
             t.join(0)
+
+    for child_pid in _collect_child_process_pids(os.getpid()):
+        os.kill(child_pid, signal.SIGTERM)
 
 
 @pytest.fixture(scope="function", autouse=True)
