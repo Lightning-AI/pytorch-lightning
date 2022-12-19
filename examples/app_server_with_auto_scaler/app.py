@@ -1,5 +1,5 @@
 # ! pip install torch torchvision
-from typing import Any, List
+from typing import List
 
 import torch
 import torchvision
@@ -8,16 +8,12 @@ from pydantic import BaseModel
 import lightning as L
 
 
-class RequestModel(BaseModel):
-    image: str  # bytecode
-
-
 class BatchRequestModel(BaseModel):
-    inputs: List[RequestModel]
+    inputs: List[L.app.components.Image]
 
 
 class BatchResponse(BaseModel):
-    outputs: List[Any]
+    outputs: List[L.app.components.Number]
 
 
 class PyTorchServer(L.app.components.PythonServer):
@@ -79,10 +75,11 @@ app = L.LightningApp(
         # autoscaler specific args
         min_replicas=1,
         max_replicas=4,
-        autoscale_interval=10,
+        scale_out_interval=10,
+        scale_in_interval=10,
         endpoint="predict",
-        input_type=RequestModel,
-        output_type=Any,
+        input_type=L.app.components.Image,
+        output_type=L.app.components.Number,
         timeout_batching=1,
         max_batch_size=8,
     )

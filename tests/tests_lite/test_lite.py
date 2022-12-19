@@ -405,7 +405,46 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = lite.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
+        assert list(t[0].item() for t in iter(dataloader)) == [5, 2, 7, 1]
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
+    """Test that the distributed sampler setup in Lite leads to the same sequence of data as in raw PyTorch."""
+    torch.manual_seed(1)
+    lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
+    # no lite.launch(): pretend we are on rank 0 now
+
+    dataset = torch.arange(10)
+    torch_dataloader = DataLoader(
+        dataset,
+        sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
+        batch_size=batch_size,
+    )
+    lite_dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
+    lite_dataloader = lite.setup_dataloaders(lite_dataloader)
+
+    def fetch_epoch(loader):
+        iterator = iter(loader)
+        # we fetch 2 batches per epoch
+        return torch.cat((next(iterator), next(iterator)))
+
+    # 1st epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
+    torch_dataloader.sampler.set_epoch(0)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+    assert torch.equal(torch_data, lite_data)
+
+    # 2nd epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
+    torch_dataloader.sampler.set_epoch(1)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+    assert torch.equal(torch_data, lite_data)
+    assert torch_dataloader.sampler.epoch == 1
+    assert lite_dataloader._dataloader.sampler.epoch == 1
 
 
 @mock.patch.dict(os.environ, {}, clear=True)

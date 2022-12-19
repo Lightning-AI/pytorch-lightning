@@ -68,7 +68,7 @@ class ContextWork(LightningWork):
         assert _get_context().value == "work"
 
 
-class ContxtFlow(LightningFlow):
+class ContextFlow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.work = ContextWork()
@@ -83,7 +83,7 @@ class ContxtFlow(LightningFlow):
 
 def test_multiprocess_runtime_sets_context():
     """Test that the runtime sets the global variable COMPONENT_CONTEXT in Flow and Work."""
-    MultiProcessRuntime(LightningApp(ContxtFlow())).dispatch()
+    MultiProcessRuntime(LightningApp(ContextFlow())).dispatch()
 
 
 @pytest.mark.parametrize(
