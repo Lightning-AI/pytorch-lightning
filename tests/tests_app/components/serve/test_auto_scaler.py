@@ -1,10 +1,11 @@
 import time
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
 from lightning_app import CloudCompute, LightningWork
-from lightning_app.components import AutoScaler
+from lightning_app.components import AutoScaler, Text
 
 
 class EmptyWork(LightningWork):
@@ -32,8 +33,8 @@ def test_num_replicas_after_init():
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
+@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_above_max_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     max_replicas = 6
@@ -52,8 +53,8 @@ def test_num_replicas_not_above_max_replicas(*_):
 
 
 @patch("uvicorn.run")
-@patch("lightning_app.components.auto_scaler._LoadBalancer.url")
-@patch("lightning_app.components.auto_scaler.AutoScaler.num_pending_requests")
+@patch("lightning_app.components.serve.auto_scaler._LoadBalancer.url")
+@patch("lightning_app.components.serve.auto_scaler.AutoScaler.num_pending_requests")
 def test_num_replicas_not_belo_min_replicas(*_):
     """Test self.num_replicas doesn't exceed max_replicas."""
     min_replicas = 1
@@ -92,9 +93,41 @@ def test_scale(replicas, metrics, expected_replicas):
     assert auto_scaler.scale(replicas, metrics) == expected_replicas
 
 
+def test_scale_from_zero_min_replica():
+    auto_scaler = AutoScaler(
+        EmptyWork,
+        min_replicas=0,
+        max_replicas=2,
+        max_batch_size=10,
+    )
+
+    resp = auto_scaler.scale(0, {"pending_requests": 0, "pending_works": 0})
+    assert resp == 0
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 0})
+    assert resp == 1
+
+    resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 1})
+    assert resp <= 0
+
+
 def test_create_work_cloud_compute_cloned():
     """Test CloudCompute is cloned to avoid creating multiple works in a single machine."""
     cloud_compute = CloudCompute("gpu")
     auto_scaler = AutoScaler(EmptyWork, cloud_compute=cloud_compute)
     _ = auto_scaler.create_work()
     assert auto_scaler._work_kwargs["cloud_compute"] is not cloud_compute
+
+
+fastapi_mock = mock.MagicMock()
+mocked_fastapi_creater = mock.MagicMock(return_value=fastapi_mock)
+
+
+@patch("lightning_app.components.serve.auto_scaler._create_fastapi", mocked_fastapi_creater)
+@patch("lightning_app.components.serve.auto_scaler.uvicorn.run", mock.MagicMock())
+def test_API_ACCESS_ENDPOINT_creation():
+    auto_scaler = AutoScaler(EmptyWork, input_type=Text, output_type=Text)
+    assert auto_scaler.load_balancer._work_name == "EmptyWork"
+
+    auto_scaler.load_balancer.run()
+    fastapi_mock.mount.assert_called_once_with("/endpoint-info", mock.ANY, name="static")
