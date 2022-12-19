@@ -579,11 +579,12 @@ class AutoScaler(LightningFlow):
         pending_requests = metrics["pending_requests"]
         pending_requests_per_running_or_pending_work = pending_requests
         active_or_pending_works = replicas + metrics["pending_works"]
+
+        if replicas == 0 and pending_requests > 0:
+            return 1
+
         if active_or_pending_works:
             pending_requests_per_running_or_pending_work = pending_requests / active_or_pending_works
-
-        if replicas == 0 and pending_requests_per_running_or_pending_work > 0:
-            return 1
 
         # scale out if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
