@@ -42,7 +42,8 @@ def test_num_replicas_not_above_max_replicas(*_):
         EmptyWork,
         min_replicas=1,
         max_replicas=max_replicas,
-        autoscale_interval=0.001,
+        scale_out_interval=0.001,
+        scale_in_interval=0.001,
     )
 
     for _ in range(max_replicas + 1):
@@ -62,7 +63,8 @@ def test_num_replicas_not_belo_min_replicas(*_):
         EmptyWork,
         min_replicas=min_replicas,
         max_replicas=4,
-        autoscale_interval=0.001,
+        scale_out_interval=0.001,
+        scale_in_interval=0.001,
     )
 
     for _ in range(3):
