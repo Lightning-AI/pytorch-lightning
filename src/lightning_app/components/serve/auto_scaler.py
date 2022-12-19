@@ -579,8 +579,8 @@ class AutoScaler(LightningFlow):
         pending_requests = metrics["pending_requests"]
         active_or_pending_works = replicas + metrics["pending_works"]
 
-        if active_or_pending_works == 0 and pending_requests > 0:
-            return 1
+        if active_or_pending_works == 0:
+            return 1 if pending_requests > 0 else 0
 
         pending_requests_per_running_or_pending_work = pending_requests / active_or_pending_works
 
