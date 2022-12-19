@@ -281,6 +281,8 @@ class _LoadBalancer(LightningWork):
         fastapi_app.SEND_TASK = None
         self._fastapi_app = fastapi_app
 
+        input_type = self._input_type
+
         @fastapi_app.middleware("http")
         async def current_request_counter(request: Request, call_next):
             if not request.scope["path"] == self.endpoint:
@@ -338,7 +340,7 @@ class _LoadBalancer(LightningWork):
             self._iter = cycle(self.servers)
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
-        async def balance_api(inputs: self._input_type):
+        async def balance_api(inputs: input_type):
             return await self.process_request(inputs)
 
         endpoint_info_page = self._get_endpoint_info_page()
@@ -403,6 +405,10 @@ class _LoadBalancer(LightningWork):
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if not hasattr(datatype, "schema"):
+            # not a pydantic model
+            raise TypeError(f"datatype must be a pydantic model, for the UI to be generated. but got {datatype}")
+
         if hasattr(datatype, "_get_sample_data"):
             return datatype._get_sample_data()
 
@@ -460,7 +466,8 @@ class AutoScaler(LightningFlow):
     Args:
         min_replicas: The number of works to start when app initializes.
         max_replicas: The max number of works to spawn to handle the incoming requests.
-        autoscale_interval: The number of seconds to wait before checking whether to upscale or downscale the works.
+        scale_out_interval: The number of seconds to wait before checking whether to increase the number of servers.
+        scale_in_interval: The number of seconds to wait before checking whether to decrease the number of servers.
         endpoint: Provide the REST API path.
         max_batch_size: (auto-batching) The number of requests to process at once.
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
@@ -478,7 +485,8 @@ class AutoScaler(LightningFlow):
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
-                autoscale_interval=10,
+                scale_out_interval=10,
+                scale_in_interval=10,
             )
         )
 
@@ -507,7 +515,8 @@ class AutoScaler(LightningFlow):
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
-                autoscale_interval=10,
+                scale_out_interval=10,
+                scale_in_interval=10,
                 max_batch_size=8,  # for auto batching
                 timeout_batching=1,  # for auto batching
             )
@@ -519,7 +528,8 @@ class AutoScaler(LightningFlow):
         work_cls: Type[LightningWork],
         min_replicas: int = 1,
         max_replicas: int = 4,
-        autoscale_interval: int = 10,
+        scale_out_interval: int = 10,
+        scale_in_interval: int = 10,
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = "api/predict",
@@ -539,7 +549,8 @@ class AutoScaler(LightningFlow):
 
         self._input_type = input_type
         self._output_type = output_type
-        self.autoscale_interval = autoscale_interval
+        self.scale_out_interval = scale_out_interval
+        self.scale_in_interval = scale_in_interval
         self.max_batch_size = max_batch_size
 
         if max_replicas < min_replicas:
@@ -634,9 +645,13 @@ class AutoScaler(LightningFlow):
             The target number of running works. The value will be adjusted after this method runs
             so that it satisfies ``min_replicas<=replicas<=max_replicas``.
         """
-        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
-            replicas + metrics["pending_works"]
-        )
+        pending_requests = metrics["pending_requests"]
+        active_or_pending_works = replicas + metrics["pending_works"]
+
+        if active_or_pending_works == 0:
+            return 1 if pending_requests > 0 else 0
+
+        pending_requests_per_running_or_pending_work = pending_requests / active_or_pending_works
 
         # scale out if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
@@ -662,11 +677,6 @@ class AutoScaler(LightningFlow):
 
     def autoscale(self) -> None:
         """Adjust the number of works based on the target number returned by ``self.scale``."""
-        if time.time() - self._last_autoscale < self.autoscale_interval:
-            return
-
-        self.load_balancer.update_servers(self.workers)
-
         metrics = {
             "pending_requests": self.num_pending_requests,
             "pending_works": self.num_pending_works,
@@ -678,23 +688,29 @@ class AutoScaler(LightningFlow):
             min(self.max_replicas, self.scale(self.num_replicas, metrics)),
         )
 
-        # upscale
-        num_workers_to_add = num_target_workers - self.num_replicas
-        for _ in range(num_workers_to_add):
-            logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
-            work = self.create_work()
-            new_work_id = self.add_work(work)
-            logger.info(f"Work created: '{new_work_id}'")
+        # scale-out
+        if time.time() - self._last_autoscale > self.scale_out_interval:
+            num_workers_to_add = num_target_workers - self.num_replicas
+            for _ in range(num_workers_to_add):
+                logger.info(f"Scaling out from {self.num_replicas} to {self.num_replicas + 1}")
+                work = self.create_work()
+                # TODO: move works into structures
+                new_work_id = self.add_work(work)
+                logger.info(f"Work created: '{new_work_id}'")
+            if num_workers_to_add > 0:
+                self._last_autoscale = time.time()
 
-        # downscale
-        num_workers_to_remove = self.num_replicas - num_target_workers
-        for _ in range(num_workers_to_remove):
-            logger.info(f"Downscaling from {self.num_replicas} to {self.num_replicas - 1}")
-            removed_work_id = self.remove_work(self.num_replicas - 1)
-            logger.info(f"Work removed: '{removed_work_id}'")
+        # scale-in
+        if time.time() - self._last_autoscale > self.scale_in_interval:
+            num_workers_to_remove = self.num_replicas - num_target_workers
+            for _ in range(num_workers_to_remove):
+                logger.info(f"Scaling in from {self.num_replicas} to {self.num_replicas - 1}")
+                removed_work_id = self.remove_work(self.num_replicas - 1)
+                logger.info(f"Work removed: '{removed_work_id}'")
+            if num_workers_to_remove > 0:
+                self._last_autoscale = time.time()
 
         self.load_balancer.update_servers(self.workers)
-        self._last_autoscale = time.time()
 
     def configure_layout(self):
         tabs = [

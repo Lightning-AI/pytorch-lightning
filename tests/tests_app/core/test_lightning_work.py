@@ -1,6 +1,6 @@
 from queue import Empty
 from re import escape
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -11,7 +11,7 @@ from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.enum import WorkStageStatus
+from lightning_app.utilities.enum import make_status, WorkStageStatus
 from lightning_app.utilities.exceptions import LightningWorkException
 from lightning_app.utilities.packaging.build_config import BuildConfig
 from lightning_app.utilities.proxies import ProxyWorkRun, WorkRunner
@@ -384,3 +384,36 @@ class FlowStart(LightningFlow):
 def test_lightning_app_work_start(cache_calls, parallel):
     app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+def test_lightning_work_delete():
+    work = WorkCounter()
+
+    with pytest.raises(Exception, match="Can't delete the work"):
+        work.delete()
+
+    mock = MagicMock()
+    work._backend = mock
+    work.delete()
+    assert work == mock.delete_work._mock_call_args_list[0].args[1]
+
+
+class WorkDisplay(LightningWork):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        pass
+
+
+def test_lightning_work_display_name():
+    work = WorkDisplay()
+    assert work.state_vars["vars"]["_display_name"] == ""
+    work.display_name = "Hello"
+    assert work.state_vars["vars"]["_display_name"] == "Hello"
+
+    work._calls["latest_call_hash"] = "test"
+    work._calls["test"] = {"statuses": [make_status(WorkStageStatus.PENDING)]}
+    with pytest.raises(RuntimeError, match="The display name can be set only before the work has started."):
+        work.display_name = "HELLO"
+    work.display_name = "Hello"
