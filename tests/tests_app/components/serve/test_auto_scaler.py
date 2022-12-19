@@ -42,7 +42,8 @@ def test_num_replicas_not_above_max_replicas(*_):
         EmptyWork,
         min_replicas=1,
         max_replicas=max_replicas,
-        autoscale_interval=0.001,
+        scale_out_interval=0.001,
+        scale_in_interval=0.001,
     )
 
     for _ in range(max_replicas + 1):
@@ -62,7 +63,8 @@ def test_num_replicas_not_belo_min_replicas(*_):
         EmptyWork,
         min_replicas=min_replicas,
         max_replicas=4,
-        autoscale_interval=0.001,
+        scale_out_interval=0.001,
+        scale_in_interval=0.001,
     )
 
     for _ in range(3):
@@ -131,3 +133,43 @@ def test_API_ACCESS_ENDPOINT_creation():
 
     auto_scaler.load_balancer.run()
     fastapi_mock.mount.assert_called_once_with("/endpoint-info", mock.ANY, name="static")
+
+
+def test_autoscaler_scale_up(monkeypatch):
+    monkeypatch.setattr(AutoScaler, "num_pending_works", 0)
+    monkeypatch.setattr(AutoScaler, "num_pending_requests", 100)
+    monkeypatch.setattr(AutoScaler, "scale", mock.MagicMock(return_value=1))
+    monkeypatch.setattr(AutoScaler, "create_work", mock.MagicMock())
+    monkeypatch.setattr(AutoScaler, "add_work", mock.MagicMock())
+
+    auto_scaler = AutoScaler(EmptyWork, min_replicas=0, max_replicas=4, scale_out_interval=0.001)
+
+    # Mocking the attributes
+    auto_scaler._last_autoscale = time.time() - 100000
+    auto_scaler.num_replicas = 0
+
+    # triggering scale up
+    auto_scaler.autoscale()
+    auto_scaler.scale.assert_called_once()
+    auto_scaler.create_work.assert_called_once()
+    auto_scaler.add_work.assert_called_once()
+
+
+def test_autoscaler_scale_down(monkeypatch):
+    monkeypatch.setattr(AutoScaler, "num_pending_works", 0)
+    monkeypatch.setattr(AutoScaler, "num_pending_requests", 0)
+    monkeypatch.setattr(AutoScaler, "scale", mock.MagicMock(return_value=0))
+    monkeypatch.setattr(AutoScaler, "remove_work", mock.MagicMock())
+    monkeypatch.setattr(AutoScaler, "workers", mock.MagicMock())
+
+    auto_scaler = AutoScaler(EmptyWork, min_replicas=0, max_replicas=4, scale_in_interval=0.001)
+
+    # Mocking the attributes
+    auto_scaler._last_autoscale = time.time() - 100000
+    auto_scaler.num_replicas = 1
+    auto_scaler.__dict__["load_balancer"] = mock.MagicMock()
+
+    # triggering scale up
+    auto_scaler.autoscale()
+    auto_scaler.scale.assert_called_once()
+    auto_scaler.remove_work.assert_called_once()
