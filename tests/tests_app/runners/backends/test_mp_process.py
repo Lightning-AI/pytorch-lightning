@@ -5,8 +5,9 @@ from lightning_app import LightningApp, LightningWork
 from lightning_app.runners.backends import MultiProcessingBackend
 
 
+@mock.patch("lightning_app.core.app.AppStatus")
 @mock.patch("lightning_app.runners.backends.mp_process.multiprocessing")
-def test_backend_create_work_with_set_start_method(multiprocessing_mock):
+def test_backend_create_work_with_set_start_method(multiprocessing_mock, *_):
     backend = MultiProcessingBackend(entrypoint_file="fake.py")
     work = Mock(spec=LightningWork)
     work._start_method = "test_start_method"
