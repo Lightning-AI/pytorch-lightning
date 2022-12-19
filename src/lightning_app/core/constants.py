@@ -25,7 +25,6 @@ APP_SERVER_IN_CLOUD = "http://lightningapp" in APP_SERVER_HOST
 APP_SERVER_PORT = _find_lit_app_port(7501)
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
-CLOUD_QUEUE_TYPE = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
 WARNING_QUEUE_SIZE = 1000
 # different flag because queue debug can be very noisy, and almost always not useful unless debugging the queue itself.
 QUEUE_DEBUG_ENABLED = bool(int(os.getenv("LIGHTNING_QUEUE_DEBUG_ENABLED", "0")))
@@ -75,6 +74,10 @@ ENABLE_UPLOAD_ENDPOINT = bool(int(os.getenv("ENABLE_UPLOAD_ENDPOINT", "1")))
 
 def enable_multiple_works_in_default_container() -> bool:
     return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
+
+
+def get_cloud_queue_type():
+    return os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
 
 
 # Number of seconds to wait between filesystem checks when waiting for files in remote storage

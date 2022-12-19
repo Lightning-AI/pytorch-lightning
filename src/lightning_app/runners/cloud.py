@@ -50,7 +50,6 @@ from lightning_cloud.openapi.rest import ApiException
 from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
-    CLOUD_QUEUE_TYPE,
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
@@ -60,6 +59,7 @@ from lightning_app.core.constants import (
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
+    get_cloud_queue_type,
     get_lightning_cloud_url,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
@@ -418,9 +418,11 @@ class CloudRuntime(Runtime):
                     initial_port += 1
 
             queue_server_type = V1QueueServerType.UNSPECIFIED
-            if CLOUD_QUEUE_TYPE == "http":
+            # Note: Enable Application to setup their own queues.
+            queue_type = get_cloud_queue_type()
+            if queue_type == "http":
                 queue_server_type = V1QueueServerType.HTTP
-            elif CLOUD_QUEUE_TYPE == "redis":
+            elif queue_type == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
             release_body = Body8(
