@@ -561,3 +561,4 @@ def test_configure_api():
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    process.kill()
