@@ -39,3 +39,17 @@ def test_comparison_with_other_enum():
         FOO = 123
 
     assert not MyEnum.FOO.__eq__(OtherEnum.FOO)
+
+
+def test_create_from_string():
+    class MyEnum(StrEnum):
+        t1 = "T/1"
+        T2 = "t:2"
+
+    assert MyEnum.from_str("T1", source="key")
+    assert MyEnum.from_str("T1", source="value") is None
+    assert MyEnum.from_str("T1", source="any")
+
+    assert MyEnum.from_str("T:2", source="key") is None
+    assert MyEnum.from_str("T:2", source="value")
+    assert MyEnum.from_str("T:2", source="any")

@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: extended package install check ([#76](https://github.com/Lightning-AI/utilities/pull/76))
 
 
+- Allowed `StrEnum.from_str` by values ([#77](https://github.com/Lightning-AI/utilities/pull/77))
+
+
 ### Removed
 
 ### Deprecated
