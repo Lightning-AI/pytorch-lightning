@@ -48,10 +48,10 @@ class ColdStartProxy:
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                        self.proxy_url,
-                        json=request.dict(),
-                        timeout=self.proxy_timeout,
-                        headers=headers,
+                    self.proxy_url,
+                    json=request.dict(),
+                    timeout=self.proxy_timeout,
+                    headers=headers,
                 ) as response:
                     return await response.json()
         except Exception as ex:
@@ -259,8 +259,9 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def _has_processing_capacity(self):
-        """ this function checks if currently have processing capacity for one more request or not. Depends on
-        the value from here, we decide whether we should proxy the request or not
+        """this function checks if currently have processing capacity for one more request or not.
+
+        Depends on the value from here, we decide whether we should proxy the request or not
         """
         if not self._fastapi_app:
             return False

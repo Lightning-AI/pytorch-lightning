@@ -94,6 +94,7 @@ def test_scale(replicas, metrics, expected_replicas):
 
     assert auto_scaler.scale(replicas, metrics) == expected_replicas
 
+
 def test_scale_from_zero_min_replica():
     auto_scaler = AutoScaler(
         EmptyWork,
@@ -122,6 +123,7 @@ def test_create_work_cloud_compute_cloned():
 
 fastapi_mock = mock.MagicMock()
 mocked_fastapi_creater = mock.MagicMock(return_value=fastapi_mock)
+
 
 @patch("lightning_app.components.serve.auto_scaler._create_fastapi", mocked_fastapi_creater)
 @patch("lightning_app.components.serve.auto_scaler.uvicorn.run", mock.MagicMock())
