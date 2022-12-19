@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-app-tests.yml"
+      - ".github/workflows/ci-tests-app.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
