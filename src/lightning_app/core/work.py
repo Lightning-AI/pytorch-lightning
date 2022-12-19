@@ -12,13 +12,13 @@ from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
     make_status,
     WorkFailureReasons,
     WorkStageStatus,
-    WorkStatus,
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -51,7 +51,7 @@ class LightningWork:
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
     # TODO: Move to spawn for all Operating System.
-    _start_method = "spawn" if sys.platform == "win32" else "fork"
+    _start_method = "spawn" if sys.platform in ("darwin", "win32") else "fork"
 
     def __init__(
         self,
@@ -630,12 +630,12 @@ class LightningWork:
         pass
 
     def stop(self):
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        This can only be called from a ``LightningFlow``.
+        """
         if not self._backend:
-            raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
-                "Make sure to assign the Work to a flow instance."
-            )
+            raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
         if self.status.stage == WorkStageStatus.STOPPED:
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]

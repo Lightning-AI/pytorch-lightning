@@ -250,6 +250,7 @@ class WorkRunnerPatch(WorkRunner):
                 state = deepcopy(self.work.state)
                 self.work._calls[call_hash]["statuses"].append(
                     {
+                        "name": self.work.name,
                         "stage": WorkStageStatus.FAILED,
                         "reason": WorkFailureReasons.TIMEOUT,
                         "timestamp": time.time(),
@@ -547,7 +548,7 @@ def test_work_state_observer():
     # 1. Simulate no state changes
     ##############################
     work.run(use_setattr=False, use_containers=False)
-    assert not delta_queue
+    assert len(delta_queue) == 0
 
     ############################
     # 2. Simulate a setattr call
@@ -563,16 +564,16 @@ def test_work_state_observer():
     assert len(observer._delta_memory) == 1
 
     # The observer should not trigger any deltas being sent and only consume the delta memory
-    assert not delta_queue
+    assert len(delta_queue) == 0
     observer.run_once()
-    assert not delta_queue
+    assert len(delta_queue) == 0
     assert not observer._delta_memory
 
     ################################
     # 3. Simulate a container update
     ################################
     work.run(use_setattr=False, use_containers=True)
-    assert not delta_queue
+    assert len(delta_queue) == 0
     assert not observer._delta_memory
     observer.run_once()
     observer.run_once()  # multiple runs should not affect how many deltas are sent unless there are changes
@@ -591,7 +592,7 @@ def test_work_state_observer():
 
     delta = delta_queue.get().delta.to_dict()
     assert delta == {"values_changed": {"root['vars']['var']": {"new_value": 3}}}
-    assert not delta_queue
+    assert len(delta_queue) == 0
     assert len(observer._delta_memory) == 1
     observer.run_once()
 
@@ -599,7 +600,7 @@ def test_work_state_observer():
     assert delta["values_changed"] == {"root['vars']['dict']['counter']": {"new_value": 2}}
     assert delta["iterable_item_added"] == {"root['vars']['list'][1]": 1}
 
-    assert not delta_queue
+    assert len(delta_queue) == 0
     assert not observer._delta_memory
 
 
