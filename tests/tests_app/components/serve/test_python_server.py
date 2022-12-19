@@ -29,6 +29,7 @@ def test_python_server_component():
     res = session.post(f"http://127.0.0.1:{port}/predict", json={"payload": "test"})
     process.terminate()
     assert res.json()["prediction"] == "test"
+    process.kill()
 
 
 def test_image_sample_data():
