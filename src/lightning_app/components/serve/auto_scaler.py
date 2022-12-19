@@ -200,6 +200,10 @@ class _LoadBalancer(LightningWork):
         if not self.servers:
             raise HTTPException(500, "None of the workers are healthy!")
 
+        is_batch_size_exceeded = self.max_batch_size <= self.current_num_requests  # FIXME
+        if is_batch_size_exceeded:
+            raise HTTPException(503, "The number of requests exceeded the max batch size.")
+
         request_id = uuid.uuid4().hex
         request: Tuple = (request_id, data)
         self._batch.append(request)
