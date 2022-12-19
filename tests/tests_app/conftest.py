@@ -26,7 +26,7 @@ def fn(self, *args, timeout=None, **kwargs):
     original_method(self, *args, timeout=1, **kwargs)
 
 
-Thread._wait_for_tstate_lock = fn
+# Thread._wait_for_tstate_lock = fn
 
 
 def pytest_sessionfinish(session, exitstatus):

@@ -67,8 +67,9 @@ def test_lightning_work_setattr():
 
 @pytest.mark.parametrize("parallel", [True, False])
 @pytest.mark.parametrize("cache_calls", [False, True])
+@mock.patch("lightning_app.utilities.proxies._Copier", MagicMock())
 @pytest.mark.skipif(sys.platform == "win32", reason="TODO (@ethanwharris): Fix this on Windows")
-def test_work_runner(parallel, cache_calls):
+def test_work_runner(parallel, cache_calls, *_):
     """This test validates the `WorkRunner` runs the work.run method and properly populates the `delta_queue`,
     `error_queue` and `readiness_queue`."""
 
