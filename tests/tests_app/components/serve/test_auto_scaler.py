@@ -1,10 +1,11 @@
 import time
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
 from lightning_app import CloudCompute, LightningWork
-from lightning_app.components import AutoScaler
+from lightning_app.components import AutoScaler, Text
 
 
 class EmptyWork(LightningWork):
@@ -115,3 +116,17 @@ def test_create_work_cloud_compute_cloned():
     auto_scaler = AutoScaler(EmptyWork, cloud_compute=cloud_compute)
     _ = auto_scaler.create_work()
     assert auto_scaler._work_kwargs["cloud_compute"] is not cloud_compute
+
+
+fastapi_mock = mock.MagicMock()
+mocked_fastapi_creater = mock.MagicMock(return_value=fastapi_mock)
+
+
+@patch("lightning_app.components.serve.auto_scaler._create_fastapi", mocked_fastapi_creater)
+@patch("lightning_app.components.serve.auto_scaler.uvicorn.run", mock.MagicMock())
+def test_API_ACCESS_ENDPOINT_creation():
+    auto_scaler = AutoScaler(EmptyWork, input_type=Text, output_type=Text)
+    assert auto_scaler.load_balancer._work_name == "EmptyWork"
+
+    auto_scaler.load_balancer.run()
+    fastapi_mock.mount.assert_called_once_with("/endpoint-info", mock.ANY, name="static")
