@@ -15,7 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `requires` wrapper ([#70](https://github.com/Lightning-AI/utilities/pull/70))
 
 
+- Added several functions/class common to package's `__all__` ([#76](https://github.com/Lightning-AI/utilities/pull/76))
+
+
 ### Changed
+
+- CI: extended package install check ([#76](https://github.com/Lightning-AI/utilities/pull/76))
+
 
 ### Removed
 
@@ -24,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed requirements parsing ([#69](https://github.com/Lightning-AI/utilities/pull/69))
+
+
+- Fixed missing `packaging` dependency ([#76](https://github.com/Lightning-AI/utilities/pull/76))
 
 
 ## [0.4.2] - 2022-10-31

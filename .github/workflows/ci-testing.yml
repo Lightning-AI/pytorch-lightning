@@ -27,6 +27,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Set oldest dependencies
+      # todo: this is strange to use itself :/
       if: matrix.requires == 'oldest'
       run: |
         pip install -e '.[cli]'

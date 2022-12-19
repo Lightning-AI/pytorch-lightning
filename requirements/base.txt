@@ -1,1 +1,2 @@
-importlib-metadata>=4.0.0; python_version < '3.8'
+importlib-metadata >=4.0.0; python_version < '3.8'
+packaging >=20.0
