@@ -4,6 +4,7 @@ import signal
 import threading
 from datetime import datetime
 from pathlib import Path
+from threading import Thread
 
 import psutil
 import py
@@ -17,6 +18,15 @@ from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning_app.utilities.state import AppState
 
 os.environ["LIGHTNING_DISPATCHED"] = "1"
+
+original_method = Thread._wait_for_tstate_lock
+
+
+def fn(self, *args, timeout=None, **kwargs):
+    original_method(self, *args, timeout=1, **kwargs)
+
+
+Thread._wait_for_tstate_lock = fn
 
 
 def pytest_sessionfinish(session, exitstatus):
