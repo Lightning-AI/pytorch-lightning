@@ -146,14 +146,14 @@ class _LoadBalancer(LightningWork):
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
         self._work_name = work_name
+        self._server_status = {}
 
         if not endpoint.startswith("/"):
             endpoint = "/" + endpoint
 
         self.endpoint = endpoint
 
-    async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]]):
-        server = next(self._iter)  # round-robin
+    async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
 
@@ -164,11 +164,17 @@ class _LoadBalancer(LightningWork):
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                    f"{server}{self.endpoint}",
+                    f"{server_url}{self.endpoint}",
                     json=batch_request_data.dict(),
                     timeout=self._timeout_inference_request,
                     headers=headers,
                 ) as response:
+                    # resetting the server status so other requests can be
+                    # scheduled on this node
+                    if server_url in self._server_status:
+                        # TODO - if the server returns an error, track that so
+                        #  we don't send more requests to it
+                        self._server_status[server_url] = True
                     if response.status == 408:
                         raise HTTPException(408, "Request timed out")
                     response.raise_for_status()
@@ -182,6 +188,14 @@ class _LoadBalancer(LightningWork):
             result = {request[0]: ex for request in batch}
             self._responses.update(result)
 
+    def _find_free_server(self) -> Optional[str]:
+        for server in self._server_status:
+            status = self._server_status.get(server, None)
+            if status is None:
+                logger.error("Server is not found in the status list. This should not happen.")
+            if status:
+                return server
+
     async def consumer(self):
         self._last_batch_sent = time.time()
         while True:
@@ -189,8 +203,19 @@ class _LoadBalancer(LightningWork):
             batch = self._batch[: self.max_batch_size]
             is_batch_ready = len(batch) == self.max_batch_size
             is_batch_timeout = time.time() - self._last_batch_sent > self.timeout_batching
+            server_url = self._find_free_server()
+            # setting the server status to be busy! This will be reset by
+            # the send_batch function after the server responds
+            self._server_status[server_url] = False
+            if server_url is None:
+                # TODO - a timeout until we try looking for servers
+                logger.error("No servers available")
+                continue
             if batch and (is_batch_ready or is_batch_timeout):
-                asyncio.create_task(self.send_batch(batch))
+                # find server with capacity
+                # TODO multiple instances of consumer should not be running
+                #  without locking the server array
+                asyncio.create_task(self.send_batch(batch, server_url))
                 # resetting the batch array, TODO - not locking the array
                 self._batch = self._batch[len(batch) :]
                 self._last_batch_sent = time.time()
@@ -280,6 +305,14 @@ class _LoadBalancer(LightningWork):
             async with lock:
                 self.servers = servers
             self._iter = cycle(self.servers)
+            updated_servers = set()
+            for server in servers:
+                updated_servers.add(server)
+                if server not in self._server_status:
+                    self._server_status[server] = True
+            for existing in self._server_status:
+                if existing not in updated_servers:
+                    del self._server_status[existing]
 
         @fastapi_app.post(self.endpoint, response_model=self._output_type)
         async def balance_api(inputs: input_type):
