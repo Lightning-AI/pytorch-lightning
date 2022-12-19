@@ -214,7 +214,7 @@ class CloudRuntime(Runtime):
                 "initialize the Runtime object with `entrypoint_file` argument?"
             )
 
-        # TODO: comment
+        # If enable_basic_auth is set, we parse credential string and set up authentication for the app
         auth: V1LightningAuth = None
         if self.enable_basic_auth != "":
             parsed_credentials = _credential_string_to_basic_auth_params(self.enable_basic_auth)
