@@ -1,1 +1,16 @@
-venv/
+_notebooks
+.azure
+.github
+.ipynb_checkpoints
+.pytest_cache
+.shared
+.storage
+.venv
+.vscode
+.git
+artifacts
+Datasets
+dist
+docs
+examples
+tests
