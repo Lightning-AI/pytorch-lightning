@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 import lightning_cloud.env
 
@@ -76,7 +77,7 @@ def enable_multiple_works_in_default_container() -> bool:
     return bool(int(os.getenv("ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", "0")))
 
 
-def get_cloud_queue_type():
+def get_cloud_queue_type() -> Optional[str]:
     return os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
 
 
