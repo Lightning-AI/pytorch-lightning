@@ -368,10 +368,7 @@ class HTTPQueue(BaseQueue):
             try:
                 return self._get()
             except queue.Empty:
-                # Note: Sleep for a short time.
-                # If the timeout is larger than sleep_time + request time,
-                # we would fetch the endpoint again.
-                time.sleep(0.1)
+                pass
 
     def _get(self):
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
