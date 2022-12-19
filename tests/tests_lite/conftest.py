@@ -16,7 +16,7 @@ from typing import List
 
 import pytest
 import torch.distributed
-from torch.utils.data import DataLoader, BatchSampler
+from torch.utils.data import BatchSampler, DataLoader
 
 import lightning_lite
 from lightning_lite.utilities.data import _unpatch_dunder_methods
