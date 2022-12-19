@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Optional
 
 from pydantic import BaseModel
@@ -11,6 +12,11 @@ class WorkStatus(BaseModel):
     reason: Optional[str] = None
     message: Optional[str] = None
     count: int = 1
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        assert self.timestamp > 0 and self.timestamp < (int(datetime.now().timestamp()) + 10)
 
 
 class AppStatus(BaseModel):
