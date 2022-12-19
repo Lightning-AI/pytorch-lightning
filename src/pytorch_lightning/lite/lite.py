@@ -23,7 +23,7 @@ from lightning_lite.lite import LightningLite as _NewLightningLite
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
 from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
-from lightning_lite.plugins import NativeMixedPrecision as LiteNativeMixedPrecision
+from lightning_lite.plugins import MixedPrecision as LiteMixedPrecision
 from lightning_lite.plugins import Precision as LitePrecision
 from lightning_lite.plugins import TPUBf16Precision as LiteTPUBf16Precision
 from lightning_lite.plugins import TPUPrecision as LiteTPUPrecision
@@ -285,7 +285,7 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
         return LitePrecision()
 
     if type(plugin) is PLNativeMixedPrecisionPlugin:
-        return LiteNativeMixedPrecision(
+        return LiteMixedPrecision(
             precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
         )
 

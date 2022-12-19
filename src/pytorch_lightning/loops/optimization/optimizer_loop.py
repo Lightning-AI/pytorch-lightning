@@ -362,7 +362,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
                 " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
                 f" The `{type(pl_module).__name__}.optimizer_step()` hook is overridden, including the"
-                " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to "
+                " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to"
                 " return True."
             )
             kwargs["using_native_amp"] = self.trainer.amp_backend == "native"

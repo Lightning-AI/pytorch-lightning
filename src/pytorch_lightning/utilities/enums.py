@@ -48,13 +48,7 @@ class _DeprecatedEnumMeta(EnumMeta):
         return obj
 
 
-class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
-    """_DeprecatedEnum calls an enum's `deprecate()` method on member access."""
-
-    pass
-
-
-class AMPType(LightningEnum):
+class AMPType(LightningEnum, metaclass=_DeprecatedEnumMeta):
     """Type of Automatic Mixed Precision used for training."""
 
     APEX = "apex"
@@ -62,7 +56,7 @@ class AMPType(LightningEnum):
 
     def deprecate(self) -> None:
         rank_zero_deprecation(
-            f"`{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
             f" Use the string value `{self.value!r}` instead."
         )
 

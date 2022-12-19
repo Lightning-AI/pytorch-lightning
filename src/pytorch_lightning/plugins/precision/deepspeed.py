@@ -45,7 +45,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Union[str, int], amp_type: str = "native", amp_level: Optional[str] = None) -> None:
+    def __init__(
+        self, precision: Union[str, int], amp_type: Optional[str] = None, amp_level: Optional[str] = None
+    ) -> None:
         if amp_type == "apex":
             # TODO: remove in v1.10.0
             rank_zero_deprecation(
@@ -60,11 +62,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 )
 
             amp_level = amp_level or "O2"
+        elif amp_level is not None:
+            raise ValueError(
+                f"`{type(self).__name__}(amp_level={amp_level!r})` is only relevant when using NVIDIA/apex"
+            )
+        if amp_type is None:
+            amp_type = "native"
         else:
-            if amp_level is not None:
-                raise ValueError(
-                    f"`{type(self).__name__}(amp_level={amp_level!r})` is only relevant when using NVIDIA/apex"
-                )
             rank_zero_deprecation(
                 f"Passing `{type(self).__name__}(amp_type={amp_type!r})` been deprecated in v1.9.0 and will be removed"
                 f" in v1.10.0. This argument is no longer necessary."

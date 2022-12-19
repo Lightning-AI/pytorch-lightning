@@ -79,7 +79,6 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities.enums import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -384,7 +383,7 @@ class AcceleratorConnector:
             )
         else:
             amp_type = "native"
-        self._amp_type_flag = AMPType.from_str(amp_type).value
+        self._amp_type_flag = amp_type.lower()
 
         if amp_level is not None:
             rank_zero_deprecation(
