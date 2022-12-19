@@ -584,12 +584,12 @@ class AutoScaler(LightningFlow):
 
         pending_requests_per_running_or_pending_work = pending_requests / active_or_pending_works
 
-        # scale out if the number of pending requests exceeds max batch size.
+        # scale up if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
         if pending_requests_per_running_or_pending_work >= max_requests_per_work:
             return replicas + 1
 
-        # scale in if the number of pending requests is below 25% of max_requests_per_work
+        # scale down if the number of pending requests is below 25% of max_requests_per_work
         min_requests_per_work = max_requests_per_work * 0.25
         if pending_requests_per_running_or_pending_work < min_requests_per_work:
             return replicas - 1
