@@ -16,9 +16,7 @@ from argparse import ArgumentParser, Namespace
 import numpy as np
 import torch
 
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.logger import (
+from lightning_fabric.utilities.logger import (
     _add_prefix,
     _convert_params,
     _flatten_dict,
@@ -26,6 +24,8 @@ from pytorch_lightning.utilities.logger import (
     _sanitize_params,
     _version,
 )
+from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import CSVLogger
 
 
 def test_convert_params():

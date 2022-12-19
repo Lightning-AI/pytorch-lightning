@@ -24,17 +24,12 @@ import torch.nn as nn
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
+from lightning_fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import (
-    _add_prefix,
-    _convert_params,
-    _flatten_dict,
-    _sanitize_callable_params,
-    _scan_checkpoints,
-)
+from pytorch_lightning.utilities.logger import _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
