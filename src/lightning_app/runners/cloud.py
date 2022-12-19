@@ -418,7 +418,7 @@ class CloudRuntime(Runtime):
                     initial_port += 1
 
             queue_server_type = V1QueueServerType.UNSPECIFIED
-            # Note: Enable Application to setup their own queues.
+            # Note: Enable app to select their own queue type.
             queue_type = get_cloud_queue_type()
             if queue_type == "http":
                 queue_server_type = V1QueueServerType.HTTP

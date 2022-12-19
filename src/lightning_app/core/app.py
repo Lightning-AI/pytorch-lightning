@@ -356,8 +356,6 @@ class LightningApp:
             else:
                 break
 
-        logger.debug(f"Collected {len(deltas)} deltas in {time() - t0}")
-
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)
 

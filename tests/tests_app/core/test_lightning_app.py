@@ -2,7 +2,7 @@ import logging
 import os
 import pickle
 from re import escape
-from time import sleep
+from time import sleep, time
 from unittest import mock
 
 import pytest
@@ -480,6 +480,21 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
     else:
         # validate the flow should have aggregated at least expect.
         assert generated > expect
+
+
+def test_lightning_app_aggregation_empty():
+    """Verify the app breaks if no delta is found."""
+
+    class SlowQueue(MultiProcessQueue):
+        def get(self, timeout):
+            out = super().get(timeout)
+            return out
+
+    app = LightningApp(EmptyFlow())
+    app.delta_queue = SlowQueue("api_delta_queue", 0)
+    t0 = time()
+    assert app._collect_deltas_from_ui_and_work_queues() == []
+    assert (time() - t0) < app.state_accumulate_wait
 
 
 class SimpleFlow2(LightningFlow):
