@@ -198,7 +198,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
 
     publish_state_queue.put((app.state_with_changes, None))
 
-    thread = UIRefresher(publish_state_queue, api_response_queue, None)
+    thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
 
     assert global_app_state_store.get_app_state("1234") == app.state_with_changes
