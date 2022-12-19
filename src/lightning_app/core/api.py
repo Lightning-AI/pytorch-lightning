@@ -34,6 +34,7 @@ from lightning_app.core.constants import (
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
 from lightning_app.utilities.app_helpers import InMemoryStateStore, Logger, StateStore
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.component import _context
 from lightning_app.utilities.enum import ComponentContext, OpenAPITags
@@ -66,18 +67,24 @@ global_app_state_store.add(TEST_SESSION_UUID)
 lock = Lock()
 
 app_spec: Optional[List] = None
+app_status: Optional[AppStatus] = None
+
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
 
 logger = Logger(__name__)
-
 
 # This can be replaced with a consumer that publishes states in a kv-store
 # in a serverless architecture
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_response_queue, refresh_interval: float = 0.1) -> None:
+    def __init__(
+        self,
+        api_publish_state_queue,
+        api_response_queue,
+        refresh_interval: float = 0.1,
+    ) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_response_queue = api_response_queue
@@ -98,7 +105,8 @@ class UIRefresher(Thread):
 
     def run_once(self):
         try:
-            state = self.api_publish_state_queue.get(timeout=0)
+            global app_status
+            state, app_status = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
         except queue.Empty:
@@ -324,6 +332,17 @@ async def upload_file(response: Response, filename: str, uploaded_file: UploadFi
         with _context(ComponentContext.WORK):
             drive.put(filename)
     return f"Successfully uploaded '{filename}' to the Drive"
+
+
+@fastapi_service.get("/api/v1/status", response_model=AppStatus)
+async def get_status() -> AppStatus:
+    """Get the current status of the app and works."""
+    global app_status
+    if app_status is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="App status hasn't been reported yet."
+        )
+    return app_status
 
 
 @fastapi_service.get("/healthz", status_code=200)
