@@ -500,6 +500,7 @@ class CloudRuntime(Runtime):
                             name=app_name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
+                            auth=app_spec.auth,
                         ),
                     )
                 )
