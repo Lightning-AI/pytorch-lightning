@@ -23,6 +23,9 @@ class SchedulerThread(threading.Thread):
             while not self._exit_event.is_set():
                 self._exit_event.wait(self._sleep_time)
                 self.run_once()
+        # TODO: Remove toward manual delta computation
+        except RuntimeError:
+            pass
         except Exception as e:
             raise e
 
@@ -35,6 +38,10 @@ class SchedulerThread(threading.Thread):
             # When the event is reached, send a delta to activate scheduling.
             if current_date > next_event:
                 flow = self._app.get_component_by_name(metadata["name"])
+                # TODO: This is not thread safe.
+                # Race condition can happen if the flow dynamially creates works during the
+                # RuntimeError: dictionary changed size during iteration.
+                # Solution. No need to deepcopy. Manually generate the delta.
                 previous_state = deepcopy(flow.state)
                 flow._enable_schedule(call_hash)
                 component_delta = ComponentDelta(

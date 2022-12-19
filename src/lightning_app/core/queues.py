@@ -364,12 +364,11 @@ class HTTPQueue(BaseQueue):
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
-        timeout += 0.1  # add 0.1 seconds as a safe margin
         while (time.time() - start_time) < timeout:
             try:
                 return self._get()
             except queue.Empty:
-                time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
+                time.sleep(0.1)
 
     def _get(self):
         resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})

@@ -13,7 +13,7 @@ def get_lightning_cloud_url() -> str:
 
 SUPPORTED_PRIMITIVE_TYPES = (type(None), str, int, float, bool)
 STATE_UPDATE_TIMEOUT = 0.001
-STATE_ACCUMULATE_WAIT = 0.05
+STATE_ACCUMULATE_WAIT = 0.15
 # Duration in seconds of a moving average of a full flow execution
 # beyond which an exception is raised.
 FLOW_DURATION_THRESHOLD = 1.0
