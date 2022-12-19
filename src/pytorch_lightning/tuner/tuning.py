@@ -296,7 +296,7 @@ def _check_tuner_configuration(
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
-    configured_cb = list()
+    configured_callbacks = []
     for cb in trainer.callbacks:
         if isinstance(cb, BatchSizeFinder) and trainer.auto_scale_batch_size:
             configured_cb.append("BatchSizeFinder")
