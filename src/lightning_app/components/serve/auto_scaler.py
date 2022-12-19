@@ -466,8 +466,8 @@ class AutoScaler(LightningFlow):
         work_cls: Type[LightningWork],
         min_replicas: int = 1,
         max_replicas: int = 4,
-        autoscale_up_interval: int = 10,
-        autoscale_down_interval: int = 10,
+        scale_out_interval: int = 10,
+        scale_in_interval: int = 10,
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = "api/predict",
@@ -486,8 +486,8 @@ class AutoScaler(LightningFlow):
 
         self._input_type = input_type
         self._output_type = output_type
-        self.autoscale_up_interval = autoscale_up_interval
-        self.autoscale_down_interval = autoscale_down_interval
+        self.scale_out_interval = scale_out_interval
+        self.scale_in_interval = scale_in_interval
         self.max_batch_size = max_batch_size
 
         if max_replicas < min_replicas:
