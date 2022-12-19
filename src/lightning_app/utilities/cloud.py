@@ -39,4 +39,4 @@ def _sigterm_flow_handler(*_, app: "lightning_app.LightningApp"):
 
 def is_running_in_cloud() -> bool:
     """Returns True if the Lightning App is running in the cloud."""
-    return "LIGHTNING_APP_STATE_URL" in os.environ
+    return bool(int(os.environ.get("LAI_RUNNING_IN_CLOUD", "0"))) or "LIGHTNING_APP_STATE_URL" in os.environ
