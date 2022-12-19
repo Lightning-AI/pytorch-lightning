@@ -628,6 +628,8 @@ class AutoScaler(LightningFlow):
                 work = self.create_work()
                 new_work_id = self.add_work(work)
                 logger.info(f"Work created: '{new_work_id}'")
+            if num_workers_to_add > 0:
+                self._last_autoscale = time.time()
 
         # downscale
         if time.time() - self._last_autoscale > self.scale_in_interval:
@@ -636,9 +638,10 @@ class AutoScaler(LightningFlow):
                 logger.info(f"Downscaling from {self.num_replicas} to {self.num_replicas - 1}")
                 removed_work_id = self.remove_work(self.num_replicas - 1)
                 logger.info(f"Work removed: '{removed_work_id}'")
+            if num_workers_to_remove > 0:
+                self._last_autoscale = time.time()
 
         self.load_balancer.update_servers(self.workers)
-        self._last_autoscale = time.time()
 
     def configure_layout(self):
         tabs = [
