@@ -428,7 +428,7 @@ def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     def fetch_epoch(loader):
         iterator = iter(loader)
         # we fetch 2 batches per epoch
-        return torch.cat([next(iterator).flatten() for _ in range(2)])
+        return torch.cat((next(iterator), next(iterator)))
 
     # 1st epoch
     # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
