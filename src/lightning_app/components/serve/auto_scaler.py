@@ -621,7 +621,7 @@ class AutoScaler(LightningFlow):
         )
 
         # upscale
-        if time.time() - self._last_autoscale > self.autoscale_up_interval:
+        if time.time() - self._last_autoscale > self.scale_out_interval:
             num_workers_to_add = num_target_workers - self.num_replicas
             for _ in range(num_workers_to_add):
                 logger.info(f"Upscaling from {self.num_replicas} to {self.num_replicas + 1}")
@@ -630,7 +630,7 @@ class AutoScaler(LightningFlow):
                 logger.info(f"Work created: '{new_work_id}'")
 
         # downscale
-        if time.time() - self._last_autoscale > self.autoscale_down_interval:
+        if time.time() - self._last_autoscale > self.scale_in_interval:
             num_workers_to_remove = self.num_replicas - num_target_workers
             for _ in range(num_workers_to_remove):
                 logger.info(f"Downscaling from {self.num_replicas} to {self.num_replicas - 1}")
