@@ -29,15 +29,15 @@ Examples
    :height: 150
 
 .. displayitem::
-   :header: Deploy a model
-   :description: Learn how to deploy a model
-   :col_css: col-md-4
-   :button_link: model_server_app/model_server_app.html
-   :height: 150
-
-.. displayitem::
    :header: Train Scikit-learn model on cloud
    :description: Learn how to train a Scikit-learn model with Lightning
    :col_css: col-md-4
    :button_link: scikit_learn/scikit_learn.html
+   :height: 150
+
+.. displayitem::
+   :header: Deploy a model
+   :description: Learn how to deploy a model
+   :col_css: col-md-4
+   :button_link: model_server_app/model_server_app.html
    :height: 150

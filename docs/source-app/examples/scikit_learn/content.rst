@@ -18,7 +18,9 @@ Building a Scikit-learn training component
 We will be using the Iris flower dataset composed of three kinds of irises having different sepal and petal lengths.
 The below chart shows the distribution of flowers by their sepal width and length.
 
-.. TODO: Add data plot here
+
+.. figure::  https://scikit-learn.org/stable/_images/sphx_glr_plot_iris_dataset_002.png
+
 
 Luckily, Scikit learn has a prebuilt function to load the iris dataset.
 We will load the data using scikit learn and train a Decision Tree classifier for this tutorial.
@@ -32,7 +34,6 @@ Now, we will create a Lightning component that will run our training job. To run
 We create a class SKLearnTraining that inherits LightningWork and defines the run method where we will run all the steps for training our model. We can also configure the machine-related settings like CPU, RAM, and disk size using the CloudCompute API.
 
 .. literalinclude:: ./app.py
-
 
 In order to save the model for deployment or fine-tuning in the future we need to save the model. Lightning provides Drive API, a central place for components to share data.
 We can store our model in the drive and easily access it either from a different component in our workflow like a deployment pipeline or download the model manually from the Lightning App dashboard.
@@ -56,7 +57,19 @@ You can sign up to a Lightning AI account to get 3 free credits and try your app
 
 ----
 
+**********
+Next Steps
+**********
+
 .. raw:: html
 
-        </div>
-    </div>
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Deploy a model
+   :description: Learn how to deploy a model
+   :col_css: col-md-4
+   :button_link: model_server_app/model_server_app.html
+   :height: 180
+   :tag: intermediate
