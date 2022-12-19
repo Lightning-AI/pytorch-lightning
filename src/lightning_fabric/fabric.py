@@ -28,6 +28,7 @@ from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
 
 from lightning_fabric.loggers import Logger
+
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
@@ -90,7 +91,7 @@ class Fabric:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         callbacks: Optional[Union[List[Any], Any]] = None,
-        loggers: Optional[Union[Logger, List[Logger]]] = None
+        loggers: Optional[Union[Logger, List[Logger]]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
