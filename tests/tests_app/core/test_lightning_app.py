@@ -656,6 +656,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
+@pytest.mark.skipif(True, reason="reloading isn't properly supported")
 def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))

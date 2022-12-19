@@ -150,7 +150,7 @@ def test_work_runner(parallel, cache_calls, *_):
         assert isinstance(error_queue._queue[0], Exception)
     else:
         assert isinstance(error_queue._queue[0], Empty)
-        assert len(delta_queue._queue) == 3
+        assert len(delta_queue._queue) in [3, 4]
         res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
         assert res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "running"
         assert delta_queue._queue[1].delta.to_dict() == {
