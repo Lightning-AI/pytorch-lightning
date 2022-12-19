@@ -409,7 +409,7 @@ class AutoScaler(LightningFlow):
     Args:
         min_replicas: The number of works to start when app initializes.
         max_replicas: The max number of works to spawn to handle the incoming requests.
-        scale_out_interval: The number of seconds to wait before checking whether to upscale the server
+        scale_out_interval: The number of seconds to wait before checking whether to increase the number of servers.
         scale_in_interval: The number of seconds to wait before checking whether to decrease the number of servers.
         endpoint: Provide the REST API path.
         max_batch_size: (auto-batching) The number of requests to process at once.
