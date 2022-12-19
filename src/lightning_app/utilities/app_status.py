@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, Optional
 
 from pydantic import BaseModel
 
@@ -6,7 +6,6 @@ from pydantic import BaseModel
 class WorkStatus(BaseModel):
     """The ``WorkStatus`` captures the status of a work according to the app."""
 
-    name: str
     stage: str
     timestamp: float
     reason: Optional[str] = None
@@ -21,4 +20,4 @@ class AppStatus(BaseModel):
     is_ui_ready: bool
 
     # The statuses of ``LightningWork`` objects currently associated with this app
-    work_statuses: List[WorkStatus]
+    work_statuses: Dict[str, WorkStatus]

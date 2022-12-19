@@ -309,8 +309,8 @@ class LightningWork:
             latest_status = statuses[-1]
             if latest_status.get("reason") == WorkFailureReasons.TIMEOUT:
                 return self._aggregate_status_timeout(statuses)
-            return WorkStatus(name=self.name, **latest_status)
-        return WorkStatus(name=self.name, stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
+            return WorkStatus(**latest_status)
+        return WorkStatus(stage=WorkStageStatus.NOT_STARTED, timestamp=time.time())
 
     @property
     def statuses(self) -> List[WorkStatus]:

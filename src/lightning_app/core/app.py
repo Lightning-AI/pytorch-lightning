@@ -532,9 +532,9 @@ class LightningApp:
     def _update_status(self) -> None:
         old_status = self.status
 
-        work_statuses = []
+        work_statuses = {}
         for work in breadth_first(self.root, types=(lightning_app.LightningWork,)):
-            work_statuses.append(work.status)
+            work_statuses[work.name] = work.status
 
         self.status = AppStatus(
             is_ui_ready=self.ready,
