@@ -483,7 +483,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
 
 
 def test_lightning_app_aggregation_empty():
-    """Verify the app while loop exits before `state_accumulate_wait` if no deltas are found."""
+    """Verify the while loop exits before `state_accumulate_wait` is reached if no deltas are found."""
 
     class SlowQueue(MultiProcessQueue):
         def get(self, timeout):
