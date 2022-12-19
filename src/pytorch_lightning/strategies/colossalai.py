@@ -291,11 +291,11 @@ class ColossalAIStrategy(DDPStrategy):
                     from colossalai.utils import get_current_device
                 if not self.use_chunk:
                     raise ValueError("`ColossalAIStrategy` must use chunk in versions higher than 0.1.10")
-                chunk_search_range = self.chunk_size_search_kwargs["search_range"]
-                search_range_mb = self.chunk_size_search_kwargs["search_range"] / 1024**2
-                search_interval = math.ceil(chunk_search_range / self.chunk_size_search_kwargs["n_grids"])
-                min_chunk_size_mb = self.chunk_size_search_kwargs["min_chunk_size"]
-                if min_chunk_size_mb:
+                chunk_search_range: int = self.chunk_size_search_kwargs["search_range"]
+                search_range_mb: float = self.chunk_size_search_kwargs["search_range"] / 1024**2
+                search_interval: int = math.ceil(chunk_search_range / self.chunk_size_search_kwargs["n_grids"])
+                min_chunk_size_mb: Optional[int] = self.chunk_size_search_kwargs["min_chunk_size"]
+                if min_chunk_size_mb is not None:
                     min_chunk_size_mb /= 1024**2
 
                 model = _LightningModuleWrapperBase(self.model)
