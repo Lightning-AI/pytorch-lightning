@@ -498,7 +498,7 @@ class CloudRuntime(Runtime):
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
 
-        if open_ui:
+        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
             click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
 
         if cleanup_handle:
