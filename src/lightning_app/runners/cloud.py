@@ -295,7 +295,6 @@ class CloudRuntime(Runtime):
                 name=self.app.flow_cloud_compute.name,
                 shm_size=self.app.flow_cloud_compute.shm_size,
                 preemptible=False,
-                disk_size=self.app.flow_cloud_compute.disk_size,
             ),
         )
 
