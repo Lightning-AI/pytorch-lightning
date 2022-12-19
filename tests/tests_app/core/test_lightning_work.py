@@ -1,6 +1,6 @@
 from queue import Empty
 from re import escape
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -384,6 +384,18 @@ class FlowStart(LightningFlow):
 def test_lightning_app_work_start(cache_calls, parallel):
     app = LightningApp(FlowStart(cache_calls, parallel))
     MultiProcessRuntime(app, start_server=False).dispatch()
+
+
+def test_lightning_work_delete():
+    work = WorkCounter()
+
+    with pytest.raises(Exception, match="Can't delete the work"):
+        work.delete()
+
+    mock = MagicMock()
+    work._backend = mock
+    work.delete()
+    assert work == mock.delete_work._mock_call_args_list[0].args[1]
 
 
 class WorkDisplay(LightningWork):
