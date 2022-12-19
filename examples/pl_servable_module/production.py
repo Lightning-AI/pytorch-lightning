@@ -109,7 +109,7 @@ def cli_main():
         ProductionReadyModel,
         CIFAR10DataModule,
         seed_everything_default=42,
-        save_config_overwrite=True,
+        save_config_kwargs={"overwrite": True},
         run=False,
         trainer_defaults={
             "callbacks": [ServableModuleValidator()],
