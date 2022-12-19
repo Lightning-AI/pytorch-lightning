@@ -110,6 +110,7 @@ def test_scale_from_zero_min_replica():
     resp = auto_scaler.scale(0, {"pending_requests": 1, "pending_works": 1})
     assert resp <= 0
 
+
 def test_create_work_cloud_compute_cloned():
     """Test CloudCompute is cloned to avoid creating multiple works in a single machine."""
     cloud_compute = CloudCompute("gpu")
