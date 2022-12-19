@@ -655,7 +655,7 @@ class FlowSchedule(LightningFlow):
 def test_scheduling_api():
 
     app = LightningApp(FlowSchedule())
-    MultiProcessRuntime(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 def test_lightning_flow():

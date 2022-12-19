@@ -1,10 +1,9 @@
 import threading
-from copy import deepcopy
 from datetime import datetime
 from typing import Optional
 
 from croniter import croniter
-from deepdiff import DeepDiff, Delta
+from deepdiff import Delta
 
 from lightning_app.utilities.proxies import ComponentDelta
 
@@ -23,9 +22,6 @@ class SchedulerThread(threading.Thread):
             while not self._exit_event.is_set():
                 self._exit_event.wait(self._sleep_time)
                 self.run_once()
-        # TODO: Remove toward manual delta computation
-        except RuntimeError:
-            pass
         except Exception as e:
             raise e
 
@@ -37,15 +33,15 @@ class SchedulerThread(threading.Thread):
             next_event = croniter(metadata["cron_pattern"], start_time).get_next(datetime)
             # When the event is reached, send a delta to activate scheduling.
             if current_date > next_event:
-                flow = self._app.get_component_by_name(metadata["name"])
-                # TODO: This is not thread safe.
-                # Race condition can happen if the flow dynamially creates works during the
-                # RuntimeError: dictionary changed size during iteration.
-                # Solution. No need to deepcopy. Manually generate the delta.
-                previous_state = deepcopy(flow.state)
-                flow._enable_schedule(call_hash)
                 component_delta = ComponentDelta(
-                    id=flow.name, delta=Delta(DeepDiff(previous_state, flow.state, verbose_level=2))
+                    id=metadata["name"],
+                    delta=Delta(
+                        {
+                            "values_changed": {
+                                f"root['calls']['scheduling']['{call_hash}']['running']": {"new_value": True}
+                            }
+                        }
+                    ),
                 )
                 self._app.delta_queue.put(component_delta)
                 metadata["start_time"] = next_event.isoformat()
