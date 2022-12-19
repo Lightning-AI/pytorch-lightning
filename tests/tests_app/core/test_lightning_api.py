@@ -380,7 +380,7 @@ async def test_health_endpoint_success():
 @pytest.mark.anyio
 async def test_health_endpoint_failure(monkeypatch):
     monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
-    monkeypatch.setattr(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
+    monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         # will respond 503 if redis is not running
         response = await client.get("/healthz")
