@@ -363,12 +363,13 @@ class ColossalAIStrategy(DDPStrategy):
         self.setup_precision_plugin()
         self.model_to_device()
 
-    def ignore_no_grad_parameters(self, running_device) -> None:
+    def ignore_no_grad_parameters(self, running_device: torch.device) -> None:
         # for those parameters with no gradients
         # we shold ignore them on DDP and move them to CUDA
+        assert self.model is not None
         for param in self.model.parameters():
             if not param.requires_grad:
-                param._ddp_to_ignore = True
+                setattr(param, "_ddp_to_ignore", True)
                 param.data = param.data.to(running_device)
 
     def model_to_device(self) -> None:
