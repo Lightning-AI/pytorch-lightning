@@ -593,7 +593,7 @@ class AutoScaler(LightningFlow):
         if pending_requests_per_running_or_pending_work >= max_requests_per_work:
             return replicas + 1
 
-        # scale down if the number of pending requests is below 25% of max_requests_per_work
+        # scale in if the number of pending requests is below 25% of max_requests_per_work
         min_requests_per_work = max_requests_per_work * 0.25
         if pending_requests_per_running_or_pending_work < min_requests_per_work:
             return replicas - 1
