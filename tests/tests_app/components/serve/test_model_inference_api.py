@@ -48,6 +48,7 @@ def test_model_inference_api(workers):
     process.terminate()
     # TODO: Investigate why this doesn't match exactly `imgstr`.
     assert res.json()
+    process.kill()
 
 
 class EmptyServer(serve.ModelInferenceAPI):
