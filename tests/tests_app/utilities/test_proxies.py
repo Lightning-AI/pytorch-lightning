@@ -67,8 +67,9 @@ def test_lightning_work_setattr():
 
 @pytest.mark.parametrize("parallel", [True, False])
 @pytest.mark.parametrize("cache_calls", [False, True])
+@mock.patch("lightning_app.utilities.proxies._Copier", MagicMock())
 @pytest.mark.skipif(sys.platform == "win32", reason="TODO (@ethanwharris): Fix this on Windows")
-def test_work_runner(parallel, cache_calls):
+def test_work_runner(parallel, cache_calls, *_):
     """This test validates the `WorkRunner` runs the work.run method and properly populates the `delta_queue`,
     `error_queue` and `readiness_queue`."""
 
@@ -149,13 +150,14 @@ def test_work_runner(parallel, cache_calls):
         assert isinstance(error_queue._queue[0], Exception)
     else:
         assert isinstance(error_queue._queue[0], Empty)
-        assert len(delta_queue._queue) == 3
+        assert len(delta_queue._queue) in [3, 4]
         res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
         assert res[f"root['calls']['{call_hash}']['statuses'][0]"]["stage"] == "running"
         assert delta_queue._queue[1].delta.to_dict() == {
             "values_changed": {"root['vars']['counter']": {"new_value": 1}}
         }
-        res = delta_queue._queue[2].delta.to_dict()["dictionary_item_added"]
+        index = 3 if len(delta_queue._queue) == 4 else 2
+        res = delta_queue._queue[index].delta.to_dict()["dictionary_item_added"]
         assert res[f"root['calls']['{call_hash}']['ret']"] is None
 
     # Stop blocking and let the thread join
