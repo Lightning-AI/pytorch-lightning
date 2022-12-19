@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ class WorkStatus(BaseModel):
     message: Optional[str] = None
     count: int = 1
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         assert self.timestamp > 0 and self.timestamp < (int(datetime.now().timestamp()) + 10)
