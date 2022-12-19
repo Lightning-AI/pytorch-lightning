@@ -20,8 +20,9 @@ jobs:
     timeout-minutes: 35
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Checkout 🛎
+      uses: actions/checkout@v3
+    - name: Set up Python 🐍 ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
@@ -33,7 +34,8 @@ jobs:
         pip install -e '.[cli]'
         python -m lightning_utilities.cli requirements set-oldest
 
-    - uses: ./.github/actions/cache
+    - name: Complex 💽 caching
+      uses: ./.github/actions/cache
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -48,7 +50,8 @@ jobs:
     # TODO: re-enable after the external usage is resolved, see #51
     # - uses: ./.github/actions/pip-list
 
-    - uses: ./.github/actions/unittesting
+    - name: Unittesting and coverage
+      uses: ./.github/actions/unittesting
       with:
         python-version: ${{ matrix.python-version }}
         pytorch-version: ${{ matrix.pytorch-version }}

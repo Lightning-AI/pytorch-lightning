@@ -64,40 +64,40 @@ jobs:
       matrix: ${{ fromJSON(inputs.build-matrix) }}
 
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v3
-      - name: Download 📥 previous packages
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: pypi
-      - name: Set up Python 🐍
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
+    - name: Checkout 🛎️
+      uses: actions/checkout@v3
+    - name: Download 📥 previous packages
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
+    - name: Set up Python 🐍
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.8
 
-      - name: Check local package
-        run: python setup.py check --metadata --strict
+    - name: Check local package
+      run: python setup.py check --metadata --strict
 
-      - name: Create package
-        run: |
-          pip install -q -U setuptools wheel
-          python setup.py sdist bdist_wheel
-          python setup.py clean
+    - name: Create package
+      run: |
+        pip install -q -U setuptools wheel
+        python setup.py sdist bdist_wheel
+        python setup.py clean
 
-      - name: Check build package
-        run: |
-          pip install -q -U twine>=4.0.1
-          # check package description
-          twine check dist/*
+    - name: Check build package
+      run: |
+        pip install -q -U twine>=4.0.1
+        # check package description
+        twine check dist/*
 
-      - name: prepare for upload
-        run: cp dist/* pypi/
-      - name: Upload 📤 to the share store
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: pypi
+    - name: prepare for upload
+      run: cp dist/* pypi/
+    - name: Upload 📤 to the share store
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
 
   pkg-check:
     needs: pkg-build
@@ -107,38 +107,38 @@ jobs:
       matrix: ${{ fromJSON(inputs.testing-matrix) }}
 
     steps:
-      - name: Download 📥 all packages
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.artifact-name }}
-          path: pypi
-      - name: show packages
-        working-directory: pypi
-        run: ls -lh
-      - name: Set up Python 🐍 ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+    - name: Download 📥 all packages
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
+    - name: show packages
+      working-directory: pypi
+      run: ls -lh
+    - name: Set up Python 🐍 ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Install package (wheel)
-        working-directory: pypi
-        run: |
-          # TODO: reset env / conside add as conda
-          pip install *.whl ${{ inputs.install-flags }}
-          python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-          pip list
+    - name: Install package (wheel)
+      working-directory: pypi
+      run: |
+        # TODO: reset env / conside add as conda
+        pip install *.whl ${{ inputs.install-flags }}
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        pip list
 
-      - name: Uninstall all
-        run: |
-          pip freeze > _reqs.txt
-          pip uninstall -y -r _reqs.txt
+    - name: Uninstall all
+      run: |
+        pip freeze > _reqs.txt
+        pip uninstall -y -r _reqs.txt
 
-      - name: Install package (archive)
-        working-directory: pypi
-        run: |
-          # TODO: reset env / conside add as conda
-          pip install *.tar.gz ${{ inputs.install-flags }}
-          python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
-          pip list
+    - name: Install package (archive)
+      working-directory: pypi
+      run: |
+        # TODO: reset env / conside add as conda
+        pip install *.tar.gz ${{ inputs.install-flags }}
+        python -c "import ${{ inputs.import-name }} as pkg; print(f'version: {pkg.__version__}')"
+        pip list
 
-      # TODO: add run doctests
+    # TODO: add run doctests

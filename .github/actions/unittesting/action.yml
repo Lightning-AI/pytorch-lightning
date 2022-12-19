@@ -32,7 +32,8 @@ runs:
   using: "composite"
   steps:
 
-  - run: |
+  - name: Python 🐍 details
+    run: |
       python --version
       pip --version
       pip list

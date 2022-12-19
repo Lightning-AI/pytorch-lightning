@@ -8,55 +8,56 @@ jobs:
   build-docs-deploy:
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v3
-        # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v4
-        with:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v3
+      # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
+      with:
+        persist-credentials: false
+    - name: Set up Python 🐍
+      uses: actions/setup-python@v4
+      with:
           python-version: 3.7
 
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Cache 💽 pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
-      - name: Install dependencies
-        run: |
-          pip install  -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html  --quiet
-          pip install  --requirement requirements/docs.txt
-          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-          sudo apt-get update
-          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
-          python --version
-          pip --version
-          pip list
-        shell: bash
+    - name: Install dependencies
+      run: |
+        pip install  -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html  --quiet
+        pip install  --requirement requirements/docs.txt
+        # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+        python --version
+        pip --version
+        pip list
+      shell: bash
 
-      # TODO: re-enable after the external usage is resolved, see #51
-      # - uses: ./.github/actions/pip-list
+    # TODO: re-enable after the external usage is resolved, see #51
+    # - uses: ./.github/actions/pip-list
 
-      - name: Make Documentation
-        run: |
-          # First run the same pipeline as Read-The-Docs
-          cd docs
-          make clean
-          make html --jobs 2
-          #touch build/html/.nojekyll
+    - name: Make Documentation
+      run: |
+        # First run the same pipeline as Read-The-Docs
+        cd docs
+        make clean
+        make html --jobs 2
+        #touch build/html/.nojekyll
 
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4.4.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages # The branch the action should deploy to.
-          folder: docs/build/html # The folder the action should deploy.
-          clean: true # Automatically remove deleted files from the deploy branch
-          target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
-          single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
-        if: success()
+    - name: Deploy 🚀
+      uses: JamesIves/github-pages-deploy-action@v4.4.1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: gh-pages # The branch the action should deploy to.
+        folder: docs/build/html # The folder the action should deploy.
+        clean: true # Automatically remove deleted files from the deploy branch
+        target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
+        single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
+      if: success()

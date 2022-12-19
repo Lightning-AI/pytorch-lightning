@@ -39,14 +39,14 @@ runs:
       python -c "from pip._internal.locations import USER_CACHE_DIR; print('PIP_CACHE_DIR=' + USER_CACHE_DIR)" >> $GITHUB_ENV
     shell: bash
 
-  - name: Cache pip
+  - name: Cache 💽 pip
     uses: actions/cache@v3
     with:
       path: $PIP_CACHE_DIR
       key: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
       restore-keys: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
 
-  - name: Cache conda
+  - name: Cache 💽 conda
     uses: actions/cache@v3
     if: runner.os == 'Linux'
     with:

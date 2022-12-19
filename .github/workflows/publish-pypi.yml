@@ -12,8 +12,10 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - name: Checkout 🛎️
+      uses: actions/checkout@v3
+    - name: Set up Python 🐍
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
 
@@ -26,7 +28,8 @@ jobs:
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
-    - uses: actions/upload-artifact@v3
+    - name: Upload 📤 artifact
+      uses: actions/upload-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
         path: dist
@@ -36,12 +39,15 @@ jobs:
     runs-on: ubuntu-20.04
     needs: build-package
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
+    - name: Checkout 🛎️
+      uses: actions/checkout@v3
+    - name: Download 📥 artifact
+      uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
+    - name: local 🗃️ files
+      run: ls -lh dist/
 
     - name: Upload to release
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
@@ -55,12 +61,15 @@ jobs:
     timeout-minutes: 10
     needs: build-package
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
+    - name: Checkout 🛎️
+      uses: actions/checkout@v3
+    - name: Download 📥 artifact
+      uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
         path: dist
-    - run: ls -lh dist/
+    - name: local 🗃️ files
+      run: ls -lh dist/
 
     - name: Delay releasing
       if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
