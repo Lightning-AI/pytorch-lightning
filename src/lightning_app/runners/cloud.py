@@ -1,5 +1,6 @@
 import fnmatch
 import json
+import os
 import random
 import re
 import string
@@ -589,6 +590,10 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
+
+        # Pretend we are running in the cloud when loading the app locally
+        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+
         try:
             app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
@@ -599,6 +604,8 @@ class CloudRuntime(Runtime):
             # Create a generic app.
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
         return app
 
     @staticmethod
