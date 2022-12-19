@@ -85,7 +85,7 @@ def test_extract_metadata_from_component():
                 "name": "gpu",
                 "disk_size": 0,
                 "idle_timeout": None,
-                "shm_size": 0,
+                "shm_size": 1024,
                 "mounts": None,
                 "_internal_id": ANY,
             },
