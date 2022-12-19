@@ -427,7 +427,8 @@ class AutoScaler(LightningFlow):
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
-                autoscale_interval=10,
+                scale_out_interval=10,
+                scale_in_interval=10,
             )
         )
 
@@ -456,7 +457,8 @@ class AutoScaler(LightningFlow):
                 MyPythonServer,
                 min_replicas=1,
                 max_replicas=8,
-                autoscale_interval=10,
+                scale_out_interval=10,
+                scale_in_interval=10,
                 max_batch_size=8,  # for auto batching
                 timeout_batching=1,  # for auto batching
             )
