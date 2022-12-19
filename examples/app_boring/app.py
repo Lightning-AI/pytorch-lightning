@@ -43,6 +43,10 @@ class BoringApp(L.LightningFlow):
             raise_exception=True,
         )
 
+    @property
+    def ready(self) -> bool:
+        return self.dest_work.is_running
+
     def run(self):
         self.source_work.run()
         if self.source_work.has_succeeded:

@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added partial support for fastapi `Request` annotation in `configure_api` handlers ([#16047](https://github.com/Lightning-AI/lightning/pull/16047))
 
+- Added a nicer UI with URL and examples for the autoscaler component ([#16063](https://github.com/Lightning-AI/lightning/pull/16063))
+
+- Enabled users to have more control over scaling out/in interval ([#16093](https://github.com/Lightning-AI/lightning/pull/16093))
+
 - Added more datatypes to serving component ([#16018](https://github.com/Lightning-AI/lightning/pull/16018))
 
 - Added `work.delete` method to delete the work ([#16103](https://github.com/Lightning-AI/lightning/pull/16103))
@@ -24,7 +28,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 
+- The default `start_method` for creating Work processes locally on MacOS is now 'spawn' (previously 'fork') ([#16089](https://github.com/Lightning-AI/lightning/pull/16089))
+
+
 - The utility `lightning.app.utilities.cloud.is_running_in_cloud` now returns `True` during loading of the app locally when running with `--cloud` ([#16045](https://github.com/Lightning-AI/lightning/pull/16045))
+
 
 
 ### Deprecated
@@ -48,6 +56,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed a bug where apps that had previously been deleted could not be run again from the CLI ([#16082](https://github.com/Lightning-AI/lightning/pull/16082))
+
+- Fixed a bug where `AutoScaler` would fail with min_replica=0 ([#16092](https://github.com/Lightning-AI/lightning/pull/16092)
 
 
 - Fixed a non-thread safe deepcopy in the scheduler ([#16114](https://github.com/Lightning-AI/lightning/pull/16114))

@@ -121,7 +121,7 @@ class Runtime:
                         self._add_stopped_status_to_work(work)
 
                     # Publish the updated state and wait for the frontend to update.
-                    self.app.api_publish_state_queue.put(self.app.state)
+                    self.app.api_publish_state_queue.put((self.app.state, self.app.status))
 
                 for thread in self.threads + self.app.threads:
                     thread.join(timeout=0)
