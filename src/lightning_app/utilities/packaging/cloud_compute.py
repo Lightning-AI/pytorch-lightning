@@ -69,7 +69,7 @@ class CloudCompute:
     """
 
     name: str = "default"
-    disk_size: int = 0
+    disk_size: int = 15
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = 0
     mounts: Optional[Union[Mount, List[Mount]]] = None
