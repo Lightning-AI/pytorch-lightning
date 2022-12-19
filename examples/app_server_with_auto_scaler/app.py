@@ -75,7 +75,8 @@ app = L.LightningApp(
         # autoscaler specific args
         min_replicas=1,
         max_replicas=4,
-        autoscale_interval=10,
+        scale_out_interval=10,
+        scale_in_interval=10,
         endpoint="predict",
         input_type=L.app.components.Image,
         output_type=L.app.components.Number,
