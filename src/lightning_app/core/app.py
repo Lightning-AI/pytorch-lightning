@@ -35,6 +35,7 @@ from lightning_app.utilities.app_helpers import (
     _should_dispatch_app,
     Logger,
 )
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -140,6 +141,7 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
+        self.status: Optional[AppStatus] = None
         # TODO: Enable ready locally for opening the UI.
         self.ready = False
 
@@ -150,6 +152,7 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+        self._update_status()
 
         self.is_headless: Optional[bool] = None
 
@@ -418,6 +421,7 @@ class LightningApp:
 
         self._update_layout()
         self._update_is_headless()
+        self._update_status()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -485,19 +489,12 @@ class LightningApp:
         self._original_state = deepcopy(self.state)
         done = False
 
-        # TODO: Re-enable the `ready` property once issues are resolved
-        if not self.root.ready:
-            warnings.warn(
-                "One of your Flows returned `.ready` as `False`. "
-                "This feature is not yet enabled so this will be ignored.",
-                UserWarning,
-            )
-        self.ready = True
+        self.ready = self.root.ready
 
         self._start_with_flow_works()
 
-        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
-            self.api_publish_state_queue.put(self.state_vars)
+        if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
+            self.api_publish_state_queue.put((self.state_vars, self.status))
 
         self._reset_run_time_monitor()
 
@@ -506,8 +503,8 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
-                self.api_publish_state_queue.put(self.state_vars)
+            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
+                self.api_publish_state_queue.put((self.state_vars, self.status))
 
             self._has_updated = False
 
@@ -531,6 +528,23 @@ class LightningApp:
         # If `is_headless` changed, handle it.
         # This ensures support for apps which dynamically add a UI at runtime.
         _handle_is_headless(self)
+
+    def _update_status(self) -> None:
+        old_status = self.status
+
+        work_statuses = {}
+        for work in breadth_first(self.root, types=(lightning_app.LightningWork,)):
+            work_statuses[work.name] = work.status
+
+        self.status = AppStatus(
+            is_ui_ready=self.ready,
+            work_statuses=work_statuses,
+        )
+
+        # If the work statuses changed, the state delta will trigger an update.
+        # If ready has changed, we trigger an update manually.
+        if self.status != old_status:
+            self._has_updated = True
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()

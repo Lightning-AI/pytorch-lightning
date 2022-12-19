@@ -12,13 +12,13 @@ from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
     make_status,
     WorkFailureReasons,
     WorkStageStatus,
-    WorkStatus,
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import LightningWorkException
