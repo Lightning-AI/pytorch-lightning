@@ -124,6 +124,7 @@ def test_simple_app(tmpdir):
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
+                    "_display_name": "",
                 },
                 "calls": {"latest_call_hash": None},
                 "changes": {},
@@ -140,6 +141,7 @@ def test_simple_app(tmpdir):
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
+                    "_display_name": "",
                 },
                 "calls": {"latest_call_hash": None},
                 "changes": {},
@@ -969,7 +971,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7824
+    assert app.root._state_sizes[0] <= 7888
     assert app.root._state_sizes[20] <= 26500
 
 
