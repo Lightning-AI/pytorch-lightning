@@ -416,7 +416,7 @@ def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
     lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
     # no lite.launch(): pretend we are on rank 0 now
 
-    dataset = torch.rand(10, 1)
+    dataset = torch.arange(10)
     torch_dataloader = DataLoader(
         dataset,
         sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
