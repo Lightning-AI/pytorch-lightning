@@ -12,9 +12,9 @@ Lightning AI manages all cloud infrastructure provisioning for us while we focus
 If you are new to the Lightning AI latest framework learn more about it in this blog “How to Build a Machine Learning Training and Deployment Pipeline”.
 
 
-*********
+*********************************************
 Building a Scikit-learn training component
-*********
+*********************************************
 
 We will be using the Iris flower dataset composed of three kinds of irises having different sepal and petal lengths. The below chart shows the distribution of flowers by their sepal width and length.
 
