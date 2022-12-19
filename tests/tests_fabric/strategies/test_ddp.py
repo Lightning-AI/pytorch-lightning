@@ -65,7 +65,7 @@ def test_ddp_no_backward_sync():
     module.no_sync.assert_called_once()
 
 
-@mock.patch("lightning_lite.strategies.ddp.DistributedDataParallel")
+@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
 def test_ddp_extra_kwargs(ddp_mock):
     """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel
     wrapper."""

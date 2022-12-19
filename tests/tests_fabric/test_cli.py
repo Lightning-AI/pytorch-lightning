@@ -20,7 +20,6 @@ import torch.distributed.run
 from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.cli import _run_model
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 
 @pytest.fixture

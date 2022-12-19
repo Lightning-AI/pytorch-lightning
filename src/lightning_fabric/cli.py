@@ -20,7 +20,6 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 _log = logging.getLogger(__name__)
 

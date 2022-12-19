@@ -52,7 +52,6 @@ def test_introspection_lightning_overrides():
         "Profiler",
         "Callback",
         "LightningDataModule",
-        "LightningFabric",
         "Logger",
         "LightningModule",
         "Loop",
