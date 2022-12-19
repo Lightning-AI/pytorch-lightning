@@ -6,7 +6,7 @@ import time
 import uuid
 from base64 import b64encode
 from itertools import cycle
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import requests
 import uvicorn
@@ -15,11 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
+from starlette.staticfiles import StaticFiles
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.app_helpers import Logger
+from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import _is_aiohttp_available, requires
 from lightning_app.utilities.packaging.cloud_compute import CloudCompute
 
@@ -114,20 +116,21 @@ class _LoadBalancer(LightningWork):
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
         timeout_keep_alive: The number of seconds until it closes Keep-Alive connections if no new data is received.
         timeout_inference_request: The number of seconds to wait for inference.
-        \**kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
+        **kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
 
     @requires(["aiohttp"])
     def __init__(
         self,
-        input_type: BaseModel,
-        output_type: BaseModel,
+        input_type: Type[BaseModel],
+        output_type: Type[BaseModel],
         endpoint: str,
         max_batch_size: int = 8,
         # all timeout args are in seconds
-        timeout_batching: int = 1,
+        timeout_batching: float = 1,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
+        work_name: Optional[str] = "API",  # used for displaying the name in the UI
         **kwargs: Any,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
@@ -142,6 +145,7 @@ class _LoadBalancer(LightningWork):
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
+        self._work_name = work_name
 
         if not endpoint.startswith("/"):
             endpoint = "/" + endpoint
@@ -280,6 +284,14 @@ class _LoadBalancer(LightningWork):
         async def balance_api(inputs: self._input_type):
             return await self.process_request(inputs)
 
+        endpoint_info_page = self._get_endpoint_info_page()
+        if endpoint_info_page:
+            fastapi_app.mount(
+                "/endpoint-info", StaticFiles(directory=endpoint_info_page.serve_dir, html=True), name="static"
+            )
+
+        logger.info(f"Your load balancer has started. The endpoint is 'http://{self.host}:{self.port}{self.endpoint}'")
+
         uvicorn.run(
             fastapi_app,
             host=self.host,
@@ -331,6 +343,60 @@ class _LoadBalancer(LightningWork):
         }
         response = requests.put(f"{self.url}/system/update-servers", json=servers, headers=headers, timeout=10)
         response.raise_for_status()
+
+    @staticmethod
+    def _get_sample_dict_from_datatype(datatype: Any) -> dict:
+        if not hasattr(datatype, "schema"):
+            # not a pydantic model
+            raise TypeError(f"datatype must be a pydantic model, for the UI to be generated. but got {datatype}")
+
+        if hasattr(datatype, "_get_sample_data"):
+            return datatype._get_sample_data()
+
+        datatype_props = datatype.schema()["properties"]
+        out: Dict[str, Any] = {}
+        lut = {"string": "data string", "number": 0.0, "integer": 0, "boolean": False}
+        for k, v in datatype_props.items():
+            if v["type"] not in lut:
+                raise TypeError("Unsupported type")
+            out[k] = lut[v["type"]]
+        return out
+
+    def get_code_sample(self, url: str) -> Optional[str]:
+        input_type: Any = self._input_type
+        output_type: Any = self._output_type
+
+        if not (hasattr(input_type, "request_code_sample") and hasattr(output_type, "response_code_sample")):
+            return None
+        return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
+
+    def _get_endpoint_info_page(self) -> Optional["APIAccessFrontend"]:  # noqa: F821
+        try:
+            from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
+
+        if is_running_in_cloud():
+            url = f"{self._future_url}{self.endpoint}"
+        else:
+            url = f"http://localhost:{self.port}{self.endpoint}"
+
+        frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
+        code_samples = self.get_code_sample(url)
+        if code_samples:
+            frontend_objects["code_samples"] = code_samples
+            # TODO also set request/response for JS UI
+        else:
+            try:
+                request = self._get_sample_dict_from_datatype(self._input_type)
+                response = self._get_sample_dict_from_datatype(self._output_type)
+            except TypeError:
+                return None
+            else:
+                frontend_objects["request"] = request
+                frontend_objects["response"] = response
+        return APIAccessFrontend(apis=[frontend_objects])
 
 
 class AutoScaler(LightningFlow):
@@ -403,8 +469,8 @@ class AutoScaler(LightningFlow):
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = "api/predict",
-        input_type: BaseModel = Dict,
-        output_type: BaseModel = Dict,
+        input_type: Type[BaseModel] = Dict,
+        output_type: Type[BaseModel] = Dict,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -438,6 +504,7 @@ class AutoScaler(LightningFlow):
             timeout_batching=timeout_batching,
             cache_calls=True,
             parallel=True,
+            work_name=self._work_cls.__name__,
         )
         for _ in range(min_replicas):
             work = self.create_work()
@@ -574,5 +641,8 @@ class AutoScaler(LightningFlow):
         self._last_autoscale = time.time()
 
     def configure_layout(self):
-        tabs = [{"name": "Swagger", "content": self.load_balancer.url}]
+        tabs = [
+            {"name": "Endpoint Info", "content": f"{self.load_balancer}/endpoint-info"},
+            {"name": "Swagger", "content": self.load_balancer.url},
+        ]
         return tabs
