@@ -184,8 +184,7 @@ class LightningApp:
     def _update_index_file(self):
         # update index.html,
         # this should happen once for all apps before the ui server starts running.
-        if self.root_path:
-            frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
+        frontend.update_index_file(FRONTEND_DIR, info=self.info, root_path=self.root_path)
 
     def get_component_by_name(self, component_name: str):
         """Returns the instance corresponding to the given component name."""
@@ -357,7 +356,7 @@ class LightningApp:
             else:
                 break
 
-        logger.info(f"Collected {len(deltas)} deltas in {time() - t0}")
+        logger.debug(f"Collected {len(deltas)} deltas in {time() - t0}")
 
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)
