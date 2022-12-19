@@ -25,7 +25,7 @@ from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
@@ -639,6 +639,8 @@ class Fabric:
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("shuffle", isinstance(dataloader.sampler, RandomSampler))
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
+        if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+            return DistributedSampler(dataloader.dataset, **kwargs)
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _prepare_run_method(self) -> None:
