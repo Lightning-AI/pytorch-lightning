@@ -13,6 +13,7 @@
 from lightning_lite.accelerators.accelerator import Accelerator  # noqa: F401
 from lightning_lite.accelerators.cpu import CPUAccelerator  # noqa: F401
 from lightning_lite.accelerators.cuda import CUDAAccelerator  # noqa: F401
+from lightning_lite.accelerators.cuda import find_usable_cuda_gpus  # noqa: F401
 from lightning_lite.accelerators.mps import MPSAccelerator  # noqa: F401
 from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
 from lightning_lite.accelerators.tpu import TPUAccelerator  # noqa: F401

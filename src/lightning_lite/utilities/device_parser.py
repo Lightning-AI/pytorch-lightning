@@ -160,7 +160,7 @@ def _get_all_available_gpus(include_cuda: bool = False, include_mps: bool = Fals
     Returns:
         A list of all available GPUs
     """
-    cuda_gpus = accelerators.cuda._get_all_available_cuda_gpus() if include_cuda else []
+    cuda_gpus = accelerators.cuda._get_all_visible_cuda_gpus() if include_cuda else []
     mps_gpus = accelerators.mps._get_all_available_mps_gpus() if include_mps else []
     return cuda_gpus + mps_gpus
 
