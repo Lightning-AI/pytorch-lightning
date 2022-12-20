@@ -39,14 +39,14 @@ class Logger(ABC):
 
     @property
     def root_dir(self) -> Optional[str]:
-        """Return the root directory where all versions of an experiment get saved, or `None` if the logger does not
-        save data locally."""
+        """Return the root directory where all versions of an experiment get saved, or `None` if the logger does
+        not save data locally."""
         return None
 
     @property
     def log_dir(self) -> Optional[str]:
-        """Return directory the current version of the experiment gets saved, or `None` if the logger does not
-        save data locally."""
+        """Return directory the current version of the experiment gets saved, or `None` if the logger does not save
+        data locally."""
         return None
 
     @property
