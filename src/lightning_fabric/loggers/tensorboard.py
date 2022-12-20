@@ -41,7 +41,6 @@ if TYPE_CHECKING:
         from tensorboardX import SummaryWriter  # type: ignore[no-redef]
 
 
-# TODO(fabric): Update docstring to Fabric API
 class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
