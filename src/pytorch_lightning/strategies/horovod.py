@@ -33,18 +33,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 _HOROVOD_AVAILABLE = module_available("horovod.torch")
-_HOROVOD_NCCL_AVAILABLE = False
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
-
-    try:
-
-        # `nccl_built` returns an integer
-        _HOROVOD_NCCL_AVAILABLE = bool(hvd.nccl_built())
-    except AttributeError:
-        # AttributeError can be raised if MPI is not available:
-        # https://github.com/horovod/horovod/blob/v0.23.0/horovod/torch/__init__.py#L33-L34
-        pass
 
 
 class HorovodStrategy(ParallelStrategy):
@@ -63,6 +53,11 @@ class HorovodStrategy(ParallelStrategy):
             "`The `HorovodStrategy`: `Trainer(strategy='horovod')` has been deprecated in v1.9.0 and will be removed"
             " in v1.10.0. You can try using the `Trainer(strategy='ddp')` instead."
         )
+        if not _HOROVOD_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested `strategy="horovod"`, but Horovod is not installed.'
+                " Install with `HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]`"
+            )
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

@@ -40,7 +40,7 @@ if _HOROVOD_AVAILABLE:
 
 @RunIf(min_cuda_gpus=1, horovod=True)
 def test_nccl_is_available_on_gpu_environment():
-    from pytorch_lightning.strategies.horovod import _HOROVOD_NCCL_AVAILABLE
+    from tests_pytorch.helpers.runif import _HOROVOD_NCCL_AVAILABLE
 
     # the GPU environment should always install Horovod NCCL
     assert _HOROVOD_NCCL_AVAILABLE

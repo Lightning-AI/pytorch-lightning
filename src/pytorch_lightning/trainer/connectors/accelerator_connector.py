@@ -654,7 +654,7 @@ class AcceleratorConnector:
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `strategy="horovod"`, but Horovod is not installed.'
-                " Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
+                " Install with `HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]`"
             )
 
         hvd.init()
