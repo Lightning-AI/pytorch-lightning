@@ -108,5 +108,5 @@ use the following utility function to pick GPU indices that are "accessible", wi
     lite = LightningLite(accelerator="cuda", devices=find_usable_cuda_gpus(2))
 
 
-This is especially useful when GPUs are configured to be in "exclusive compute mode", such that only one process at a time is allowed access the device.
+This is especially useful when GPUs are configured to be in "exclusive compute mode", such that only one process at a time is allowed access to the device.
 This special mode is often enabled on server GPUs or systems shared among multiple users.
