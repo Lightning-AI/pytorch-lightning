@@ -297,6 +297,7 @@ class TensorBoardLogger(Logger):
         try:
             listdir_info = self._fs.listdir(save_dir)
         except OSError:
+            # TODO(fabric): This message can be confusing (did user do something wrong?). Improve it or remove it.
             log.warning("Missing logger folder: %s", save_dir)
             return 0
 
