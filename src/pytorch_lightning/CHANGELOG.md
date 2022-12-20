@@ -122,6 +122,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#16131](https://github.com/Lightning-AI/lightning/pull/16131))
 
 
+- Removed support for `LightningCLI(seed_everything_default=None)` ([#16131](https://github.com/Lightning-AI/lightning/pull/16131))
+
+
 ### Fixed
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))

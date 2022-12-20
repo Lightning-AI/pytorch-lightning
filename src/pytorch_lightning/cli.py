@@ -358,13 +358,6 @@ class LightningCLI:
             self._run_subcommand(self.subcommand)
 
     def _handle_deprecated_params(self, kwargs: dict) -> None:
-        if self.seed_everything_default is None:
-            rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
-            )
-            self.seed_everything_default = False
-
         for name in kwargs.keys() & ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
             value = kwargs.pop(name)
             key = name.replace("save_config_", "").replace("filename", "config_filename")
