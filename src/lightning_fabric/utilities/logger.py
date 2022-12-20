@@ -28,7 +28,6 @@ def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
 
     Returns:
         params as a dictionary
-
     """
     # in case converting from namespace
     if isinstance(params, Namespace):
