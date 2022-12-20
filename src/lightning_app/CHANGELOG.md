@@ -47,6 +47,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `PythonServer` messaging "Your app has started" ([#15989](https://github.com/Lightning-AI/lightning/pull/15989))
+
+
 - Fixed a bug where `AutoScaler` would fail with min_replica=0 ([#16092](https://github.com/Lightning-AI/lightning/pull/16092)
 
 

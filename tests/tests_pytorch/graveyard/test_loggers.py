@@ -72,3 +72,30 @@ def test_v2_0_0_unsupported_logger_collection_class():
 
     with pytest.raises(RuntimeError, match="`LoggerCollection` was deprecated in v1.6 and removed as of v1.8."):
         LoggerCollection(None)
+
+
+def test_lightning_logger_base_removal():
+    from pytorch_lightning.loggers.base import LightningLoggerBase
+
+    with pytest.raises(RuntimeError, match="LightningLoggerBase` was deprecated in v1.7.0 and removed as of v1.9"):
+        LightningLoggerBase()
+
+    from pytorch_lightning.loggers.base import rank_zero_experiment
+
+    with pytest.raises(RuntimeError, match="rank_zero_experiment` was deprecated in v1.7.0 and removed as of v1.9"):
+        rank_zero_experiment()
+
+    from pytorch_lightning.loggers.base import DummyExperiment
+
+    with pytest.raises(RuntimeError, match="DummyExperiment` was deprecated in v1.7.0 and removed as of v1.9"):
+        DummyExperiment()
+
+    from pytorch_lightning.loggers.base import DummyLogger
+
+    with pytest.raises(RuntimeError, match="DummyLogger` was deprecated in v1.7.0 and removed as of v1.9"):
+        DummyLogger()
+
+    from pytorch_lightning.loggers.base import merge_dicts
+
+    with pytest.raises(RuntimeError, match="merge_dicts` was deprecated in v1.7.0 and removed as of v1.9"):
+        merge_dicts()
