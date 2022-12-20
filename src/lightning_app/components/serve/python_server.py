@@ -300,5 +300,7 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
 
-        logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
+        logger.info(
+            f"Your {self.__class__.__qualname__} has started. View it in your browser: http://{self.host}:{self.port}"
+        )
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")
