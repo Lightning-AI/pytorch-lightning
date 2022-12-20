@@ -116,7 +116,6 @@ jobs:
           python -m coverage run --source ${COVERAGE_SCOPE} \
             -m pytest -m "not cloud" tests_examples_app \
             --timeout=300 --durations=0 -vvvv \
-            --reruns 3 --reruns-delay 1 \
             --junitxml=$PYTEST_ARTIFACT
 
       - name: Upload pytest test results
