@@ -19,6 +19,7 @@ from lightning_lite.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
+
 def pick_multiple_gpus(nb: int, __show_deprecation: bool = False) -> List[int]:
     """Pick a number of GPUs that are not yet in use.
 

@@ -100,10 +100,8 @@ def find_usable_cuda_gpus(num_gpus: int = -1) -> List[int]:
         raise ValueError(
             f"You requested to find {num_gpus} GPUs but there are no visible CUDA devices on this machine."
         )
-    if num_gpus < len(visible_gpus):
-        raise ValueError(
-            f"You requested to find {num_gpus} GPUs but this machine only has {len(visible_gpus)} GPUs."
-        )
+    if num_gpus > len(visible_gpus):
+        raise ValueError(f"You requested to find {num_gpus} GPUs but this machine only has {len(visible_gpus)} GPUs.")
 
     available_gpus = []
     unavailable_gpus = []
@@ -123,7 +121,8 @@ def find_usable_cuda_gpus(num_gpus: int = -1) -> List[int]:
     if len(available_gpus) != num_gpus:
         raise RuntimeError(
             f"You requested to find {num_gpus} GPUs but only {len(available_gpus)} are currently available."
-            f" GPUs {', '.join(unavailable_gpus)} are occupied by other processes and can't be used at the moment."
+            f" GPUs {unavailable_gpus} are occupied by other processes and can't be"
+            " used at the moment."
         )
     return available_gpus
 

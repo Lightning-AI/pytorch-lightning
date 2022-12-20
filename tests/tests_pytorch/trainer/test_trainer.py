@@ -1171,7 +1171,9 @@ def test_invalid_gradient_clip_algo(tmpdir):
 @RunIf(min_cuda_gpus=1)
 def test_invalid_gpu_choice_with_auto_select_gpus():
     num_gpus = torch.cuda.device_count()
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"), pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"):
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"), pytest.deprecated_call(
+        match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"
+    ):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 

@@ -557,7 +557,7 @@ class AcceleratorConnector:
             self._devices_flag = pick_multiple_gpus(
                 self._gpus,
                 # we already show a deprecation message when user sets Trainer(auto_select_gpus=...)
-                __show_deprecatio=False
+                __show_deprecatio=False,
             )
             log.info(f"Auto select gpus: {self._devices_flag}")
 
