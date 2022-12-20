@@ -185,11 +185,13 @@ class AppStatePlugin(BaseStatePlugin):
 
 def target_fn():
     try:
+        # streamlit >= 1.14.0
         from streamlit import runtime
 
         get_instance = runtime.get_instance
         exists = runtime.exists()
     except ImportError:
+        # Older versions
         from streamlit.server.server import Server
 
         get_instance = Server.get_current
