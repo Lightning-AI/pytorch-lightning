@@ -292,7 +292,7 @@ class TensorBoardLogger(Logger):
             self.save()
 
     def _get_next_version(self) -> int:
-        save_dir = self.log_dir
+        save_dir = os.path.join(self.root_dir, self.name)
 
         try:
             listdir_info = self._fs.listdir(save_dir)
