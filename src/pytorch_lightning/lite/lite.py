@@ -38,7 +38,7 @@ from lightning_lite.strategies import XLAStrategy
 from pytorch_lightning.accelerators import Accelerator as PLAccelerator
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin as PLDeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin as PLNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import MixedPrecisionPlugin as PLMixedPrecisionPlugin
 from pytorch_lightning.plugins import PrecisionPlugin as PLPrecisionPlugin
 from pytorch_lightning.plugins import TPUBf16PrecisionPlugin as PLTPUBf16PrecisionPlugin
 from pytorch_lightning.plugins import TPUPrecisionPlugin as PLTPUPrecisionPlugin
@@ -284,7 +284,7 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
     if type(plugin) is PLPrecisionPlugin:
         return LitePrecision()
 
-    if type(plugin) is PLNativeMixedPrecisionPlugin:
+    if type(plugin) is PLMixedPrecisionPlugin:
         return LiteMixedPrecision(
             precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
         )

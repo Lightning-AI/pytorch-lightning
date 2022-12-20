@@ -518,14 +518,15 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "state_dict": ANY,
         "loops": ANY,
     }
-    if kwargs.get("precision") == 16:
+    using_deepspeed = kwargs.get("strategy") == "deepspeed"
+    if kwargs.get("precision") == 16 and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         # DeepSpeed needs the batch size to figure out throughput logging
-        *([dict(name="train_dataloader")] if kwargs.get("strategy") == "deepspeed" else []),
+        *([dict(name="train_dataloader")] if using_deepspeed else []),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="configure_sharded_model"),

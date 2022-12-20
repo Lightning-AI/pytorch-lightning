@@ -355,6 +355,7 @@ def test_profiler_classes_deprecated_warning(cls):
         cls()
 
 
+@RunIf(amp_apex=True)
 def test_apex_deprecation_warnings():
     class MyModel(BoringModel):
         def optimizer_step(
