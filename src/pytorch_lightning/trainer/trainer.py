@@ -1660,28 +1660,6 @@ class Trainer:
                 RunningStage.PREDICTING, model=pl_module
             )
 
-    def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets train and val dataloaders if none are attached to the trainer.
-
-        The val dataloader must be initialized before training loop starts, as the training loop
-        inspects the val dataloader to determine whether to run the evaluation loop.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-
-        .. deprecated:: v1.7
-            This method is deprecated in v1.7 and will be removed in v1.9.
-            Please use ``Trainer.reset_{train,val}_dataloader`` instead.
-        """
-        rank_zero_deprecation(
-            "`Trainer.reset_train_val_dataloaders` has been deprecated in v1.7 and will be removed in v1.9."
-            " Use `Trainer.reset_{train,val}_dataloader` instead"
-        )
-        if self.train_dataloader is None:
-            self.reset_train_dataloader(model=model)
-        if self.val_dataloaders is None:
-            self.reset_val_dataloader(model=model)
-
     """
     Accelerator properties
     """
