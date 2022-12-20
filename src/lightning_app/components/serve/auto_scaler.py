@@ -352,8 +352,8 @@ class _LoadBalancer(LightningWork):
             # not a pydantic model
             raise TypeError(f"datatype must be a pydantic model, for the UI to be generated. but got {datatype}")
 
-        if hasattr(datatype, "_get_sample_data"):
-            return datatype._get_sample_data()
+        if hasattr(datatype, "get_sample_data"):
+            return datatype.get_sample_data()
 
         datatype_props = datatype.schema()["properties"]
         out: Dict[str, Any] = {}
