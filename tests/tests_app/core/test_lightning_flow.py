@@ -648,14 +648,14 @@ class FlowSchedule(LightningFlow):
             if len(self._last_times) < 3:
                 self._last_times.append(time())
             else:
-                assert abs((time() - self._last_times[-1]) - self.target) < 3
+                assert abs((time() - self._last_times[-1]) - self.target) < 12
                 self._exit()
 
 
 def test_scheduling_api():
 
     app = LightningApp(FlowSchedule())
-    MultiProcessRuntime(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 def test_lightning_flow():
