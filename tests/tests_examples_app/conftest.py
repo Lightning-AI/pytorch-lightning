@@ -5,8 +5,8 @@ from subprocess import Popen
 
 import psutil
 import pytest
+from tests_examples_app.public import _PATH_EXAMPLES
 
-from lightning_app import _PROJECT_ROOT
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities.component import _set_context
 from lightning_app.utilities.packaging import cloud_compute
@@ -24,11 +24,11 @@ def pytest_sessionstart(*_):
     """Pytest hook that get called after the Session object has been created and before performing collection and
     entering the run test loop."""
     for name, url in GITHUB_APP_URLS.items():
-        if not os.path.exists(os.path.join(_PROJECT_ROOT, "examples", name)):
-            path_examples = os.path.join(_PROJECT_ROOT, "examples")
-            Popen(["git", "clone", url, name], cwd=path_examples).wait(timeout=90)
+        app_path = _PATH_EXAMPLES / name
+        if not os.path.exists(app_path):
+            Popen(["git", "clone", url, name], cwd=_PATH_EXAMPLES).wait(timeout=90)
         else:
-            Popen(["git", "pull", "main"], cwd=os.path.join(_PROJECT_ROOT, "examples", name)).wait(timeout=90)
+            Popen(["git", "pull", "main"], cwd=app_path).wait(timeout=90)
 
 
 def pytest_sessionfinish(session, exitstatus):

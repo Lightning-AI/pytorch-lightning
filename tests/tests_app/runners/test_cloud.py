@@ -31,6 +31,7 @@ from lightning_cloud.openapi import (
     V1LightningworkSpec,
     V1ListClustersResponse,
     V1ListLightningappInstancesResponse,
+    V1ListLightningappsV2Response,
     V1ListMembershipsResponse,
     V1ListProjectClusterBindingsResponse,
     V1Membership,
@@ -210,6 +211,13 @@ class TestAppCreationClient:
         app.flows = []
         app.frontend = {}
 
+        existing_app = MagicMock()
+        existing_app.name = app_name
+        existing_app.id = "test-id"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=[existing_app]
+        )
+
         existing_instance = MagicMock()
         existing_instance.name = app_name
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
@@ -233,6 +241,67 @@ class TestAppCreationClient:
             assert args[1]["body"].name != app_name
             assert args[1]["body"].name.startswith(app_name)
             assert args[1]["body"].cluster_id == new_cluster
+
+    def test_running_deleted_app(self, cloud_backend, project_id):
+        """Deleted apps show up in list apps but not in list instances.
+
+        This tests that we don't try to reacreate a previously deleted app.
+        """
+        app_name = "test-app"
+
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="Default Project", project_id=project_id)]
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease(
+            cluster_id=DEFAULT_CLUSTER
+        )
+
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse(
+            [
+                Externalv1Cluster(id=DEFAULT_CLUSTER),
+            ]
+        )
+
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[
+                V1ProjectClusterBinding(cluster_id=DEFAULT_CLUSTER),
+            ]
+        )
+
+        # Mock all clusters as global clusters
+        mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
+            id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
+        )
+
+        cloud_backend.client = mock_client
+
+        app = mock.MagicMock()
+        app.flows = []
+        app.frontend = {}
+
+        existing_app = MagicMock()
+        existing_app.name = app_name
+        existing_app.id = "test-id"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=[existing_app]
+        )
+
+        # Simulate the app as deleted so no instance to return
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+
+        cloud_runtime.dispatch(name=app_name)
+
+        # Check that a new name was used which starts with and does not equal the old name
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once()
+        args = mock_client.lightningapp_v2_service_create_lightningapp_release_instance.call_args
+        assert args[1]["body"].name != app_name
+        assert args[1]["body"].name.startswith(app_name)
 
     @pytest.mark.parametrize("flow_cloud_compute", [None, CloudCompute(name="t2.medium")])
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
@@ -458,6 +527,9 @@ class TestAppCreationClient:
             lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -603,7 +675,7 @@ class TestAppCreationClient:
         )
 
         # calling with env variable set to http
-        monkeypatch.setattr(cloud, "CLOUD_QUEUE_TYPE", "http")
+        monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "http")
         cloud_runtime.backend.client.reset_mock()
         cloud_runtime.dispatch()
         body = IdGetBody(
@@ -632,6 +704,9 @@ class TestAppCreationClient:
             lightningapps[0].name = "myapp"
             lightningapps[0].status.phase = V1LightningappInstanceState.STOPPED
             lightningapps[0].spec.cluster_id = "test"
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -786,6 +861,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -912,6 +990,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -1127,6 +1208,9 @@ class TestAppCreationClient:
             mock_client.cluster_service_get_cluster.side_effect = lambda cluster_id: V1GetClusterResponse(
                 id=cluster_id, spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL)
             )
+        mock_client.lightningapp_v2_service_list_lightningapps_v2.return_value = V1ListLightningappsV2Response(
+            lightningapps=lightningapps
+        )
         mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
             V1ListLightningappInstancesResponse(lightningapps=lightningapps)
         )
@@ -1498,8 +1582,6 @@ def test_incompatible_cloud_compute_and_build_config():
 
 
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
-    monkeypatch.setenv("LIGHTNING_DISPATCHED", "0")  # this is not cleaned up
-
     mock_client = mock.MagicMock()
     mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
         memberships=[V1Membership(name="test-project", project_id="test-project-id")]
@@ -1566,8 +1648,6 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     assert "2 files were uploaded"  # a.txt and .lightningignore
     assert "files:\n5.0 MB: a.txt\nPerhaps" in caplog.text  # only this file appears
 
-    # replicate how the app would dispatch the app, and call `run`
-    monkeypatch.setenv("LIGHTNING_DISPATCHED", "1")
     flow.run()
 
 
