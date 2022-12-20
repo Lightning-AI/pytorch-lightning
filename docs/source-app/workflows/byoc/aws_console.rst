@@ -20,7 +20,7 @@ See the following video for instructions:
 1.1- Create a role
 ------------------
 
-The created role will give Lightning AI access (by specifying Ligthning account id), and will 
+The created role will give Lightning AI access (by specifying Ligthning account id), and will
 
 1. Sign in to your AWS account. (If you don’t have an AWS account, create one).
 
@@ -100,4 +100,3 @@ You are now ready to create a Lightning cluster!
 
         </div>
     </div>
-

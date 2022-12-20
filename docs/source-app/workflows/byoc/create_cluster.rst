@@ -143,4 +143,3 @@ Once your cluster is running, you can start running Lightning apps on your clust
 
         </div>
     </div>
-
