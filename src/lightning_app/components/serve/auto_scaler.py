@@ -260,6 +260,12 @@ class _LoadBalancer(LightningWork):
                 return server
 
     async def consumer(self):
+        """
+        The consumer process that continuously checks for new requests and sends them to the API.
+
+        Two instances of this function should not be running with shared `_state_server`
+        as that would create race conditions
+        """
         self._last_batch_sent = time.time()
         while True:
             await asyncio.sleep(0.05)
@@ -270,13 +276,9 @@ class _LoadBalancer(LightningWork):
             # setting the server status to be busy! This will be reset by
             # the send_batch function after the server responds
             if server_url is None:
-                # TODO - a timeout until we try looking for servers
-                logger.error("No servers available")
                 continue
             if batch and (is_batch_ready or is_batch_timeout):
                 # find server with capacity
-                # TODO multiple instances of consumer should not be running
-                #  without locking the server array
                 asyncio.create_task(self.send_batch(batch, server_url))
                 # resetting the batch array, TODO - not locking the array
                 self._batch = self._batch[len(batch) :]
