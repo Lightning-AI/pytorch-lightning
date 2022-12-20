@@ -138,7 +138,7 @@ jobs:
         FREEZE_REQUIREMENTS: 1
       run: |
         # TODO: installing the strategies from file as deepspeed expects already installed pytoch and extras does not bistall base first
-        pip install -e .[extra,test] "pytest-timeout" -r requirememts/pytorch/strategies.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e .[extra,test] "pytest-timeout" -r requirements/pytorch/strategies.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Reinstall Horovod if necessary
