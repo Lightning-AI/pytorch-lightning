@@ -82,6 +82,7 @@ def test_sanitize_callable_params():
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
     """
+
     def return_something():
         return "something"
 
@@ -92,7 +93,7 @@ def test_sanitize_callable_params():
         foo="bar",
         something=return_something,
         wrapper_something_wo_name=(lambda: lambda: "1"),
-        wrapper_something=wrapper_something
+        wrapper_something=wrapper_something,
     )
 
     params = _convert_params(params)

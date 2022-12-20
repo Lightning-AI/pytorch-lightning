@@ -15,7 +15,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, MutableMapping, Tuple, Union, Optional
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
 import torch
