@@ -64,6 +64,8 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
         self.workers = workers
         self._model = None
 
+        self.ready = False
+
     @property
     def model(self):
         return self._model
@@ -108,9 +110,11 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
                 "serve:fastapi_service",
             ]
             process = subprocess.Popen(command, env=env, cwd=os.path.dirname(__file__))
+            self.ready = True
             process.wait()
         else:
             self._populate_app(fastapi_service)
+            self.ready = True
             self._launch_server(fastapi_service)
 
     def _populate_app(self, fastapi_service: FastAPI):

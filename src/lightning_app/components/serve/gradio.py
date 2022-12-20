@@ -42,6 +42,8 @@ class ServeGradio(LightningWork, abc.ABC):
         assert self.outputs
         self._model = None
 
+        self.ready = False
+
     @property
     def model(self):
         return self._model
@@ -62,6 +64,7 @@ class ServeGradio(LightningWork, abc.ABC):
             self._model = self.build_model()
         fn = partial(self.predict, *args, **kwargs)
         fn.__name__ = self.predict.__name__
+        self.ready = True
         gradio.Interface(
             fn=fn,
             inputs=self.inputs,
