@@ -190,5 +190,5 @@ if __name__ == "__main__":
             ],
         },
         seed_everything_default=42,
-        save_config_overwrite=True,
+        save_config_kwargs={"overwrite": True},
     )

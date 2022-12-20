@@ -730,7 +730,6 @@ def test_move_metrics_to_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        amp_backend="native",
         precision=16,
         move_metrics_to_cpu=True,
         accelerator="gpu",

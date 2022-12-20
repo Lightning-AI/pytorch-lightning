@@ -722,7 +722,7 @@ class TestAppCreationClient:
         )
 
         # calling with env variable set to http
-        monkeypatch.setattr(cloud, "CLOUD_QUEUE_TYPE", "http")
+        monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "http")
         cloud_runtime.backend.client.reset_mock()
         cloud_runtime.dispatch()
         body = IdGetBody(

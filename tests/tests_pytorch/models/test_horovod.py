@@ -200,29 +200,6 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
     _run_horovod(trainer_options)
 
 
-# todo: need to be fixed :]
-# https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
-# Check with (tgaddair) on Horovod issues if this feature is needed
-@pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
-@RunIf(min_cuda_gpus=2, amp_apex=True, horovod_nccl=True, skip_windows=True)
-def test_horovod_apex(tmpdir):
-    """Test Horovod with multi-GPU support using apex amp."""
-    trainer_options = dict(
-        default_root_dir=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accelerator="gpu",
-        devices=2,
-        strategy="horovod",
-        amp_backend="apex",
-        precision=16,
-    )
-    _run_horovod(trainer_options)
-
-
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
