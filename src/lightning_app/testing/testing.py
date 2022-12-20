@@ -262,6 +262,7 @@ def run_app_in_cloud(
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
         env_copy["PACKAGE_LIGHTNING"] = "1"
+        env_copy["LIGHTING_TESTING"] = "1"
         if debug:
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
@@ -487,12 +488,12 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
         except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
             print(e)
             try:
-                sleep(5)
+                sleep(7)
                 page.reload()
             except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
                 print(e)
                 pass
-            sleep(2)
+            sleep(3)
 
 
 def _delete_lightning_app(client, project_id, app_id, app_name):

@@ -31,10 +31,10 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_lite.plugins import ClusterEnvironment
-from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.optimizer import _optimizers_to_device
 from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau
+from lightning_lite.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -45,7 +45,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)
@@ -65,28 +65,6 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
         module._forward_pre_hooks = OrderedDict()
         module._state_dict_hooks = OrderedDict()
         module._load_state_dict_pre_hooks = OrderedDict()
-
-
-class LightningDeepSpeedModule(_LightningModuleWrapperBase):
-    """
-    .. deprecated:: v1.7.1
-        ``LightningDeepSpeedModule`` has been deprecated in v1.7.1 and will be removed in v1.9.0.
-    """
-
-    def __init__(
-        self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        precision: Union[str, int] = 32,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        rank_zero_deprecation("`LightningDeepSpeedModule` has been deprecated in v1.7.1 and will be removed in v1.9.0")
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        inputs = apply_to_collection(inputs, Tensor, function=_fp_to_half, precision=self.precision)
-        return super().forward(*inputs, **kwargs)
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -426,7 +404,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self,
         model: Module,
         optimizer: Optional[Optimizer],
-        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
+        lr_scheduler: Optional[Union[LRScheduler, ReduceLROnPlateau]] = None,
     ) -> Tuple["deepspeed.DeepSpeedEngine", Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -676,7 +654,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
         if self.precision_plugin.precision == PrecisionType.HALF:
-            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
+            if "fp16" not in self.config and self.precision_plugin.amp_type == "native":
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -687,7 +665,7 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+            elif "amp" not in self.config and self.precision_plugin.amp_type == "apex":
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
         elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:

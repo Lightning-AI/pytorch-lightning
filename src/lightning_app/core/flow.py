@@ -77,7 +77,7 @@ class LightningFlow:
         can be distributed (each LightningWork will be run within its own process
         or different arrangements).
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
@@ -104,6 +104,8 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
 
     @property
     def name(self):
@@ -173,12 +175,19 @@ class LightningFlow:
             elif isinstance(value, (Dict, List)):
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if getattr(self, "_backend", None) is not None:
-                    value._backend = self._backend
-                    for flow in value.flows:
-                        LightningFlow._attach_backend(flow, self._backend)
-                    for work in value.works:
-                        self._backend._wrap_run_method(_LightningAppRef().get_current(), work)
+
+                _backend = getattr(self, "backend", None)
+                if _backend is not None:
+                    value._backend = _backend
+
+                for flow in value.flows:
+                    if _backend is not None:
+                        LightningFlow._attach_backend(flow, _backend)
+
+                for work in value.works:
+                    work._register_cloud_compute()
+                    if _backend is not None:
+                        _backend._wrap_run_method(_LightningAppRef().get_current(), work)
 
             elif isinstance(value, Path):
                 # In the init context, the full name of the Flow and Work is not known, i.e., we can't serialize
@@ -240,10 +249,7 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Not currently enabled.
-
-        Override to customize when your App should be ready.
-        """
+        """Override to customize when your App should be ready."""
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 
@@ -302,6 +308,20 @@ class LightningFlow:
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""

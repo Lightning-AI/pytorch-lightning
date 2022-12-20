@@ -98,6 +98,39 @@ after every ``N`` steps, you can do as such.
             opt.step()
             opt.zero_grad()
 
+Gradient Clipping
+=================
+
+You can clip optimizer gradients during manual optimization similar to passing the ``gradient_clip_val`` and
+``gradient_clip_algorithm`` argument in :ref:`Trainer <trainer>` during automatic optimization.
+To perform gradient clipping with one optimizer with manual optimization, you can do as such.
+
+.. testcode:: python
+
+    from pytorch_lightning import LightningModule
+
+
+    class SimpleModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt = self.optimizers()
+
+            # compute loss
+            loss = self.compute_loss(batch)
+
+            opt.zero_grad()
+            self.manual_backward(loss)
+
+            # clip gradients
+            self.clip_gradients(opt, gradient_clip_val=0.5, gradient_clip_algorithm="norm")
+
+            opt.step()
+
+.. warning::
+   * Note that ``configure_gradient_clipping()`` won't be called in Manual Optimization. Instead consider using ``self. clip_gradients()`` manually like in the example above.
 
 Use Multiple Optimizers (like GANs)
 ===================================
@@ -286,4 +319,4 @@ Here is an example using a closure function.
         opt.step(closure=closure)
 
 .. warning::
-   The :class:`~torch.optim.LBFGS` optimizer is not supported for apex AMP, native AMP, IPUs, or DeepSpeed.
+   The :class:`~torch.optim.LBFGS` optimizer is not supported for AMP, IPUs, or DeepSpeed.

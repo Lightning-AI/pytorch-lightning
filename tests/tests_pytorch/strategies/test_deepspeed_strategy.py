@@ -29,9 +29,10 @@ from torchmetrics import Accuracy
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -81,27 +82,6 @@ class ModelParallelBoringModelManualOptim(BoringModel):
     @property
     def automatic_optimization(self) -> bool:
         return False
-
-
-@RunIf(min_cuda_gpus=1)
-def test_deepspeed_lightning_module_precision():
-    """Test to ensure that a model wrapped in `LightningDeepSpeedModule` moves tensors to half when precision
-    16."""
-    model = BoringModel()
-    with pytest.deprecated_call(match="`LightningDeepSpeedModule` has been deprecated in v1.7.1"):
-        module = LightningDeepSpeedModule(model, precision=16)
-
-    module.to(device="cuda", dtype=torch.half)
-    assert module.dtype == torch.half
-    assert model.dtype == torch.half
-
-    x = torch.randn((1, 32), device="cuda", dtype=torch.float)
-    out = module(x)
-    assert out.dtype == torch.half
-
-    module.to(torch.double)
-    assert module.dtype == torch.double
-    assert model.dtype == torch.double
 
 
 @pytest.fixture
@@ -160,15 +140,25 @@ def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
-
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        strategy="deepspeed",
-        amp_backend=amp_backend,
-        precision=16,
-    )
+    if amp_backend == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            trainer = Trainer(
+                fast_dev_run=True,
+                default_root_dir=tmpdir,
+                accelerator="gpu",
+                strategy="deepspeed",
+                amp_backend=amp_backend,
+                precision=16,
+            )
+    else:
+        trainer = Trainer(
+            fast_dev_run=True,
+            default_root_dir=tmpdir,
+            accelerator="gpu",
+            strategy="deepspeed",
+            amp_backend=amp_backend,
+            precision=16,
+        )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
@@ -298,6 +288,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
         fast_dev_run=True,
         precision=16,
         callbacks=[TestCB(), lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -337,6 +328,7 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
         max_epochs=2,
         precision=16,
         callbacks=[TestCB(), lr_monitor],
+        logger=CSVLogger(tmpdir),
         enable_progress_bar=False,
         enable_model_summary=False,
     )

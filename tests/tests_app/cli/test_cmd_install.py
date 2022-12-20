@@ -321,6 +321,18 @@ def test_install_app_shows_error(tmpdir):
 # os.chdir(cwd)
 
 
+def test_app_and_component_gallery_app(monkeypatch):
+    monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
+    path = cmd_install.gallery_apps_and_components("lightning/lightning-diffusion-component-api", True, "latest")
+    assert path == os.path.join(os.getcwd(), "diffusion2", "app.py")
+
+
+def test_app_and_component_gallery_component(monkeypatch):
+    monkeypatch.setattr(cmd_install, "_install_app_from_source", mock.MagicMock())
+    path = cmd_install.gallery_apps_and_components("lightning/lit-jupyter", True, "latest")
+    assert path == os.path.join(os.getcwd(), "app.py")
+
+
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_REGISTRY": "https://TODO/other_non_PL_registry"})
 def test_private_app_registry():
     registry = cmd_install._resolve_app_registry()

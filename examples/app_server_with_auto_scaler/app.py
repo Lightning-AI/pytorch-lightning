@@ -1,4 +1,5 @@
-from typing import Any, List
+# ! pip install torch torchvision
+from typing import List
 
 import torch
 import torchvision
@@ -7,25 +8,21 @@ from pydantic import BaseModel
 import lightning as L
 
 
-class RequestModel(BaseModel):
-    image: str  # bytecode
-
-
 class BatchRequestModel(BaseModel):
-    inputs: List[RequestModel]
+    inputs: List[L.app.components.Image]
 
 
 class BatchResponse(BaseModel):
-    outputs: List[Any]
+    outputs: List[L.app.components.Number]
 
 
 class PyTorchServer(L.app.components.PythonServer):
     def __init__(self, *args, **kwargs):
         super().__init__(
-            port=L.app.utilities.network.find_free_network_port(),
             input_type=BatchRequestModel,
             output_type=BatchResponse,
-            cloud_compute=L.CloudCompute("gpu"),
+            *args,
+            **kwargs,
         )
 
     def setup(self):
@@ -57,16 +54,14 @@ class MyAutoScaler(L.app.components.AutoScaler):
         """The default scaling logic that users can override."""
         # scale out if the number of pending requests exceeds max batch size.
         max_requests_per_work = self.max_batch_size
-        pending_requests_per_running_or_pending_work = metrics["pending_requests"] / (
-            replicas + metrics["pending_works"]
-        )
-        if pending_requests_per_running_or_pending_work >= max_requests_per_work:
+        pending_requests_per_work = metrics["pending_requests"] / (replicas + metrics["pending_works"])
+        if pending_requests_per_work >= max_requests_per_work:
             return replicas + 1
 
         # scale in if the number of pending requests is below 25% of max_requests_per_work
         min_requests_per_work = max_requests_per_work * 0.25
-        pending_requests_per_running_work = metrics["pending_requests"] / replicas
-        if pending_requests_per_running_work < min_requests_per_work:
+        pending_requests_per_work = metrics["pending_requests"] / replicas
+        if pending_requests_per_work < min_requests_per_work:
             return replicas - 1
 
         return replicas
@@ -74,13 +69,18 @@ class MyAutoScaler(L.app.components.AutoScaler):
 
 app = L.LightningApp(
     MyAutoScaler(
+        # work class and args
         PyTorchServer,
-        min_replicas=2,
+        cloud_compute=L.CloudCompute("gpu"),
+        # autoscaler specific args
+        min_replicas=1,
         max_replicas=4,
-        autoscale_interval=10,
+        scale_out_interval=10,
+        scale_in_interval=10,
         endpoint="predict",
-        input_type=RequestModel,
-        output_type=Any,
+        input_type=L.app.components.Image,
+        output_type=L.app.components.Number,
         timeout_batching=1,
+        max_batch_size=8,
     )
 )

@@ -23,14 +23,12 @@ from lightning_lite.lite import LightningLite as _NewLightningLite
 from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
 from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
 from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
-from lightning_lite.plugins import NativeMixedPrecision as LiteNativeMixedPrecision
+from lightning_lite.plugins import MixedPrecision as LiteMixedPrecision
 from lightning_lite.plugins import Precision as LitePrecision
 from lightning_lite.plugins import TPUBf16Precision as LiteTPUBf16Precision
 from lightning_lite.plugins import TPUPrecision as LiteTPUPrecision
 from lightning_lite.strategies import DataParallelStrategy as LiteDataParallelStrategy
 from lightning_lite.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
-from lightning_lite.strategies import DDPSpawnShardedStrategy as LiteDDPSpawnShardedStrategy
-from lightning_lite.strategies import DDPSpawnStrategy as LiteDDPSpawnStrategy
 from lightning_lite.strategies import DDPStrategy as LiteDDPStrategy
 from lightning_lite.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
 from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
@@ -40,7 +38,7 @@ from lightning_lite.strategies import XLAStrategy
 from pytorch_lightning.accelerators import Accelerator as PLAccelerator
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin as PLDeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin as PLNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import MixedPrecisionPlugin as PLMixedPrecisionPlugin
 from pytorch_lightning.plugins import PrecisionPlugin as PLPrecisionPlugin
 from pytorch_lightning.plugins import TPUBf16PrecisionPlugin as PLTPUBf16PrecisionPlugin
 from pytorch_lightning.plugins import TPUPrecisionPlugin as PLTPUPrecisionPlugin
@@ -192,7 +190,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
         )
 
     if strategy_cls is PLDDPSpawnStrategy:
-        return LiteDDPSpawnStrategy(
+        return LiteDDPStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
@@ -250,7 +248,7 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
         )
 
     if strategy_cls is PLDDPSpawnShardedStrategy:
-        return LiteDDPSpawnShardedStrategy(
+        return LiteDDPShardedStrategy(
             accelerator=strategy.accelerator,
             parallel_devices=strategy.parallel_devices,
             cluster_environment=strategy.cluster_environment,
@@ -286,8 +284,8 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
     if type(plugin) is PLPrecisionPlugin:
         return LitePrecision()
 
-    if type(plugin) is PLNativeMixedPrecisionPlugin:
-        return LiteNativeMixedPrecision(
+    if type(plugin) is PLMixedPrecisionPlugin:
+        return LiteMixedPrecision(
             precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
         )
 
@@ -295,9 +293,7 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
         return LiteDoublePrecision()
 
     if type(plugin) is PLDeepSpeedPrecisionPlugin:
-        return LiteDeepSpeedPrecision(
-            precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level  # type: ignore[arg-type]
-        )
+        return LiteDeepSpeedPrecision(precision=plugin.precision)  # type: ignore[arg-type]
 
     if type(plugin) is PLTPUPrecisionPlugin:
         return LiteTPUPrecision()

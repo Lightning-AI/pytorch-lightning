@@ -25,6 +25,7 @@ import pytest
 import torch
 from fsspec.implementations.local import LocalFileSystem
 from lightning_utilities.core.imports import RequirementCache
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, Trainer
@@ -33,10 +34,10 @@ from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
@@ -642,7 +643,12 @@ def test_init_arg_with_runtime_change(tmpdir, cls):
     assert model.hparams.running_arg == -1
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, limit_test_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        max_epochs=1,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -875,7 +881,7 @@ def test_colliding_hparams(tmpdir):
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=CSVLogger(tmpdir))
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
 
