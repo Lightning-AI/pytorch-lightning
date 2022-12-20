@@ -14,7 +14,6 @@ from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_regi
 from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator  # noqa: F401
-from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.hpu import HPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.mps import MPSAccelerator  # noqa: F401
