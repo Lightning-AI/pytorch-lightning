@@ -16,25 +16,25 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning_fabric.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_fabric.plugins.precision.native_amp import MixedPrecision
 
 
 def test_native_amp_precision_default_scaler():
-    precision = NativeMixedPrecision(precision=16, device=Mock())
+    precision = MixedPrecision(precision=16, device=Mock())
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
 
 
 def test_native_amp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16'` does not use a scaler"):
-        NativeMixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
+        MixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
 
-    precision = NativeMixedPrecision(precision="bf16", device=Mock())
+    precision = MixedPrecision(precision="bf16", device=Mock())
     assert precision.scaler is None
 
 
 def test_native_amp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16 on CPU and CUDA."""
-    precision = NativeMixedPrecision(precision=16, device="cuda")
+    precision = MixedPrecision(precision=16, device="cuda")
     assert precision.device == "cuda"
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
     assert torch.get_default_dtype() == torch.float32
@@ -42,7 +42,7 @@ def test_native_amp_precision_forward_context():
         # check with str due to a bug upstream: https://github.com/pytorch/pytorch/issues/65786
         assert str(torch.get_autocast_gpu_dtype()) in ("torch.float16", "torch.half")
 
-    precision = NativeMixedPrecision(precision="bf16", device="cpu")
+    precision = MixedPrecision(precision="bf16", device="cpu")
     assert precision.device == "cpu"
     assert precision.scaler is None
     with precision.forward_context():
@@ -56,7 +56,7 @@ def test_native_amp_precision_forward_context():
 
 
 def test_native_amp_precision_backward():
-    precision = NativeMixedPrecision(precision="mixed", device="cuda")
+    precision = MixedPrecision(precision="mixed", device="cuda")
     precision.scaler = Mock()
     precision.scaler.scale = Mock(side_effect=(lambda x: x))
     tensor = Mock()
@@ -67,7 +67,7 @@ def test_native_amp_precision_backward():
 
 
 def test_native_amp_precision_optimizer_step_with_scaler():
-    precision = NativeMixedPrecision(precision="mixed", device="cuda")
+    precision = MixedPrecision(precision="mixed", device="cuda")
     precision.scaler = Mock()
     optimizer = Mock()
 
@@ -77,7 +77,7 @@ def test_native_amp_precision_optimizer_step_with_scaler():
 
 
 def test_native_amp_precision_optimizer_step_without_scaler():
-    precision = NativeMixedPrecision(precision="bf16", device="cuda")
+    precision = MixedPrecision(precision="bf16", device="cuda")
     assert precision.scaler is None
     optimizer = Mock()
 

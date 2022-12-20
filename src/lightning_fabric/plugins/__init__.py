@@ -18,7 +18,7 @@ from lightning_fabric.plugins.io.xla import XLACheckpointIO
 from lightning_fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
-from lightning_fabric.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_fabric.plugins.precision.native_amp import MixedPrecision
 from lightning_fabric.plugins.precision.precision import Precision
 from lightning_fabric.plugins.precision.tpu import TPUPrecision
 from lightning_fabric.plugins.precision.tpu_bf16 import TPUBf16Precision
@@ -31,7 +31,7 @@ __all__ = [
     "Precision",
     "DeepSpeedPrecision",
     "DoublePrecision",
-    "NativeMixedPrecision",
+    "MixedPrecision",
     "TPUPrecision",
     "TPUBf16Precision",
     "FSDPPrecision",

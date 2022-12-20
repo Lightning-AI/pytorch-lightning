@@ -1635,7 +1635,6 @@ class LightningModule(
         optimizer_idx: int = 0,
         optimizer_closure: Optional[Callable[[], Any]] = None,
         on_tpu: bool = False,
-        using_native_amp: bool = False,
         using_lbfgs: bool = False,
     ) -> None:
         r"""
@@ -1654,19 +1653,18 @@ class LightningModule(
             optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
-            using_native_amp: ``True`` if using native amp
             using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
 
         Examples::
 
             # DEFAULT
             def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                               optimizer_closure, on_tpu, using_lbfgs):
                 optimizer.step(closure=optimizer_closure)
 
             # Alternating schedule for optimizer steps (i.e.: GANs)
             def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_native_amp, using_lbfgs):
+                               optimizer_closure, on_tpu, using_lbfgs):
                 # update generator opt every step
                 if optimizer_idx == 0:
                     optimizer.step(closure=optimizer_closure)
@@ -1696,7 +1694,6 @@ class LightningModule(
                 optimizer_idx,
                 optimizer_closure,
                 on_tpu,
-                using_native_amp,
                 using_lbfgs,
             ):
                 # update params

@@ -29,13 +29,6 @@ else:
     LightningEnum = StrEnum
 
 
-class AMPType(LightningEnum):
-    """Type of Automatic Mixed Precission used for training."""
-
-    APEX = "apex"
-    NATIVE = "native"
-
-
 class PrecisionType(LightningEnum):
     """Type of precision used."""
 

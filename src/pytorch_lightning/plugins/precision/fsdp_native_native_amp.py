@@ -17,7 +17,7 @@ import torch
 
 from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
@@ -28,7 +28,7 @@ else:
     ShardedGradScaler = None  # type: ignore[misc,assignment]
 
 
-class FullyShardedNativeNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
+class FullyShardedNativeNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Native AMP for Fully Sharded Native Training."""
 
     def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:

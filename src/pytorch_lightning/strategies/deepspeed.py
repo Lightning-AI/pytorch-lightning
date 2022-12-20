@@ -31,7 +31,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
-from lightning_fabric.utilities.enums import AMPType, PrecisionType
+from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -654,7 +654,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
         if self.precision_plugin.precision == PrecisionType.HALF:
-            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
+            if "fp16" not in self.config and self.precision_plugin.amp_type == "native":
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -665,7 +665,7 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+            elif "amp" not in self.config and self.precision_plugin.amp_type == "apex":
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
         elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:

@@ -469,24 +469,25 @@ Validation and test step have the same option when using DP.
 Distributed and 16-bit precision
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Due to an issue with Apex and DataParallel (PyTorch and NVIDIA issue), Lightning does
-not allow 16-bit and DP training. We tried to get this to work, but it's an issue on their end.
-
 Below are the possible configurations we support.
 
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DP  | DDP | 16-bit | command                                                               |
+| 1 GPU | 1+ GPUs | DDP  | DP | 16-bit | command                                                               |
 +=======+=========+=====+=====+========+=======================================================================+
 | Y     |         |     |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
 | Y     |         |     |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       | Y   |     |        | `Trainer(accelerator="gpu", devices=k, strategy='dp')`                |
+|       | Y       | Y   |     |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       |     | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
+|       | Y       | Y   |     | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
-|       | Y       |     | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
+|       | Y       |     | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='dp')`                |
 +-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+|       | Y       |     | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='dp', precision=16)`  |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+
+DDP and DP can also be used with 1 GPU, but there's no reason to do so other than debugging distributed-related issues.
 
 
 Implement Your Own Distributed (DDP) training
