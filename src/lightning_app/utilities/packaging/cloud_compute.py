@@ -71,7 +71,7 @@ class CloudCompute:
     name: str = "default"
     disk_size: int = 0
     idle_timeout: Optional[int] = None
-    shm_size: Optional[int] = 0
+    shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
@@ -79,6 +79,12 @@ class CloudCompute:
         _verify_mount_root_dirs_are_unique(self.mounts)
 
         self.name = self.name.lower()
+
+        if self.shm_size is None:
+            if "gpu" in self.name:
+                self.shm_size = 1024
+            else:
+                self.shm_size = 0
 
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
