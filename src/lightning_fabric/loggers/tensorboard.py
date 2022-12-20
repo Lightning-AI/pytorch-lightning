@@ -163,13 +163,11 @@ class TensorBoardLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "SummaryWriter":
-        r"""
-        Actual tensorboard object. To use TensorBoard features in your
-        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
+        """Actual tensorboard object. To use TensorBoard features anywhere in your code, do the following.
 
         Example::
 
-            self.logger.experiment.some_tensorboard_function()
+            logger.experiment.some_tensorboard_function()
 
         """
         if self._experiment is not None:

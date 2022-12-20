@@ -22,6 +22,7 @@ from torch import Tensor
 
 def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
+
     Args:
         params: Target to be converted to a dictionary
 
