@@ -47,44 +47,36 @@ class TensorBoardLogger(Logger):
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
     Implemented using :class:`~tensorboardX.SummaryWriter`. Logs are saved to
-    ``os.path.join(root_dir, name, version)``. This is the default logger in Lightning, it comes
-    preinstalled.
-
-    Example::
-
-        from lightning.fabric.loggers import TensorBoardLogger
-
-        logger = TensorBoardLogger("path/to/logs/rot", name="my_model")
-        logger.log_metrics(...)
+    ``os.path.join(root_dir, name, version)``. This is the recommended logger in Lightning Fabric.
 
     Args:
-        root_dir: Save directory
-        name: Experiment name. Defaults to ``'default'``. If it is the empty string then no per-experiment
+        root_dir: The root directory in which all your experiments with different names and versions will be stored.
+        name: Experiment name. Defaults to ``'lightning_logs'``. If it is the empty string then no per-experiment
             subdirectory is used.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
             If it is a string then it is used as the run-specific subdirectory name,
             otherwise ``'version_${version}'`` is used.
         default_hp_metric: Enables a placeholder metric with key `hp_metric` when `log_hyperparams` is
-            called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
-        prefix: A string to put at the beginning of metric keys.
-        sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which
+            called without a metric (otherwise calls to ``log_hyperparams`` without a metric are ignored).
+        prefix: A string to put at the beginning of all metric keys.
+        sub_dir: Sub-directory to group TensorBoard logs. If a ``sub_dir`` argument is passed
+            then logs are saved in ``/root_dir/name/version/sub_dir/``. Defaults to ``None`` in which case
             logs are saved in ``/root_dir/name/version/``.
         \**kwargs: Additional arguments used by :class:`tensorboardX.SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
             elapses before flushing.
 
-    Example:
-        >>> import shutil, tempfile
-        >>> tmp = tempfile.mkdtemp()
-        >>> tbl = TensorBoardLogger(tmp)
-        >>> tbl.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
-        >>> tbl.log_metrics({"acc": 0.75})
-        >>> tbl.log_metrics({"acc": 0.9})
-        >>> tbl.finalize("success")
-        >>> shutil.rmtree(tmp)
+
+    Example::
+
+        from lightning.fabric.loggers import TensorBoardLogger
+
+        logger = TensorBoardLogger("path/to/logs/rot", name="my_model")
+        logger.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
+        logger.log_metrics({"acc": 0.75})
+        logger.finalize("success")
     """
     LOGGER_JOIN_CHAR = "-"
 
