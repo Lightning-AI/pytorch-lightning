@@ -193,6 +193,8 @@ class PythonServer(LightningWork, abc.ABC):
         self._input_type = input_type
         self._output_type = output_type
 
+        self.ready = False
+
     def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
         initialize the weights, setting up pipelines etc.
@@ -300,6 +302,7 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
 
+        self.ready = True
         logger.info(
             f"Your {self.__class__.__qualname__} has started. View it in your browser: http://{self.host}:{self.port}"
         )
