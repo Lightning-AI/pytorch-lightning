@@ -345,6 +345,14 @@ async def get_status() -> AppStatus:
     return app_status
 
 
+@fastapi_service.get("/api/v1/annotations", response_class=JSONResponse)
+async def get_annotations(
+    response: Response,
+) -> Union[List, Dict]:
+    global app_spec
+    return app_spec or []
+
+
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
