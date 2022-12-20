@@ -31,6 +31,7 @@ from pytorch_lightning.loops.utilities import (
     _extract_hiddens,
 )
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -366,7 +367,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
                 " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to"
                 " return True."
             )
-            kwargs["using_native_amp"] = self.trainer.amp_backend == "native"
+            kwargs["using_native_amp"] = isinstance(self.trainer.precision_plugin, MixedPrecisionPlugin)
         self.trainer._call_lightning_module_hook(
             "optimizer_step",
             self.trainer.current_epoch,
