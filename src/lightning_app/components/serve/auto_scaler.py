@@ -260,11 +260,10 @@ class _LoadBalancer(LightningWork):
                 return server
 
     async def consumer(self):
-        """
-        The consumer process that continuously checks for new requests and sends them to the API.
+        """The consumer process that continuously checks for new requests and sends them to the API.
 
-        Two instances of this function should not be running with shared `_state_server`
-        as that would create race conditions
+        Two instances of this function should not be running with shared `_state_server` as that would create race
+        conditions
         """
         self._last_batch_sent = time.time()
         while True:
