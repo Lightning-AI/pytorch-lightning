@@ -57,7 +57,6 @@ To test models that require GPU make sure to run the above command on a GPU mach
 The GPU machine must have at least 2 GPUs to run distributed tests.
 
 Note that this setup will not run tests that require specific packages installed
-such as Horovod, FairScale, NVIDIA/apex, NVIDIA/DALI, etc.
 You can rely on our CI to make sure all these tests pass.
 
 ### Standalone Tests
@@ -72,7 +71,7 @@ There are certain standalone tests, which you can run using:
 
 ## Running Coverage
 
-Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex installed.
+Make sure to run coverage on a GPU machine with at least 2 GPUs.
 
 ```bash
 cd pytorch-lightning

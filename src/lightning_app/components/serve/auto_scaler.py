@@ -212,6 +212,8 @@ class _LoadBalancer(LightningWork):
             else:
                 raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
+        self.ready = False
+
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
         batch_request_data = _BatchRequestModel(inputs=request_data)
@@ -410,6 +412,7 @@ class _LoadBalancer(LightningWork):
             )
 
         logger.info(f"Your load balancer has started. The endpoint is 'http://{self.host}:{self.port}{self.endpoint}'")
+        self.ready = True
 
         uvicorn.run(
             fastapi_app,
@@ -640,6 +643,10 @@ class AutoScaler(LightningFlow):
     @property
     def workers(self) -> List[LightningWork]:
         return [self.get_work(i) for i in range(self.num_replicas)]
+
+    @property
+    def ready(self) -> bool:
+        return self.load_balancer.ready
 
     def create_work(self) -> LightningWork:
         """Replicates a LightningWork instance with args and kwargs provided via ``__init__``."""
