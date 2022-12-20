@@ -424,7 +424,6 @@ deterministic
 
 This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
-Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
 For more info check `PyTorch docs <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
