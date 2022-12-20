@@ -12,15 +12,3 @@
 # limitations under the License.
 from lightning_fabric.loggers.logger import Logger  # noqa: F401
 from lightning_fabric.loggers.tensorboard import TensorBoardLogger  # noqa: F401
-
-# TODO(fabric): remove notes
-# - Removed model checkpoint callback dependency and after_save_checkpoint hook
-# - Removed DummyLogger
-# - Moved properties to the top
-# - save_dir -> root_dir
-
-
-# - Removed hparams saving, and the save() method
-# - Removed OmegaConf
-# - save_dir -> root_dir
-# - Removed log_graph argument
