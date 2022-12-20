@@ -168,7 +168,6 @@ class TensorBoardLogger(Logger):
         Example::
 
             logger.experiment.some_tensorboard_function()
-
         """
         if self._experiment is not None:
             return self._experiment
