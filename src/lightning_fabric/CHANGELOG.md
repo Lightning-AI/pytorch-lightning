@@ -57,8 +57,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `shuffle=False` having no effect when using DDP/DistributedSampler ([#15931](https://github.com/Lightning-AI/lightning/issues/15931))
+- Restored sampling parity between PyTorch and Lite dataloaders when using the `DistributedSampler` ([#16101](https://github.com/Lightning-AI/lightning/issues/16101))
 
+
+## [1.8.5] - 2022-12-15
+
+- minor cleaning
+
+
+## [1.8.4] - 2022-12-08
+
+### Fixed
+
+- Fixed `shuffle=False` having no effect when using DDP/DistributedSampler ([#15931](https://github.com/Lightning-AI/lightning/issues/15931))
 
 
 ## [1.8.3] - 2022-11-22
