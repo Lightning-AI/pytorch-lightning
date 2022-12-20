@@ -104,22 +104,9 @@ class DDPShardedStrategy(DDPStrategy):
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
-            "ddp_sharded_find_unused_parameters_false",
-            cls,
-            description="DDP Sharded Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
             "ddp_sharded",
             cls,
             description=cls.__class__.__name__,
-        )
-        strategy_registry.register(
-            "ddp_sharded_spawn_find_unused_parameters_false",
-            cls,
-            description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-            start_method="spawn",
         )
         strategy_registry.register("ddp_sharded_spawn", cls, description=cls.__class__.__name__, start_method="spawn")
 
