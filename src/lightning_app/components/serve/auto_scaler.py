@@ -373,38 +373,31 @@ class _LoadBalancer(LightningWork):
         return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
 
     def _get_endpoint_info_page(self) -> Optional["APIAccessFrontend"]:  # noqa: F821
-        # try:
-        from lightning_api_access import APIAccessFrontend
+        try:
+            from lightning_api_access import APIAccessFrontend
+        except ModuleNotFoundError:
+            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+            return
 
-        # except ModuleNotFoundError:
-        #     logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
-        #     return
+        if is_running_in_cloud():
+            url = f"{self._future_url}{self.endpoint}"
+        else:
+            url = f"http://localhost:{self.port}{self.endpoint}"
 
-        # if is_running_in_cloud():
-        #     url = f"{self._future_url}{self.endpoint}"
-        # else:
-        #     url = f"http://127.0.0.1:{self.port}{self.endpoint}"
-
-        frontend_objects = {
-            "name": "somename",
-            "url": f"http://127.0.0.1:{self.port}{self.endpoint}",
-            "method": "POST",
-            "request": {"text": "some text"},
-            "response": {"image": "some image str"},
-        }
-        # code_samples = self.get_code_sample(url)
-        # if code_samples:
-        #     frontend_objects["code_samples"] = code_samples
-        #     # TODO also set request/response for JS UI
-        # else:
-        #     try:
-        #         request = self._get_sample_dict_from_datatype(self._input_type)
-        #         response = self._get_sample_dict_from_datatype(self._output_type)
-        #     except TypeError:
-        #         return None
-        #     else:
-        #         frontend_objects["request"] = request
-        #         frontend_objects["response"] = response
+        frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
+        code_samples = self.get_code_sample(url)
+        if code_samples:
+            frontend_objects["code_samples"] = code_samples
+            # TODO also set request/response for JS UI
+        else:
+            try:
+                request = self._get_sample_dict_from_datatype(self._input_type)
+                response = self._get_sample_dict_from_datatype(self._output_type)
+            except TypeError:
+                return None
+            else:
+                frontend_objects["request"] = request
+                frontend_objects["response"] = response
         return APIAccessFrontend(apis=[frontend_objects])
 
 
