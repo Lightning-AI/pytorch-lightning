@@ -18,7 +18,9 @@ from unittest import mock
 import numpy
 import pytest
 import torch
+from lightning_lite.utilities.exceptions import MisconfigurationException
 from lightning_utilities.test.warning import no_warning_call
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus, pick_single_gpu
 from torch.utils.data import DataLoader
 
 import pytorch_lightning.profiler as profiler
@@ -356,3 +358,25 @@ def test_profiler_classes_deprecated_warning(cls):
         f" Use .*profilers.{cls.__name__}` class instead."
     ):
         cls()
+
+
+def test_auto_select_gpus():
+    with pytest.deprecated_call(
+        match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"
+    ):
+        Trainer(auto_select_gpus=False)
+
+
+def test_pick_multiple_gpus():
+    with pytest.deprecated_call(
+        match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"
+    ), pytest.raises(MisconfigurationException):
+        pick_multiple_gpus(0)
+
+
+@mock.patch("pytorch_lightning.tuner.auto_gpu_select.num_cuda_devices", return_value=0)
+def test_pick_single_gpu(_):
+    with pytest.deprecated_call(
+        match="The function `pick_single_gpu` has been deprecated in v1.9.0"
+    ), pytest.raises(RuntimeError):
+        pick_single_gpu([])

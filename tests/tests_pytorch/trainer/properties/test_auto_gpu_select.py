@@ -36,14 +36,14 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
                 "auto_select_gpus=True, gpus=0 is not a valid configuration."
                 " Please select a valid number of GPU resources when using auto_select_gpus."
             ),
-        ):
+        ), pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"):
             pick_multiple_gpus(nb)
     else:
         assert expected_gpu_idxs == pick_multiple_gpus(nb)
 
 
 def test_pick_multiple_gpus_more_than_available(cuda_count_1):
-    with pytest.raises(MisconfigurationException, match="You requested 3 GPUs but your machine only has 1 GPUs"):
+    with pytest.raises(MisconfigurationException, match="You requested 3 GPUs but your machine only has 1 GPUs"), pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"):
         pick_multiple_gpus(3)
 
 
