@@ -221,7 +221,7 @@ def _convert_to_lightning_optimizers(_: Trainer) -> None:
 def _reset_train_val_dataloaders(_: Trainer, *__: Any, **___: Any) -> None:
     # TODO: Remove in v2.0.0
     raise NotImplementedError(
-        "`Trainer.reset_train_val_dataloaders` was deprecated in v1.6 and is no longer supported as of v1.8."
+        "`Trainer.reset_train_val_dataloaders` was deprecated in v1.7 and is no longer supported as of v1.9."
     )
 
 
