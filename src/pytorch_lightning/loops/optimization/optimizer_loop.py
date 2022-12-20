@@ -374,7 +374,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            **kwargs,
+            **kwargs,  # type: ignore[arg-type]
             using_lbfgs=is_lbfgs,
         )
 

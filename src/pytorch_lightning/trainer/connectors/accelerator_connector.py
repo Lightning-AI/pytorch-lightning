@@ -716,7 +716,7 @@ class AcceleratorConnector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"  # type: ignore
+                f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
@@ -768,19 +768,17 @@ class AcceleratorConnector:
                 "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
                 " but apex AMP not supported on CPU."
             )
-        if self._precision_flag == "bf16" and self._amp_type_flag != "native":
-            raise MisconfigurationException(
-                f"You passed `Trainer(amp_type={self._amp_type_flag!r}, precision='bf16')` but "  # type: ignore
-                "it's not supported. Try using `amp_type='native'` instead."
-            )
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":
+            if self._precision_flag == "bf16":
+                raise MisconfigurationException(
+                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
+                    " Remove the `amp_type` argument."
+                )
             if isinstance(
                 self.strategy,
                 (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy),
             ):
-                raise MisconfigurationException(
-                    "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
-                )
+                raise MisconfigurationException("Sharded plugins are not supported with apex.")
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""

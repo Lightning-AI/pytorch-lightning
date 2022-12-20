@@ -452,7 +452,7 @@ class _Connector:
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecision(self._precision_input, amp_type="native", amp_level=None)  # type: ignore
+            return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
         if self._precision_input == 32:
             return Precision()
