@@ -373,32 +373,46 @@ class _LoadBalancer(LightningWork):
         return f"{input_type.request_code_sample(url)}\n{output_type.response_code_sample()}"
 
     def _get_endpoint_info_page(self) -> Optional["APIAccessFrontend"]:  # noqa: F821
-        try:
-            from lightning_api_access import APIAccessFrontend
-        except ModuleNotFoundError:
-            logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
-            return
+        # try:
+        #     from lightning_api_access import APIAccessFrontend
+        # except ModuleNotFoundError:
+        #     logger.warn("APIAccessFrontend not found. Please install lightning-api-access to enable the UI")
+        #     return
 
-        if is_running_in_cloud():
-            url = f"{self._future_url}{self.endpoint}"
-        else:
-            url = f"http://localhost:{self.port}{self.endpoint}"
+        # if is_running_in_cloud():
+        #     url = f"{self._future_url}{self.endpoint}"
+        # else:
+        #     url = f"http://localhost:{self.port}{self.endpoint}"
 
-        frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
-        code_samples = self.get_code_sample(url)
-        if code_samples:
-            frontend_objects["code_samples"] = code_samples
-            # TODO also set request/response for JS UI
-        else:
-            try:
-                request = self._get_sample_dict_from_datatype(self._input_type)
-                response = self._get_sample_dict_from_datatype(self._output_type)
-            except TypeError:
-                return None
-            else:
-                frontend_objects["request"] = request
-                frontend_objects["response"] = response
-        return APIAccessFrontend(apis=[frontend_objects])
+        # frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
+        # code_samples = self.get_code_sample(url)
+        # if code_samples:
+        #     frontend_objects["code_samples"] = code_samples
+        #     # TODO also set request/response for JS UI
+        # else:
+        #     try:
+        #         request = self._get_sample_dict_from_datatype(self._input_type)
+        #         response = self._get_sample_dict_from_datatype(self._output_type)
+        #     except TypeError:
+        #         return None
+        #     else:
+        #         frontend_objects["request"] = request
+        #         frontend_objects["response"] = response
+        # return APIAccessFrontend(apis=[frontend_objects])
+        from lightning_api_access import APIAccessFrontend
+
+        return APIAccessFrontend(
+            apis=[
+                {
+                    "name": "string",
+                    "url": "endpoint_url",
+                    "method": "POST",
+                    "request": "Example request JSON",
+                    "response": "Example response JSON",
+                    "code_sample": "Code sample for the user to run",  # if provided, `request` field will be ignored
+                }
+            ]
+        )
 
 
 class AutoScaler(LightningFlow):
