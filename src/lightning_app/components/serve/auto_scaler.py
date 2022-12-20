@@ -6,7 +6,7 @@ import time
 import uuid
 from base64 import b64encode
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import requests
 import uvicorn
@@ -32,7 +32,53 @@ if _is_aiohttp_available():
 logger = Logger(__name__)
 
 
-def _raise_granular_exception(exception: Exception) -> None:
+class ColdStartProxy:
+    """ColdStartProxy allows users to configure the load balancer to use a proxy service while the work is cold
+    starting. This is useful with services that gets realtime requests but startup time for workers is high.
+
+    If the request body is same and the method is POST for the proxy service,
+    then the default implementation of `handle_request` can be used. In that case
+    initialize the proxy with the proxy url. Otherwise, the user can override the `handle_request`
+
+    Args:
+        proxy_url (str): The url of the proxy service
+    """
+
+    def __init__(self, proxy_url):
+        self.proxy_url = proxy_url
+        self.proxy_timeout = 50
+        # checking `asyncio.iscoroutinefunction` instead of `inspect.iscoroutinefunction`
+        # because AsyncMock in the tests requres the former to pass
+        if not asyncio.iscoroutinefunction(self.handle_request):
+            raise TypeError("handle_request must be an `async` function")
+
+    async def handle_request(self, request: BaseModel) -> Any:
+        """This method is called when the request is received while the work is cold starting. The default
+        implementation of this method is to forward the request body to the proxy service with POST method but the
+        user can override this method to handle the request in any way.
+
+        Args:
+            request (BaseModel): The request body, a pydantic model that is being
+            forwarded by load balancer which is a FastAPI service
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "accept": "application/json",
+                    "Content-Type": "application/json",
+                }
+                async with session.post(
+                    self.proxy_url,
+                    json=request.dict(),
+                    timeout=self.proxy_timeout,
+                    headers=headers,
+                ) as response:
+                    return await response.json()
+        except Exception as ex:
+            raise HTTPException(status_code=500, detail=f"Error in proxy: {ex}")
+
+
+def _maybe_raise_granular_exception(exception: Exception) -> None:
     """Handle an exception from hitting the model servers."""
     if not isinstance(exception, Exception):
         return
@@ -116,6 +162,8 @@ class _LoadBalancer(LightningWork):
             requests to be batched. In any case, requests are processed as soon as `max_batch_size` is reached.
         timeout_keep_alive: The number of seconds until it closes Keep-Alive connections if no new data is received.
         timeout_inference_request: The number of seconds to wait for inference.
+        api_name: The name to be displayed on the UI. Normally, it is the name of the work class
+        cold_start_proxy: The proxy service to use while the work is cold starting.
         **kwargs: Arguments passed to :func:`LightningWork.init` like ``CloudCompute``, ``BuildConfig``, etc.
     """
 
@@ -130,7 +178,8 @@ class _LoadBalancer(LightningWork):
         timeout_batching: float = 1,
         timeout_keep_alive: int = 60,
         timeout_inference_request: int = 60,
-        work_name: Optional[str] = "API",  # used for displaying the name in the UI
+        api_name: Optional[str] = "API",  # used for displaying the name in the UI
+        cold_start_proxy: Union[ColdStartProxy, str, None] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
@@ -138,20 +187,30 @@ class _LoadBalancer(LightningWork):
         self._output_type = output_type
         self._timeout_keep_alive = timeout_keep_alive
         self._timeout_inference_request = timeout_inference_request
-        self.servers = []
+        self._servers = []
         self.max_batch_size = max_batch_size
         self.timeout_batching = timeout_batching
         self._iter = None
         self._batch = []
         self._responses = {}  # {request_id: response}
         self._last_batch_sent = 0
-        self._work_name = work_name
         self._server_status = {}
+        self._api_name = api_name
 
         if not endpoint.startswith("/"):
             endpoint = "/" + endpoint
 
         self.endpoint = endpoint
+        self._fastapi_app = None
+
+        self._cold_start_proxy = None
+        if cold_start_proxy:
+            if isinstance(cold_start_proxy, str):
+                self._cold_start_proxy = ColdStartProxy(proxy_url=cold_start_proxy)
+            elif isinstance(cold_start_proxy, ColdStartProxy):
+                self._cold_start_proxy = cold_start_proxy
+            else:
+                raise ValueError("cold_start_proxy must be of type ColdStartProxy or str")
 
     async def send_batch(self, batch: List[Tuple[str, _BatchRequestModel]], server_url: str):
         request_data: List[_LoadBalancer._input_type] = [b[1] for b in batch]
@@ -223,33 +282,51 @@ class _LoadBalancer(LightningWork):
                 self._batch = self._batch[len(batch) :]
                 self._last_batch_sent = time.time()
 
-    async def process_request(self, data: BaseModel):
-        if not self.servers:
+    async def process_request(self, data: BaseModel, request_id=uuid.uuid4().hex):
+        if not self._servers and not self._cold_start_proxy:
             raise HTTPException(500, "None of the workers are healthy!")
 
-        request_id = uuid.uuid4().hex
-        request: Tuple = (request_id, data)
-        self._batch.append(request)
+        # if no servers are available, proxy the request to cold start proxy handler
+        if not self._servers and self._cold_start_proxy:
+            return await self._cold_start_proxy.handle_request(data)
 
+        # if out of capacity, proxy the request to cold start proxy handler
+        if not self._has_processing_capacity() and self._cold_start_proxy:
+            return await self._cold_start_proxy.handle_request(data)
+
+        # if we have capacity, process the request
+        self._batch.append((request_id, data))
         while True:
             await asyncio.sleep(0.05)
-
             if request_id in self._responses:
                 result = self._responses[request_id]
                 del self._responses[request_id]
-                _raise_granular_exception(result)
+                _maybe_raise_granular_exception(result)
                 return result
 
+    def _has_processing_capacity(self):
+        """this function checks if currently have processing capacity for one more request or not.
+
+        Depends on the value from here, we decide whether we should proxy the request or not
+        """
+        if not self._fastapi_app:
+            return False
+        active_server_count = len(self._servers)
+        max_processable = self.max_batch_size * active_server_count
+        current_req_count = self._fastapi_app.num_current_requests
+        return current_req_count < max_processable
+
     def run(self):
-        logger.info(f"servers: {self.servers}")
+        logger.info(f"servers: {self._servers}")
         lock = asyncio.Lock()
 
-        self._iter = cycle(self.servers)
+        self._iter = cycle(self._servers)
         self._last_batch_sent = time.time()
 
         fastapi_app = _create_fastapi("Load Balancer")
         security = HTTPBasic()
         fastapi_app.SEND_TASK = None
+        self._fastapi_app = fastapi_app
 
         input_type = self._input_type
 
@@ -296,8 +373,8 @@ class _LoadBalancer(LightningWork):
         @fastapi_app.get("/system/info", response_model=_SysInfo)
         async def sys_info(authenticated: bool = Depends(authenticate_private_endpoint)):
             return _SysInfo(
-                num_workers=len(self.servers),
-                servers=self.servers,
+                num_workers=len(self._servers),
+                servers=self._servers,
                 num_requests=fastapi_app.num_current_requests,
                 processing_time=fastapi_app.last_processing_time,
                 global_request_count=fastapi_app.global_request_count,
@@ -306,8 +383,8 @@ class _LoadBalancer(LightningWork):
         @fastapi_app.put("/system/update-servers")
         async def update_servers(servers: List[str], authenticated: bool = Depends(authenticate_private_endpoint)):
             async with lock:
-                self.servers = servers
-            self._iter = cycle(self.servers)
+                self._servers = servers
+            self._iter = cycle(self._servers)
             updated_servers = set()
             # do not try to loop over the dict keys as the dict might change from other places
             existing_servers = list(self._server_status.keys())
@@ -347,7 +424,7 @@ class _LoadBalancer(LightningWork):
 
         AutoScaler uses this method to increase/decrease the number of works.
         """
-        old_servers = set(self.servers)
+        old_servers = set(self._servers)
         server_urls: List[str] = [server.url for server in server_works if server.url]
         new_servers = set(server_urls)
 
@@ -423,7 +500,7 @@ class _LoadBalancer(LightningWork):
         else:
             url = f"http://localhost:{self.port}{self.endpoint}"
 
-        frontend_objects = {"name": self._work_name, "url": url, "method": "POST", "request": None, "response": None}
+        frontend_objects = {"name": self._api_name, "url": url, "method": "POST", "request": None, "response": None}
         code_samples = self.get_code_sample(url)
         if code_samples:
             frontend_objects["code_samples"] = code_samples
@@ -455,6 +532,7 @@ class AutoScaler(LightningFlow):
         timeout_batching: (auto-batching) The number of seconds to wait before sending the requests to process.
         input_type: Input type.
         output_type: Output type.
+        cold_start_proxy: If provided, the proxy will be used while the worker machines are warming up.
 
     .. testcode::
 
@@ -516,6 +594,7 @@ class AutoScaler(LightningFlow):
         endpoint: str = "api/predict",
         input_type: Type[BaseModel] = Dict,
         output_type: Type[BaseModel] = Dict,
+        cold_start_proxy: Union[ColdStartProxy, str, None] = None,
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
@@ -550,7 +629,8 @@ class AutoScaler(LightningFlow):
             timeout_batching=timeout_batching,
             cache_calls=True,
             parallel=True,
-            work_name=self._work_cls.__name__,
+            api_name=self._work_cls.__name__,
+            cold_start_proxy=cold_start_proxy,
         )
         for _ in range(min_replicas):
             work = self.create_work()
