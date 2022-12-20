@@ -78,9 +78,10 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _IPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -653,7 +654,7 @@ class AcceleratorConnector:
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
                 'Requested `strategy="horovod"`, but Horovod is not installed.'
-                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
+                " Install with `HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]`"
             )
 
         hvd.init()

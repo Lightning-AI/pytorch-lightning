@@ -379,3 +379,9 @@ def test_apex_deprecation_warnings():
     trainer = Trainer()
     with pytest.deprecated_call(match="amp_backend` will not be supported"):
         trainer.amp_backend
+
+
+@RunIf(horovod=True)
+def test_horovod_deprecation_warnings(*_):
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        Trainer(strategy="horovod")

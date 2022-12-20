@@ -295,7 +295,6 @@ strategies
     DataParallelStrategy
     DeepSpeedStrategy
     HivemindStrategy
-    HorovodStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy

@@ -89,6 +89,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecates the `pytorch_lightning.utilities.enum.sAMPType` enum
   * Deprecates the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 
+- `horovod` deprecation ([#16141](https://github.com/PyTorchLightning/pytorch-lightning/pull/16141))
+  * Deprecated `Trainer(strategy="horovod")`
+  * Deprecated the `HorovodStrategy` class
+
 
 ### Removed
 
