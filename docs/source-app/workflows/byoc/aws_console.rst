@@ -71,7 +71,7 @@ Refresh the policy list and select the custom policy you just created (in this c
 
 	Description -> "Role for Lightning cloud permissions"
 
-Congrats! You now successfully added the set pf permissions needed for lightning to create a cluster.
+Congrats! You now successfully added the set up permissions needed for lightning to create a cluster.
 
 
 ------
