@@ -356,6 +356,8 @@ class LightningApp:
                         deltas.append(delta)
                 else:
                     api_or_command_request_deltas.append(delta)
+            else:
+                break
 
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)

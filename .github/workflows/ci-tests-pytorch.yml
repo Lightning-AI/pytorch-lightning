@@ -14,7 +14,7 @@ on:
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch-tests.yml"
+      - ".github/workflows/ci-tests-pytorch.yml"
       - "requirements/lite/**"
       - "src/lightning_lite/**"
       - "!requirements/pytorch/docs.txt"
