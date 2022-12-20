@@ -15,7 +15,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, MutableMapping, Tuple, Union
+from typing import Any, Dict, List, Mapping, MutableMapping, Tuple, Union, Optional
 
 import numpy as np
 import torch
@@ -24,7 +24,7 @@ from torch import Tensor
 from pytorch_lightning.callbacks import Checkpoint
 
 
-def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
+def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[str, Any]:
     """Ensure parameters are a dict or convert to dict if necessary.
     Args:
         params: Target to be converted to a dictionary

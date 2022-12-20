@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 
 import numpy as np
 import torch
 
-from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.logger import (
     _add_prefix,
@@ -32,30 +31,17 @@ def test_convert_params():
     """Test conversion of params to a dict."""
 
     # Test normal dict, make sure it is unchanged
-    params = {"foo": "bar", 1: 23}
-    assert type(params) == dict
-    params = _convert_params(params)
-    assert type(params) == dict
-    assert params["foo"] == "bar"
-    assert params[1] == 23
+    params = dict(string="string", int=1, float=0.1, bool=True, none=None)
+    expected = params.copy()
+    assert _convert_params(params) == expected
 
     # Test None conversion
-    params = None
-    assert type(params) != dict
-    params = _convert_params(params)
-    assert type(params) == dict
-    assert params == {}
+    assert _convert_params(None) == {}
 
     # Test conversion of argparse Namespace
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
-
-    assert type(params) == Namespace
-    params = _convert_params(params)
-    assert type(params) == dict
-    assert params["gpus"] is None
+    params = Namespace(string="string", int=1, float=0.1, bool=True, none=None)
+    expected = vars(params)
+    assert _convert_params(params) == expected
 
 
 def test_flatten_dict():
@@ -80,18 +66,15 @@ def test_flatten_dict():
     assert params["c/9/10"] == "bar"
 
     # Test flattening of argparse Namespace
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
+    params = Namespace(a=1, b=2)
     wrapping_dict = {"params": params}
     params = _flatten_dict(wrapping_dict)
 
     assert type(params) == dict
-    assert params["params/logger"] is True
-    assert params["params/gpus"] is None
-    assert "logger" not in params
-    assert "gpus" not in params
+    assert params["params/a"] == 1
+    assert params["params/b"] == 2
+    assert "a" not in params
+    assert "b" not in params
 
 
 def test_sanitize_callable_params():
@@ -99,26 +82,23 @@ def test_sanitize_callable_params():
 
     Therefore, we get them a chance to return something and if the returned type is not accepted, return None.
     """
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
-
     def return_something():
         return "something"
-
-    params.something = return_something
 
     def wrapper_something():
         return return_something
 
-    params.wrapper_something_wo_name = lambda: lambda: "1"
-    params.wrapper_something = wrapper_something
+    params = Namespace(
+        foo="bar",
+        something=return_something,
+        wrapper_something_wo_name=(lambda: lambda: "1"),
+        wrapper_something=wrapper_something
+    )
 
     params = _convert_params(params)
     params = _flatten_dict(params)
     params = _sanitize_callable_params(params)
-    assert params["gpus"] is None
+    assert params["foo"] == "bar"
     assert params["something"] == "something"
     assert params["wrapper_something"] == "wrapper_something"
     assert params["wrapper_something_wo_name"] == "<lambda>"
