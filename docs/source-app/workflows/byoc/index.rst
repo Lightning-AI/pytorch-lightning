@@ -6,7 +6,7 @@ Run Apps on your own cloud (BYOC)
 
 **Audience:** Users looking to run Lightning Apps on their own private cloud infrastructure.
 
-.. note:: This feature is currently available for early access! To create your own clutser `contact us <mailto:product@lightning.ai?subject=I%20want%20to%20run%20on%20my%20private%20cloud!>`_.
+.. note:: This feature is currently available for early access! To create your own cluster `contact us <mailto:product@lightning.ai?subject=I%20want%20to%20run%20on%20my%20private%20cloud!>`_.
 
 
 ----

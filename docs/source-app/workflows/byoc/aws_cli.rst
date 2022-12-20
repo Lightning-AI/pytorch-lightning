@@ -7,9 +7,9 @@
 Create AWS role with AWS CLI
 ############################
 
-1. Intsall AWS CLI (see instructions `here <https://aws.amazon.com/cli/>`_).
+1. Install AWS CLI (see instructions `here <https://aws.amazon.com/cli/>`_).
 
-2. Protect your role by creating a hard to guess password that will be used to authenticate Lightning (You will need to pass it to Lightning for authnetication). In our example we will use `dummy`.
+2. Protect your role by creating a hard to guess password that will be used to authenticate Lightning (You will need to pass it to Lightning for authentication). In our example we will use `dummy`.
 
 3. Create a role called `lightning-cloud` using the following command (replace <YOUR-HARD-TO-GUESS-PASSWORD> with your own):
 
@@ -92,15 +92,19 @@ Create AWS role with AWS CLI
      --description "policy granting lightning controlplane permissions" \
      --policy-document file:///my_dir/iam-policy.json
 
-6. Attach the policy to the IAM role you just created:
+6. Fetch the role ARN so you can attach the policy:
+
+.. code:: bash
+
+   aws iam get-role --role-name lightning-cloud --output json --query Role.Arn
+
+7. Attach the policy to the IAM role you just created:
 
 .. code:: bash
 
    aws iam attach-role-policy \
      --role-name lightning-cloud \
-     --policy-arn arn:aws:iam::158793097533:policy/lightning-cloud
-
-TODO: explain ARN
+     --policy-arn arn:aws:iam::1234567890:policy/lightning-cloud
 
 ------
 
