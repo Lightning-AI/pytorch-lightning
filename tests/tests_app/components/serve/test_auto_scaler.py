@@ -1,15 +1,14 @@
 import time
 import uuid
-from fastapi import HTTPException
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from fastapi import HTTPException
 
 from lightning_app import CloudCompute, LightningWork
-from lightning_app.components import AutoScaler, Text, ColdStartProxy
+from lightning_app.components import AutoScaler, ColdStartProxy, Text
 from lightning_app.components.serve.auto_scaler import _LoadBalancer
-
 
 
 class EmptyWork(LightningWork):
@@ -184,10 +183,7 @@ class TestLoadBalancerProcessRequest:
     async def test_workers_not_ready_with_cold_start_proxy(self, monkeypatch):
         monkeypatch.setattr(ColdStartProxy, "handle_request", mock.AsyncMock())
         load_balancer = _LoadBalancer(
-            input_type=Text,
-            output_type=Text,
-            endpoint="/predict",
-            cold_start_proxy=ColdStartProxy("url")
+            input_type=Text, output_type=Text, endpoint="/predict", cold_start_proxy=ColdStartProxy("url")
         )
         req_id = uuid.uuid4().hex
         await load_balancer.process_request("test", req_id)
@@ -210,10 +206,7 @@ class TestLoadBalancerProcessRequest:
     async def test_workers_have_no_capacity_with_cold_start_proxy(self, monkeypatch):
         monkeypatch.setattr(ColdStartProxy, "handle_request", mock.AsyncMock())
         load_balancer = _LoadBalancer(
-            input_type=Text,
-            output_type=Text,
-            endpoint="/predict",
-            cold_start_proxy=ColdStartProxy("url")
+            input_type=Text, output_type=Text, endpoint="/predict", cold_start_proxy=ColdStartProxy("url")
         )
         load_balancer._fastapi_app = mock.MagicMock()
         load_balancer._fastapi_app.num_current_requests = 1000
@@ -235,6 +228,3 @@ class TestLoadBalancerProcessRequest:
         load_balancer._responses = {req_id: "Dummy"}
         await load_balancer.process_request("test", req_id)
         assert load_balancer._batch == [(req_id, "test")]
-
-
-

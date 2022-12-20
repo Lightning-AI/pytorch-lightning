@@ -33,9 +33,8 @@ logger = Logger(__name__)
 
 
 class ColdStartProxy:
-    """ ColdStartProxy allows users to configure the load balancer to use a
-    proxy service while the work is cold starting. This is useful with services
-    that gets realtime requests but startup time for workers is high.
+    """ColdStartProxy allows users to configure the load balancer to use a proxy service while the work is cold
+    starting. This is useful with services that gets realtime requests but startup time for workers is high.
 
     If the request body is same and the method is POST for the proxy service,
     then the default implementation of `handle_request` can be used. In that case
@@ -44,6 +43,7 @@ class ColdStartProxy:
     Args:
         proxy_url (str): The url of the proxy service
     """
+
     def __init__(self, proxy_url):
         self.proxy_url = proxy_url
         self.proxy_timeout = 50
@@ -53,9 +53,9 @@ class ColdStartProxy:
             raise TypeError("handle_request must be an `async` function")
 
     async def handle_request(self, request: BaseModel) -> Any:
-        """ This method is called when the request is received while the work is cold starting.
-        The default implementation of this method is to forward the request body to the proxy service
-        with POST method but the user can override this method to handle the request in any way.
+        """This method is called when the request is received while the work is cold starting. The default
+        implementation of this method is to forward the request body to the proxy service with POST method but the
+        user can override this method to handle the request in any way.
 
         Args:
             request (BaseModel): The request body, a pydantic model that is being
