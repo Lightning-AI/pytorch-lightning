@@ -119,6 +119,8 @@ def test_tf32_message(_, __, caplog):
 
 
 def test_find_usable_cuda_gpus_error_handling():
+    """Test error handling for edge cases when using `find_usable_cuda_gpus`."""
+
     # Asking for GPUs if no GPUs visible
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0), pytest.raises(
         ValueError, match="You requested to find 2 GPUs but there are no visible CUDA"
