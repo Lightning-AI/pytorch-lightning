@@ -13,8 +13,6 @@
 # limitations under the License.
 import os
 
-# LightningLoggerBase imported for backward compatibility
-from pytorch_lightning.loggers.base import LightningLoggerBase
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger  # noqa: F401
 from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers.logger import Logger
@@ -23,7 +21,7 @@ from pytorch_lightning.loggers.neptune import NeptuneLogger  # noqa: F401
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loggers.wandb import WandbLogger  # noqa: F401
 
-__all__ = ["CSVLogger", "LightningLoggerBase", "Logger", "TensorBoardLogger"]
+__all__ = ["CSVLogger", "Logger", "TensorBoardLogger"]
 
 if _COMET_AVAILABLE:
     __all__.append("CometLogger")
