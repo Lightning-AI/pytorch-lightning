@@ -17,15 +17,14 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
@@ -256,7 +255,6 @@ def test_auto_scale_batch_size_with_amp(tmpdir):
     )
     trainer.tune(model)
     after_batch_size = model.batch_size
-    assert trainer.amp_backend == AMPType.NATIVE
     assert trainer.scaler is not None
     assert after_batch_size != before_batch_size
 

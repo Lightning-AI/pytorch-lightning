@@ -25,8 +25,8 @@ import torch.distributed
 import lightning_lite
 import pytorch_lightning
 from lightning_lite.plugins.environments.lightning import find_free_network_port
+from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch import _PATH_DATASETS
 
 
@@ -304,11 +304,6 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
     )
     for item in items:
         item.add_marker(deprecation_error)
-
-    apex_deprecation = pytest.mark.filterwarnings("ignore:apex.amp is deprecated:FutureWarning")
-    for item in items:
-        if any(marker.name == "skipif" and marker.kwargs.get("amp_apex", False) for marker in item.own_markers):
-            item.add_marker(apex_deprecation)
 
 
 def pytest_addoption(parser):

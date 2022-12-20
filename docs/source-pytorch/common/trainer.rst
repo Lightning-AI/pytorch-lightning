@@ -289,27 +289,6 @@ Example::
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-amp_backend
-^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/amp_backend.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/amp_backend.mp4"></video>
-
-|
-
-Use PyTorch AMP ('native'), or NVIDIA apex ('apex').
-
-.. testcode::
-
-    # using PyTorch built-in AMP, default used by the Trainer
-    trainer = Trainer(amp_backend="native")
-
-    # using NVIDIA Apex
-    trainer = Trainer(amp_backend="apex")
-
 auto_scale_batch_size
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -1155,27 +1134,6 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
 
 .. note:: When running on TPUs, torch.bfloat16 will be used but tensor printing will still show torch.float32.
-
-.. admonition::  If you are interested in using Apex 16-bit training:
-   :class: dropdown
-
-    NVIDIA Apex and DDP have instability problems. We recommend using the native AMP for 16-bit precision with multiple GPUs.
-    To use Apex 16-bit training:
-
-    1. `Install apex. <https://github.com/NVIDIA/apex#quick-start>`__
-
-    2. Set the ``precision`` trainer flag to 16. You can customize the `Apex optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`_ by setting the ``amp_level`` flag
-       in the precision plugin.
-
-    .. testcode::
-        :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
-
-        from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-
-
-        apex_plugin = ApexMixedPrecisionPlugin(amp_level="O2")
-        # turn on 16-bit
-        trainer = Trainer(accelerator="gpu", devices=1, precision=16, plugins=[apex_plugin])
 
 profiler
 ^^^^^^^^
