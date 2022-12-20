@@ -281,7 +281,7 @@ def _check_version_and_upgrade():
         prompt = f"A newer version of {__package_name__} is available ({new_version}). Would you like to upgrade?"
 
         if click.confirm(prompt, default=True):
-            command = f"pip install '{__package_name__}=={new_version}'"
+            command = f"pip install {__package_name__}=={new_version}"
 
             logger.info(f"⚡ RUN: {command}")
 

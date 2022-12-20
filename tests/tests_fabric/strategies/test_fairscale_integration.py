@@ -69,18 +69,3 @@ def test_fairscale_multi_process_checkpoint_state_consolidation(with_fairscale_o
     weights is identical to the saved one."""
     lite = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
     lite.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
-
-
-@pytest.mark.parametrize(
-    "strategy, expected_find_unused_parameters",
-    [
-        ("ddp_sharded", None),
-        ("ddp_sharded_find_unused_parameters_false", False),
-        ("ddp_sharded_spawn", None),
-        ("ddp_sharded_spawn_find_unused_parameters_false", False),
-    ],
-)
-def test_fairscale_find_unused_parameters_from_registry(strategy, expected_find_unused_parameters):
-    lite = BoringLite(strategy=strategy)
-    if expected_find_unused_parameters is not None:
-        assert lite._strategy._ddp_kwargs["find_unused_parameters"] is False

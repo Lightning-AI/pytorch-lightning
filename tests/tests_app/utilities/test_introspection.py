@@ -41,17 +41,21 @@ def test_introspection_lightning():
 def test_introspection_lightning_overrides():
     """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning
     in the provided files."""
+    scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_cli.py")))
+    scan = scanner.scan()
+    assert set(scan) == {"LightningDataModule", "LightningModule"}
+
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_overrides.py")))
     scan = scanner.scan()
-    assert sorted(scan.keys()) == [
+    assert set(scan) == {
         "Accelerator",
-        "BaseProfiler",
+        "Profiler",
         "Callback",
         "LightningDataModule",
-        "LightningLoggerBase",
+        "Logger",
         "LightningModule",
         "Loop",
         "Metric",
         "PrecisionPlugin",
         "Trainer",
-    ]
+    }

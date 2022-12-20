@@ -109,6 +109,7 @@ jobs:
         branch = f"origin/builds/{os.getenv('TAG')}"
         while True:
           remote_refs = [b.name for b in repo.remote().refs]
+          print([n for n in remote_refs if "builds" in n])
           if branch in remote_refs:
             break
           time.sleep(60)

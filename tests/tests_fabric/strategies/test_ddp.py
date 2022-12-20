@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -62,3 +63,19 @@ def test_ddp_no_backward_sync():
         pass
 
     module.no_sync.assert_called_once()
+
+
+@mock.patch("lightning_fabric.strategies.ddp.DistributedDataParallel")
+def test_ddp_extra_kwargs(ddp_mock):
+    """Test that additional kwargs passed to the DDPStrategy get passed down to the DistributedDataParallel
+    wrapper."""
+    module = torch.nn.Linear(1, 1)
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")])
+    strategy.setup_module(module)
+    ddp_mock.assert_called_with(module=module, device_ids=None)
+
+    ddp_mock.reset_mock()
+
+    strategy = DDPStrategy(parallel_devices=[torch.device("cpu"), torch.device("cpu")], find_unused_parameters=True)
+    strategy.setup_module(module)
+    ddp_mock.assert_called_with(module=module, device_ids=None, find_unused_parameters=True)

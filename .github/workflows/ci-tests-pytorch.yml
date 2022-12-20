@@ -3,9 +3,9 @@ name: Test PyTorch
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
   push:
-    branches: [master, "release/*", "lite/debug"]
+    branches: [master, "release/*"]
   pull_request:
-    branches: [master, "release/*", "lite/debug"]
+    branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
@@ -14,9 +14,9 @@ on:
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-pytorch-tests.yml"
-      - "requirements/fabric/**"
-      - "src/lightning_fabric/**"
+      - ".github/workflows/ci-tests-pytorch.yml"
+      - "requirements/lite/**"
+      - "src/lightning_lite/**"
       - "!requirements/pytorch/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -104,7 +104,7 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
-        python ./requirements/pytorch/adjust-versions.py requirements/fabric/base.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${{ matrix.pytorch-version }}
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${{ matrix.pytorch-version }}
         cat requirements/pytorch/base.txt
@@ -171,8 +171,8 @@ jobs:
       if: ${{ matrix.pkg-name == 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="pytorch_lightning,lightning_fabric" \
-          --target_import="lightning.pytorch,lightning.fabric"
+          --source_import="pytorch_lightning,lightning_lite" \
+          --target_import="lightning.pytorch,lightning.lite"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7

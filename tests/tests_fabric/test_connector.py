@@ -81,7 +81,7 @@ def test_strategy_choice_ddp_on_cpu():
 
 def _test_strategy_choice_ddp_and_cpu(ddp_strategy_class):
     connector = _Connector(
-        strategy=ddp_strategy_class(find_unused_parameters=True),
+        strategy=ddp_strategy_class(),
         accelerator="cpu",
         devices=2,
     )
@@ -379,9 +379,7 @@ def test_invalid_strategy_choice():
     ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
 def test_strategy_choice_cpu_str(strategy, strategy_class):
@@ -394,9 +392,7 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
     ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPShardedStrategy),
@@ -780,9 +776,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
+@pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)

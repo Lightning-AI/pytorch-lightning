@@ -11,19 +11,14 @@ from lightning_app.core.queues import BaseQueue
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
-from lightning_app.utilities.app_helpers import (
-    _is_json_serializable,
-    _lightning_dispatched,
-    _LightningAppRef,
-    is_overridden,
-)
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
     make_status,
     WorkFailureReasons,
     WorkStageStatus,
-    WorkStatus,
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -56,7 +51,7 @@ class LightningWork:
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
     # TODO: Move to spawn for all Operating System.
-    _start_method = "spawn" if sys.platform == "win32" else "fork"
+    _start_method = "spawn" if sys.platform in ("darwin", "win32") else "fork"
 
     def __init__(
         self,
@@ -124,7 +119,16 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
+        self._state = {
+            "_host",
+            "_port",
+            "_url",
+            "_future_url",
+            "_internal_ip",
+            "_restarting",
+            "_cloud_compute",
+            "_display_name",
+        }
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -134,6 +138,7 @@ class LightningWork:
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
+        self._display_name = ""
         # The ``self._calls`` is used to track whether the run
         # method with a given set of input arguments has already been called.
         # Example of its usage:
@@ -213,6 +218,22 @@ class LightningWork:
         return self._name
 
     @property
+    def display_name(self):
+        """Returns the display name of the LightningWork in the cloud.
+
+        The display name needs to set before the run method of the work is called.
+        """
+        return self._display_name
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        """Sets the display name of the LightningWork in the cloud."""
+        if not self.has_started:
+            self._display_name = display_name
+        elif self._display_name != display_name:
+            raise RuntimeError("The display name can be set only before the work has started.")
+
+    @property
     def cache_calls(self) -> bool:
         """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
         the same arguments in subsequent calls."""
@@ -267,7 +288,7 @@ class LightningWork:
 
     @lightningignore.setter
     def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
-        if _lightning_dispatched():
+        if self._backend is not None:
             raise RuntimeError(
                 f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
                 " effect"
@@ -609,12 +630,12 @@ class LightningWork:
         pass
 
     def stop(self):
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        This can only be called from a ``LightningFlow``.
+        """
         if not self._backend:
-            raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
-                "Make sure to assign the Work to a flow instance."
-            )
+            raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
         if self.status.stage == WorkStageStatus.STOPPED:
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
@@ -622,6 +643,19 @@ class LightningWork:
         self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)
+
+    def delete(self):
+        """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        Locally, the work.delete() behaves as work.stop().
+        """
+        if not self._backend:
+            raise Exception(
+                "Can't delete the work, it looks like it isn't attached to a LightningFlow. "
+                "Make sure to assign the Work to a flow instance."
+            )
+        app = _LightningAppRef().get_current()
+        self._backend.delete_work(app, self)
 
     def _check_run_is_implemented(self) -> None:
         if not is_overridden("run", instance=self, parent=LightningWork):

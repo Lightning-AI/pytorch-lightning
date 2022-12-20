@@ -9,7 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-app-examples.yml"
+      - ".github/workflows/ci-examples-app.yml"
       - "src/lightning_app/**"
       - "tests/tests_examples_app/**"
       - "examples/app_*/**"
@@ -89,7 +89,8 @@ jobs:
       - name: Install Lightning package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-        run: pip install -e .
+        # do not use -e because it will make both packages available since it adds `src` to `sys.path` automatically
+        run: pip install .
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}

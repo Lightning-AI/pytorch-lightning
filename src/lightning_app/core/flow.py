@@ -10,13 +10,7 @@ from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.app_helpers import (
-    _is_json_serializable,
-    _lightning_dispatched,
-    _LightningAppRef,
-    _set_child_name,
-    is_overridden,
-)
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
@@ -255,10 +249,7 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Not currently enabled.
-
-        Override to customize when your App should be ready.
-        """
+        """Override to customize when your App should be ready."""
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 
@@ -325,7 +316,7 @@ class LightningFlow:
 
     @lightningignore.setter
     def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
-        if _lightning_dispatched():
+        if self._backend is not None:
             raise RuntimeError(
                 f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
                 " effect"
