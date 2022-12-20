@@ -156,6 +156,16 @@ class Fabric:
         """Whether this rank is rank zero."""
         return self._strategy.is_global_zero
 
+    @property
+    def loggers(self) -> List[Logger]:
+        """Returns all loggers passed to Fabric."""
+        return self._loggers
+
+    @property
+    def logger(self) -> Logger:
+        """Returns the first logger in the list passed to Fabric, which is considered the main logger."""
+        return self._loggers[0]
+
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Fabric.
 
@@ -582,17 +592,27 @@ class Fabric:
             # method(self, *args, y=1)
             # method(self, *args, **kwargs)
 
-    def log(self, name: str, value: Any, step: Optional[int]) -> None:
-        """Log to all loggers that were added to Fabric.
+    def log(self, name: str, value: Any, step: Optional[int] = None) -> None:
+        """Log a scalar to all loggers that were added to Fabric.
 
         Args:
-            name: The name of the metric to log. Some Loggers may restrict which characters you can use in the name.
+            name: The name of the metric to log.
             value: The metric value to collect.
             step: Optional step number. Most Logger implementations auto-increment this value by one with every
                 log call.
         """
+        self.log_dict(metrics={name: value}, step=step)
+
+    def log_dict(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
+        """Log multiple scalars at once to all loggers that were added to Fabric.
+
+        Args:
+            metrics: A dictionary where the key is the name of the metric and the value the scalar to be logged.
+            step: Optional step number. Most Logger implementations auto-increment this value by one with every
+                log call.
+        """
         for logger in self._loggers:
-            logger.log_metrics(metrics={name: value}, step=step)
+            logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
