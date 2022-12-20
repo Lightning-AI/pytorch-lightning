@@ -41,15 +41,13 @@ from lightning_lite.plugins.io import TorchCheckpointIO
 from lightning_lite.strategies import (
     DataParallelStrategy,
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     XLAStrategy,
 )
-from lightning_lite.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from lightning_lite.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_lite.utilities.exceptions import MisconfigurationException
 
 
@@ -81,15 +79,9 @@ def test_strategy_choice_ddp_on_cpu():
     _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPStrategy)
 
 
-@RunIf(skip_windows=True)
-def test_strategy_choice_ddp_spawn_on_cpu():
-    """Test that selecting DDPSpawnStrategy on CPU works."""
-    _test_strategy_choice_ddp_and_cpu(ddp_strategy_class=DDPSpawnStrategy)
-
-
 def _test_strategy_choice_ddp_and_cpu(ddp_strategy_class):
     connector = _Connector(
-        strategy=ddp_strategy_class(find_unused_parameters=True),
+        strategy=ddp_strategy_class(),
         accelerator="cpu",
         devices=2,
     )
@@ -283,9 +275,9 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ["strategy", "strategy_class"],
     [
         ("ddp", DDPStrategy),
-        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -336,7 +328,7 @@ def test_accelerator_gpu():
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
+@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPStrategy)])
 def test_accelerator_cpu_with_devices(devices, strategy_class):
     connector = _Connector(accelerator="cpu", devices=devices)
     assert connector._parallel_devices == [torch.device("cpu")] * devices
@@ -346,7 +338,7 @@ def test_accelerator_cpu_with_devices(devices, strategy_class):
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
+    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPStrategy)]
 )
 def test_accelerator_gpu_with_devices(devices, strategy_class):
     connector = _Connector(accelerator="gpu", devices=devices)
@@ -386,10 +378,8 @@ def test_invalid_strategy_choice():
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
-        ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
 def test_strategy_choice_cpu_str(strategy, strategy_class):
@@ -397,23 +387,15 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
     assert isinstance(connector.strategy, strategy_class)
 
 
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_cpu_instance(strategy_class):
-    connector = _Connector(strategy=strategy_class(), accelerator="cpu", devices=2)
-    assert isinstance(connector.strategy, strategy_class)
-
-
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
-        ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -424,7 +406,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
 
 @RunIf(fairscale=True)
 @pytest.mark.parametrize(
-    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
+    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
 )
 @pytest.mark.parametrize(
     "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
@@ -435,18 +417,16 @@ def test_strategy_choice_sharded(strategy, expected_strategy, precision, expecte
     assert isinstance(connector.precision, expected_precision)
 
 
-@RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_instance(strategy_class):
-    connector = _Connector(strategy=strategy_class(), accelerator="gpu", devices=2)
-    assert isinstance(connector.strategy, strategy_class)
+def test_device_type_when_strategy_instance_cpu_passed():
+    connector = _Connector(strategy=DDPStrategy(), accelerator="cpu", devices=2)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert isinstance(connector.accelerator, CPUAccelerator)
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
-    connector = _Connector(strategy=strategy_class(), accelerator="gpu", devices=2)
-    assert isinstance(connector.strategy, strategy_class)
+def test_device_type_when_strategy_instance_gpu_passed():
+    connector = _Connector(strategy=DDPStrategy(), accelerator="gpu", devices=2)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.accelerator, CUDAAccelerator)
 
 
@@ -459,8 +439,9 @@ def test_validate_precision_type(precision):
 def test_strategy_choice_ddp_spawn_cpu():
     connector = _Connector(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, DDPSpawnStrategy)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+    assert connector.strategy._start_method == "spawn"
     assert connector.strategy.launcher._start_method == "spawn"
 
 
@@ -471,8 +452,9 @@ def test_strategy_choice_ddp_fork_in_interactive():
     environments by default."""
     connector = _Connector(devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, DDPSpawnStrategy)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+    assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher._start_method == "fork"
 
 
@@ -480,8 +462,9 @@ def test_strategy_choice_ddp_fork_in_interactive():
 def test_strategy_choice_ddp_fork_cpu():
     connector = _Connector(strategy="ddp_fork", accelerator="cpu", devices=2)
     assert isinstance(connector.accelerator, CPUAccelerator)
-    assert isinstance(connector.strategy, DDPSpawnStrategy)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
+    assert connector.strategy._start_method == "fork"
     assert connector.strategy.launcher._start_method == "fork"
 
 
@@ -501,7 +484,7 @@ def test_strategy_choice_ddp(*_):
 def test_strategy_choice_ddp_spawn(*_):
     connector = _Connector(strategy="ddp_spawn", accelerator="gpu", devices=1)
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPSpawnStrategy)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert isinstance(connector.strategy.cluster_environment, LightningEnvironment)
 
 
@@ -671,7 +654,7 @@ def test_devices_auto_choice_cpu(tpu_available, *_):
 def test_devices_auto_choice_gpu(*_):
     connector = _Connector(accelerator="auto", devices="auto")
     assert isinstance(connector.accelerator, CUDAAccelerator)
-    assert isinstance(connector.strategy, DDPSpawnStrategy)
+    assert isinstance(connector.strategy, DDPStrategy)
     assert len(connector._parallel_devices) == 2
 
 
@@ -793,9 +776,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
+@pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)

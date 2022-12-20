@@ -25,14 +25,13 @@ from lightning_utilities.core.overrides import is_overridden
 from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import BatchSampler, DataLoader, DistributedSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from lightning_lite.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
 from lightning_lite.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DeepSpeedStrategy,
     FSDPStrategy,
     SingleDeviceStrategy,
@@ -582,7 +581,10 @@ class LightningLite:
 
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
+        kwargs.setdefault("shuffle", isinstance(dataloader.sampler, RandomSampler))
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
+        if isinstance(dataloader.sampler, (RandomSampler, SequentialSampler)):
+            return DistributedSampler(dataloader.dataset, **kwargs)
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _prepare_run_method(self) -> None:
@@ -612,7 +614,7 @@ class LightningLite:
         if isinstance(module, _LiteModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
-        if isinstance(self._strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
+        if isinstance(self._strategy, DDPShardedStrategy):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
@@ -620,7 +622,7 @@ class LightningLite:
             )
 
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."

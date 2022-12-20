@@ -9,6 +9,7 @@ import click
 import lightning_cloud
 from lightning_cloud.openapi import (
     Externalv1Cluster,
+    Externalv1LightningappInstance,
     V1AWSClusterDriverSpec,
     V1ClusterDriver,
     V1ClusterPerformanceProfile,
@@ -18,6 +19,9 @@ from lightning_cloud.openapi import (
     V1CreateClusterRequest,
     V1GetClusterResponse,
     V1KubernetesClusterDriver,
+    V1LightningappInstanceState,
+    V1ListLightningappInstancesResponse,
+    V1Membership,
 )
 from lightning_utilities.core.enums import StrEnum
 from rich.console import Console
@@ -25,6 +29,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightning_app.cli.core import Formatable
+from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.openapi import create_openapi_object, string2dict
 
@@ -198,6 +203,33 @@ class AWSClusterManager:
             )
             click.confirm("Do you want to continue?", abort=True)
 
+        else:
+            apps = _list_apps(self.api_client, cluster_id=cluster_id, phase_in=[V1LightningappInstanceState.RUNNING])
+            if apps:
+                raise click.ClickException(
+                    dedent(
+                        """\
+                        To delete the cluster, you must first delete the apps running on it.
+                        Use the following commands to delete the apps, then delete the cluster again:
+
+                        """
+                    )
+                    + "\n".join([f"\tlightning delete app {app.name} --cluster-id {cluster_id}" for app in apps])
+                )
+
+            if _list_apps(self.api_client, cluster_id=cluster_id, phase_not_in=[V1LightningappInstanceState.DELETED]):
+                click.echo(
+                    dedent(
+                        """\
+                        This cluster has stopped apps.
+                        Deleting this cluster will delete those apps and their logs.
+
+                        App artifacts aren't deleted and will still be available in the S3 bucket for the cluster.
+                        """
+                    )
+                )
+                click.confirm("Are you sure you want to continue?", abort=True)
+
         resp: V1GetClusterResponse = self.api_client.cluster_service_get_cluster(id=cluster_id)
         bucket_name = resp.spec.driver.kubernetes.aws.bucket_name
 
@@ -226,12 +258,34 @@ class AWSClusterManager:
                 click.echo(background_message)
 
 
+def _list_apps(
+    api_client: LightningClient,
+    **filters: Any,
+) -> List[Externalv1LightningappInstance]:
+    """_list_apps is a thin wrapper around lightningapp_instance_service_list_lightningapp_instances.
+
+    Args:
+        api_client (LightningClient): Used for listing app instances
+        **filters: keyword arguments passed to the list method
+
+    Returns:
+        List[Externalv1LightningappInstance]: List of apps matching the filters
+    """
+    project: V1Membership = _get_project(api_client)
+    resp: V1ListLightningappInstancesResponse = api_client.lightningapp_instance_service_list_lightningapp_instances(
+        project.project_id,
+        **filters,
+    )
+
+    return resp.lightningapps
+
+
 def _wait_for_cluster_state(
     api_client: LightningClient,
     cluster_id: str,
     target_state: V1ClusterState,
     timeout_seconds: int = MAX_CLUSTER_WAIT_TIME,
-    poll_duration_seconds: int = 10,
+    poll_duration_seconds: int = 60,
 ) -> None:
     """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
 
@@ -307,21 +361,24 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
     duration = _format_elapsed_seconds(elapsed)
 
     if current_state == V1ClusterState.FAILED:
-        return dedent(
-            f"""\
-            The requested cluster operation for cluster {cluster_id} has errors:
-            {current_reason}
+        if not _is_retryable_error(current_reason):
+            return dedent(
+                f"""\
+                The requested cluster operation for cluster {cluster_id} has errors:
 
-            ---
-            We are automatically retrying, and an automated alert has been created
+                {current_reason}
 
-            WARNING: Any non-deleted cluster may be using resources.
-            To avoid incuring cost on your cloud provider, delete the cluster using the following command:
-                lightning delete cluster {cluster_id}
+                --------------------------------------------------------------
 
-            Contact support@lightning.ai for additional help
-            """
-        )
+                We are automatically retrying, and an automated alert has been created
+
+                WARNING: Any non-deleted cluster may be using resources.
+                To avoid incuring cost on your cloud provider, delete the cluster using the following command:
+                    lightning delete cluster {cluster_id}
+
+                Contact support@lightning.ai for additional help
+                """
+            )
 
     if desired_state == current_state == V1ClusterState.RUNNING:
         return dedent(
@@ -350,6 +407,10 @@ def _cluster_status_long(cluster: V1GetClusterResponse, desired_state: V1Cluster
         return f"Cluster {cluster_id} is being deleted [elapsed={duration}]"
 
     raise click.ClickException(f"Unknown cluster desired state {desired_state}")
+
+
+def _is_retryable_error(error_message: str) -> bool:
+    return "resources failed to delete" in error_message
 
 
 def _format_elapsed_seconds(seconds: Union[float, int]) -> str:
