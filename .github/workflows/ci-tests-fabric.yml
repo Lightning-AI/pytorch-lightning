@@ -3,9 +3,9 @@ name: Test Fabric
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
