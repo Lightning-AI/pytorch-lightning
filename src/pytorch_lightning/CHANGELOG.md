@@ -74,12 +74,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - `nvidia/apex` deprecation ([#16039](https://github.com/PyTorchLightning/pytorch-lightning/pull/16039))
   * Deprecated `pytorch_lightning.plugins.NativeMixedPrecisionPlugin` in favor of `pytorch_lightning.plugins.MixedPrecisionPlugin`
-  * Deprecated the `LightningModule.optimizer_step(using_native_amp=...)` argument.
-  * Deprecated the `Trainer(amp_backend=...)` argument.
-  * Deprecated the `Trainer(amp_level=...)` argument.
-  * Deprecated the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class.
-  * Deprecates the `pytorch_lightning.utilities.enum.sAMPType` enum.
-  * Deprecates the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments.
+  * Deprecated the `LightningModule.optimizer_step(using_native_amp=...)` argument
+  * Deprecated the `Trainer(amp_backend=...)` argument
+  * Deprecated the `Trainer.amp_backend` property
+  * Deprecated the `Trainer(amp_level=...)` argument
+  * Deprecated the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class
+  * Deprecates the `pytorch_lightning.utilities.enum.sAMPType` enum
+  * Deprecates the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 
 
 ### Removed

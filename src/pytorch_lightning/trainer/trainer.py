@@ -1772,6 +1772,12 @@ class Trainer:
 
     @property
     def amp_backend(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            " Accessing `Trainer.amp_backend` will not be supported. You can assume it will be `'native'`",
+            stacklevel=6,
+        )
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
             return "apex"
         if isinstance(self.precision_plugin, MixedPrecisionPlugin):

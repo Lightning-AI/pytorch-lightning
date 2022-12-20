@@ -324,7 +324,6 @@ def test_manual_optimization_and_return_tensor(tmpdir):
         limit_test_batches=0,
         limit_val_batches=0,
         precision=16,
-        amp_backend="native",
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,

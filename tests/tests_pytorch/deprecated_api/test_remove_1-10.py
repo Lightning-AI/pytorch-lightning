@@ -398,3 +398,7 @@ def test_apex_deprecation_warnings():
 
     with pytest.deprecated_call(match="AMPType` enum has been deprecated in v1.9"):
         AMPType.APEX
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="amp_backend` will not be supported"):
+        trainer.amp_backend

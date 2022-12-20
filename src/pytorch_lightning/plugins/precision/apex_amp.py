@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import functools
 import warnings
 from types import ModuleType
 from typing import Any, Callable, Dict, Optional
@@ -29,7 +28,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 _APEX_AVAILABLE = RequirementCache("apex")
 
 
-@functools.lru_cache(maxsize=1)
 def _import_amp_without_deprecation() -> ModuleType:
     # hide the warning upstream in favor of our deprecation
     warnings.filterwarnings(action="ignore", message="apex.amp is deprecated", category=FutureWarning)

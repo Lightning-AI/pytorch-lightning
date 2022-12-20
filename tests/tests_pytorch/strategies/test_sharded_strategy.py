@@ -58,6 +58,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         strategy="ddp_sharded",
         accelerator="gpu",
         devices=1,

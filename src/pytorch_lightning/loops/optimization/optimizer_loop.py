@@ -30,6 +30,7 @@ from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _extract_hiddens,
 )
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -342,7 +343,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # wraps into LightningOptimizer only for running step
-        if self.trainer.amp_backend == "apex":
+        if isinstance(self.trainer.precision_plugin, ApexMixedPrecisionPlugin):
             # apex overrides .step function and need to be wrapped on each step
             optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
         else:

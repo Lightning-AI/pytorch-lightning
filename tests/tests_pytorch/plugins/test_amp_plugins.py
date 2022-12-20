@@ -151,7 +151,6 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=0,
-        amp_backend="native",
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
