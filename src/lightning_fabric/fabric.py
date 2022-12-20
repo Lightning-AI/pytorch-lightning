@@ -106,6 +106,7 @@ class Fabric:
         self._precision: Precision = self._strategy.precision
         callbacks = callbacks if callbacks is not None else []
         self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        loggers = loggers if loggers is not None else []
         self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
 

@@ -716,6 +716,12 @@ def test_loggers_input():
     logger0 = Mock()
     logger1 = Mock()
 
+    # no logger
+    fabric = Fabric(loggers=None)
+    assert fabric._loggers == []
+    fabric = Fabric(loggers=[])
+    assert fabric._loggers == []
+
     # single logger
     fabric = Fabric(loggers=logger0)
     assert fabric._loggers == [logger0]
