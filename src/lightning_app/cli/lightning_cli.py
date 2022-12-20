@@ -49,8 +49,9 @@ logger = Logger(__name__)
 
 
 def main() -> None:
-    # Check environment and versions if not in the cloud
-    if "LIGHTNING_APP_STATE_URL" not in os.environ:
+    # Check environment and versions if not in the cloud and not testing
+    is_testing = bool(int(os.getenv("LIGHTING_TESTING", "0")))
+    if not is_testing and "LIGHTNING_APP_STATE_URL" not in os.environ:
         # Enforce running in PATH Python
         _check_environment_and_redirect()
 
@@ -75,8 +76,6 @@ def main() -> None:
                     message = "You are connected to the local Lightning App."
                 else:
                     message = f"You are connected to the cloud Lightning App: {app_name}."
-
-                click.echo(" ")
 
                 if (len(sys.argv) > 1 and sys.argv[1] in ["-h", "--help"]) or len(sys.argv) == 1:
                     _list_app_commands()
@@ -206,7 +205,7 @@ def login() -> None:
     auth.clear()
 
     try:
-        auth._run_server()
+        auth.authenticate()
     except ConnectionError:
         click.echo(f"Unable to connect to {get_lightning_cloud_url()}. Please check your internet connection.")
         exit(1)
@@ -359,8 +358,8 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-lite"):
-    # lightning-lite may not be available when installing only standalone lightning-app package
+if RequirementCache("lightning-lite>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
+    # lightning.lite.cli may not be available when installing only standalone lightning-app package
     from lightning_lite.cli import _run_model
 
     run.add_command(_run_model)

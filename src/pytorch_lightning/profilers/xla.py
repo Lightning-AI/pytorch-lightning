@@ -50,12 +50,14 @@ class XLAProfiler(Profiler):
     def start(self, action_name: str) -> None:
         import torch_xla.debug.profiler as xp
 
-        if action_name in self.RECORD_FUNCTIONS:
+        # The action name is formatted as '[TYPE]{class name}.{hook name}'
+        # Example: [LightningModule]BoringModel.training_step
+        if action_name.split(".")[-1] in self.RECORD_FUNCTIONS:
             if not self._start_trace:
                 self.server = xp.start_server(self.port)
                 self._start_trace = True
 
-            if action_name in self.STEP_FUNCTIONS:
+            if action_name.split(".")[-1] in self.STEP_FUNCTIONS:
                 step = self._get_step_num(action_name)
                 recording = xp.StepTrace(action_name, step_num=step)
             else:

@@ -1,0 +1,65 @@
+name: Building packages
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: 'Unique name for collecting artifacts'
+        required: true
+        type: string
+      pkg-names:
+        description: 'list package names to be build in json format'
+        required: false
+        type: string
+        default: |
+          ["lightning", "app", "lite", "pytorch"]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  init:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - run: |
+        mkdir dist && touch dist/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: dist
+
+
+  build-packages:
+    needs: init
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 1  # run sequential to prevent download/upload collisions
+      matrix:
+        pkg-name: ${{ fromJSON(inputs.pkg-names) }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
+    - uses: ./.github/actions/pkg-check
+      with:
+        pkg-name: ${{ matrix.pkg-name }}
+        nb-dirs: ${{ env.NB_DIRS }}
+
+    - run: |
+        mkdir pypi/${{ matrix.pkg-name }}
+        cp dist/* pypi/${{ matrix.pkg-name }}/
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: pypi

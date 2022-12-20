@@ -71,7 +71,7 @@ class CloudCompute:
     name: str = "default"
     disk_size: int = 0
     idle_timeout: Optional[int] = None
-    shm_size: Optional[int] = 0
+    shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
     _internal_id: Optional[str] = None
 
@@ -80,9 +80,15 @@ class CloudCompute:
 
         self.name = self.name.lower()
 
+        if self.shm_size is None:
+            if "gpu" in self.name:
+                self.shm_size = 1024
+            else:
+                self.shm_size = 0
+
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
-            self._internal_id = "default" if self.name == "default" else uuid4().hex[:7]
+            self._internal_id = self._generate_id()
 
         # Internal arguments for now.
         self.preemptible = False
@@ -117,6 +123,14 @@ class CloudCompute:
 
     def is_default(self) -> bool:
         return self.name == "default"
+
+    def _generate_id(self):
+        return "default" if self.name == "default" else uuid4().hex[:7]
+
+    def clone(self):
+        new_dict = self.to_dict()
+        new_dict["_internal_id"] = self._generate_id()
+        return self.from_dict(new_dict)
 
 
 def _verify_mount_root_dirs_are_unique(mounts: Union[None, Mount, List[Mount], Tuple[Mount]]) -> None:

@@ -20,8 +20,8 @@ import pytest
 import torch
 import torch.distributed
 import torch.nn.functional
+from lightning_utilities.test.warning import no_warning_call
 from tests_lite.helpers.runif import RunIf
-from tests_lite.helpers.utils import no_warning_call
 from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler, TensorDataset
 
@@ -29,7 +29,6 @@ from lightning_lite.lite import LightningLite
 from lightning_lite.plugins import Precision
 from lightning_lite.strategies import (
     DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -243,17 +242,16 @@ def test_setup_optimizers_twice_fails():
         lite.setup_optimizers(lite_optimizer)
 
 
-@pytest.mark.parametrize("strategy_cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
-def test_setup_module_not_supported(strategy_cls):
+def test_setup_module_not_supported():
     """Test that `setup_module` validates the strategy supports setting up model and optimizers independently."""
     lite = EmptyLite()
     model = nn.Linear(1, 2)
-    lite._strategy = Mock(spec=strategy_cls)
+    lite._strategy = Mock(spec=DDPShardedStrategy)
     with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
         lite.setup_module(model)
 
 
-@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, DDPSpawnShardedStrategy, XLAStrategy])
+@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
@@ -407,7 +405,46 @@ def test_setup_dataloaders_distributed_sampler_shuffle():
     for dataloader in shuffle_dataloaders:
         seed_everything(1)
         dataloader = lite.setup_dataloaders(dataloader)
-        assert list(t[0].item() for t in iter(dataloader)) == [5, 0, 2, 1]
+        assert list(t[0].item() for t in iter(dataloader)) == [5, 2, 7, 1]
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_setup_dataloaders_distributed_sampler_parity(shuffle, batch_size):
+    """Test that the distributed sampler setup in Lite leads to the same sequence of data as in raw PyTorch."""
+    torch.manual_seed(1)
+    lite = LightningLite(accelerator="cpu", strategy="ddp", devices=2)
+    # no lite.launch(): pretend we are on rank 0 now
+
+    dataset = torch.arange(10)
+    torch_dataloader = DataLoader(
+        dataset,
+        sampler=DistributedSampler(dataset, num_replicas=2, rank=0, shuffle=shuffle),
+        batch_size=batch_size,
+    )
+    lite_dataloader = DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
+    lite_dataloader = lite.setup_dataloaders(lite_dataloader)
+
+    def fetch_epoch(loader):
+        iterator = iter(loader)
+        # we fetch 2 batches per epoch
+        return torch.cat((next(iterator), next(iterator)))
+
+    # 1st epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
+    torch_dataloader.sampler.set_epoch(0)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+    assert torch.equal(torch_data, lite_data)
+
+    # 2nd epoch
+    # PyTorch users needs to set the epoch, while in Lite it gets handled automatically
+    torch_dataloader.sampler.set_epoch(1)
+    torch_data = fetch_epoch(torch_dataloader)
+    lite_data = fetch_epoch(lite_dataloader)
+    assert torch.equal(torch_data, lite_data)
+    assert torch_dataloader.sampler.epoch == 1
+    assert lite_dataloader._dataloader.sampler.epoch == 1
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
