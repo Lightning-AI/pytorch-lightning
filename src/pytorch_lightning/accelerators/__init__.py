@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from lightning_lite.accelerators.registry import _AcceleratorRegistry, call_register_accelerators
+from lightning_lite.accelerators.cuda import find_usable_cuda_gpus  # noqa: F401
 from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator  # noqa: F401
