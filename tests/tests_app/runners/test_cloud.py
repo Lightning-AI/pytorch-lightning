@@ -484,7 +484,7 @@ class TestAppCreationClient:
         cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
         # Set cloud_runtime.enable_basic_auth to be not empty:
-        cloud_runtime.cloud_runtime.enable_basic_auth = "username:password"
+        cloud_runtime.enable_basic_auth = "username:password"
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
         monkeypatch.setattr(cloud, "Path", Path)
 
