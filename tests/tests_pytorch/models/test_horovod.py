@@ -28,7 +28,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.advanced_models import BasicGAN
 from tests_pytorch.helpers.runif import RunIf
@@ -40,7 +40,7 @@ if _HOROVOD_AVAILABLE:
 
 @RunIf(min_cuda_gpus=1, horovod=True)
 def test_nccl_is_available_on_gpu_environment():
-    from tests_pytorch.helpers.runif import _HOROVOD_NCCL_AVAILABLE
+    from pytorch_lightning.strategies.horovod import _HOROVOD_NCCL_AVAILABLE
 
     # the GPU environment should always install Horovod NCCL
     assert _HOROVOD_NCCL_AVAILABLE
@@ -293,7 +293,6 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-# todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(horovod=True, skip_windows=True)
 def test_result_reduce_horovod(tmpdir):
@@ -413,8 +412,9 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     num_workers = 8
     init_lr = 0.1 * num_workers
 
-    with patch("horovod.torch.size", return_value=8):
-
+    with patch("horovod.torch.size", return_value=8), pytest.deprecated_call(
+        match=r"horovod'\)` has been deprecated in v1.9"
+    ):
         # fit model
         trainer = Trainer(
             default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, strategy="horovod"
