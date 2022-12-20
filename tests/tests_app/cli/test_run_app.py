@@ -186,7 +186,7 @@ def test_lightning_run_app_secrets(monkeypatch):
 
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
 @mock.patch("lightning_app.cli.lightning_cli.dispatch")
-def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMock, open_ui, caplog, monkeypatch):
+def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMock, caplog, monkeypatch):
     """This test jsut validates the command has ran properly when --enable-basic-auth argument is passed.
 
     It vhecks the call to `dispatch` for the right arguments.
