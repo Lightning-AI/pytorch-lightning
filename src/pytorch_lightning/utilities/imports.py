@@ -24,11 +24,9 @@ _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 # duplicated from lite because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
 
-_APEX_AVAILABLE = module_available("apex.amp")
 _DALI_AVAILABLE = module_available("nvidia.dali")
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = package_available("hivemind")
-_HOROVOD_AVAILABLE = module_available("horovod.torch")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")

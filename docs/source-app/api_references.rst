@@ -46,6 +46,7 @@ ___________________
     ~multi_node.pytorch_spawn.PyTorchSpawnMultiNode
     ~multi_node.trainer.LightningTrainerMultiNode
     ~serve.auto_scaler.AutoScaler
+    ~serve.auto_scaler.ColdStartProxy
 
 ----
 

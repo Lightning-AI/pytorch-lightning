@@ -16,14 +16,14 @@ from unittest.mock import Mock
 import pytest
 from torch.optim import Optimizer
 
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import MixedPrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 
 
 def test_clip_gradients():
     """Test that `.clip_gradients()` is a no-op when clipping is disabled."""
     optimizer = Mock(spec=Optimizer)
-    precision = NativeMixedPrecisionPlugin(precision=16, device="cuda:0", scaler=Mock())
+    precision = MixedPrecisionPlugin(precision=16, device="cuda:0", scaler=Mock())
     precision.clip_grad_by_value = Mock()
     precision.clip_grad_by_norm = Mock()
     precision.clip_gradients(optimizer)
@@ -47,7 +47,7 @@ def test_optimizer_amp_scaling_support_in_step_method():
     gradient clipping (example: fused Adam)."""
 
     optimizer = Mock(_step_supports_amp_scaling=True)
-    precision = NativeMixedPrecisionPlugin(precision=16, device="cuda:0", scaler=Mock())
+    precision = MixedPrecisionPlugin(precision=16, device="cuda:0", scaler=Mock())
 
     with pytest.raises(RuntimeError, match="The current optimizer.*does not allow for gradient clipping"):
         precision.clip_gradients(optimizer, clip_val=1.0)
