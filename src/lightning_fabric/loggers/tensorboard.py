@@ -114,7 +114,6 @@ class TensorBoardLogger(Logger):
         self._fs = get_filesystem(root_dir)
 
         self._experiment: Optional["SummaryWriter"] = None
-        self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
 
     @property
@@ -198,6 +197,26 @@ class TensorBoardLogger(Logger):
         return self._experiment
 
     @rank_zero_only
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
+        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
+
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+
+        for k, v in metrics.items():
+            if isinstance(v, Tensor):
+                v = v.item()
+
+            if isinstance(v, dict):
+                self.experiment.add_scalars(k, v, step)
+            else:
+                try:
+                    self.experiment.add_scalar(k, v, step)
+                # TODO(fabric): specify the possible exception
+                except Exception as ex:
+                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
+                    raise ValueError(m) from ex
+
+    @rank_zero_only
     def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
     ) -> None:
@@ -209,9 +228,7 @@ class TensorBoardLogger(Logger):
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
-
         params = _convert_params(params)
-        self.hparams.update(params)
 
         # format params into the suitable for tensorboard
         params = _flatten_dict(params)
@@ -238,26 +255,6 @@ class TensorBoardLogger(Logger):
             writer.add_summary(sei)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
-
-        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-
-        for k, v in metrics.items():
-            if isinstance(v, Tensor):
-                v = v.item()
-
-            if isinstance(v, dict):
-                self.experiment.add_scalars(k, v, step)
-            else:
-                try:
-                    self.experiment.add_scalar(k, v, step)
-                # TODO(fabric): specify the possible exception
-                except Exception as ex:
-                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    raise ValueError(m) from ex
-
-    @rank_zero_only
     def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         model_example_input = getattr(model, "example_input_array", None)
         input_array = model_example_input if input_array is None else input_array
@@ -282,14 +279,14 @@ class TensorBoardLogger(Logger):
             self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
+    def save(self) -> None:
+        self.experiment.flush()
+
+    @rank_zero_only
     def finalize(self, status: str) -> None:
         if self._experiment is not None:
             self.experiment.flush()
             self.experiment.close()
-
-        if status == "success":
-            # saving hparams happens independent of experiment manager
-            self.save()
 
     def _get_next_version(self) -> int:
         save_dir = os.path.join(self.root_dir, self.name)
