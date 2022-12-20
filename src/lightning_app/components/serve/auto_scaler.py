@@ -309,8 +309,11 @@ class _LoadBalancer(LightningWork):
         AutoScaler uses this method to increase/decrease the number of works.
         """
         old_servers = set(self.servers)
-        server_urls: List[str] = [f"http://{server._internal_ip}:{server._port}" for server in server_works]
-        server_urls = [server_url for server_url in server_urls if server_url]
+        server_urls: List[str] = [
+            f"http://{server._internal_ip}:{server._port}"
+            for server in server_works
+            if server._internal_ip and server._port
+        ]
         new_servers = set(server_urls)
 
         if new_servers == old_servers:
