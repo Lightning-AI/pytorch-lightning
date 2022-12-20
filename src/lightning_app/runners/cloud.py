@@ -1,5 +1,6 @@
 import fnmatch
 import json
+import os
 import random
 import re
 import string
@@ -230,6 +231,14 @@ class CloudRuntime(Runtime):
         else:
             ignore_functions = None
 
+        # Create a default dotignore if it doesn't exist
+        if not (root / DOT_IGNORE_FILENAME).is_file():
+            with open(root / DOT_IGNORE_FILENAME, "w") as f:
+                f.write("venv/\n")
+                if (root / "bin" / "activate").is_file() or (root / "pyvenv.cfg").is_file():
+                    # the user is developing inside venv
+                    f.write("bin/\ninclude/\nlib/\npyvenv.cfg\n")
+
         repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
@@ -312,52 +321,58 @@ class CloudRuntime(Runtime):
                 self._ensure_cluster_project_binding(project.project_id, cluster_id)
 
             # Resolve the app name, instance, and cluster ID
+            existing_app = None
             existing_instance = None
             app_name = app_config.name
 
-            # List existing instances
+            # List existing apps
             # TODO: Add pagination, otherwise this could break if users have a lot of apps.
-            find_instances_resp = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+            all_apps = self.backend.client.lightningapp_v2_service_list_lightningapps_v2(
                 project_id=project.project_id
-            )
+            ).lightningapps
 
-            # Seach for instances with the given name (possibly with some random characters appended)
+            # Seach for apps with the given name (possibly with some random characters appended)
             pattern = re.escape(f"{app_name}-") + ".{4}"
-            instances = [
+            all_apps = [
                 lightningapp
-                for lightningapp in find_instances_resp.lightningapps
+                for lightningapp in all_apps
                 if lightningapp.name == app_name or (re.fullmatch(pattern, lightningapp.name) is not None)
             ]
 
-            # If instances exist and cluster is None, mimic cluster selection logic to choose a default
-            if cluster_id is None and len(instances) > 0:
+            # If apps exist and cluster is None, mimic cluster selection logic to choose a default
+            if cluster_id is None and len(all_apps) > 0:
                 # Determine the cluster ID
                 cluster_id = self._get_default_cluster(project.project_id)
 
             # If an instance exists on the cluster with the same base name - restart it
-            for instance in instances:
-                if instance.spec.cluster_id == cluster_id:
-                    existing_instance = instance
+            for app in all_apps:
+                instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+                    project_id=project.project_id,
+                    app_id=app.id,
+                ).lightningapps
+                if instances and instances[0].spec.cluster_id == cluster_id:
+                    existing_app = app
+                    existing_instance = instances[0]
                     break
 
-            # If instances exist but not on the cluster - choose a randomised name
-            if len(instances) > 0 and existing_instance is None:
+            # If apps exist but not on the cluster - choose a randomised name
+            if len(all_apps) > 0 and existing_app is None:
                 name_exists = True
                 while name_exists:
                     random_name = self._randomise_name(app_name)
-                    name_exists = any([instance.name == random_name for instance in instances])
+                    name_exists = any([app.name == random_name for app in all_apps])
 
                 app_name = random_name
 
             # Create the app if it doesn't exist
-            if existing_instance is None:
+            if existing_app is None:
                 app_body = Body7(name=app_name, can_download_source_code=True)
                 lit_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
                     project_id=project.project_id, body=app_body
                 )
                 app_id = lit_app.id
             else:
-                app_id = existing_instance.spec.app_id
+                app_id = existing_app.id
 
             # check if user has sufficient credits to run an app
             # if so set the desired state to running otherwise, create the app in stopped state,
@@ -556,15 +571,10 @@ class CloudRuntime(Runtime):
                 f"Your application folder '{root.absolute()}' is more than {CLOUD_UPLOAD_WARNING} MB. "
                 f"The total size is {round(app_folder_size_in_mb, 2)} MB. {len(files)} files were uploaded.\n"
                 + largest_paths_msg
-                + "Perhaps you should try running the app in an empty directory."
+                + "Perhaps you should try running the app in an empty directory.\n"
+                + "You can ignore some files or folders by adding them to `.lightningignore`.\n"
+                + " You can also set the `self.lightningingore` attribute in a Flow or Work."
             )
-            if not (root / DOT_IGNORE_FILENAME).is_file():
-                warning_msg += (
-                    "\nIn order to ignore some files or folder, create a `.lightningignore` file and add the paths to"
-                    " ignore. You can also set the `lightningingore` attribute in a Flow or Work."
-                )
-            else:
-                warning_msg += "\nYou can ignore some files or folders by adding them to `.lightningignore`."
 
             logger.warn(warning_msg)
 
@@ -580,6 +590,10 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
+
+        # Pretend we are running in the cloud when loading the app locally
+        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+
         try:
             app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
@@ -590,6 +604,8 @@ class CloudRuntime(Runtime):
             # Create a generic app.
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
         return app
 
     @staticmethod

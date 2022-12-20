@@ -20,7 +20,6 @@ from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_13
 
 _log = logging.getLogger(__name__)
 
@@ -148,15 +147,6 @@ def _get_num_processes(accelerator: str, devices: str) -> int:
 
 def _torchrun_launch(args: Namespace, script_args: List[str]) -> None:
     """This will invoke `torchrun` programmatically to launch the given script in new processes."""
-
-    if _IS_WINDOWS and _TORCH_GREATER_EQUAL_1_13:  # pragma: no cover
-        # TODO: remove once import issue is resolved: https://github.com/pytorch/pytorch/issues/85427
-        _log.error(
-            "On the Windows platform, this launcher is currently only supported on torch < 1.13 due to a bug"
-            " upstream: https://github.com/pytorch/pytorch/issues/85427"
-        )
-        raise SystemExit(1)
-
     import torch.distributed.run as torchrun
 
     if args.strategy == "dp":

@@ -6,7 +6,7 @@ subprojects:
   - id: "pytorch_lightning: Tests workflow"
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-pytorch-tests.yml"
+      - ".github/workflows/ci-tests-pytorch.yml"
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "requirements/pytorch/**"
@@ -178,7 +178,7 @@ subprojects:
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-fabric-tests.yml"
+      - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -223,7 +223,7 @@ subprojects:
   - id: "lightning_app: Tests workflow"
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-app-tests.yml"
+      - ".github/workflows/ci-tests-app.yml"
       - "src/lightning_app/**"
       - "tests/tests_app/**"
       - "requirements/app/**"
@@ -245,7 +245,7 @@ subprojects:
   - id: "lightning_app: Examples"
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-app-examples.yml"
+      - ".github/workflows/ci-examples-app.yml"
       - "src/lightning_app/**"
       - "tests/tests_examples_app/**"
       - "examples/app_*/**"

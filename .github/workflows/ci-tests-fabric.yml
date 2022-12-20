@@ -1,4 +1,4 @@
-name: Test Lite
+name: Test Fabric
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:
@@ -9,11 +9,11 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - "requirements/lite/**"
-      - "src/lightning_lite/**"
-      - "tests/tests_lite/**"
+      - "requirements/fabric/**"
+      - "src/lightning_fabric/**"
+      - "tests/tests_fabric/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-lite-tests.yml"
+      - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -30,7 +30,7 @@ defaults:
     shell: bash
 
 jobs:
-  lite-cpu:
+  fabric-cpu:
     runs-on: ${{ matrix.os }}
     if: github.event.pull_request.draft == false
     strategy:
@@ -39,21 +39,21 @@ jobs:
         include:
           # assign python and pytorch version combinations to operating systems (arbitrarily)
           # note: there's no distribution of torch==1.10 for Python>=3.10
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.11"}
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.12"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.8", pytorch-version: "1.10"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.12"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.9", pytorch-version: "1.11"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.11"}
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.12"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.8", pytorch-version: "1.10"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.12"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.9", pytorch-version: "1.11"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.12"}
           # only run PyTorch latest with Python latest
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.10", pytorch-version: "1.13"}
           # "oldest" versions tests, only on minimum Python
-          - {os: "macOS-11", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "ubuntu-20.04", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
-          - {os: "windows-2022", pkg-name: "lite", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "macOS-11", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "ubuntu-20.04", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
+          - {os: "windows-2022", pkg-name: "fabric", python-version: "3.7", pytorch-version: "1.10", requires: "oldest"}
           # "lightning" installs the monolithic package
           - {os: "macOS-11", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
@@ -87,8 +87,8 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
-        python ./requirements/pytorch/adjust-versions.py requirements/lite/base.txt ${{ matrix.pytorch-version }}
-        cat requirements/lite/base.txt
+        python ./requirements/pytorch/adjust-versions.py requirements/fabric/base.txt ${{ matrix.pytorch-version }}
+        cat requirements/fabric/base.txt
 
     - name: Get pip cache dir
       id: pip-cache
@@ -98,7 +98,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/lite/*.txt') }}
+        key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/fabric/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.release }}-${{ matrix.requires }}-
 
@@ -109,27 +109,27 @@ jobs:
       env:
         PACKAGE_NAME: ${{ matrix.pkg-name }}
       run: |
-        pip install -e . "pytest-timeout" -r requirements/lite/devel.txt --upgrade --find-links ${TORCH_URL}
+        pip install -e . "pytest-timeout" -r requirements/fabric/devel.txt --upgrade --find-links ${TORCH_URL}
         pip list
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name == 'lightning' }}
       run: |
         python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
-          --source_import="lightning_lite" --target_import="lightning.lite"
+          --source_import="lightning_fabric" --target_import="lightning.fabric"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
       if: matrix.python-version != '3.7'
-      working-directory: tests/tests_lite
+      working-directory: tests/tests_fabric
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
     - name: Switch coverage scope
-      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_lite'))" >> $GITHUB_ENV
+      run: python -c "print('COVERAGE_SCOPE=' + str('lightning' if '${{matrix.pkg-name}}' == 'lightning' else 'lightning_fabric'))" >> $GITHUB_ENV
 
-    - name: Testing Lite
-      working-directory: tests/tests_lite
+    - name: Testing Fabric
+      working-directory: tests/tests_fabric
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source ${COVERAGE_SCOPE} -m pytest -v --timeout=30 --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
@@ -138,11 +138,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: tests/tests_lite/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        path: tests/tests_fabric/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Statistics
       if: success()
-      working-directory: tests/tests_lite
+      working-directory: tests/tests_fabric
       run: |
         coverage report
         coverage xml
@@ -153,7 +153,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/tests_lite/coverage.xml
+        file: tests/tests_fabric/coverage.xml
         flags: ${COVERAGE_SCOPE},cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false
