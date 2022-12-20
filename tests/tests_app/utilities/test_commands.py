@@ -160,3 +160,4 @@ def test_configure_commands(monkeypatch):
         time_left -= 0.1
     assert process.exitcode == 0
     disconnect()
+    process.kill()

@@ -88,6 +88,9 @@ class MultiProcessingBackend(Backend):
         work_manager: MultiProcessWorkManager = app.processes[work.name]
         work_manager.kill()
 
+    def delete_work(self, app, work: "lightning_app.LightningWork") -> None:
+        self.stop_work(app, work)
+
 
 class CloudMultiProcessingBackend(MultiProcessingBackend):
     def __init__(self, *args, **kwargs):
@@ -108,3 +111,6 @@ class CloudMultiProcessingBackend(MultiProcessingBackend):
         disable_port(work._port)
         self.ports = [port for port in self.ports if port != work._port]
         return super().stop_work(app, work)
+
+    def delete_work(self, app, work: "lightning_app.LightningWork") -> None:
+        self.stop_work(app, work)

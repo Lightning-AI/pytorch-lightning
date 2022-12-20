@@ -152,12 +152,12 @@ class EnsembleVotingModel(LightningModule):
 #       self.reset(...)                                                                     #
 #       self.on_run_start(...)                                                              #
 #                                                                                           #
-#        while not self.done:                                                               #
-#            self.on_advance_start(...)                                                     #
-#            self.advance(...)                                                              #
-#            self.on_advance_end(...)                                                       #
+#       while not self.done:                                                                #
+#           self.on_advance_start(...)                                                      #
+#           self.advance(...)                                                               #
+#           self.on_advance_end(...)                                                        #
 #                                                                                           #
-#        return self.on_run_end(...)                                                        #
+#       return self.on_run_end(...)                                                         #
 #############################################################################################
 
 

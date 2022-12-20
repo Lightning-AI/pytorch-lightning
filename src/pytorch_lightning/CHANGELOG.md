@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a warning when `self.log(..., logger=True)` is called without a configured logger ([#15814](https://github.com/Lightning-AI/lightning/pull/15814))
 
 
+- Added support for colossalai 0.1.11 ([#15888](https://github.com/Lightning-AI/lightning/pull/15888))
+
+
 - Added `LightningCLI` support for optimizer and learning schedulers via callable type dependency injection ([#15869](https://github.com/Lightning-AI/lightning/pull/15869))
 
 
@@ -69,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `description`, `env_prefix` and `env_parse` parameters in `LightningCLI.__init__` in favour of giving them through `parser_kwargs` ([#15651](https://github.com/Lightning-AI/lightning/pull/15651))
 
 
--
+- Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
 
 
 ### Removed
@@ -90,6 +93,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the deprecated `LightningDeepSpeedModule` ([#16041](https://github.com/Lightning-AI/lightning/pull/16041))
+
+
+- Removed the deprecated `pytorch_lightning.accelerators.GPUAccelerator` in favor of `pytorch_lightning.accelerators.CUDAAccelerator` ([#16050](https://github.com/Lightning-AI/lightning/pull/16050))
+
+
+- Removed the deprecated `pytorch_lightning.profiler.*` classes in favor of `pytorch_lightning.profilers` ([#16059](https://github.com/PyTorchLightning/pytorch-lightning/pull/16059))
+
+
+- Removed the deprecated `pytorch_lightning.utilities.cli` module in favor of `pytorch_lightning.cli` ([#16116](https://github.com/PyTorchLightning/pytorch-lightning/pull/16116))
 
 
 ### Fixed
@@ -504,7 +516,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/Lightning-AI/lightning/pull/12184))
 - Deprecated LightningCLI's registries in favor of importing the respective package ([#13221](https://github.com/Lightning-AI/lightning/pull/13221))
 - Deprecated public utilities in `pytorch_lightning.utilities.cli.LightningCLI` in favor of equivalent copies in `pytorch_lightning.cli.LightningCLI` ([#13767](https://github.com/Lightning-AI/lightning/pull/13767))
-- Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/Lightning-AI/lightning/pull/12308))
+- Deprecated `pytorch_lightning.profiler.*` in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/Lightning-AI/lightning/pull/12308))
 
 ### Removed
 
