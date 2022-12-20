@@ -654,7 +654,7 @@ class AutoScaler(LightningFlow):
 
     def configure_layout(self):
         tabs = [
-            {"name": "Endpoint Info", "content": f"{self.load_balancer}/endpoint-info"},
+            {"name": "Endpoint Info", "content": f"{self.load_balancer.url}/endpoint-info"},
             {"name": "Swagger", "content": self.load_balancer.url},
         ]
         return tabs
