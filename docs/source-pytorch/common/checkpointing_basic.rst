@@ -186,5 +186,5 @@ If you don't just want to load weights, but instead restore the full training, d
    model = LitModel()
    trainer = Trainer()
 
-   # automatically restores model, epoch, step, LR schedulers, apex, etc...
+   # automatically restores model, epoch, step, LR schedulers, etc...
    trainer.fit(model, ckpt_path="some/path/to/my_checkpoint.ckpt")
