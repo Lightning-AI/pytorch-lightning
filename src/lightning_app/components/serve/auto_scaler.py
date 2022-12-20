@@ -305,7 +305,7 @@ class _LoadBalancer(LightningWork):
                 return result
 
     def _has_processing_capacity(self):
-        """this function checks if currently have processing capacity for one more request or not.
+        """This function checks if we have processing capacity for one more request or not.
 
         Depends on the value from here, we decide whether we should proxy the request or not
         """
