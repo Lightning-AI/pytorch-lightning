@@ -130,10 +130,9 @@ def find_usable_cuda_gpus(num_gpus: int = -1) -> List[int]:
 def _get_all_visible_cuda_gpus() -> List[int]:
     """Returns a list of all visible CUDA GPUs.
 
-    GPUs masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here.
-    For example, assume you have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function
-    will return the list ``[0, 1, 2]`` because these are the three visible GPUs after applying the mask
-    ``CUDA_VISIBLE_DEVICES``.
+    GPUs masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
+    have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
+    because these are the three visible GPUs after applying the mask ``CUDA_VISIBLE_DEVICES``.
     """
     return list(range(num_cuda_devices()))
 
