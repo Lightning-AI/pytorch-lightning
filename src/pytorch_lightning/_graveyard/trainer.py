@@ -218,6 +218,13 @@ def _convert_to_lightning_optimizers(_: Trainer) -> None:
     )
 
 
+def _reset_train_val_dataloaders(_: Trainer, *__: Any, **___: Any) -> None:
+    # TODO: Remove in v2.0.0
+    raise NotImplementedError(
+        "`Trainer.reset_train_val_dataloaders` was deprecated in v1.7 and is no longer supported as of v1.9."
+    )
+
+
 _patch_sys_modules()
 
 # Properties/Attributes
@@ -244,3 +251,4 @@ Trainer.prepare_dataloader = _prepare_dataloader
 Trainer.request_dataloader = _request_dataloader
 Trainer.init_optimizers = _init_optimizers
 Trainer.convert_to_lightning_optimizers = _convert_to_lightning_optimizers
+Trainer.reset_train_val_dataloaders = _reset_train_val_dataloaders
