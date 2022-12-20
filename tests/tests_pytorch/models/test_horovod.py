@@ -260,7 +260,8 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         devices=2,
         strategy="horovod",
     )
-    tpipes.run_model_test_without_loggers(trainer_options, model)
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 @RunIf(horovod=True, skip_windows=True)
