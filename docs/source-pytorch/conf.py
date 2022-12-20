@@ -398,7 +398,6 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer, see
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
 )
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
