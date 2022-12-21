@@ -318,7 +318,7 @@ auto_select_gpus
 ^^^^^^^^^^^^^^^^
 
 .. warning:: ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-    Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_gpus`` instead.
+    Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
 
 
 .. raw:: html

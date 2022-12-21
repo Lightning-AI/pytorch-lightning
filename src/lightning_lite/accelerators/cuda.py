@@ -78,7 +78,7 @@ class CUDAAccelerator(Accelerator):
         )
 
 
-def find_usable_cuda_gpus(num_gpus: int = -1) -> List[int]:
+def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     """Returns a list of all available and usable CUDA GPUs.
 
     A GPU is considered usable if we can successfully move a tensor to the device, and this is what this function
@@ -88,46 +88,46 @@ def find_usable_cuda_gpus(num_gpus: int = -1) -> List[int]:
     'exclusive' mode (configurable by the admin), then only one process is allowed to occupy it.
 
     Args:
-        num_gpus: The number of GPUs you want to request. By default, this function will return as many as there are
+        num_devices: The number of GPUs you want to request. By default, this function will return as many as there are
             usable GPUs available.
 
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
         both processes determine that the device is unoccupied, leading into one of them crashing later on.
     """
-    visible_gpus = _get_all_visible_cuda_gpus()
-    if not visible_gpus:
+    visible_devices = _get_all_visible_cuda_devices()
+    if not visible_devices:
         raise ValueError(
-            f"You requested to find {num_gpus} GPUs but there are no visible CUDA devices on this machine."
+            f"You requested to find {num_devices} GPUs but there are no visible CUDA devices on this machine."
         )
-    if num_gpus > len(visible_gpus):
-        raise ValueError(f"You requested to find {num_gpus} GPUs but this machine only has {len(visible_gpus)} GPUs.")
+    if num_devices > len(visible_devices):
+        raise ValueError(f"You requested to find {num_devices} GPUs but this machine only has {len(visible_devices)} GPUs.")
 
-    available_gpus = []
-    unavailable_gpus = []
+    available_devices = []
+    unavailable_devices = []
 
-    for gpu_idx in visible_gpus:
+    for gpu_idx in visible_devices:
         try:
             torch.tensor(0, device=torch.device("cuda", gpu_idx))
         except RuntimeError:
-            unavailable_gpus.append(gpu_idx)
+            unavailable_devices.append(gpu_idx)
             continue
 
-        available_gpus.append(gpu_idx)
-        if len(available_gpus) == num_gpus:
+        available_devices.append(gpu_idx)
+        if len(available_devices) == num_devices:
             # exit early if we found the right number of GPUs
             break
 
-    if len(available_gpus) != num_gpus:
+    if len(available_devices) != num_devices:
         raise RuntimeError(
-            f"You requested to find {num_gpus} GPUs but only {len(available_gpus)} are currently available."
-            f" GPUs {unavailable_gpus} are occupied by other processes and can't be"
+            f"You requested to find {num_devices} GPUs but only {len(available_devices)} are currently available."
+            f" GPUs {unavailable_devices} are occupied by other processes and can't be"
             " used at the moment."
         )
-    return available_gpus
+    return available_devices
 
 
-def _get_all_visible_cuda_gpus() -> List[int]:
+def _get_all_visible_cuda_devices() -> List[int]:
     """Returns a list of all visible CUDA GPUs.
 
     GPUs masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you

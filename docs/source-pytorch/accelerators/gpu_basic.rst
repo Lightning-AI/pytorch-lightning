@@ -97,15 +97,15 @@ use the following utility function to pick GPU indices that are "accessible", wi
 
 .. code-block:: python
 
-    from lightning.pytorch.accelerators import find_usable_cuda_gpus
+    from lightning.pytorch.accelerators import find_usable_cuda_devices
 
     # Find two GPUs on the system that are not already occupied
-    trainer = Trainer(accelerator="cuda", devices=find_usable_cuda_gpus(2))
+    trainer = Trainer(accelerator="cuda", devices=find_usable_cuda_devices(2))
 
-    from lightning.lite.accelerators import find_usable_cuda_gpus
+    from lightning.lite.accelerators import find_usable_cuda_devices
 
     # Works with LightningLite too
-    lite = LightningLite(accelerator="cuda", devices=find_usable_cuda_gpus(2))
+    lite = LightningLite(accelerator="cuda", devices=find_usable_cuda_devices(2))
 
 
 This is especially useful when GPUs are configured to be in "exclusive compute mode", such that only one process at a time is allowed access to the device.

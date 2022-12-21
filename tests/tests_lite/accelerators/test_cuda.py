@@ -26,7 +26,7 @@ import lightning_lite
 from lightning_lite.accelerators.cuda import (
     _check_cuda_matmul_precision,
     CUDAAccelerator,
-    find_usable_cuda_gpus,
+    find_usable_cuda_devices,
     is_cuda_available,
     num_cuda_devices,
 )
@@ -118,24 +118,24 @@ def test_tf32_message(_, __, caplog):
     assert expected in caplog.text
 
 
-def test_find_usable_cuda_gpus_error_handling():
-    """Test error handling for edge cases when using `find_usable_cuda_gpus`."""
+def test_find_usable_cuda_devices_error_handling():
+    """Test error handling for edge cases when using `find_usable_cuda_devices`."""
 
     # Asking for GPUs if no GPUs visible
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0), pytest.raises(
         ValueError, match="You requested to find 2 GPUs but there are no visible CUDA"
     ):
-        find_usable_cuda_gpus(2)
+        find_usable_cuda_devices(2)
 
     # Asking for more GPUs than are visible
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=1), pytest.raises(
         ValueError, match="this machine only has 1 GPUs"
     ):
-        find_usable_cuda_gpus(2)
+        find_usable_cuda_devices(2)
 
     # All GPUs are unusable
     tensor_mock = Mock(side_effect=RuntimeError)  # simulate device placement fails
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2), mock.patch(
         "lightning_lite.accelerators.cuda.torch.tensor", tensor_mock
     ), pytest.raises(RuntimeError, match=escape("GPUs [0, 1] are occupied by other processes")):
-        find_usable_cuda_gpus(2)
+        find_usable_cuda_devices(2)
