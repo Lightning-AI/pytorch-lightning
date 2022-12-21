@@ -18,7 +18,6 @@ from functools import lru_cache
 from typing import Dict, Generator, List, Optional, Set, Union
 
 import torch
-from lightning_lite.utilities.rank_zero import rank_zero_info
 
 from lightning_lite.accelerators.accelerator import Accelerator
 from lightning_lite.utilities.imports import (
@@ -26,6 +25,7 @@ from lightning_lite.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
+from lightning_lite.utilities.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):
