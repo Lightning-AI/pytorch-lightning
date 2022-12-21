@@ -11,11 +11,58 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import sys
 from typing import Any
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import Logger
+
+
+def _patch_sys_modules() -> None:
+    # TODO: Remove in v2.0.0
+    self = sys.modules[__name__]
+    sys.modules["pytorch_lightning.loggers.base"] = self
+
+
+def rank_zero_experiment(*_: Any, **__: Any) -> None:
+    raise NotImplementedError(
+        "`pytorch_lightning.loggers.base.rank_zero_experiment` was deprecated in v1.7.0 and removed as of v1.9.0."
+        " Please use `pytorch_lightning.loggers.logger.rank_zero_experiment` instead"
+    )
+
+
+class LightningLoggerBase:
+    # TODO: Remove in v2.0.0
+    def __init__(self, *_: Any, **__: Any) -> None:
+        raise NotImplementedError(
+            "`pytorch_lightning.loggers.base.LightningLoggerBase` was deprecated in v1.7.0 and removed as of v1.9.0."
+            " Please use `pytorch_lightning.loggers.Logger` instead"
+        )
+
+
+class DummyExperiment:
+    # TODO: Remove in v2.0.0
+    def __init__(self, *_: Any, **__: Any) -> None:
+        raise NotImplementedError(
+            "`pytorch_lightning.loggers.base.DummyExperiment` was deprecated in v1.7.0 and removed as of v1.9.0."
+            " Please use `pytorch_lightning.loggers.logger.DummyExperiment` instead"
+        )
+
+
+class DummyLogger:
+    # TODO: Remove in v2.0.0
+    def __init__(self, *_: Any, **__: Any) -> None:
+        raise NotImplementedError(
+            "`pytorch_lightning.loggers.base.DummyLogger` was deprecated in v1.7.0 and removed as of v1.9.0."
+            " Please use `pytorch_lightning.loggers.logger.DummyLogger` instead"
+        )
+
+
+def merge_dicts(*_: Any, **__: Any) -> None:
+    raise NotImplementedError(
+        "`pytorch_lightning.loggers.base.merge_dicts` was deprecated in v1.7.0 and removed as of v1.9.0."
+        " Please use `pytorch_lightning.loggers.logger.merge_dicts` instead"
+    )
 
 
 class LoggerCollection:
@@ -25,6 +72,9 @@ class LoggerCollection:
             "`LoggerCollection` was deprecated in v1.6 and removed as of v1.8. Directly pass a list of loggers"
             " to the `Trainer` and access the list via the `trainer.loggers` attribute."
         )
+
+
+_patch_sys_modules()
 
 
 def _update_agg_funcs(logger: Logger, *__: Any, **___: Any) -> None:
@@ -47,4 +97,3 @@ Logger.agg_and_log_metrics = _agg_and_log_metrics
 
 # Classes
 pl.loggers.logger.LoggerCollection = LoggerCollection
-pl.loggers.base.LoggerCollection = LoggerCollection

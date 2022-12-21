@@ -16,16 +16,16 @@ from typing import Optional, TYPE_CHECKING
 import torch
 from typing_extensions import Literal
 
-from lightning_lite.plugins.precision.native_amp import NativeMixedPrecision
+from lightning_lite.plugins.precision.native_amp import MixedPrecision
 from lightning_lite.utilities.enums import PrecisionType
 from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
     from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 
-class FSDPPrecision(NativeMixedPrecision):
+class FSDPPrecision(MixedPrecision):
     """AMP for Fully Sharded Data Parallel training."""
 
     def __init__(
@@ -43,8 +43,8 @@ class FSDPPrecision(NativeMixedPrecision):
         )
 
     @property
-    def mixed_precision_config(self) -> "MixedPrecision":
-        from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+    def mixed_precision_config(self) -> "TorchMixedPrecision":
+        from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
         if self.precision == PrecisionType.HALF:
             dtype = torch.float16
@@ -52,7 +52,7 @@ class FSDPPrecision(NativeMixedPrecision):
             dtype = torch.bfloat16
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
-        return MixedPrecision(
+        return TorchMixedPrecision(
             param_dtype=dtype,
             reduce_dtype=dtype,
             buffer_dtype=dtype,

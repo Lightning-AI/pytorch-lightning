@@ -26,8 +26,8 @@ from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.types import Optimizable
 
 
-class NativeMixedPrecision(Precision):
-    """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
+class MixedPrecision(Precision):
+    """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
         precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
