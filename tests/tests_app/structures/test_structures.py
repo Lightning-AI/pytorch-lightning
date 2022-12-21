@@ -44,6 +44,7 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -76,6 +77,7 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -108,6 +110,7 @@ def test_dict():
             "_host": "127.0.0.1",
             "_paths": {},
             "_restarting": False,
+            "_display_name": "",
             "_internal_ip": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
@@ -193,6 +196,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -225,6 +229,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",
@@ -252,6 +257,7 @@ def test_list():
             "_paths": {},
             "_restarting": False,
             "_internal_ip": "",
+            "_display_name": "",
             "_cloud_compute": {
                 "type": "__cloud_compute__",
                 "name": "default",

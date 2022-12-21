@@ -29,7 +29,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision, TPUPrecision
+from lightning_lite.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -81,7 +81,7 @@ def test_strategy_choice_ddp_on_cpu():
 
 def _test_strategy_choice_ddp_and_cpu(ddp_strategy_class):
     connector = _Connector(
-        strategy=ddp_strategy_class(find_unused_parameters=True),
+        strategy=ddp_strategy_class(),
         accelerator="cpu",
         devices=2,
     )
@@ -379,9 +379,7 @@ def test_invalid_strategy_choice():
     ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
 def test_strategy_choice_cpu_str(strategy, strategy_class):
@@ -394,9 +392,7 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
     ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPStrategy),
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPShardedStrategy),
@@ -413,7 +409,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
     "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
 )
 @pytest.mark.parametrize(
-    "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
+    "precision,expected_precision", [(16, MixedPrecision), (32, Precision), ("bf16", MixedPrecision)]
 )
 def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
     connector = _Connector(strategy=strategy, devices=1, precision=precision)
@@ -757,7 +753,7 @@ def test_precision_selection_16_on_cpu_warns():
         _Connector(precision=16)
 
 
-class MyNativeAMP(NativeMixedPrecision):
+class MyNativeAMP(MixedPrecision):
     pass
 
 
@@ -765,7 +761,7 @@ class MyNativeAMP(NativeMixedPrecision):
 @pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "is_custom_plugin,plugin_cls",
-    [(False, NativeMixedPrecision), (True, MyNativeAMP)],
+    [(False, MixedPrecision), (True, MyNativeAMP)],
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None
@@ -780,9 +776,7 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
     assert isinstance(connector.precision, plugin_cls)
 
 
-@pytest.mark.parametrize(
-    ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
-)
+@pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)

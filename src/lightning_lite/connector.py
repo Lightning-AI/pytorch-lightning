@@ -26,7 +26,7 @@ from lightning_lite.accelerators.tpu import TPUAccelerator
 from lightning_lite.plugins import (
     CheckpointIO,
     DeepSpeedPrecision,
-    NativeMixedPrecision,
+    MixedPrecision,
     Precision,
     TPUBf16Precision,
     TPUPrecision,
@@ -402,7 +402,7 @@ class _Connector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
+        if strategy_flag == "ddp_spawn" and (
             TorchElasticEnvironment.detect()
             or KubeflowEnvironment.detect()
             or SLURMEnvironment.detect()
@@ -452,7 +452,7 @@ class _Connector:
                     )
                 return TPUBf16Precision()
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecision(self._precision_input, amp_type="native", amp_level=None)  # type: ignore
+            return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
         if self._precision_input == 32:
             return Precision()
@@ -476,7 +476,7 @@ class _Connector:
 
             if isinstance(self.strategy, FSDPStrategy):
                 return FSDPPrecision(precision=self._precision_input, device=device)
-            return NativeMixedPrecision(precision=self._precision_input, device=device)
+            return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 

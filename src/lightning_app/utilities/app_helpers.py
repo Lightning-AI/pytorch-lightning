@@ -184,11 +184,22 @@ class AppStatePlugin(BaseStatePlugin):
 
 
 def target_fn():
-    from streamlit.server.server import Server
+    try:
+        # streamlit >= 1.14.0
+        from streamlit import runtime
+
+        get_instance = runtime.get_instance
+        exists = runtime.exists()
+    except ImportError:
+        # Older versions
+        from streamlit.server.server import Server
+
+        get_instance = Server.get_current
+        exists = bool(Server._singleton)
 
     async def update_fn():
-        server = Server.get_current()
-        sessions = list(server._session_info_by_id.values())
+        runtime_instance = get_instance()
+        sessions = list(runtime_instance._session_info_by_id.values())
         url = (
             "localhost:8080"
             if "LIGHTNING_APP_STATE_URL" in os.environ
@@ -198,15 +209,20 @@ def target_fn():
         last_updated = time.time()
         async with websockets.connect(ws_url) as websocket:
             while True:
-                _ = await websocket.recv()
-                while (time.time() - last_updated) < 1:
-                    time.sleep(0.1)
-                for session in sessions:
-                    session = session.session
-                    session.request_rerun(session._client_state)
-                last_updated = time.time()
+                try:
+                    _ = await websocket.recv()
 
-    if Server._singleton:
+                    while (time.time() - last_updated) < 1:
+                        time.sleep(0.1)
+                    for session in sessions:
+                        session = session.session
+                        session.request_rerun(session._client_state)
+                    last_updated = time.time()
+                except websockets.exceptions.ConnectionClosedOK:
+                    # The websocket is not enabled
+                    break
+
+    if exists:
         asyncio.run(update_fn())
 
 
@@ -515,12 +531,29 @@ def _lightning_dispatched() -> bool:
     return bool(int(os.getenv("LIGHTNING_DISPATCHED", 0)))
 
 
+def _using_debugger() -> bool:
+    """This method is used to detect whether the app is run with a debugger attached."""
+    if "LIGHTNING_DETECTED_DEBUGGER" in os.environ:
+        return True
+
+    # Collect the information about the process.
+    parent_process = os.popen(f"ps -ax | grep -i {os.getpid()} | grep -v grep").read()
+
+    # Detect whether VSCode or PyCharm debugger are used
+    use_debugger = "debugpy" in parent_process or "pydev" in parent_process
+
+    # Store the result to avoid multiple popen calls.
+    if use_debugger:
+        os.environ["LIGHTNING_DETECTED_DEBUGGER"] = "1"
+    return use_debugger
+
+
 def _should_dispatch_app() -> bool:
     return (
-        __debug__
-        and "_pytest.doctest" not in sys.modules
-        and not _lightning_dispatched()
+        not _lightning_dispatched()
         and "LIGHTNING_APP_STATE_URL" not in os.environ
+        # Keep last to avoid running it if already dispatched
+        and _using_debugger()
     )
 
 

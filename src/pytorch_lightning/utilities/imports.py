@@ -13,26 +13,20 @@
 # limitations under the License.
 """General utilities."""
 import operator
-import platform
 import sys
 
 import torch
 from lightning_utilities.core.imports import compare_version, module_available, package_available, RequirementCache
 
-_IS_WINDOWS = platform.system() == "Windows"
 _PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 10)
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
-_TORCH_GREATER_EQUAL_1_11 = compare_version("torch", operator.ge, "1.11.0")
-_TORCH_GREATER_EQUAL_1_12 = compare_version("torch", operator.ge, "1.12.0")
+# duplicated from lite because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
-_TORCH_GREATER_EQUAL_1_14 = compare_version("torch", operator.ge, "1.14.0", use_base_version=True)
 
-_APEX_AVAILABLE = module_available("apex.amp")
 _DALI_AVAILABLE = module_available("nvidia.dali")
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
 _HIVEMIND_AVAILABLE = package_available("hivemind")
-_HOROVOD_AVAILABLE = module_available("horovod.torch")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
