@@ -369,6 +369,14 @@ def test_exception_invalid_strategy():
         Trainer(strategy="tpu_spawn")
 
 
+@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn", "ddp_find_unused_parameters_false"))
+def test_exception_invalid_ddp_strategy_with_mps(strategy):
+    with pytest.raises(
+        MisconfigurationException, match=r"With `accelerator=mps`, strategies from DDP Family are not compatible"
+    ):
+        Trainer(accelerator="mps", strategy=strategy)
+
+
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [

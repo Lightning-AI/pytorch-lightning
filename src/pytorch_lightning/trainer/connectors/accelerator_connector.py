@@ -287,13 +287,25 @@ class AcceleratorConnector:
         if (
             accelerator is not None
             and strategy is not None
-            and accelerator == "mps"
-            and strategy in ("ddp", "ddp_spawn", "ddp_fork", "ddp_notebook")
-        ):
-            raise MisconfigurationException(
-                "With `accelerator=mps`, strategies from DDP Family, "
-                " ('ddp', 'ddp_spawn', 'ddp_fork', 'ddp_notebook') are not allowed"
+            and ((isinstance(accelerator, str) and accelerator == "mps") or (isinstance(accelerator, MPSAccelerator)))
+            and (
+                (isinstance(strategy, str) and "ddp" in strategy)
+                or (
+                    isinstance(
+                        strategy,
+                        (
+                            DDPStrategy,
+                            DDPSpawnShardedStrategy,
+                            DDPShardedStrategy,
+                            DDPFullyShardedNativeStrategy,
+                            DDPFullyShardedStrategy,
+                            DDPSpawnStrategy,
+                        ),
+                    )
+                )
             )
+        ):
+            raise MisconfigurationException("With `accelerator=mps`, strategies from DDP Family are not compatible")
 
         self._accelerator_flag = accelerator
 
