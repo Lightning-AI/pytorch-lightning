@@ -56,12 +56,12 @@ class MultiNode(LightningFlow):
         """
         super().__init__()
         if num_nodes > 1 and not is_running_in_cloud():
-            num_nodes = 1
             warnings.warn(
                 f"You set {type(self).__name__}(num_nodes={num_nodes}, ...)` but this app is running locally."
                 " We assume you are debugging and will ignore the `num_nodes` argument."
                 " To run on multiple nodes in the cloud, launch your app with `--cloud`."
             )
+            num_nodes = 1
         self.ws = structures.List(
             *[
                 work_cls(

@@ -10,10 +10,10 @@ if _is_pytorch_lightning_available():
     from pytorch_lightning.accelerators.accelerator import Accelerator
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.lite import LightningLite
-    from pytorch_lightning.loggers import LightningLoggerBase
-    from pytorch_lightning.loops.base import Loop
+    from pytorch_lightning.loggers import Logger
+    from pytorch_lightning.loops import Loop
     from pytorch_lightning.plugins import PrecisionPlugin
-    from pytorch_lightning.profiler.base import BaseProfiler
+    from pytorch_lightning.profilers import Profiler
 
 
 if __name__ == "__main__":
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     class BoringCallback(Callback):
         pass
 
-    class BoringLightningLoggerBase(LightningLoggerBase):
+    class BoringLogger(Logger):
         pass
 
     class BoringLoop(Loop):
@@ -51,5 +51,5 @@ if __name__ == "__main__":
     class BoringLightningLite(LightningLite):
         pass
 
-    class BoringBaseProfiler(BaseProfiler):
+    class BoringProfiler(Profiler):
         pass

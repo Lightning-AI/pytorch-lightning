@@ -606,7 +606,7 @@ def test_path_response_not_matching_reqeuest(tmpdir):
         path.get()
 
     # simulate a response that has a different hash than the request had
-    assert not response_queue
+    assert len(response_queue) == 0
     response.path = str(path)
     response.hash = "other_hash"
     response_queue.put(response)

@@ -77,7 +77,7 @@ class LightningFlow:
         can be distributed (each LightningWork will be run within its own process
         or different arrangements).
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
@@ -104,6 +104,8 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
 
     @property
     def name(self):
@@ -247,10 +249,7 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Not currently enabled.
-
-        Override to customize when your App should be ready.
-        """
+        """Override to customize when your App should be ready."""
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 
@@ -309,6 +308,20 @@ class LightningFlow:
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
@@ -784,7 +797,7 @@ class _RootFlow(LightningFlow):
     @property
     def ready(self) -> bool:
         ready = getattr(self.work, "ready", None)
-        if ready:
+        if ready is not None:
             return ready
         return self.work.url != ""
 

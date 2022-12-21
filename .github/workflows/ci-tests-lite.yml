@@ -13,7 +13,7 @@ on:
       - "src/lightning_lite/**"
       - "tests/tests_lite/**"
       - "setup.cfg"  # includes pytest config
-      - ".github/workflows/ci-lite-tests.yml"
+      - ".github/workflows/ci-tests-lite.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -114,7 +114,9 @@ jobs:
 
     - name: Adjust tests
       if: ${{ matrix.pkg-name == 'lightning' }}
-      run: python .actions/assistant.py copy_replace_imports --source_dir="./tests" --source_import="lightning_lite" --target_import="lightning.lite"
+      run: |
+        python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+          --source_import="lightning_lite" --target_import="lightning.lite"
 
     - name: Testing Warnings
       # the stacklevel can only be set on >=3.7
