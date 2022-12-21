@@ -110,6 +110,7 @@ def test_tf32_message(_, __, caplog):
         _check_cuda_matmul_precision(device)
     assert not caplog.text
 
+    caplog.clear()
     torch.set_float32_matmul_precision("highest")  # can be reverted
     with caplog.at_level(logging.INFO):
         _check_cuda_matmul_precision(device)
