@@ -29,7 +29,6 @@ from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
