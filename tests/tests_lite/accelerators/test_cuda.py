@@ -91,14 +91,14 @@ def test_tf32_message(_, __, caplog):
     device = Mock()
     expected = "Z100') that has Tensor Cores"
     assert torch.get_float32_matmul_precision() == "highest"  # default in torch
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, logger="lightning_lite.utilities.rank_zero"):
         _check_cuda_matmul_precision(device)
     assert expected in caplog.text
 
     caplog.clear()
     torch.backends.cuda.matmul.allow_tf32 = True  # changing this changes the string
     assert torch.get_float32_matmul_precision() == "high"
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, logger="lightning_lite.utilities.rank_zero"):
         _check_cuda_matmul_precision(device)
     assert not caplog.text
 
@@ -106,12 +106,12 @@ def test_tf32_message(_, __, caplog):
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.set_float32_matmul_precision("medium")  # also the other way around
     assert torch.backends.cuda.matmul.allow_tf32
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, logger="lightning_lite.utilities.rank_zero"):
         _check_cuda_matmul_precision(device)
     assert not caplog.text
 
     caplog.clear()
     torch.set_float32_matmul_precision("highest")  # can be reverted
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level(logging.INFO, logger="lightning_lite.utilities.rank_zero"):
         _check_cuda_matmul_precision(device)
     assert expected in caplog.text
