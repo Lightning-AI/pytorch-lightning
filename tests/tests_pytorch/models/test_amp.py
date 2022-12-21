@@ -166,11 +166,15 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     """Check that even with apex amp type without requesting precision=16 the amp backend is void."""
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
-    assert trainer.amp_backend is None
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(default_root_dir=tmpdir, amp_backend="native")
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        assert trainer.amp_backend is None
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
-    assert trainer.amp_backend is None
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, amp_backend="apex")
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        assert trainer.amp_backend is None
     trainer.fit(model)
     assert not bwd_mock.called
 
@@ -194,10 +198,12 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     model = CustomModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", accelerator="gpu", devices=1
-    )
-    assert str(trainer.amp_backend) == "AMPType.APEX"
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            default_root_dir=tmpdir, max_steps=5, precision=16, amp_backend="apex", accelerator="gpu", devices=1
+        )
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        assert str(trainer.amp_backend) == "apex"
     trainer.fit(model)
     # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
     # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
@@ -210,15 +216,16 @@ def test_amp_with_apex(bwd_mock, tmpdir):
 @RunIf(min_cuda_gpus=1, amp_apex=True)
 def test_amp_with_apex_reload(tmpdir):
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=1,
-        limit_test_batches=1,
-        precision=16,
-        amp_backend="apex",
-        accelerator="gpu",
-        devices=1,
-    )
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_steps=1,
+            limit_test_batches=1,
+            precision=16,
+            amp_backend="apex",
+            accelerator="gpu",
+            devices=1,
+        )
     trainer.fit(model)
     trainer.fit_loop.max_steps = 2
 

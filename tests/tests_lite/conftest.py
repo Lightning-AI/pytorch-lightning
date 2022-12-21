@@ -51,7 +51,6 @@ def restore_env_variables():
         "MASTER_PORT",
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
-        "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13

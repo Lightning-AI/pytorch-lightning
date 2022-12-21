@@ -302,7 +302,6 @@ class HookedModel(BoringModel):
     def _auto_train_batch(
         trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
     ):
-        using_native_amp = kwargs.get("amp_backend") == "native"
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
         out = []
         for i in range(current_batch, batches):
@@ -344,7 +343,7 @@ class HookedModel(BoringModel):
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False, using_native_amp=using_native_amp),
+                        kwargs=dict(on_tpu=False, using_lbfgs=False),
                     ),
                     *(
                         [dict(name="lr_scheduler_step", args=(ANY, 0, None))]
@@ -449,9 +448,7 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_cuda_gpus=1)
-        ),
+        pytest.param(dict(accelerator="gpu", devices=1, precision=16), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
             dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
             marks=RunIf(min_cuda_gpus=1, amp_apex=True),
@@ -485,17 +482,31 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=train_batches,
-        limit_val_batches=val_batches,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        callbacks=[callback],
-        track_grad_norm=1,
-        **kwargs,
-    )
+    if kwargs.get("amp_backend") == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                max_epochs=1,
+                limit_train_batches=train_batches,
+                limit_val_batches=val_batches,
+                enable_progress_bar=False,
+                enable_model_summary=False,
+                callbacks=[callback],
+                track_grad_norm=1,
+                **kwargs,
+            )
+    else:
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_train_batches=train_batches,
+            limit_val_batches=val_batches,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            callbacks=[callback],
+            track_grad_norm=1,
+            **kwargs,
+        )
     trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
@@ -507,14 +518,15 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         "state_dict": ANY,
         "loops": ANY,
     }
-    if kwargs.get("amp_backend") == "native" or kwargs.get("amp_backend") == "apex":
+    using_deepspeed = kwargs.get("strategy") == "deepspeed"
+    if kwargs.get("precision") == 16 and not using_deepspeed:
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
     device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
         dict(name="configure_callbacks"),
         dict(name="prepare_data"),
         # DeepSpeed needs the batch size to figure out throughput logging
-        *([dict(name="train_dataloader")] if kwargs.get("strategy") == "deepspeed" else []),
+        *([dict(name="train_dataloader")] if using_deepspeed else []),
         dict(name="Callback.setup", args=(trainer, model), kwargs=dict(stage="fit")),
         dict(name="setup", kwargs=dict(stage="fit")),
         dict(name="configure_sharded_model"),
