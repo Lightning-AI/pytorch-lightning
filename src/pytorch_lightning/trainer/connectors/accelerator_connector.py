@@ -283,6 +283,18 @@ class AcceleratorConnector:
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
 
+        # mps accelerator incompatible with ddp-family
+        if (
+            accelerator is not None
+            and strategy is not None
+            and accelerator == "mps"
+            and strategy in ("ddp", "ddp_spawn", "ddp_fork", "ddp_notebook")
+        ):
+            raise MisconfigurationException(
+                "With `accelerator=mps`, strategies from DDP Family, "
+                " ('ddp', 'ddp_spawn', 'ddp_fork', 'ddp_notebook') are not allowed"
+            )
+
         self._accelerator_flag = accelerator
 
         if precision is not None:
