@@ -204,7 +204,7 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
 
 
 def _drop_apex_amp_state_from_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Apex support was removed in v2.0.00, and this migration drops it from the state-keys saved in the checkpoint
+    """Apex support was removed in v2.0.0, and this migration drops it from the state-keys saved in the checkpoint
     dict.
 
     Version: 2.0.0
