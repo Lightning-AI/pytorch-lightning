@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-def pick_multiple_gpus(nb: int, __show_deprecation: bool = False) -> List[int]:
+def pick_multiple_gpus(nb: int, __show_deprecation: bool = True) -> List[int]:
     """Pick a number of GPUs that are not yet in use.
 
     .. deprecated:: v1.9.0
@@ -32,10 +32,11 @@ def pick_multiple_gpus(nb: int, __show_deprecation: bool = False) -> List[int]:
             If ``gpus`` or ``devices`` is set to 0, when ``auto_select_gpus=True``, or when the requested number is
             higher than the number of GPUs available on the machine.
     """
-    rank_zero_deprecation(
-        "The function `pick_multiple_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
-        " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
-    )
+    if __show_deprecation:
+        rank_zero_deprecation(
+            "The function `pick_multiple_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
+        )
 
     if nb == 0:
         raise MisconfigurationException(
