@@ -47,6 +47,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
         "1.6.5": [_migrate_loop_batches_that_stepped],
         "1.9.0": [_migrate_model_checkpoint_save_on_train_epoch_end_default],
+        "2.0.0": [_drop_apex_amp_state_from_checkpoint],
     }
 
 
@@ -199,4 +200,19 @@ def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECK
         return checkpoint
 
     checkpoint["callbacks"] = new_callback_states
+    return checkpoint
+
+
+def _drop_apex_amp_state_from_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Apex support was removed in v2.0.00, and this migration drops it from the state-keys saved in the checkpoint
+    dict.
+
+    Version: 2.0.0
+    Commit: e544676ff434ed96c6dd3b4e73a708bcb27ebcf1
+    PR: #16149
+    """
+    key = "amp_scaling_state"
+    if key in checkpoint:
+        rank_zero_warn("This checkpoint contains apex AMP data, but apex support has been removed.")
+        del checkpoint[key]
     return checkpoint
