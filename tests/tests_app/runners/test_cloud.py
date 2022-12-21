@@ -489,6 +489,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(cloud, "Path", Path)
 
         cloud_runtime.dispatch()
+        mock_client = cloud_runtime.backend.client
 
         body = Body8(
             app_entrypoint_file=mock.ANY,
@@ -500,10 +501,23 @@ class TestAppCreationClient:
             local_source=True,
             dependency_cache_key=mock.ANY,
             user_requested_flow_compute_config=mock.ANY,
-            auth=V1LightningAuth(basic=V1LightningBasicAuth(username="username", password="password")),
         )
-        cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+
+        mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
+        )
+
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+            project_id="test-project-id",
+            app_id=mock.ANY,
+            id=mock.ANY,
+            body=Body9(
+                desired_state=mock.ANY,
+                name=mock.ANY,
+                env=mock.ANY,
+                queue_server_type=mock.ANY,
+                auth=V1LightningAuth(basic=V1LightningBasicAuth(username="username", password="password")),
+            ),
         )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())

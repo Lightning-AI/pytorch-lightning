@@ -451,7 +451,6 @@ class CloudRuntime(Runtime):
                 dependency_cache_key=app_spec.dependency_cache_key,
                 user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
                 is_headless=_is_headless(self.app),
-                auth=app_spec.auth,
             )
 
             # create / upload the new app release
