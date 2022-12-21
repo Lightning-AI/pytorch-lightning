@@ -55,7 +55,7 @@ Minor code changes are required for the user to get started with Intel® Neural 
 
 The code changes that are required for Intel® Neural Compressor are highlighted with comments in the line above.
 
-Pytorch Lightning model
+PyTorch Lightning model
 =======================
 
 Load the pretrained model with PyTorch Lightning:
