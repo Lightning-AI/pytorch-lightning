@@ -684,9 +684,7 @@ class AcceleratorConnector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                "Using 16bit Automatic Mixed Precision (AMP)"
-                if self._precision_flag == 16
-                else "Using bfloat16 Automatic Mixed Precision (AMP)"
+                f"Using {'16bit' if self._precision_flag == 16 else 'bfloat16'} Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
