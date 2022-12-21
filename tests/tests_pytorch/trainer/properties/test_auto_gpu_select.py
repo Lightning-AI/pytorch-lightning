@@ -39,7 +39,8 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
         ), pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"):
             pick_multiple_gpus(nb)
     else:
-        assert expected_gpu_idxs == pick_multiple_gpus(nb)
+        with pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"):
+            assert expected_gpu_idxs == pick_multiple_gpus(nb)
 
 
 def test_pick_multiple_gpus_more_than_available(cuda_count_1):
