@@ -61,7 +61,7 @@ RUN conda create -y --name $CONDA_ENV && \
     conda init bash && \
     python -c "import re ; fname = 'environment.yml' ; req = re.sub(r'python>=[\d\.]+', 'python=${PYTHON_VERSION}', open(fname).read()) ; open(fname, 'w').write(req)" && \
     # drop unnecessary packages
-    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>', 'horovod'])])" && \
+    python -c "fname = 'environment.yml' ; req = open(fname).readlines() ; open(fname, 'w').writelines([ln for ln in req if not any(n in ln for n in ['pytorch>'])])" && \
     cat environment.yml && \
     conda env update --file environment.yml && \
     conda clean -ya && \

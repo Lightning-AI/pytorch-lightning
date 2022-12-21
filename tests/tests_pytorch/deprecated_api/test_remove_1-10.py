@@ -327,9 +327,3 @@ def test_profiler_classes_deprecated_warning(cls):
         f" Use .*profilers.{cls.__name__}` class instead."
     ):
         cls()
-
-
-@RunIf(horovod=True)
-def test_horovod_deprecation_warnings(*_):
-    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
-        Trainer(strategy="horovod")
