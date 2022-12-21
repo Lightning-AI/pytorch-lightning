@@ -23,7 +23,7 @@ from distutils.version import LooseVersion
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 from pkg_resources import parse_requirements
 
@@ -49,7 +49,7 @@ REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
+def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: Literal["none", "major", "all"] = "all") -> str:
     """Adjust the upper version contrains.
 
     Args:
@@ -60,9 +60,9 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="none")
     'arrow<=1.2.2,>=1.2.0'
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="none")
     'arrow<=1.2.2,>=1.2.0  # strict'
     >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
@@ -99,7 +99,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         ver_major = None
 
     # remove version restrictions unless they are strict
-    if unfreeze and "<" in req and not is_strict:
+    if unfreeze != "none" and "<" in req and not is_strict:
         req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
@@ -113,7 +113,10 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
 
 
 def load_requirements(
-    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: str = "all"
+    path_dir: str,
+    file_name: str = "base.txt",
+    comment_char: str = "#",
+    unfreeze: Literal["none", "major", "all"] = "all",
 ) -> List[str]:
     """Loading requirements from a file.
 
