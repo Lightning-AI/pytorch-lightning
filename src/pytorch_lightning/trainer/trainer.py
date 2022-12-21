@@ -221,9 +221,9 @@ class Trainer:
                 that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
                 Default: ``None``.
 
-            devices: The devices to use. Can be set to a positive number (int, str), a sequence of device indices
-                (list, str), the value ``-1`` to indicate all available devices should be used, or ``"auto"`` for
-                automatic selection based on the accelerator being used. Default: ``"auto"``.
+            devices: The devices to use. Can be set to a positive number (int or str), a sequence of device indices
+                (list or str), the value ``-1`` to indicate all available devices should be used, or ``"auto"`` for
+                automatic selection based on the chosen accelerator. Default: ``"auto"``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).

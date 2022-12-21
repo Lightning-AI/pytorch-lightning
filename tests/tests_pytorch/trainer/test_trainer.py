@@ -2148,12 +2148,6 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
-    # Test with `gpus` and `num_processes` flags
-    if trainer_kwargs.get("accelerator") == "gpu":
-        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
-    else:
-        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
-
     trainer_kwargs.pop("accelerator", None)
     trainer_kwargs.pop("devices", None)
 

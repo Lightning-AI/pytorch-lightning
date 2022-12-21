@@ -358,7 +358,7 @@ def test_set_devices_if_none_cpu():
 
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(strategy="dp", num_processes=2)
+        trainer = Trainer(strategy="dp", devices=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
