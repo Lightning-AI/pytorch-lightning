@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 
 import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
+from torch.utils.data import DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
 from lightning_fabric.fabric import Fabric
@@ -228,6 +229,26 @@ def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     batch1 = next(iterator)
     # TODO: torch.equal is not supported on MPS at this time (torch 1.12)
     assert torch.equal(batch1["data"], torch.tensor([2, 3], device=dest_device))
+
+
+def test_lite_dataloader_distributed_sampler_set_epoch():
+    """Test that the LiteDataLoader calls `set_epoch()` on the wrapped sampler if applicable."""
+    sampler = DistributedSampler(range(3), num_replicas=2, rank=0)
+    sampler.set_epoch = Mock()
+    dataloader = DataLoader(range(3), sampler=sampler)
+    lite_dataloader = _FabricDataLoader(dataloader)
+    iterator_epoch_0 = iter(lite_dataloader)
+    dataloader.sampler.set_epoch.assert_not_called()
+    next(iterator_epoch_0)
+    # .set_epoch() gets called before the first sample gets fetched from the wrapped dataloader
+    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    next(iterator_epoch_0)
+    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    iterator_epoch_1 = iter(lite_dataloader)
+    assert dataloader.sampler.set_epoch.call_args_list == [call(0)]
+    next(iterator_epoch_1)
+    # with every new iterator call, the epoch increases
+    assert dataloader.sampler.set_epoch.call_args_list == [call(0), call(1)]
 
 
 def test_lite_optimizer_wraps():

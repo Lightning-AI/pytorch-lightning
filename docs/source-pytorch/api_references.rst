@@ -184,7 +184,6 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ApexMixedPrecisionPlugin
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
@@ -192,7 +191,7 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    NativeMixedPrecisionPlugin
+    MixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
@@ -296,7 +295,6 @@ strategies
     DataParallelStrategy
     DeepSpeedStrategy
     HivemindStrategy
-    HorovodStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy

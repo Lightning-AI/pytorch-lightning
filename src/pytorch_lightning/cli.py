@@ -279,7 +279,6 @@ class LightningCLI:
         args: ArgsType = None,
         run: bool = True,
         auto_configure_optimizers: bool = True,
-        auto_registry: bool = False,
         **kwargs: Any,  # Remove with deprecations of v1.10
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
@@ -323,7 +322,6 @@ class LightningCLI:
                 ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
-            auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
         self.save_config_kwargs = save_config_kwargs or {}
@@ -345,10 +343,6 @@ class LightningCLI:
         self._datamodule_class = datamodule_class or LightningDataModule
         self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
 
-        from pytorch_lightning.utilities.cli import _populate_registries
-
-        _populate_registries(auto_registry)
-
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
         self.parse_arguments(self.parser, args)
@@ -364,22 +358,14 @@ class LightningCLI:
             self._run_subcommand(self.subcommand)
 
     def _handle_deprecated_params(self, kwargs: dict) -> None:
-        if self.seed_everything_default is None:
+        for name in kwargs.keys() & ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
+            value = kwargs.pop(name)
+            key = name.replace("save_config_", "").replace("filename", "config_filename")
+            self.save_config_kwargs[key] = value
             rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
+                f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
+                f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
             )
-            self.seed_everything_default = False
-
-        for name in ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
-            if name in kwargs:
-                value = kwargs.pop(name)
-                key = name.replace("save_config_", "").replace("filename", "config_filename")
-                self.save_config_kwargs[key] = value
-                rank_zero_deprecation(
-                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
-                    f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
-                )
 
         for name in kwargs.keys() & ["description", "env_prefix", "env_parse"]:
             value = kwargs.pop(name)

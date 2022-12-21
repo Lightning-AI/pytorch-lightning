@@ -12,7 +12,7 @@ from deepdiff import DeepDiff, Delta
 
 import lightning_app
 from lightning_app import CloudCompute, LightningApp
-from lightning_app.core.flow import LightningFlow
+from lightning_app.core.flow import _RootFlow, LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
@@ -648,14 +648,14 @@ class FlowSchedule(LightningFlow):
             if len(self._last_times) < 3:
                 self._last_times.append(time())
             else:
-                assert abs((time() - self._last_times[-1]) - self.target) < 3
+                assert abs((time() - self._last_times[-1]) - self.target) < 12
                 self._exit()
 
 
 def test_scheduling_api():
 
     app = LightningApp(FlowSchedule())
-    MultiProcessRuntime(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 def test_lightning_flow():
@@ -868,10 +868,10 @@ def test_lightning_flow_flows_and_works():
 class WorkReady(LightningWork):
     def __init__(self):
         super().__init__(parallel=True)
-        self.counter = 0
+        self.ready = False
 
     def run(self):
-        self.counter += 1
+        self.ready = True
 
 
 class FlowReady(LightningFlow):
@@ -890,7 +890,13 @@ class FlowReady(LightningFlow):
             self._exit()
 
 
-def test_flow_ready():
+class RootFlowReady(_RootFlow):
+    def __init__(self):
+        super().__init__(WorkReady())
+
+
+@pytest.mark.parametrize("flow", [FlowReady, RootFlowReady])
+def test_flow_ready(flow):
     """This test validates that the app status queue is populated correctly."""
 
     mock_queue = _MockQueue("api_publish_state_queue")
@@ -910,7 +916,7 @@ def test_flow_ready():
         state["done"] = new_done
         return False
 
-    app = LightningApp(FlowReady())
+    app = LightningApp(flow())
     app._run = partial(run_patch, method=app._run)
     app.run_once = partial(lagged_run_once, method=app.run_once)
     MultiProcessRuntime(app, start_server=False).dispatch()

@@ -24,12 +24,12 @@ from websockets.exceptions import ConnectionClosed
 from lightning_app.api.http_methods import _HttpMethod
 from lightning_app.api.request_types import _DeltaRequest
 from lightning_app.core.constants import (
-    CLOUD_QUEUE_TYPE,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     ENABLE_STATE_WEBSOCKET,
     ENABLE_UPLOAD_ENDPOINT,
     FRONTEND_DIR,
+    get_cloud_queue_type,
 )
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.storage import Drive
@@ -350,7 +350,7 @@ async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
     # check the queue status only if running in cloud
     if is_running_in_cloud():
-        queue_obj = QueuingSystem(CLOUD_QUEUE_TYPE).get_queue(queue_name="healthz")
+        queue_obj = QueuingSystem(get_cloud_queue_type()).get_queue(queue_name="healthz")
         # this is only being implemented on Redis Queue. For HTTP Queue, it doesn't make sense to have every single
         # app checking the status of the Queue server
         if not queue_obj.is_running:
