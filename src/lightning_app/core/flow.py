@@ -249,10 +249,7 @@ class LightningFlow:
 
     @property
     def ready(self) -> bool:
-        """Not currently enabled.
-
-        Override to customize when your App should be ready.
-        """
+        """Override to customize when your App should be ready."""
         flows = self.flows
         return all(flow.ready for flow in flows.values()) if flows else True
 
@@ -800,7 +797,7 @@ class _RootFlow(LightningFlow):
     @property
     def ready(self) -> bool:
         ready = getattr(self.work, "ready", None)
-        if ready:
+        if ready is not None:
             return ready
         return self.work.url != ""
 
