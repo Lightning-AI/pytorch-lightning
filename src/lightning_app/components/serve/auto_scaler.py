@@ -467,10 +467,15 @@ class _LoadBalancer(LightningWork):
             "username": USERNAME,
             "Authorization": AUTHORIZATION_TYPE + " " + data,
         }
-        response = requests.put(
-            f"http://{self._internal_ip}:{self._port}/system/update-servers", json=servers, headers=headers, timeout=10
-        )
-        response.raise_for_status()
+
+        if self._internal_ip is not None:
+            response = requests.put(
+                f"http://{self._internal_ip}:{self._port}/system/update-servers",
+                json=servers,
+                headers=headers,
+                timeout=10,
+            )
+            response.raise_for_status()
 
     @staticmethod
     def _get_sample_dict_from_datatype(datatype: Any) -> dict:
@@ -741,6 +746,9 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_requests(self) -> int:
         """Fetches the number of pending requests via load balancer."""
+        if self.load_balancer._internal_ip is None:
+            return 0
+
         return int(
             requests.get(f"http://{self.load_balancer._internal_ip}:{self.load_balancer._port}/num-requests").json()
         )
