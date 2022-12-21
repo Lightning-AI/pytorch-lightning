@@ -289,12 +289,18 @@ class AcceleratorConnector:
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
         # MPS accelerator could be present in 3 ways,
         # 1. accelerator = "mps"
-        # 2. accelerator in ("auto", "gpu") and MPSAccelerator.is_available()
+        # 2. accelerator in ("auto", None) and MPSAccelerator.is_available() (all other accelerators not present)
         # 3. accelerator is None and MPSAccelerator.is_available()
         is_mps_accelerator = (
             (isinstance(accelerator, str) and accelerator == "mps")
-            or (isinstance(accelerator, str) and accelerator in ("auto", "gpu") and MPSAccelerator.is_available())
-            or (accelerator is None and MPSAccelerator.is_available())
+            or (
+                ((isinstance(accelerator, str) and accelerator == "auto") or accelerator is None)
+                and MPSAccelerator.is_available()
+                and not TPUAccelerator.is_available()
+                and not HPUAccelerator.is_available()
+                and not _IPU_AVAILABLE
+            )
+            or (isinstance(accelerator, str) and accelerator == "gpu" and MPSAccelerator.is_available())
         )
         if is_mps_accelerator and (is_ddp_str or isinstance(strategy, ParallelStrategy)):
             raise ValueError("With MPSAccelerator, strategies from the DDP family are not compatible.")
