@@ -40,16 +40,7 @@ class LightningOptimizer:
         # copy most of the `Optimizer` methods into this instance. `__del__` is skipped in case the optimizer has
         # implemented custom logic which we would not want to call on destruction of the `LightningOptimizer`
         self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("step", "__del__")}
-
-        # For Horovod
-        if hasattr(optimizer, "skip_synchronize"):
-            self.__class__ = type(
-                "Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__.__bases__[0]), {}
-            )
-            self.skip_synchronize = optimizer.skip_synchronize
-            self.synchronize = optimizer.synchronize
-        else:
-            self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
+        self.__class__ = type("Lightning" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
 
         self._optimizer = optimizer
         self._strategy: Optional[pl.strategies.Strategy] = None
