@@ -33,14 +33,12 @@ from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
-    ApexMixedPrecisionPlugin,
     CheckpointIO,
     ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
@@ -101,8 +99,6 @@ class AcceleratorConnector:
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         precision: Union[int, str] = 32,
-        amp_type: Optional[str] = None,
-        amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
@@ -175,8 +171,6 @@ class AcceleratorConnector:
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v1.10.0
-        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v1.10.0
         self._auto_select_gpus: bool = auto_select_gpus
 
         self._check_config_and_set_final_flags(
@@ -184,8 +178,6 @@ class AcceleratorConnector:
             accelerator=accelerator,
             precision=precision,
             plugins=plugins,
-            amp_type=amp_type,
-            amp_level=amp_level,
             sync_batchnorm=sync_batchnorm,
         )
         self._check_device_config_and_set_final_flags(
@@ -238,8 +230,6 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]],
         precision: Union[int, str],
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
-        amp_type: Optional[str],
-        amp_level: Optional[str],
         sync_batchnorm: bool,
     ) -> None:
         """This method checks:
@@ -374,29 +364,6 @@ class AcceleratorConnector:
                             )
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
-
-        if amp_type is not None:
-            rank_zero_deprecation(
-                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
-                f" The `Trainer(amp_backend={amp_type!r})` argument is deprecated. Removing this argument will avoid"
-                f" this message, it will select PyTorch's implementation automatically."
-            )
-        else:
-            amp_type = None
-        self._amp_type_flag = amp_type
-
-        if amp_level is not None:
-            rank_zero_deprecation(
-                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
-                f" The `Trainer(amp_level={amp_level!r})` argument is deprecated. Removing this argument will avoid"
-                f" this message."
-            )
-            if self._amp_type_flag != "apex":
-                raise MisconfigurationException(
-                    f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
-                )
 
     def _check_device_config_and_set_final_flags(
         self,
@@ -701,7 +668,7 @@ class AcceleratorConnector:
         if isinstance(self.strategy, ColossalAIStrategy):
             return ColossalAIPrecisionPlugin(self._precision_flag)
         if isinstance(self.strategy, DeepSpeedStrategy):
-            return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
+            return DeepSpeedPrecisionPlugin(self._precision_flag)
 
         if self._precision_flag == 32:
             return PrecisionPlugin()
@@ -717,25 +684,19 @@ class AcceleratorConnector:
 
         if self._precision_flag in (16, "bf16"):
             rank_zero_info(
-                f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"
+                "Using 16bit Automatic Mixed Precision (AMP)"
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
+            device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
-            if self._amp_type_flag in (None, "native"):
-                device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
-
-                if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                    return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, DDPFullyShardedStrategy):
-                    return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                return MixedPrecisionPlugin(self._precision_flag, device)
-
-            if self._amp_type_flag == "apex":
-                self._amp_level_flag = self._amp_level_flag or "O2"
-                return ApexMixedPrecisionPlugin(self._amp_level_flag)
+            if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
+                return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+            if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+            if isinstance(self.strategy, DDPFullyShardedStrategy):
+                return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+            return MixedPrecisionPlugin(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
 
@@ -760,26 +721,6 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
-        if (
-            self._precision_flag == 16
-            and isinstance(self.accelerator, CPUAccelerator)
-            and self._amp_type_flag == "apex"
-        ):
-            raise MisconfigurationException(
-                "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
-                " but apex AMP not supported on CPU."
-            )
-        if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":
-            if self._precision_flag == "bf16":
-                raise MisconfigurationException(
-                    "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
-                    " Remove the `amp_type` argument."
-                )
-            if isinstance(
-                self.strategy,
-                (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy),
-            ):
-                raise MisconfigurationException("Sharded plugins are not supported with apex.")
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""

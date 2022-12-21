@@ -21,12 +21,10 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.types import Steppable
-from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
@@ -45,35 +43,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(
-        self, precision: Union[str, int], amp_type: Optional[str] = None, amp_level: Optional[str] = None
-    ) -> None:
-        if amp_type == "apex":
-            # TODO: remove in v1.10.0
-            rank_zero_deprecation(
-                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0. Support for using it through the DeepSpeed"
-                " implementation will be removed in v1.10.0."
-            )
-            if not _APEX_AVAILABLE:
-                raise MisconfigurationException(
-                    "You have asked for Apex AMP but `apex` is not installed."
-                    " Install `apex` using this guide: https://github.com/NVIDIA/apex"
-                )
-
-            amp_level = amp_level or "O2"
-        elif amp_level is not None:
-            raise ValueError(
-                f"`{type(self).__name__}(amp_level={amp_level!r})` is only relevant when using NVIDIA/apex"
-            )
-        if amp_type is None:
-            amp_type = "native"
-        else:
-            rank_zero_deprecation(
-                f"Passing `{type(self).__name__}(amp_type={amp_type!r})` been deprecated in v1.9.0 and will be removed"
-                f" in v1.10.0. This argument is no longer necessary."
-            )
-
+    def __init__(self, precision: Union[str, int]) -> None:
         supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
         if precision not in supported_precision:
             raise ValueError(
@@ -83,8 +53,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
         super().__init__()
         self.precision = precision
-        self.amp_type = amp_type
-        self.amp_level = amp_level
 
     def backward(  # type: ignore[override]
         self,
