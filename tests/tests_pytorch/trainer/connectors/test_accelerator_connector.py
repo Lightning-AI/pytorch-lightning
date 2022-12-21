@@ -384,16 +384,24 @@ def test_exception_invalid_strategy():
 @RunIf(mps=True)
 def test_exception_invalid_ddp_strategy_with_mps(strategy, strategy_class):
     # check with str
-    with pytest.raises(
-        MisconfigurationException, match=r"With `accelerator=mps`, strategies from DDP Family are not compatible"
-    ):
+    with pytest.raises(ValueError, match=r"With MPSAccelerator, strategies from the DDP family are not compatible."):
         Trainer(accelerator="mps", strategy=strategy)
 
     # check with instance
-    with pytest.raises(
-        MisconfigurationException, match=r"With `accelerator=mps`, strategies from DDP Family are not compatible"
-    ):
+    with pytest.raises(ValueError, match=r"With MPSAccelerator, strategies from the DDP family are not compatible."):
         Trainer(accelerator="mps", strategy=strategy_class())
+
+    # check when accelerator set to "auto"
+    with pytest.raises(ValueError, match=r"With MPSAccelerator, strategies from the DDP family are not compatible."):
+        Trainer(accelerator="auto", strategy=strategy_class())
+
+    # check when accelerator set to "gpu" and MPS.
+    with pytest.raises(ValueError, match=r"With MPSAccelerator, strategies from the DDP family are not compatible."):
+        Trainer(accelerator="gpu", strategy=strategy_class())
+
+    # check when accelerator set to None
+    with pytest.raises(ValueError, match=r"With MPSAccelerator, strategies from the DDP family are not compatible."):
+        Trainer(accelerator=None, strategy=strategy_class())
 
 
 @pytest.mark.parametrize(

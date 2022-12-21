@@ -70,6 +70,7 @@ from pytorch_lightning.strategies import (
     HorovodStrategy,
     HPUParallelStrategy,
     IPUStrategy,
+    ParallelStrategy,
     SingleDeviceStrategy,
     SingleHPUStrategy,
     SingleTPUStrategy,
@@ -283,15 +284,20 @@ class AcceleratorConnector:
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
 
-        # mps accelerator incompatible with ddp-family
+        # MPSAccelerator incompatible with ddp-family
+        # check if strategy is string and contains 'ddp' in it
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
-        if (
-            accelerator is not None
-            and strategy is not None
-            and (isinstance(accelerator, str) and accelerator == "mps")
-            and (is_ddp_str or isinstance(strategy, ParallelStrategy))
-        ):
-            raise MisconfigurationException("With `accelerator=mps`, strategies from DDP Family are not compatible")
+        # MPS accelerator could be present in 3 ways,
+        # 1. accelerator = "mps"
+        # 2. accelerator in ("auto", "gpu") and MPSAccelerator.is_available()
+        # 3. accelerator is None and MPSAccelerator.is_available()
+        is_mps_accelerator = (
+            (isinstance(accelerator, str) and accelerator == "mps")
+            or (isinstance(accelerator, str) and accelerator in ("auto", "gpu") and MPSAccelerator.is_available())
+            or (accelerator is None and MPSAccelerator.is_available())
+        )
+        if is_mps_accelerator and (is_ddp_str or isinstance(strategy, ParallelStrategy)):
+            raise ValueError("With MPSAccelerator, strategies from the DDP family are not compatible.")
 
         self._accelerator_flag = accelerator
 
