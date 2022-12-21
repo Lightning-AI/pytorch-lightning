@@ -213,6 +213,6 @@ def _drop_apex_amp_state_from_checkpoint(checkpoint: _CHECKPOINT) -> _CHECKPOINT
     """
     key = "amp_scaling_state"
     if key in checkpoint:
-        rank_zero_warn("This checkpoint contains apex AMP data, but apex support has been removed.")
+        rank_zero_warn("This checkpoint contains apex AMP data, but apex support has been removed in v2.0.0.")
         del checkpoint[key]
     return checkpoint
