@@ -314,38 +314,6 @@ before any training.
     # call tune to find the batch size
     trainer.tune(model)
 
-auto_select_gpus
-^^^^^^^^^^^^^^^^
-
-.. warning:: ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-    Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_select+_gpus.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_select_gpus.mp4"></video>
-
-|
-
-If enabled and ``devices`` is an integer, pick available GPUs automatically.
-This is especially useful when GPUs are configured to be in "exclusive mode",
-such that only one process at a time can access them.
-
-Example::
-
-    # no auto selection (picks first 2 GPUs on system, may fail if other process is occupying)
-    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
-
-    # enable auto selection (will find two available GPUs on system)
-    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
-
-    # specifies all GPUs regardless of its availability
-    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
-
-    # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
