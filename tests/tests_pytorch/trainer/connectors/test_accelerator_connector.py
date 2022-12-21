@@ -381,6 +381,7 @@ def test_exception_invalid_strategy():
         ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
     ),
 )
+@RunIf(mps=True)
 def test_exception_invalid_ddp_strategy_with_mps(strategy, strategy_class):
     # check with str
     with pytest.raises(
