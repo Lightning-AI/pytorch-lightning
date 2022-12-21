@@ -78,7 +78,7 @@ from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ _LITERAL_WARN = Literal["warn"]
 class AcceleratorConnector:
     def __init__(
         self,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -99,10 +99,6 @@ class AcceleratorConnector:
         replace_sampler_ddp: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
         auto_select_gpus: bool = False,
-        num_processes: Optional[int] = None,  # deprecated
-        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
-        ipus: Optional[int] = None,  # deprecated
-        gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -157,7 +153,6 @@ class AcceleratorConnector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
         self._precision_flag: Optional[Union[int, str]] = None
@@ -175,9 +170,7 @@ class AcceleratorConnector:
             plugins=plugins,
             sync_batchnorm=sync_batchnorm,
         )
-        self._check_device_config_and_set_final_flags(
-            devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
-        )
+        self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
         # 2. Instantiate Accelerator
         self._set_accelerator_if_ipu_strategy_is_passed()
 
@@ -356,15 +349,7 @@ class AcceleratorConnector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(
-        self,
-        devices: Optional[Union[List[int], str, int]],
-        num_nodes: int,
-        num_processes: Optional[int],
-        gpus: Optional[Union[List[int], str, int]],
-        ipus: Optional[int],
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
@@ -379,75 +364,11 @@ class AcceleratorConnector:
                 f" using {accelerator_name} accelerator."
             )
 
-        # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
-        self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
-            devices, num_processes, gpus, ipus, tpu_cores
-        )
-
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
             )
-
-    def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
-        self,
-        devices: Optional[Union[List[int], str, int]],
-        num_processes: Optional[int],
-        gpus: Optional[Union[List[int], str, int]],
-        ipus: Optional[int],
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> None:
-        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and
-        `accelerator_flag`."""
-        if num_processes is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='cpu', devices={num_processes})` instead."
-            )
-        if gpus is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus!r})` instead."
-            )
-        if tpu_cores is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores!r})` instead."
-            )
-        if ipus is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.7 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='ipu', devices={ipus})` instead."
-            )
-        self._gpus: Optional[Union[List[int], str, int]] = gpus
-        self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
-        deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
-            if devices:
-                # TODO improve error message
-                rank_zero_warn(
-                    f"The flag `devices={devices}` will be ignored, "
-                    f"instead the device specific number {deprecated_devices_specific_flag} will be used"
-                )
-
-            if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
-                True
-            ) > 1:
-                # TODO: improve error message
-                rank_zero_warn("more than one device specific flag has been set")
-            self._devices_flag = deprecated_devices_specific_flag
-
-            if self._accelerator_flag is None:
-                # set accelerator type based on num_processes, gpus, ipus, tpu_cores
-                if ipus:
-                    self._accelerator_flag = "ipu"
-                if tpu_cores:
-                    self._accelerator_flag = "tpu"
-                if gpus:
-                    self._accelerator_flag = "cuda"
-                if num_processes:
-                    self._accelerator_flag = "cpu"
 
     def _set_accelerator_if_ipu_strategy_is_passed(self) -> None:
         # current logic only apply to object config
@@ -501,12 +422,7 @@ class AcceleratorConnector:
             )
 
         self._set_devices_flag_if_auto_passed()
-
-        self._gpus = self._devices_flag if not self._gpus else self._gpus
-        self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
-
         self._set_devices_flag_if_auto_select_gpus_passed()
-
         self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
@@ -516,8 +432,8 @@ class AcceleratorConnector:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
-        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
-            self._devices_flag = pick_multiple_gpus(self._gpus)
+        if self._auto_select_gpus and isinstance(self._devices_flag, int) and isinstance(self.accelerator, CUDAAccelerator):
+            self._devices_flag = pick_multiple_gpus(self._devices_flag)
             log.info(f"Auto select gpus: {self._devices_flag}")
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
