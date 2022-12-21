@@ -25,23 +25,6 @@ def test_old_lightningmodule_path():
         LightningModule()
 
 
-def test_old_loop_path():
-    from pytorch_lightning.loops.base import Loop
-
-    class MyLoop(Loop):
-        def advance(self):
-            ...
-
-        def done(self):
-            ...
-
-        def reset(self):
-            ...
-
-    with pytest.deprecated_call(match="pytorch_lightning.loops.base.Loop has been deprecated in v1.7"):
-        MyLoop()
-
-
 def test_old_callback_path():
     from pytorch_lightning.callbacks.base import Callback
 
