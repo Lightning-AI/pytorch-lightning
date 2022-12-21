@@ -146,6 +146,6 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
         "epoch": 1,
     }
     _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
-    with pytest.warns(PossibleUserWarning, match="callback states in this ckkjheckpoint.* colliding with each other"):
+    with pytest.warns(PossibleUserWarning, match="callback states in this checkpoint.* colliding with each other"):
         updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy())
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
