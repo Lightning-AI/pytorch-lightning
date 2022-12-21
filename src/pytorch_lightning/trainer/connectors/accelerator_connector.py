@@ -297,7 +297,7 @@ class AcceleratorConnector:
             accelerator is not None
             and strategy is not None
             and (isinstance(accelerator, str) and accelerator == "mps")
-            and (is_ddp_str or (isinstance(strategy, ddp_classes))
+            and (is_ddp_str or isinstance(strategy, ddp_classes)
             )
         ):
             raise MisconfigurationException("With `accelerator=mps`, strategies from DDP Family are not compatible")
