@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 
 
+- Removed the deprecated `resume_from_checkpoint` Trainer argument ([#16167](https://github.com/Lightning-AI/lightning/pull/16167))
+
+
 ## [unreleased] - 202Y-MM-DD
 
 ### Added
