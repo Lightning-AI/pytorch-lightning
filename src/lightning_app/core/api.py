@@ -1,10 +1,12 @@
 import asyncio
+import json
 import os
 import queue
 import sys
 import traceback
 from copy import deepcopy
 from multiprocessing import Queue
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
 from time import sleep
@@ -68,6 +70,7 @@ lock = Lock()
 
 app_spec: Optional[List] = None
 app_status: Optional[AppStatus] = None
+app_annotations: Optional[List] = None
 
 # In the future, this would be abstracted to support horizontal scaling.
 responses_store = {}
@@ -345,6 +348,13 @@ async def get_status() -> AppStatus:
     return app_status
 
 
+@fastapi_service.get("/api/v1/annotations", response_class=JSONResponse)
+async def get_annotations() -> Union[List, Dict]:
+    """Get the annotations associated with this app."""
+    global app_annotations
+    return app_annotations or []
+
+
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
     """Health check endpoint used in the cloud FastAPI servers to check the status periodically."""
@@ -440,6 +450,7 @@ def start_server(
     global api_app_delta_queue
     global global_app_state_store
     global app_spec
+    global app_annotations
 
     app_spec = spec
     api_app_delta_queue = api_delta_queue
@@ -448,6 +459,12 @@ def start_server(
         global_app_state_store = app_state_store
 
     global_app_state_store.add(TEST_SESSION_UUID)
+
+    # Load annotations
+    annotations_path = Path("lightning-annotations.json").resolve()
+    if annotations_path.exists():
+        with open(annotations_path) as f:
+            app_annotations = json.load(f)
 
     refresher = UIRefresher(api_publish_state_queue, api_response_queue)
     refresher.setDaemon(True)
