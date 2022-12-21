@@ -289,16 +289,13 @@ class AcceleratorConnector:
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
         # MPS accelerator could be instantiated in 3 ways,
         # 1. accelerator = "mps"
-        # 2. accelerator in ("auto", None) and MPSAccelerator.is_available() (all other accelerators not present)
+        # 2. accelerator in ("auto", None) and MPSAccelerator.is_available()
         # 3. accelerator = "gpu" and MPSAccelerator.is_available()
         is_mps_accelerator = (
             (isinstance(accelerator, str) and accelerator == "mps")
             or (
                 ((isinstance(accelerator, str) and accelerator == "auto") or accelerator is None)
                 and MPSAccelerator.is_available()
-                # and not TPUAccelerator.is_available()
-                # and not HPUAccelerator.is_available()
-                # and not _IPU_AVAILABLE
             )
             # or (isinstance(accelerator, str) and accelerator == "gpu" and MPSAccelerator.is_available())
         )
