@@ -468,7 +468,7 @@ class _LoadBalancer(LightningWork):
             "Authorization": AUTHORIZATION_TYPE + " " + data,
         }
 
-        if self._internal_ip is not None:
+        if self._internal_ip:
             response = requests.put(
                 f"http://{self._internal_ip}:{self._port}/system/update-servers",
                 json=servers,
@@ -746,7 +746,7 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_requests(self) -> int:
         """Fetches the number of pending requests via load balancer."""
-        if self.load_balancer._internal_ip is None:
+        if not self.load_balancer._internal_ip:
             return 0
 
         return int(
