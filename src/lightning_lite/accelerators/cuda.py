@@ -101,7 +101,9 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
             f"You requested to find {num_devices} GPUs but there are no visible CUDA devices on this machine."
         )
     if num_devices > len(visible_devices):
-        raise ValueError(f"You requested to find {num_devices} GPUs but this machine only has {len(visible_devices)} GPUs.")
+        raise ValueError(
+            f"You requested to find {num_devices} GPUs but this machine only has {len(visible_devices)} GPUs."
+        )
 
     available_devices = []
     unavailable_devices = []
