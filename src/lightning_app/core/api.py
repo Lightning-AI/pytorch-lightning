@@ -350,6 +350,7 @@ async def get_status() -> AppStatus:
 
 @fastapi_service.get("/api/v1/annotations", response_class=JSONResponse)
 async def get_annotations() -> Union[List, Dict]:
+    """Get the annotations associated with this app."""
     global app_annotations
     return app_annotations or []
 
