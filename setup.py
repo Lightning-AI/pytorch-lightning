@@ -163,4 +163,4 @@ if __name__ == "__main__":
             setuptools.setup(**setup_args)
     else:
         setuptools.setup(**setup_args)
-    print("Finished install process.")
+    print("Finished setup configuration.")
