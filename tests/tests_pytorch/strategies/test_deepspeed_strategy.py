@@ -140,15 +140,25 @@ def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
-
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        strategy="deepspeed",
-        amp_backend=amp_backend,
-        precision=16,
-    )
+    if amp_backend == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            trainer = Trainer(
+                fast_dev_run=True,
+                default_root_dir=tmpdir,
+                accelerator="gpu",
+                strategy="deepspeed",
+                amp_backend=amp_backend,
+                precision=16,
+            )
+    else:
+        trainer = Trainer(
+            fast_dev_run=True,
+            default_root_dir=tmpdir,
+            accelerator="gpu",
+            strategy="deepspeed",
+            amp_backend=amp_backend,
+            precision=16,
+        )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
