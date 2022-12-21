@@ -42,7 +42,7 @@ def _prepare_extras() -> Dict[str, Any]:
         if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     extras["extra"] = extras["cloud"] + extras["ui"] + extras["components"]
-    extras["all"] = extras["extra"] + extras["examples"]
+    extras["all"] = extras["extra"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     return extras
 
