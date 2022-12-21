@@ -70,6 +70,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed the endpoint info tab not showing up in `AutoScaler` UI ([#16128](https://github.com/Lightning-AI/lightning/pull/16128))
 
 
+- Fixed an issue where an exception would be raised in the logs when using a recent version of streamlit ([#16139](https://github.com/Lightning-AI/lightning/pull/16139))
+
+
 ## [1.8.5] - 2022-12-15
 
 ### Added
