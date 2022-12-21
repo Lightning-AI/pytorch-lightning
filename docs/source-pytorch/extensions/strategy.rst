@@ -102,9 +102,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
-   * - horovod
-     - :class:`~pytorch_lightning.strategies.HorovodStrategy`
-     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu_intermediate:Horovod>`
    * - hpu_parallel
      - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
      - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
