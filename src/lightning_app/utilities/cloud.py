@@ -1,5 +1,4 @@
 import os
-import warnings
 
 from lightning_cloud.openapi import V1Membership
 
@@ -25,11 +24,7 @@ def _get_project(client: LightningClient, project_id: str = LIGHTNING_CLOUD_PROJ
     if len(projects.memberships) == 0:
         raise ValueError("No valid projects found. Please reach out to lightning.ai team to create a project")
     if len(projects.memberships) > 1:
-        warnings.warn(
-            f"It is currently not supported to have multiple projects but "
-            f"found {len(projects.memberships)} projects."
-            f" Defaulting to the project {projects.memberships[0].name}"
-        )
+        print(f"Defaulting to the project: {projects.memberships[0].name}")
     return projects.memberships[0]
 
 
