@@ -300,7 +300,7 @@ class AcceleratorConnector:
                 and not HPUAccelerator.is_available()
                 and not _IPU_AVAILABLE
             )
-            or (isinstance(accelerator, str) and accelerator == "gpu" and MPSAccelerator.is_available())
+            # or (isinstance(accelerator, str) and accelerator == "gpu" and MPSAccelerator.is_available())
         )
         if is_mps_accelerator and (is_ddp_str or isinstance(strategy, ParallelStrategy)):
             raise ValueError("With MPSAccelerator, strategies from the DDP family are not compatible.")
