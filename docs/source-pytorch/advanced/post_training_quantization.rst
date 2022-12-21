@@ -1,4 +1,4 @@
-.. _posttraining_quantization:
+.. _post_training_quantization:
 
 ##########################
 Post-training Quantization
