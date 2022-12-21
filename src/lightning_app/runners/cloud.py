@@ -463,7 +463,7 @@ class CloudRuntime(Runtime):
                 raise RuntimeError("The source upload url is empty.")
 
             if getattr(lightning_app_release, "cluster_id", None):
-                logger.info(f"Running app on {lightning_app_release.cluster_id}")
+                print(f"Running app on {lightning_app_release.cluster_id}")
 
             # Save the config for re-runs
             app_config.save_to_dir(root)

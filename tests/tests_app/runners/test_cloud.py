@@ -1430,9 +1430,8 @@ def test_get_project(monkeypatch):
             V1Membership(name="test-project2", project_id="test-project-id2"),
         ]
     )
-    with pytest.warns(UserWarning, match="Defaulting to the project test-project1"):
-        ret = _get_project(mock_client)
-        assert ret.project_id == "test-project-id1"
+    ret = _get_project(mock_client)
+    assert ret.project_id == "test-project-id1"
 
 
 def write_file_of_size(path, size):
