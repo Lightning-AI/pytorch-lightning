@@ -394,12 +394,6 @@ def test_exception_invalid_ddp_strategy_with_mps(strategy, strategy_class):
     ):
         Trainer(accelerator="mps", strategy=strategy_class())
 
-    # check with MPS accelerator
-    with pytest.raises(
-        MisconfigurationException, match=r"With `accelerator=mps`, strategies from DDP Family are not compatible"
-    ):
-        Trainer(accelerator=MPSAccelerator, strategy=strategy)
-
 
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],

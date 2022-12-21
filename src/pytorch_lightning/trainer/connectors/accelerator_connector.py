@@ -287,7 +287,7 @@ class AcceleratorConnector:
         if (
             accelerator is not None
             and strategy is not None
-            and ((isinstance(accelerator, str) and accelerator == "mps") or (isinstance(accelerator, MPSAccelerator)))
+            and ((isinstance(accelerator, str) and accelerator == "mps"))
             and (
                 (isinstance(strategy, str) and "ddp" in strategy)
                 or (
