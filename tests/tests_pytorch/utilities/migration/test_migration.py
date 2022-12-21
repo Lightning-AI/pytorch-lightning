@@ -151,7 +151,7 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
 
 
-def test_migrate_dropped_amp_state():
+def test_migrate_dropped_apex_amp_state():
     """Test that the migration warns about collisions that would occur if the keys were modified."""
     old_checkpoint = {"amp_scaling_state": {"scale": 1.23}}
     _set_version(old_checkpoint, "1.9.0")  # pretend a checkpoint prior to 2.0.0
