@@ -23,9 +23,14 @@ from distutils.version import LooseVersion
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from pkg_resources import parse_requirements
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 REQUIREMENT_FILES = {
     "pytorch": (
