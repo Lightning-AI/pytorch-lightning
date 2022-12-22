@@ -31,6 +31,8 @@ from lightning_cloud.openapi import (
     V1Flowserver,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
+    V1LightningAuth,
+    V1LightningBasicAuth,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1Membership,
@@ -68,6 +70,7 @@ from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.source_code.copytree import _filter_ignored, _parse_lightningignore
 from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import _is_headless, Logger
+from lightning_app.utilities.auth import _credential_string_to_basic_auth_params
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
@@ -211,6 +214,16 @@ class CloudRuntime(Runtime):
                 "initialize the Runtime object with `entrypoint_file` argument?"
             )
 
+        # If enable_basic_auth is set, we parse credential string and set up authentication for the app
+        auth: V1LightningAuth = None
+        if self.enable_basic_auth != "":
+            parsed_credentials = _credential_string_to_basic_auth_params(self.enable_basic_auth)
+            auth = V1LightningAuth(
+                basic=V1LightningBasicAuth(
+                    username=parsed_credentials["username"], password=parsed_credentials["password"]
+                )
+            )
+
         # Determine the root of the project: Start at the entrypoint_file and look for nearby Lightning config files,
         # going up the directory structure. The root of the project is where the Lightning config file is located.
 
@@ -296,6 +309,7 @@ class CloudRuntime(Runtime):
                 shm_size=self.app.flow_cloud_compute.shm_size,
                 preemptible=False,
             ),
+            auth=auth,
         )
 
         # if requirements file at the root of the repository is present,
@@ -473,6 +487,7 @@ class CloudRuntime(Runtime):
                             desired_state=app_release_desired_state,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
+                            auth=app_spec.auth,
                         )
                     ),
                 )
@@ -488,6 +503,7 @@ class CloudRuntime(Runtime):
                             name=app_name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
+                            auth=app_spec.auth,
                         ),
                     )
                 )
