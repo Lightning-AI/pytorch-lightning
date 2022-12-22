@@ -11,7 +11,7 @@ git clone https://github.com/Lightning-AI/lightning.git
 docker image build -t pytorch-lightning:latest -f dockers/base-cuda/Dockerfile .
 
 # build with specific arguments
-docker image build -t pytorch-lightning:base-cuda-py3.9-torch1.12-cuda11.7.1 -f dockers/base-cuda/Dockerfile --build-arg PYTHON_VERSION=3.9 --build-arg PYTORCH_VERSION=1.12 --build-arg CUDA_VERSION=11.7.1 .
+docker image build -t pytorch-lightning:base-cuda-py3.9-torch1.13-cuda11.7.1 -f dockers/base-cuda/Dockerfile --build-arg PYTHON_VERSION=3.9 --build-arg PYTORCH_VERSION=1.13 --build-arg CUDA_VERSION=11.7.1 .
 ```
 
 To run your docker use
