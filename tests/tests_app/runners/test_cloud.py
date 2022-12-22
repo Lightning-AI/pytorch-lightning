@@ -27,6 +27,8 @@ from lightning_cloud.openapi import (
     V1GetClusterResponse,
     V1LightningappInstanceState,
     V1LightningappRelease,
+    V1LightningAuth,
+    V1LightningBasicAuth,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1ListClustersResponse,
@@ -457,6 +459,65 @@ class TestAppCreationClient:
         )
         cloud_runtime.backend.client.lightningapp_v2_service_create_lightningapp_release.assert_called_with(
             project_id="test-project-id", app_id=mock.ANY, body=body
+        )
+
+    @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
+    def test_basic_auth_enabled(self, monkeypatch):
+        mock_client = mock.MagicMock()
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+        )
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[])
+        )
+        mock_client.lightningapp_v2_service_create_lightningapp_release.return_value = V1LightningappRelease()
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock.MagicMock())
+        monkeypatch.setattr(cloud, "_prepare_lightning_wheels_and_requirements", mock.MagicMock())
+        app = mock.MagicMock()
+        app.is_headless = False
+        app.flows = []
+        app.frontend = {}
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint_file="entrypoint.py")
+        cloud_runtime._check_uploaded_folder = mock.MagicMock()
+        # Set cloud_runtime.enable_basic_auth to be not empty:
+        cloud_runtime.enable_basic_auth = "username:password"
+        monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: False)
+        monkeypatch.setattr(cloud, "Path", Path)
+
+        cloud_runtime.dispatch()
+        mock_client = cloud_runtime.backend.client
+
+        body = Body8(
+            app_entrypoint_file=mock.ANY,
+            enable_app_server=True,
+            is_headless=False,
+            flow_servers=[],
+            image_spec=None,
+            works=[],
+            local_source=True,
+            dependency_cache_key=mock.ANY,
+            user_requested_flow_compute_config=mock.ANY,
+        )
+
+        mock_client.lightningapp_v2_service_create_lightningapp_release.assert_called_once_with(
+            project_id="test-project-id", app_id=mock.ANY, body=body
+        )
+
+        mock_client.lightningapp_v2_service_create_lightningapp_release_instance.assert_called_once_with(
+            project_id="test-project-id",
+            app_id=mock.ANY,
+            id=mock.ANY,
+            body=Body9(
+                desired_state=mock.ANY,
+                name=mock.ANY,
+                env=mock.ANY,
+                queue_server_type=mock.ANY,
+                auth=V1LightningAuth(basic=V1LightningBasicAuth(username="username", password="password")),
+            ),
         )
 
     @mock.patch("lightning_app.runners.backends.cloud.LightningClient", mock.MagicMock())
