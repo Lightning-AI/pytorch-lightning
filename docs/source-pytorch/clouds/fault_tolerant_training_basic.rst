@@ -18,5 +18,3 @@ With Fault Tolerant Training, when ``Trainer.fit()`` fails in the middle of an e
 Lightning will restart exactly where it failed, and everything will be restored (down to the batch it was on even if the dataset was shuffled).
 
 .. warning:: Fault-tolerant Training is currently an experimental feature within Lightning.
-
-----
