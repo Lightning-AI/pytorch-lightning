@@ -11,15 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.loops import Loop as NewLoop
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+import sys
+from typing import Any
 
 
-class Loop(NewLoop):
-    def __init__(self) -> None:
-        rank_zero_deprecation(
-            "pytorch_lightning.loops.base.Loop has been deprecated in v1.7"
-            " and will be removed in v1.9."
-            " Use the equivalent class from the pytorch_lightning.loops.loop.Loop class instead."
+def _patch_sys_modules() -> None:
+    # TODO: Remove in v2.0.0
+    self = sys.modules[__name__]
+    sys.modules["pytorch_lightning.loops.base"] = self
+
+
+class Loop:
+    # TODO: Remove in v2.0.0
+    def __init__(self, *_: Any, **__: Any) -> None:
+        raise NotImplementedError(
+            "`pytorch_lightning.loops.base.Loop` was deprecated in v1.7.0 and removed as of v1.9.0."
+            " Please use `pytorch_lightning.loops.loop.Loop` instead"
         )
-        super().__init__()
+
+
+_patch_sys_modules()
