@@ -149,3 +149,12 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
     with pytest.warns(PossibleUserWarning, match="callback states in this checkpoint.* colliding with each other"):
         updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy())
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
+
+
+def test_migrate_dropped_apex_amp_state():
+    """Test that the migration warns about collisions that would occur if the keys were modified."""
+    old_checkpoint = {"amp_scaling_state": {"scale": 1.23}}
+    _set_version(old_checkpoint, "1.8.0")  # pretend a checkpoint prior to 2.0.0
+    with pytest.warns(UserWarning, match="checkpoint contains apex AMP data"):
+        updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy())
+    assert "amp_scaling_state" not in updated_checkpoint

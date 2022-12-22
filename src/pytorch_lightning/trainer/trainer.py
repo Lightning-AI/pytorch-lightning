@@ -121,7 +121,7 @@ class Trainer:
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
-        auto_select_gpus: bool = False,
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -189,6 +189,10 @@ class Trainer:
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
                 Default: ``False``.
+
+                .. deprecated:: v1.9
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used

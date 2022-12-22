@@ -435,10 +435,10 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 def test_if_lr_finder_callback_already_configured():
     """Test that an error is raised if `LearningRateFinder` is already configured inside `Tuner`"""
     cb = LearningRateFinder()
-    trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
+    trainer = Trainer(auto_lr_find=True, callbacks=cb)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a `LearningRateFinder`"):
         trainer.tune(model)
 
 
