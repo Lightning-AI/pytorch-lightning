@@ -349,7 +349,11 @@ class AcceleratorConnector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
+    def _check_device_config_and_set_final_flags(
+        self,
+        devices: Optional[Union[List[int], str, int]],
+        num_nodes: int,
+    ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
