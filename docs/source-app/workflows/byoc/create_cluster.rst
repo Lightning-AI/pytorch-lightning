@@ -78,7 +78,7 @@ Create a Lightning BYOC cluster using the following command:
 
 .. code:: bash
 
-   lightning create cluster <cluster-name>  --role-arn <ARN> --external-id <EXTERNAL-ID>
+   lightning create cluster <cluster-name> --role-arn <ARN> --external-id <EXTERNAL-ID>
 
 Here's an example:
 
