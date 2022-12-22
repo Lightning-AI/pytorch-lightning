@@ -91,10 +91,11 @@ RUN \
     # Disable cache \
     export CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
-    # set particular PyTorch version
-    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
-    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
-    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
+    # set particular PyTorch version \
+    for fpath in `ls requirements/**/*.txt`; do \
+      python ./requirements/pytorch/adjust-versions.py $fpath ${PYTORCH_VERSION}; \
+    done && \
+
     # Install base requirements \
     pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py

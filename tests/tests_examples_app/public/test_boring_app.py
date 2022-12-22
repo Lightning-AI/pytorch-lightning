@@ -10,7 +10,7 @@ from lightning_app.testing.testing import run_app_in_cloud, wait_for
 
 @pytest.mark.cloud
 def test_boring_app_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_boring"), app_name="app_dynamic.py", debug=True,) as (
+    with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_boring"), app_name="app_dynamic.py", debug=True) as (
         _,
         view_page,
         _,
@@ -30,5 +30,5 @@ def test_boring_app_example_cloud() -> None:
 
         assert result.exit_code == 0
         assert result.exception is None
-        assert any("--filepath=/content/.storage/boring_file.txt" in line for line in lines)
+        assert any("Received from root.dict.dst_w" in line for line in lines)
         print("Succeeded App!")
