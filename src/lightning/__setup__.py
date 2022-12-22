@@ -83,7 +83,7 @@ def _setup_args() -> Dict[str, Any]:
                 "lightning = lightning.app.cli.lightning_cli:main",
             ],
         },
-        setup_requires=[],
+        setup_requires=["wheel", "typing_extensions"],
         install_requires=_ASSISTANT.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
         extras_require=_prepare_extras(),
         project_urls={
