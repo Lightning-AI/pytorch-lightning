@@ -79,17 +79,17 @@ class CUDAAccelerator(Accelerator):
 
 
 def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
-    """Returns a list of all available and usable CUDA GPUs.
+    """Returns a list of all available and usable CUDA GPU devices.
 
     A GPU is considered usable if we can successfully move a tensor to the device, and this is what this function
-    tests for each GPU on the system until the target number of usable GPUs is found.
+    tests for each GPU on the system until the target number of usable devices is found.
 
     A subset of GPUs on the system might be used by other processes, and if the GPU is configured to operate in
     'exclusive' mode (configurable by the admin), then only one process is allowed to occupy it.
 
     Args:
-        num_devices: The number of GPUs you want to request. By default, this function will return as many as there are
-            usable GPUs available.
+        num_devices: The number of devices you want to request. By default, this function will return as many as there
+            are usable CUDA GPU devices available.
 
     Warning:
         If multiple processes call this function at the same time, there can be race conditions in the case where
@@ -98,11 +98,11 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
     visible_devices = _get_all_visible_cuda_devices()
     if not visible_devices:
         raise ValueError(
-            f"You requested to find {num_devices} GPUs but there are no visible CUDA devices on this machine."
+            f"You requested to find {num_devices} devices but there are no visible CUDA devices on this machine."
         )
     if num_devices > len(visible_devices):
         raise ValueError(
-            f"You requested to find {num_devices} GPUs but this machine only has {len(visible_devices)} GPUs."
+            f"You requested to find {num_devices} devices but this machine only has {len(visible_devices)} GPUs."
         )
 
     available_devices = []
@@ -122,17 +122,16 @@ def find_usable_cuda_devices(num_devices: int = -1) -> List[int]:
 
     if len(available_devices) != num_devices:
         raise RuntimeError(
-            f"You requested to find {num_devices} GPUs but only {len(available_devices)} are currently available."
-            f" GPUs {unavailable_devices} are occupied by other processes and can't be"
-            " used at the moment."
+            f"You requested to find {num_devices} devices but only {len(available_devices)} are currently available."
+            f" The devices {unavailable_devices} are occupied by other processes and can't be used at the moment."
         )
     return available_devices
 
 
 def _get_all_visible_cuda_devices() -> List[int]:
-    """Returns a list of all visible CUDA GPUs.
+    """Returns a list of all visible CUDA GPU devices.
 
-    GPUs masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
+    Devices masked by the environment variabale ``CUDA_VISIBLE_DEVICES`` won't be returned here. For example, assume you
     have 8 physical GPUs. If ``CUDA_VISIBLE_DEVICES="1,3,6"``, then this function will return the list ``[0, 1, 2]``
     because these are the three visible GPUs after applying the mask ``CUDA_VISIBLE_DEVICES``.
     """

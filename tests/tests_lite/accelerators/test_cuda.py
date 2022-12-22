@@ -123,7 +123,7 @@ def test_find_usable_cuda_devices_error_handling():
 
     # Asking for GPUs if no GPUs visible
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=0), pytest.raises(
-        ValueError, match="You requested to find 2 GPUs but there are no visible CUDA"
+        ValueError, match="You requested to find 2 devices but there are no visible CUDA"
     ):
         find_usable_cuda_devices(2)
 
@@ -137,5 +137,5 @@ def test_find_usable_cuda_devices_error_handling():
     tensor_mock = Mock(side_effect=RuntimeError)  # simulate device placement fails
     with mock.patch("lightning_lite.accelerators.cuda.num_cuda_devices", return_value=2), mock.patch(
         "lightning_lite.accelerators.cuda.torch.tensor", tensor_mock
-    ), pytest.raises(RuntimeError, match=escape("GPUs [0, 1] are occupied by other processes")):
+    ), pytest.raises(RuntimeError, match=escape("The devices [0, 1] are occupied by other processes")):
         find_usable_cuda_devices(2)
