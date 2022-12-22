@@ -303,6 +303,8 @@ class WandbLogger(Logger):
         log_model: Union[str, bool] = False,
         experiment: Union[Run, RunDisabled, None] = None,
         prefix: str = "",
+        checkpoint_name: Optional[str] = None,
+        use_reference: bool = False,
         **kwargs: Any,
     ) -> None:
         if wandb is None:
@@ -358,6 +360,11 @@ class WandbLogger(Logger):
         if _WANDB_GREATER_EQUAL_0_12_10:
             wandb.require("service")
             _ = self.experiment
+
+        if checkpoint_name:
+            self.checkpoint_name = checkpoint_name
+        else:
+            self.checkpoint_name = None
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -596,7 +603,9 @@ class WandbLogger(Logger):
                 if _WANDB_GREATER_EQUAL_0_10_22
                 else None
             )
-            artifact = wandb.Artifact(name=f"model-{self.experiment.id}", type="model", metadata=metadata)
+            if not self.checkpoint_name:
+                self.checkpoint_name = f"model-{self.experiment.id}"
+            artifact = wandb.Artifact(name=self.checkpoint_name, type="model", metadata=metadata)
             artifact.add_file(p, name="model.ckpt")
             self.experiment.log_artifact(artifact, aliases=[tag])
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
