@@ -68,9 +68,9 @@ Record the ARN and the external ID. You’ll need them for your next step.
 
 -----
 
-*******************************
-Create a Lightning BYOC cluster
-*******************************
+**************************************
+Step 3-Create a Lightning BYOC cluster
+**************************************
 
 Now that you have created a role and policy on AWS, you can start creating Lightning clusters.
 
