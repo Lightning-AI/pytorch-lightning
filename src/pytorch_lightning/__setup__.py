@@ -81,7 +81,7 @@ def _setup_args() -> Dict[str, Any]:
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
-        setup_requires=["wheel", "typing_extensions"],
+        setup_requires=["wheel"],
         # TODO: aggregate pytorch and lite requirements as we include its source code directly in this package.
         # this is not a problem yet because lite's base requirements are all included in pytorch's base requirements
         install_requires=assistant.load_requirements(

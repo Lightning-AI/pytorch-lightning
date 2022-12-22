@@ -74,7 +74,7 @@ def _setup_args() -> Dict[str, Any]:
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
-        setup_requires=["wheel", "typing_extensions"],
+        setup_requires=["wheel"],
         install_requires=assistant.load_requirements(
             _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
         ),

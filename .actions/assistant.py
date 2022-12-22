@@ -27,11 +27,6 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from pkg_resources import parse_requirements
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
-
 REQUIREMENT_FILES = {
     "pytorch": (
         "requirements/pytorch/base.txt",
@@ -54,7 +49,7 @@ REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: Literal["none", "major", "all"] = "all") -> str:
+def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
     """Adjust the upper version contrains.
 
     Args:
@@ -84,6 +79,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: Literal["no
     >>> _augment_requirement("arrow", unfreeze="major")
     'arrow'
     """
+    assert unfreeze in {"none", "major", "all"}
     # filer all comments
     if comment_char in ln:
         comment = ln[ln.index(comment_char) :]
@@ -121,7 +117,7 @@ def load_requirements(
     path_dir: str,
     file_name: str = "base.txt",
     comment_char: str = "#",
-    unfreeze: Literal["none", "major", "all"] = "all",
+    unfreeze: str = "all",
 ) -> List[str]:
     """Loading requirements from a file.
 
@@ -129,6 +125,7 @@ def load_requirements(
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['sphinx>=4.0, <6.0  # strict', ...]
     """
+    assert unfreeze in {"none", "major", "all"}
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
