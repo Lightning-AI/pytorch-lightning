@@ -44,8 +44,8 @@ def _prepare_extras() -> Dict[str, Any]:
     extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
     extras["all"] = extras["extra"]
     extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
-    extras = {name: list(set(reqs)) for name, reqs in extras.items()}
-    print("The extras are", extras)
+    extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
+    print("The extras are: ", extras)
     return extras
 
 

@@ -89,7 +89,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@" in req:
+    if not req or any(c in req for c in ["http:", "https:", "@"]):
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -222,7 +222,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     if not requires:
         return None
     # TODO: add some smarter version aggregation per each package
-    requires = list(chain(*requires))
+    requires = sorted(set(chain(*requires)))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
         fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
