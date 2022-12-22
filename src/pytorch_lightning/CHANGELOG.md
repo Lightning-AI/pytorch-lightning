@@ -155,6 +155,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed issue with unsupported torch.inference_mode() on hpu backends ([#15918](https://github.com/Lightning-AI/lightning/pull/15918))
 
+## [1.8.6] - 2022-12-21
+
+- minor cleaning
+
+
 ## [1.8.5] - 2022-12-15
 
 - Add function to remove checkpoint to allow override for extended classes ([#16067](https://github.com/Lightning-AI/lightning/pull/16067))
