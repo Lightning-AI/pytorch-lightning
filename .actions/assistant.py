@@ -213,7 +213,8 @@ def _download_frontend(pkg_path: str):
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
     """Load all base requirements from all particular packages and prune duplicates."""
     requires = [
-        load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
+        # TODO: consider passing unfreeze as string instead
+        load_requirements(d, file_name="base.txt", unfreeze="none" if freeze_requirements else "all")
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
