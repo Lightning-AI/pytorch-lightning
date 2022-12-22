@@ -41,10 +41,9 @@ def _prepare_extras() -> Dict[str, Any]:
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
-    # todo
-    # extras["extra"] = extras["cloud"] + extras["ui"]
-    # extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
-    # extras["all"] = extras["dev"]
+    extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
+    extras["all"] = extras["extra"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
     extras = {name: list(set(reqs)) for name, reqs in extras.items()}
     print("The extras are", extras)
     return extras
