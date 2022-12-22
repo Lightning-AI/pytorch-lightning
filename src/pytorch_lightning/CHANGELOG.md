@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `Trainer(ipus=...)` argument
   * Removed the `Trainer(num_processes=...)` argument
 
+- Removed the deprecated automatic GPU selection ([#16184](https://github.com/Lightning-AI/lightning/pull/16184))
+  * Removed the `Trainer(auto_select_gpus=...)` argument
+  * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions 
+
 
 ## [unreleased] - 202Y-MM-DD
 
