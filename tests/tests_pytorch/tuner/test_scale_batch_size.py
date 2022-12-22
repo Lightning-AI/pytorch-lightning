@@ -393,7 +393,7 @@ def test_if_batch_size_finder_callback_already_configured():
     trainer = Trainer(auto_scale_batch_size=True, callbacks=cb)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a .* callback"):
+    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a `BatchSizeFinder`"):
         trainer.tune(model)
 
 

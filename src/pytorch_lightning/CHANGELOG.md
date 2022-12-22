@@ -123,6 +123,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `pytorch_lightning.loggers.base` module in favor of `pytorch_lightning.loggers.logger` ([#16120](https://github.com/PyTorchLightning/pytorch-lightning/pull/16120))
 
 
+- Removed the deprecated `pytorch_lightning.loops.base` module in favor of `pytorch_lightning.loops.loop` ([#16142](https://github.com/PyTorchLightning/pytorch-lightning/pull/16142))
+
+
 - Removed the deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#16131](https://github.com/Lightning-AI/lightning/pull/16131))
 
 
@@ -132,6 +135,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
+
+
+## [1.8.6] - 2022-12-21
+
+- minor cleaning
 
 
 ## [1.8.5] - 2022-12-15
