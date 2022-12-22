@@ -7,7 +7,7 @@
 Run app on your Lightning Cluster
 *********************************
 
-Once your cluster is running, you can run any Lightning App on your cluster. To run an App on the Lightning BYOC cluster, use --cloud –cluster-id <cluste-id> in the command:
+Once your cluster is running, you can run any Lightning App on your cluster. To run an App on the Lightning BYOC cluster, use ``--cloud –cluster-id <cluste-id>`` in the command:
 
 .. code:: bash
 
