@@ -293,8 +293,6 @@ class CheckpointConnector:
             prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
 
         # old checkpoints compatibility
-        if "amp_scaling_state" in self._loaded_checkpoint:
-            rank_zero_warn("This checkpoint contains apex AMP data, but apex support has been removed.")
         if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, MixedPrecisionPlugin):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
