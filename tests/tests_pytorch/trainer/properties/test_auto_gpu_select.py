@@ -57,9 +57,3 @@ def test_auto_select_gpus(_, cuda_count_2):
         trainer = Trainer(auto_select_gpus=True, accelerator="gpu", devices=1)
     assert trainer.num_devices == 1
     assert trainer.device_ids == [1]
-
-    with pytest.deprecated_call(match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"):
-        trainer = Trainer(auto_select_gpus=True, gpus=1)
-
-    assert trainer.num_devices == 1
-    assert trainer.device_ids == [1]
