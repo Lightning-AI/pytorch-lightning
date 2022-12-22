@@ -88,7 +88,7 @@ _LITERAL_WARN = Literal["warn"]
 class AcceleratorConnector:
     def __init__(
         self,
-        devices: Union[List[int], str, int] = "auto",
+        devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,

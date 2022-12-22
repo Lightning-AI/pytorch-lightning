@@ -120,7 +120,7 @@ class Trainer:
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        devices: Union[List[int], str, int] = "auto",
+        devices: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
