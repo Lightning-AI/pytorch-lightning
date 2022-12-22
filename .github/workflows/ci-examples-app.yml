@@ -72,10 +72,13 @@ jobs:
           key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
           restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.pkg-name }}-${{ matrix.requires }}-
 
-      - name: Install dependencies
+      - name: Install Lightning package & dependencies
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg-name }}
+          FREEZE_REQUIREMENTS: 1
         run: |
-          pip --version
-          pip install -r requirements/app/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          # do not use `-e` because it will make both packages available since it adds `src` to `sys.path` automatically
+          pip install .[dev] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
 
       - name: Setup Node.js
@@ -85,12 +88,6 @@ jobs:
 
       - name: Install Yarn
         run: npm install -g yarn
-
-      - name: Install Lightning package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg-name }}
-        # do not use -e because it will make both packages available since it adds `src` to `sys.path` automatically
-        run: pip install .
 
       - name: Adjust tests
         if: ${{ matrix.pkg-name == 'lightning' }}
@@ -116,7 +113,10 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_examples_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
+          python -m coverage run --source ${COVERAGE_SCOPE} \
+            -m pytest -m "not cloud" tests_examples_app \
+            --timeout=300 --durations=0 -vvvv \
+            --junitxml=$PYTEST_ARTIFACT
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
