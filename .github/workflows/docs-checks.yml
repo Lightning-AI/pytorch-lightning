@@ -157,7 +157,6 @@ jobs:
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
-          make clean
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going" -b linkcheck
 
       - name: Upload built docs

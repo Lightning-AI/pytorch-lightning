@@ -8,15 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
-      - "!*.md"
-      - ".github/**"
-      - "src/**"
-      - "tests/**"
-      - "requirements/**"
-      - "setup.py"
-      - "examples/**"
-      - "dockers/**"
-      - "!**/*.md"
+      - "**/*.md"
 
 jobs:
   markdown-link-check:
