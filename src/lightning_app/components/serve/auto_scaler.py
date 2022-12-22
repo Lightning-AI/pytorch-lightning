@@ -473,7 +473,7 @@ class _LoadBalancer(LightningWork):
         }
 
         response = requests.put(
-            f"http://{self._internal_ip}:{self._port}/system/update-servers",
+            f"http://{self._internal_ip}:{self.port}/system/update-servers",
             json=servers,
             headers=headers,
             timeout=10,
@@ -752,7 +752,7 @@ class AutoScaler(LightningFlow):
         if not self.load_balancer._internal_ip:
             return 0
         return int(
-            requests.get(f"http://{self.load_balancer._internal_ip}:{self.load_balancer._port}/num-requests").json()
+            requests.get(f"http://{self.load_balancer._internal_ip}:{self.load_balancer.port}/num-requests").json()
         )
 
     @property
