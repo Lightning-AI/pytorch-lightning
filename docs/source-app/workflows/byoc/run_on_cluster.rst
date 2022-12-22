@@ -11,7 +11,7 @@ Once your cluster is running, you can run any Lightning App on your cluster. To 
 
 .. code:: bash
 
-   lightning run app app.py  —-cloud —-cluster-id <cluster-id>
+   lightning run app app.py --cloud --cluster-id <cluster-id>
 
 Here’s an example:
 
