@@ -441,7 +441,11 @@ class AcceleratorConnector:
                 "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
                 " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
             )
-        if self._auto_select_gpus and isinstance(self._devices_flag, int) and isinstance(self.accelerator, CUDAAccelerator):
+        if (
+            self._auto_select_gpus
+            and isinstance(self._devices_flag, int)
+            and isinstance(self.accelerator, CUDAAccelerator)
+        ):
             self._devices_flag = pick_multiple_gpus(
                 self._devices_flag,
                 # we already show a deprecation message when user sets Trainer(auto_select_gpus=...)
