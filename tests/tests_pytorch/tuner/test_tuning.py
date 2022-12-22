@@ -28,7 +28,7 @@ def test_tuner_with_distributed_strategies():
         trainer.tune(model)
 
 
-def test_tuner_with_already_configured_BatchSizeFinder():
+def test_tuner_with_already_configured_batch_size_finder():
     """Test that an error is raised when tuner is already configured with BatchSizeFinder."""
     trainer = Trainer(auto_scale_batch_size=True, callbacks=[BatchSizeFinder()])
     model = BoringModel()
@@ -37,7 +37,7 @@ def test_tuner_with_already_configured_BatchSizeFinder():
         trainer.tune(model)
 
 
-def test_tuner_with_already_configured_LearningRateFinder():
+def test_tuner_with_already_configured_learning_rate_finder():
     """Test that an error is raised when tuner is already configured with LearningRateFinder."""
     trainer = trainer = Trainer(auto_lr_find=True, callbacks=[LearningRateFinder()])
     model = BoringModel()
@@ -46,7 +46,7 @@ def test_tuner_with_already_configured_LearningRateFinder():
         trainer.tune(model)
 
 
-def test_tuner_with_already_configured_LearningRateFinder_and_BatchSizeFinder():
+def test_tuner_with_already_configured_learning_rate_finder_and_batch_size_finder():
     """Test that an error is raised when tuner are already configured with LearningRateFinder and
     BatchSizeFinder."""
     trainer = trainer = Trainer(
@@ -57,6 +57,6 @@ def test_tuner_with_already_configured_LearningRateFinder_and_BatchSizeFinder():
     with pytest.raises(
         MisconfigurationException,
         match=r"Trainer is already configured with `LearningRateFinder` and "
-        r"`BatchSizeFinder` callbacks. Please remove it if you want to use tuner.",
+        r"`BatchSizeFinder` callbacks. Please remove them if you want to use the Tuner.",
     ):
         trainer.tune(model)
