@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [fabricLaunchPLVersion] - 202Y-MM-DD
 
+
+### Removed
+
 - `nvidia/apex` removal ([#16149](https://github.com/Lightning-AI/lightning/pull/16149))
   * Removed `pytorch_lightning.plugins.NativeMixedPrecisionPlugin` in favor of `pytorch_lightning.plugins.MixedPrecisionPlugin`
   * Removed the `LightningModule.optimizer_step(using_native_amp=...)` argument
