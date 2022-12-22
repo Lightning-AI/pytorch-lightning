@@ -260,8 +260,8 @@ def test_accelerator_set_when_using_tpu(devices):
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
     [
-        pytest.param(("--accelerator=tpu --devices=8", {"accelerator": "tpu", "devices": 8}), id="tpu-8"),
-        pytest.param(("--accelerator=tpu --devices=1,", {"accelerator": "tpu", "devices": "1,"}), id="tpu-1,"),
+        pytest.param("--accelerator=tpu --devices=8", {"accelerator": "tpu", "devices": 8}, id="tpu-8"),
+        pytest.param("--accelerator=tpu --devices=1,", {"accelerator": "tpu", "devices": "1,"}, id="tpu-1,"),
     ],
 )
 @RunIf(tpu=True, standalone=True)
