@@ -21,7 +21,6 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 import pytorch_lightning.profiler as profiler
-from lightning_fabric.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
