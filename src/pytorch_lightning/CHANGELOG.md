@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `pytorch_lightning.utilities.enums.AMPType` enum
   * Removed the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 
+- Removed legacy device arguments in Trainer ([#16171](https://github.com/Lightning-AI/lightning/pull/16171))
+  * Removed the `Trainer(gpus=...)` argument
+  * Removed the `Trainer(tpu_cores=...)` argument
+  * Removed the `Trainer(ipus=...)` argument
+  * Removed the `Trainer(num_processes=...)` argument
+
 
 ## [unreleased] - 202Y-MM-DD
 

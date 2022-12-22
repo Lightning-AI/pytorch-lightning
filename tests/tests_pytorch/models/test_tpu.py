@@ -236,10 +236,10 @@ def test_dataloaders_passed_to_fit(tmpdir):
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
 
 
-@pytest.mark.parametrize("tpu_cores", [[1, 8], "9, ", [9], [0], 2, 10])
-def test_tpu_misconfiguration(tpu_cores, tpu_available):
-    with pytest.raises(TypeError, match="`tpu_cores` can only be"):
-        Trainer(accelerator="tpu", devices=tpu_cores)
+@pytest.mark.parametrize("devices", [[1, 8], "9, ", [9], [0], 2, 10])
+def test_tpu_misconfiguration(devices, tpu_available):
+    with pytest.raises(TypeError, match="`devices` can only be"):
+        Trainer(accelerator="tpu", devices=devices)
 
 
 @pytest.mark.skipif(TPUAccelerator.is_available(), reason="test requires missing TPU")
@@ -259,12 +259,15 @@ def test_accelerator_set_when_using_tpu(devices):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
+    [
+        pytest.param("--accelerator=tpu --devices=8", {"accelerator": "tpu", "devices": 8}, id="tpu-8"),
+        pytest.param("--accelerator=tpu --devices=1,", {"accelerator": "tpu", "devices": "1,"}, id="tpu-1,"),
+    ],
 )
 @RunIf(tpu=True, standalone=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
-def test_tpu_cores_with_argparse(cli_args, expected):
-    """Test passing tpu_cores in command line."""
+def test_tpu_devices_with_argparse(cli_args, expected):
+    """Test passing devices for TPU accelerator in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
@@ -273,7 +276,6 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 
     for k, v in expected.items():
         assert getattr(args, k) == v
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
 
 

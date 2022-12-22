@@ -41,7 +41,7 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
         """Accelerator device parsing logic."""
-        return _parse_tpu_cores(devices)
+        return _parse_tpu_devices(devices)
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, List[int]]) -> List[int]:
@@ -128,13 +128,13 @@ def _tpu_distributed() -> bool:
     return xm.xrt_world_size() > 1
 
 
-def _parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
+def _parse_tpu_devices(devices: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
     """
-    Parses the tpu_cores given in the format as accepted by the
-    :class:`~pytorch_lightning.trainer.Trainer`.
+    Parses the TPU devices given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` and :class:`~lightning_fabric.Fabric`.
 
     Args:
-        tpu_cores: An int of 1 or string '1' indicates that 1 core with multi-processing should be used
+        devices: An int of 1 or string '1' indicates that 1 core with multi-processing should be used
             An int 8 or string '8' indicates that all 8 cores with multi-processing should be used
             A list of ints or a strings containing a list of comma separated integers
             indicates the specific TPU core to use.
@@ -143,29 +143,29 @@ def _parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optiona
         A list of tpu_cores to be used or ``None`` if no TPU cores were requested
 
     Raises:
-        MisconfigurationException:
-            If TPU cores aren't 1, 8 or [<1-8>]
+        TypeError:
+            If TPU devices aren't 1, 8 or [<1-8>]
     """
-    _check_data_type(tpu_cores)
+    _check_data_type(devices)
 
-    if isinstance(tpu_cores, str):
-        tpu_cores = _parse_tpu_cores_str(tpu_cores.strip())
+    if isinstance(devices, str):
+        devices = _parse_tpu_devices_str(devices.strip())
 
-    if not _tpu_cores_valid(tpu_cores):
-        raise TypeError("`tpu_cores` can only be 1, 8 or [<1-8>]")
+    if not _tpu_devices_valid(devices):
+        raise TypeError("`devices` can only be 1, 8 or [<1-8>] for TPUs.")
 
-    return tpu_cores
+    return devices
 
 
-def _tpu_cores_valid(tpu_cores: Any) -> bool:
+def _tpu_devices_valid(devices: Any) -> bool:
     # allow 1 or 8 cores
-    if tpu_cores in (1, 8, None):
+    if devices in (1, 8, None):
         return True
 
     # allow picking 1 of 8 indexes
-    if isinstance(tpu_cores, (list, tuple, set)):
-        has_1_tpu_idx = len(tpu_cores) == 1
-        is_valid_tpu_idx = 1 <= list(tpu_cores)[0] <= 8
+    if isinstance(devices, (list, tuple, set)):
+        has_1_tpu_idx = len(devices) == 1
+        is_valid_tpu_idx = 1 <= list(devices)[0] <= 8
 
         is_valid_tpu_core_choice = has_1_tpu_idx and is_valid_tpu_idx
         return is_valid_tpu_core_choice
@@ -173,7 +173,7 @@ def _tpu_cores_valid(tpu_cores: Any) -> bool:
     return False
 
 
-def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
-    if tpu_cores in ("1", "8"):
-        return int(tpu_cores)
-    return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
+def _parse_tpu_devices_str(devices: str) -> Union[int, List[int]]:
+    if devices in ("1", "8"):
+        return int(devices)
+    return [int(x.strip()) for x in devices.split(",") if len(x) > 0]
