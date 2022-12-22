@@ -29,6 +29,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for managing callbacks via `Fabric(callbacks=...)` and emitting events through `Fabric.call()` ([#16074](https://github.com/Lightning-AI/lightning/issues/16074))
 
 
+- Added `lightning_lite.accelerators.find_usable_cuda_devices` utility function ([#16147](https://github.com/PyTorchLightning/pytorch-lightning/pull/16147))
+
+
 ### Changed
 
 - The `LightningLite.run()` method is no longer abstract ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
@@ -58,6 +61,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Restored sampling parity between PyTorch and Lite dataloaders when using the `DistributedSampler` ([#16101](https://github.com/Lightning-AI/lightning/issues/16101))
+
+
+## [1.8.6] - 2022-12-21
+
+- minor cleaning
 
 
 ## [1.8.5] - 2022-12-15

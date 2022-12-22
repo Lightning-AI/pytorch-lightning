@@ -14,13 +14,14 @@
 import logging
 import os
 import sys
-from distutils.version import LooseVersion
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from lightning_utilities.core.rank_zero import rank_zero_warn
+from packaging.version import Version
 
 import pytorch_lightning as pl
+from lightning_fabric.utilities.imports import _IS_WINDOWS
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration.migration import _migration_index
@@ -37,7 +38,7 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, 
         checkpoints and objects that do not support being deep-copied.
     """
     ckpt_version = _get_version(checkpoint)
-    if LooseVersion(ckpt_version) > LooseVersion(pl.__version__):
+    if Version(ckpt_version) > Version(pl.__version__):
         rank_zero_warn(
             f"The loaded checkpoint was produced with Lightning v{ckpt_version}, which is newer than your current"
             f" Lightning version: v{pl.__version__}",
@@ -111,7 +112,10 @@ def _pl_migrate_checkpoint(checkpoint: _CHECKPOINT, checkpoint_path: Optional[_P
 
     # include the full upgrade command, including the path to the loaded file in the error message,
     # so user can copy-paste and run if they want
-    path_hint = os.path.relpath(checkpoint_path, os.getcwd())
+    if not _IS_WINDOWS:  # side-step bug: ValueError: path is on mount 'C:', start on mount 'D:'
+        path_hint = os.path.relpath(checkpoint_path, os.getcwd())
+    else:
+        path_hint = os.path.abspath(checkpoint_path)
     _log.info(
         f"Lightning automatically upgraded your loaded checkpoint from v{old_version} to v{new_version}."
         " To apply the upgrade to your files permanently, run"
@@ -137,4 +141,4 @@ def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
 
 def _should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
     """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
-    return LooseVersion(_get_version(checkpoint)) < LooseVersion(target)
+    return Version(_get_version(checkpoint)) < Version(target)

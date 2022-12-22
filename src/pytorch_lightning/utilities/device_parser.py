@@ -16,7 +16,7 @@ from typing import Any
 from lightning_fabric.accelerators.cpu import _parse_cpu_cores as new_parse_cpu_cores
 from lightning_fabric.accelerators.cuda import is_cuda_available as new_is_cuda_available
 from lightning_fabric.accelerators.cuda import num_cuda_devices as new_num_cuda_devices
-from lightning_fabric.accelerators.tpu import _parse_tpu_cores as new_parse_tpu_cores
+from lightning_fabric.accelerators.tpu import _parse_tpu_devices as new_parse_tpu_cores
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device as new_determine_root_gpu_device
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids as new_parse_gpu_ids
 from pytorch_lightning.accelerators.hpu import _parse_hpus as new_parse_hpus

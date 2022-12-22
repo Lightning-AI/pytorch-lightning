@@ -16,34 +16,9 @@ from unittest import mock
 
 import pytest
 
-import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests_pytorch.helpers.runif import RunIf
-
-
-def test_v2_0_0_deprecated_num_processes():
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(num_processes=2)
-
-
-def test_v2_0_0_deprecated_gpus(cuda_count_4):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(gpus=0)
-
-
-@RunIf(skip_windows=True)
-def test_v2_0_0_deprecated_tpu_cores(tpu_available):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(tpu_cores=8)
-
-
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_v2_0_0_deprecated_ipus(_, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(ipus=4)
 
 
 def test_v2_0_0_callback_on_load_checkpoint_hook(tmpdir):
