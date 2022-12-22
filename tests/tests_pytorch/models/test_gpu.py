@@ -99,11 +99,11 @@ def test_root_gpu_property_0_raising(mps_count_0, cuda_count_0, devices):
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@pytest.mark.parametrize("devices", [[0, 1, 2], 2, "0", [0, 2]])
+@pytest.mark.parametrize("devices", [[0, 1, 2], 2, "0,", [0, 2]])
 def test_torchelastic_gpu_parsing(cuda_count_1, devices):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device that we omit
     sanitizing the gpus as only one of the GPUs is visible."""
-    trainer = Trainer(devices=devices)
+    trainer = Trainer(accelerator="cuda", devices=devices)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when using gpu
     if _parse_gpu_ids(devices, include_cuda=True) is not None:
