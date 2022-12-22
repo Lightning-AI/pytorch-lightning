@@ -309,6 +309,6 @@ def _check_tuner_configuration(
         )
     elif len(configured_callbacks) == 2:
         raise MisconfigurationException(
-            f"Trainer is already configured with `LearningRateFinder` and `BatchSizeFinder` callbacks."
+            "Trainer is already configured with `LearningRateFinder` and `BatchSizeFinder` callbacks."
             " Please remove them if you want to use the Tuner."
         )
