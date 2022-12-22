@@ -432,7 +432,11 @@ class AcceleratorConnector:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
-        if self._auto_select_gpus and isinstance(self._devices_flag, int) and isinstance(self.accelerator, CUDAAccelerator):
+        if (
+            self._auto_select_gpus
+            and isinstance(self._devices_flag, int)
+            and isinstance(self.accelerator, CUDAAccelerator)
+        ):
             self._devices_flag = pick_multiple_gpus(self._devices_flag)
             log.info(f"Auto select gpus: {self._devices_flag}")
 

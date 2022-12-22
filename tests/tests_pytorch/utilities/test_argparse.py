@@ -7,8 +7,8 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
-    _get_abbrev_qualified_cls_name,
     _devices_allowed_type,
+    _get_abbrev_qualified_cls_name,
     _int_or_float_type,
     _parse_args_from_docstring,
     _precision_allowed_type,
