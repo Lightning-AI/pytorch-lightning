@@ -226,7 +226,7 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     # TODO: add some smarter version aggregation per each package
     requires = list(chain(*requires))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
-        fp.writelines([ln + os.linesep for ln in requires])
+        fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
@@ -341,7 +341,7 @@ class AssistantCLI:
             if req.name not in packages:
                 final.append(line)
         print(final)
-        path.write_text("\n".join(final))
+        path.write_text("\n".join(final) + "\n")
 
     @staticmethod
     def _replace_min(fname: str) -> None:

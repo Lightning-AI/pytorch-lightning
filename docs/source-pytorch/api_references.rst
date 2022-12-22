@@ -102,7 +102,7 @@ loggers
     :toctree: api
     :nosignatures:
 
-    base
+    logger
     comet
     csv_logs
     mlflow
@@ -124,7 +124,7 @@ Base Classes
     :template: classtemplate.rst
 
     ~dataloader.dataloader_loop.DataLoaderLoop
-    ~base.Loop
+    ~loop.Loop
 
 Training
 """"""""
@@ -327,7 +327,6 @@ utilities
 
     apply_func
     argparse
-    cli
     cloud_io
     deepspeed
     distributed
