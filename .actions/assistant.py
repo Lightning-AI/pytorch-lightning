@@ -117,7 +117,7 @@ def load_requirements(
     path_dir: str,
     file_name: str = "base.txt",
     comment_char: str = "#",
-    unfreeze: str = "all",
+    unfreeze: str = "all"
 ) -> List[str]:
     """Loading requirements from a file.
 
