@@ -34,7 +34,6 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus, pick_single_gpu
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
