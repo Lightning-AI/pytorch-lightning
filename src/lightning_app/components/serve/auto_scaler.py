@@ -430,9 +430,9 @@ class _LoadBalancer(LightningWork):
         """
         old_servers = set(self._servers)
         server_urls: List[str] = [
-            f"http://{server._internal_ip}:{server._port}"
+            f"http://{server._internal_ip}:{server.port}"
             for server in server_works
-            if server._internal_ip and server._port
+            if server._internal_ip
         ]
         new_servers = set(server_urls)
 
