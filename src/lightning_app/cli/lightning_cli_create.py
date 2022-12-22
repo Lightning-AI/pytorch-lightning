@@ -54,9 +54,8 @@ def create() -> None:
     "do_async",
     type=bool,
     required=False,
-    default=False,
-    is_flag=True,
-    help="This flag makes the CLI return immediately and lets the cluster creation happen in the background.",
+    default=True,
+    help="This flag makes the CLI wait until cluster creation completes.",
 )
 def create_cluster(
     cluster_id: str,
