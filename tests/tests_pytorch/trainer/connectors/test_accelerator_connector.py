@@ -288,21 +288,14 @@ def test_accelerator_cpu(cuda_count_0):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException,
-        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            Trainer(gpus=1)
+    trainer = Trainer(devices=1)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(
         MisconfigurationException,
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         Trainer(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        Trainer(accelerator="cpu", gpus=1)
 
 
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))

@@ -170,7 +170,6 @@ class AcceleratorConnector:
             plugins=plugins,
             sync_batchnorm=sync_batchnorm,
         )
-        self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
         # 2. Instantiate Accelerator
         self._set_accelerator_if_ipu_strategy_is_passed()
 
@@ -180,6 +179,7 @@ class AcceleratorConnector:
         elif self._accelerator_flag == "gpu":
             self._accelerator_flag = self._choose_gpu_accelerator_backend()
 
+        self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment

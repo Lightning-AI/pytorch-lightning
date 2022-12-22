@@ -8,7 +8,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities.argparse import (
     _get_abbrev_qualified_cls_name,
-    _gpus_allowed_type,
+    _devices_allowed_type,
     _int_or_float_type,
     _parse_args_from_docstring,
     _precision_allowed_type,
@@ -230,8 +230,8 @@ def test_add_argparse_args_no_argument_group():
 
 
 def test_gpus_allowed_type():
-    assert _gpus_allowed_type("1,2") == "1,2"
-    assert _gpus_allowed_type("1") == 1
+    assert _devices_allowed_type("1,2") == "1,2"
+    assert _devices_allowed_type("1") == 1
 
 
 def test_int_or_float_type():
