@@ -29,7 +29,6 @@ from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
@@ -120,12 +119,8 @@ class Trainer:
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
-        num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
-        gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
-        auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
-        ipus: Optional[int] = None,  # TODO: Remove in 2.0
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -149,7 +144,6 @@ class Trainer:
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
-        resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
@@ -194,6 +188,10 @@ class Trainer:
                 that only one process at a time can access them.
                 Default: ``False``.
 
+                .. deprecated:: v1.9
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
+
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
                 (``False`` if not manually set). If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set
@@ -225,19 +223,13 @@ class Trainer:
                 that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
                 Default: ``None``.
 
-            devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
-                based on the accelerator type.
+            devices: The devices to use. Can be set to a positive number (int or str), a sequence of device indices
+                (list or str), the value ``-1`` to indicate all available devices should be used, or ``"auto"`` for
+                automatic selection based on the chosen accelerator. Default: ``"auto"``.
 
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
                 Default: ``False``.
-
-            gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
-                Default: ``None``.
-
-                .. deprecated:: v1.7
-                    ``gpus`` has been deprecated in v1.7 and will be removed in v2.0.
-                    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
 
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
@@ -304,13 +296,6 @@ class Trainer:
             num_nodes: Number of GPU nodes for distributed training.
                 Default: ``1``.
 
-            num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
-                Default: ``1``.
-
-                .. deprecated:: v1.7
-                    ``num_processes`` has been deprecated in v1.7 and will be removed in v2.0.
-                    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
-
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
                 Default: ``2``.
@@ -323,34 +308,12 @@ class Trainer:
                 train sampler and ``shuffle=False`` for val/test sampler. If you want to customize it,
                 you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 
-            resume_from_checkpoint: Path/URL of the checkpoint from which training is resumed. If there is
-                no checkpoint file at the path, an exception is raised. If resuming from mid-epoch checkpoint,
-                training will start from the beginning of the next epoch.
-
-                .. deprecated:: v1.5
-                    ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
-                    Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
-
             strategy: Supports different training strategies with aliases
                 as well custom strategies.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
-
-            tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
-                Default: ``None``.
-
-                .. deprecated:: v1.7
-                    ``tpu_cores`` has been deprecated in v1.7 and will be removed in v2.0.
-                    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
-
-            ipus: How many IPUs to train on.
-                Default: ``None``.
-
-                .. deprecated:: v1.7
-                    ``ipus`` has been deprecated in v1.7 and will be removed in v2.0.
-                    Please use ``accelerator='ipu'`` and ``devices=x`` instead.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
@@ -391,13 +354,9 @@ class Trainer:
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=num_processes,
             devices=devices,
-            tpu_cores=tpu_cores,
-            ipus=ipus,
             accelerator=accelerator,
             strategy=strategy,
-            gpus=gpus,
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
@@ -409,7 +368,7 @@ class Trainer:
         )
         self._logger_connector = LoggerConnector(self)
         self._callback_connector = CallbackConnector(self)
-        self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
+        self._checkpoint_connector = CheckpointConnector(self)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
@@ -611,11 +570,10 @@ class Trainer:
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        # TODO: ckpt_path only in v2.0
-        ckpt_path = ckpt_path or self.resume_from_checkpoint
+        ckpt_path = ckpt_path
         self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
             self.state.fn,
-            ckpt_path,  # type: ignore[arg-type]
+            ckpt_path,
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
@@ -1847,18 +1805,6 @@ class Trainer:
             if isinstance(c, ProgressBarBase):
                 return c
         return None
-
-    @property
-    def resume_from_checkpoint(self) -> Optional[Union[str, Path]]:
-        resume_from_checkpoint = self._checkpoint_connector.resume_from_checkpoint_fit_path
-        if resume_from_checkpoint is not None:
-            rank_zero_deprecation(
-                "`trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v2.0."
-                " Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead.",
-                stacklevel=5,
-            )
-
-        return resume_from_checkpoint
 
     @property
     def ckpt_path(self) -> Optional[str]:
