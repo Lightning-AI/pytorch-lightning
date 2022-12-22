@@ -39,8 +39,7 @@ RUN \
     fi && \
     # otherwise there is collision with folder name ans pkg name on Pypi
     cd lightning && \
-    # remove colossalai from requirements since they are installed separately
-    python -c "fname = 'requirements/pytorch/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'colossalai' not in line] ; open(fname, 'w').writelines(lines)" ; \
+    pip install setuptools==59.5.0 && \
     PACKAGE_NAME=pytorch pip install '.[extra,loggers,strategies]' --no-cache-dir && \
     cd .. && \
     rm -rf lightning
