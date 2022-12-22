@@ -82,7 +82,9 @@ jobs:
     - name: Adjust PyTorch versions in requirements files
       if: ${{ matrix.requires != 'oldest' }}
       run: |
-        python ./requirements/pytorch/adjust-versions.py requirements/fabric/base.txt ${{ matrix.pytorch-version }}
+        for fpath in `ls requirements/**/*.txt`; do \
+          python ./requirements/pytorch/adjust-versions.py $fpath ${{ matrix.pytorch-version }}; \
+        done
         cat requirements/fabric/base.txt
 
     - name: Get pip cache dir
