@@ -25,7 +25,7 @@ from lightning_lite.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCH_GREATER_EQUAL_2_0,
 )
-from lightning_lite.utilities.rank_zero import rank_zero_info
+from lightning_utilities.core.rank_zero import rank_zero_info
 
 
 class CUDAAccelerator(Accelerator):
