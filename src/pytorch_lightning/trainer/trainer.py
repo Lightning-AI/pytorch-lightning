@@ -604,7 +604,7 @@ class Trainer:
         ckpt_path = ckpt_path
         self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
             self.state.fn,
-            ckpt_path,  # type: ignore[arg-type]
+            ckpt_path,
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
