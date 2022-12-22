@@ -12,7 +12,7 @@ See the following video for instructions:
 .. raw:: html
 
     <video width="100%" max-width="800px" controls autoplay muted playsinline
-    src=" https://lightningaidev.wpengine.com/wp-content/uploads/2022/12/byoc.mp4"></video>
+    src="https://lightningaidev.wpengine.com/wp-content/uploads/2022/12/byoc.mp4"></video>
 
 |
 
