@@ -17,7 +17,7 @@ Here’s an example:
 
 .. code:: bash
 
-   lightning run app app.py –cloud —-cluster-id my-byoc-cluster
+   lightning run app app.py --cloud --cluster-id my-byoc-cluster
 
 
 View the status of your App using the following command:
