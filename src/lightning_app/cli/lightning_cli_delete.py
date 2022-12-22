@@ -24,9 +24,8 @@ def delete() -> None:
     "do_async",
     type=bool,
     required=False,
-    default=False,
-    is_flag=True,
-    help="This flag makes the CLI return immediately and lets the cluster deletion happen in the background",
+    default=True,
+    help="This flag makes the CLI wait until cluster deletion completes.",
 )
 def delete_cluster(cluster: str, force: bool = False, do_async: bool = False) -> None:
     """Delete a Lightning AI BYOC cluster and all associated cloud provider resources.
