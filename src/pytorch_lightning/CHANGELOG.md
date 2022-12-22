@@ -137,6 +137,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
 
+## [1.8.6] - 2022-12-21
+
+- minor cleaning
+
+
 ## [1.8.5] - 2022-12-15
 
 - Add function to remove checkpoint to allow override for extended classes ([#16067](https://github.com/Lightning-AI/lightning/pull/16067))
