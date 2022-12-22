@@ -8,6 +8,7 @@ on:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
+      - ".github/workflows/md-check-links.yml"
       - "**/*.md"
 
 jobs:
