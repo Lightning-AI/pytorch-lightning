@@ -7,7 +7,7 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
-      - "README.md"
+      - "!*.md"
       # - ".github/**"
       # - "src/**"
       # - "tests/**"
@@ -15,12 +15,11 @@ on:
       # - "setup.py"
       # - "examples/**"
       # - "dockers/**"
-      # - "!*.md"
       # - "!**/*.md"
 
 jobs:
   markdown-link-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@master
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
