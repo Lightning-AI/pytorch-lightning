@@ -68,7 +68,7 @@ Load the pretrained model with PyTorch Lightning:
         AutoModelForSequenceClassification,
         AutoTokenizer,
 
-    # BERT Model definition   `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
+    # BERT Model definition   
     class GLUETransformer(LightningModule):
         def __init__(self):
             self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_labels)
@@ -78,10 +78,10 @@ Load the pretrained model with PyTorch Lightning:
     
     model = GLUETransformer(model_name_or_path=" Intel/bert-base-uncased-mrpc",)
 
-The fine-tuned model from Intel could be downloaded from 
+The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
 
 Accuracy-driven quantization config
-===================================
+=====================================
 
 Intel® Neural Compressor supports accuracy-driven automatic tuning to generate the optimal INT8 model which meets a predefined accuracy goal. The default tolerance of accuracy loss in the accuracy criterion is 0.01. And the maximum trial number of quantization is 600. The user can specifically define their own criteria by:
 .. code-block:: python
@@ -94,7 +94,7 @@ Intel® Neural Compressor supports accuracy-driven automatic tuning to generate 
 The ''approach'' parameter in PostTrainingQuantConfig is defined by the user to make a choice from post-training static quantization and post-training dynamic by ''static'' or ''dynamic''.
 
 Quantize the model
-==================
+====================
 
 The model can be qutized by Intel® Neural Compressor with:
 .. code-block:: python
