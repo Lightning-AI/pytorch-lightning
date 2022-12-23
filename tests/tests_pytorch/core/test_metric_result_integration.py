@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11, _TORCHMETRICS_LESS_THAN_0_11
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
