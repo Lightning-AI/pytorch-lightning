@@ -58,7 +58,26 @@ The code changes that are required for Intel® Neural Compressor are highlighted
 PyTorch Lightning model
 =========================
 
+Load the pretrained model with PyTorch Lightning:
+.. code-block:: python
+        import torch
+    from pytorch_lightning import LightningModule
+    from transformers import (
+        AutoConfig,
+        AutoModelForSequenceClassification,
+        AutoTokenizer)
 
+        # BERT Model definition   
+    class GLUETransformer(LightningModule):
+        def __init__(self):
+            self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_labels)
+            self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, config=self.config)
+        def forward(self, **inputs):
+            return self.model(**inputs)
+    
+    model = GLUETransformer(model_name_or_path=" Intel/bert-base-uncased-mrpc",)
+
+The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
 
 Accuracy-driven quantization config
 =====================================
