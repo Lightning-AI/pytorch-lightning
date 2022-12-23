@@ -33,7 +33,7 @@ Prerequisites
 Python version: 3.7, 3.8, 3.9, 3.10
 
 Install Intel® Neural Compressor
-================================
+==================================
 
 Release binary install: 
 .. code-block:: python
@@ -46,7 +46,7 @@ Release binary install:
 More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_. 
 
 Usage
-=====
+======
 
 Minor code changes are required for the user to get started with Intel® Neural Compressor quantization API. To construct the quantization process, users can specify the below settings via the Python code:
 
@@ -56,7 +56,7 @@ Minor code changes are required for the user to get started with Intel® Neural 
 The code changes that are required for Intel® Neural Compressor are highlighted with comments in the line above.
 
 PyTorch Lightning model
-=======================
+=========================
 
 Load the pretrained model with PyTorch Lightning:
 .. code-block:: python
