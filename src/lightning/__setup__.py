@@ -32,7 +32,7 @@ def _prepare_extras() -> Dict[str, Any]:
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
-    common_args = dict(unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
+    common_args = dict(unfreeze="none" if _FREEZE_REQUIREMENTS else "major")
     extras = {
         f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
@@ -41,12 +41,11 @@ def _prepare_extras() -> Dict[str, Any]:
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
-    # todo
-    # extras["extra"] = extras["cloud"] + extras["ui"]
-    # extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
-    # extras["all"] = extras["dev"]
-    extras = {name: list(set(reqs)) for name, reqs in extras.items()}
-    print("The extras are", extras)
+    extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
+    extras["all"] = extras["extra"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
+    extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
+    print("The extras are: ", extras)
     return extras
 
 
@@ -84,7 +83,9 @@ def _setup_args() -> Dict[str, Any]:
             ],
         },
         setup_requires=[],
-        install_requires=_ASSISTANT.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
+        install_requires=_ASSISTANT.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
+        ),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

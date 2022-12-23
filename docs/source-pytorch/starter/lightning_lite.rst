@@ -276,7 +276,7 @@ Additionally, you can pass in your custom strategy by configuring additional par
     lite = Lite(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
 
 
-Support for Horovod and Fully Sharded training strategies are coming soon.
+Support for Fully Sharded training strategies are coming soon.
 
 
 devices

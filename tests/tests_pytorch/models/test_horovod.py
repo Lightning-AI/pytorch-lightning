@@ -28,7 +28,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
+from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.advanced_models import BasicGAN
 from tests_pytorch.helpers.runif import RunIf
@@ -165,19 +165,20 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(horovod=True, skip_windows=True, min_cuda_gpus=2)
+@RunIf(horovod=True, skip_windows=True, min_cuda_gpus=1)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        enable_progress_bar=False,
-        accumulate_grad_batches={0: 4, 2: 2},
-        accelerator="auto",
-        devices=2,
-        strategy="horovod",
-    )
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            enable_progress_bar=False,
+            accumulate_grad_batches={0: 4, 2: 2},
+            accelerator="auto",
+            devices=1,
+            strategy="horovod",
+        )
     with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
         trainer.fit(model)
 
@@ -196,29 +197,6 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="horovod",
-    )
-    _run_horovod(trainer_options)
-
-
-# todo: need to be fixed :]
-# https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
-# Check with (tgaddair) on Horovod issues if this feature is needed
-@pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
-@RunIf(min_cuda_gpus=2, amp_apex=True, horovod_nccl=True, skip_windows=True)
-def test_horovod_apex(tmpdir):
-    """Test Horovod with multi-GPU support using apex amp."""
-    trainer_options = dict(
-        default_root_dir=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        accelerator="gpu",
-        devices=2,
-        strategy="horovod",
-        amp_backend="apex",
-        precision=16,
     )
     _run_horovod(trainer_options)
 
@@ -282,7 +260,8 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         devices=2,
         strategy="horovod",
     )
-    tpipes.run_model_test_without_loggers(trainer_options, model)
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        tpipes.run_model_test_without_loggers(trainer_options, model)
 
 
 @RunIf(horovod=True, skip_windows=True)
@@ -290,14 +269,15 @@ def test_horovod_multi_optimizer(tmpdir):
     model = BasicGAN()
 
     # fit model
-    trainer = Trainer(
-        default_root_dir=str(tmpdir),
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        strategy="horovod",
-    )
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        trainer = Trainer(
+            default_root_dir=str(tmpdir),
+            enable_progress_bar=False,
+            max_epochs=1,
+            limit_train_batches=0.4,
+            limit_val_batches=0.2,
+            strategy="horovod",
+        )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -316,7 +296,6 @@ def test_horovod_multi_optimizer(tmpdir):
     assert get_model_params(model.discriminator) == get_optimizer_params(trainer.optimizers[1])
 
 
-# todo: need to be fixed :]
 @pytest.mark.skip(reason="TODO: CI agent.jobstatus=Succeeded: Permission denied")
 @RunIf(horovod=True, skip_windows=True)
 def test_result_reduce_horovod(tmpdir):
@@ -350,15 +329,16 @@ def test_result_reduce_horovod(tmpdir):
         model = TestModel()
         model.val_dataloader = None
 
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            max_epochs=1,
-            log_every_n_steps=1,
-            enable_model_summary=False,
-            logger=False,
-        )
+        with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                limit_train_batches=2,
+                limit_val_batches=2,
+                max_epochs=1,
+                log_every_n_steps=1,
+                enable_model_summary=False,
+                logger=False,
+            )
 
         trainer.fit(model)
 
@@ -384,7 +364,8 @@ def test_accuracy_metric_horovod():
     target = torch.randint(high=2, size=(num_batches, batch_size))
 
     def _compute_batch():
-        trainer = Trainer(fast_dev_run=True, strategy="horovod", logger=False)
+        with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+            trainer = Trainer(fast_dev_run=True, strategy="horovod", logger=False)
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct strategy based on horovod flags
@@ -438,11 +419,14 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
     init_lr = 0.1 * num_workers
 
     with patch("horovod.torch.size", return_value=8):
-
-        # fit model
-        trainer = Trainer(
-            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, strategy="horovod"
-        )
+        with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+            trainer = Trainer(
+                default_root_dir=tmpdir,
+                max_epochs=1,
+                limit_val_batches=0.5,
+                limit_train_batches=0.2,
+                strategy="horovod",
+            )
         trainer.fit(model)
 
     adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups][0]
