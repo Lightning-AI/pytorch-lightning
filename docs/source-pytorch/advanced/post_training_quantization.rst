@@ -68,7 +68,7 @@ Load the pretrained model with PyTorch Lightning:
         AutoModelForSequenceClassification,
         AutoTokenizer,
 
-    # BERT Model definition
+    # BERT Model definition   `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
     class GLUETransformer(LightningModule):
         def __init__(self):
             self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_labels)
@@ -78,7 +78,7 @@ Load the pretrained model with PyTorch Lightning:
     
     model = GLUETransformer(model_name_or_path=" Intel/bert-base-uncased-mrpc",)
 
-The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
+The fine-tuned model from Intel could be downloaded from 
 
 Accuracy-driven quantization config
 ===================================
