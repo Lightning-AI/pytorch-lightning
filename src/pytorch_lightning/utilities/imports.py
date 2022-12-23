@@ -23,6 +23,8 @@ _PYTHON_GREATER_EQUAL_3_10_0 = (sys.version_info.major, sys.version_info.minor) 
 _TORCH_LESSER_EQUAL_1_10_2 = compare_version("torch", operator.le, "1.10.2")
 # duplicated from lite because HPU is patching it below
 _TORCH_GREATER_EQUAL_1_13 = compare_version("torch", operator.ge, "1.13.0")
+_TORCHMETRICS_LESS_THAN_0_11 = compare_version("torchmetrics", operator.lt, "0.11.0")
+_TORCHMETRICS_GREATER_EQUAL_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")  # using new API with task
 
 _DALI_AVAILABLE = module_available("nvidia.dali")
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")

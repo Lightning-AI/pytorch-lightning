@@ -19,11 +19,11 @@ from unittest import mock
 
 import pytest
 import torch
-import torchmetrics
 from lightning_utilities.test.warning import no_warning_call
 from torch import Tensor, tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
+from torchmetrics.classification import Accuracy
 
 import pytorch_lightning as pl
 from lightning_lite.utilities.warnings import PossibleUserWarning
@@ -36,6 +36,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11, _TORCHMETRICS_LESS_THAN_0_11
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -658,7 +659,14 @@ def test_compute_not_a_tensor_raises():
 
 
 @pytest.mark.parametrize("distributed_env", [True, False])
-@pytest.mark.parametrize("log_val", [tensor(0.5), torchmetrics.Accuracy(task="binary")])
+@pytest.mark.parametrize(
+    "log_val",
+    [
+        tensor(0.5),
+        pytest.param(Accuracy(task="binary"), marks=pytest.mark.skipif(_TORCHMETRICS_LESS_THAN_0_11, reason="new API")),
+        pytest.param(Accuracy(), marks=pytest.mark.skipif(_TORCHMETRICS_GREATER_EQUAL_0_11, reason="old API")),
+    ],
+)
 def test_logger_sync_dist(distributed_env, log_val):
     pl.trainer.connectors.logger_connector.result.warning_cache.clear()
 
