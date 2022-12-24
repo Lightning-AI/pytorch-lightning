@@ -22,9 +22,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
-env:
-  FREEZE_REQUIREMENTS: 1
-
 defaults:
   run:
     shell: bash
@@ -77,11 +74,12 @@ jobs:
       - name: Switch PyTorch URL
         run: python -c "print('TORCH_URL=https://download.pytorch.org/whl/' + str('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html'))" >> $GITHUB_ENV
 
-      - name: Install package & depenencies
+      - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
+          FREEZE_REQUIREMENTS: 1
         run: |
-          pip install -e . -r requirements/app/devel.txt -U -q --find-links ${TORCH_URL}
+          pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
           pip list
 
       - name: Setup Node.js
@@ -117,7 +115,10 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
-          coverage run --source ${COVERAGE_SCOPE} -m pytest -m "not cloud" tests_app --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=50
+          python -m coverage run --source ${COVERAGE_SCOPE} \
+            -m pytest -m "not cloud" tests_app \
+            --timeout=300 -vvvv --durations=50 \
+            --junitxml=$PYTEST_ARTIFACT
 
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3

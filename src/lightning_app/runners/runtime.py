@@ -34,6 +34,7 @@ def dispatch(
     secrets: Dict[str, str] = None,
     cluster_id: str = None,
     run_app_comment_commands: bool = False,
+    enable_basic_auth: str = "",
 ) -> Optional[Any]:
     """Bootstrap and dispatch the application to the target.
 
@@ -51,6 +52,8 @@ def dispatch(
         secrets: Dict of secrets to be passed as environment variables to the app
         cluster_id: the Lightning AI cluster to run the app on. Defaults to managed Lightning AI cloud
         run_app_comment_commands: whether to parse commands from the entrypoint file and execute them before app startup
+        enable_basic_auth: whether to enable basic authentication for the app
+                           (use credentials in the format username:password as an argument)
     """
     from lightning_app.runners.runtime_type import RuntimeType
     from lightning_app.utilities.component import _set_flow_context
@@ -76,6 +79,7 @@ def dispatch(
         env_vars=env_vars,
         secrets=secrets,
         run_app_comment_commands=run_app_comment_commands,
+        enable_basic_auth=enable_basic_auth,
     )
     # Used to indicate Lightning has been dispatched
     os.environ["LIGHTNING_DISPATCHED"] = "1"
@@ -99,6 +103,7 @@ class Runtime:
     env_vars: Dict[str, str] = field(default_factory=dict)
     secrets: Dict[str, str] = field(default_factory=dict)
     run_app_comment_commands: bool = False
+    enable_basic_auth: str = ""
 
     def __post_init__(self):
         if isinstance(self.backend, str):
