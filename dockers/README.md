@@ -50,8 +50,6 @@ docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.
 
 ## Run Jupyter server
 
-Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-a-dockerfile
-
 1. Build the docker image:
    ```bash
    docker image build -t pytorch-lightning:v1.6.5 -f dockers/nvidia/Dockerfile --build-arg LIGHTNING_VERSION=1.6.5 .
