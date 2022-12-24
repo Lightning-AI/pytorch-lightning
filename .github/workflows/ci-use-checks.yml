@@ -24,6 +24,7 @@ jobs:
   check-package:
     uses: ./.github/workflows/check-package.yml
     with:
+      actions-ref: ${{ github.sha }}  # use local version
       artifact-name: dist-packages-${{ github.sha }}
       import-name: "lightning_utilities"
 
