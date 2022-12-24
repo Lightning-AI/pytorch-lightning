@@ -1,6 +1,7 @@
 import collections
 
 import torch
+from torch import Tensor
 
 from lightning_fabric.utilities.optimizer import _optimizer_to_device
 
@@ -22,9 +23,9 @@ def test_optimizer_to_device():
 def assert_opt_parameters_on_device(opt, device: str):
     for param in opt.state.values():
         # Not sure there are any global tensors in the state dict
-        if isinstance(param, torch.Tensor):
+        if isinstance(param, Tensor):
             assert param.data.device.type == device
         elif isinstance(param, collections.Mapping):
             for subparam in param.values():
-                if isinstance(subparam, torch.Tensor):
+                if isinstance(subparam, Tensor):
                     assert param.data.device.type == device

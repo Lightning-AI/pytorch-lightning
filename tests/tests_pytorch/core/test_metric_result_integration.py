@@ -21,6 +21,7 @@ import pytest
 import torch
 import torchmetrics
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
@@ -662,7 +663,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     # self.log('bar', 0.5, ..., sync_dist=False)
     meta = _Metadata("foo", "bar")
     meta.sync = _Sync(_should=False)
-    is_tensor = isinstance(log_val, torch.Tensor)
+    is_tensor = isinstance(log_val, Tensor)
 
     if not is_tensor:
         log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))

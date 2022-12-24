@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 from tests_fabric.helpers.models import RandomDataset, RandomIterableDataset
+from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, SequentialSampler
 
 from lightning_fabric.utilities.data import (
@@ -87,7 +88,7 @@ class DataLoaderSubclass2(DataLoaderSubclass1):
 
 
 class MyDataLoader(MyBaseDataLoader):
-    def __init__(self, data: torch.Tensor, *args, **kwargs):
+    def __init__(self, data: Tensor, *args, **kwargs):
         self.data = data
         super().__init__(range(data.size(0)), *args, **kwargs)
 
@@ -209,7 +210,7 @@ def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset
 
     for key, value in checked_values.items():
         dataloader_value = getattr(dataloader, key)
-        if isinstance(dataloader_value, torch.Tensor):
+        if isinstance(dataloader_value, Tensor):
             assert dataloader_value is value
         else:
             assert dataloader_value == value
@@ -227,7 +228,7 @@ def test_replace_dunder_methods_dataloader(cls, args, kwargs, arg_names, dataset
 
     for key, value in checked_values.items():
         dataloader_value = getattr(dataloader, key)
-        if isinstance(dataloader_value, torch.Tensor):
+        if isinstance(dataloader_value, Tensor):
             assert dataloader_value is value
         else:
             assert dataloader_value == value

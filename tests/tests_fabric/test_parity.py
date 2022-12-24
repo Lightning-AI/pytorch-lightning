@@ -25,7 +25,7 @@ import torch.nn.functional
 from lightning_utilities.core.apply_func import apply_to_collection
 from tests_fabric.helpers.models import RandomDataset
 from tests_fabric.helpers.runif import RunIf
-from torch import nn
+from torch import nn, Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -131,7 +131,7 @@ def test_boring_lite_model_single_device(precision, strategy, devices, accelerat
         model.load_state_dict(state_dict)
         pure_state_dict = main(lite.to_device, model, train_dataloader, num_epochs=num_epochs)
 
-    state_dict = apply_to_collection(state_dict, torch.Tensor, lite.to_device)
+    state_dict = apply_to_collection(state_dict, Tensor, lite.to_device)
     for w_pure, w_lite in zip(state_dict.values(), lite_state_dict.values()):
         # TODO: This should be torch.equal, but MPS does not yet support this operation (torch 1.12)
         assert not torch.allclose(w_pure, w_lite)
