@@ -1141,31 +1141,6 @@ By setting to False, you have to add your own distributed sampler:
 
 .. note:: For iterable datasets, we don't do this automatically.
 
-resume_from_checkpoint
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
-    Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/resume_from_checkpoint.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/resume_from_checkpoint.mp4"></video>
-
-|
-
-To resume training from a specific checkpoint pass in the path here. If resuming from a mid-epoch
-checkpoint, training will start from the beginning of the next epoch.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(resume_from_checkpoint=None)
-
-    # resume from a specific checkpoint
-    trainer = Trainer(resume_from_checkpoint="some/path/to/my_checkpoint.ckpt")
 
 strategy
 ^^^^^^^^
