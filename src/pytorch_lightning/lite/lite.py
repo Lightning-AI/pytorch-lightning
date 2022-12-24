@@ -15,8 +15,6 @@
 from abc import ABC
 from typing import List, Optional, Tuple, Union
 
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
-
 from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
 from lightning_lite.connector import _PRECISION_INPUT
 from lightning_lite.lite import LightningLite as _NewLightningLite
@@ -52,6 +50,7 @@ from pytorch_lightning.strategies import SingleDeviceStrategy as PLSingleDeviceS
 from pytorch_lightning.strategies import SingleTPUStrategy as PLSingleTPUStrategy
 from pytorch_lightning.strategies import Strategy as PLStrategy
 from pytorch_lightning.strategies import TPUSpawnStrategy as PLTPUSpawnStrategy
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 _PL_PLUGIN = Union[PLPrecisionPlugin, ClusterEnvironment, CheckpointIO]
 _PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
