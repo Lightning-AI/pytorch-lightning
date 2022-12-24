@@ -17,7 +17,6 @@ import sys
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from packaging.version import Version
 
 import pytorch_lightning as pl
@@ -25,6 +24,7 @@ from lightning_lite.utilities.imports import _IS_WINDOWS
 from lightning_lite.utilities.types import _PATH
 from lightning_lite.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration.migration import _migration_index
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]

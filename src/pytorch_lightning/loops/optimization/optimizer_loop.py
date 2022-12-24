@@ -16,7 +16,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
@@ -34,7 +33,7 @@ from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
