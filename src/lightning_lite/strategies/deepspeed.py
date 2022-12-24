@@ -22,7 +22,6 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tupl
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import rank_zero_only
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -32,8 +31,8 @@ from lightning_lite.plugins.precision import Precision
 from lightning_lite.strategies.ddp import DDPStrategy
 from lightning_lite.strategies.strategy import _Sharded
 from lightning_lite.utilities.distributed import log
-from lightning_lite.utilities.enums import AMPType, PrecisionType
-from lightning_lite.utilities.rank_zero import rank_zero_info
+from lightning_lite.utilities.enums import PrecisionType
+from lightning_lite.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning_lite.utilities.seed import reset_seed
 from lightning_lite.utilities.types import _PATH
 
@@ -501,7 +500,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
         if self.precision.precision == PrecisionType.HALF:
-            if "fp16" not in self.config and self.precision.amp_type == AMPType.NATIVE:
+            if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -512,9 +511,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.precision.amp_type == AMPType.APEX:
-                rank_zero_info("Enabling DeepSpeed APEX Implementation.")
-                self.config["amp"] = {"enabled": True, "opt_level": self.precision.amp_level}
         elif "bf16" not in self.config and self.precision.precision == PrecisionType.BFLOAT:
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}

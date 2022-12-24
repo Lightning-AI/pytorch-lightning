@@ -1,5 +1,7 @@
 import sys
 
+import pytest
+
 from lightning_app.utilities.git import (
     check_github_repository,
     check_if_remote_head_is_different,
@@ -10,6 +12,7 @@ from lightning_app.utilities.git import (
 )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Don't run on windows")
 def test_execute_git_command():
 
     res = execute_git_command(["pull"])
