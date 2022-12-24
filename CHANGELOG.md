@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Apply local actions in re-usable workflows ([#51](https://github.com/Lightning-AI/utilities/pull/51))
+
 
 ### Fixed
 

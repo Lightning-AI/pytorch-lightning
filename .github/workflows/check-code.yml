@@ -3,6 +3,10 @@ name: Check formating flow
 on:
   workflow_call:
     inputs:
+      actions-ref:
+        description: 'Version of actions, normally the same as workflow'
+        required: true
+        type: string
       python-version:
         description: 'Python version to use'
         default: '3.9'
@@ -27,10 +31,16 @@ jobs:
         pip install mypy types-setuptools # don't use --upgrade to respect the version installed via setup.py
         pip list
 
-    # TODO: re-enable after the external usage is resolved, see #51
-    # - uses: ./.github/actions/pip-list
-    # with:
-    #   unfold: true
+    - name: Pull re-usable 🤖 actions️
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.actions-ref }}
+        path: .cicd
+        repository: Lightning-AI/utilities
+    - name: Print 🖨️ dependencies
+      uses: ./.cicd/.github/actions/pip-list
+      with:
+        unfold: true
 
     - name: Check typing
       # mypy uses the config file found in the following order:

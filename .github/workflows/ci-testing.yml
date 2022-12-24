@@ -47,8 +47,8 @@ jobs:
         pip --version
         pip list
 
-    # TODO: re-enable after the external usage is resolved, see #51
-    # - uses: ./.github/actions/pip-list
+    - name: Print 🖨️ dependencies
+      uses: ./.github/actions/pip-list
 
     - name: Unittesting and coverage
       uses: ./.github/actions/unittesting

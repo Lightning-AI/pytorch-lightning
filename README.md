@@ -22,13 +22,19 @@ name: Check schema
 on: [push]
 
 jobs:
+
   check-schema:
-    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@main
+    uses: Lightning-AI/utilities/.github/workflows/check-schema.yml@v0.5.0
     with:
-      azure-dir: ""
+      azure-dir: ""  # skip Azure check
+
+  check-code:
+    uses: Lightning-AI/utilities//.github/workflows/check-code.yml@main
+    with:
+      actions-ref: main  # normally you shall use the same version as the workflow
 ```
 
-See usage of other workflows in [.github/workflows/ci_use-checks.yml](https://github.com/Lightning-AI/utilities/tree/main/.github/workflows/ci_use-checks.yml).
+See usage of other workflows in [.github/workflows/ci-use-checks.yml](https://github.com/Lightning-AI/utilities/tree/main/.github/workflows/ci-use-checks.yml).
 
 ## 2. Reusable composite actions
 
@@ -52,8 +58,7 @@ jobs:
     - uses: Lightning-AI/utilities/.github/actions/cache
       with:
         python-version: 3.9
-        requires: oldest
-        # requires: latest
+        requires: oldest # or latest
 ```
 
 ## 3. CLI `lightning_utilities.cli`

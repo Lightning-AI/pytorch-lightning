@@ -5,7 +5,7 @@ on:
     inputs:
       azure-dir:
         description: 'Directory containing Azure Pipelines config files. Provide an empty string to skip checking on Azure Pipelines files.'
-        default: './.azure/'
+        default: '.azure/'
         required: false
         type: string
 
