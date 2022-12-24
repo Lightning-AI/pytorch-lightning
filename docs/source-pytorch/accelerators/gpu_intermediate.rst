@@ -25,7 +25,6 @@ Lightning supports multiple ways of doing distributed training.
     - Regular (``strategy='ddp'``)
     - Spawn (``strategy='ddp_spawn'``)
     - Notebook/Fork (``strategy='ddp_notebook'``)
-- Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
 .. note::
@@ -236,44 +235,6 @@ Comparison of DDP variants and tradeoffs
      - Fast
 
 
-Horovod
-^^^^^^^
-`Horovod <http://horovod.ai>`_ allows the same training script to be used for single-GPU,
-multi-GPU, and multi-node training.
-
-Like Distributed Data Parallel, every process in Horovod operates on a single GPU with a fixed
-subset of the data.  Gradients are averaged across all GPUs in parallel during the backward pass,
-then synchronously applied before beginning the next step.
-
-The number of worker processes is configured by a driver application (`horovodrun` or `mpirun`). In
-the training script, Horovod will detect the number of workers from the environment, and automatically
-scale the learning rate to compensate for the increased total batch size.
-
-Horovod can be configured in the training script to run with any number of GPUs / processes as follows:
-
-.. code-block:: python
-
-    # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(strategy="horovod", accelerator="gpu", devices=1)
-
-    # train Horovod on CPU (number of processes / machines provided on command-line)
-    trainer = Trainer(strategy="horovod")
-
-When starting the training job, the driver application will then be used to specify the total
-number of worker processes:
-
-.. code-block:: bash
-
-    # run training with 4 GPUs on a single machine
-    horovodrun -np 4 python train.py
-
-    # run training with 8 GPUs on two machines (4 GPUs each)
-    horovodrun -np 8 -H hostname1:4,hostname2:4 python train.py
-
-See the official `Horovod documentation <https://horovod.readthedocs.io/en/stable>`_ for details
-on installation and performance tuning.
-
-
 Bagua
 ^^^^^
 `Bagua <https://github.com/BaguaSys/bagua>`_ is a deep learning training acceleration framework which supports
@@ -284,7 +245,7 @@ multiple advanced distributed training algorithms including:
 - `ByteGrad <https://tutorials.baguasys.com/algorithms/bytegrad>`_ and `QAdam <https://tutorials.baguasys.com/algorithms/q-adam>`_ for low precision communication, where data is compressed into low precision before communication.
 - `Asynchronous Model Average <https://tutorials.baguasys.com/algorithms/async-model-average>`_ for asynchronous communication, where workers are not required to be synchronized in the same iteration in a lock-step style.
 
-By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in Distributed Data Parallel and Horovod,
+By default, Bagua uses *Gradient AllReduce* algorithm, which is also the algorithm implemented in DDP,
 but Bagua can usually produce a higher training throughput due to its backend written in Rust.
 
 .. code-block:: python
