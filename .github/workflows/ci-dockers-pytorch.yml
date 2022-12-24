@@ -8,7 +8,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
     paths:
       - ".actions/**"
-      - ".github/workflows/ci-pytorch-dockers.yml"
+      - ".github/workflows/ci-dockers-pytorch.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
       - "requirements/lite/**"
@@ -98,7 +98,7 @@ jobs:
       matrix:
         include:
           # These are the base images for PL release docker images,
-          # so include at least all of the combinations in release-dockers.yml.
+          # so include at least all the combinations in release-dockers.yml.
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
