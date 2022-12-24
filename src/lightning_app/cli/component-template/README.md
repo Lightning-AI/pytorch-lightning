@@ -1,6 +1,6 @@
 # placeholdername component
 
-This ⚡ [Lightning component](lightning.ai) ⚡ was generated automatically with:
+This ⚡ [Lightning component](https://lightning.ai/) ⚡ was generated automatically with:
 
 ```bash
 lightning init component placeholdername
