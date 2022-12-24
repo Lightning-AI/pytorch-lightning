@@ -15,10 +15,9 @@ from dataclasses import dataclass, field
 from enum import Enum, EnumMeta
 from typing import Any, List, Optional
 
-from lightning_utilities.core.rank_zero import rank_zero_deprecation
-
 from pytorch_lightning.utilities import LightningEnum
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class _DeprecationManagingEnumMeta(EnumMeta):

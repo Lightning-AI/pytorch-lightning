@@ -18,7 +18,6 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -32,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]

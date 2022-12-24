@@ -296,8 +296,19 @@ def _check_tuner_configuration(
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
-    if any(isinstance(cb, (BatchSizeFinder, LearningRateFinder)) for cb in trainer.callbacks):
+    configured_callbacks = []
+    for cb in trainer.callbacks:
+        if isinstance(cb, BatchSizeFinder) and trainer.auto_scale_batch_size:
+            configured_callbacks.append("BatchSizeFinder")
+        elif isinstance(cb, LearningRateFinder) and trainer.auto_lr_find:
+            configured_callbacks.append("LearningRateFinder")
+    if len(configured_callbacks) == 1:
         raise MisconfigurationException(
-            "Trainer is already configured with a `BatchSizeFinder` callback. Please remove it if you"
-            " want to use tuner."
+            f"Trainer is already configured with a `{configured_callbacks[0]}` callback."
+            "Please remove it if you want to use the Tuner."
+        )
+    elif len(configured_callbacks) == 2:
+        raise MisconfigurationException(
+            "Trainer is already configured with `LearningRateFinder` and `BatchSizeFinder` callbacks."
+            " Please remove them if you want to use the Tuner."
         )

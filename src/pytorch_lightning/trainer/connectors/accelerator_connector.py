@@ -107,7 +107,7 @@ class AcceleratorConnector:
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
-        auto_select_gpus: bool = False,
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v1.10.0
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
@@ -177,7 +177,7 @@ class AcceleratorConnector:
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[str] = None  # TODO: Remove in v1.10.0
         self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v1.10.0
-        self._auto_select_gpus: bool = auto_select_gpus
+        self._auto_select_gpus: Optional[bool] = auto_select_gpus
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -558,8 +558,17 @@ class AcceleratorConnector:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
+        if self._auto_select_gpus is not None:
+            rank_zero_deprecation(
+                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
+            )
         if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
-            self._devices_flag = pick_multiple_gpus(self._gpus)
+            self._devices_flag = pick_multiple_gpus(
+                self._gpus,
+                # we already show a deprecation message when user sets Trainer(auto_select_gpus=...)
+                _show_deprecation=False,
+            )
             log.info(f"Auto select gpus: {self._devices_flag}")
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
