@@ -21,7 +21,6 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 import pytorch_lightning.profiler as profiler
-from lightning_fabric.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
@@ -34,7 +33,6 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus, pick_single_gpu
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -329,23 +327,3 @@ def test_profiler_classes_deprecated_warning(cls):
         f" Use .*profilers.{cls.__name__}` class instead."
     ):
         cls()
-
-
-def test_auto_select_gpus():
-    with pytest.deprecated_call(match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"):
-        Trainer(auto_select_gpus=False)
-
-
-def test_pick_multiple_gpus():
-    with pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"), pytest.raises(
-        MisconfigurationException
-    ):
-        pick_multiple_gpus(0)
-
-
-@mock.patch("pytorch_lightning.tuner.auto_gpu_select.num_cuda_devices", return_value=0)
-def test_pick_single_gpu(_):
-    with pytest.deprecated_call(match="The function `pick_single_gpu` has been deprecated in v1.9.0"), pytest.raises(
-        RuntimeError
-    ):
-        pick_single_gpu([])

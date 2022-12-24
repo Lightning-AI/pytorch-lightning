@@ -120,7 +120,6 @@ class Trainer:
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
-        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -181,16 +180,6 @@ class Trainer:
                 Additionally, can be set to either `power` that estimates the batch size through
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
-
-            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
-                gpus automatically. This is especially useful when
-                GPUs are configured to be in "exclusive mode", such
-                that only one process at a time can access them.
-                Default: ``False``.
-
-                .. deprecated:: v1.9
-                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -362,7 +351,6 @@ class Trainer:
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
-            auto_select_gpus=auto_select_gpus,
             precision=precision,
             plugins=plugins,
         )
