@@ -22,7 +22,6 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tupl
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import rank_zero_only
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -33,7 +32,7 @@ from lightning_fabric.strategies.ddp import DDPStrategy
 from lightning_fabric.strategies.strategy import _Sharded
 from lightning_fabric.utilities.distributed import log
 from lightning_fabric.utilities.enums import PrecisionType
-from lightning_fabric.utilities.rank_zero import rank_zero_info
+from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH
 

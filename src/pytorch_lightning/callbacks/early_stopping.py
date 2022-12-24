@@ -23,14 +23,13 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
-from lightning_utilities.core.rank_zero import rank_prefixed_message
 from torch import Tensor
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.rank_zero import _get_rank
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_prefixed_message, rank_zero_warn
 
 log = logging.getLogger(__name__)
 

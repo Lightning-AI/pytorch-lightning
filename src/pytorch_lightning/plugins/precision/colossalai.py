@@ -13,7 +13,6 @@
 # limitations under the License.
 from typing import Any, Callable, Optional, Union
 
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import Optimizer
 
@@ -21,6 +20,7 @@ import pytorch_lightning as pl
 from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.enums import PrecisionType
+from pytorch_lightning.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 

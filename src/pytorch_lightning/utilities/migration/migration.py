@@ -31,11 +31,10 @@ For the Lightning developer: How to add a new migration?
 import re
 from typing import Any, Callable, Dict, List
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
-
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _CHECKPOINT = Dict[str, Any]
 

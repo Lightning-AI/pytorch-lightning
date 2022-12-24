@@ -16,7 +16,6 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, TYPE_CHECKING, 
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -35,6 +34,7 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")

@@ -17,7 +17,6 @@ from typing import Any, Dict, Generator, Iterable, Mapping, Optional, Tuple, Uni
 
 import torch
 from lightning_utilities.core.apply_func import is_dataclass_instance
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
@@ -39,7 +38,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn, WarningCache
 
 # might be supported in later releases, see https://github.com/python/mypy/pull/13297
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]

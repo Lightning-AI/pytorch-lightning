@@ -15,11 +15,11 @@ from abc import ABC
 from typing import Any, Dict
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 import pytorch_lightning as pl
 from lightning_fabric.accelerators.accelerator import Accelerator as _Accelerator
 from lightning_fabric.utilities.types import _DEVICE
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class Accelerator(_Accelerator, ABC):
