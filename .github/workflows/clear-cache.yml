@@ -8,10 +8,13 @@ on:
         required: true
         type: string
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   clear-cache:
     runs-on: ubuntu-latest
-
     steps:
     - name: Get the list of cache keys
       env:

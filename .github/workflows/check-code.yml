@@ -13,7 +13,12 @@ on:
         required: false
         type: string
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
+
   mypy:
     runs-on: ubuntu-20.04
     steps:
@@ -52,6 +57,7 @@ jobs:
       # 6. ~/.mypy.ini
       # https://mypy.readthedocs.io/en/stable/config_file.html
       run: mypy
+
 
   pre-commit:
     runs-on: ubuntu-20.04

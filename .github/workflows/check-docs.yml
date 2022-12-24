@@ -24,6 +24,10 @@ on:
         required: false
         type: string
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
 
   docs-test:
@@ -57,6 +61,7 @@ jobs:
       run: |
         make doctest
         make coverage
+
 
   docs-html:
     runs-on: ubuntu-20.04

@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main, "release/*"]
 
-jobs:
-  pytest:
+defaults:
+  run:
+    shell: bash
 
+jobs:
+
+  pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -16,9 +20,7 @@ jobs:
         os: [ubuntu-22.04, macos-12, windows-2022]
         python-version: ["3.7", "3.10"]
         requires: ['oldest', 'latest']
-
     timeout-minutes: 35
-
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v3

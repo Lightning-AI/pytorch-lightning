@@ -9,7 +9,12 @@ on:
         required: false
         type: string
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
+
   schema:
     runs-on: ubuntu-20.04
     steps:

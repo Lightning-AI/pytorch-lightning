@@ -6,6 +6,10 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     tags:
       - 'v?[0-9]+.[0-9]+.[0-9]+'
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
@@ -34,6 +38,7 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: dist
 
+
   upload-package:
     timeout-minutes: 5
     runs-on: ubuntu-20.04
@@ -55,6 +60,7 @@ jobs:
       with:
         files: 'dist/*'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
+
 
   publish-package:
     runs-on: ubuntu-20.04

@@ -3,7 +3,12 @@ on:
   push:
     branches: [main]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
+
   # https://github.com/marketplace/actions/deploy-to-github-pages
   build-docs-deploy:
     runs-on: ubuntu-20.04
