@@ -40,7 +40,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.10", pytorch_version: "1.13", cuda_version: "12.0.0"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -102,7 +102,7 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
           - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.6.1"}
-          - {python_version: "3.9", pytorch_version: "1.13", cuda_version: "11.6.1"}
+          - {python_version: "3.10", pytorch_version: "1.13", cuda_version: "12.0.0"}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -118,7 +118,7 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-cuda/Dockerfile
-          push: ${{ env.PUSH_TO_HUB }}
+          push: true  # FIXME: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v2
