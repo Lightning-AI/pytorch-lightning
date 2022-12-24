@@ -1314,7 +1314,7 @@ def test_cli_configureoptimizers_can_be_overridden():
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)
     assert isinstance(scheduler, StepLR)
-    with mock.patch("sys.argv", ["any.py", "--lr_scheduler=StepLR"]):
+    with mock.patch("sys.argv", ["any.py", "--lr_scheduler=StepLR", "--lr_scheduler.step_size=50"]):
         cli = MyCLI()
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)

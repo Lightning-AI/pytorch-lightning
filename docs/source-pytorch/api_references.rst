@@ -102,7 +102,7 @@ loggers
     :toctree: api
     :nosignatures:
 
-    base
+    logger
     comet
     csv_logs
     mlflow
@@ -124,7 +124,7 @@ Base Classes
     :template: classtemplate.rst
 
     ~dataloader.dataloader_loop.DataLoaderLoop
-    ~base.Loop
+    ~loop.Loop
 
 Training
 """"""""
@@ -184,7 +184,6 @@ precision
     :nosignatures:
     :template: classtemplate.rst
 
-    ApexMixedPrecisionPlugin
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
@@ -192,7 +191,7 @@ precision
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
-    NativeMixedPrecisionPlugin
+    MixedPrecisionPlugin
     PrecisionPlugin
     ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
@@ -296,7 +295,6 @@ strategies
     DataParallelStrategy
     DeepSpeedStrategy
     HivemindStrategy
-    HorovodStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
@@ -329,7 +327,6 @@ utilities
 
     apply_func
     argparse
-    cli
     cloud_io
     deepspeed
     distributed

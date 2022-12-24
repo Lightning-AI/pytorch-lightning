@@ -1,5 +1,7 @@
+import glob
 import os
 from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
@@ -33,16 +35,17 @@ def _prepare_extras() -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
-    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="" if _FREEZE_REQUIREMENTS else "all")
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all")
+    req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*.txt"))]
     extras = {
-        "examples": assistant.load_requirements(file_name="examples.txt", **common_args),
-        "strategies": assistant.load_requirements(file_name="strategies.txt", **common_args),
-        "test": assistant.load_requirements(file_name="test.txt", **common_args),
+        p.stem: assistant.load_requirements(file_name=p.name, **common_args)
+        for p in req_files
+        if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
-    extras["dev"] = extras["test"]
-    extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]
+    extras["all"] = extras["strategies"] + extras["examples"]
+    extras["dev"] = extras["all"] + extras["test"]
     return extras
 
 
@@ -72,7 +75,9 @@ def _setup_args() -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=["wheel"],
-        install_requires=assistant.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
+        install_requires=assistant.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "all"
+        ),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

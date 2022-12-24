@@ -29,7 +29,7 @@ from lightning_lite.accelerators.cpu import CPUAccelerator
 from lightning_lite.accelerators.cuda import CUDAAccelerator
 from lightning_lite.accelerators.mps import MPSAccelerator
 from lightning_lite.connector import _Connector
-from lightning_lite.plugins import DoublePrecision, NativeMixedPrecision, Precision, TPUPrecision
+from lightning_lite.plugins import DoublePrecision, MixedPrecision, Precision, TPUPrecision
 from lightning_lite.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -409,7 +409,7 @@ def test_strategy_choice_gpu_str(strategy, strategy_class):
     "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
 )
 @pytest.mark.parametrize(
-    "precision,expected_precision", [(16, NativeMixedPrecision), (32, Precision), ("bf16", NativeMixedPrecision)]
+    "precision,expected_precision", [(16, MixedPrecision), (32, Precision), ("bf16", MixedPrecision)]
 )
 def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
     connector = _Connector(strategy=strategy, devices=1, precision=precision)
@@ -753,7 +753,7 @@ def test_precision_selection_16_on_cpu_warns():
         _Connector(precision=16)
 
 
-class MyNativeAMP(NativeMixedPrecision):
+class MyNativeAMP(MixedPrecision):
     pass
 
 
@@ -761,7 +761,7 @@ class MyNativeAMP(NativeMixedPrecision):
 @pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "is_custom_plugin,plugin_cls",
-    [(False, NativeMixedPrecision), (True, MyNativeAMP)],
+    [(False, MixedPrecision), (True, MyNativeAMP)],
 )
 def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin_cls):
     plugin = None

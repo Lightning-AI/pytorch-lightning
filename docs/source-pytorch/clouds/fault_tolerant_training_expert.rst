@@ -21,14 +21,3 @@ To enable fault tolerance on your own cloud or cluster environment enable the *P
 Although Lighting will now be fault-tolerant, you'll have to handle all the nuances of making sure the models are automatically restarted.
 
 .. note:: This complexity is already handled for you if you use **lightning-grid**.
-
-----
-
-**************************************************
-Enable fault-tolerant behavior on your own cluster
-**************************************************
-The simplest way to enable fault-tolerant behavior is to enable lightning-grid to work on your on-prem cluster or cloud environment which will handle all the nuances of fault-tolerant training at scale.
-
-Email us to connect with your own cloud account:
-
-`<onprem@pytorchlightning.ai>`_
