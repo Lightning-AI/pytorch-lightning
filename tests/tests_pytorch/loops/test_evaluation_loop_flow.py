@@ -14,6 +14,7 @@
 """Tests the evaluation loop."""
 
 import torch
+from torch import Tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
@@ -68,7 +69,7 @@ def test__eval_step__flow(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
@@ -129,7 +130,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things

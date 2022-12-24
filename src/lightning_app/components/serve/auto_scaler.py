@@ -429,7 +429,9 @@ class _LoadBalancer(LightningWork):
         AutoScaler uses this method to increase/decrease the number of works.
         """
         old_servers = set(self._servers)
-        server_urls: List[str] = [server.url for server in server_works if server.url]
+        server_urls: List[str] = [
+            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
+        ]
         new_servers = set(server_urls)
 
         if new_servers == old_servers:
@@ -458,12 +460,22 @@ class _LoadBalancer(LightningWork):
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Basic"},
             ) from e
+
+        if not self._internal_ip:
+            return
+
         headers = {
             "accept": "application/json",
             "username": USERNAME,
             "Authorization": AUTHORIZATION_TYPE + " " + data,
         }
-        response = requests.put(f"{self.url}/system/update-servers", json=servers, headers=headers, timeout=10)
+
+        response = requests.put(
+            f"http://{self._internal_ip}:{self.port}/system/update-servers",
+            json=servers,
+            headers=headers,
+            timeout=10,
+        )
         response.raise_for_status()
 
     @staticmethod
@@ -735,7 +747,11 @@ class AutoScaler(LightningFlow):
     @property
     def num_pending_requests(self) -> int:
         """Fetches the number of pending requests via load balancer."""
-        return int(requests.get(f"{self.load_balancer.url}/num-requests").json())
+        if not self.load_balancer._internal_ip:
+            return 0
+        return int(
+            requests.get(f"http://{self.load_balancer._internal_ip}:{self.load_balancer.port}/num-requests").json()
+        )
 
     @property
     def num_pending_works(self) -> int:
