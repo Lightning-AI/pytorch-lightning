@@ -20,7 +20,7 @@ Once the app is installed, run it locally with:
 lightning run app placeholdername/app.py
 ```
 
-Run it on the [lightning cloud](lightning.ai) with:
+Run it on the [lightning cloud](https://lightning.ai/) with:
 
 ```bash
 lightning run app placeholdername/app.py --cloud
