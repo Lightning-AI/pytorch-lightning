@@ -21,7 +21,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import torch
-from torch import optim
+from torch import optim, Tensor
 from torchmetrics.classification.accuracy import Accuracy
 
 import tests_pytorch.helpers.pipelines as tpipes
@@ -388,7 +388,7 @@ def test_accuracy_metric_horovod():
 
         # check on all batches on all ranks
         result = metric.compute()
-        assert isinstance(result, torch.Tensor)
+        assert isinstance(result, Tensor)
 
         total_preds = torch.stack([preds[i] for i in range(num_batches)])
         total_target = torch.stack([target[i] for i in range(num_batches)])

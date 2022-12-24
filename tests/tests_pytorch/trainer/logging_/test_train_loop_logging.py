@@ -23,6 +23,7 @@ import numpy as np
 import pytest
 import torch
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
@@ -96,8 +97,8 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -136,8 +137,8 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -180,8 +181,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -724,7 +725,7 @@ def test_sanity_metrics_are_reset(tmpdir):
 @RunIf(min_cuda_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
+        def on_before_backward(self, loss: Tensor) -> None:
             assert loss.device.type == "cuda"
 
     trainer = Trainer(
@@ -846,5 +847,5 @@ def test_unsqueezed_tensor_logging():
     trainer.state.stage = RunningStage.TRAINING
     model._current_fx_name = "training_step"
     model.trainer = trainer
-    model.log("foo", torch.Tensor([1.2]))
+    model.log("foo", Tensor([1.2]))
     assert trainer.callback_metrics["foo"].ndim == 0
