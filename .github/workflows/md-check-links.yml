@@ -19,4 +19,4 @@ jobs:
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         use-quiet-mode: 'yes'
-        config-file: 'mlc_config.json'
+        config-file: '.github/workflows/markdown.links.config.json'
