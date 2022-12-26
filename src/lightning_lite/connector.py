@@ -204,7 +204,7 @@ class _Connector:
                 raise ValueError(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_flag = str(precision)
+            self._precision_input = str(precision)  # type: ignore[assignment]
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -459,6 +459,16 @@ class _Connector:
 
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
             return NativeMixedPrecision(self._precision_flag, device)
+
+            if isinstance(self.strategy, FSDPStrategy):
+                return FSDPPrecision(
+                    precision=self._precision_input,  # type: ignore[arg-type]
+                    device=device,
+                )
+            return MixedPrecision(
+                precision=self._precision_input,   # type: ignore[arg-type]
+                device=device,
+            )
 
         raise RuntimeError("No precision set")
 
