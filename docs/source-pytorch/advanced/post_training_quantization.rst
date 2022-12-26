@@ -15,7 +15,7 @@ Visit the Intel® Neural Compressor online document website at: `<https://intel.
 ******************
 Model Quantization
 ******************
-Model quantization is an efficient model optimization tool that can accelerate the model inference speed and decrease the memory load while still maintaining the model accuracy. 
+Model quantization is an efficient model optimization tool that can accelerate the model inference speed and decrease the memory load while still maintaining the model accuracy.
 
 Different from the inherent model quantization callback ''QuantizationAwareTraining'' in Pytorch Lightning, Intel® Neural Compressor provides a convenient model quantization API to quantize the already-trained Lightning module with Post-training Quantization and Quantization Aware Training. This extension API exhibits the merits of an ease-of-use coding environment and multi-functional quantization options. The user can easily quantize their fine-tuned model by adding a few clauses to their original code.  We only introduce post-training quantization in this document.
 
@@ -35,7 +35,7 @@ Python version: 3.7, 3.8, 3.9, 3.10
 Install Intel® Neural Compressor
 ==================================
 
-Release binary install: 
+Release binary install:
 .. code-block:: bash
 
     # Install stable basic version from pip
@@ -43,7 +43,7 @@ Release binary install:
     # Or install stable full version from pip (including GUI)
     pip install neural-compressor-full
 
-More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_. 
+More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_.
 
 *******
 Usage
@@ -61,17 +61,20 @@ PyTorch Lightning model
 
 Load the pretrained model with PyTorch Lightning:
 .. testcode::
-    
+
     import torch
     from pytorch_lightning import LightningModule
     from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
-    # BERT Model definition   
+
+    # BERT Model definition
     class GLUETransformer(LightningModule):
         def __init__(self):
             self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_labels)
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, config=self.config)
+
         def forward(self, **inputs):
             return self.model(**inputs)
+
 
     model = GLUETransformer(model_name_or_path="Intel/bert-base-uncased-mrpc")
 
@@ -84,9 +87,12 @@ Intel® Neural Compressor supports accuracy-driven automatic tuning to generate 
 .. testcode::
 
     from neural_compressor.config import PostTrainingQuantConfig, TuningCriterion, AccuracyCriterion
+
     accuracy_criterion = AccuracyCriterion(tolerable_loss=0.01)
     tuning_criterion = TuningCriterion(max_trials=600)
-    conf = PostTrainingQuantConfig(approach="static", backend="default", tuning_criterion=tuning_criterion, accuracy_criterion=accuracy_criterion)
+    conf = PostTrainingQuantConfig(
+        approach="static", backend="default", tuning_criterion=tuning_criterion, accuracy_criterion=accuracy_criterion
+    )
 
 The ''approach'' parameter in PostTrainingQuantConfig is defined by the user to make a choice from post-training static quantization and post-training dynamic by ''static'' or ''dynamic''.
 
@@ -97,6 +103,7 @@ The model can be qutized by Intel® Neural Compressor with:
 .. code-block:: python
 
     from neural_compressor.quantization import fit
+
     q_model = fit(model=model.model, conf=conf, calib_dataloader=val_dataloader(), eval_func=eval_func)
 
 Users can define the evaluation function ''eval_func'' by themselves.
@@ -116,13 +123,16 @@ Based on the `given example code <https://pytorch-lightning.readthedocs.io/en/st
     from neural_compressor.quantization import fit as fit
     from neural_compressor.config import PostTrainingQuantConfig
 
+
     def eval_func_for_nc(model_n, trainer_n):
         setattr(model, "model", model_n)
         result = trainer_n.validate(model=model, dataloaders=dm.val_dataloader())
-        return result[0]['accuracy']
+        return result[0]["accuracy"]
+
 
     def eval_func(model):
         return eval_func_for_nc(model, trainer)
+
 
     conf = PostTrainingQuantConfig()
     q_model = fit(model=model.model, conf=conf, calib_dataloader=dm.val_dataloader(), eval_func=eval_func)
@@ -135,7 +145,8 @@ We define the evaluation function as:
     def eval_func_for_nc(model_n, trainer_n):
         setattr(model, "model", model_n)
         result = trainer_n.validate(model=model, dataloaders=dm.val_dataloader())
-        return result[0]['accuracy']
+        return result[0]["accuracy"]
+
 
     def eval_func(model):
         return eval_func_for_nc(model, trainer)
@@ -161,4 +172,3 @@ Technical Support
 *****************
 
 Welcome to visit Intel® Neural Compressor website at: https://intel.github.io/neural-compressor to find technical support or contribute your code.
-
