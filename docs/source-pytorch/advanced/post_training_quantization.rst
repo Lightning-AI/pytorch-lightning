@@ -38,15 +38,16 @@ Install Intel® Neural Compressor
 Release binary install: 
 .. code-block:: python
 
-    # install stable basic version from pip
+    # Install stable basic version from pip
     pip install neural-compressor
     # Or install stable full version from pip (including GUI)
     pip install neural-compressor-full
 
 More installation methods can be found in the `Installation Guide <https://github.com/intel/neural-compressor/blob/master/docs/source/installation_guide.md>`_. 
 
+*******
 Usage
-======
+*******
 
 Minor code changes are required for the user to get started with Intel® Neural Compressor quantization API. To construct the quantization process, users can specify the below settings via the Python code:
 
@@ -60,14 +61,15 @@ PyTorch Lightning model
 
 Load the pretrained model with PyTorch Lightning:
 .. code-block:: python
-        import torch
+    import torch
     from pytorch_lightning import LightningModule
     from transformers import (
         AutoConfig,
         AutoModelForSequenceClassification,
-        AutoTokenizer)
+        AutoTokenizer,
+        )
 
-        # BERT Model definition   
+    # BERT Model definition   
     class GLUETransformer(LightningModule):
         def __init__(self):
             self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=num_labels)
@@ -75,7 +77,7 @@ Load the pretrained model with PyTorch Lightning:
         def forward(self, **inputs):
             return self.model(**inputs)
     
-    model = GLUETransformer(model_name_or_path=" Intel/bert-base-uncased-mrpc",)
+    model = GLUETransformer(model_name_or_path="Intel/bert-base-uncased-mrpc")
 
 The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
 
@@ -159,8 +161,8 @@ Following is the performance comparison between FP32 model and INT8 model:
 For more model quantization performance, please refer to `our model list <https://github.com/intel/neural-compressor/blob/master/docs/source/validated_model_list.md>`_
 
 *****************
-Technique Support
+Technical Support
 *****************
 
-Welcome to visit Intel® Neural Compressor website at: https://intel.github.io/neural-compressor to find technique support or contribute your code.
+Welcome to visit Intel® Neural Compressor website at: https://intel.github.io/neural-compressor to find technical support or contribute your code.
 
