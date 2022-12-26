@@ -13,8 +13,6 @@
 # limitations under the License.
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Generator, Optional, Union
-from typing_extensions import Literal
-
 
 import torch
 from torch import Tensor

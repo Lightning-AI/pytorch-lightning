@@ -466,7 +466,7 @@ class _Connector:
                     device=device,
                 )
             return MixedPrecision(
-                precision=self._precision_input,   # type: ignore[arg-type]
+                precision=self._precision_input,  # type: ignore[arg-type]
                 device=device,
             )
 
