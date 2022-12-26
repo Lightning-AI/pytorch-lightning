@@ -1772,7 +1772,7 @@ class Trainer:
         return None
 
     @property
-    def precision(self) -> Union[str, int]:
+    def precision(self) -> str:
         return self.strategy.precision_plugin.precision
 
     @property

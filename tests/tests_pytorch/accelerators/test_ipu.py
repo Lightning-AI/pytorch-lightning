@@ -563,7 +563,7 @@ def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
-    assert plugin.precision == 16
+    assert plugin.precision == "16"
 
 
 @RunIf(ipu=True)
