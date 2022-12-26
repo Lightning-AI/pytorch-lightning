@@ -737,17 +737,17 @@ class AcceleratorConnector:
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(
-                        self._precision_flag,  # type: ignore[arg-type]
+                        self._precision_flag,
                         device,
                     )
                 if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
                     return FullyShardedNativeNativeMixedPrecisionPlugin(
-                        self._precision_flag,  # type: ignore[arg-type]
+                        self._precision_flag,
                         device
                     )
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(
-                        self._precision_flag,   # type: ignore[arg-type]
+                        self._precision_flag,
                         device,
                     )
                 return MixedPrecisionPlugin(

@@ -39,7 +39,7 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             raise MisconfigurationException(
                 "`FullyShardedNativeNativeMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards."
             )
-        super().__init__(precision, device, scaler=ShardedGradScaler() if scaler is None and precision == 16 else None)
+        super().__init__(precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16" else None))
 
     def clip_grad_by_norm(self, *_: Any, **__: Any) -> None:
         # see https://pytorch.org/docs/stable/fsdp.html#torch.distributed.fsdp.FullyShardedDataParallel.clip_grad_norm_
