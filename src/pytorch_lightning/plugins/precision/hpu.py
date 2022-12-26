@@ -15,7 +15,6 @@ from typing import Optional
 
 from typing_extensions import Literal
 
-from lightning_fabric.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
@@ -52,7 +51,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
                 f" `precision` must be one of: {supported_precision_values}."
             )
         super().__init__()
-        if precision in (PrecisionType.HALF, PrecisionType.BFLOAT):
+        if str(precision) in ("16", "bf16"):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
             )

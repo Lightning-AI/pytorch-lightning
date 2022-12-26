@@ -16,7 +16,6 @@ from typing import Any, Optional, Union
 import torch
 from typing_extensions import Literal
 
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -56,9 +55,9 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     @property
     def mixed_precision_config(self) -> Optional[MixedPrecision]:
         assert MixedPrecision is not None
-        if self.precision == PrecisionType.HALF:
+        if self.precision == "16":
             dtype = torch.float16
-        elif self.precision == PrecisionType.BFLOAT:
+        elif self.precision == "bf16":
             dtype = torch.bfloat16
         else:
             raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")

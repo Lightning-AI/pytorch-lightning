@@ -32,7 +32,6 @@ from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -326,7 +325,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         precision = self.precision_plugin.precision
-        if not (precision == PrecisionType.HALF):
+        if precision != "16":
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."

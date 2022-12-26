@@ -18,7 +18,6 @@ from torch.optim import LBFGS, Optimizer
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
