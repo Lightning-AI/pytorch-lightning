@@ -66,7 +66,7 @@ Load the pretrained model with PyTorch Lightning:
     from transformers import (
         AutoConfig,
         AutoModelForSequenceClassification,
-        AutoTokenizer,
+        AutoTokenizer
         )
 
     # BERT Model definition   
@@ -76,7 +76,7 @@ Load the pretrained model with PyTorch Lightning:
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, config=self.config)
         def forward(self, **inputs):
             return self.model(**inputs)
-    
+
     model = GLUETransformer(model_name_or_path="Intel/bert-base-uncased-mrpc")
 
 The fine-tuned model from Intel could be downloaded from `Intel Hugging Face repository <https://huggingface.co/Intel>`_.
