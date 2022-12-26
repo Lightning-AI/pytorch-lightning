@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
-
-from typing_extensions import Literal
+from typing import Optional, Union
 
 from lightning_fabric.utilities.enums import PrecisionType
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -37,7 +35,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
 
     def __init__(
         self,
-        precision: Literal[16, "16", 32, "32", "bf16"],
+        precision: Union[str, int],
         opt_level: str = "O2",
         bf16_file_path: Optional[str] = None,
         fp32_file_path: Optional[str] = None,
@@ -45,15 +43,15 @@ class HPUPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU precision plugin requires HPU devices.")
-        supported_precision_values = (16, "16", 32, "32", "bf16")
+        supported_precision_values = (16, 32, "bf16")
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision_values}."
             )
         super().__init__()
+        self.precision = precision
         if precision in (PrecisionType.HALF, PrecisionType.BFLOAT):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
             )
-        self.precision = str(precision)

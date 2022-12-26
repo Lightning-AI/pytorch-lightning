@@ -15,7 +15,6 @@ from typing import Any, Callable, Union
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.enums import PrecisionType
@@ -37,7 +36,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             If the precision is neither 16 nor 32.
     """
 
-    def __init__(self, precision: Literal[16, "16", 32, "32"]) -> None:
+    def __init__(self, precision: int) -> None:
         supported_precision_values = (PrecisionType.HALF, PrecisionType.FLOAT)
         if precision not in supported_precision_values:
             raise ValueError(
@@ -45,7 +44,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 f" `precision` must be one of: {supported_precision_values}."
             )
         super().__init__()
-        self.precision = str(precision)
+        self.precision = precision
 
     def backward(  # type: ignore[override]
         self,

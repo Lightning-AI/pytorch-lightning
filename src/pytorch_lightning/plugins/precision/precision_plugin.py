@@ -33,6 +33,8 @@ class PrecisionPlugin(LitePrecision, CheckpointHooks):
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
+    precision: Union[str, int] = 32
+
     def connect(
         self, model: Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
