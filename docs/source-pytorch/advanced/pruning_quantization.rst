@@ -122,4 +122,4 @@ You can further customize the callback:
 Post-training Quantization
 ==========================
 
-If you want to quantize a fine-tuned model with PTQ, it is recommended to adopt a third party API names Intel® Neural Compressor, read more :doc:`here <./advanced/post_training_quantization>`, which provides a convenient tool for accelerating the model inference speed on Intel CPUs and GPUs.
+If you want to quantize a fine-tuned model with PTQ, it is recommended to adopt a third party API names Intel® Neural Compressor, read more :doc:`here <./post_training_quantization>`, which provides a convenient tool for accelerating the model inference speed on Intel CPUs and GPUs.
