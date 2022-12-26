@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.enums import PrecisionType
@@ -79,7 +80,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
 
         super().__init__()
-        self.precision = precision
+        self.precision = str(precision)
         self.amp_type = amp_type
         self.amp_level = amp_level
 

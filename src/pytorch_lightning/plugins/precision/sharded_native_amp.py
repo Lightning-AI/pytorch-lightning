@@ -29,7 +29,9 @@ else:
 class ShardedNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Native AMP for Sharded Training."""
 
-    def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
+    def __init__(
+        self, precision: Literal[16, "16", "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
+    ) -> None:
         if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for sharded AMP but you have not installed it."
