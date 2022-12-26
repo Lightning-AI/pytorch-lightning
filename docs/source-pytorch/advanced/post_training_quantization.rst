@@ -64,12 +64,7 @@ Load the pretrained model with PyTorch Lightning:
     
     import torch
     from pytorch_lightning import LightningModule
-    from transformers import (
-        AutoConfig,
-        AutoModelForSequenceClassification,
-        AutoTokenizer
-        )
-
+    from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
     # BERT Model definition   
     class GLUETransformer(LightningModule):
         def __init__(self):
