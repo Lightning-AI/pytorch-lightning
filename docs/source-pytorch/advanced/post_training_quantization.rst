@@ -61,6 +61,7 @@ PyTorch Lightning model
 
 Load the pretrained model with PyTorch Lightning:
 .. code-block:: python
+    
     import torch
     from pytorch_lightning import LightningModule
     from transformers import (
