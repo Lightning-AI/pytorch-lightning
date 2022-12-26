@@ -18,8 +18,9 @@ from torch import Tensor
 from typing_extensions import Literal
 
 from lightning_lite.plugins.precision.precision import Precision
-from lightning_lite.utilities.enums import AMPType, PrecisionType
+from lightning_lite.plugins.precision.utils import _convert_fp_tensor
 from lightning_lite.utilities.imports import _APEX_AVAILABLE
+from lightning_lite.utilities.enums import AMPType, PrecisionType
 from lightning_lite.utilities.types import Steppable
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
@@ -44,7 +45,9 @@ class DeepSpeedPrecision(Precision):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Literal["16", "32", "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
+    def __init__(self, ) -> None:
+        
+    def __init__(self, precision: Literal["16", 16, "32", 32, "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
             if not _APEX_AVAILABLE:
                 raise ImportError(
@@ -54,13 +57,12 @@ class DeepSpeedPrecision(Precision):
 
             amp_level = amp_level or "O2"
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
+        supported_precision = ("16", 16, "32", 32, "bf16")
         if precision not in supported_precision:
             raise ValueError(
                 f"`precision={precision!r})` is not supported in DeepSpeed."
-                f" `precision` must be one of: {(x.value for x in supported_precision)}."
+                f" `precision` must be one of: {supported_precision}."
             )
-
         super().__init__()
         self.precision = str(precision)
         self.amp_type = amp_type

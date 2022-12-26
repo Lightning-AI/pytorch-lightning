@@ -19,8 +19,7 @@ from torch.optim import LBFGS, Optimizer
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.enums import PrecisionType
-from lightning_fabric.utilities.types import Steppable
+from lightning_lite.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -45,7 +44,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, precision: Literal["16", "32", "bf16"], amp_type: Optional[str] = None, amp_level: Optional[str] = None) -> None:
+    def __init__(
+        self, precision: Literal["16", 16, "32", 32, "bf16"], amp_type: Optional[str] = None, amp_level: Optional[str] = None
+    ) -> None:
         if amp_type == "apex":
             # TODO: remove in v1.10.0
             rank_zero_deprecation(
@@ -72,11 +73,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 f" in v1.10.0. This argument is no longer necessary."
             )
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
+        supported_precision = ("16", 16, "32", 32, "bf16")
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
-                f" `precision` must be one of: {(x.value for x in supported_precision)}."
+                f" `precision` must be one of: {supported_precision}."
             )
 
         super().__init__()

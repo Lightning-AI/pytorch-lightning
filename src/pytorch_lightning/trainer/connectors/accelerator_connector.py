@@ -736,12 +736,24 @@ class AcceleratorConnector:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                    return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+                    return ShardedNativeMixedPrecisionPlugin(
+                        self._precision_flag,  # type: ignore[arg-type]
+                        device,
+                    )
                 if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(
+                        self._precision_flag,  # type: ignore[arg-type]
+                        device
+                    )
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
-                    return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                return MixedPrecisionPlugin(self._precision_flag, device)
+                    return FullyShardedNativeMixedPrecisionPlugin(
+                        self._precision_flag,   # type: ignore[arg-type]
+                        device,
+                    )
+                return MixedPrecisionPlugin(
+                    self._precision_flag,   # type: ignore[arg-type]
+                    device
+                )
 
             if self._amp_type_flag == "apex":
                 self._amp_level_flag = self._amp_level_flag or "O2"
