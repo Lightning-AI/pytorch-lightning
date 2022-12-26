@@ -115,7 +115,7 @@ ______________________________________________________________________
 Simple installation from PyPI
 
 ```bash
-pip install pytorch-lightning
+pip install lightning[pytorch]
 ```
 
 <!-- following section will be skipped from PyPI description -->
@@ -127,7 +127,7 @@ pip install pytorch-lightning
 #### Install with optional dependencies
 
 ```bash
-pip install pytorch-lightning['extra']
+pip install lightning['']
 ```
 
 #### Conda
@@ -164,6 +164,7 @@ pip install -iU https://test.pypi.org/simple/ pytorch-lightning
 ### Step 1: Add these imports
 
 ```python
+import lightning as L
 import os
 import torch
 from torch import nn
@@ -171,7 +172,6 @@ import torch.nn.functional as F
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
-import pytorch_lightning as pl
 ```
 
 ### Step 2: Define a LightningModule (nn.Module subclass)
@@ -179,7 +179,7 @@ import pytorch_lightning as pl
 A LightningModule defines a full *system* (ie: a GAN, autoencoder, BERT or a simple Image Classifier).
 
 ```python
-class LitAutoEncoder(pl.LightningModule):
+class LitAutoEncoder(L.LightningModule):
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(28 * 28, 128), nn.ReLU(), nn.Linear(128, 3))
@@ -214,7 +214,7 @@ dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
 train, val = random_split(dataset, [55000, 5000])
 
 autoencoder = LitAutoEncoder()
-trainer = pl.Trainer()
+trainer = L.Trainer()
 trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 ```
 
@@ -317,7 +317,7 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 For complex/professional level work, you have optional full control of the training loop and optimizers.
 
 ```python
-class LitAutoEncoder(pl.LightningModule):
+class LitAutoEncoder(L.LightningModule):
     def __init__(self):
         super().__init__()
         self.automatic_optimization = False
