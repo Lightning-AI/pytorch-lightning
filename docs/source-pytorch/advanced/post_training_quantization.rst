@@ -36,7 +36,7 @@ Install Intel® Neural Compressor
 ==================================
 
 Release binary install: 
-.. testcode::
+.. code-block:: bash
 
     # Install stable basic version from pip
     pip install neural-compressor
