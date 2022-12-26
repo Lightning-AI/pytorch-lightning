@@ -741,19 +741,13 @@ class AcceleratorConnector:
                         device,
                     )
                 if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                    return FullyShardedNativeNativeMixedPrecisionPlugin(
-                        self._precision_flag,
-                        device
-                    )
+                    return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
                     return FullyShardedNativeMixedPrecisionPlugin(
                         self._precision_flag,
                         device,
                     )
-                return MixedPrecisionPlugin(
-                    self._precision_flag,   # type: ignore[arg-type]
-                    device
-                )
+                return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
 
             if self._amp_type_flag == "apex":
                 self._amp_level_flag = self._amp_level_flag or "O2"

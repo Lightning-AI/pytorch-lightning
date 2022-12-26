@@ -45,7 +45,10 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal["16", 16, "32", 32, "bf16"], amp_type: Optional[str] = None, amp_level: Optional[str] = None
+        self,
+        precision: Literal["16", 16, "32", 32, "bf16"],
+        amp_type: Optional[str] = None,
+        amp_level: Optional[str] = None,
     ) -> None:
         if amp_type == "apex":
             # TODO: remove in v1.10.0
