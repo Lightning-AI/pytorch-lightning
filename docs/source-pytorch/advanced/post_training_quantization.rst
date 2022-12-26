@@ -36,7 +36,7 @@ Install Intel® Neural Compressor
 ==================================
 
 Release binary install: 
-.. code-block:: python
+.. testcode::
 
     # Install stable basic version from pip
     pip install neural-compressor
@@ -60,7 +60,7 @@ PyTorch Lightning model
 =========================
 
 Load the pretrained model with PyTorch Lightning:
-.. code-block:: python
+.. testcode::
     
     import torch
     from pytorch_lightning import LightningModule
@@ -81,7 +81,7 @@ Accuracy-driven quantization config
 =====================================
 
 Intel® Neural Compressor supports accuracy-driven automatic tuning to generate the optimal INT8 model which meets a predefined accuracy goal. The default tolerance of accuracy loss in the accuracy criterion is 0.01. And the maximum trial number of quantization is 600. The user can specifically define their own criteria by:
-.. code-block:: python
+.. testcode::
 
     from neural_compressor.config import PostTrainingQuantConfig, TuningCriterion, AccuracyCriterion
     accuracy_criterion = AccuracyCriterion(tolerable_loss=0.01)
