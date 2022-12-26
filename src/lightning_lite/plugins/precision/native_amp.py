@@ -59,6 +59,11 @@ class NativeMixedPrecision(Precision):
         with self._autocast_context_manager():
             yield
 
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, "16": torch.float16}
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
+
     def backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
