@@ -101,8 +101,8 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_type: Optional[str] = None,
         precision: _PRECISION_INPUT = 32,
+        amp_type: Optional[str] = None,
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
@@ -170,7 +170,7 @@ class AcceleratorConnector:
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[str] = None
+        self._precision_flag: Optional[_PRECISION_INPUT] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -291,7 +291,7 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_flag = str(precision)
+            self._precision_flag = str(precision)  # type: ignore[assignment]
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
