@@ -162,7 +162,7 @@ def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
 
 @RunIf(deepspeed=True)

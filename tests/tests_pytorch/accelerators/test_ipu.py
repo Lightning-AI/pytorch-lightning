@@ -203,7 +203,7 @@ def test_half_precision(tmpdir):
         default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=1, precision=16, callbacks=TestCallback()
     )
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
     with pytest.raises(SystemExit):
         trainer.fit(model)
 
@@ -212,7 +212,7 @@ def test_half_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.precision_plugin.precision == 16
+            assert trainer.strategy.precision_plugin.precision == "16"
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -225,7 +225,7 @@ def test_pure_half_precision(tmpdir):
 
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, IPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
     changed_dtypes = [torch.float, torch.float64]
     data = [torch.zeros((1), dtype=dtype) for dtype in changed_dtypes]
