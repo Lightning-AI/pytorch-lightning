@@ -21,25 +21,25 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.2.2
+    rev: v3.3.1
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
         name: Upgrade code
 
-  - repo: https://github.com/myint/docformatter
-    rev: v1.5.0
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.5.1
     hooks:
       - id: docformatter
         args: [--in-place, --wrap-summaries=120, --wrap-descriptions=120]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.11.4
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 22.12.0
     hooks:
       - id: black
         name: Black code
