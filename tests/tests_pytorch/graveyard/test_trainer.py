@@ -126,3 +126,12 @@ def test_v2_0_0_trainer_optimizers_mixin():
         match="`Trainer.convert_to_lightning_optimizers` was deprecated in v1.6 and is no longer supported as of v1.8.",
     ):
         trainer.convert_to_lightning_optimizers()
+
+
+def test_v2_0_0_trainer_reset_method():
+    trainer = Trainer()
+    with pytest.raises(
+        NotImplementedError,
+        match="`Trainer.reset_train_val_dataloaders` was deprecated in v1.7 and is no longer supported as of v1.9.",
+    ):
+        trainer.reset_train_val_dataloaders()

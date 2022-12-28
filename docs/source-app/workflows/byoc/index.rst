@@ -1,110 +1,60 @@
+.. _byoc:
 
 #################################
 Run Apps on your own cloud (BYOC)
 #################################
 
-**Audience:** Users looking to run Lightning Apps on their own private cloud.
+**Audience:** Users looking to run Lightning Apps on their own private cloud infrastructure.
+
+.. note:: This feature is currently available for early access! To create your own cluster `contact us <mailto:product@lightning.ai?subject=I%20want%20to%20run%20on%20my%20private%20cloud!>`_.
+
 
 ----
 
-*******************
-A bit of background
-*******************
+.. raw:: html
 
-BYOC - Bring Your Own Cloud, is an alternate deployment model to Lightning Cloud (fully managed SaaS).
-BYOC separates the control and data plane. The data plane, that includes
-Lightning clusters, services and Lightning Apps, reside inside the user’s VPC.
-The control plane resides on Lightning Cloud.
+    <div class="display-card-container">
+        <div class="row">
 
-Setup begins with configuring a cloud provider (today AWS, but more are coming soon) with your personal credentials for
-delegated access and an identity provider for secure access to the data plane.
+.. displayitem::
+   :header: Create an AWS cluster
+   :description: Create an AWS cluster
+   :col_css: col-md-4
+   :button_link: create_cluster.html
+   :height: 180
+   :tag: Basic
 
-Next, as part of the environment creation process, you can configure networking,
-security, and select among cluster configuration options based on their own use cases.
+.. displayitem::
+   :header: Run app on your cluster
+   :description: How to run apps on your Lighnting Cluster
+   :col_css: col-md-4
+   :button_link: run_on_cluster.html
+   :height: 180
+   :tag: Basic
 
-After submitting a cluster creation request, the Lightning Control Plane creates the required cloud infrastructure on the user account. This
-sets up a new Lightning Cluster along with a Lightning Kubernetes Operator.
+.. displayitem::
+   :header: Delete a cluster
+   :description: Delete a cluster
+   :col_css: col-md-4
+   :button_link: delete_cluster.html
+   :height: 180
+   :tag: Basic
 
+.. raw:: html
 
-*******************************
-Create a Lightning BYOC cluster
-*******************************
+        </div>
+    </div>
 
-You must have your cloud configured before you try and create a BYOC cluster.
-
-And to make your life a little easier, we've made a `Terraform module to help with that <https://github.com/Lightning-AI/terraform-aws-lightning-byoc>`_.
-
-Create a Lightning BYOC cluster using the following command:
-
-.. code:: bash
-
-   lightning create cluster <cluster-name> <cloud-provider-parameters>
-
-Here's an example:
-
-.. code:: bash
-
-   lightning create cluster my-byoc-cluster --provider aws --role-arn arn:aws:iam::1234567890:role/lai-byoc --external-id dummy --region us-west-2 --instance-types t3.xlarge --enable-performance
-
-.. note:: Cluster creation is going to take an hour or more after you run this command.
 
 ----
 
-Arguments
-^^^^^^^^^
 
-* cluster_id: The name of the cluster to be created
 
-.. note:: Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
+********************
+Why create a cluster
+********************
 
-----
+You can use Lightning clusters to run Lightning apps on your own cloud provider account in order to protect your data and use your cloud provider's credits. The control for these clusters runs on the Lightning managed cloud, but the data plane, including the clusters, services, and apps, is located within your own cloud provider account.
 
-Parameters
-^^^^^^^^^^
-
-+------------------------+----------------------------------------------------------------------------------------------------+
-|Parameter               | Description                                                                                        |
-+========================+====================================================================================================+
-| provider               | The cloud provider where your cluster is located.                                                  |
-|                        |                                                                                                    |
-|                        | AWS is supported today, but support for other cloud providers is coming soon.                      |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| role-arn               | AWS IAM Role ARN used to provision resources                                                       |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| external-id            | AWS IAM Role external ID                                                                           |
-|                        |                                                                                                    |
-|                        | To read more on what the AWS external ID is and why it's useful go                                 |
-|                        | `here <https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html>`_|
-+------------------------+----------------------------------------------------------------------------------------------------+
-| region                 | AWS region containing compute resources                                                            |
-+------------------------+----------------------------------------------------------------------------------------------------+
-| async                  | Cluster creation will happen in the background.                                                    |
-+------------------------+----------------------------------------------------------------------------------------------------+
-
-----
-
-*******************************************
-View a list of your Lightning BYOC clusters
-*******************************************
-
-.. code:: bash
-
-   lightning list clusters
-
-----
-
-*******************************
-Delete a Lightning BYOC cluster
-*******************************
-
-Deletes a Lightning BYOC cluster. Lightning AI removes cluster artifacts and any resources running on the cluster.
-
-.. warning:: Using the ``--force`` parameter when deleting a cluster does not clean up any resources managed by Lightning AI. Check your cloud provider to verify that existing cloud resources are deleted.
-
-Deletion permanently removes not only the record of all runs on a cluster, but all associated artifacts, metrics, logs, etc.
-
-.. warning:: This process may take a few minutes to complete, but once started it CANNOT be rolled back. Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down every BYOC resource Lightning AI managed (for that cluster id) in the host cloud. All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
-
-.. code:: bash
-
-   lightning delete cluster <cluster-name>
+Once the cluster is created, Lightning Cloud controlplane will take over,
+managing the lifecycle of the cloud infrastructure required to run Lightning Apps.

@@ -29,7 +29,7 @@ from lightning_lite.plugins.environments.slurm import SLURMEnvironment
 from lightning_lite.utilities.cloud_io import get_filesystem
 from lightning_lite.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, MixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -295,9 +295,7 @@ class CheckpointConnector:
         # old checkpoints compatibility
         if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
             prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
-        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(
-            prec_plugin, NativeMixedPrecisionPlugin
-        ):
+        if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, MixedPrecisionPlugin):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def _restore_quantization_callbacks(self) -> None:

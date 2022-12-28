@@ -42,11 +42,11 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
-        __verify_eval_loop_configuration(trainer, model, "val")
+        __verify_eval_loop_configuration(model, "val")
     elif trainer.state.fn == TrainerFn.TESTING:
-        __verify_eval_loop_configuration(trainer, model, "test")
+        __verify_eval_loop_configuration(model, "test")
     elif trainer.state.fn == TrainerFn.PREDICTING:
-        __verify_eval_loop_configuration(trainer, model, "predict")
+        __verify_eval_loop_configuration(model, "predict")
 
     __verify_batch_transfer_support(trainer)
     # TODO: Delete this check in v2.0
@@ -82,12 +82,12 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-    trainer.overridden_optimizer_step = is_overridden("optimizer_step", model)
-    trainer.overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
+    overridden_optimizer_step = is_overridden("optimizer_step", model)
+    overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
     going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
-    has_overridden_optimization_functions = trainer.overridden_optimizer_step or trainer.overridden_optimizer_zero_grad
+    has_overridden_optimization_functions = overridden_optimizer_step or overridden_optimizer_zero_grad
     if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
         rank_zero_warn(
             "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
@@ -111,7 +111,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         )
 
 
-def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule", stage: str) -> None:
+def __verify_eval_loop_configuration(model: "pl.LightningModule", stage: str) -> None:
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
 

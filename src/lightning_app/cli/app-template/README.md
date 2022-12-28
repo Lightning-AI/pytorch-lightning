@@ -1,6 +1,6 @@
 # placeholdername app
 
-This ⚡ [Lightning app](lightning.ai) ⚡ was generated automatically with:
+This ⚡ [Lightning app](https://lightning.ai/) ⚡ was generated automatically with:
 
 ```bash
 lightning init app placeholdername
