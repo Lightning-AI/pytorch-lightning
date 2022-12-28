@@ -27,6 +27,7 @@ from unittest.mock import ANY
 import numpy as np
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
@@ -620,7 +621,7 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
             }
 
         def validation_step(self, batch, batch_idx):
-            assert isinstance(batch, torch.Tensor)
+            assert isinstance(batch, Tensor)
 
         validation_epoch_end = None
 
