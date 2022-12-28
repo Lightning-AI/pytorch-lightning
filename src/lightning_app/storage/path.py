@@ -2,8 +2,7 @@ import hashlib
 import os
 import pathlib
 import shutil
-from distutils.version import LooseVersion
-from platform import python_version
+import sys
 from time import sleep
 from typing import Any, List, Optional, Sequence, TYPE_CHECKING, Union
 
@@ -54,7 +53,7 @@ class Path(PathlibPath):
             parts[0] = parts[0][len("lit://") :]
             args = (_storage_root_dir(), *parts)
 
-        if LooseVersion(python_version()) < "3.10":
+        if (sys.version_info.major, sys.version_info.minor) < (3, 10):
             __unused.setdefault("init", True)
             new_path = super()._from_parts(args, **__unused)
         else:

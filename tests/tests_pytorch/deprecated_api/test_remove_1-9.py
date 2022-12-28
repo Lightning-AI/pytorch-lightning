@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import mock
-
 import pytest
-
-from pytorch_lightning import Trainer
-from pytorch_lightning.cli import LightningCLI
-from pytorch_lightning.core.module import LightningModule
 
 
 def test_old_lightningmodule_path():
@@ -31,31 +25,6 @@ def test_old_lightningmodule_path():
         LightningModule()
 
 
-def test_old_loop_path():
-    from pytorch_lightning.loops.base import Loop
-
-    class MyLoop(Loop):
-        def advance(self):
-            ...
-
-        def done(self):
-            ...
-
-        def reset(self):
-            ...
-
-    with pytest.deprecated_call(match="pytorch_lightning.loops.base.Loop has been deprecated in v1.7"):
-        MyLoop()
-
-
-def test_lightningCLI_seed_everything_default_to_None_deprecation_warning():
-    with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(
-        match="Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-        "and will be removed in v1.9. Set it to `False` instead."
-    ):
-        LightningCLI(LightningModule, run=False, seed_everything_default=None)
-
-
 def test_old_callback_path():
     from pytorch_lightning.callbacks.base import Callback
 
@@ -63,9 +32,3 @@ def test_old_callback_path():
         match="pytorch_lightning.callbacks.base.Callback has been deprecated in v1.7 and will be removed in v1.9."
     ):
         Callback()
-
-
-def test_deprecated_dataloader_reset():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="reset_train_val_dataloaders` has been deprecated in v1.7"):
-        trainer.reset_train_val_dataloaders()

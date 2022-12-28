@@ -5,6 +5,7 @@ import os
 import sys
 from copy import deepcopy
 from multiprocessing import Process
+from pathlib import Path
 from time import sleep, time
 from unittest import mock
 
@@ -562,3 +563,36 @@ def test_configure_api():
         time_left -= 0.1
     assert process.exitcode == 0
     process.kill()
+
+
+@pytest.mark.anyio
+@mock.patch("lightning_app.core.api.UIRefresher", mock.MagicMock())
+async def test_get_annotations(tmpdir):
+    cwd = os.getcwd()
+    os.chdir(tmpdir)
+
+    Path("lightning-annotations.json").write_text('[{"test": 3}]')
+
+    try:
+        app = AppStageTestingApp(FlowA(), log_level="debug")
+        app._update_layout()
+        app.stage = AppStage.BLOCKING
+        change_state_queue = _MockQueue("change_state_queue")
+        has_started_queue = _MockQueue("has_started_queue")
+        api_response_queue = _MockQueue("api_response_queue")
+        spec = extract_metadata_from_app(app)
+        start_server(
+            None,
+            change_state_queue,
+            api_response_queue,
+            has_started_queue=has_started_queue,
+            uvicorn_run=False,
+            spec=spec,
+        )
+
+        async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
+            response = await client.get("/api/v1/annotations")
+            assert response.json() == [{"test": 3}]
+    finally:
+        # Cleanup
+        os.chdir(cwd)

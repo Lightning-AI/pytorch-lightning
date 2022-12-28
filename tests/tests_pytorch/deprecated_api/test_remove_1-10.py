@@ -24,6 +24,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning.profiler as profiler
 from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
 from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
+from lightning_lite.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
@@ -38,6 +39,7 @@ from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus, pick_single_gpu
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -403,3 +405,29 @@ def test_apex_deprecation_warnings():
     trainer = Trainer()
     with pytest.deprecated_call(match="amp_backend` will not be supported"):
         trainer.amp_backend
+
+
+@RunIf(horovod=True)
+def test_horovod_deprecation_warnings(*_):
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        Trainer(strategy="horovod")
+
+
+def test_auto_select_gpus():
+    with pytest.deprecated_call(match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"):
+        Trainer(auto_select_gpus=False)
+
+
+def test_pick_multiple_gpus():
+    with pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"), pytest.raises(
+        MisconfigurationException
+    ):
+        pick_multiple_gpus(0)
+
+
+@mock.patch("pytorch_lightning.tuner.auto_gpu_select.num_cuda_devices", return_value=0)
+def test_pick_single_gpu(_):
+    with pytest.deprecated_call(match="The function `pick_single_gpu` has been deprecated in v1.9.0"), pytest.raises(
+        RuntimeError
+    ):
+        pick_single_gpu([])
