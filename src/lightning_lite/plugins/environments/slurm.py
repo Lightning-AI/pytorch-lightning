@@ -20,10 +20,9 @@ import signal
 import sys
 from typing import Optional
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
-
 from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_lite.utilities.imports import _IS_WINDOWS
+from lightning_lite.utilities.rank_zero import rank_zero_warn
 from lightning_lite.utilities.warnings import PossibleUserWarning
 
 log = logging.getLogger(__name__)

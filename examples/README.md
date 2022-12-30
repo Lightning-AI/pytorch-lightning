@@ -26,7 +26,6 @@ ______________________________________________________________________
 In this folder, we have 2 simple examples that showcase the power of the Lightning Trainer.
 
 - [Image Classifier](pl_basics/backbone_image_classifier.py) (trains arbitrary datasets with arbitrary backbones).
-- [Image Classifier + DALI](convert_from_pt_to_pl/image_classifier_4_dali.py) (defines the model inside the `LightningModule`).
 - [Autoencoder](pl_basics/autoencoder.py)
 
 ______________________________________________________________________

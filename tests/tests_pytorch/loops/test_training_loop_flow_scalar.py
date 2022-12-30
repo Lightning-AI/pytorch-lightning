@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import torch
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
@@ -151,7 +151,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
@@ -172,7 +172,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
             return acc
 
         def training_step_end(self, tr_step_output):
-            assert isinstance(tr_step_output, torch.Tensor)
+            assert isinstance(tr_step_output, Tensor)
             assert self.count_num_graphs({"loss": tr_step_output}) == 1
             self.training_step_end_called = True
             return tr_step_output
@@ -221,7 +221,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0][0]
-    assert isinstance(train_step_out["loss"], torch.Tensor)
+    assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
