@@ -4,8 +4,8 @@ import webbrowser
 import requests
 from requests.models import HTTPBasicAuth
 
+from lightning.app.model2cloud.utils import LIGHTNING_CLOUD_URL
 from lightning.app.utilities.network import LightningClient
-from lightning_app.model2cloud.utils import LIGHTNING_CLOUD_URL
 
 
 def get_user_details():

@@ -48,7 +48,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-src/lightning/*/
 src/*/version.info
 
 # PyInstaller
