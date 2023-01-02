@@ -38,9 +38,10 @@ from pytorch_lightning.utilities.logger import (
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
-    import wandb
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
+
+    import wandb
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None
@@ -602,11 +603,7 @@ class WandbLogger(Logger):
             if not self.checkpoint_name:
                 self.checkpoint_name = f"model-{self.experiment.id}"
             artifact = wandb.Artifact(name=self.checkpoint_name, type="model", metadata=metadata)
-            print(p)
-            if self.use_reference:
-                artifact.add_reference(p, name="model.ckpt")
-            else:
-                artifact.add_file(p, name="model.ckpt")
+            artifact.add_file(p, name="model.ckpt")
             self.experiment.log_artifact(artifact, aliases=[tag])
             # remember logged models - timestamp needed in case filename didn't change (lastkckpt or custom name)
             self._logged_model_time[p] = t
