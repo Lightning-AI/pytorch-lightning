@@ -7,6 +7,7 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -41,7 +42,7 @@ def test_strategy(mock_dht):
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 def test_optimizer_wrapped():
     class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
+        def on_before_backward(self, loss: Tensor) -> None:
             optimizer = self.trainer.optimizers[0]
             assert isinstance(optimizer, hivemind.Optimizer)
 
@@ -54,7 +55,7 @@ def test_optimizer_wrapped():
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 def test_scheduler_wrapped():
     class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
+        def on_before_backward(self, loss: Tensor) -> None:
             scheduler = self.trainer.lr_scheduler_configs[0].scheduler
             assert isinstance(scheduler, HiveMindScheduler)
 
@@ -92,7 +93,7 @@ def test_reuse_grad_buffers_warning():
     """Test to ensure we warn when a user overrides `optimizer_zero_grad` and `reuse_grad_buffers` is True."""
 
     class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
+        def on_before_backward(self, loss: Tensor) -> None:
             optimizer = self.trainer.optimizers[0]
             assert isinstance(optimizer, hivemind.Optimizer)
 
@@ -169,7 +170,7 @@ def test_args_passed_to_optimizer(mock_peers):
     with mock.patch("hivemind.Optimizer", wraps=hivemind.Optimizer) as mock_optimizer:
 
         class TestModel(BoringModel):
-            def on_before_backward(self, loss: torch.Tensor) -> None:
+            def on_before_backward(self, loss: Tensor) -> None:
                 args, kwargs = mock_optimizer.call_args
                 mock_optimizer.assert_called()
                 arguments = dict(

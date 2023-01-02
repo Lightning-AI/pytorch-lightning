@@ -24,6 +24,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
@@ -160,7 +161,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
 
     class CustomClassifModel(CustomClassifModel):
         def _is_equal(self, a, b):
-            if isinstance(a, torch.Tensor):
+            if isinstance(a, Tensor):
                 return torch.all(torch.eq(a, b))
 
             if isinstance(a, Mapping):
