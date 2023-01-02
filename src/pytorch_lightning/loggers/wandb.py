@@ -38,9 +38,10 @@ from pytorch_lightning.utilities.logger import (
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
-    import wandb
     from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
+
+    import wandb
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None
@@ -338,6 +339,9 @@ class WandbLogger(Logger):
             save_dir = os.fspath(save_dir)
         elif dir is not None:
             dir = os.fspath(dir)
+
+        if project == "lightning_logs" and "WANDB_PROJECT" in os.environ:
+            project = os.environ["WANDB_PROJECT"]
 
         # set wandb init arguments
         self._wandb_init: Dict[str, Any] = dict(
