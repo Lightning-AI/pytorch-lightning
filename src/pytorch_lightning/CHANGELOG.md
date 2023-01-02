@@ -239,7 +239,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added an option to configure the signal SLURM sends when a job is preempted or requeued ([#14626](https://github.com/Lightning-AI/lightning/pull/14626))
 - Added a warning when the model passed to `LightningLite.setup()` does not have all parameters on the same device ([#14822](https://github.com/Lightning-AI/lightning/pull/14822))
 - The `CometLogger` now flags the Comet Experiments as being created from Lightning for analytics purposes ([#14906](https://github.com/Lightning-AI/lightning/pull/14906))
-- Introduce `ckpt_path="hpc"` keyword for checkpoint loading ([#14911](https://github.,com/Lightning-AI/lightning/pull/14911))
+- Introduce `ckpt_path="hpc"` keyword for checkpoint loading ([#14911](https://github.com/Lightning-AI/lightning/pull/14911))
 - Added a more descriptive error message when attempting to fork processes with pre-initialized CUDA context ([#14709](https://github.com/Lightning-AI/lightning/pull/14709))
 - Added support for custom parameters in subclasses of `SaveConfigCallback` ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
 - Added `inference_mode` flag to Trainer to let users enable/disable inference mode during evaluation ([#15034](https://github.com/Lightning-AI/lightning/pull/15034))
@@ -301,7 +301,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecated the `pytorch_lightning.utilities.device_parser.parse_hpus` in favor of `pytorch_lightning.accelerators.hpu.parse_hpus`
 - Deprecated duplicate `SaveConfigCallback` parameters in `LightningCLI.__init__`: `save_config_kwargs`, `save_config_overwrite` and `save_config_multifile`. New `save_config_kwargs` parameter should be used instead ([#14998](https://github.com/Lightning-AI/lightning/pull/14998))
 - Deprecated `TrainerFn.TUNING`, `RunningStage.TUNING` and `trainer.tuning` property ([#15100](https://github.com/Lightning-AI/lightning/pull/15100))
-- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's ([#15364](https://github.com/Lightnign-AI/lightning/pull/15364))
+- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's ([#15364](https://github.com/Lightning-AI/lightning/pull/15364))
 
 ### Removed
 
@@ -329,7 +329,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning`
 - Removed deprecated `Trainer.num_processes` attribute in favour of `Trainer.num_devices` ([#14423](https://github.com/Lightning-AI/lightning/pull/14423))
 - Removed the deprecated `Trainer.data_parallel_device_ids` hook in favour of `Trainer.device_ids` ([#14422](https://github.com/Lightning-AI/lightning/pull/14422))
-- Removed the deprecated class `TrainerCallbackHookMixin` ([#14401](https://github.com/Lightning-AI/lightning/14401))
+- Removed the deprecated class `TrainerCallbackHookMixin` ([#14401](https://github.com/Lightning-AI/lightning/pull/14401))
 - Removed the deprecated `BaseProfiler` and `AbstractProfiler` classes ([#14404](https://github.com/Lightning-AI/lightning/pull/14404))
 - Removed the deprecated way to set the distributed backend via the environment variable `PL_TORCH_DISTRIBUTED_BACKEND`, in favor of setting the `process_group_backend` in the strategy constructor ([#14693](https://github.com/Lightning-AI/lightning/pull/14693))
 - Removed deprecated callback hooks ([#14834](https://github.com/Lightning-AI/lightning/pull/14834))
@@ -3216,7 +3216,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Using `.comet.config` file for `CometLogger` ([#1913](https://github.com/Lightning-AI/lightning/pull/1913))
 - Updated hooks arguments - breaking for `setup` and `teardown` ([#2850](https://github.com/Lightning-AI/lightning/pull/2850))
 - Using `gfile` to support remote directories ([#2164](https://github.com/Lightning-AI/lightning/pull/2164))
-- Moved optimizer creation after device placement for DDP backends ([#2904](https://github.com/Lightning-AI/lighting/pull/2904))
+- Moved optimizer creation after device placement for DDP backends ([#2904](https://github.com/Lightning-AI/lightning/pull/2904))
 - Support `**DictConfig` for `hparam` serialization ([#2519](https://github.com/Lightning-AI/lightning/pull/2519))
 - Removed callback metrics from test results obj ([#2994](https://github.com/Lightning-AI/lightning/pull/2994))
 - Re-enabled naming metrics in ckpt name ([#3060](https://github.com/Lightning-AI/lightning/pull/3060))
