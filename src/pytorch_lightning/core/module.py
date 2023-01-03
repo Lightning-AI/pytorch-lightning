@@ -1650,7 +1650,7 @@ class LightningModule(
 
         """
         optimizer = self.trainer.optimizers[optimizer_idx]
-        if hasattr(optimizer, '_step_count') and optimizer._step_count <= 0:
+        if hasattr(optimizer, "_step_count") and optimizer._step_count <= 0:
             return
 
         if metric is None:
