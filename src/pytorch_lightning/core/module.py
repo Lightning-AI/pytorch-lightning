@@ -1743,7 +1743,7 @@ class LightningModule(
                 split_x: Union[Tensor, List[Tensor]]
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.Sequence):
+                elif isinstance(x, collections.abc.Sequence):
                     split_x = [x[batch_idx][t : t + split_size] for batch_idx in range(len(x))]
 
                 batch_split.append(split_x)
