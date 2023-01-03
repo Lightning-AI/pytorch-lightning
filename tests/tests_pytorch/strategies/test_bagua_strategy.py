@@ -45,6 +45,7 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
+@pytest.skip("Internal error in Bagua")  # Bagua stopped working with 'AssertionError: Unexpected rsp=<Response [500]'
 @RunIf(min_cuda_gpus=1, bagua=True)
 def test_manual_optimization(tmpdir):
     model = ManualOptimBoringModel()
