@@ -1649,6 +1649,10 @@ class LightningModule(
                 scheduler.step(epoch=self.current_epoch)
 
         """
+        optimizer = self.trainer.optimizers[optimizer_idx]
+        if hasattr(optimizer, '_step_count') and optimizer._step_count <= 0:
+            return
+
         if metric is None:
             scheduler.step()  # type: ignore[call-arg]
         else:
