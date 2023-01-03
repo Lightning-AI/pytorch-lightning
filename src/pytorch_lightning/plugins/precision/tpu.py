@@ -29,6 +29,13 @@ class TPUPrecisionPlugin(PrecisionPlugin):
             raise ModuleNotFoundError(str(_XLA_AVAILABLE))
         super().__init__(*args, **kwargs)
 
+    def _tpu_wrap_closure(self, optimizer: Optimizable, closure: Callable[[], Any]) -> Any:
+        import torch_xla.core.xla_model as xm
+
+        closure_result = closure()
+        xm.reduce_gradients(optimizer)
+        return closure_result
+
     def optimizer_step(  # type: ignore[override]
         self,
         optimizer: Optimizable,
@@ -39,8 +46,10 @@ class TPUPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         import torch_xla.core.xla_model as xm
 
+        closure = partial(self._tpu_wrap_closure, optimizer, closure)
         closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
+        closure_result = optimizer.step(closure=closure, **kwargs)
+        xm.mark_step()
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:
