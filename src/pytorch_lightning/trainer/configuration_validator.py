@@ -174,14 +174,14 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
 
         if is_overridden("on_train_batch_start", model):
             rank_zero_warn(
-                "`batch_idx` arguement in `on_train_batch_start` hook may "
+                "The `batch_idx` argument in `on_train_batch_start` hook may "
                 "not match with the actual batch index when taking `dataloader_iter` "
                 "argument in your `training_step`."
             )
 
         if is_overridden("on_train_batch_end", model):
             rank_zero_warn(
-                "`batch_idx` arguement in `on_train_batch_end` hook may "
+                "The `batch_idx` argument in `on_train_batch_end` hook may "
                 "not match with the actual batch index when taking `dataloader_iter` "
                 "argument in your `training_step`."
             )
