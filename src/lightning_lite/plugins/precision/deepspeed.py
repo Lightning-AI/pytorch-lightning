@@ -45,8 +45,6 @@ class DeepSpeedPrecision(Precision):
             If unsupported ``precision`` is provided.
     """
 
-    def __init__(self, ) -> None:
-        
     def __init__(self, precision: Literal["16", 16, "32", 32, "bf16"], amp_type: str, amp_level: Optional[str] = None) -> None:
         if amp_type == AMPType.APEX:
             if not _APEX_AVAILABLE:

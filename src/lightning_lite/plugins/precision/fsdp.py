@@ -28,7 +28,7 @@ class FSDPPrecision(MixedPrecision):
     """AMP for Fully Sharded Data Parallel training."""
 
     def __init__(
-        self, precision: Literal[16, "bf16"], device: str, scaler: Optional["ShardedGradScaler"] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional["ShardedGradScaler"] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")

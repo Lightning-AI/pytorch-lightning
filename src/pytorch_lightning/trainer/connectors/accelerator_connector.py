@@ -90,7 +90,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 _LITERAL_WARN = Literal["warn"]
-_PRECISION_INPUT = Literal["16", 16, "32", 32, "64", 64, "bf16"]
+_PRECISION_INPUT = Literal["64", 64, "32", 32, "16", 16, "bf16"]
 
 
 class AcceleratorConnector:

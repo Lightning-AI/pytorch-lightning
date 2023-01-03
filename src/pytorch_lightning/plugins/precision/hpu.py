@@ -36,7 +36,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
 
     def __init__(
         self,
-        precision: Literal[16, "16", 32, "32", "bf16"],
+        precision: Literal["32", 32, "16", 16, "bf16"],
         opt_level: str = "O2",
         bf16_file_path: Optional[str] = None,
         fp32_file_path: Optional[str] = None,
@@ -44,7 +44,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU precision plugin requires HPU devices.")
-        supported_precision_values = (16, "16", 32, "32", "bf16")
+        supported_precision_values = ("32", 32, "16", 16, "bf16")
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."

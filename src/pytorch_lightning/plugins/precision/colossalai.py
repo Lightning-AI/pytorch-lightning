@@ -36,7 +36,7 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
             If precison is not 16.
     """
 
-    def __init__(self, precision: Literal[16, "16"] = 16) -> None:
+    def __init__(self, precision: Literal["16", 16] = 16) -> None:
         if str(precision) != "16":
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."

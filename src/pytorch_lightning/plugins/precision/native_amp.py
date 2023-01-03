@@ -38,7 +38,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(
-        self, precision: Literal[16, "16", "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
         precision = str(precision)

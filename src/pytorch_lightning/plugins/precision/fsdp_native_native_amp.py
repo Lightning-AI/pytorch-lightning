@@ -32,7 +32,7 @@ class FullyShardedNativeNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Native AMP for Fully Sharded Native Training."""
 
     def __init__(
-        self, precision: Literal[16, "16", "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException(

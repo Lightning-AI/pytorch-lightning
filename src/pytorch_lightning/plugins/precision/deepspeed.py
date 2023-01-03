@@ -46,7 +46,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def __init__(
         self,
-        precision: Literal["16", 16, "32", 32, "bf16"],
+        precision: Literal["32", 32, "16", 16, "bf16"],
         amp_type: Optional[str] = None,
         amp_level: Optional[str] = None,
     ) -> None:
@@ -76,7 +76,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 f" in v1.10.0. This argument is no longer necessary."
             )
 
-        supported_precision = ("16", 16, "32", 32, "bf16")
+        supported_precision = ("32", 32, "16", 16, "bf16")
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."

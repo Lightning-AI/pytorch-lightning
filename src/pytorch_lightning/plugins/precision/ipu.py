@@ -36,8 +36,8 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             If the precision is neither 16 nor 32.
     """
 
-    def __init__(self, precision: Literal[16, "16", 32, "32"]) -> None:
-        supported_precision_values = (16, "16", 32, "32")
+    def __init__(self, precision: Literal["32", 32, "16", 16]) -> None:
+        supported_precision_values = ("32", 32, "16", 16)
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
