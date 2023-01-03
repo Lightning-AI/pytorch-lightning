@@ -70,8 +70,15 @@ img = base64.b64encode(img).decode("UTF-8")
 response = requests.post('"""
             + url
             + """', json={
-    "image": img
-})"""
+"image": img
+})
+# If you are using basic authentication for your app, you should add your credentials to the request:
+# response = requests.post('"""
+            + url
+            + """', json={
+# "image": img
+# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+"""
         )
 
     @staticmethod
@@ -112,8 +119,14 @@ import requests
 response = requests.post('"""
             + url
             + """', json={
-    "text": "A portrait of a person looking away from the camera"
+"text": "A portrait of a person looking away from the camera"
 })
+# If you are using basic authentication for your app, you should add your credentials to the request:
+# response = requests.post('"""
+            + url
+            + """', json={
+# "text": "A portrait of a person looking away from the camera"
+# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
 """
         )
 
