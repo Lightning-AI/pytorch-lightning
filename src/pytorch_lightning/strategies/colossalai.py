@@ -300,7 +300,8 @@ class ColossalAIStrategy(DDPStrategy):
                 min_chunk_size_mb: float = self.chunk_size_search_kwargs.get(
                     "min_chunk_size", 32 * 1024**2
                 )  # type: ignore[assignment]
-                min_chunk_size_mb /= 1024**2
+                if min_chunk_size_mb is not None:
+                    min_chunk_size_mb /= 1024**2
 
                 model = _LightningModuleWrapperBase(self.model)
                 self.model = GeminiDDP(
