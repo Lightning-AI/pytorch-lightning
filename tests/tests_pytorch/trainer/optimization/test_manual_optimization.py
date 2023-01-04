@@ -268,9 +268,7 @@ class ManualOptimizationExtendedModel(BoringModel):
     def training_step(self, batch, batch_idx):
         self.called["training_step"] += 1
         opt = self.optimizers()
-        output = self.layer(batch)
-
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         loss /= loss.clone().detach()
         loss *= 0.1
 
@@ -366,9 +364,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         def training_step(self, batch, batch_idx):
             self.called["training_step"] += 1
             opt = self.optimizers()
-            output = self.layer(batch)
-
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             loss /= loss.clone().detach()
             loss *= 0.1
 
