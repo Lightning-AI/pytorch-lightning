@@ -31,7 +31,6 @@ from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.ddp import DDPStrategy
 from lightning_fabric.strategies.strategy import _Sharded
 from lightning_fabric.utilities.distributed import log
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH
@@ -349,9 +348,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision.precision == PrecisionType.HALF:
+            if self.precision.precision == "16":
                 dtype = torch.float16
-            elif self.precision.precision == PrecisionType.BFLOAT:
+            elif self.precision.precision == "bf16":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -499,7 +498,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision.precision == PrecisionType.HALF:
+        if self.precision.precision == "16":
             if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -511,7 +510,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-        elif "bf16" not in self.config and self.precision.precision == PrecisionType.BFLOAT:
+        elif "bf16" not in self.config and self.precision.precision == "bf16":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

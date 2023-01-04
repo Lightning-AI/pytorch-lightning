@@ -25,7 +25,7 @@ from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 class DoublePrecision(Precision):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: int = 64
+    precision: str = "64"
 
     def convert_module(self, module: Module) -> Module:
         return module.double()

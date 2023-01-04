@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
@@ -20,14 +20,18 @@ from torch.nn import Module
 from torch.optim import LBFGS
 from typing_extensions import Literal
 
-from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
 from lightning_fabric.plugins.precision.precision import Precision
-from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning_fabric.utilities.types import Optimizable
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from lightning_fabric.utilities.types import Steppable
+
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch import autocast as new_autocast
+else:
+    from torch.cuda.amp import autocast as old_autocast
 
 
-class MixedPrecision(Precision):
-    """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
+class NativeMixedPrecision(Precision):
+    """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
         precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
@@ -36,13 +40,14 @@ class MixedPrecision(Precision):
     """
 
     def __init__(
-        self, precision: Literal[16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
         super().__init__()
-        if scaler is None and precision == 16:
-            with _patch_cuda_is_available():
-                # if possible, we defer CUDA initialization to support strategies that will attempt forks
-                scaler = torch.cuda.amp.GradScaler()
+        precision = str(precision)
+        if precision == "bf16" and not _TORCH_GREATER_EQUAL_1_10:
+            raise ImportError("To use bfloat16 with native amp you must install torch greater or equal to 1.10.")
+        if scaler is None and precision == "16":
+            scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise ValueError(f"`precision='bf16'` does not use a scaler, found {scaler}.")
         self.precision = precision
@@ -55,7 +60,7 @@ class MixedPrecision(Precision):
             yield
 
     def convert_input(self, data: Tensor) -> Tensor:
-        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16}
+        precision_to_type = {"bf16": torch.bfloat16, "16": torch.float16}
         dst_type = precision_to_type[self.precision]
         return _convert_fp_tensor(data, dst_type)
 
@@ -66,7 +71,7 @@ class MixedPrecision(Precision):
 
     def optimizer_step(
         self,
-        optimizer: Optimizable,
+        optimizer: Steppable,
         **kwargs: Any,
     ) -> Any:
         if self.scaler is None:
@@ -88,7 +93,9 @@ class MixedPrecision(Precision):
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
 
-    def _autocast_context_manager(self) -> torch.autocast:
-        # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
-        # https://github.com/pytorch/pytorch/issues/67233
-        return torch.autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+    def _autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
+        if _TORCH_GREATER_EQUAL_1_10:
+            # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
+            # https://github.com/pytorch/pytorch/issues/67233
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()

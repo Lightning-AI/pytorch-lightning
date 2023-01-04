@@ -59,7 +59,7 @@ from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
-_PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
+_PRECISION_INPUT = Literal["64", 64, "32", 32, "16", 16, "bf16"]
 
 
 class _Connector:
@@ -113,7 +113,7 @@ class _Connector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
         self._registered_accelerators = ACCELERATOR_REGISTRY.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16")
+        self._precision_types = ("64", "32", "16", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
@@ -211,7 +211,7 @@ class _Connector:
                 raise ValueError(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_input = precision
+            self._precision_input = str(precision)  # type: ignore[assignment]
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -442,10 +442,10 @@ class _Connector:
             return self._precision_instance
 
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == 32:
+            if self._precision_input == "32":
                 return TPUPrecision()
-            elif self._precision_input in (16, "bf16"):
-                if self._precision_input == 16:
+            elif self._precision_input in ("16", "bf16"):
+                if self._precision_input == "16":
                     rank_zero_warn(
                         "You passed `Fabric(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
@@ -454,36 +454,42 @@ class _Connector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
-        if self._precision_input == 32:
+        if self._precision_input == "32":
             return Precision()
-        if self._precision_input == 64:
+        if self._precision_input == "64":
             return DoublePrecision()
 
-        if self._precision_input == 16 and self._accelerator_flag == "cpu":
+        if self._precision_input == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
                 "You passed `Fabric(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_input = "bf16"
 
-        if self._precision_input in (16, "bf16"):
+        if self._precision_input in ("16", "bf16"):
             rank_zero_info(
                 "Using 16-bit Automatic Mixed Precision (AMP)"
-                if self._precision_input == 16
+                if self._precision_input == "16"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(precision=self._precision_input, device=device)
-            return MixedPrecision(precision=self._precision_input, device=device)
+                return FSDPPrecision(
+                    precision=self._precision_input,  # type: ignore[arg-type]
+                    device=device,
+                )
+            return MixedPrecision(
+                precision=self._precision_input,  # type: ignore[arg-type]
+                device=device,
+            )
 
         raise RuntimeError("No precision set")
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == 64:
+            if self._precision_input == "64":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
@@ -536,16 +542,12 @@ class _Connector:
 
     @staticmethod
     def _argument_from_env(name: str, current: Any, default: Any) -> Any:
-        env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
+        env_value: Optional[str] = os.environ.get("LT_" + name.upper())
 
         if env_value is None:
             return current
 
-        if name == "precision":
-            # TODO: support precision input as string, then this special handling is not needed
-            env_value = int(env_value) if env_value in ("16", "32", "64") else env_value
-
-        if env_value is not None and env_value != current and current != default:
+        if env_value is not None and env_value != str(current) and str(current) != str(default):
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
                 f"`--{name}={current}` set through the CLI. "
