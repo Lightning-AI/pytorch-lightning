@@ -24,7 +24,6 @@ from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class MixedPrecisionPlugin(PrecisionPlugin):
@@ -122,17 +121,6 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
-
-
-class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    backend = "native"
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        rank_zero_deprecation(
-            "The `NativeMixedPrecisionPlugin` class has been renamed in v1.9.0 and will be removed in"
-            " v1.10.0. Please use `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
-        )
-        super().__init__(*args, **kwargs)
 
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
