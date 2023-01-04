@@ -159,8 +159,8 @@ jobs:
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Check External Links in Sphinx Documentation (Optional)
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
-          cd docs
           make linkcheck
         continue-on-error: true
 
