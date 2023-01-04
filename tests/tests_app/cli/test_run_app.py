@@ -114,7 +114,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         secrets={"BAR": "my-secret"},
         cluster_id="",
         run_app_comment_commands=False,
-        enable_basic_auth=""
+        enable_basic_auth="",
     )
 
 
@@ -159,7 +159,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         secrets={"BAR": "my-secret"},
         cluster_id="",
         run_app_comment_commands=True,
-        enable_basic_auth=""
+        enable_basic_auth="",
     )
 
 
@@ -220,5 +220,5 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
         secrets={"BAR": "my-secret"},
         cluster_id="",
         run_app_comment_commands=False,
-        enable_basic_auth="username:password"
+        enable_basic_auth="username:password",
     )
