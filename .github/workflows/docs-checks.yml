@@ -158,6 +158,12 @@ jobs:
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
+      - name: Check External Links in Sphinx Documentation (Optional)
+        run: |
+          cd docs
+          make linkcheck
+        continue-on-error: true
+
       - name: Upload built docs
         uses: actions/upload-artifact@v3
         with:
