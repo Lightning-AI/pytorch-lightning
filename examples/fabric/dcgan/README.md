@@ -5,6 +5,12 @@ We show two code versions:
 The first one is implemented in raw PyTorch, but isn't easy to scale.
 The second one is using [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_fabric.html) to accelerate and scale the model.
 
+Tip: You can easily inspect the difference between the two files with:
+
+```bash
+  sdiff train_torch.py train_fabric.py
+```
+
 |                                                         Real                                                         |                                                     Generated                                                      |
 | :------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------: |
 | ![sample-data](https://user-images.githubusercontent.com/5495193/206484557-2e9e3810-a9c8-4ae0-bc6e-126866fef4f0.png) | ![fake-7914](https://user-images.githubusercontent.com/5495193/206484621-5dc4a9a6-c782-4c71-8e80-27580cdcc7e6.png) |
