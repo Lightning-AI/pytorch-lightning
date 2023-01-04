@@ -20,7 +20,7 @@ import torch
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch.utils.data.dataloader import DataLoader
 
-from lightning_lite.utilities.data import has_len
+from lightning_fabric.utilities.data import has_len
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.auto_restart import (
     _add_capture_metadata_collate,

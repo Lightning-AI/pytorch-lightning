@@ -34,8 +34,8 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.cloud_io import _load as pl_load
-from lightning_lite.utilities.seed import seed_everything
+from lightning_fabric.utilities.cloud_io import _load as pl_load
+from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
@@ -1169,11 +1169,11 @@ def test_invalid_gradient_clip_algo(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-def test_gpu_choice():
+def test_invalid_gpu_choice_with_auto_select_gpus():
     num_gpus = torch.cuda.device_count()
-    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
-
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"), pytest.deprecated_call(
+        match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"
+    ):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
@@ -2147,12 +2147,6 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
-
-    # Test with `gpus` and `num_processes` flags
-    if trainer_kwargs.get("accelerator") == "gpu":
-        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
-    else:
-        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
 
     trainer_kwargs.pop("accelerator", None)
     trainer_kwargs.pop("devices", None)

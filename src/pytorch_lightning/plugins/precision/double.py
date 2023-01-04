@@ -21,7 +21,7 @@ from torch import FloatTensor, Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.precision.utils import _convert_fp_tensor
+from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 

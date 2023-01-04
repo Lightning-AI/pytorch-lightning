@@ -16,22 +16,23 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from lightning_utilities.core.imports import module_available
 from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.utilities.distributed import _distributed_available
-from lightning_lite.utilities.distributed import group as dist_group
-from lightning_lite.utilities.types import ReduceOp
+from lightning_fabric.plugins import CheckpointIO
+from lightning_fabric.utilities.distributed import _distributed_available
+from lightning_fabric.utilities.distributed import group as dist_group
+from lightning_fabric.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
+_HOROVOD_AVAILABLE = module_available("horovod.torch")
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
@@ -48,6 +49,15 @@ class HorovodStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
+        rank_zero_deprecation(
+            "`The `HorovodStrategy`: `Trainer(strategy='horovod')` has been deprecated in v1.9.0 and will be removed"
+            " in v1.10.0. You can try using the `Trainer(strategy='ddp')` instead."
+        )
+        if not _HOROVOD_AVAILABLE:
+            raise MisconfigurationException(
+                'Requested `strategy="horovod"`, but Horovod is not installed.'
+                " Install with `HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]`"
+            )
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

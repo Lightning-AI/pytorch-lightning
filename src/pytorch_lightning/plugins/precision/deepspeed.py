@@ -14,19 +14,18 @@
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.types import Steppable
+from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, WarningCache
 
 _DEEPSPEED_AVAILABLE = RequirementCache("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:

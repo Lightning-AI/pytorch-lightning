@@ -29,7 +29,7 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from lightning_lite.plugins.environments import SLURMEnvironment
+from lightning_fabric.plugins.environments import SLURMEnvironment
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.cli import (
@@ -206,7 +206,7 @@ def test_lightning_cli_configurable_callbacks(cleandir, run):
 
 
 def test_lightning_cli_args_cluster_environments(cleandir):
-    plugins = [dict(class_path="lightning_lite.plugins.environments.SLURMEnvironment")]
+    plugins = [dict(class_path="lightning_fabric.plugins.environments.SLURMEnvironment")]
 
     class TestModel(BoringModel):
         def on_fit_start(self):
@@ -1314,7 +1314,7 @@ def test_cli_configureoptimizers_can_be_overridden():
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)
     assert isinstance(scheduler, StepLR)
-    with mock.patch("sys.argv", ["any.py", "--lr_scheduler=StepLR"]):
+    with mock.patch("sys.argv", ["any.py", "--lr_scheduler=StepLR", "--lr_scheduler.step_size=50"]):
         cli = MyCLI()
     [optimizer], [scheduler] = cli.model.configure_optimizers()
     assert isinstance(optimizer, SGD)

@@ -24,17 +24,16 @@ from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CH
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import ClusterEnvironment
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.optimizer import _optimizers_to_device
-from lightning_lite.utilities.seed import reset_seed
-from lightning_lite.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
+from lightning_fabric.plugins import ClusterEnvironment
+from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.utilities.seed import reset_seed
+from lightning_fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -45,7 +44,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 log = logging.getLogger(__name__)

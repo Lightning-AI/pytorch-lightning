@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -123,7 +123,7 @@ class Trainer:
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
-        auto_select_gpus: bool = False,
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         ipus: Optional[int] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
@@ -209,6 +209,11 @@ class Trainer:
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
                 Default: ``False``.
+
+                .. deprecated:: v1.9
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -1659,28 +1664,6 @@ class Trainer:
             self.num_predict_batches, self.predict_dataloaders = self._data_connector._reset_eval_dataloader(
                 RunningStage.PREDICTING, model=pl_module
             )
-
-    def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets train and val dataloaders if none are attached to the trainer.
-
-        The val dataloader must be initialized before training loop starts, as the training loop
-        inspects the val dataloader to determine whether to run the evaluation loop.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-
-        .. deprecated:: v1.7
-            This method is deprecated in v1.7 and will be removed in v1.9.
-            Please use ``Trainer.reset_{train,val}_dataloader`` instead.
-        """
-        rank_zero_deprecation(
-            "`Trainer.reset_train_val_dataloaders` has been deprecated in v1.7 and will be removed in v1.9."
-            " Use `Trainer.reset_{train,val}_dataloader` instead"
-        )
-        if self.train_dataloader is None:
-            self.reset_train_dataloader(model=model)
-        if self.val_dataloaders is None:
-            self.reset_val_dataloader(model=model)
 
     """
     Accelerator properties
