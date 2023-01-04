@@ -276,6 +276,7 @@ def run_app_in_cloud(
         env_copy["PACKAGE_LIGHTNING"] = "1"
         env_copy["LIGHTING_TESTING"] = "1"
         if debug:
+            print("Debug mode is enabled")
             env_copy["LIGHTNING_DEBUG"] = "1"
         shutil.copytree(app_folder, tmpdir, dirs_exist_ok=True)
         # TODO - add -no-cache to the command line.
@@ -394,6 +395,10 @@ def run_app_in_cloud(
             sleep(1)
             app = _fetch_app_by_name(client, project_id, name)
             if app.status.phase == V1LightningappInstanceState.RUNNING:
+                print("App is running, continuing with testing...")
+                break
+            if app.status.phase == V1LightningappInstanceState.STOPPED:
+                print("App is stopped, continuing with testing...")
                 break
             if i % 30 == 0:
                 print(f"Still in phase {app.status.phase}, continuing infinite loop...")
