@@ -409,10 +409,10 @@ def run_app_in_cloud(
                 print("App is running, continuing with testing...")
                 wait_openapi(view_page, app.status.url)
                 break
-            elif app.status.phase == V1LightningappInstanceState.STOPPED:
-                # there's a race condition if the app goes from pending to running to stopped before we evaluate the
-                # condition above. avoid it by checking stopped explicitly
-                print("App is stopped, finished testing...")
+            elif app.status.phase != V1LightningappInstanceState.PENDING:
+                # there's a race condition if the app goes from pending to running to something else before we evaluate
+                # the condition above. avoid it by checking stopped explicitly
+                print(f"App finished with phase {app.status.phase}, finished testing...")
                 break
             if debug and i % 30 == 0:
                 print(f"Still in phase {app.status.phase}, continuing infinite loop...")
