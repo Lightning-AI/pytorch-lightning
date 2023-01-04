@@ -503,7 +503,7 @@ class _ResultCollection(dict):
 
         def fn(v: _IN_METRIC) -> _ResultMetric:
             metric = _ResultMetric(meta, isinstance(v, Tensor))
-            device = self.device if 'xla' not in self.device.type else 'cpu'
+            device = self.device if 'ipu' not in self.device.type else 'cpu'
             return metric.to(device)
 
         value = apply_to_collection(value, (Tensor, Metric), fn)
@@ -514,7 +514,7 @@ class _ResultCollection(dict):
     def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: int) -> None:
         def fn(result_metric: _ResultMetric, v: Tensor) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
-            device = self.device if self.device.type != 'xla' else 'cpu'
+            device = self.device if self.device.type != 'ipu' else 'cpu'
             result_metric.forward(v.to(device), batch_size)
             result_metric.has_reset = False
 

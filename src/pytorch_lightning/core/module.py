@@ -545,7 +545,7 @@ class LightningModule(
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
     def __to_tensor(self, value: Union[torch.Tensor, numbers.Number], name: str) -> Tensor:
-        device = self.device if 'xla' not in self.device.type else 'cpu'
+        device = self.device if 'ipu' not in self.device.type else 'cpu'
         value = (
             value.clone().detach().to(device)
             if isinstance(value, torch.Tensor)
