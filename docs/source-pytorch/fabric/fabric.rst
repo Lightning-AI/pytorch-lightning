@@ -3,7 +3,18 @@ Fabric (Beta)
 #############
 
 
-:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code! With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code!
+With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+
+With only a few changes to your code, Fabric allows you to:
+
+- Automatic placement of models and data onto the device
+- Automatic support for mixed precision (smaller memory footprint)
+- Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies (data-parallel, model-parallel, etc.)
+- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
+- Multi-node support (torchelastic, SLURM, and more)
+- You keep full control of your training loop
+
 
 .. code-block:: diff
 
@@ -41,16 +52,6 @@ Fabric (Beta)
 
 
 .. note:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on feedback.
-
-
-With only a few changes to your code, Fabric allows you to:
-
-- Automatic placement of models and data onto the device
-- Automatic support for mixed precision (smaller memory footprint)
-- Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies (data-parallel, model-parallel, etc.)
-- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
-- Multi-node support (torchelastic, SLURM, and more)
-- You keep full control of your training loop
 
 
 ----------
