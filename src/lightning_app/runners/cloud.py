@@ -196,7 +196,6 @@ def _generate_works_json_gallery(filepath: str) -> str:
 
 @dataclass
 class CloudRuntime(Runtime):
-
     backend: Union[str, CloudBackend] = "cloud"
 
     def dispatch(

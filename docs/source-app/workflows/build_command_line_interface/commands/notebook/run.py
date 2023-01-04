@@ -12,7 +12,6 @@ class RunNotebookConfig(BaseModel):
 
 
 class RunNotebook(ClientCommand):
-
     description = "Run a Notebook."
 
     def run(self):
