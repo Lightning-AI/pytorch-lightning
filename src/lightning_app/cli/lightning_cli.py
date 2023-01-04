@@ -8,6 +8,9 @@ import arrow
 import click
 import inquirer
 import rich
+
+import lightning_app.core.constants as constants
+
 from lightning_cloud.openapi import Externalv1LightningappInstance, V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
@@ -29,8 +32,6 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import (
-    APP_SERVER_HOST,
-    APP_SERVER_PORT,
     DEBUG,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     get_lightning_cloud_url,
@@ -50,18 +51,10 @@ from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLim
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.port import _find_lit_app_port
+
 
 logger = Logger(__name__)
-
-
-def get_app_url(runtime_type: RuntimeType, *args: Any, need_credits: bool = False) -> str:
-    if runtime_type == RuntimeType.CLOUD:
-        lit_app: Externalv1LightningappInstance = args[0]
-        action = "?action=add_credits" if need_credits else ""
-        return f"{get_lightning_cloud_url()}/me/apps/{lit_app.id}{action}"
-    else:
-        url = f"{APP_SERVER_HOST}:{APP_SERVER_PORT}/view"
-        return url
 
 
 def main() -> None:
@@ -283,6 +276,9 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
+    port = _find_lit_app_port(constants.APP_SERVER_PORT)
+    constants.APP_SERVER_PORT = port
+
     click.echo("Your Lightning App is starting. This won't take long.")
 
     # TODO: Fixme when Grid utilities are available.
@@ -301,6 +297,7 @@ def _run_app(
         cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
         enable_basic_auth=enable_basic_auth,
+        port=port
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
