@@ -11,7 +11,7 @@ on:
       - ".github/workflows/ci-pytorch-dockers.yml"
       - "dockers/**"
       - "requirements/pytorch/**"
-      - "requirements/lite/**"
+      - "requirements/fabric/**"
       - "environment.yml"
       - "setup.py"
       - "!requirements/*/docs.txt"

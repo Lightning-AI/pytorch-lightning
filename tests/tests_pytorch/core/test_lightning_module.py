@@ -20,8 +20,10 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from lightning_lite.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric import Fabric
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.core.module import _TrainerFabricShim
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -452,6 +454,21 @@ def test_trainer_reference_recursively():
     assert inner.trainer is weakref.proxy(trainer)
 
 
+def test_fabric_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._fabric is None
+
+    fabric = Mock()
+    ensemble.fabric = fabric
+    # references match
+    assert ensemble.fabric is inner.fabric
+    # and the fabric was weakly referenced
+    assert inner.fabric is weakref.proxy(fabric)
+
+
 # TODO: replace with 1.14 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_compile_uncompile():
@@ -485,3 +502,23 @@ def test_compile_uncompile():
     assert not has_dynamo(lit_model_orig.validation_step)
     assert not has_dynamo(lit_model_orig.test_step)
     assert not has_dynamo(lit_model_orig.predict_step)
+
+
+def test_fabric_attributes():
+    module = BoringModel()
+    optimizer = module.configure_optimizers()[0][0]
+
+    assert module.fabric is None
+
+    fabric = Fabric()
+    wrapped_module, wrapped_optimizer = fabric.setup(module, optimizer)
+    assert module.fabric is fabric
+    assert module._fabric_optimizers == [wrapped_optimizer]
+
+    # Attribute access on LightningModule.trainer gets redirected to Fabric
+    assert isinstance(module.trainer, _TrainerFabricShim)
+    assert module.trainer.global_rank == 0
+    with pytest.raises(AttributeError, match="Your LightningModule code tried to access `self.trainer.current_epoch`"):
+        _ = module.trainer.current_epoch
+
+    assert module.optimizers() == wrapped_optimizer

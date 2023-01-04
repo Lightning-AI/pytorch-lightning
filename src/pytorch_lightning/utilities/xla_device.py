@@ -23,7 +23,7 @@ def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  #
         "`pytorch_lightning.utilities.xla_device.inner_f` has been deprecated in v1.8.0 and will be"
         " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
-    from lightning_lite.accelerators.tpu import _inner_f
+    from lightning_fabric.accelerators.tpu import _inner_f
 
     return _inner_f(queue, func, *args, **kwargs)
 
@@ -33,7 +33,7 @@ def pl_multi_process(func: Callable) -> Callable:
         "`pytorch_lightning.utilities.xla_device.pl_multi_process` has been deprecated in v1.8.0 and will be"
         " removed in v1.10.0. This class is internal but you can copy over its implementation."
     )
-    from lightning_lite.accelerators.tpu import _multi_process
+    from lightning_fabric.accelerators.tpu import _multi_process
 
     return _multi_process(func)
 

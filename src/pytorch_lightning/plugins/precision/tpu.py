@@ -15,8 +15,8 @@ from functools import partial
 from typing import Any, Callable
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.utilities.types import Optimizable
+from lightning_fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
