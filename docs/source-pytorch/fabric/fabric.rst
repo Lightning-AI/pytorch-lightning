@@ -1,138 +1,116 @@
-######
-Fabric
-######
+#############
+Fabric (Beta)
+#############
 
 
-:class:`~lightning_fabric.fabric.Fabric` enables pure PyTorch users to scale their existing code
-on any kind of device while retaining full control over their own loops and optimization logic.
+:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code!
+With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/lite/lightning_lite.gif
-    :alt: Animation showing how to convert your PyTorch code to Fabric.
-    :width: 500
-    :align: center
+With only a few changes to your code, Fabric allows you to:
 
-|
-
-:class:`~lightning_fabric.fabric.Fabric` is the right tool for you if you match one of the two following descriptions:
-
-- I want to quickly scale my existing code to multiple devices with minimal code changes.
-- I would like to convert my existing code to the Lightning API, but a full path to Lightning transition might be too complex. I am looking for a stepping stone to ensure reproducibility during the transition.
+- Automatic placement of models and data onto the device
+- Automatic support for mixed precision (speedup and smaller memory footprint)
+- Seamless switching between hardware (CPU, GPU, TPU)
+- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
+- Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
+- Multi-node support (TorchElastic, SLURM, and more)
+- You keep full control of your training loop
 
 
-.. warning:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on your feedback.
+.. code-block:: diff
+
+      import torch
+      import torch.nn as nn
+      from torch.utils.data import DataLoader, Dataset
+
+    + from lightning.fabric import Fabric
+
+      class MyModel(nn.Module):
+          ...
+
+      class MyDataset(Dataset):
+          ...
+
+    + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
+    + fabric.launch()
+
+    - device = "cuda" if torch.cuda.is_available() else "cpu
+      model = MyModel(...)
+      optimizer = torch.optim.SGD(model.parameters())
+    + model, optimizer = fabric.setup(model, optimizer)
+      dataloader = DataLoader(MyDataset(...), ...)
+    + dataloader = fabric.setup_dataloaders(dataloader)
+      model.train()
+
+      for epoch in range(num_epochs):
+          for batch in dataloader:
+    -         batch.to(device)
+              optimizer.zero_grad()
+              loss = model(batch)
+    -         loss.backward()
+    +         fabric.backward(loss)
+              optimizer.step()
+
+
+.. note:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on feedback.
 
 
 ----------
 
-****************
-Learn by example
-****************
-
-
-My Existing PyTorch Code
-========================
-
-The ``train`` function contains a standard training loop used to train ``MyModel`` on ``MyDataset`` for ``num_epochs`` epochs.
-
-.. code-block:: python
-
-    import torch
-    from torch import nn
-    from torch.utils.data import DataLoader, Dataset
-
-
-    class MyModel(nn.Module):
-        ...
-
-
-    class MyDataset(Dataset):
-        ...
-
-
-    def train(args):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        model = MyModel(...).to(device)
-        optimizer = torch.optim.SGD(model.parameters(), ...)
-
-        dataloader = DataLoader(MyDataset(...), ...)
-
-        model.train()
-        for epoch in range(args.num_epochs):
-            for batch in dataloader:
-                batch = batch.to(device)
-                optimizer.zero_grad()
-                loss = model(batch)
-                loss.backward()
-                optimizer.step()
-
-
-    train(args)
-
-----------
-
-
+*****************
 Convert to Fabric
-=================
+*****************
 
 Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale your PyTorch models.
 
-1. Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
-2. Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
-3. Apply :meth:`~lightning_fabric.fabric.Fabric.setup` over each model and optimizers pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders and replace ``loss.backward()`` by ``fabric.backward(loss)``.
-4. Run the script from the terminal using ``lightning run model path/to/train.py`` or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
-
-|
+**Step 1:** Create the :class:`~lightning_fabric.fabric.Fabric` object at the beginning of your training code.
 
 .. code-block:: python
 
-    import torch
-    from torch import nn
-    from torch.utils.data import DataLoader, Dataset
     from lightning.fabric import Fabric
 
+    fabric = Fabric()
 
-    class MyModel(nn.Module):
-        ...
+**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders.
 
+.. code-block:: python
 
-    class MyDataset(Dataset):
-        ...
+    model, optimizer = fabric.setup(model, optimizer)
+    dataloader = fabric.setup_dataloaders(dataloader)
 
+**Step 3:** Remove all ``.to`` and ``.cuda`` calls since :class:`~lightning_fabric.fabric.Fabric` will take care of it.
 
-    def train(args):
+.. code-block:: diff
 
-        fabric = Fabric()
+  - model.to(device)
+  - batch.to(device)
 
-        model = MyModel(...)
-        optimizer = torch.optim.SGD(model.parameters(), ...)
-        model, optimizer = fabric.setup(model, optimizer)  # Scale your model / optimizers
+**Step 4:** Replace ``loss.backward()`` by ``fabric.backward(loss)``.
 
-        dataloader = DataLoader(MyDataset(...), ...)
-        dataloader = fabric.setup_dataloaders(dataloader)  # Scale your dataloaders
+.. code-block:: diff
 
-        model.train()
-        for epoch in range(args.num_epochs):
-            for batch in dataloader:
-                optimizer.zero_grad()
-                loss = model(batch)
-                fabric.backward(loss)  # instead of loss.backward()
-                optimizer.step()
+  - loss.backward()
+  + fabric.backward(loss)
 
+**Step 5:** Run the script from the terminal with
 
-    train(args)
+.. code-block:: bash
 
+    lightning run model path/to/train.py``
 
-That's all you need to do to your code. You can now train on any kind of device and scale your training.
-Check out `this <https://github.com/Lightning-AI/lightning/blob/master/examples/lite/image_classifier_2_lite.py>`_ full MNIST training example with Fabric.
+or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 
-Here is how to train on eight GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
+|
+
+That's it! You can now train on any device at any scale with a switch of a flag.
+
+DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: bash
 
     lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
 
-Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with eight GPUs and mixed precision:
+`DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
 
 .. code-block:: bash
 
@@ -217,9 +195,9 @@ We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so yo
 
 ----------
 
-**********************
-Lightning Fabric Flags
-**********************
+************
+Fabric Flags
+************
 
 Fabric is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
 your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
@@ -364,7 +342,7 @@ Learn more about distributed multi-node training on clusters :doc:`here <../clou
 precision
 =========
 
-Lightning Fabric supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+Fabric supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
 Half precision, or mixed precision, is the combined use of 32 and 16-bit floating points to reduce the memory footprint during model training.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
@@ -414,9 +392,9 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 ----------
 
 
-************************
-Lightning Fabric Methods
-************************
+**************
+Fabric Methods
+**************
 
 
 setup
