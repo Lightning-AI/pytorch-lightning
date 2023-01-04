@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Any, TYPE_CHECKING
 
+import torch
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import Literal
@@ -31,14 +32,8 @@ class DeepSpeedPrecision(Precision):
 
     Args:
         precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-        amp_type: The mixed precision backend to use ("native" or "apex").
-        amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
-            if ``amp_type`` is set to "apex".
 
     Raises:
-        MisconfigurationException:
-            If using ``bfloat16`` precision and ``deepspeed<v0.6``.
-
         ValueError:
             If unsupported ``precision`` is provided.
     """
@@ -52,6 +47,11 @@ class DeepSpeedPrecision(Precision):
             )
         super().__init__()
         self.precision = str(precision)
+
+    def convert_input(self, data: Tensor) -> Tensor:
+        precision_to_type = {"bf16": torch.bfloat16, 16: torch.float16, 32: torch.float32}
+        dst_type = precision_to_type[self.precision]
+        return _convert_fp_tensor(data, dst_type)
 
     def backward(self, tensor: Tensor, model: "deepspeed.DeepSpeedEngine", *args: Any, **kwargs: Any) -> None:
         """Performs back-propagation using DeepSpeed's engine."""
