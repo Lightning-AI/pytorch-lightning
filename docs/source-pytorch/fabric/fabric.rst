@@ -103,6 +103,11 @@ or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 |
 
 That's it! You can now train on any device at any scale with a switch of a flag.
+Check out our examples that use Fabric:
+
+- `Image Classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_
+- `Generative Adversarial Network (GAN) <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md>`_
+
 
 DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
@@ -164,40 +169,41 @@ Furthermore, you can access the current device from ``fabric.device`` or rely on
 
 ----------
 
-
-Distributed Training Pitfalls
-=============================
-
-The :class:`~lightning_fabric.fabric.Fabric` provides you with the tools to scale your training, but there are several major challenges ahead of you now:
+*******************
+Fabric in Notebooks
+*******************
 
 
-.. list-table::
-   :widths: 50 50
-   :header-rows: 0
-
-   * - Processes divergence
-     - This happens when processes execute a different section of the code due to different if/else conditions, race conditions on existing files and so on, resulting in hanging.
-   * - Cross processes reduction
-     - Miscalculated metrics or gradients due to errors in their reduction.
-   * - Large sharded models
-     - Instantiation, materialization and state management of large models.
-   * - Rank 0 only actions
-     - Logging, profiling, and so on.
-   * - Checkpointing / Early stopping / Callbacks / Logging
-     - Ability to customize your training behavior easily and make it stateful.
-   * - Fault-tolerant training
-     - Ability to resume from a failure as if it never happened.
+Fabric works exactly the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or a single GPU.
+If you want to use multiprocessing, for example multi-GPU, you can put your code in a function and pass that function to the
+:meth:`~lightning_fabric.fabric.Fabric.launch` method:
 
 
-If you are facing one of those challenges, then you are already meeting the limit of :class:`~lightning_fabric.fabric.Fabric`.
-We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
+.. code-block:: python
+
+
+    # Notebook Cell
+    def train(fabric):
+
+        model = ...
+        optimizer = ...
+        model, optimizer = fabric.setup(model, optimizer)
+        ...
+
+
+    # Notebook Cell
+    fabric = Fabric(accelerator="cuda", devices=2)
+    fabric.launch(train)  # Launches the `train` function on two GPUs
+
+
+As you can see, this function accepts one argument, the ``Fabric`` object, and it gets launched on as many devices as specified.
 
 
 ----------
 
-************
-Fabric Flags
-************
+********************
+Fabric Configuration
+********************
 
 Fabric is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
 your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
