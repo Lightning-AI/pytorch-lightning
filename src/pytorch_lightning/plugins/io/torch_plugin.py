@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # For backward-compatibility
-from lightning_lite.plugins import TorchCheckpointIO  # noqa: F401
+from lightning_fabric.plugins import TorchCheckpointIO  # noqa: F401

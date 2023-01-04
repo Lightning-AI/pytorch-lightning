@@ -18,10 +18,10 @@ from typing import Any, Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
+from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy

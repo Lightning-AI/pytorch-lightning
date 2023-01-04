@@ -256,8 +256,12 @@ class TorchMetricVisitor(LightningVisitor):
     class_name = "Metric"
 
 
-class LightningLiteVisitor(LightningVisitor):
+class LightningLiteVisitor(LightningVisitor):  # deprecated
     class_name = "LightningLite"
+
+
+class FabricVisitor(LightningVisitor):
+    class_name = "Fabric"
 
 
 class LightningProfilerVisitor(LightningVisitor):
@@ -293,7 +297,8 @@ class Scanner:
         LightningLoggerVisitor,
         LightningLoopVisitor,
         TorchMetricVisitor,
-        LightningLiteVisitor,
+        LightningLiteVisitor,  # deprecated
+        FabricVisitor,
         LightningProfilerVisitor,
     ]
 

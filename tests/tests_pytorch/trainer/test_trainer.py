@@ -34,8 +34,8 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.cloud_io import _load as pl_load
-from lightning_lite.utilities.seed import seed_everything
+from lightning_fabric.utilities.cloud_io import _load as pl_load
+from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
@@ -2147,12 +2147,6 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
-
-    # Test with `gpus` and `num_processes` flags
-    if trainer_kwargs.get("accelerator") == "gpu":
-        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
-    else:
-        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
 
     trainer_kwargs.pop("accelerator", None)
     trainer_kwargs.pop("devices", None)

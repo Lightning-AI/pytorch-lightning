@@ -18,7 +18,7 @@ from unittest.mock import ANY
 import pytest
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration import migrate_checkpoint, pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 
