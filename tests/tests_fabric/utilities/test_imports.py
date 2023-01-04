@@ -37,7 +37,7 @@ def test_imports():
         assert _FAIRSCALE_AVAILABLE
 
 
-def test_import_lightning_lite_with_torch_dist_unavailable():
+def test_import_fabric_with_torch_dist_unavailable():
     """Test that the package can be imported regardless of whether torch.distributed is available."""
     code = dedent(
         """

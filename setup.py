@@ -144,7 +144,7 @@ if __name__ == "__main__":
             assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:
         assert len(local_pkgs) > 0
-        # PL as a package is distributed together with Lite, so in such case there are more than one candidate
+        # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
         package_to_install = "pytorch_lightning" if "pytorch_lightning" in local_pkgs else local_pkgs[0]
     print(f"Installing package: {package_to_install}")
 

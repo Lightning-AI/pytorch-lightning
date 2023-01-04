@@ -6,6 +6,7 @@ if _is_torch_available():
 if _is_pytorch_lightning_available():
     from torchmetrics import Metric
 
+    from lightning_fabric import Fabric
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
     from pytorch_lightning.accelerators.accelerator import Accelerator
     from pytorch_lightning.callbacks import Callback
@@ -45,6 +46,9 @@ if __name__ == "__main__":
         pass
 
     class BoringMetric(Metric):
+        pass
+
+    class BoringFabric(Fabric):
         pass
 
     class BoringProfiler(Profiler):
