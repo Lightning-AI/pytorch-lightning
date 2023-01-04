@@ -262,6 +262,8 @@ class CloudRuntime(Runtime):
         if name:
             # Override the name if provided by the CLI
             app_config.name = name
+            # TODO: comment
+            app_config.release_id = ""
 
         print(f"The name of the app is: {app_config.name}")
 
@@ -456,8 +458,8 @@ class CloudRuntime(Runtime):
             # TODO: comment
             if self.parent_id:
                 release_body.parent_id = self.parent_id
-            elif app_config.parent_id:
-                release_body.parent_id = app_config.parent_id
+            elif app_config.release_id:
+                release_body.parent_id = app_config.release_id
 
             # create / upload the new app release
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
@@ -465,7 +467,7 @@ class CloudRuntime(Runtime):
             )
 
             # TODO: comment
-            app_config.parent_id = lightning_app_release.id
+            app_config.release_id = lightning_app_release.id
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
