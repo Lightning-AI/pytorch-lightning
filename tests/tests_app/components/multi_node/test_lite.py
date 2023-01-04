@@ -8,17 +8,17 @@ from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 
 import lightning_fabric as lf
-from lightning_app.components.multi_node.lite import _LiteRunExecutor
+from lightning_app.components.multi_node.lite import _FabricRunExecutor
 
 
-class DummyLite(lf.Fabric):
+class DummyFabric(lf.Fabric):
     def run(self):
         pass
 
 
 def dummy_callable(**kwargs):
-    lite = DummyLite(**kwargs)
-    return lite._all_passed_kwargs
+    fabric = DummyFabric(**kwargs)
+    return fabric._all_passed_kwargs
 
 
 def dummy_init(self, **kwargs):
@@ -27,7 +27,7 @@ def dummy_init(self, **kwargs):
 
 def _get_args_after_tracer_injection(**kwargs):
     with mock.patch.object(lf.Fabric, "__init__", dummy_init):
-        ret_val = _LiteRunExecutor.run(
+        ret_val = _FabricRunExecutor.run(
             local_rank=0,
             work_run=partial(dummy_callable, **kwargs),
             main_address="1.2.3.4",
@@ -40,13 +40,13 @@ def _get_args_after_tracer_injection(**kwargs):
     return ret_val, env_vars
 
 
-def check_lightning_lite_mps():
+def check_lightning_fabric_mps():
     if module_available("lightning_fabric"):
         return lf.accelerators.MPSAccelerator.is_available()
     return False
 
 
-@pytest.mark.skipif(not check_lightning_lite_mps(), reason="Lightning lite not available or mps not available")
+@pytest.mark.skipif(not check_lightning_fabric_mps(), reason="Fabric not available or mps not available")
 @pytest.mark.parametrize("accelerator_given,accelerator_expected", [("cpu", "cpu"), ("auto", "cpu"), ("gpu", "cpu")])
 def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expected):
     warning_str = (
@@ -95,7 +95,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
 
 
 @pytest.mark.skipif(not module_available("lightning"), reason="Lightning not available")
-def test_lite_run_executor_invalid_strategy_instances():
+def test_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
         _, _ = _get_args_after_tracer_injection(strategy=lf.strategies.DDPStrategy(start_method="spawn"))
 

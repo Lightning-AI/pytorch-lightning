@@ -212,7 +212,8 @@ class Trainer:
 
                 .. deprecated:: v1.9
                     ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used

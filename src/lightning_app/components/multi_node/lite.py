@@ -21,7 +21,7 @@ class _LiteWorkProtocol(Protocol):
 
 
 @dataclass
-class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
+class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
@@ -110,7 +110,7 @@ class LiteMultiNode(MultiNode):
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.
-        work_cls._run_executor_cls = _LiteRunExecutor
+        work_cls._run_executor_cls = _FabricRunExecutor
 
         super().__init__(
             work_cls,
