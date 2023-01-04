@@ -17,7 +17,9 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision as AvgPre, MeanAbsoluteError, MeanSquaredError
+from torchmetrics import Accuracy
+from torchmetrics import AveragePrecision as AvgPre
+from torchmetrics import MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
