@@ -1,6 +1,6 @@
-################
-Lightning Fabric
-################
+######
+Fabric
+######
 
 
 :class:`~lightning_fabric.fabric.Fabric` enables pure PyTorch users to scale their existing code
