@@ -4,6 +4,7 @@ from typing import Optional
 
 import lightning_cloud.env
 
+
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
     return os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
