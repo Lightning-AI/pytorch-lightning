@@ -17,8 +17,8 @@ from typing import Any, Dict
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.accelerator import Accelerator as _Accelerator
-from lightning_lite.utilities.types import _DEVICE
+from lightning_fabric.accelerators.accelerator import Accelerator as _Accelerator
+from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 

@@ -85,8 +85,8 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
-            --source_import="pytorch_lightning,lightning_lite" \
-            --target_import="lightning.pytorch,lightning.lite"
+            --source_import="pytorch_lightning,lightning_fabric" \
+            --target_import="lightning.pytorch,lightning.fabric"
 
       - name: Install this package
         env:

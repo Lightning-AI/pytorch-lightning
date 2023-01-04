@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from typing_extensions import Literal
 
-from lightning_lite.plugins.environments import (
+from lightning_fabric.plugins.environments import (
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
@@ -28,9 +28,9 @@ from lightning_lite.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_lite.utilities import _StrategyType
-from lightning_lite.utilities.device_parser import _determine_root_gpu_device
-from lightning_lite.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities import _StrategyType
+from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
+from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator

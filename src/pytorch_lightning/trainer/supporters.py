@@ -23,7 +23,7 @@ from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
 
-from lightning_lite.utilities.distributed import _distributed_available
+from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     MergedIteratorState,
