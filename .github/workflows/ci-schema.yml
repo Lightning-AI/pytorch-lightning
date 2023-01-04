@@ -2,9 +2,9 @@ name: Check Schema
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "lite/debug"]
 
 jobs:
   check:
