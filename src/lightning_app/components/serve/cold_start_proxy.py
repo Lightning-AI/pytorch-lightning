@@ -5,8 +5,6 @@ import aiohttp
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from diffusion_with_autoscaler.datatypes import Image, Text
-
 proxy_url = "https://ulhcn-01gd3c9epmk5xj2y9a9jrrvgt8.litng-ai-03.litng.ai/api/predict"
 
 
@@ -56,20 +54,3 @@ class ColdStartProxy:
             # TODO - test this and make sure if cold start proxy is not up,
             #  we are returning a useful message to the user
             raise HTTPException(status_code=500, detail=f"Error in proxy: {ex}")
-
-
-class CustomColdStartProxy(ColdStartProxy):
-    async def handle_request(self, request: Text) -> Any:
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                "accept": "application/json",
-                "Content-Type": "application/json",
-            }
-            async with session.post(
-                    self.proxy_url,
-                    json={"prompt": request.text},
-                    timeout=self.proxy_timeout,
-                    headers=headers,
-            ) as response:
-                resp = await response.json()
-                return Image(image=resp["image"][22:])
