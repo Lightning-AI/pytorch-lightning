@@ -2,7 +2,6 @@ import asyncio
 from typing import Any
 
 import aiohttp
-from diffusion_with_autoscaler.datatypes import Image, Text
 from fastapi import HTTPException
 from pydantic import BaseModel
 
