@@ -1605,7 +1605,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
             output = self.layer(batch)
             # will crash if not moved to correct device
             output = self.new_layer(output)
-            loss = self.loss(batch, output)
+            loss = self.loss(output)
             return {"loss": loss}
 
     # fake data

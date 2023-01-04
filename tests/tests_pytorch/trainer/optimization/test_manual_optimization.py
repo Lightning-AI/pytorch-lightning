@@ -1005,7 +1005,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer = self.optimizers()[optimizer_idx]
             self.toggle_optimizer(optimizer, optimizer_idx)
 
-            loss_d = self.loss(batch, self.layer(batch))
+            loss_d = self.step(batch)
             self.log("loss_d", loss_d, prog_bar=True)
 
             optimizer.zero_grad()
@@ -1018,7 +1018,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer = self.optimizers()[optimizer_idx]
             self.toggle_optimizer(optimizer, optimizer_idx)
 
-            loss_g = self.loss(batch, self.layer(batch))
+            loss_g = self.step(batch)
             self.log("loss_g", loss_g, prog_bar=True)
 
             optimizer.zero_grad()

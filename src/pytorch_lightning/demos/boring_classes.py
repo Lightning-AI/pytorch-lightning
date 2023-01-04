@@ -114,7 +114,7 @@ class BoringModel(LightningModule):
         output = self(batch)
         return self.loss(output)
 
-    def training_step(self, batch: Tensor) -> STEP_OUTPUT:
+    def training_step(self, batch: Tensor, batch_idx: int) -> STEP_OUTPUT:
         return {"loss": self.step(batch)}
 
     def training_step_end(self, training_step_outputs: STEP_OUTPUT) -> STEP_OUTPUT:
