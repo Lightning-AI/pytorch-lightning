@@ -216,8 +216,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         # update non-plateau LR schedulers
         # update epoch-interval ones only when we are at the end of training epoch
-        self.update_lr_schedulers("step", update_plateau_schedulers=False)
-        if self._num_ready_batches_reached():
+        if not getattr(self.trainer.lightning_module, "_skip_next_scheduler_step", False):
+            self.update_lr_schedulers("step", update_plateau_schedulers=False)
+        elif self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
         batch_end_outputs = self._prepare_outputs_training_batch_end(

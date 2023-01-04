@@ -73,8 +73,10 @@ class MixedPrecision(Precision):
             return super().optimizer_step(optimizer, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise TypeError("Native AMP and the LBFGS optimizer are not compatible.")
+        previous_scale = self.scaler.get_scale()
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
         step_output = self.scaler.step(optimizer, **kwargs)
+        model._skip_next_scheduler_step = self.scaler.get_scale() < previous_scale
         self.scaler.update()
         return step_output
 
