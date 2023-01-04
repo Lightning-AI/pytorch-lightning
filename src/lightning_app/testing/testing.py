@@ -389,23 +389,25 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
+        def wait_openapi(page: playwright.sync_api.Page, app_url: str) -> None:
+            page.goto(f"{app_url}/view")
+            j = 1
+            status_code = None
+            while status_code != 200:
+                status_code = requests.get(f"{app_url}/openapi.json").status_code
+                if debug and j % 30 == 0:
+                    print(f"Received status code {status_code} at {app_url!r}, continuing infinite loop...")
+                j += 1
+                sleep(1)
+
+        view_page = context.new_page()
         i = 1
         while True:
             app = _fetch_app_by_name(client, project_id, name)
             # wait until the app is running
             if app.status.phase == V1LightningappInstanceState.RUNNING:
                 print("App is running, continuing with testing...")
-                view_page = context.new_page()
-                app_url = app.status.url
-                view_page.goto(f"{app_url}/view")
-                j = 1
-                status_code = None
-                while status_code != 200:
-                    status_code = requests.get(app_url + "/openapi.json").status_code
-                    if debug and j % 30 == 0:
-                        print(f"Received status code {status_code} at {app_url!r}, continuing infinite loop...")
-                    j += 1
-                    sleep(1)
+                wait_openapi(view_page, app.status.url)
                 break
             elif app.status.phase == V1LightningappInstanceState.STOPPED:
                 # there's a race condition if the app goes from pending to running to stopped before we evaluate the
