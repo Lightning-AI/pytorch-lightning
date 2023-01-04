@@ -5,7 +5,7 @@ on:
   push:
     branches: [master, "release/*"]
     paths-ignore:
-      - 'CHANGELOG.md'
+      - '**/CHANGELOG.md'
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
@@ -13,7 +13,7 @@ on:
       - ".github/workflows/md-check-links.yml"
       - "**/*.md"
     paths-ignore:
-      - 'CHANGELOG.md'
+      - '**/CHANGELOG.md'
 
 jobs:
   markdown-link-check:
