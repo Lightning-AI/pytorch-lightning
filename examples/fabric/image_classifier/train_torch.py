@@ -22,7 +22,7 @@ import torchvision.transforms as T
 from torch.optim.lr_scheduler import StepLR
 from torchvision.datasets import MNIST
 
-DATASETS_PATH = path.join(path.dirname(__file__), "../..", "..", "Datasets")
+DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "..", "Datasets")
 
 
 # Credit to the PyTorch team
