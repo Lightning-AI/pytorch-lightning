@@ -171,7 +171,7 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
     """Check if the current `training_step` is requesting `dataloader_iter`."""
     if is_param_in_hook_signature(model.training_step, "dataloader_iter", explicit=True):
         for hook in ("on_train_batch_start", "on_train_batch_end"):
-            if is_overridden("on_train_batch_start", model):
+            if is_overridden(hook, model):
                 rank_zero_warn(
                     f"The `batch_idx` argument in `{type(model).__name__}.{hook}` hook may"
                     " not match with the actual batch index when using a `dataloader_iter`"
