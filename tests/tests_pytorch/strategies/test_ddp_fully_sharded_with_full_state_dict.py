@@ -238,7 +238,7 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fsdp_rewrap_limitation(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -256,7 +256,7 @@ def test_fsdp_rewrap_limitation(tmpdir):
         trainer.test(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_invalid_parameters_in_optimizer():
     trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=1)
 
