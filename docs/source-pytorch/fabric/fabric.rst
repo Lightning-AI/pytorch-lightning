@@ -3,7 +3,7 @@ Fabric (Beta)
 #############
 
 
-:class:`~lightning_fabric.fabric.Fabric` enables PyTorch users to accelerate and scale their models while retaining full control over their training loop and optimization logic.
+:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code! With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
 
 .. code-block:: diff
 
@@ -40,10 +40,10 @@ Fabric (Beta)
               optimizer.step()
 
 
-.. note:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on your feedback.
+.. note:: :class:`~lightning_fabric.fabric.Fabric` is currently a beta feature. Its API is subject to change based on feedback.
 
 
-With only a few changes to your code, Fabric enables for you:
+With only a few changes to your code, Fabric allows you to:
 
 - Automatic placement of models and data onto the device
 - Automatic support for mixed precision (smaller memory footprint)
