@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
+from torchmetrics import Accuracy, AveragePrecision as AvgPre, MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
@@ -27,6 +27,7 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
@@ -407,9 +408,9 @@ def test_metrics_reset(tmpdir):
             self.layer = torch.nn.Linear(32, 1)
 
         def _create_metrics(self):
-            acc = Accuracy(task="binary")
+            acc = Accuracy(task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else Accuracy()
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AveragePrecision(task="binary")
+            ap = AvgPre(task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else AvgPre(num_classes=1, pos_label=1)
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
