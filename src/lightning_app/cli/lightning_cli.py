@@ -231,6 +231,7 @@ def _run_app(
     secret: tuple,
     run_app_comment_commands: bool,
     enable_basic_auth: str,
+    parent_id: str,
 ) -> None:
 
     if not os.path.exists(file):
@@ -285,6 +286,7 @@ def _run_app(
         cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
         enable_basic_auth=enable_basic_auth,
+        parent_id=parent_id,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
