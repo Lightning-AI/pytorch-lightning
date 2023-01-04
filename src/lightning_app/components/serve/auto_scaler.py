@@ -3,10 +3,11 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Tuple, Type, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import requests
 import uvicorn
+from diffusion_with_autoscaler.cold_start_proxy import ColdStartProxy
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -16,11 +17,9 @@ from starlette.staticfiles import StaticFiles
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.utilities.app_helpers import Logger
+from lightning.app.utilities.cloud import is_running_in_cloud
 from lightning.app.utilities.imports import _is_aiohttp_available, requires
 from lightning.app.utilities.packaging.cloud_compute import CloudCompute
-from lightning.app.utilities.cloud import is_running_in_cloud
-
-from diffusion_with_autoscaler.cold_start_proxy import ColdStartProxy
 
 if _is_aiohttp_available():
     import aiohttp
@@ -30,7 +29,8 @@ logger = Logger(__name__)
 
 
 class _TrackableFastAPI(FastAPI):
-    """A FastAPI subclass that tracks the request metadata"""
+    """A FastAPI subclass that tracks the request metadata."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.global_request_count = 0
@@ -120,18 +120,18 @@ class _LoadBalancer(LightningWork):
 
     @requires(["aiohttp"])
     def __init__(
-            self,
-            input_type: Type[BaseModel],
-            output_type: Type[BaseModel],
-            endpoint: str,
-            max_batch_size: int = 8,
-            # all timeout args are in seconds
-            timeout_batching: float = 1,
-            timeout_keep_alive: int = 60,
-            timeout_inference_request: int = 60,
-            api_name: Optional[str] = "API",  # used for displaying the name in the UI
-            cold_start_proxy: Union[ColdStartProxy, str, None] = None,
-            **kwargs: Any,
+        self,
+        input_type: Type[BaseModel],
+        output_type: Type[BaseModel],
+        endpoint: str,
+        max_batch_size: int = 8,
+        # all timeout args are in seconds
+        timeout_batching: float = 1,
+        timeout_keep_alive: int = 60,
+        timeout_inference_request: int = 60,
+        api_name: Optional[str] = "API",  # used for displaying the name in the UI
+        cold_start_proxy: Union[ColdStartProxy, str, None] = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(cloud_compute=CloudCompute("default"), **kwargs)
         self._input_type = input_type
@@ -181,10 +181,10 @@ class _LoadBalancer(LightningWork):
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                        f"{server_url}{self.endpoint}",
-                        json=batch_request_data.dict(),
-                        timeout=self._timeout_inference_request,
-                        headers=headers,
+                    f"{server_url}{self.endpoint}",
+                    json=batch_request_data.dict(),
+                    timeout=self._timeout_inference_request,
+                    headers=headers,
                 ) as response:
                     # resetting the server status so other requests can be
                     # scheduled on this node
@@ -373,9 +373,7 @@ class _LoadBalancer(LightningWork):
         old_server_urls = set(self.servers)
         # TODO _internal_ip should populate right value when running outside k8s or on a different cluster
         current_server_urls = {
-            f"http://{server._internal_ip}:{server.port}"
-            for server in server_works
-            if server._internal_ip
+            f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
         }
 
         # doing nothing if no server work has been added/removed
@@ -533,20 +531,20 @@ class AutoScaler(LightningFlow):
     """
 
     def __init__(
-            self,
-            work_cls: Type[LightningWork],
-            min_replicas: int = 1,
-            max_replicas: int = 4,
-            scale_out_interval: int = 10,
-            scale_in_interval: int = 10,
-            max_batch_size: int = 8,
-            timeout_batching: float = 1,
-            endpoint: str = "api/predict",
-            input_type: Type[BaseModel] = Dict,
-            output_type: Type[BaseModel] = Dict,
-            cold_start_proxy: Union[ColdStartProxy, str, None] = None,
-            *work_args: Any,
-            **work_kwargs: Any,
+        self,
+        work_cls: Type[LightningWork],
+        min_replicas: int = 1,
+        max_replicas: int = 4,
+        scale_out_interval: int = 10,
+        scale_in_interval: int = 10,
+        max_batch_size: int = 8,
+        timeout_batching: float = 1,
+        endpoint: str = "api/predict",
+        input_type: Type[BaseModel] = Dict,
+        output_type: Type[BaseModel] = Dict,
+        cold_start_proxy: Union[ColdStartProxy, str, None] = None,
+        *work_args: Any,
+        **work_kwargs: Any,
     ) -> None:
         super().__init__()
         self.num_replicas = 0
