@@ -8,9 +8,6 @@ import arrow
 import click
 import inquirer
 import rich
-
-import lightning_app.core.constants as constants
-
 from lightning_cloud.openapi import V1LightningappInstanceState, V1LightningworkState
 from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
