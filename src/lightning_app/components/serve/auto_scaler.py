@@ -252,7 +252,6 @@ class _LoadBalancer(LightningWork):
             request_id = uuid.uuid4().hex
         if not self.servers and not self._cold_start_proxy:
             # sleeping to trigger the scale up
-            await asyncio.sleep(10)
             raise HTTPException(503, "None of the workers are healthy!, try again in a few seconds")
 
         # if no servers are available, proxy the request to cold start proxy handler
@@ -371,7 +370,6 @@ class _LoadBalancer(LightningWork):
         AutoScaler uses this method to increase/decrease the number of works.
         """
         old_server_urls = set(self.servers)
-        # TODO _internal_ip should populate right value when running outside k8s or on a different cluster
         current_server_urls = {
             f"http://{server._internal_ip}:{server.port}" for server in server_works if server._internal_ip
         }
