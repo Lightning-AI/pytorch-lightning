@@ -345,7 +345,7 @@ class CloudRuntime(Runtime):
                 project_id=project.project_id
             ).lightningapps
 
-            # Seach for apps with the given name (possibly with some random characters appended)
+            # Search for apps with the given name (possibly with some random characters appended)
             pattern = re.escape(f"{app_name}-") + ".{4}"
             all_apps = [
                 lightningapp
@@ -453,10 +453,17 @@ class CloudRuntime(Runtime):
                 is_headless=_is_headless(self.app),
             )
 
+            # TODO: comment
+            if app_config.parent_release_id:
+                release_body.parent_release_id = app_config.parent_release_id
+
             # create / upload the new app release
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project_id=project.project_id, app_id=app_id, body=release_body
             )
+
+            # TODO: comment
+            app_config.parent_release_id = lightning_app_release.id
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
