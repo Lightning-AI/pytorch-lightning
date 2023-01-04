@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import ANY
-
 import pytest
 import torch
 
@@ -30,15 +28,15 @@ from pytorch_lightning.utilities.migration.utils import _get_version, _set_legac
     [
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best": 0.34},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.34}}, "loops": ANY},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.34}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_score": 0.99},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.99}}, "loops": ANY},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_score": 0.99}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "checkpoint_callback_best_model_path": "path"},
-            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_path": "path"}}, "loops": ANY},
+            {"epoch": 1, "global_step": 23, "callbacks": {ModelCheckpoint: {"best_model_path": "path"}}},
         ),
         (
             {"epoch": 1, "global_step": 23, "early_stop_callback_wait": 2, "early_stop_callback_patience": 4},
@@ -46,16 +44,15 @@ from pytorch_lightning.utilities.migration.utils import _get_version, _set_legac
                 "epoch": 1,
                 "global_step": 23,
                 "callbacks": {EarlyStopping: {"wait_count": 2, "patience": 4}},
-                "loops": ANY,
             },
         ),
     ],
 )
-def test_migrate_model_checkpoint_early_stopping(tmpdir, old_checkpoint, new_checkpoint):
+def test_migrate_model_checkpoint_early_stopping(old_checkpoint, new_checkpoint):
     _set_version(old_checkpoint, "0.9.0")
     _set_legacy_version(new_checkpoint, "0.9.0")
     _set_version(new_checkpoint, pl.__version__)
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.0.0")
     assert updated_checkpoint == old_checkpoint == new_checkpoint
     assert _get_version(updated_checkpoint) == pl.__version__
 
@@ -63,7 +60,7 @@ def test_migrate_model_checkpoint_early_stopping(tmpdir, old_checkpoint, new_che
 def test_migrate_loop_global_step_to_progress_tracking():
     old_checkpoint = {"global_step": 15, "epoch": 2}
     _set_version(old_checkpoint, "1.5.9")  # pretend a checkpoint prior to 1.6.0
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.6.0")
     # automatic optimization
     assert (
         updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]["optimizer"][
@@ -125,7 +122,7 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default(save_on_train_
     )
     old_checkpoint = {"callbacks": {legacy_state_key: {"dummy": 0}}, "global_step": 0, "epoch": 1}
     _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
-    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint)
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.9.0")
     assert updated_checkpoint["callbacks"] == {new_state_key: {"dummy": 0}}  # None -> None
 
 
@@ -147,7 +144,7 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
     }
     _set_version(old_checkpoint, "1.8.9")  # pretend a checkpoint prior to 1.9.0
     with pytest.warns(PossibleUserWarning, match="callback states in this checkpoint.* colliding with each other"):
-        updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy())
+        updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy(), target_version="1.9.0")
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
 
 
