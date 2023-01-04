@@ -2,6 +2,7 @@ import asyncio
 from typing import Any
 
 import aiohttp
+from diffusion_with_autoscaler.datatypes import Image, Text
 from fastapi import HTTPException
 from pydantic import BaseModel
 
@@ -44,10 +45,10 @@ class ColdStartProxy:
                     "Content-Type": "application/json",
                 }
                 async with session.post(
-                        self.proxy_url,
-                        json=request.dict(),
-                        timeout=self.proxy_timeout,
-                        headers=headers,
+                    self.proxy_url,
+                    json=request.dict(),
+                    timeout=self.proxy_timeout,
+                    headers=headers,
                 ) as response:
                     return await response.json()
         except Exception as ex:
