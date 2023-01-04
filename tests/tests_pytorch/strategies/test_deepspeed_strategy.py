@@ -564,9 +564,9 @@ class ModelParallelClassificationModel(LightningModule):
         self.num_blocks = num_blocks
         self.prepare_data_per_node = True
 
-        self.train_acc = Accuracy(task="multiclass")
-        self.valid_acc = Accuracy(task="multiclass")
-        self.test_acc = Accuracy(task="multiclass")
+        self.train_acc = Accuracy(task="multiclass", num_classes=3)
+        self.valid_acc = Accuracy(task="multiclass", num_classes=3)
+        self.test_acc = Accuracy(task="multiclass", num_classes=3)
 
     def make_block(self):
         return nn.Sequential(nn.Linear(32, 32, bias=False), nn.ReLU())
