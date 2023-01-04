@@ -89,15 +89,14 @@ class BoringModel(LightningModule):
                 def training_step(self, ...):
                     ...  # do your own thing
 
-                # disable hook
-                training_epoch_end = None
+                training_epoch_end = None  # disable hook
 
         or
 
         Example::
 
             model = BoringModel()
-            model.training_epoch_end = None
+            model.training_epoch_end = None  # disable hook
         """
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
