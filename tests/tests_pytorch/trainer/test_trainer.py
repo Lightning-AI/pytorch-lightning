@@ -1745,8 +1745,7 @@ def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
 
 class TestDummyModelForCheckpoint(BoringModel):
     def validation_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         self.log("x", loss)
 
     def validation_epoch_end(self, outputs) -> None:

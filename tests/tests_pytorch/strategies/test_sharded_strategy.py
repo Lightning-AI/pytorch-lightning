@@ -211,8 +211,7 @@ class ManualBoringModel(BoringModel):
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
         opt.zero_grad()
-        output = self(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         self.manual_backward(loss)
         opt.step()
         return {"loss": loss}

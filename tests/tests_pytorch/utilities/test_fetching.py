@@ -290,8 +290,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 self.log("train_loss", loss["loss"], batch_size=1)
             else:
                 opt = self.optimizers()
-                output = self(batch)
-                loss = self.loss(batch, output)
+                loss = self.step(batch)
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
@@ -366,8 +365,7 @@ class AsyncBoringModel(BoringModel):
 
         batch_i = self.batch_i_handle.wait()
 
-        pred = self.layer(batch_i)
-        loss = self.loss(batch_i, pred)
+        loss = self.step(batch_i)
         loss.backward()
         self.optimizers().step()
         self.optimizers().zero_grad()

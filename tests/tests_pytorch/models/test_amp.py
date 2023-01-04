@@ -27,25 +27,13 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
-    def _step(self, batch):
+    def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
         is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
         loss = self.loss(output)
         return loss
-
-    def training_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"loss": output}
-
-    def validation_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"x": output}
-
-    def test_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"y": output}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
