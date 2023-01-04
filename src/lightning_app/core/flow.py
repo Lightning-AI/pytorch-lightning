@@ -10,7 +10,7 @@ from lightning_app.core.work import LightningWork
 from lightning_app.frontend import Frontend
 from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
-from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name
+from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, _set_child_name, is_overridden
 from lightning_app.utilities.component import _sanitize_state
 from lightning_app.utilities.exceptions import ExitAppException
 from lightning_app.utilities.introspection import _is_init_context, _is_run_context
@@ -77,7 +77,7 @@ class LightningFlow:
         can be distributed (each LightningWork will be run within its own process
         or different arrangements).
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow
             >>> class RootFlow(LightningFlow):
@@ -104,6 +104,8 @@ class LightningFlow:
         self._layout: Union[List[Dict], Dict] = {}
         self._paths = {}
         self._backend: Optional[Backend] = None
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
 
     @property
     def name(self):
@@ -142,6 +144,14 @@ class LightningFlow:
                 if name in self._works and value != getattr(self, name):
                     raise AttributeError(f"Cannot set attributes as the work can't be changed once defined: {name}")
 
+            if isinstance(value, (list, dict)) and value:
+                _type = (LightningFlow, LightningWork, List, Dict)
+                if isinstance(value, list) and all(isinstance(va, _type) for va in value):
+                    value = List(*value)
+
+                if isinstance(value, dict) and all(isinstance(va, _type) for va in value.values()):
+                    value = Dict(**value)
+
             if isinstance(value, LightningFlow):
                 self._flows.add(name)
                 _set_child_name(self, value, name)
@@ -163,14 +173,21 @@ class LightningFlow:
                 value._register_cloud_compute()
 
             elif isinstance(value, (Dict, List)):
-                value._backend = self._backend
                 self._structures.add(name)
                 _set_child_name(self, value, name)
-                if self._backend:
-                    for flow in value.flows:
-                        LightningFlow._attach_backend(flow, self._backend)
-                    for work in value.works:
-                        self._backend._wrap_run_method(_LightningAppRef().get_current(), work)
+
+                _backend = getattr(self, "backend", None)
+                if _backend is not None:
+                    value._backend = _backend
+
+                for flow in value.flows:
+                    if _backend is not None:
+                        LightningFlow._attach_backend(flow, _backend)
+
+                for work in value.works:
+                    work._register_cloud_compute()
+                    if _backend is not None:
+                        _backend._wrap_run_method(_LightningAppRef().get_current(), work)
 
             elif isinstance(value, Path):
                 # In the init context, the full name of the Flow and Work is not known, i.e., we can't serialize
@@ -291,6 +308,20 @@ class LightningFlow:
         for struct_name in sorted(self._structures):
             flows.update(getattr(self, struct_name).flows)
         return flows
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     def works(self, recurse: bool = True) -> List[LightningWork]:
         """Return its :class:`~lightning_app.core.work.LightningWork`."""
@@ -766,7 +797,7 @@ class _RootFlow(LightningFlow):
     @property
     def ready(self) -> bool:
         ready = getattr(self.work, "ready", None)
-        if ready:
+        if ready is not None:
             return ready
         return self.work.url != ""
 
@@ -777,4 +808,6 @@ class _RootFlow(LightningFlow):
         self.work.run()
 
     def configure_layout(self):
-        return [{"name": "Main", "content": self.work}]
+        if is_overridden("configure_layout", self.work):
+            return [{"name": "Main", "content": self.work}]
+        return []

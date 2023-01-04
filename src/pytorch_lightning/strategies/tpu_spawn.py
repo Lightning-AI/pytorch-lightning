@@ -22,12 +22,12 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
-from lightning_lite.plugins.environments import XLAEnvironment
-from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.optimizer import _optimizers_to_device
-from lightning_lite.utilities.types import _PATH, ReduceOp
+from lightning_fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning_fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning_fabric.plugins.environments import XLAEnvironment
+from lightning_fabric.utilities.data import has_len
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.utilities.types import _PATH, ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -289,20 +289,22 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """
-        Function to gather a tensor from several distributed processes
+        """Function to gather a tensor from several distributed processes.
+
         Args:
             tensor: tensor of shape (batch, ...)
             group: not available with TPUs
-            sync_grads: not available with TPUs
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
         Return:
             A tensor of shape (world_size, batch, ...)
         """
         if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
+
+        import torch_xla.core.functions as xf
         import torch_xla.core.xla_model as xm
 
-        return xm.all_gather(tensor)
+        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def teardown(self) -> None:
         super().teardown()

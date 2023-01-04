@@ -29,9 +29,9 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from typing_extensions import Self
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import _load as pl_load
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.types import _MAP_LOCATION_TYPE, _PATH
+from lightning_fabric.utilities.cloud_io import _load as pl_load
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.types import _MAP_LOCATION_TYPE, _PATH
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint

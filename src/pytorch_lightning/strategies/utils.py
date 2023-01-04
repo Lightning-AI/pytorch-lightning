@@ -16,11 +16,12 @@ import os
 from inspect import getmembers, isclass
 
 import torch
+from torch import Tensor
 
-from lightning_lite.plugins.precision.utils import _convert_fp_tensor
-from lightning_lite.strategies import _StrategyRegistry
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.registry import _is_register_method_overridden
+from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
+from lightning_fabric.strategies import _StrategyRegistry
+from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.registry import _is_register_method_overridden
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
@@ -40,7 +41,7 @@ def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> 
             mod.register_strategies(registry)
 
 
-def _fp_to_half(tensor: torch.Tensor, precision: PrecisionType) -> torch.Tensor:
+def _fp_to_half(tensor: Tensor, precision: PrecisionType) -> Tensor:
     if precision == PrecisionType.HALF:
         return _convert_fp_tensor(tensor, torch.half)
     if precision == PrecisionType.BFLOAT:

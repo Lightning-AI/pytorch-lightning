@@ -149,7 +149,7 @@ class LightningLoggerVisitor(LightningVisitor):
         Names of methods that are part of the Logger API.
     """
 
-    class_name = "LightningLoggerBase"
+    class_name = "Logger"
 
     methods: Set[str] = {"log_hyperparams", "log_metrics"}
 
@@ -248,10 +248,6 @@ class LightningAcceleratorVisitor(LightningVisitor):
     class_name = "Accelerator"
 
 
-class LightningLoggerBaseVisitor(LightningVisitor):
-    class_name = "LightningLoggerBase"
-
-
 class LightningLoopVisitor(LightningVisitor):
     class_name = "Loop"
 
@@ -260,12 +256,16 @@ class TorchMetricVisitor(LightningVisitor):
     class_name = "Metric"
 
 
-class LightningLiteVisitor(LightningVisitor):
+class LightningLiteVisitor(LightningVisitor):  # deprecated
     class_name = "LightningLite"
 
 
-class LightningBaseProfilerVisitor(LightningVisitor):
-    class_name = "BaseProfiler"
+class FabricVisitor(LightningVisitor):
+    class_name = "Fabric"
+
+
+class LightningProfilerVisitor(LightningVisitor):
+    class_name = "Profiler"
 
 
 class Scanner:
@@ -295,11 +295,12 @@ class Scanner:
         LightningStrategyVisitor,
         LightningPrecisionPluginVisitor,
         LightningAcceleratorVisitor,
-        LightningLoggerBaseVisitor,
+        LightningLoggerVisitor,
         LightningLoopVisitor,
         TorchMetricVisitor,
-        LightningLiteVisitor,
-        LightningBaseProfilerVisitor,
+        LightningLiteVisitor,  # deprecated
+        FabricVisitor,
+        LightningProfilerVisitor,
     ]
 
     def __init__(self, path: str, glob_pattern: str = "**/*.py"):

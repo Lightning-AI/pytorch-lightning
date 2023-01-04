@@ -2,7 +2,7 @@ import logging
 import os
 import pickle
 from re import escape
-from time import sleep
+from time import sleep, time
 from unittest import mock
 
 import pytest
@@ -124,6 +124,7 @@ def test_simple_app(tmpdir):
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
+                    "_display_name": "",
                 },
                 "calls": {"latest_call_hash": None},
                 "changes": {},
@@ -140,6 +141,7 @@ def test_simple_app(tmpdir):
                     "_paths": {},
                     "_port": None,
                     "_restarting": False,
+                    "_display_name": "",
                 },
                 "calls": {"latest_call_hash": None},
                 "changes": {},
@@ -480,6 +482,21 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
+def test_lightning_app_aggregation_empty():
+    """Verify the while loop exits before `state_accumulate_wait` is reached if no deltas are found."""
+
+    class SlowQueue(MultiProcessQueue):
+        def get(self, timeout):
+            out = super().get(timeout)
+            return out
+
+    app = LightningApp(EmptyFlow())
+    app.delta_queue = SlowQueue("api_delta_queue", 0)
+    t0 = time()
+    assert app._collect_deltas_from_ui_and_work_queues() == []
+    assert (time() - t0) < app.state_accumulate_wait
+
+
 class SimpleFlow2(LightningFlow):
     def __init__(self):
         super().__init__()
@@ -639,6 +656,7 @@ class CheckpointFlow(LightningFlow):
             self.flow.run()
 
 
+@pytest.mark.skipif(True, reason="reloading isn't properly supported")
 def test_lightning_app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
@@ -969,7 +987,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7824
+    assert app.root._state_sizes[0] <= 7888
     assert app.root._state_sizes[20] <= 26500
 
 

@@ -15,7 +15,7 @@ import os
 import sys
 from functools import partial, update_wrapper
 from types import MethodType
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -23,7 +23,8 @@ from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -49,9 +50,6 @@ else:
     locals()["Namespace"] = object
 
 
-ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
-
-
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
     def __init__(self, optimizer: Optimizer, monitor: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(optimizer, *args, **kwargs)
@@ -59,9 +57,15 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
 
 
 # LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
-LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
-LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
-LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
+LRSchedulerTypeTuple = (_TORCH_LRSCHEDULER, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[_TORCH_LRSCHEDULER], Type[ReduceLROnPlateau]]
+
+
+# Type aliases intended for convenience of CLI developers
+ArgsType = Optional[Union[List[str], Dict[str, Any], Namespace]]
+OptimizerCallable = Callable[[Iterable], Optimizer]
+LRSchedulerCallable = Callable[[Optimizer], Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -274,7 +278,7 @@ class LightningCLI:
         subclass_mode_data: bool = False,
         args: ArgsType = None,
         run: bool = True,
-        auto_registry: bool = False,
+        auto_configure_optimizers: bool = True,
         **kwargs: Any,  # Remove with deprecations of v1.10
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
@@ -303,7 +307,7 @@ class LightningCLI:
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
+            seed_everything_default: Number for the :func:`~lightning_fabric.utilities.seed.seed_everything`
                 seed value. Set to True to automatically choose a seed value.
                 Setting it to False will avoid calling ``seed_everything``.
             parser_kwargs: Additional arguments to instantiate each ``LightningArgumentParser``.
@@ -318,7 +322,6 @@ class LightningCLI:
                 ``dict`` or ``jsonargparse.Namespace``.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
-            auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
         self.save_config_kwargs = save_config_kwargs or {}
@@ -326,6 +329,7 @@ class LightningCLI:
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
         self.parser_kwargs = parser_kwargs or {}  # type: ignore[var-annotated]  # github.com/python/mypy/issues/6463
+        self.auto_configure_optimizers = auto_configure_optimizers
 
         self._handle_deprecated_params(kwargs)
 
@@ -338,10 +342,6 @@ class LightningCLI:
         # used to differentiate between the original value and the processed value
         self._datamodule_class = datamodule_class or LightningDataModule
         self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
-
-        from pytorch_lightning.utilities.cli import _populate_registries
-
-        _populate_registries(auto_registry)
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(self.parser_kwargs)
         self.setup_parser(run, main_kwargs, subparser_kwargs)
@@ -358,22 +358,14 @@ class LightningCLI:
             self._run_subcommand(self.subcommand)
 
     def _handle_deprecated_params(self, kwargs: dict) -> None:
-        if self.seed_everything_default is None:
+        for name in kwargs.keys() & ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
+            value = kwargs.pop(name)
+            key = name.replace("save_config_", "").replace("filename", "config_filename")
+            self.save_config_kwargs[key] = value
             rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
+                f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
+                f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
             )
-            self.seed_everything_default = False
-
-        for name in ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
-            if name in kwargs:
-                value = kwargs.pop(name)
-                key = name.replace("save_config_", "").replace("filename", "config_filename")
-                self.save_config_kwargs[key] = value
-                rank_zero_deprecation(
-                    f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
-                    f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
-                )
 
         for name in kwargs.keys() & ["description", "env_prefix", "env_parse"]:
             value = kwargs.pop(name)
@@ -447,10 +439,11 @@ class LightningCLI:
         self.add_core_arguments_to_parser(parser)
         self.add_arguments_to_parser(parser)
         # add default optimizer args if necessary
-        if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_optimizer_args((Optimizer,))
-        if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
+        if self.auto_configure_optimizers:
+            if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
+                parser.add_optimizer_args((Optimizer,))
+            if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
+                parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -602,6 +595,9 @@ class LightningCLI:
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
         """Overrides the model's :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` method
         if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        if not self.auto_configure_optimizers:
+            return
+
         parser = self._parser(subcommand)
 
         def get_automatic(

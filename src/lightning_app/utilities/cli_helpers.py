@@ -69,6 +69,7 @@ def _get_metadata_from_openapi(paths: Dict, path: str):
     cls_name = paths[path]["post"].get("cls_name", None)
     description = paths[path]["post"].get("description", None)
     requirements = paths[path]["post"].get("requirements", None)
+    app_info = paths[path]["post"].get("app_info", None)
 
     metadata = {"tag": tag, "parameters": {}}
 
@@ -83,6 +84,9 @@ def _get_metadata_from_openapi(paths: Dict, path: str):
 
     if description:
         metadata["requirements"] = requirements
+
+    if app_info:
+        metadata["app_info"] = app_info
 
     if not parameters:
         return metadata
@@ -254,7 +258,7 @@ def _get_newer_version() -> Optional[str]:
         return None if __version__ == latest_version else latest_version
     except Exception:
         # Return None if any exception occurs
-        return "err"
+        return None
 
 
 def _redirect_command(executable: str):
@@ -277,7 +281,7 @@ def _check_version_and_upgrade():
         prompt = f"A newer version of {__package_name__} is available ({new_version}). Would you like to upgrade?"
 
         if click.confirm(prompt, default=True):
-            command = f"pip install --upgrade {__package_name__}"
+            command = f"pip install {__package_name__}=={new_version}"
 
             logger.info(f"⚡ RUN: {command}")
 

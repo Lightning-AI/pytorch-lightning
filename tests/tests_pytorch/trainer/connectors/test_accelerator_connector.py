@@ -22,7 +22,7 @@ import torch
 import torch.distributed
 
 import pytorch_lightning
-from lightning_lite.plugins.environments import (
+from lightning_fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
@@ -221,8 +221,8 @@ def test_custom_accelerator(cuda_count_0):
         ),
     ],
 )
-@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
-@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
+@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
+@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
     with mock.patch.dict(os.environ, env_vars, clear=True):
         trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
@@ -432,9 +432,9 @@ def test_validate_precision_type(precision):
 
 
 def test_amp_level_raises_error_with_native():
-    with pytest.deprecated_call(
-        match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"
-    ), pytest.raises(MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"):
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"), pytest.raises(
+        MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"
+    ):
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 

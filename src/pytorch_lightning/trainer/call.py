@@ -15,7 +15,7 @@ import traceback
 from typing import Any, Callable
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.distributed import _distributed_available
+from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn

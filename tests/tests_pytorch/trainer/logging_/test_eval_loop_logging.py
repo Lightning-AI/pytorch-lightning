@@ -23,6 +23,7 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from torch import Tensor
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -72,8 +73,8 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -115,8 +116,8 @@ def test__validation_step__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     assert set(trainer.callback_metrics) == {"a", "b", "b_epoch", "c", "d", "d_epoch", "g", "b_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -149,8 +150,8 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
     assert callback_metrics == (logged_metrics | pbar_metrics)
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -765,7 +766,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
             return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1, logger=TensorBoardLogger(tmpdir))
     results = trainer.test(model)
 
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
@@ -997,6 +998,7 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
         limit_train_batches=1,
         limit_val_batches=limit_batches,
         limit_test_batches=limit_batches,
+        logger=TensorBoardLogger(tmpdir),
     )
     model = CustomBoringModel()
 

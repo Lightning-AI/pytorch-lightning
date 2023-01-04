@@ -22,6 +22,8 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
@@ -29,10 +31,10 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset, RandomDictDataset
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test__training_step__log(tmpdir):
@@ -95,8 +97,8 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -135,8 +137,8 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -179,8 +181,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -723,13 +725,12 @@ def test_sanity_metrics_are_reset(tmpdir):
 @RunIf(min_cuda_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
+        def on_before_backward(self, loss: Tensor) -> None:
             assert loss.device.type == "cuda"
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        amp_backend="native",
         precision=16,
         move_metrics_to_cpu=True,
         accelerator="gpu",
@@ -798,6 +799,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -831,6 +833,7 @@ def test_log_on_train_start(mock_log_metrics, tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
         enable_progress_bar=False,
+        logger=TensorBoardLogger(tmpdir),
     )
     trainer.fit(model)
 
@@ -844,5 +847,5 @@ def test_unsqueezed_tensor_logging():
     trainer.state.stage = RunningStage.TRAINING
     model._current_fx_name = "training_step"
     model.trainer = trainer
-    model.log("foo", torch.Tensor([1.2]))
+    model.log("foo", Tensor([1.2]))
     assert trainer.callback_metrics["foo"].ndim == 0

@@ -20,11 +20,13 @@ from unittest import mock
 import pytest
 import torch
 import torchmetrics
+from lightning_utilities.test.warning import no_warning_call
+from torch import Tensor
 from torch.nn import ModuleDict, ModuleList
 from torchmetrics import Metric, MetricCollection
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -36,7 +38,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
 )
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
 
 
 class DummyMetric(Metric):
@@ -662,7 +663,7 @@ def test_logger_sync_dist(distributed_env, log_val):
     # self.log('bar', 0.5, ..., sync_dist=False)
     meta = _Metadata("foo", "bar")
     meta.sync = _Sync(_should=False)
-    is_tensor = isinstance(log_val, torch.Tensor)
+    is_tensor = isinstance(log_val, Tensor)
 
     if not is_tensor:
         log_val.update(torch.tensor([0, 1]), torch.tensor([0, 0], dtype=torch.long))

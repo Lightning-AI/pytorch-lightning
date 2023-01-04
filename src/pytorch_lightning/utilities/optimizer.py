@@ -14,8 +14,8 @@
 
 from typing import Any
 
-from lightning_lite.utilities.optimizer import _optimizer_to_device as new_optimizer_to_device
-from lightning_lite.utilities.optimizer import _optimizers_to_device as new_optimizers_to_device
+from lightning_fabric.utilities.optimizer import _optimizer_to_device as new_optimizer_to_device
+from lightning_fabric.utilities.optimizer import _optimizers_to_device as new_optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 

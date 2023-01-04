@@ -1,4 +1,6 @@
+import importlib
 import os
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Type
 
@@ -19,7 +21,7 @@ class _LiteWorkProtocol(Protocol):
 
 
 @dataclass
-class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
+class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
     @staticmethod
     def run(
         local_rank: int,
@@ -30,8 +32,19 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        from lightning.lite import LightningLite
-        from lightning.lite.strategies import DDPSpawnShardedStrategy, DDPSpawnStrategy
+        fabrics = []
+        strategies = []
+        mps_accelerators = []
+
+        for pkg_name in ("lightning.fabric", "lightning_" + "fabric"):
+            try:
+                pkg = importlib.import_module(pkg_name)
+                fabrics.append(pkg.Fabric)
+                strategies.append(pkg.strategies.DDPShardedStrategy)
+                strategies.append(pkg.strategies.DDPStrategy)
+                mps_accelerators.append(pkg.accelerators.MPSAccelerator)
+            except (ImportError, ModuleNotFoundError):
+                continue
 
         # Used to configure PyTorch progress group
         os.environ["MASTER_ADDR"] = main_address
@@ -52,7 +65,15 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         def pre_fn(lite, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
-            kwargs["accelerator"] = "auto"
+
+            if any(acc.is_available() for acc in mps_accelerators):
+                old_acc_value = kwargs.get("accelerator", "auto")
+                kwargs["accelerator"] = "cpu"
+
+                if old_acc_value != kwargs["accelerator"]:
+                    warnings.warn("Forcing `accelerator=cpu` as MPS does not support distributed training.")
+            else:
+                kwargs["accelerator"] = "auto"
             strategy = kwargs.get("strategy", None)
             if strategy:
                 if isinstance(strategy, str):
@@ -60,15 +81,20 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
                         strategy = "ddp"
                     elif strategy == "ddp_sharded_spawn":
                         strategy = "ddp_sharded"
-                elif isinstance(strategy, (DDPSpawnStrategy, DDPSpawnShardedStrategy)):
-                    raise Exception("DDP Spawned strategies aren't supported yet.")
+                elif isinstance(strategy, tuple(strategies)) and strategy._start_method in ("spawn", "fork"):
+                    raise ValueError("DDP Spawned strategies aren't supported yet.")
+
+            kwargs["strategy"] = strategy
+
             return {}, args, kwargs
 
         tracer = Tracer()
-        tracer.add_traced(LightningLite, "__init__", pre_fn=pre_fn)
+        for lf in fabrics:
+            tracer.add_traced(lf, "__init__", pre_fn=pre_fn)
         tracer._instrument()
-        work_run()
+        ret_val = work_run()
         tracer._restore()
+        return ret_val
 
 
 class LiteMultiNode(MultiNode):
@@ -84,7 +110,7 @@ class LiteMultiNode(MultiNode):
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.
-        work_cls._run_executor_cls = _LiteRunExecutor
+        work_cls._run_executor_cls = _FabricRunExecutor
 
         super().__init__(
             work_cls,

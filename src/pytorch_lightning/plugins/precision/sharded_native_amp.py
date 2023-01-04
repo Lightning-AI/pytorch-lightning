@@ -13,8 +13,8 @@
 # limitations under the License.
 from typing import Optional, Union
 
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -24,7 +24,7 @@ else:
     OSS = ShardedGradScaler = object
 
 
-class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
+class ShardedNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Native AMP for Sharded Training."""
 
     def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:

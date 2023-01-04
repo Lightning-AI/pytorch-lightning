@@ -29,6 +29,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMPr
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -706,6 +707,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
         enable_checkpointing=False,
         log_every_n_steps=1,
         callbacks=pbar,
+        logger=CSVLogger(tmpdir),
     )
 
     trainer.fit(model)

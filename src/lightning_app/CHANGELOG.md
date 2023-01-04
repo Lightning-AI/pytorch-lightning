@@ -8,32 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added the CLI command `lightning run model` to launch a `LightningLite` accelerated script ([#15506](https://github.com/Lightning-AI/lightning/pull/15506))
-
-- Added the CLI command `lightning delete app` to delete a lightning app on the cloud ([#15783](https://github.com/Lightning-AI/lightning/pull/15783))
-
-- Show a message when `BuildConfig(requirements=[...])` is passed but a `requirements.txt` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
-
-- Show a message when `BuildConfig(dockerfile="...")` is passed but a `Dockerfile` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
-
-- Added a CloudMultiProcessBackend which enables running a child App from within the Flow in the cloud ([#15800](https://github.com/Lightning-AI/lightning/pull/15800))
-
-- Added `AutoScaler` component ([#15769](https://github.com/Lightning-AI/lightning/pull/15769))
-
-- Added the property `ready` of the LightningFlow to inform when the `Open App` should be visible ([#15921](https://github.com/Lightning-AI/lightning/pull/15921))
-
-- Added private work attributed `_start_method` to customize how to start the works ([#15923](https://github.com/Lightning-AI/lightning/pull/15923))
+- Added a possibility to set up basic authentication for Lightning apps ([#16105](https://github.com/Lightning-AI/lightning/pull/16105))
 
 
 ### Changed
 
-- The `MultiNode` components now warn the user when running with `num_nodes > 1` locally ([#15806](https://github.com/Lightning-AI/lightning/pull/15806))
 
-- Cluster creation and deletion now waits by default [#15458](https://github.com/Lightning-AI/lightning/pull/15458)
-
-- Running an app without a UI locally no longer opens the browser ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
-
-- Apps without UIs no longer activate the "Open App" button when running in the cloud ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
+- The LoadBalancer now uses internal ip + port instead of URL exposed ([#16119](https://github.com/Lightning-AI/lightning/pull/16119))
 
 
 ### Deprecated
@@ -43,30 +24,128 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed the `SingleProcessRuntime` ([#15933](https://github.com/Lightning-AI/lightning/pull/15933))
+-
 
 
 ### Fixed
 
-- Fixed SSH CLI command listing stopped components ([#15810](https://github.com/Lightning-AI/lightning/pull/15810))
+-
 
 
-- Fixed the work not stopped when successful when passed directly to the LightningApp ([#15801](https://github.com/Lightning-AI/lightning/pull/15801))
+## [1.8.6] - 2022-12-21
 
+### Added
 
-- Fixed the `enable_spawn` method of the `WorkRunExecutor` ([#15812](https://github.com/Lightning-AI/lightning/pull/15812)
-
-- Fixed Sigterm Handler causing thread lock which caused KeyboardInterrupt to hang ([#15881](https://github.com/Lightning-AI/lightning/pull/15881))
-
-- Fixed a bug where using `L.app.structures` would cause multiple apps to be opened and fail with an error in the cloud ([#15911](https://github.com/Lightning-AI/lightning/pull/15911))
-
-
-## [1.8.3] - 2022-11-22
+- Added partial support for fastapi `Request` annotation in `configure_api` handlers ([#16047](https://github.com/Lightning-AI/lightning/pull/16047))
+- Added a nicer UI with URL and examples for the autoscaler component ([#16063](https://github.com/Lightning-AI/lightning/pull/16063))
+- Enabled users to have more control over scaling out/in interval ([#16093](https://github.com/Lightning-AI/lightning/pull/16093))
+- Added more datatypes to serving component ([#16018](https://github.com/Lightning-AI/lightning/pull/16018))
+- Added `work.delete` method to delete the work ([#16103](https://github.com/Lightning-AI/lightning/pull/16103))
+- Added `display_name` property to LightningWork for the cloud ([#16095](https://github.com/Lightning-AI/lightning/pull/16095))
+- Added `ColdStartProxy` to the AutoScaler ([#16094](https://github.com/Lightning-AI/lightning/pull/16094))
+- Added status endpoint, enable `ready` ([#16075](https://github.com/Lightning-AI/lightning/pull/16075))
+- Implemented `ready` for components ([#16129](https://github.com/Lightning-AI/lightning/pull/16129))
 
 ### Changed
 
-- Temporarily removed support for Hydra multi-run ([#15737](https://github.com/Lightning-AI/lightning/pull/15737))
-- Switch from `tensorboard` to `tensorboardx` in `TensorBoardLogger` ([#15728](https://github.com/Lightning-AI/lightning/pull/15728))
+- The default `start_method` for creating Work processes locally on MacOS is now 'spawn' (previously 'fork') ([#16089](https://github.com/Lightning-AI/lightning/pull/16089))
+- The utility `lightning.app.utilities.cloud.is_running_in_cloud` now returns `True` during loading of the app locally when running with `--cloud` ([#16045](https://github.com/Lightning-AI/lightning/pull/16045))
+- Updated Multinode Warning ([#16091](https://github.com/Lightning-AI/lightning/pull/16091))
+- Updated app testing ([#16000](https://github.com/Lightning-AI/lightning/pull/16000))
+- Changed overwrite to `True` ([#16009](https://github.com/Lightning-AI/lightning/pull/16009))
+- Simplified messaging in cloud dispatch ([#16160](https://github.com/Lightning-AI/lightning/pull/16160))
+- Added annotations endpoint ([#16159](https://github.com/Lightning-AI/lightning/pull/16159))
+
+### Fixed
+
+- Fixed `PythonServer` messaging "Your app has started" ([#15989](https://github.com/Lightning-AI/lightning/pull/15989))
+- Fixed auto-batching to enable batching for requests coming even after batch interval but is in the queue ([#16110](https://github.com/Lightning-AI/lightning/pull/16110))
+- Fixed a bug where `AutoScaler` would fail with min_replica=0 ([#16092](https://github.com/Lightning-AI/lightning/pull/16092)
+- Fixed a non-thread safe deepcopy in the scheduler ([#16114](https://github.com/Lightning-AI/lightning/pull/16114))
+- Fixed Http Queue sleeping for 1 sec by default if no delta were found ([#16114](https://github.com/Lightning-AI/lightning/pull/16114))
+- Fixed the endpoint info tab not showing up in `AutoScaler` UI ([#16128](https://github.com/Lightning-AI/lightning/pull/16128))
+- Fixed an issue where an exception would be raised in the logs when using a recent version of streamlit ([#16139](https://github.com/Lightning-AI/lightning/pull/16139))
+- Fixed e2e tests ([#16146](https://github.com/Lightning-AI/lightning/pull/16146))
+
+
+## [1.8.5] - 2022-12-15
+
+### Added
+
+- Added `Lightning{Flow,Work}.lightningignores` attributes to programmatically ignore files before uploading to the cloud ([#15818](https://github.com/Lightning-AI/lightning/pull/15818))
+- Added a progres bar while connecting to an app through the CLI ([#16035](https://github.com/Lightning-AI/lightning/pull/16035))
+- Support running on multiple clusters ([#16016](https://github.com/Lightning-AI/lightning/pull/16016))
+- Added guards to cluster deletion from cli ([#16053](https://github.com/Lightning-AI/lightning/pull/16053))
+
+### Changed
+
+- Cleanup cluster waiting ([#16054](https://github.com/Lightning-AI/lightning/pull/16054))
+
+### Fixed
+
+- Fixed `DDPStrategy` import in app framework ([#16029](https://github.com/Lightning-AI/lightning/pull/16029))
+- Fixed `AutoScaler` raising an exception when non-default cloud compute is specified ([#15991](https://github.com/Lightning-AI/lightning/pull/15991))
+- Fixed and improvements of login flow ([#16052](https://github.com/Lightning-AI/lightning/pull/16052))
+- Fixed the debugger detection mechanism for lightning App in VSCode ([#16068](https://github.com/Lightning-AI/lightning/pull/16068))
+- Fixed bug where components that are re-instantiated several times failed to initialize if they were modifying `self.lightningignore` ([#16080](https://github.com/Lightning-AI/lightning/pull/16080))
+- Fixed a bug where apps that had previously been deleted could not be run again from the CLI ([#16082](https://github.com/Lightning-AI/lightning/pull/16082))
+- Fixed install/upgrade - removing single quote ([#16079](https://github.com/Lightning-AI/lightning/pull/16079))
+
+
+## [1.8.4] - 2022-12-08
+
+### Added
+
+- Add `code_dir` argument to tracer run ([#15771](https://github.com/Lightning-AI/lightning/pull/15771))
+- Added the CLI command `lightning run model` to launch a `LightningLite` accelerated script ([#15506](https://github.com/Lightning-AI/lightning/pull/15506))
+- Added the CLI command `lightning delete app` to delete a lightning app on the cloud ([#15783](https://github.com/Lightning-AI/lightning/pull/15783))
+- Added a CloudMultiProcessBackend which enables running a child App from within the Flow in the cloud ([#15800](https://github.com/Lightning-AI/lightning/pull/15800))
+- Utility for pickling work object safely even from a child process ([#15836](https://github.com/Lightning-AI/lightning/pull/15836))
+- Added `AutoScaler` component (
+   [#15769](https://github.com/Lightning-AI/lightning/pull/15769),
+   [#15971](https://github.com/Lightning-AI/lightning/pull/15971),
+   [#15966](https://github.com/Lightning-AI/lightning/pull/15966)
+)
+- Added the property `ready` of the LightningFlow to inform when the `Open App` should be visible ([#15921](https://github.com/Lightning-AI/lightning/pull/15921))
+- Added private work attributed `_start_method` to customize how to start the works ([#15923](https://github.com/Lightning-AI/lightning/pull/15923))
+- Added a `configure_layout` method to the `LightningWork` which can be used to control how the work is handled in the layout of a parent flow ([#15926](https://github.com/Lightning-AI/lightning/pull/15926))
+- Added the ability to run a Lightning App or Component directly from the Gallery using `lightning run app organization/name` ([#15941](https://github.com/Lightning-AI/lightning/pull/15941))
+- Added automatic conversion of list and dict of works and flows to structures ([#15961](https://github.com/Lightning-AI/lightning/pull/15961))
+
+### Changed
+
+- The `MultiNode` components now warn the user when running with `num_nodes > 1` locally ([#15806](https://github.com/Lightning-AI/lightning/pull/15806))
+- Cluster creation and deletion now waits by default [#15458](https://github.com/Lightning-AI/lightning/pull/15458)
+- Running an app without a UI locally no longer opens the browser ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
+- Show a message when `BuildConfig(requirements=[...])` is passed but a `requirements.txt` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
+- Show a message when `BuildConfig(dockerfile="...")` is passed but a `Dockerfile` file is already present in the Work ([#15799](https://github.com/Lightning-AI/lightning/pull/15799))
+- Dropped name column from cluster list ([#15721](https://github.com/Lightning-AI/lightning/pull/15721))
+- Apps without UIs no longer activate the "Open App" button when running in the cloud ([#15875](https://github.com/Lightning-AI/lightning/pull/15875))
+- Wait for full file to be transferred in Path / Payload ([#15934](https://github.com/Lightning-AI/lightning/pull/15934))
+
+### Removed
+
+- Removed the `SingleProcessRuntime` ([#15933](https://github.com/Lightning-AI/lightning/pull/15933))
+
+### Fixed
+
+- Fixed SSH CLI command listing stopped components ([#15810](https://github.com/Lightning-AI/lightning/pull/15810))
+- Fixed bug when launching apps on multiple clusters ([#15484](https://github.com/Lightning-AI/lightning/pull/15484))
+- Fixed Sigterm Handler causing thread lock which caused KeyboardInterrupt to hang ([#15881](https://github.com/Lightning-AI/lightning/pull/15881))
+- Fixed MPS error for multinode component (defaults to cpu on mps devices now as distributed operations are not supported by pytorch on mps) ([#15748](https://github.com/Lightning-AI/lightning/pull/15748))
+- Fixed the work not stopped when successful when passed directly to the LightningApp ([#15801](https://github.com/Lightning-AI/lightning/pull/15801))
+- Fixed the PyTorch Inference locally on GPU ([#15813](https://github.com/Lightning-AI/lightning/pull/15813))
+- Fixed the `enable_spawn` method of the `WorkRunExecutor` ([#15812](https://github.com/Lightning-AI/lightning/pull/15812))
+- Fixed require/import decorator ([#15849](https://github.com/Lightning-AI/lightning/pull/15849))
+- Fixed a bug where using `L.app.structures` would cause multiple apps to be opened and fail with an error in the cloud ([#15911](https://github.com/Lightning-AI/lightning/pull/15911))
+- Fixed PythonServer generating noise on M1 ([#15949](https://github.com/Lightning-AI/lightning/pull/15949))
+- Fixed multiprocessing breakpoint ([#15950](https://github.com/Lightning-AI/lightning/pull/15950))
+- Fixed detection of a Lightning App running in debug mode ([#15951](https://github.com/Lightning-AI/lightning/pull/15951))
+- Fixed `ImportError` on Multinode if package not present ([#15963](https://github.com/Lightning-AI/lightning/pull/15963))
+- Fixed MultiNode Component to use separate cloud computes ([#15965](https://github.com/Lightning-AI/lightning/pull/15965))
+- Fixed Registration for CloudComputes of Works in `L.app.structures` ([#15964](https://github.com/Lightning-AI/lightning/pull/15964))
+- Fixed a bug where auto-upgrading to the latest lightning via the CLI could get stuck in a loop ([#15984](https://github.com/Lightning-AI/lightning/pull/15984))
+
 
 ## [1.8.3] - 2022-11-22
 
@@ -112,9 +191,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [1.8.1] - 2022-11-10
 
-- Fixed bug when launching apps on multiple clusters ([#15484](https://github.com/Lightning-AI/lightning/pull/15484))
-
-
 ### Added
 
 - Added the `start` method to the work ([#15523](https://github.com/Lightning-AI/lightning/pull/15523))
@@ -144,11 +220,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed bug with Multi Node Component and add some examples ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 - Fixed a bug where payload would take a very long time locally ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 - Fixed an issue with the `lightning` CLI taking a long time to error out when the cloud is not reachable ([#15412](https://github.com/Lightning-AI/lightning/pull/15412))
-
-- Fixed bi-directional queues sending delta with Drive Component name changes ([#15642](https://github.com/Lightning-AI/lightning/pull/15642))
-
-
-- Fixed CloudRuntime works collection with structures and accelerated multi node startup time ([#15650](https://github.com/Lightning-AI/lightning/pull/15650))
 
 
 ## [1.8.0] - 2022-11-01
@@ -211,18 +282,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Application storage prefix moved from `app_id` to `project_id/app_id` (#14583)
-- LightningCloud client calls to use keyword arguments instead of positional arguments (#14685)
+- Application storage prefix moved from `app_id` to `project_id/app_id` ([#14583](https://github.com/Lightning-AI/lightning/pull/14583))
+- LightningCloud client calls to use keyword arguments instead of positional arguments ([#14685](https://github.com/Lightning-AI/lightning/pull/14685))
 
 ### Fixed
 
-- Making `threadpool` non-default from LightningCloud client  (#14757)
-- Resolved a bug where the state change detection using DeepDiff won't work with Path, Drive objects (#14465)
-- Resolved a bug where the wrong client was passed to collect cloud logs (#14684)
-- Resolved the memory leak issue with the Lightning Cloud package and bumped the requirements to use the latest version (#14697)
-- Fixing 5000 log line limitation for Lightning AI BYOC cluster logs (#14458)
-- Fixed a bug where the uploaded command file wasn't properly parsed (#14532)
-- Resolved `LightningApp(..., debug=True)` (#14464)
+- Making `threadpool` non-default from LightningCloud client  ([#14757](https://github.com/Lightning-AI/lightning/pull/14757))
+- Resolved a bug where the state change detection using DeepDiff won't work with Path, Drive objects ([#14465](https://github.com/Lightning-AI/lightning/pull/14465))
+- Resolved a bug where the wrong client was passed to collect cloud logs ([#14684](https://github.com/Lightning-AI/lightning/pull/14684))
+- Resolved the memory leak issue with the Lightning Cloud package and bumped the requirements to use the latest version ([#14697](https://github.com/Lightning-AI/lightning/pull/14697))
+- Fixing 5000 log line limitation for Lightning AI BYOC cluster logs ([#14458](https://github.com/Lightning-AI/lightning/pull/14458))
+- Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
+- Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
 
 ## [0.6.0] - 2022-09-08

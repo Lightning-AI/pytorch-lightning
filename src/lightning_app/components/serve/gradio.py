@@ -1,10 +1,8 @@
 import abc
-import os
 from functools import partial
 from types import ModuleType
 from typing import Any, List, Optional
 
-from lightning_app.components.serve.python_server import _PyTorchSpawnRunExecutor, WorkRunExecutor
 from lightning_app.core.work import LightningWork
 from lightning_app.utilities.imports import _is_gradio_available, requires
 
@@ -36,15 +34,15 @@ class ServeGradio(LightningWork, abc.ABC):
     title: Optional[str] = None
     description: Optional[str] = None
 
+    _start_method = "spawn"
+
     def __init__(self, *args, **kwargs):
         requires("gradio")(super().__init__(*args, **kwargs))
         assert self.inputs
         assert self.outputs
         self._model = None
-        # Note: Enable to run inference on GPUs.
-        self._run_executor_cls = (
-            WorkRunExecutor if os.getenv("LIGHTNING_CLOUD_APP_ID", None) else _PyTorchSpawnRunExecutor
-        )
+
+        self.ready = False
 
     @property
     def model(self):
@@ -66,6 +64,7 @@ class ServeGradio(LightningWork, abc.ABC):
             self._model = self.build_model()
         fn = partial(self.predict, *args, **kwargs)
         fn.__name__ = self.predict.__name__
+        self.ready = True
         gradio.Interface(
             fn=fn,
             inputs=self.inputs,
@@ -78,3 +77,6 @@ class ServeGradio(LightningWork, abc.ABC):
             server_port=self.port,
             enable_queue=self.enable_queue,
         )
+
+    def configure_layout(self) -> str:
+        return self.url

@@ -3,7 +3,7 @@ import time
 import warnings
 from copy import deepcopy
 from functools import partial, wraps
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
 from deepdiff import DeepHash, Delta
 
@@ -12,13 +12,13 @@ from lightning_app.storage import Path
 from lightning_app.storage.drive import _maybe_create_drive, Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _is_json_serializable, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_status import WorkStatus
 from lightning_app.utilities.component import _is_flow_context, _sanitize_state
 from lightning_app.utilities.enum import (
     CacheCallsKeys,
     make_status,
     WorkFailureReasons,
     WorkStageStatus,
-    WorkStatus,
     WorkStopReasons,
 )
 from lightning_app.utilities.exceptions import LightningWorkException
@@ -32,6 +32,9 @@ from lightning_app.utilities.packaging.cloud_compute import (
     CloudCompute,
 )
 from lightning_app.utilities.proxies import Action, LightningWorkSetAttrProxy, ProxyWorkRun, unwrap, WorkRunExecutor
+
+if TYPE_CHECKING:
+    from lightning_app.frontend import Frontend
 
 
 class LightningWork:
@@ -48,7 +51,7 @@ class LightningWork:
 
     _run_executor_cls: Type[WorkRunExecutor] = WorkRunExecutor
     # TODO: Move to spawn for all Operating System.
-    _start_method = "spawn" if sys.platform == "win32" else "fork"
+    _start_method = "spawn" if sys.platform in ("darwin", "win32") else "fork"
 
     def __init__(
         self,
@@ -116,7 +119,16 @@ class LightningWork:
                 " in the next version. Use `cache_calls` instead."
             )
         self._cache_calls = run_once if run_once is not None else cache_calls
-        self._state = {"_host", "_port", "_url", "_future_url", "_internal_ip", "_restarting", "_cloud_compute"}
+        self._state = {
+            "_host",
+            "_port",
+            "_url",
+            "_future_url",
+            "_internal_ip",
+            "_restarting",
+            "_cloud_compute",
+            "_display_name",
+        }
         self._parallel = parallel
         self._host: str = host
         self._port: Optional[int] = port
@@ -126,6 +138,7 @@ class LightningWork:
         # setattr_replacement is used by the multiprocessing runtime to send the latest changes to the main coordinator
         self._setattr_replacement: Optional[Callable[[str, Any], None]] = None
         self._name = ""
+        self._display_name = ""
         # The ``self._calls`` is used to track whether the run
         # method with a given set of input arguments has already been called.
         # Example of its usage:
@@ -151,6 +164,8 @@ class LightningWork:
         self._local_build_config = local_build_config or BuildConfig()
         self._cloud_build_config = cloud_build_config or BuildConfig()
         self._cloud_compute = cloud_compute or CloudCompute()
+        # tuple instead of a list so that it cannot be modified without using the setter
+        self._lightningignore: Tuple[str, ...] = tuple()
         self._backend: Optional[Backend] = None
         self._check_run_is_implemented()
         self._on_init_end()
@@ -203,6 +218,22 @@ class LightningWork:
         return self._name
 
     @property
+    def display_name(self):
+        """Returns the display name of the LightningWork in the cloud.
+
+        The display name needs to set before the run method of the work is called.
+        """
+        return self._display_name
+
+    @display_name.setter
+    def display_name(self, display_name: str):
+        """Sets the display name of the LightningWork in the cloud."""
+        if not self.has_started:
+            self._display_name = display_name
+        elif self._display_name != display_name:
+            raise RuntimeError("The display name can be set only before the work has started.")
+
+    @property
     def cache_calls(self) -> bool:
         """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
         the same arguments in subsequent calls."""
@@ -249,6 +280,20 @@ class LightningWork:
             compute_store: _CloudComputeStore = _CLOUD_COMPUTE_STORE[current_id]
             compute_store.remove(self.name)
         self._cloud_compute = cloud_compute
+
+    @property
+    def lightningignore(self) -> Tuple[str, ...]:
+        """Programmatic equivalent of the ``.lightningignore`` file."""
+        return self._lightningignore
+
+    @lightningignore.setter
+    def lightningignore(self, lightningignore: Tuple[str, ...]) -> None:
+        if self._backend is not None:
+            raise RuntimeError(
+                f"Your app has been already dispatched, so modifying the `{self.name}.lightningignore` does not have an"
+                " effect"
+            )
+        self._lightningignore = lightningignore
 
     @property
     def status(self) -> WorkStatus:
@@ -585,12 +630,12 @@ class LightningWork:
         pass
 
     def stop(self):
-        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        This can only be called from a ``LightningFlow``.
+        """
         if not self._backend:
-            raise Exception(
-                "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
-                "Make sure to assign the Work to a flow instance."
-            )
+            raise RuntimeError(f"Only the `LightningFlow` can request this work ({self.name!r}) to stop.")
         if self.status.stage == WorkStageStatus.STOPPED:
             return
         latest_hash = self._calls[CacheCallsKeys.LATEST_CALL_HASH]
@@ -598,6 +643,19 @@ class LightningWork:
         self._calls[latest_hash]["statuses"].append(stop_status)
         app = _LightningAppRef().get_current()
         self._backend.stop_work(app, self)
+
+    def delete(self):
+        """Delete LightingWork component and shuts down hardware provisioned via L.CloudCompute.
+
+        Locally, the work.delete() behaves as work.stop().
+        """
+        if not self._backend:
+            raise Exception(
+                "Can't delete the work, it looks like it isn't attached to a LightningFlow. "
+                "Make sure to assign the Work to a flow instance."
+            )
+        app = _LightningAppRef().get_current()
+        self._backend.delete_work(app, self)
 
     def _check_run_is_implemented(self) -> None:
         if not is_overridden("run", instance=self, parent=LightningWork):
@@ -629,3 +687,45 @@ class LightningWork:
                 property_object.fset(self, value)
             else:
                 self._default_setattr(name, value)
+
+    def configure_layout(self) -> Union[None, str, "Frontend"]:
+        """Configure the UI of this LightningWork.
+
+        You can either
+
+        1.  Return a single :class:`~lightning_app.frontend.frontend.Frontend` object to serve a user interface
+            for this Work.
+        2.  Return a string containing a URL to act as the user interface for this Work.
+        3.  Return ``None`` to indicate that this Work doesn't currently have a user interface.
+
+        **Example:** Serve a static directory (with at least a file index.html inside).
+
+        .. code-block:: python
+
+            from lightning_app.frontend import StaticWebFrontend
+
+
+            class Work(LightningWork):
+                def configure_layout(self):
+                    return StaticWebFrontend("path/to/folder/to/serve")
+
+        **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
+
+        .. code-block:: python
+
+            class Work(LightningWork):
+                def configure_layout(self):
+                    return [
+                        dict(name="First Tab", content=self.child0),
+                        dict(name="Second Tab", content=self.child1),
+                        dict(name="Lightning", content="https://lightning.ai"),
+                    ]
+
+        If you don't implement ``configure_layout``, Lightning will use ``self.url``.
+
+        Note:
+            This hook gets called at the time of app creation and then again as part of the loop. If desired, a
+            returned URL can depend on the state. This is not the case if the work returns a
+            :class:`~lightning_app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
+            in order for the runtime to start the server.
+        """

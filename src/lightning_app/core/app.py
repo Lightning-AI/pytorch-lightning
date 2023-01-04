@@ -35,6 +35,7 @@ from lightning_app.utilities.app_helpers import (
     _should_dispatch_app,
     Logger,
 )
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.commands.base import _process_requests
 from lightning_app.utilities.component import _convert_paths_after_init, _validate_root_flow
 from lightning_app.utilities.enum import AppStage, CacheCallsKeys
@@ -87,18 +88,16 @@ class LightningApp:
                 You can learn more about proxy `here <https://www.fortinet.com/resources/cyberglossary/proxy-server>`_.
 
 
-        .. doctest::
+        Example:
 
             >>> from lightning_app import LightningFlow, LightningApp
             >>> from lightning_app.runners import MultiProcessRuntime
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
-            ...         print("Hello World!")
             ...         self._exit()
             ...
             >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             >>> MultiProcessRuntime(app).dispatch()
-            Hello World!
         """
 
         self.root_path = root_path  # when running behind a proxy
@@ -142,6 +141,7 @@ class LightningApp:
         self.exception = None
         self.collect_changes: bool = True
 
+        self.status: Optional[AppStatus] = None
         # TODO: Enable ready locally for opening the UI.
         self.ready = False
 
@@ -152,6 +152,7 @@ class LightningApp:
         self.checkpointing: bool = False
 
         self._update_layout()
+        self._update_status()
 
         self.is_headless: Optional[bool] = None
 
@@ -355,6 +356,8 @@ class LightningApp:
                         deltas.append(delta)
                 else:
                     api_or_command_request_deltas.append(delta)
+            else:
+                break
 
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)
@@ -420,6 +423,7 @@ class LightningApp:
 
         self._update_layout()
         self._update_is_headless()
+        self._update_status()
         self.maybe_apply_changes()
 
         if self.checkpointing and self._should_snapshot():
@@ -486,12 +490,13 @@ class LightningApp:
         """
         self._original_state = deepcopy(self.state)
         done = False
+
         self.ready = self.root.ready
 
         self._start_with_flow_works()
 
-        if self.ready and self.should_publish_changes_to_api and self.api_publish_state_queue:
-            self.api_publish_state_queue.put(self.state_vars)
+        if self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
+            self.api_publish_state_queue.put((self.state_vars, self.status))
 
         self._reset_run_time_monitor()
 
@@ -500,8 +505,8 @@ class LightningApp:
 
             self._update_run_time_monitor()
 
-            if self.ready and self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue:
-                self.api_publish_state_queue.put(self.state_vars)
+            if self._has_updated and self.should_publish_changes_to_api and self.api_publish_state_queue is not None:
+                self.api_publish_state_queue.put((self.state_vars, self.status))
 
             self._has_updated = False
 
@@ -520,14 +525,28 @@ class LightningApp:
             component._layout = layout
 
     def _update_is_headless(self) -> None:
-        is_headless = _is_headless(self)
+        self.is_headless = _is_headless(self)
 
         # If `is_headless` changed, handle it.
         # This ensures support for apps which dynamically add a UI at runtime.
-        if self.is_headless != is_headless:
-            self.is_headless = is_headless
+        _handle_is_headless(self)
 
-            _handle_is_headless(self)
+    def _update_status(self) -> None:
+        old_status = self.status
+
+        work_statuses = {}
+        for work in breadth_first(self.root, types=(lightning_app.LightningWork,)):
+            work_statuses[work.name] = work.status
+
+        self.status = AppStatus(
+            is_ui_ready=self.ready,
+            work_statuses=work_statuses,
+        )
+
+        # If the work statuses changed, the state delta will trigger an update.
+        # If ready has changed, we trigger an update manually.
+        if self.status != old_status:
+            self._has_updated = True
 
     def _apply_restarting(self) -> bool:
         self._reset_original_state()

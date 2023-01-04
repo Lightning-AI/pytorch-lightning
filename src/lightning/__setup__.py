@@ -23,7 +23,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_SETUP_TOOLS = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
+_ASSISTANT = _load_py_module(name="assistant", location=os.path.join(_PROJECT_ROOT, ".actions", "assistant.py"))
 
 
 def _prepare_extras() -> Dict[str, Any]:
@@ -32,49 +32,46 @@ def _prepare_extras() -> Dict[str, Any]:
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
     req_files = [Path(p) for p in glob.glob(os.path.join(_PATH_REQUIREMENTS, "*", "*.txt"))]
-    common_args = dict(unfreeze="major" if _FREEZE_REQUIREMENTS else "all")
+    common_args = dict(unfreeze="none" if _FREEZE_REQUIREMENTS else "major")
     extras = {
-        f"{p.parent.name}-{p.stem}": _SETUP_TOOLS.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
+        f"{p.parent.name}-{p.stem}": _ASSISTANT.load_requirements(file_name=p.name, path_dir=p.parent, **common_args)
         for p in req_files
         if p.name not in ("docs.txt", "devel.txt", "base.txt")
     }
     for extra in list(extras):
         name = "-".join(extra.split("-")[1:])
         extras[name] = extras.get(name, []) + extras[extra]
-    # todo
-    # extras["extra"] = extras["cloud"] + extras["ui"]
-    # extras["dev"] = extras["extra"] + extras["test"]  # + extras['docs']
-    # extras["all"] = extras["dev"]
-    extras = {name: list(set(reqs)) for name, reqs in extras.items()}
-    print("The extras are", extras)
+    extras["extra"] += extras["cloud"] + extras["ui"] + extras["components"]
+    extras["all"] = extras["extra"]
+    extras["dev"] = extras["all"] + extras["test"]  # + extras['docs']
+    extras = {name: sorted(set(reqs)) for name, reqs in extras.items()}
+    print("The extras are: ", extras)
     return extras
 
 
 def _setup_args() -> Dict[str, Any]:
-    _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
-    _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-    _long_description = _SETUP_TOOLS.load_readme_description(
-        _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
+    about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
+    version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
+    long_description = _ASSISTANT.load_readme_description(
+        _PROJECT_ROOT, homepage=about.__homepage__, version=version.version
     )
-    _include_pkgs = ["lightning", "lightning.*"]
-
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _SETUP_TOOLS._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
+    _ASSISTANT._download_frontend(os.path.join(_SOURCE_ROOT, "lightning", "app"))
 
     return dict(
         name="lightning",
-        version=_version.version,
-        description=_about.__docs__,
-        author=_about.__author__,
-        author_email=_about.__author_email__,
-        url=_about.__homepage__,
+        version=version.version,
+        description=about.__docs__,
+        author=about.__author__,
+        author_email=about.__author_email__,
+        url=about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
-        license=_about.__license__,
-        packages=find_packages(where="src", include=_include_pkgs),
+        license=about.__license__,
+        packages=find_packages(where="src", include=["lightning", "lightning.*"]),
         package_dir={"": "src"},
-        long_description=_long_description,
+        long_description=long_description,
         long_description_content_type="text/markdown",
         include_package_data=True,
         zip_safe=False,
@@ -86,7 +83,9 @@ def _setup_args() -> Dict[str, Any]:
             ],
         },
         setup_requires=[],
-        install_requires=_SETUP_TOOLS.load_requirements(_PATH_REQUIREMENTS, unfreeze="all"),
+        install_requires=_ASSISTANT.load_requirements(
+            _PATH_REQUIREMENTS, unfreeze="none" if _FREEZE_REQUIREMENTS else "major"
+        ),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
