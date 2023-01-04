@@ -1,9 +1,9 @@
 ###########################
-Level 16: Check Work status
+Level 12: Check Work status
 ###########################
 **Audience:** Users who want to stop/start Lightning Work based on a status.
 
-**Prereqs:** Level 16+
+**Prereqs:** Level 12+
 
 ----
 

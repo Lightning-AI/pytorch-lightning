@@ -5,11 +5,12 @@
    :hidden:
 
    start_dynamic_components
-   level_16
-   level_17
-   level_18
-   level_19
-   level_20
+   cli
+   exceptions
+   nest_flows
+   rerun
+   share_objects
+   work_status
 
 ###############
 Advanced skills
@@ -29,65 +30,65 @@ Learn to build nested components with advanced functionality.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 9: Start dynamic components
+   :header: Level 11: Start dynamic components
    :description: Learn to start works dynamically
    :button_link: start_dynamic_components.html
    :col_css: col-md-6
    :height: 150
-   :tag: intermediate
+   :tag: advanced
 
 .. displayitem::
-   :header: Level 10: Check component status
+   :header: Level 12: Check component status
    :description: Learn to use work status to coordinate complex apps.
-   :button_link: level_16.html
+   :button_link: work_status.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level: Nest flows
+   :header: Level 13: Nest flows
    :description: Learn to nest flows into other flows.
-   :button_link: level_14.html
+   :button_link: nest_flows.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level: Develop reactive apps.
+   :header: Level 14: Develop reactive apps [coming soon]
    :description: Learn to develop reactive Lightning Apps. Lightning shines with reactive workflows.
-   :button_link: level_14.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level: Enable CLI commands for your app
+   :header: Level 15: Enable CLI commands for your app
    :description: Speak to your app from a CLI over the network
-   :button_link: level_17.html
+   :button_link: cli.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 11: Connect two components over the network
-   :description: Connect two LightningWorks over the network.
-   :button_link: level_14.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 13: Rerun components
+   :header: Level 16: Rerun components
    :description: Learn to reuse components by passing different variables.
-   :button_link: level_17.html
+   :button_link: rerun.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: advanced
+
+
+.. displayitem::
+   :header: Level 17: Share objects between Lightning works
+   :description: Learn to pass data between works
+   :button_link: share_objects.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 14: Handle Lightning App exceptions
+   :header: Level 18: Handle Lightning App exceptions
    :description: Learn to handle Lightning App exceptions.
-   :button_link: level_19.html
+   :button_link: exceptions.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced

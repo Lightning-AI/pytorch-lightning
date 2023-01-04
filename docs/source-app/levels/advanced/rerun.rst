@@ -1,9 +1,9 @@
 ##########################
-Level 17: Rerun components
+Level 16: Rerun components
 ##########################
 **Audience:** Users who want Work.run() to activate multiple times in an app.
 
-**Prereqs:** Level 16+ and read the `Event Loop guide <../glossary/event_loop.html>`_.
+**Prereqs:** Level 15+ and read the `Event Loop guide <../glossary/event_loop.html>`_.
 
 ----
 
