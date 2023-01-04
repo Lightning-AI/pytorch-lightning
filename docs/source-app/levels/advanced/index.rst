@@ -63,7 +63,7 @@ Learn to build nested components with advanced functionality.
 .. displayitem::
    :header: Level: Enable CLI commands for your app
    :description: Speak to your app from a CLI over the network
-   :button_link: level_17.html
+   :button_link: ../build_command_line_interface/index.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
