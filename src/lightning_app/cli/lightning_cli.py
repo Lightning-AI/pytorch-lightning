@@ -336,6 +336,12 @@ def run() -> None:
     default="",
     help="Enable basic authentication for the app and use credentials provided in the format username:password",
 )
+@click.option(
+    "--parent-id",
+    type=str,
+    default="",
+    help="Override parent ID for the running app",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -350,6 +356,7 @@ def run_app(
     app_args: tuple,
     run_app_comment_commands: bool,
     enable_basic_auth: str,
+    parent_id: str,
 ) -> None:
     """Run an app from a file."""
     _run_app(
@@ -365,6 +372,7 @@ def run_app(
         secret,
         run_app_comment_commands,
         enable_basic_auth,
+        parent_id,
     )
 
 
