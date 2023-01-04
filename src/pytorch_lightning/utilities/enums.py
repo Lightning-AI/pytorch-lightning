@@ -18,7 +18,7 @@ import os
 from enum import Enum, EnumMeta
 from typing import Any
 
-from lightning_lite.utilities.enums import LightningEnum
+from lightning_fabric.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
