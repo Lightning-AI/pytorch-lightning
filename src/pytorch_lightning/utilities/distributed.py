@@ -18,15 +18,15 @@ import torch
 from torch import Tensor
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from lightning_lite.utilities.distributed import _all_gather_ddp_if_available as new_all_gather_ddp_if_available
-from lightning_lite.utilities.distributed import _distributed_available as new_distributed_available
-from lightning_lite.utilities.distributed import _gather_all_tensors as new_gather_all_tensors
-from lightning_lite.utilities.distributed import (
+from lightning_fabric.utilities.distributed import _all_gather_ddp_if_available as new_all_gather_ddp_if_available
+from lightning_fabric.utilities.distributed import _distributed_available as new_distributed_available
+from lightning_fabric.utilities.distributed import _gather_all_tensors as new_gather_all_tensors
+from lightning_fabric.utilities.distributed import (
     _get_default_process_group_backend_for_device as new_get_default_process_group_backend_for_device,
 )
-from lightning_lite.utilities.distributed import _init_dist_connection as new_init_dist_connection
-from lightning_lite.utilities.distributed import _sync_ddp as new_sync_ddp
-from lightning_lite.utilities.distributed import _sync_ddp_if_available as new_sync_ddp_if_available
+from lightning_fabric.utilities.distributed import _init_dist_connection as new_init_dist_connection
+from lightning_fabric.utilities.distributed import _sync_ddp as new_sync_ddp
+from lightning_fabric.utilities.distributed import _sync_ddp_if_available as new_sync_ddp_if_available
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
 
 
@@ -215,7 +215,7 @@ def get_default_process_group_backend_for_device(*args: Any, **kwargs: Any) -> A
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.distributed.get_default_process_group_backend_for_device` has been deprecated"
         " in v1.8.0 and will be removed in v1.10.0. This function is internal but you can copy over its implementation."
-        " `lightning_lite.utilities.distributed.get_default_process_group_backend_for_device` instead."
+        " `lightning_fabric.utilities.distributed.get_default_process_group_backend_for_device` instead."
     )
     return new_get_default_process_group_backend_for_device(*args, **kwargs)
 
@@ -249,7 +249,7 @@ def tpu_distributed() -> bool:
         "`pytorch_lightning.utilities.distributed.tpu_distributed` has been deprecated in v1.8.0 and will"
         " be removed in v1.10.0. This function is internal but you can copy over its implementation."
     )
-    from lightning_lite.accelerators.tpu import _tpu_distributed
+    from lightning_fabric.accelerators.tpu import _tpu_distributed
 
     return _tpu_distributed()
 

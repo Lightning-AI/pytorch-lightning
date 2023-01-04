@@ -19,7 +19,7 @@ import os
 
 import torch
 
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 
 if _DEEPSPEED_AVAILABLE:

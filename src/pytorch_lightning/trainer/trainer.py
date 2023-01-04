@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -212,7 +212,8 @@ class Trainer:
 
                 .. deprecated:: v1.9
                     ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used

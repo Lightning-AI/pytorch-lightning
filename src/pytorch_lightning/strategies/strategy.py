@@ -23,12 +23,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities import move_data_to_device
-from lightning_lite.utilities.distributed import ReduceOp
-from lightning_lite.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.plugins import CheckpointIO
+from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.distributed import ReduceOp
+from lightning_fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
