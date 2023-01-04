@@ -29,7 +29,7 @@ def main_train(dir_path, max_epochs: int = 20):
     stopping = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
     trainer = pl.Trainer(
         default_root_dir=dir_path,
-        gpus=int(torch.cuda.is_available()),
+        devices=int(torch.cuda.is_available()),
         precision=(16 if torch.cuda.is_available() else 32),
         callbacks=[stopping],
         min_epochs=3,

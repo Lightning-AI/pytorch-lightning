@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning_lite.utilities.exceptions import MisconfigurationException  # noqa: F401
+from lightning_fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
 class DeadlockDetectedException(Exception):

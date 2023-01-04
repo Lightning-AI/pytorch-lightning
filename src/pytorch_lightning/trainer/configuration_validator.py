@@ -14,7 +14,7 @@
 import inspect
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.strategies import DataParallelStrategy
@@ -169,20 +169,14 @@ def __verify_manual_optimization_support(trainer: "pl.Trainer", model: "pl.Light
 
 def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") -> None:
     """Check if the current `training_step` is requesting `dataloader_iter`."""
-    training_step_fx = model.training_step
-    if is_param_in_hook_signature(training_step_fx, "dataloader_iter", explicit=True):
-
-        if is_overridden("on_train_batch_start", model):
-            raise MisconfigurationException(
-                "The model hook `on_train_batch_start` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
-            )
-
-        if is_overridden("on_train_batch_end", model):
-            raise MisconfigurationException(
-                "The model hook `on_train_batch_end` is not compatible with "
-                "taking a `dataloader_iter` argument in your `training_step`."
-            )
+    if is_param_in_hook_signature(model.training_step, "dataloader_iter", explicit=True):
+        for hook in ("on_train_batch_start", "on_train_batch_end"):
+            if is_overridden(hook, model):
+                rank_zero_warn(
+                    f"The `batch_idx` argument in `{type(model).__name__}.{hook}` hook may"
+                    " not match with the actual batch index when using a `dataloader_iter`"
+                    " argument in your `training_step`."
+                )
 
         if model.truncated_bptt_steps > 0:
             raise MisconfigurationException(

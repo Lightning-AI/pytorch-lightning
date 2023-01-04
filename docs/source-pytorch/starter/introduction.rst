@@ -325,7 +325,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :height: 320
 
 .. displayitem::
-   :header: Lightning Lite
+   :header: Lightning Fabric
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png

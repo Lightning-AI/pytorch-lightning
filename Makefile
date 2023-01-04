@@ -33,14 +33,14 @@ test: clean
 	pip install -e . \
 	-r requirements/pytorch/base.txt \
 	-r requirements/app/base.txt \
-	-r requirements/lite/base.txt \
+	-r requirements/fabric/base.txt \
 	-r requirements/pytorch/test.txt \
 	-r requirements/app/test.txt
 
 	# run tests with coverage
 	python -m coverage run --source src/pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch -v
 	python -m coverage run --source src/lightning_app -m pytest tests/tests_app -v
-	python -m coverage run --source src/lightning_lite -m pytest src/lightning_lite tests/tests_lite -v
+	python -m coverage run --source src/lightning_fabric -m pytest src/lightning_fabric tests/tests_fabric -v
 	python -m coverage report
 
 docs: clean
