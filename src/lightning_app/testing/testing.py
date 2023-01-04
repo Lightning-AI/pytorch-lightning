@@ -407,7 +407,7 @@ def run_app_in_cloud(
                     j += 1
                     sleep(1)
                 break
-            if app.status.phase == V1LightningappInstanceState.STOPPED:
+            elif app.status.phase == V1LightningappInstanceState.STOPPED:
                 # there's a race condition if the app goes from pending to running to stopped before we evaluate the
                 # condition above. avoid it by checking stopped explicitly
                 print("App is stopped, finished testing...")
