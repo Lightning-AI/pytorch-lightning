@@ -9,10 +9,11 @@ With Fabric you can easily scale your model to run on distributed devices using 
 With only a few changes to your code, Fabric allows you to:
 
 - Automatic placement of models and data onto the device
-- Automatic support for mixed precision (smaller memory footprint)
-- Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies (data-parallel, model-parallel, etc.)
+- Automatic support for mixed precision (speedup and smaller memory footprint)
+- Seamless switching between hardware (CPU, GPU, TPU)
+- State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
 - Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
-- Multi-node support (torchelastic, SLURM, and more)
+- Multi-node support (TorchElastic, SLURM, and more)
 - You keep full control of your training loop
 
 
