@@ -409,7 +409,7 @@ def test_metrics_reset(tmpdir):
         def _create_metrics(self):
             acc = Accuracy(task="binary")
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AveragePrecision(task="binary", pos_label=1)
+            ap = AveragePrecision(task="binary")
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
