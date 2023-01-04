@@ -102,16 +102,15 @@ or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 
 |
 
-That's all you need to do to your code. You can now train on any kind of device and scale your training.
-Check out `this <https://github.com/Lightning-AI/lightning/blob/master/examples/lite/image_classifier_2_lite.py>`_ full MNIST training example with Fabric.
+That's it! You can now train on any device at any scale with a switch of a flag.
 
-Here is how to train on eight GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
+DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: bash
 
     lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
 
-Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with eight GPUs and mixed precision:
+`DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
 
 .. code-block:: bash
 
