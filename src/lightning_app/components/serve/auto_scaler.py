@@ -13,9 +13,9 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
+from lightning_app.components.serve.cold_start_proxy import ColdStartProxy
 from lightning_app.core.flow import LightningFlow
 from lightning_app.core.work import LightningWork
-from lightning_app.components.serve.cold_start_proxy import ColdStartProxy
 from lightning_app.utilities.app_helpers import Logger
 from lightning_app.utilities.cloud import is_running_in_cloud
 from lightning_app.utilities.imports import _is_aiohttp_available, requires
