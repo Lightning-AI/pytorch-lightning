@@ -40,8 +40,8 @@ REQUIREMENT_FILES = {
         "requirements/app/cloud.txt",
     ),
     "lite": (
-        "requirements/lite/base.txt",
-        "requirements/lite/strategies.txt",
+        "requirements/fabric/base.txt",
+        "requirements/fabric/strategies.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
@@ -60,9 +60,9 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     Returns:
         adjusted requirement
 
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="none")
     'arrow<=1.2.2,>=1.2.0'
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="")
+    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="none")
     'arrow<=1.2.2,>=1.2.0  # strict'
     >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
     'arrow>=1.2.0'
@@ -79,6 +79,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
     >>> _augment_requirement("arrow", unfreeze="major")
     'arrow'
     """
+    assert unfreeze in {"none", "major", "all"}
     # filer all comments
     if comment_char in ln:
         comment = ln[ln.index(comment_char) :]
@@ -88,7 +89,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         is_strict = False
     req = ln.strip()
     # skip directly installed dependencies
-    if not req or req.startswith("http") or "@" in req:
+    if not req or any(c in req for c in ["http:", "https:", "@"]):
         return ""
     # extract the major version from all listed versions
     if unfreeze == "major":
@@ -99,7 +100,7 @@ def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all"
         ver_major = None
 
     # remove version restrictions unless they are strict
-    if unfreeze and "<" in req and not is_strict:
+    if unfreeze != "none" and "<" in req and not is_strict:
         req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
     if ver_major is not None and not is_strict:
         # add , only if there are already some versions
@@ -121,6 +122,7 @@ def load_requirements(
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['sphinx>=4.0, <6.0  # strict', ...]
     """
+    assert unfreeze in {"none", "major", "all"}
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
@@ -206,9 +208,13 @@ def _download_frontend(pkg_path: str):
 
 
 def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requirements: bool = False) -> None:
-    """Load all base requirements from all particular packages and prune duplicates."""
+    """Load all base requirements from all particular packages and prune duplicates.
+
+    >>> _load_aggregate_requirements(os.path.join(_PROJECT_ROOT, "requirements"))
+    """
     requires = [
-        load_requirements(d, file_name="base.txt", unfreeze=not freeze_requirements)
+        # TODO: consider passing unfreeze as string instead
+        load_requirements(d, file_name="base.txt", unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
@@ -216,9 +222,9 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     if not requires:
         return None
     # TODO: add some smarter version aggregation per each package
-    requires = list(chain(*requires))
+    requires = sorted(set(chain(*requires)))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
-        fp.writelines([ln + os.linesep for ln in requires])
+        fp.writelines([ln + os.linesep for ln in requires] + [os.linesep])
 
 
 def _retrieve_files(directory: str, *ext: str) -> List[str]:
@@ -300,7 +306,7 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
     for new, previous in mapping.items():
         copy_replace_imports(
             source_dir=os.path.join(source_dir, previous),
-            # pytorch_lightning uses lightning_lite, so we need to replace all imports for all directories
+            # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
             source_imports=list(mapping.values()),
             target_imports=[f"lightning.{new}" for new in mapping],
             target_dir=os.path.join(source_dir, "lightning", new),
@@ -333,7 +339,7 @@ class AssistantCLI:
             if req.name not in packages:
                 final.append(line)
         print(final)
-        path.write_text("\n".join(final))
+        path.write_text("\n".join(final) + "\n")
 
     @staticmethod
     def _replace_min(fname: str) -> None:

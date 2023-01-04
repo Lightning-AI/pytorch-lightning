@@ -398,7 +398,6 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer, see
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities import (
-    _APEX_AVAILABLE,
     _TORCHVISION_AVAILABLE,
 )
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
@@ -407,3 +406,6 @@ from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
+
+# skip false positive linkcheck errors from anchors
+linkcheck_anchors = False

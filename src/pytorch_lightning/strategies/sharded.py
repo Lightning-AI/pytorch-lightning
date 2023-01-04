@@ -19,8 +19,8 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
-from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE, _reinit_optimizers_with_oss
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.strategies.ddp import DDPStrategy

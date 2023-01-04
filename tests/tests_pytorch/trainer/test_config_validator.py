@@ -15,7 +15,7 @@ import pytest
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

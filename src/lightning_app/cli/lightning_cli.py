@@ -230,11 +230,12 @@ def _run_app(
     env: tuple,
     secret: tuple,
     run_app_comment_commands: bool,
+    enable_basic_auth: str,
 ) -> None:
 
     if not os.path.exists(file):
         original_file = file
-        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=False)  # type: ignore[assignment]  # noqa E501
+        file = cmd_install.gallery_apps_and_components(file, True, "latest", overwrite=True)  # type: ignore[assignment]  # noqa E501
         if file is None:
             click.echo(f"The provided entrypoint `{original_file}` doesn't exist.")
             sys.exit(1)
@@ -283,6 +284,7 @@ def _run_app(
         secrets=secrets,
         cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
+        enable_basic_auth=enable_basic_auth,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -328,6 +330,12 @@ def run() -> None:
     default=False,
     help="run environment setup commands from the app comments.",
 )
+@click.option(
+    "--enable-basic-auth",
+    type=str,
+    default="",
+    help="Enable basic authentication for the app and use credentials provided in the format username:password",
+)
 def run_app(
     file: str,
     cloud: bool,
@@ -341,6 +349,7 @@ def run_app(
     secret: tuple,
     app_args: tuple,
     run_app_comment_commands: bool,
+    enable_basic_auth: str,
 ) -> None:
     """Run an app from a file."""
     _run_app(
@@ -355,12 +364,13 @@ def run_app(
         env,
         secret,
         run_app_comment_commands,
+        enable_basic_auth,
     )
 
 
-if RequirementCache("lightning-lite>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
-    # lightning.lite.cli may not be available when installing only standalone lightning-app package
-    from lightning_lite.cli import _run_model
+if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
+    # lightning.fabric.cli may not be available when installing only standalone lightning-app package
+    from lightning_fabric.cli import _run_model
 
     run.add_command(_run_model)
 

@@ -51,7 +51,7 @@ jobs:
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         # todo: adjust requirements for both code-bases
         pip install \
-          -r requirements/lite/base.txt \
+          -r requirements/fabric/base.txt \
           -r requirements/pytorch/base.txt \
           -r requirements/pytorch/extra.txt \
           -r requirements/app/base.txt \

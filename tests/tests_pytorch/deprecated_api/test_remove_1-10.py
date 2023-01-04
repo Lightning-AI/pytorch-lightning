@@ -22,8 +22,9 @@ from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 import pytorch_lightning.profiler as profiler
-from lightning_lite.accelerators import CUDAAccelerator as LiteCUDAAccelerator
-from lightning_lite.accelerators import TPUAccelerator as LiteTPUAccelerator
+from lightning_fabric.accelerators import CUDAAccelerator as LiteCUDAAccelerator
+from lightning_fabric.accelerators import TPUAccelerator as LiteTPUAccelerator
+from lightning_fabric.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
@@ -33,10 +34,12 @@ from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, DeepSpeedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus, pick_single_gpu
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -67,15 +70,11 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
     tpu_distributed,
 )
+from pytorch_lightning.utilities.enums import AMPType
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_deprecated_amp_level():
-    with pytest.deprecated_call(match="Setting `amp_level` inside the `Trainer` is deprecated in v1.8.0"):
-        Trainer(amp_level="O3", amp_backend="apex")
 
 
 @pytest.mark.parametrize(
@@ -356,3 +355,79 @@ def test_profiler_classes_deprecated_warning(cls):
         f" Use .*profilers.{cls.__name__}` class instead."
     ):
         cls()
+
+
+@RunIf(amp_apex=True)
+def test_apex_deprecation_warnings():
+    class MyModel(BoringModel):
+        def optimizer_step(
+            self,
+            epoch,
+            batch_idx,
+            optimizer,
+            optimizer_idx=0,
+            optimizer_closure=None,
+            on_tpu=False,
+            using_native_amp=False,
+            **kwargs,
+        ):
+            return optimizer_closure()
+
+    model = MyModel()
+    trainer = Trainer(fast_dev_run=True)
+    with pytest.deprecated_call(match="including the `using_native_amp` argument"):
+        trainer.fit(model)
+
+    with pytest.deprecated_call(match="ApexMixedPrecisionPlugin` class will be removed in v1.10"):
+        ApexMixedPrecisionPlugin()
+
+    with pytest.deprecated_call(match="NativeMixedPrecisionPlugin` class has been renamed in v1.9"):
+        NativeMixedPrecisionPlugin(16, "cpu")
+
+    with pytest.deprecated_call(match="Support for.*DeepSpeed implementation will be removed in v1.10.0"):
+        DeepSpeedPrecisionPlugin(16, amp_type="apex")
+
+    with pytest.deprecated_call(match=r"amp_type='native'\)` been deprecated in v1.9"):
+        DeepSpeedPrecisionPlugin(16, amp_type="native")
+
+    with pytest.raises(ValueError, match=r"amp_level='O2'\)` is only relevant when using NVIDIA/apex"):
+        DeepSpeedPrecisionPlugin(16, amp_level="O2")
+
+    with pytest.deprecated_call(match=r"Trainer\(amp_backend='apex'\)` argument is deprecated"):
+        Trainer(amp_backend="apex")
+
+    with pytest.deprecated_call(match=r"Trainer\(amp_level='O2'\)` argument is deprecated"):
+        Trainer(amp_backend="apex", amp_level="O2")
+
+    with pytest.deprecated_call(match="AMPType` enum has been deprecated in v1.9"):
+        AMPType.APEX
+
+    trainer = Trainer()
+    with pytest.deprecated_call(match="amp_backend` will not be supported"):
+        trainer.amp_backend
+
+
+@RunIf(horovod=True)
+def test_horovod_deprecation_warnings(*_):
+    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
+        Trainer(strategy="horovod")
+
+
+def test_auto_select_gpus():
+    with pytest.deprecated_call(match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"):
+        Trainer(auto_select_gpus=False)
+
+
+def test_pick_multiple_gpus():
+    with pytest.deprecated_call(match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"), pytest.raises(
+        MisconfigurationException
+    ):
+        pick_multiple_gpus(0)
+
+
+@mock.patch("pytorch_lightning.tuner.auto_gpu_select.num_cuda_devices", return_value=0)
+def test_pick_single_gpu(_):
+    with pytest.deprecated_call(match="The function `pick_single_gpu` has been deprecated in v1.9.0"), pytest.raises(
+        RuntimeError
+    ):
+        pick_single_gpu([])

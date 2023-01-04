@@ -18,6 +18,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
@@ -189,7 +190,7 @@ class RecommenderModel(BoringModel):
         self.local_embedding = torch.nn.Embedding(EMB_SZ, EMB_DIM)
         self.CYCLES_PER_MS = int(get_cycles_per_ms())
 
-    def forward(self, indices: torch.Tensor):
+    def forward(self, indices: Tensor):
         result = self.local_embedding(indices)
         return result
 
@@ -280,7 +281,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
             self.batches.append(next(dataloader_iter))
 
             batch = self.batches.pop(0)
-            assert isinstance(batch, torch.Tensor) or batch is None
+            assert isinstance(batch, Tensor) or batch is None
             self.count += 2
             if self.automatic_optimization:
                 loss = super().training_step(batch, 0)
@@ -428,9 +429,9 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
         def on_train_batch_start(self, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
         trainer.fit(m)
 
 
@@ -442,9 +443,9 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
         trainer.fit(m)
 
 
