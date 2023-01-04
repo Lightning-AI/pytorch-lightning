@@ -71,7 +71,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
     fabric = Fabric()
 
-**Step 2:** Apply :meth:`~lightning_fabric.fabric.Fabric.setup` to each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders.
+**Step 2:** Call :meth:`~lightning_fabric.fabric.Fabric.setup` on each model and optimizer pair and :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` on all your dataloaders.
 
 .. code-block:: python
 
