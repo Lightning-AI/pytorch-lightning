@@ -389,34 +389,33 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        # Wait until the app is running
         i = 1
         while True:
-            sleep(1)
             app = _fetch_app_by_name(client, project_id, name)
+            # wait until the app is running
             if app.status.phase == V1LightningappInstanceState.RUNNING:
                 print("App is running, continuing with testing...")
+                view_page = context.new_page()
+                app_url = app.status.url
+                view_page.goto(f"{app_url}/view")
+                j = 1
+                status_code = None
+                while status_code != 200:
+                    status_code = requests.get(app_url + "/openapi.json").status_code
+                    if debug and j % 30 == 0:
+                        print(f"Received status code {status_code} at {app_url!r}, continuing infinite loop...")
+                    j += 1
+                    sleep(1)
                 break
             if app.status.phase == V1LightningappInstanceState.STOPPED:
-                print("App is stopped, continuing with testing...")
+                # there's a race condition if the app goes from pending to running to stopped before we evaluate the
+                # condition above. avoid it by checking stopped explicitly
+                print("App is stopped, finished testing...")
                 break
-            if i % 30 == 0:
+            if debug and i % 30 == 0:
                 print(f"Still in phase {app.status.phase}, continuing infinite loop...")
             i += 1
-
-        view_page = context.new_page()
-        app_url = app.status.url
-        view_page.goto(f"{app_url}/view")
-
-        i = 1
-        while True:
             sleep(1)
-            resp = requests.get(app_url + "/openapi.json")
-            if resp.status_code == 200:
-                break
-            if i % 30 == 0:
-                print(f"Received status code {resp.status_code} at {app_url!r}, continuing infinite loop...")
-            i += 1
 
         logs_api_client = _LightningLogsSocketAPI(client.api_client)
 
