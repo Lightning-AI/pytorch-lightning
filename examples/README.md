@@ -16,8 +16,10 @@ ______________________________________________________________________
 We show how to accelerate your PyTorch code with [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_fabric.html) with minimal code changes.
 You stay in full control of the training loop.
 
-- [MNIST with vanilla PyTorch](fabric/image_classifier_1_pytorch.py)
-- [MNIST with Lightning Fabric](fabric/image_classifier_2_fabric.py)
+- [MNIST with vanilla PyTorch](fabric/image_classifier/train_torch.py)
+- [MNIST with Lightning Fabric](fabric/image_classifier/train_fabric.py)
+- [DCGAN vanilla PyTorch](fabric/dcgan/train_torch.py)
+- [DCGAN with Lightning Fabric](fabric/dcgan/train_fabric.py)
 
 ______________________________________________________________________
 

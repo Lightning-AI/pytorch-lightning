@@ -10,7 +10,7 @@ Trains a simple CNN over MNIST using vanilla PyTorch. It only supports singe GPU
 
 ```bash
 # CPU
-python image_classifier_1_pytorch.py
+python train_torch.py
 ```
 
 ______________________________________________________________________
@@ -21,11 +21,11 @@ This script shows you how to scale the pure PyTorch code to enable GPU and multi
 
 ```bash
 # CPU
-lightning run model image_classifier_2_fabric.py
+lightning run model train_fabric.py
 
 # GPU (CUDA or M1 Mac)
-lightning run model image_classifier_2_fabric.py --accelerator=gpu
+lightning run model train_fabric.py --accelerator=gpu
 
 # Multiple GPUs
-lightning run model image_classifier_2_fabric.py --accelerator=gpu --devices=4
+lightning run model train_fabric.py --accelerator=gpu --devices=4
 ```
