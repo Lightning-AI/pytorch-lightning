@@ -136,7 +136,7 @@ jobs:
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/lite
+        pkg-folder: dist/fabric
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:
@@ -167,7 +167,7 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/lite
+        pkg-pattern: "*fabric*"
         pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
     - uses: ./.github/actions/pkg-publish
       with:

@@ -8,8 +8,8 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.types import LRScheduler, ReduceLROnPlateau
+from lightning_fabric.utilities.enums import PrecisionType
+from lightning_fabric.utilities.types import LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

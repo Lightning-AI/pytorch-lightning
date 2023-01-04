@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 
 import torch
 
-from lightning_lite.utilities.types import _DEVICE
+from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 

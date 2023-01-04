@@ -25,13 +25,13 @@ There are considered three main scenarios for installing this project:
     In case you want to install just one package you need to export env. variable before calling `pip`
 
      - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
-     - for `lightning-lite` use `export PACKAGE_NAME=lite ; pip install .`
+     - for `lightning-fabric` use `export PACKAGE_NAME=fabric ; pip install .`
      - for `lightning-app` use `export PACKAGE_NAME=app ; pip install .`
 
 3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
     `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
    In case you want to build just a particular package you want to set an environment variable:
-   `PACKAGE_NAME=lightning|pytorch|app|lite python setup.py sdist|bdist_wheel`
+   `PACKAGE_NAME=lightning|pytorch|app|fabric python setup.py sdist|bdist_wheel`
 
 4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
     a) determine which packages shall be released based on version increment in `__version__.py` and eventually
@@ -55,7 +55,7 @@ _PACKAGE_MAPPING = {
     "lightning": "lightning",
     "pytorch": "pytorch_lightning",
     "app": "lightning_app",
-    "lite": "lightning_lite",
+    "fabric": "lightning_fabric",
 }
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
@@ -144,7 +144,7 @@ if __name__ == "__main__":
             assistant.create_mirror_package(_PATH_SRC, _PACKAGE_MAPPING)
     else:
         assert len(local_pkgs) > 0
-        # PL as a package is distributed together with Lite, so in such case there are more than one candidate
+        # PL as a package is distributed together with Fabric, so in such case there are more than one candidate
         package_to_install = "pytorch_lightning" if "pytorch_lightning" in local_pkgs else local_pkgs[0]
     print(f"Installing package: {package_to_install}")
 

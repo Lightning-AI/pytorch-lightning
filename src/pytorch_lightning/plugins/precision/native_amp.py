@@ -19,8 +19,8 @@ from torch import Tensor
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.utilities.types import Optimizable
+from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
