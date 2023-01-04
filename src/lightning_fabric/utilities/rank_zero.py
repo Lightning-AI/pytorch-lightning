@@ -21,11 +21,13 @@ import lightning_utilities.core.rank_zero as rank_zero_module
 
 # note: we want to keep these indirections so the `rank_zero_only.rank` is set on import
 from lightning_utilities.core.rank_zero import (  # noqa: F401
+    rank_prefixed_message,
     rank_zero_debug,
     rank_zero_deprecation,
     rank_zero_info,
     rank_zero_only,
     rank_zero_warn,
+    WarningCache,
 )
 
 import lightning_fabric

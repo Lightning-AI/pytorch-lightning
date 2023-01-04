@@ -18,6 +18,7 @@ from unittest.mock import ANY, PropertyMock
 
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
@@ -809,7 +810,7 @@ def test_hooks_with_different_argument_names(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def assert_args(self, x, batch_nb):
-            assert isinstance(x, torch.Tensor)
+            assert isinstance(x, Tensor)
             assert x.size() == (1, 32)
             assert isinstance(batch_nb, int)
 

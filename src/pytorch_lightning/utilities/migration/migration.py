@@ -31,11 +31,10 @@ For the Lightning developer: How to add a new migration?
 import re
 from typing import Any, Callable, Dict, List
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
-
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _CHECKPOINT = Dict[str, Any]
 
@@ -85,8 +84,8 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     PR: #13645, #11805
     """
     global_step = checkpoint["global_step"]
-    checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
-    checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
+    checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
+    checkpoint["loops"].setdefault("fit_loop", _get_fit_loop_initial_state_1_6_0())
     # for automatic optimization
     optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]
     optim_progress["optimizer"]["step"]["total"]["completed"] = global_step
@@ -105,8 +104,8 @@ def _migrate_loop_current_epoch_to_progress_tracking(checkpoint: _CHECKPOINT) ->
     PR: #11805
     """
     epoch = checkpoint["epoch"]
-    checkpoint.setdefault("loops", {"fit_loop": _FIT_LOOP_INITIAL_STATE_1_6_0})
-    checkpoint["loops"].setdefault("fit_loop", _FIT_LOOP_INITIAL_STATE_1_6_0)
+    checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
+    checkpoint["loops"].setdefault("fit_loop", _get_fit_loop_initial_state_1_6_0())
     checkpoint["loops"]["fit_loop"]["epoch_progress"]["current"]["completed"] = epoch
     return checkpoint
 
@@ -123,48 +122,52 @@ def _migrate_loop_batches_that_stepped(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     return checkpoint
 
 
-_FIT_LOOP_INITIAL_STATE_1_6_0 = {
-    "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
-        "current": {"completed": 0, "ready": 0},
-        "total": {"completed": 0, "ready": 0},
-    },
-    "epoch_loop.batch_loop.manual_loop.state_dict": {},
-    "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
-        "optimizer": {
-            "step": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
-            "zero_grad": {
-                "current": {"completed": 0, "ready": 0, "started": 0},
-                "total": {"completed": 0, "ready": 0, "started": 0},
-            },
+def _get_fit_loop_initial_state_1_6_0() -> Dict:
+    return {
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "current": {"completed": 0, "ready": 0},
+            "total": {"completed": 0, "ready": 0},
         },
-        "optimizer_position": 0,
-    },
-    "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
-    "epoch_loop.batch_loop.state_dict": {},
-    "epoch_loop.batch_progress": {
-        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-        "is_last_batch": False,
-        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-    },
-    "epoch_loop.scheduler_progress": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
-    "epoch_loop.state_dict": {"_batches_that_stepped": 0},
-    "epoch_loop.val_loop.dataloader_progress": {
-        "current": {"completed": 0, "ready": 0},
-        "total": {"completed": 0, "ready": 0},
-    },
-    "epoch_loop.val_loop.epoch_loop.batch_progress": {
-        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-        "is_last_batch": False,
-        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-    },
-    "epoch_loop.val_loop.epoch_loop.state_dict": {},
-    "epoch_loop.val_loop.state_dict": {},
-    "epoch_progress": {
-        "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-        "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
-    },
-    "state_dict": {},
-}
+        "epoch_loop.batch_loop.manual_loop.state_dict": {},
+        "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+            "optimizer": {
+                "step": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
+                "zero_grad": {
+                    "current": {"completed": 0, "ready": 0, "started": 0},
+                    "total": {"completed": 0, "ready": 0, "started": 0},
+                },
+            },
+            "optimizer_position": 0,
+        },
+        "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
+        "epoch_loop.batch_loop.state_dict": {},
+        "epoch_loop.batch_progress": {
+            "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+            "is_last_batch": False,
+            "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        },
+        "epoch_loop.scheduler_progress": {
+            "current": {"completed": 0, "ready": 0},
+            "total": {"completed": 0, "ready": 0},
+        },
+        "epoch_loop.state_dict": {"_batches_that_stepped": 0},
+        "epoch_loop.val_loop.dataloader_progress": {
+            "current": {"completed": 0, "ready": 0},
+            "total": {"completed": 0, "ready": 0},
+        },
+        "epoch_loop.val_loop.epoch_loop.batch_progress": {
+            "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+            "is_last_batch": False,
+            "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        },
+        "epoch_loop.val_loop.epoch_loop.state_dict": {},
+        "epoch_loop.val_loop.state_dict": {},
+        "epoch_progress": {
+            "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+            "total": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
+        },
+        "state_dict": {},
+    }
 
 
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:

@@ -13,7 +13,6 @@ defaults:
 
 jobs:
 
-
   build-packages:
     uses: ./.github/workflows/_build-packages.yml
     with:
@@ -23,7 +22,7 @@ jobs:
   upload-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    if: github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3

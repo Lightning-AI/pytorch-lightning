@@ -16,7 +16,6 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, TYPE_CHECKING, 
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
@@ -35,6 +34,7 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
@@ -300,7 +300,8 @@ class ColossalAIStrategy(DDPStrategy):
                 min_chunk_size_mb: float = self.chunk_size_search_kwargs.get(
                     "min_chunk_size", 32 * 1024**2
                 )  # type: ignore[assignment]
-                min_chunk_size_mb /= 1024**2
+                if min_chunk_size_mb is not None:
+                    min_chunk_size_mb /= 1024**2
 
                 model = _LightningModuleWrapperBase(self.model)
                 self.model = GeminiDDP(

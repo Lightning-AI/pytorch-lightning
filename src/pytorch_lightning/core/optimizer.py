@@ -21,7 +21,7 @@ from torch import optim
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.types import _Stateful, ReduceLROnPlateau
+from lightning_fabric.utilities.types import _Stateful, Optimizable, ReduceLROnPlateau
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -194,14 +194,14 @@ def _configure_optimizers(
     monitor = None
 
     # single output, single optimizer
-    if isinstance(optim_conf, Optimizer):
+    if isinstance(optim_conf, Optimizable):
         optimizers = [optim_conf]
     # two lists, optimizer + lr schedulers
     elif (
         isinstance(optim_conf, (list, tuple))
         and len(optim_conf) == 2
         and isinstance(optim_conf[0], list)
-        and all(isinstance(opt, Optimizer) for opt in optim_conf[0])
+        and all(isinstance(opt, Optimizable) for opt in optim_conf[0])
     ):
         opt, sch = optim_conf
         optimizers = opt
@@ -235,7 +235,7 @@ def _configure_optimizers(
         if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
             raise ValueError("A frequency must be given to each optimizer.")
     # single list or tuple, multiple optimizer
-    elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizer) for opt in optim_conf):
+    elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):
         optimizers = list(optim_conf)
     # unknown configuration
     else:

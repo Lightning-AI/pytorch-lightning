@@ -13,6 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
+from torch import Tensor
 
 from lightning_fabric.utilities.apply_func import move_data_to_device
 
@@ -20,7 +21,7 @@ from lightning_fabric.utilities.apply_func import move_data_to_device
 @pytest.mark.parametrize("should_return", [False, True])
 def test_wrongly_implemented_transferable_data_type(should_return):
     class TensorObject:
-        def __init__(self, tensor: torch.Tensor, should_return: bool = True):
+        def __init__(self, tensor: Tensor, should_return: bool = True):
             self.tensor = tensor
             self.should_return = should_return
 

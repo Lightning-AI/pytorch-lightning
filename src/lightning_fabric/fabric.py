@@ -22,7 +22,6 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
@@ -48,6 +47,7 @@ from lightning_fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
+from lightning_fabric.utilities.rank_zero import rank_zero_warn
 from lightning_fabric.utilities.seed import seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer

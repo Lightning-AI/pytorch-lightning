@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import Tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -162,7 +163,7 @@ def test_amp_skip_optimizer(tmpdir):
             self.layer1 = torch.nn.Linear(32, 32)
             self.layer2 = torch.nn.Linear(32, 2)
 
-        def forward(self, x: torch.Tensor):
+        def forward(self, x: Tensor):
             x = self.layer1(x)
             x = self.layer2(x)
             return x

@@ -17,7 +17,6 @@ import sys
 from types import ModuleType, TracebackType
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from packaging.version import Version
 
 import pytorch_lightning as pl
@@ -25,13 +24,21 @@ from lightning_fabric.utilities.imports import _IS_WINDOWS
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.utilities.migration.migration import _migration_index
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _log = logging.getLogger(__name__)
 _CHECKPOINT = Dict[str, Any]
 
 
-def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
+def migrate_checkpoint(
+    checkpoint: _CHECKPOINT, target_version: Optional[str] = None
+) -> Tuple[_CHECKPOINT, Dict[str, List[str]]]:
     """Applies Lightning version migrations to a checkpoint dictionary.
+
+    Args:
+        checkpoint: A dictionary with the loaded state from the checkpoint file.
+        target_version: Run migrations only up to this version (inclusive), even if migration index contains
+            migration functions for newer versions than this target. Mainly useful for testing.
 
     Note:
         The migration happens in-place. We specifically avoid copying the dict to avoid memory spikes for large
@@ -49,7 +56,7 @@ def migrate_checkpoint(checkpoint: _CHECKPOINT) -> Tuple[_CHECKPOINT, Dict[str, 
     index = _migration_index()
     applied_migrations = {}
     for migration_version, migration_functions in index.items():
-        if not _should_upgrade(checkpoint, migration_version):
+        if not _should_upgrade(checkpoint, migration_version, target_version):
             continue
         for migration_function in migration_functions:
             checkpoint = migration_function(checkpoint)
@@ -139,6 +146,7 @@ def _set_legacy_version(checkpoint: _CHECKPOINT, version: str) -> None:
     checkpoint.setdefault("legacy_pytorch-lightning_version", version)
 
 
-def _should_upgrade(checkpoint: _CHECKPOINT, target: str) -> bool:
+def _should_upgrade(checkpoint: _CHECKPOINT, target: str, max_version: Optional[str] = None) -> bool:
     """Returns whether a checkpoint qualifies for an upgrade when the version is lower than the given target."""
-    return Version(_get_version(checkpoint)) < Version(target)
+    is_lte_max_version = max_version is None or Version(target) <= Version(max_version)
+    return Version(_get_version(checkpoint)) < Version(target) and is_lte_max_version

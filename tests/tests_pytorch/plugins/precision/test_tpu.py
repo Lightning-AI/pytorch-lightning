@@ -11,20 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utilities that can be used for calling functions on a particular rank."""
-import logging
+from unittest import mock
+from unittest.mock import Mock
 
-# note: we want to keep these indirections so the `rank_zero_module.log` is set (on import) for PL users
-from lightning_fabric.utilities.rank_zero import LightningDeprecationWarning  # noqa: F401
-from lightning_fabric.utilities.rank_zero import (  # noqa: F401
-    rank_prefixed_message,
-    rank_zero_debug,
-    rank_zero_deprecation,
-    rank_zero_info,
-    rank_zero_module,
-    rank_zero_only,
-    rank_zero_warn,
-    WarningCache,
-)
+from pytorch_lightning.plugins import TPUPrecisionPlugin
+from tests_pytorch.helpers.runif import RunIf
 
-rank_zero_module.log = logging.getLogger(__name__)
+
+@RunIf(tpu=True)
+def test_optimizer_step_calls_mark_step():
+    plugin = TPUPrecisionPlugin()
+    optimizer = Mock()
+    with mock.patch("torch_xla.core.xla_model") as xm_mock:
+        plugin.optimizer_step(optimizer=optimizer, model=Mock(), optimizer_idx=0, closure=Mock())
+    optimizer.step.assert_called_once()
+    xm_mock.mark_step.assert_called_once()
