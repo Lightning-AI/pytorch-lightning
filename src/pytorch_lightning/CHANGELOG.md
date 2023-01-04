@@ -5,45 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-
-## [fabricLaunchPLVersion] - 202Y-MM-DD
-
-
-### Removed
-
-- `nvidia/apex` removal ([#16149](https://github.com/Lightning-AI/lightning/pull/16149))
-  * Removed `pytorch_lightning.plugins.NativeMixedPrecisionPlugin` in favor of `pytorch_lightning.plugins.MixedPrecisionPlugin`
-  * Removed the `LightningModule.optimizer_step(using_native_amp=...)` argument
-  * Removed the `Trainer(amp_backend=...)` argument
-  * Removed the `Trainer.amp_backend` property
-  * Removed the `Trainer(amp_level=...)` argument
-  * Removed the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class
-  * Removed the `pytorch_lightning.utilities.enums.AMPType` enum
-  * Removed the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
-
-- Removed legacy device arguments in Trainer ([#16171](https://github.com/Lightning-AI/lightning/pull/16171))
-  * Removed the `Trainer(gpus=...)` argument
-  * Removed the `Trainer(tpu_cores=...)` argument
-  * Removed the `Trainer(ipus=...)` argument
-  * Removed the `Trainer(num_processes=...)` argument
-
-- Removed the deprecated automatic GPU selection ([#16184](https://github.com/Lightning-AI/lightning/pull/16184))
-  * Removed the `Trainer(auto_select_gpus=...)` argument
-  * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions
-
-
-- Removed the deprecated `resume_from_checkpoint` Trainer argument ([#16167](https://github.com/Lightning-AI/lightning/pull/16167))
-
-
 ## [unreleased] - 202Y-MM-DD
 
 ### Added
 
-- Added support for `torch.compile` ([#15922](https://github.com/Lightning-AI/lightning/pull/15922), [#15957](https://github.com/Lightning-AI/lightning/pull/15957))
-
-
 - Added support for custom artifact names in `pl.loggers.WandbLogger` ([#16173](https://github.com/Lightning-AI/lightning/pull/16173))
-
 
 - Added support for DDP with `LRFinder` ([#15304](https://github.com/Lightning-AI/lightning/pull/15304))
 
@@ -181,7 +147,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Enhanced `reduce_boolean_decision` to accommodate `any`-analogous semantics expected by the `EarlyStopping` callback ([#15253](https://github.com/Lightning-AI/lightning/pull/15253))
 
-- Fixed issue with unsupported torch.inference_mode() on hpu backends ([#15918](https://github.com/Lightning-AI/lightning/pull/15918))
 
 - Fixed the incorrect optimizer step synchronization when running across multiple TPU devices ([#16020](https://github.com/Lightning-AI/lightning/pull/16020))
 
@@ -1384,7 +1349,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Added `pytorch_lightning.lite` package ([#10175](https://github.com/Lightning-AI/lightning/pull/10175))
     * Added `LightningLite` documentation ([#10043](https://github.com/Lightning-AI/lightning/pull/10043))
     * Added `LightningLite` examples ([#9987](https://github.com/Lightning-AI/lightning/pull/9987))
-    * Make the `_FabricDataLoader` an iterator and add supports for custom dataloader ([#10279](https://github.com/Lightning-AI/lightning/pull/10279))
+    * Make the `_LiteDataLoader` an iterator and add supports for custom dataloader ([#10279](https://github.com/Lightning-AI/lightning/pull/10279))
 - Added `use_omegaconf` argument to `save_hparams_to_yaml` plugin ([#9170](https://github.com/Lightning-AI/lightning/pull/9170))
 - Added `ckpt_path` argument for `Trainer.fit()` ([#10061](https://github.com/Lightning-AI/lightning/pull/10061))
 - Added `auto_device_count` method to `Accelerators` ([#10222](https://github.com/Lightning-AI/lightning/pull/10222))
