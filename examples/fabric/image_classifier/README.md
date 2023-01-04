@@ -10,7 +10,6 @@ Tip: You can easily inspect the difference between the two files with:
   sdiff train_torch.py train_fabric.py
 ```
 
-
 #### 1. Image Classifier with Vanilla PyTorch
 
 Trains a simple CNN over MNIST using vanilla PyTorch. It only supports singe GPU training.
