@@ -1,6 +1,6 @@
 from typing import Union
 
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment, TorchCheckpointIO, XLACheckpointIO
 from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm

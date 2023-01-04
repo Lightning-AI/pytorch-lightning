@@ -18,15 +18,15 @@ or you can use the built-in component for it.
 lightning run app train_pytorch_spawn.py
 ```
 
-## Multi Node with raw PyTorch + Lite
+## Multi Node with raw PyTorch + Fabric
 
-You can run the multi-node raw PyTorch and Lite by running the following commands.
+You can run the multi-node raw PyTorch and Fabric by running the following commands.
 
 ```bash
-lightning run app train_lite.py
+lightning run app train_fabric.py
 ```
 
-Using Lite, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
+Using Fabric, you retain control over your loops while accessing in a minimal way all Lightning distributed strategies.
 
 ## Multi Node with Lightning Trainer
 

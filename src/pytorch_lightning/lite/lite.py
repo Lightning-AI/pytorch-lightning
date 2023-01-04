@@ -33,6 +33,7 @@ from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceSt
 from lightning_lite.strategies import SingleTPUStrategy as LiteSingleTPUStrategy
 from lightning_lite.strategies import Strategy as LiteStrategy
 from lightning_lite.strategies import XLAStrategy
+
 from pytorch_lightning.accelerators import Accelerator as PLAccelerator
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin as PLDeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin

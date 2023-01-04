@@ -18,8 +18,8 @@ from unittest.mock import MagicMock, Mock
 
 import torch
 
-from lightning_lite.plugins import CheckpointIO, TorchCheckpointIO
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.plugins import CheckpointIO, TorchCheckpointIO
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel

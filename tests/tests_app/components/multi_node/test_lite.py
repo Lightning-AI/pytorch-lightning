@@ -7,11 +7,11 @@ import pytest
 from lightning_utilities.core.imports import module_available
 from lightning_utilities.test.warning import no_warning_call
 
-import lightning_lite as ll
+import lightning_fabric as lf
 from lightning_app.components.multi_node.lite import _LiteRunExecutor
 
 
-class DummyLite(ll.LightningLite):
+class DummyLite(lf.Fabric):
     def run(self):
         pass
 
@@ -26,7 +26,7 @@ def dummy_init(self, **kwargs):
 
 
 def _get_args_after_tracer_injection(**kwargs):
-    with mock.patch.object(ll.LightningLite, "__init__", dummy_init):
+    with mock.patch.object(lf.Fabric, "__init__", dummy_init):
         ret_val = _LiteRunExecutor.run(
             local_rank=0,
             work_run=partial(dummy_callable, **kwargs),
@@ -41,8 +41,8 @@ def _get_args_after_tracer_injection(**kwargs):
 
 
 def check_lightning_lite_mps():
-    if module_available("lightning_lite"):
-        return ll.accelerators.MPSAccelerator.is_available()
+    if module_available("lightning_fabric"):
+        return lf.accelerators.MPSAccelerator.is_available()
     return False
 
 
@@ -75,7 +75,7 @@ def test_lite_run_executor_mps_forced_cpu(accelerator_given, accelerator_expecte
 def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected: dict):
 
     # ddp with mps devices not available (tested separately, just patching here for cross-os testing of other args)
-    if ll.accelerators.MPSAccelerator.is_available():
+    if lf.accelerators.MPSAccelerator.is_available():
         args_expected["accelerator"] = "cpu"
 
     ret_val, env_vars = _get_args_after_tracer_injection(**args_given)
@@ -97,7 +97,7 @@ def test_trainer_run_executor_arguments_choices(args_given: dict, args_expected:
 @pytest.mark.skipif(not module_available("lightning"), reason="Lightning not available")
 def test_lite_run_executor_invalid_strategy_instances():
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPStrategy(start_method="spawn"))
+        _, _ = _get_args_after_tracer_injection(strategy=lf.strategies.DDPStrategy(start_method="spawn"))
 
     with pytest.raises(ValueError, match="DDP Spawned strategies aren't supported yet."):
-        _, _ = _get_args_after_tracer_injection(strategy=ll.strategies.DDPShardedStrategy(start_method="spawn"))
+        _, _ = _get_args_after_tracer_injection(strategy=lf.strategies.DDPShardedStrategy(start_method="spawn"))

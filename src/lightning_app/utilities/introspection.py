@@ -257,7 +257,7 @@ class TorchMetricVisitor(LightningVisitor):
 
 
 class LightningLiteVisitor(LightningVisitor):
-    class_name = "LightningLite"
+    class_name = "Fabric"
 
 
 class LightningProfilerVisitor(LightningVisitor):

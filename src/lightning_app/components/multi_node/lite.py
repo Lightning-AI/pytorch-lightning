@@ -32,14 +32,14 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
         node_rank: int,
         nprocs: int,
     ):
-        lites = []
+        fabrics = []
         strategies = []
         mps_accelerators = []
 
-        for pkg_name in ("lightning.lite", "lightning_" + "lite"):
+        for pkg_name in ("lightning.fabric", "lightning_" + "fabric"):
             try:
                 pkg = importlib.import_module(pkg_name)
-                lites.append(pkg.LightningLite)
+                fabrics.append(pkg.Fabric)
                 strategies.append(pkg.strategies.DDPShardedStrategy)
                 strategies.append(pkg.strategies.DDPStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
@@ -89,8 +89,8 @@ class _LiteRunExecutor(_PyTorchSpawnRunExecutor):
             return {}, args, kwargs
 
         tracer = Tracer()
-        for ll in lites:
-            tracer.add_traced(ll, "__init__", pre_fn=pre_fn)
+        for lf in fabrics:
+            tracer.add_traced(lf, "__init__", pre_fn=pre_fn)
         tracer._instrument()
         ret_val = work_run()
         tracer._restore()
