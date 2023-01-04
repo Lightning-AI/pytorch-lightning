@@ -174,6 +174,7 @@ Current Lightning Users
 
    common/lightning_module
    common/trainer
+   fabric/fabric
 
 .. toctree::
    :maxdepth: 2
