@@ -17,7 +17,6 @@ def get_path(path):
 
 
 class GetDataWork(L.LightningWork):
-
     """This component is responsible to download some data and store them with a PayLoad."""
 
     def __init__(self):
@@ -34,7 +33,6 @@ class GetDataWork(L.LightningWork):
 
 
 class ModelWork(L.LightningWork):
-
     """This component is receiving some data and train a sklearn model."""
 
     def __init__(self, model_path: str, parallel: bool):
@@ -53,7 +51,6 @@ class ModelWork(L.LightningWork):
 
 
 class DAG(L.LightningFlow):
-
     """This component is a DAG."""
 
     def __init__(self, models_paths: list):
