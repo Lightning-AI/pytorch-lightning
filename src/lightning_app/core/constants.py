@@ -4,8 +4,6 @@ from typing import Optional
 
 import lightning_cloud.env
 
-from lightning_app.utilities.port import _find_lit_app_port
-
 
 def get_lightning_cloud_url() -> str:
     # DO NOT CHANGE!
@@ -23,7 +21,7 @@ FLOW_DURATION_SAMPLES = 5
 
 APP_SERVER_HOST = os.getenv("LIGHTNING_APP_STATE_URL", "http://127.0.0.1")
 APP_SERVER_IN_CLOUD = "http://lightningapp" in APP_SERVER_HOST
-APP_SERVER_PORT = _find_lit_app_port(7501)
+APP_SERVER_PORT = 7501
 APP_STATE_MAX_SIZE_BYTES = 1024 * 1024  # 1 MB
 
 WARNING_QUEUE_SIZE = 1000
