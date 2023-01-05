@@ -24,6 +24,8 @@ jobs:
     steps:
     - name: Checkout 🛎️
       uses: actions/checkout@v3
+      with:
+        submodules: recursive
 
     - name: Set up Python 🐍 ${{ inputs.python-version }}
       uses: actions/setup-python@v4
@@ -66,6 +68,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        submodules: recursive
 
     - name: Set up Python 🐍
       uses: actions/setup-python@v4

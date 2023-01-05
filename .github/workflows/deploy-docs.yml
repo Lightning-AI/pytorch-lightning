@@ -18,6 +18,7 @@ jobs:
       # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
       with:
         persist-credentials: false
+        submodules: recursive
     - name: Set up Python 🐍
       uses: actions/setup-python@v4
       with:
