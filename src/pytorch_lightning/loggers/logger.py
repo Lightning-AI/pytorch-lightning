@@ -16,46 +16,21 @@
 
 import functools
 import operator
-from abc import ABC, abstractmethod
-from argparse import Namespace
+from abc import ABC
 from collections import defaultdict
-from functools import wraps
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 
 import numpy as np
-from torch import Tensor
 
-import pytorch_lightning as pl
+from lightning_fabric.loggers import Logger as FabricLogger
+from lightning_fabric.loggers.logger import (
+    rank_zero_experiment,  # noqa: F401  # for backward compatibility
+    _DummyExperiment as DummyExperiment,  # noqa: F401  # for backward compatibility
+)
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
-def rank_zero_experiment(fn: Callable) -> Callable:
-    """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
-
-    @wraps(fn)
-    def experiment(self) -> Union[Any, DummyExperiment]:  # type: ignore[no-untyped-def]
-        """
-        Note:
-            ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
-            with a ``@rank_zero_experiment`` decorator. An exception is that ``loggers.neptune`` wraps
-            ``experiment`` and ``run`` with rank_zero_experiment.
-
-            ``Union[Any, DummyExperiment]`` is used because the wrapped hooks have several return
-            types that are specific to the custom logger. The return type here can be considered as
-            ``Union[return type of logger.experiment, DummyExperiment]``.
-        """
-
-        @rank_zero_only
-        def get_experiment() -> Callable:
-            return fn(self)
-
-        return get_experiment() or DummyExperiment()
-
-    return experiment
-
-
-class Logger(ABC):
+class Logger(FabricLogger, ABC):
     """Base class for experiment loggers."""
 
     def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
@@ -66,83 +41,11 @@ class Logger(ABC):
         """
         pass
 
-    @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        """Records metrics. This method logs metrics as soon as it received them.
-
-        Args:
-            metrics: Dictionary with metric names as keys and measured quantities as values
-            step: Step number at which the metrics should be recorded
-        """
-        pass
-
-    @abstractmethod
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
-        """Record hyperparameters.
-
-        Args:
-            params: :class:`~argparse.Namespace` or `Dict` containing the hyperparameters
-            args: Optional positional arguments, depends on the specific logger being used
-            kwargs: Optional keyword arguments, depends on the specific logger being used
-        """
-
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
-        """Record model graph.
-
-        Args:
-            model: lightning model
-            input_array: input passes to `model.forward`
-        """
-        pass
-
-    def save(self) -> None:
-        """Save log data."""
-
-    def finalize(self, status: str) -> None:
-        """Do any processing that is necessary to finalize an experiment.
-
-        Args:
-            status: Status that the experiment finished with (e.g. success, failed, aborted)
-        """
-        self.save()
-
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
         locally."""
         return None
-
-    @property
-    def group_separator(self) -> str:
-        """Return the default separator used by the logger to group the data into subfolders."""
-        return "/"
-
-    @property
-    @abstractmethod
-    def name(self) -> Optional[str]:
-        """Return the experiment name."""
-
-    @property
-    @abstractmethod
-    def version(self) -> Optional[Union[int, str]]:
-        """Return the experiment version."""
-
-
-class DummyExperiment:
-    """Dummy experiment."""
-
-    def nop(self, *args: Any, **kw: Any) -> None:
-        pass
-
-    def __getattr__(self, _: Any) -> Callable:
-        return self.nop
-
-    def __getitem__(self, idx: int) -> "DummyExperiment":
-        # enables self.logger.experiment[0].add_image(...)
-        return self
-
-    def __setitem__(self, *args: Any, **kwargs: Any) -> None:
-        pass
 
 
 class DummyLogger(Logger):
