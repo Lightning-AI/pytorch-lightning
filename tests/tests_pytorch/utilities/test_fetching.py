@@ -429,9 +429,9 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
         def on_train_batch_start(self, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
         trainer.fit(m)
 
 
@@ -443,9 +443,9 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
         trainer.fit(m)
 
 

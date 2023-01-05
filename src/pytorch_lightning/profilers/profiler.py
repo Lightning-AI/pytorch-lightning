@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Optional, TextIO, Union
 
-from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.cloud_io import get_filesystem
 
 log = logging.getLogger(__name__)
 

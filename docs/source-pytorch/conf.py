@@ -406,3 +406,6 @@ from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 """
 coverage_skip_undoc_in_source = True
+
+# skip false positive linkcheck errors from anchors
+linkcheck_anchors = False

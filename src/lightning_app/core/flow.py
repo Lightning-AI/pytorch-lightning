@@ -18,7 +18,6 @@ from lightning_app.utilities.packaging.cloud_compute import _maybe_create_cloud_
 
 
 class LightningFlow:
-
     _INTERNAL_STATE_VARS = {
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
         "_paths",

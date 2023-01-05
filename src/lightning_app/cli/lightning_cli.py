@@ -368,9 +368,9 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-lite>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
-    # lightning.lite.cli may not be available when installing only standalone lightning-app package
-    from lightning_lite.cli import _run_model
+if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
+    # lightning.fabric.cli may not be available when installing only standalone lightning-app package
+    from lightning_fabric.cli import _run_model
 
     run.add_command(_run_model)
 
