@@ -4,8 +4,8 @@ from multiprocessing import Process
 from time import sleep
 from unittest.mock import MagicMock
 
-import pytest
 import requests
+import pytest
 from pydantic import BaseModel
 
 from lightning_app import LightningApp, LightningFlow
