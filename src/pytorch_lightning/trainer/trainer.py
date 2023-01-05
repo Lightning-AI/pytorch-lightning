@@ -118,7 +118,7 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Logger, Iterable[Logger], bool] = True,
+        logger: Union[Union[Logger, TensorBoardLogger], Iterable[Union[Logger, TensorBoardLogger]], bool] = True,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
@@ -518,7 +518,7 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: List[Logger]
+        self._loggers: List[Union[Logger, TensorBoardLogger]]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -2154,7 +2154,7 @@ class Trainer:
     """
 
     @property
-    def logger(self) -> Optional[Logger]:
+    def logger(self) -> Optional[Union[Logger, TensorBoardLogger]]:
         return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
@@ -2165,11 +2165,11 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[Logger]:
+    def loggers(self) -> List[Union[Logger, TensorBoardLogger]]:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[Logger]]) -> None:
+    def loggers(self, loggers: Optional[List[Union[Logger, TensorBoardLogger]]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property

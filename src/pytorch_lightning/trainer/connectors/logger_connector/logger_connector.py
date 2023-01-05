@@ -37,7 +37,7 @@ class LoggerConnector:
 
     def on_trainer_init(
         self,
-        logger: Union[bool, Logger, Iterable[Logger]],
+        logger: Union[bool, Union[Logger, TensorBoardLogger], Iterable[Union[Logger, TensorBoardLogger]]],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:

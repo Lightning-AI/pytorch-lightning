@@ -211,6 +211,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
     logger.log_hyperparams(hparams, metrics)
 
 
+@pytest.mark.skipif(not _TENSORBOARD_AVAILABLE, reason=str(_TENSORBOARD_AVAILABLE))
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
     """test that log graph works with both model.example_input_array and if array is passed externally."""

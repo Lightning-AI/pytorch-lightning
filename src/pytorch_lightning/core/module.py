@@ -45,7 +45,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -291,12 +291,12 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[Logger]:
+    def logger(self) -> Optional[Union[Logger, TensorBoardLogger]]:
         """Reference to the logger object in the Trainer."""
         return self._trainer.logger if self._trainer is not None else None
 
     @property
-    def loggers(self) -> List[Logger]:
+    def loggers(self) -> List[Union[Logger, TensorBoardLogger]]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self._trainer else []
 

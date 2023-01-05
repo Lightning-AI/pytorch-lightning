@@ -23,10 +23,8 @@ from typing import Any, Callable, Dict, Mapping, Optional, Sequence
 import numpy as np
 
 from lightning_fabric.loggers import Logger as FabricLogger
-from lightning_fabric.loggers.logger import (
-    rank_zero_experiment,  # noqa: F401  # for backward compatibility
-    _DummyExperiment as DummyExperiment,  # noqa: F401  # for backward compatibility
-)
+from lightning_fabric.loggers.logger import _DummyExperiment as DummyExperiment  # for backward compatibility
+from lightning_fabric.loggers.logger import rank_zero_experiment  # noqa: F401  # for backward compatibility
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 
