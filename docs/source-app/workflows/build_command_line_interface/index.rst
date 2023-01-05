@@ -52,4 +52,4 @@ Learn more about `Command-line interfaces here <https://en.wikipedia.org/wiki/Co
 
 ----
 
-.. include:: index_content.rst
+.. include:: workflows/build_command_line_interface/index_content.rst
