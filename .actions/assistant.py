@@ -101,7 +101,12 @@ class _RequirementWithComment(Requirement):
 
 
 def _parse_requirements(strs: Iterable) -> Iterator[_RequirementWithComment]:
-    """Adapted from `pkg_resources.parse_requirements` to include comments."""
+    """Adapted from `pkg_resources.parse_requirements` to include comments.
+
+    >>> txt = '# this works\\n\\nthis # is an\\n--bar\\nexample\\nfoo # strict\\nthing\\n-r different/file.txt'
+    >>> [r.clean_str('none') for r in _parse_requirements(txt)]
+    ['this', 'example', 'foo  # strict', 'thing']
+    """
     lines = yield_lines(strs)
     pip_argument = None
     for line in lines:
