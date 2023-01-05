@@ -10,7 +10,6 @@ class CustomConfig(BaseModel):
 
 
 class CustomCommand(ClientCommand):
-
     description = "A command with a client."
 
     def run(self):
