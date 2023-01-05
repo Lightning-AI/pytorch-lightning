@@ -23,7 +23,7 @@ from distutils.version import LooseVersion
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 from pkg_resources import parse_requirements, Requirement, yield_lines
 
@@ -59,26 +59,26 @@ class _RequirementWithComment(Requirement):
         self.pip_argument = pip_argument
         self.strict = self.strict_string in comment.lower()
 
-    def clean_str(self, unfreeze: str) -> str:
+    def adjust(self, unfreeze: str) -> str:
         """Remove version restrictions unless they are strict.
 
-        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# anything").clean_str("none")
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# anything").adjust("none")
         'arrow<=1.2.2,>=1.2.0'
-        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").clean_str("none")
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").adjust("none")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").clean_str("all")
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").adjust("all")
         'arrow>=1.2.0'
-        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").clean_str("all")
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("all")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow").clean_str("all")
+        >>> _RequirementWithComment("arrow").adjust("all")
         'arrow'
-        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").clean_str("major")
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").adjust("major")
         'arrow<2.0,>=1.2.0'
-        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").clean_str("major")
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").adjust("major")
         'arrow<=1.2.2,>=1.2.0  # strict'
-        >>> _RequirementWithComment("arrow>=1.2.0").clean_str("major")
+        >>> _RequirementWithComment("arrow>=1.2.0").adjust("major")
         'arrow>=1.2.0'
-        >>> _RequirementWithComment("arrow").clean_str("major")
+        >>> _RequirementWithComment("arrow").adjust("major")
         'arrow'
         """
         out = str(self)
@@ -100,14 +100,14 @@ class _RequirementWithComment(Requirement):
         return out
 
 
-def _parse_requirements(strs: Iterable) -> Iterator[_RequirementWithComment]:
+def _parse_requirements(strs: Union[str, Iterable[str]]) -> Iterator[_RequirementWithComment]:
     """Adapted from `pkg_resources.parse_requirements` to include comments.
 
     >>> txt = ['# ignored', '', 'this # is an', '--piparg', 'example', 'foo # strict', 'thing', '-r different/file.txt']
-    >>> [r.clean_str('none') for r in _parse_requirements(txt)]
+    >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
     >>> txt = '\\n'.join(txt)
-    >>> [r.clean_str('none') for r in _parse_requirements(txt)]
+    >>> [r.adjust('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
     """
     lines = yield_lines(strs)
@@ -148,7 +148,7 @@ def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str 
     path = Path(path_dir) / file_name
     assert path.exists(), (path_dir, file_name, path)
     text = path.read_text()
-    return [req.clean_str(unfreeze) for req in _parse_requirements(text)]
+    return [req.adjust(unfreeze) for req in _parse_requirements(text)]
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
