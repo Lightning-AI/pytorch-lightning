@@ -123,11 +123,11 @@ def main():
             # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
             # (a) Train with all-real batch
             discriminator.zero_grad()
-            real_cpu = data[0]
-            b_size = real_cpu.size(0)
+            real = data[0]
+            b_size = real.size(0)
             label = torch.full((b_size,), real_label, dtype=torch.float, device=fabric.device)
             # Forward pass real batch through D
-            output = discriminator(real_cpu).view(-1)
+            output = discriminator(real).view(-1)
             # Calculate loss on all-real batch
             err_d_real = criterion(output, label)
             # Calculate gradients for D in backward pass
