@@ -195,12 +195,11 @@ We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so yo
 
 ----------
 
-********************
-Fabric Configuration
-********************
+************
+Fabric Flags
+************
 
-Fabric is designed to accelerate distributed training and inference. It makes it easy to configure your device and communication strategy, and and to switch seamlessly from one to the other.```
-your device and communication strategy and to switch seamlessly from one to the other.
+Fabric is designed to accelerate distributed training and inference. It makes it easy to configure your device and communication strategy, and to switch seamlessly from one to the other.
 
 
 accelerator
