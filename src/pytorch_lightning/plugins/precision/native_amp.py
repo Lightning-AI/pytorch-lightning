@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Union
+from typing import Any, Callable, cast, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
@@ -40,15 +40,13 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     def __init__(
         self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
-        super().__init__()
-        precision = str(precision)
-        if scaler is None and precision == "16":
+        self.precision = cast(Literal["16", "bf16"], str(precision))
+        if scaler is None and self.precision == "16":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
-        if scaler is not None and precision == "bf16":
+        if scaler is not None and self.precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
-        self.precision = precision
         self.device = device
         self.scaler = scaler
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, cast, Optional, Union
 
 from torch import Tensor
 from torch.optim import Optimizer
@@ -37,13 +37,12 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Literal["16", 16] = 16) -> None:
-        precision = str(precision)
-        if precision != "16":
+        if precision not in ("16", 16):
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
             )
-        self.precision = precision
+        self.precision = cast(Literal["16"], str(precision))
 
     def backward(  # type: ignore[override]
         self,

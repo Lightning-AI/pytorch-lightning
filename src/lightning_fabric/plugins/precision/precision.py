@@ -30,7 +30,7 @@ class Precision:
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
-    precision: "lf.connector._PRECISION_INPUT" = "32"
+    precision: "lf.connector._PRECISION_INPUT_STR" = "32"
 
     def convert_module(self, module: Module) -> Module:
         """Convert the module parameters to the precision type this plugin handles.

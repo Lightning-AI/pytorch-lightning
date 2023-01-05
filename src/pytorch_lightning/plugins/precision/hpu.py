@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
+from typing import cast, Optional, Union
 
 from typing_extensions import get_args, Literal
 
@@ -54,7 +54,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = str(precision)
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
         if self.precision in ("16", "bf16"):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose

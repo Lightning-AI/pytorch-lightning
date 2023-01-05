@@ -72,6 +72,7 @@ from pytorch_lightning.trainer.configuration_validator import verify_loop_config
 from pytorch_lightning.trainer.connectors.accelerator_connector import (
     _LITERAL_WARN,
     _PRECISION_INPUT,
+    _PRECISION_INPUT_STR,
     AcceleratorConnector,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -1772,7 +1773,7 @@ class Trainer:
         return None
 
     @property
-    def precision(self) -> str:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 
     @property

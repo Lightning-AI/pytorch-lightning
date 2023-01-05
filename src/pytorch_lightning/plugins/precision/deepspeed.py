@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
@@ -86,9 +86,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-
-        super().__init__()
-        self.precision = str(precision)
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
         self.amp_type = amp_type
         self.amp_level = amp_level
 

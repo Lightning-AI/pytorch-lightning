@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, cast, Union
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
@@ -47,7 +47,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
                 f" `precision` must be one of: {supported_precision}."
             )
-        self.precision = str(precision)
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
 
     def backward(  # type: ignore[override]
         self,
