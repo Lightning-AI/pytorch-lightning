@@ -28,7 +28,6 @@ DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 # Credit to the PyTorch team
 # Taken from https://github.com/pytorch/examples/blob/master/mnist/main.py and slightly adapted.
 def run(hparams):
-
     torch.manual_seed(hparams.seed)
 
     use_cuda = torch.cuda.is_available()
