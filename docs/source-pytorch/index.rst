@@ -62,7 +62,7 @@ Conda users
       </div>
    </div>
 
-Or read the `advanced install guide <starter/installation.html>`_
+Or read the `advanced install guide <https://pytorch-lightning.readthedocs.io/en/stable/starter/installation.html>`_
 
 We are fully compatible with any stable PyTorch version v1.10 and above.
 
