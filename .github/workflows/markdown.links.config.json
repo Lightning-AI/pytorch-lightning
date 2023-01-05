@@ -1,5 +1,10 @@
 {
-    "httpHeaders": [
+  "ignorePatterns": [
+    {
+      "pattern": "^https://github.com/Lightning-AI/lightning/pull/.*"
+    }
+  ],
+  "httpHeaders": [
       {
         "urls": ["https://github.com/", "https://guides.github.com/", "https://help.github.com/", "https://docs.github.com/"],
         "headers": {
