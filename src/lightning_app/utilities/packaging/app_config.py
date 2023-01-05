@@ -15,7 +15,7 @@ class AppConfig:
 
     Args:
         name: Optional name of the application. If not provided, auto-generates a new name.
-        release_id: Optional TODO
+        release_id: Optional release id to put into parant id of the app run
     """
 
     name: str = field(default_factory=get_unique_name)

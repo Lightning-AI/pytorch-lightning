@@ -262,7 +262,8 @@ class CloudRuntime(Runtime):
         if name:
             # Override the name if provided by the CLI
             app_config.name = name
-            # TODO: comment
+            # TODO: if the name was changes, put release id to be empty:
+            # we will pass it at BE side as a parent run ID
             app_config.release_id = ""
 
         print(f"The name of the app is: {app_config.name}")
