@@ -13,10 +13,10 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 import torch
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 from lightning_fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning_fabric.accelerators.accelerator import Accelerator
@@ -59,7 +59,9 @@ from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
-_PRECISION_INPUT = Literal["64", 64, "32", 32, "16", 16, "bf16"]
+_PRECISION_INPUT_INT = Literal[64, 32, 16]
+_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class _Connector:
@@ -113,14 +115,13 @@ class _Connector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
         self._registered_accelerators = ACCELERATOR_REGISTRY.available_accelerators()
-        self._precision_types = ("64", "32", "16", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_input: Optional[_PRECISION_INPUT] = None
+        self._precision_input: _PRECISION_INPUT_STR = "32"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -206,12 +207,10 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        if precision is not None:
-            if str(precision) not in self._precision_types:
-                raise ValueError(
-                    f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
-                )
-            self._precision_input = str(precision)  # type: ignore[assignment]
+        precision_types = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in precision_types:
+            raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {precision_types}")
+        self._precision_input = cast(_PRECISION_INPUT_STR, str(precision))
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -475,14 +474,8 @@ class _Connector:
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
             if isinstance(self.strategy, FSDPStrategy):
-                return FSDPPrecision(
-                    precision=self._precision_input,  # type: ignore[arg-type]
-                    device=device,
-                )
-            return MixedPrecision(
-                precision=self._precision_input,  # type: ignore[arg-type]
-                device=device,
-            )
+                return FSDPPrecision(precision=self._precision_input, device=device)
+            return MixedPrecision(precision=self._precision_input, device=device)
 
         raise RuntimeError("No precision set")
 
