@@ -13,7 +13,6 @@ else:
 
 
 class ServeGradio(LightningWork, abc.ABC):
-
     """The ServeGradio Class enables to quickly create a ``gradio`` based UI for your LightningApp.
 
     In the example below, the ``ServeGradio`` is subclassed to deploy ``AnimeGANv2``.

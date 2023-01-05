@@ -99,8 +99,8 @@ def _create_fastapi(title: str) -> _TrackableFastAPI:
 
 
 class _LoadBalancer(LightningWork):
-    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
-    asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
+    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton
+    API asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
     After enabling you will require to send username and password from the request header for the private endpoints.
 
