@@ -160,7 +160,6 @@ class Runtime:
         raise NotImplementedError
 
     def _add_stopped_status_to_work(self, work: "lightning_app.LightningWork") -> None:
-
         if work.status.stage == WorkStageStatus.STOPPED:
             return
 

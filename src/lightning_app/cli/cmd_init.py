@@ -9,7 +9,6 @@ logger = Logger(__name__)
 
 
 def app(app_name: str) -> None:
-
     if app_name is None:
         app_name = _capture_valid_app_component_name(resource_type="app")
 

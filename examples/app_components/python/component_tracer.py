@@ -5,7 +5,6 @@ from pytorch_lightning import Trainer
 
 
 class PLTracerPythonScript(TracerPythonScript):
-
     """This component can be used for ANY PyTorch Lightning script to track its progress and extract its best model
     path."""
 

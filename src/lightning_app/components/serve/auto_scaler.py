@@ -143,8 +143,8 @@ def _create_fastapi(title: str) -> FastAPI:
 
 
 class _LoadBalancer(LightningWork):
-    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton API
-    asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
+    r"""The LoadBalancer is a LightningWork component that collects the requests and sends them to the prediciton
+    API asynchronously using RoundRobin scheduling. It also performs auto batching of the incoming requests.
 
     The LoadBalancer exposes system endpoints with a basic HTTP authentication, in order to activate the authentication
     you need to provide a system password from environment variable::
