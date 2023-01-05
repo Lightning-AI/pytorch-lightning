@@ -261,7 +261,7 @@ class ModelPruning(Callback):
     def make_pruning_permanent(self, module: nn.Module) -> None:
         """Removes pruning buffers from any pruned modules.
 
-        Adapted from https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/prune.py#L1172-L1200
+        Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/utils/prune.py#L1118-L1122
         """
         for _, module in module.named_modules():
             for k in list(module._forward_pre_hooks):
