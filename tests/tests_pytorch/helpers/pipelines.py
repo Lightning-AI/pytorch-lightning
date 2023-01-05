@@ -103,7 +103,7 @@ def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     x = x.flatten(1)
 
     y_hat = trained_model(x)
-    metric = partial(accuracy, task='multiclass') if _TORCHMETRICS_GREATER_EQUAL_0_11 else accuracy
+    metric = partial(accuracy, task="multiclass") if _TORCHMETRICS_GREATER_EQUAL_0_11 else accuracy
     acc = metric(y_hat.cpu(), y.cpu(), top_k=2, num_classes=y_hat.size(-1)).item()
 
     assert acc >= min_acc, f"This model is expected to get > {min_acc} in test set (it got {acc})"
