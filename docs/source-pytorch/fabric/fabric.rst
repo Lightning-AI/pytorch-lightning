@@ -201,9 +201,9 @@ As you can see, this function accepts one argument, the ``Fabric`` object, and i
 
 ----------
 
-********************
-Fabric Configuration
-********************
+************
+Fabric Flags
+************
 
 Fabric is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
 your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
