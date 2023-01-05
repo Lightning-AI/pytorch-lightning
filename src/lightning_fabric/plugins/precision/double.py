@@ -17,6 +17,7 @@ from typing import Generator
 import torch
 from torch import Tensor
 from torch.nn import Module
+from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.precision import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
@@ -25,7 +26,7 @@ from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 class DoublePrecision(Precision):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: str = "64"
+    precision: Literal["64"] = "64"
 
     def convert_module(self, module: Module) -> Module:
         return module.double()
