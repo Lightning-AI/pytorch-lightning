@@ -19,13 +19,13 @@ import shutil
 import tarfile
 import tempfile
 import urllib.request
-from distutils.version import LooseVersion
 from itertools import chain
 from os.path import dirname, isfile
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 
-from pkg_resources import parse_requirements
+from packaging.version import Version
+from pkg_resources import parse_requirements, Requirement, yield_lines
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -49,86 +49,98 @@ REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def _augment_requirement(ln: str, comment_char: str = "#", unfreeze: str = "all") -> str:
-    """Adjust the upper version contrains.
+class _RequirementWithComment(Requirement):
+    strict_string = "# strict"
 
-    Args:
-        ln: raw line from requirement
-        comment_char: charter marking comment
-        unfreeze: Enum or "all"|"major"|""
+    def __init__(self, *args: Any, comment: str = "", pip_argument: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.comment = comment
+        assert pip_argument is None or pip_argument  # sanity check that it's not an empty str
+        self.pip_argument = pip_argument
+        self.strict = self.strict_string in comment.lower()
 
-    Returns:
-        adjusted requirement
+    def clean_str(self, unfreeze: str) -> str:
+        """Remove version restrictions unless they are strict.
 
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # anything", unfreeze="none")
-    'arrow<=1.2.2,>=1.2.0'
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # strict", unfreeze="none")
-    'arrow<=1.2.2,>=1.2.0  # strict'
-    >>> _augment_requirement("arrow<=1.2.2,>=1.2.0  # my name", unfreeze="all")
-    'arrow>=1.2.0'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="all")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow", unfreeze="all")
-    'arrow'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # cool", unfreeze="major")
-    'arrow>=1.2.0, <2.0  # strict'
-    >>> _augment_requirement("arrow>=1.2.0, <=1.2.2  # strict", unfreeze="major")
-    'arrow>=1.2.0, <=1.2.2  # strict'
-    >>> _augment_requirement("arrow>=1.2.0", unfreeze="major")
-    'arrow>=1.2.0, <2.0  # strict'
-    >>> _augment_requirement("arrow", unfreeze="major")
-    'arrow'
-    """
-    assert unfreeze in {"none", "major", "all"}
-    # filer all comments
-    if comment_char in ln:
-        comment = ln[ln.index(comment_char) :]
-        ln = ln[: ln.index(comment_char)]
-        is_strict = "strict" in comment
-    else:
-        is_strict = False
-    req = ln.strip()
-    # skip directly installed dependencies
-    if not req or any(c in req for c in ["http:", "https:", "@"]):
-        return ""
-    # extract the major version from all listed versions
-    if unfreeze == "major":
-        req_ = list(parse_requirements([req]))[0]
-        vers = [LooseVersion(v) for s, v in req_.specs if s not in ("==", "~=")]
-        ver_major = sorted(vers)[-1].version[0] if vers else None
-    else:
-        ver_major = None
-
-    # remove version restrictions unless they are strict
-    if unfreeze != "none" and "<" in req and not is_strict:
-        req = re.sub(r",? *<=? *[\d\.\*]+,? *", "", req).strip()
-    if ver_major is not None and not is_strict:
-        # add , only if there are already some versions
-        req += f"{',' if any(c in req for c in '<=>') else ''} <{int(ver_major) + 1}.0"
-
-    # adding strict back to the comment
-    if is_strict or ver_major is not None:
-        req += "  # strict"
-
-    return req
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# anything").clean_str("none")
+        'arrow<=1.2.2,>=1.2.0'
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# strict").clean_str("none")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow<=1.2.2,>=1.2.0", comment="# my name").clean_str("all")
+        'arrow>=1.2.0'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").clean_str("all")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow").clean_str("all")
+        'arrow'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# cool").clean_str("major")
+        'arrow<2.0,>=1.2.0'
+        >>> _RequirementWithComment("arrow>=1.2.0, <=1.2.2", comment="# strict").clean_str("major")
+        'arrow<=1.2.2,>=1.2.0  # strict'
+        >>> _RequirementWithComment("arrow>=1.2.0").clean_str("major")
+        'arrow>=1.2.0'
+        >>> _RequirementWithComment("arrow").clean_str("major")
+        'arrow'
+        """
+        out = str(self)
+        if self.strict:
+            return f"{out}  {self.strict_string}"
+        if unfreeze == "major":
+            for operator, version in self.specs:
+                if operator in ("<", "<="):
+                    major = Version(version).major
+                    # replace upper bound with major version increased by one
+                    return out.replace(f"{operator}{version}", f"<{major + 1}.0")
+        elif unfreeze == "all":
+            for operator, version in self.specs:
+                if operator in ("<", "<="):
+                    # drop upper bound
+                    return out.replace(f"{operator}{version},", "")
+        elif unfreeze != "none":
+            raise ValueError(f"Unexpected unfreeze: {unfreeze!r} value.")
+        return out
 
 
-def load_requirements(
-    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: str = "all"
-) -> List[str]:
+def _parse_requirements(strs: Iterable) -> Iterator[_RequirementWithComment]:
+    """Adapted from `pkg_resources.parse_requirements` to include comments."""
+    lines = yield_lines(strs)
+    pip_argument = None
+    for line in lines:
+        # Drop comments -- a hash without a space may be in a URL.
+        if " #" in line:
+            comment_pos = line.find(" #")
+            line, comment = line[:comment_pos], line[comment_pos:]
+        else:
+            comment = ""
+        # If there is a line continuation, drop it, and append the next line.
+        if line.endswith("\\"):
+            line = line[:-2].strip()
+            try:
+                line += next(lines)
+            except StopIteration:
+                return
+        # If there's a pip argument, save it
+        if line.startswith("--"):
+            pip_argument = line
+            continue
+        if line.startswith("-r "):
+            # linked requirement files are unsupported
+            continue
+        yield _RequirementWithComment(line, comment=comment, pip_argument=pip_argument)
+        pip_argument = None
+
+
+def load_requirements(path_dir: str, file_name: str = "base.txt", unfreeze: str = "all") -> List[str]:
     """Loading requirements from a file.
 
     >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
     >>> load_requirements(path_req, "docs.txt", unfreeze="major")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['sphinx>=4.0, <6.0  # strict', ...]
+    ['sphinx<6.0,>=4.0', ...]
     """
     assert unfreeze in {"none", "major", "all"}
-    with open(os.path.join(path_dir, file_name)) as file:
-        lines = [ln.strip() for ln in file.readlines()]
-    reqs = [_augment_requirement(ln, comment_char=comment_char, unfreeze=unfreeze) for ln in lines]
-    # filter empty lines and containing @ which means redirect to some git/http
-    reqs = [str(req) for req in reqs if req and not any(c in req for c in ["@", "http:", "https:"])]
-    return reqs
+    path = Path(path_dir) / file_name
+    assert path.exists(), (path_dir, file_name, path)
+    text = path.read_text()
+    return [req.clean_str(unfreeze) for req in _parse_requirements(text)]
 
 
 def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
@@ -213,14 +225,13 @@ def _load_aggregate_requirements(req_dir: str = "requirements", freeze_requireme
     >>> _load_aggregate_requirements(os.path.join(_PROJECT_ROOT, "requirements"))
     """
     requires = [
-        # TODO: consider passing unfreeze as string instead
-        load_requirements(d, file_name="base.txt", unfreeze="none" if freeze_requirements else "major")
+        load_requirements(d, unfreeze="none" if freeze_requirements else "major")
         for d in glob.glob(os.path.join(req_dir, "*"))
         # skip empty folder as git artefacts, and resolving Will's special issue
         if os.path.isdir(d) and len(glob.glob(os.path.join(d, "*"))) > 0 and "__pycache__" not in d
     ]
     if not requires:
-        return None
+        return
     # TODO: add some smarter version aggregation per each package
     requires = sorted(set(chain(*requires)))
     with open(os.path.join(req_dir, "base.txt"), "w") as fp:
