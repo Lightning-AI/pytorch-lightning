@@ -148,8 +148,9 @@ def test_migrate_model_checkpoint_save_on_train_epoch_end_default_collision():
     assert updated_checkpoint["callbacks"] == old_checkpoint["callbacks"]  # no migration was performed
 
 
-def test_migrate_dropped_apex_amp_state():
+def test_migrate_dropped_apex_amp_state(monkeypatch):
     """Test that the migration warns about collisions that would occur if the keys were modified."""
+    monkeypatch.setattr(pl, "__version__", "2.0.0")  # pretend this version of Lightning is >= 2.0.0
     old_checkpoint = {"amp_scaling_state": {"scale": 1.23}}
     _set_version(old_checkpoint, "1.9.0")  # pretend a checkpoint prior to 2.0.0
     with pytest.warns(UserWarning, match="checkpoint contains apex AMP data"):
