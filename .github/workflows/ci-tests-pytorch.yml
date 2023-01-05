@@ -67,7 +67,7 @@ jobs:
           - {os: "ubuntu-20.04", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
           - {os: "windows-2022", pkg-name: "lightning", python-version: "3.8", pytorch-version: "1.13"}
 
-    timeout-minutes: 70  # tests with macOS-11, py3.7 oldest takes much longer then expected
+    timeout-minutes: 999  # tests with macOS-11, py3.7 oldest takes much longer then expected
 
     steps:
     - uses: actions/checkout@v3
@@ -156,6 +156,10 @@ jobs:
       working-directory: tests/tests_pytorch
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
+
+    - name: Setup tmate session
+      if: ${{ matrix.pkg-name == 'lightning' && matrix.os == 'ubuntu-20.04' }}
+      uses: mxschmitt/action-tmate@v3
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
