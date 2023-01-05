@@ -63,7 +63,6 @@ def test_run_input_output():
     """Test that the dynamically patched run() method receives the input arguments and returns the result."""
 
     class Lite(Fabric):
-
         run_args = ()
         run_kwargs = {}
 
@@ -281,7 +280,7 @@ def test_setup_tracks_num_models():
 
 
 def test_setup_dataloaders_unsupported_input():
-    """Test that the setup_dataloaders method fails when provided with non-DataLoader objects."""
+    """Test that the setup_dataloaders method fails when provided with non- DataLoader objects."""
     lite = EmptyLite()
     with pytest.raises(ValueError, match="`setup_dataloaders` requires at least one dataloader"):
         lite.setup_dataloaders()

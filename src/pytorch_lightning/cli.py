@@ -262,7 +262,7 @@ class SaveConfigCallback(Callback):
 
 
 class LightningCLI:
-    """Implementation of a configurable command line tool for pytorch-lightning."""
+    """Implementation of a configurable command line tool for pytorch- lightning."""
 
     def __init__(
         self,
@@ -575,7 +575,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`
+        """Override to customize the :meth:`~pytorch_lightning.core.module.Ligh tningModule.configure_optimizers`
         method.
 
         Args:
@@ -593,8 +593,9 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` method
-        if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
+        """Overrides the model's :meth:`~pytorch_lightning.core.module.Lightnin gModule.configure_optimizers`
+        method if a single optimizer and optionally a scheduler argument groups are added to the parser as
+        'AUTOMATIC'."""
         if not self.auto_configure_optimizers:
             return
 

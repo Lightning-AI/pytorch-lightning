@@ -274,7 +274,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         return partial(self._training_step, kwargs)
 
     def _make_zero_grad_fn(self, batch_idx: int, opt_idx: int, optimizer: Optimizer) -> Optional[Callable[[], None]]:
-        """Build a `zero_grad` function that zeroes the gradients before back-propagation.
+        """Build a `zero_grad` function that zeroes the gradients before back- propagation.
 
         Returns ``None`` in the case backward needs to be skipped.
         """

@@ -30,7 +30,6 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     """This tests ensures reduction works in unbalanced logging settings."""
 
     class TestModel(MultiOptModel):
-
         actual = {0: [], 1: []}
 
         def training_step(self, batch, batch_idx, optimizer_idx):
@@ -57,7 +56,6 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
 
 def test_multiple_optimizers(tmpdir):
     class TestModel(MultiOptModel):
-
         seen = [False, False]
 
         def training_step(self, batch, batch_idx, optimizer_idx):

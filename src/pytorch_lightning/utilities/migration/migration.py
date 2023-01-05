@@ -171,7 +171,7 @@ def _get_fit_loop_initial_state_1_6_0() -> Dict:
 
 def _migrate_model_checkpoint_save_on_train_epoch_end_default(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     """The ``save_on_train_epoch_end`` was removed from the state-key of ``ModelCheckpoint`` in 1.9.0, and this
-    migration drops it from the state-keys saved in the checkpoint dict so that the keys match when the Trainer
+    migration drops it from the state- keys saved in the checkpoint dict so that the keys match when the Trainer
     loads the callback state.
 
     Version: 1.9.0

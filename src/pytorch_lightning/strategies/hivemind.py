@@ -292,7 +292,6 @@ class HivemindStrategy(Strategy):
         return obj
 
     def teardown(self) -> None:
-
         if self._optimizer_zero_grad_original is not None and self.lightning_module is not None:
             # re-enable `optimizer_zero_grad`
             self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]

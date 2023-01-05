@@ -101,7 +101,6 @@ if _RICH_AVAILABLE:
             return new_task_index
 
     class CustomTimeColumn(ProgressColumn):
-
         # Only refresh twice a second to prevent jitter
         max_refresh = 0.5
 
@@ -205,7 +204,9 @@ class RichProgressBarTheme:
 
 
 class RichProgressBar(ProgressBarBase):
-    """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
+    """Create a progress bar with `rich text formatting.
+
+    <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 

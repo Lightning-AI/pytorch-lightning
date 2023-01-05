@@ -24,7 +24,10 @@ log = logging.getLogger(__name__)
 
 
 class TorchElasticEnvironment(ClusterEnvironment):
-    """Environment for fault-tolerant and elastic training with `torchelastic <https://pytorch.org/elastic/>`_"""
+    """Environment for fault-tolerant and elastic training with `torchelastic.
+
+    <https://pytorch.org/elastic/>`_
+    """
 
     @property
     def creates_processes_externally(self) -> bool:

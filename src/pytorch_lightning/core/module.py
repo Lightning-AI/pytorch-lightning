@@ -327,8 +327,7 @@ class LightningModule(
         return batch
 
     def print(self, *args: Any, **kwargs: Any) -> None:
-        r"""
-        Prints only from process 0. Use this in any distributed mode to log only once.
+        r"""Prints only from process 0. Use this in any distributed mode to log only once.
 
         Args:
             *args: The thing to print. The same as for Python's built-in print function.
@@ -338,7 +337,6 @@ class LightningModule(
 
             def forward(self, x):
                 self.print(x, 'in forward')
-
         """
         if self.trainer.is_global_zero:
             progress_bar = self.trainer.progress_bar_callback
@@ -607,10 +605,9 @@ class LightningModule(
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
-        accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
-        distributed processes.
+        r"""Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather``
+        operation accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor
+        from several distributed processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -627,8 +624,7 @@ class LightningModule(
         return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
-        r"""
-        Same as :meth:`torch.nn.Module.forward`.
+        r"""Same as :meth:`torch.nn.Module.forward`.
 
         Args:
             *args: Whatever you decide to pass into the forward method.
@@ -640,9 +636,8 @@ class LightningModule(
         return super().forward(*args, **kwargs)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:  # type: ignore[return-value]
-        r"""
-        Here you compute and return the training loss and some additional metrics for e.g.
-        the progress bar or logger.
+        r"""Here you compute and return the training loss and some additional metrics for e.g. the progress bar or
+        logger.
 
         Args:
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
@@ -802,9 +797,8 @@ class LightningModule(
         """
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        r"""
-        Operates on a single batch of data from the validation set.
-        In this step you'd might generate examples or calculate anything of interest like accuracy.
+        r"""Operates on a single batch of data from the validation set. In this step you'd might generate examples
+        or calculate anything of interest like accuracy.
 
         .. code-block:: python
 
@@ -988,10 +982,8 @@ class LightningModule(
         """
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        r"""
-        Operates on a single batch of data from the test set.
-        In this step you'd normally generate examples or calculate anything of interest
-        such as accuracy.
+        r"""Operates on a single batch of data from the test set. In this step you'd normally generate examples or
+        calculate anything of interest such as accuracy.
 
         .. code-block:: python
 
@@ -1172,8 +1164,11 @@ class LightningModule(
         """
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
-        """Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. By default, it
-        calls :meth:`~pytorch_lightning.core.module.LightningModule.forward`. Override to add any processing logic.
+        """Step function called during
+        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. By default,
+        it calls
+        :meth:`~pytorch_lightning.core.module.LightningModule.forward`.
+        Override to add any processing logic.
 
         The :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` is used
         to scale inference on multi-devices.
@@ -1209,12 +1204,15 @@ class LightningModule(
         return self(batch)
 
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
-        """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
-        gets called, the list or a callback returned here will be merged with the list of callbacks passed to the
-        Trainer's ``callbacks`` argument. If a callback returned here has the same type as one or several callbacks
-        already present in the Trainer's callbacks list, it will take priority and replace them. In addition,
-        Lightning will make sure :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks
-        run last.
+        """Configure model-specific callbacks. When the model gets attached,
+        e.g., when ``.fit()`` or ``.test()`` gets called, the list or a
+        callback returned here will be merged with the list of callbacks passed
+        to the Trainer's ``callbacks`` argument. If a callback returned here
+        has the same type as one or several callbacks already present in the
+        Trainer's callbacks list, it will take priority and replace them. In
+        addition, Lightning will make sure
+        :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+        callbacks run last.
 
         Return:
             A callback or a list of callbacks which will extend the list of callbacks in the Trainer.
@@ -1229,9 +1227,8 @@ class LightningModule(
         return []
 
     def configure_optimizers(self) -> Any:
-        r"""
-        Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
+        r"""Choose what optimizers and learning-rate schedulers to use in your optimization. Normally you'd need
+        one. But in the case of GANs or similar you might have multiple.
 
         Return:
             Any of these 6 options.
@@ -1432,8 +1429,9 @@ class LightningModule(
     def backward(
         self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
     ) -> None:
-        """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
-        own implementation if you need to.
+        """Called to perform backward on the loss returned in
+        :meth:`training_step`. Override this hook with your own implementation
+        if you need to.
 
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
@@ -1482,7 +1480,8 @@ class LightningModule(
         self._param_requires_grad_state = param_requires_grad_state
 
     def untoggle_optimizer(self, optimizer_idx: int) -> None:
-        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+        """Resets the state of required gradients that were toggled with
+        :meth:`toggle_optimizer`.
 
         This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
 
@@ -1636,9 +1635,9 @@ class LightningModule(
         on_tpu: bool = False,
         using_lbfgs: bool = False,
     ) -> None:
-        r"""
-        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
-        each optimizer.
+        r"""Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each
+        optimizer.
 
         By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
         This method (and ``zero_grad()``) won't be called during the accumulation phase when
@@ -1703,7 +1702,6 @@ class LightningModule(
                     lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
                         pg["lr"] = lr_scale * self.learning_rate
-
         """
         optimizer.step(closure=optimizer_closure)
 
@@ -1731,10 +1729,8 @@ class LightningModule(
         optimizer.zero_grad()
 
     def tbptt_split_batch(self, batch: Any, split_size: int) -> List[Any]:
-        r"""
-        When using truncated backpropagation through time, each batch must be split along the
-        time dimension. Lightning handles this by default, but for custom behavior override
-        this function.
+        r"""When using truncated backpropagation through time, each batch must be split along the time dimension.
+        Lightning handles this by default, but for custom behavior override this function.
 
         Args:
             batch: Current batch
@@ -1789,14 +1785,12 @@ class LightningModule(
         return splits
 
     def freeze(self) -> None:
-        r"""
-        Freeze all params for inference.
+        r"""Freeze all params for inference.
 
         Example::
 
             model = MyLightningModule(...)
             model.freeze()
-
         """
         for param in self.parameters():
             param.requires_grad = False
@@ -1872,11 +1866,13 @@ class LightningModule(
         example_inputs: Optional[Any] = None,
         **kwargs: Any,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
-        """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
-        please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
-        provided, or the model has :attr:`example_input_array` set. If you would like to customize the modules that
-        are scripted you should override this method. In case you want to return multiple modules, we recommend
-        using a dictionary.
+        """By default compiles the whole model to a
+        :class:`~torch.jit.ScriptModule`. If you want to use tracing, please
+        provided the argument ``method='trace'`` and make sure that either the
+        `example_inputs` argument is provided, or the model has
+        :attr:`example_input_array` set. If you would like to customize the
+        modules that are scripted you should override this method. In case you
+        want to return multiple modules, we recommend using a dictionary.
 
         Args:
             file_path: Path where to save the torchscript. Default: None (no file saved).

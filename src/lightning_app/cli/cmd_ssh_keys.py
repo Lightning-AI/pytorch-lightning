@@ -30,7 +30,7 @@ class _SSHKeyList(Formatable):
 
 
 class _SSHKeyManager:
-    """_SSHKeyManager implements API calls specific to Lightning AI SSH-Keys."""
+    """_SSHKeyManager implements API calls specific to Lightning AI SSH- Keys."""
 
     def __init__(self) -> None:
         self.api_client = LightningClient()

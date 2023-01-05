@@ -67,7 +67,8 @@ def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: 
 
 
 def reset_seed() -> None:
-    """Reset the seed to the value that :func:`lightning_fabric.utilities.seed.seed_everything` previously set.
+    """Reset the seed to the value that
+    :func:`lightning_fabric.utilities.seed.seed_everything` previously set.
 
     If :func:`lightning_fabric.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
@@ -82,8 +83,8 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed with
     ``seed_everything(seed, workers=True)``.
 
-    See also the PyTorch documentation on
-    `randomness in DataLoaders <https://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
+    See also the PyTorch documentation on `randomness in DataLoaders <ht
+    tps://pytorch.org/docs/stable/notes/randomness.html#dataloader>`_.
     """
     # implementation notes: https://github.com/pytorch/pytorch/issues/5059#issuecomment-817392562
     global_rank = rank if rank is not None else rank_zero_only.rank
@@ -105,7 +106,8 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
 
 
 def _collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
+    """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`,
+    :mod:`numpy` and Python."""
     return {
         "torch": torch.get_rng_state(),
         "torch.cuda": torch.cuda.get_rng_state_all(),
@@ -115,8 +117,8 @@ def _collect_rng_states() -> Dict[str, Any]:
 
 
 def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python in the current
-    process."""
+    """Set the global random state of :mod:`torch`, :mod:`torch.cuda`,
+    :mod:`numpy` and Python in the current process."""
     torch.set_rng_state(rng_state_dict["torch"])
     # torch.cuda rng_state is only included since v1.8.
     if "torch.cuda" in rng_state_dict:

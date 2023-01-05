@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 def breadth_first(root: "Component", types: Type["ComponentTuple"] = None):
-    """Returns a generator that walks through the tree of components breadth-first.
+    """Returns a generator that walks through the tree of components breadth- first.
 
     Arguments:
         root: The root component of the tree

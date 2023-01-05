@@ -248,7 +248,6 @@ def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
 
 
 class ManualOptimizationExtendedModel(BoringModel):
-
     count = 0
     called = collections.defaultdict(int)
     detach = False
@@ -338,7 +337,6 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     seed_everything(234)
 
     class ExtendedModel(BoringModel):
-
         count = 1
         called = collections.defaultdict(int)
         detach = False
@@ -509,7 +507,6 @@ def test_step_with_optimizer_closure(tmpdir):
     """Tests that `step` works with optimizer_closure."""
 
     class TestModel(BoringModel):
-
         _losses = []
 
         def __init__(self):
@@ -627,7 +624,6 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
             mock_adam_step.reset_mock()
 
         def training_step(self, batch, batch_idx):
-
             # emulate gans training
             opt_gen, opt_dis = self.optimizers()
 
@@ -707,7 +703,6 @@ class TesManualOptimizationDDPModel(BoringModel):
         return True
 
     def training_step(self, batch, batch_idx):
-
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
 
@@ -778,7 +773,6 @@ class TesManualOptimizationDDPModel(BoringModel):
 
 
 def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationDDPModel):
-
     seed_everything(42)
 
     model = model_cls()
@@ -822,7 +816,6 @@ def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir
 
 class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
     def training_step(self, batch, batch_idx):
-
         # emulate gans training
         opt_gen, opt_dis = self.optimizers()
 

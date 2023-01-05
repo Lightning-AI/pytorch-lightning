@@ -35,7 +35,7 @@ def from_argparse_args(
     **kwargs: Any,
 ) -> Union["pl.LightningDataModule", "pl.Trainer"]:
     """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
-    ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
+    ``"PL_<CLASS- NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:
         cls: Lightning class
@@ -132,7 +132,6 @@ def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, A
 
         >>> from pytorch_lightning import Trainer
         >>> args = get_init_arguments_and_types(Trainer)
-
     """
     cls_default_params = inspect.signature(cls).parameters
     name_type_default = []

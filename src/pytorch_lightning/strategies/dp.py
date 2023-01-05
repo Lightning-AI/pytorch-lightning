@@ -88,7 +88,8 @@ class DataParallelStrategy(ParallelStrategy):
         return batch
 
     def _setup_model(self, model: Module) -> DataParallel:
-        """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        """Wraps the given model into a
+        :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(

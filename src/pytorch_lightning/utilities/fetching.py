@@ -39,7 +39,6 @@ def _profile_nothing() -> None:
 
 
 class AbstractDataFetcher(ABC):
-
     """This base class should be used to implement a fault tolerant ``DataFetcher``. It is required to override the
     ``fetching_function`` with fetching logic.
 
@@ -300,7 +299,6 @@ class DataFetcher(AbstractDataFetcher):
 
 
 class InterBatchParallelDataFetcher(DataFetcher):
-
     """This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy of
     input batches behind computationally intensive operations.
 
@@ -347,7 +345,6 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
 
 class StepFuncDataLoaderIter(Iterator):
-
     """This class is a wrapper to keep track of dataloader iterator fetching event while left entirely to user
     control."""
 
@@ -368,9 +365,8 @@ class StepFuncDataLoaderIter(Iterator):
 
 
 class DataLoaderIterDataFetcher(AbstractDataFetcher):
-
     """This class is used to return directly the `dataloader_iter` to the ``LightningModule`` training_step for
-    users to implement their own pre-fetching logic. This feature can be activated as follows:
+    users to implement their own pre- fetching logic. This feature can be activated as follows:
 
     Example::
 

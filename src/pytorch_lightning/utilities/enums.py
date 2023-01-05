@@ -90,7 +90,6 @@ class AutoRestartBatchKeys(LightningEnum):
 
 
 class _FaultTolerantMode(LightningEnum):
-
     DISABLED = "disabled"
     AUTOMATIC = "automatic"
     MANUAL = "manual"

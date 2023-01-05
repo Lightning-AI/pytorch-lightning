@@ -25,8 +25,7 @@ from pytorch_lightning.callbacks.callback import Callback
 
 
 class LambdaCallback(Callback):
-    r"""
-    Create a simple callback on the fly using lambda functions.
+    r"""Create a simple callback on the fly using lambda functions.
 
     Args:
         **kwargs: hooks supported by :class:`~pytorch_lightning.callbacks.callback.Callback`

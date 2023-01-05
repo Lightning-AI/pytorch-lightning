@@ -260,7 +260,6 @@ def test_log_works_in_train_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -400,7 +399,6 @@ class LoggingSyncDistModel(BoringModel):
     ],
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
-
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -613,7 +611,7 @@ def test_log_none_raises(tmpdir, value):
 
 
 def test_log_tensor_and_clone_no_torch_warning(tmpdir):
-    """Regression test for issue https://github.com/Lightning-AI/lightning/issues/14594."""
+    """Regression test for issue https://github.com/Lightning- AI/lightning/issues/14594."""
 
     class TestModel(BoringModel):
         def training_step(self, *args):

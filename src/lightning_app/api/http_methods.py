@@ -23,7 +23,7 @@ def _signature_proxy_function():
 
 @dataclass
 class _FastApiMockRequest:
-    """This class is meant to mock FastAPI Request class that isn't pickle-able.
+    """This class is meant to mock FastAPI Request class that isn't pickle- able.
 
     If a user relies on FastAPI Request annotation, the Lightning framework
     patches the annotation before pickling and replace them right after.

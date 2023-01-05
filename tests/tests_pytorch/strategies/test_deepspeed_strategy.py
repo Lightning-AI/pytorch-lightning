@@ -865,7 +865,8 @@ def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_opt
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_test(tmpdir):
-    """Test to ensure we can use DeepSpeed with just test using ZeRO Stage 3."""
+    """Test to ensure we can use DeepSpeed with just test using ZeRO Stage
+    3."""
     model = ModelParallelBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,

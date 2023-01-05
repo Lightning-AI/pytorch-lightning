@@ -118,8 +118,8 @@ class DeepSpeedStrategy(DDPStrategy):
         process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
-        billion parameter models. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
+        billion parameter models. `For more information: https://pytorch- lightning.readthedocs.io/en/stable/a
+        dvanced/model_parallel.html#deepspeed`.
 
         .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
@@ -837,7 +837,6 @@ class DeepSpeedStrategy(DDPStrategy):
         assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-
             missing_keys: List[str] = []
             unexpected_keys: List[str] = []
             error_msgs: List[str] = []

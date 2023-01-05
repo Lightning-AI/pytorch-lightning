@@ -113,7 +113,8 @@ class SignalConnector:
         log.info("bypassing sigterm")
 
     def teardown(self) -> None:
-        """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""
+        """Restores the signals that were previously configured before
+        :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             if handler is not None:
                 self._register_signal(signum, handler)
@@ -132,8 +133,9 @@ class SignalConnector:
     def _valid_signals() -> Set[signal.Signals]:
         """Returns all valid signals supported on the current platform.
 
-        Behaves identically to :func:`signals.valid_signals` in Python 3.8+ and implements the equivalent behavior for
-        older Python versions.
+        Behaves identically to :func:`signals.valid_signals` in Python
+        3.8+ and implements the equivalent behavior for older Python
+        versions.
         """
         if _PYTHON_GREATER_EQUAL_3_8_0:
             return signal.valid_signals()

@@ -513,7 +513,8 @@ class _DataLoaderSource:
     def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
-        If the source is a module, the method with the corresponding :attr:`name` gets called.
+        If the source is a module, the method with the corresponding
+        :attr:`name` gets called.
         """
         if isinstance(self.instance, pl.LightningModule):
             return self.instance.trainer._call_lightning_module_hook(self.name, pl_module=self.instance)
@@ -528,7 +529,8 @@ class _DataLoaderSource:
     def is_defined(self) -> bool:
         """Returns whether the source dataloader can be retrieved or not.
 
-        If the source is a module it checks that the method with given :attr:`name` is overridden.
+        If the source is a module it checks that the method with given
+        :attr:`name` is overridden.
         """
         return not self.is_module() or is_overridden(self.name, self.instance)
 

@@ -474,7 +474,7 @@ def test_populate_changes():
 
 
 def test_populate_changes_status_removed():
-    """Regression test for https://github.com/Lightning-AI/lightning/issues/342."""
+    """Regression test for https://github.com/Lightning- AI/lightning/issues/342."""
     last_state = {
         "vars": {},
         "calls": {},
@@ -560,7 +560,6 @@ class FlowCounter(LightningFlow):
 
 
 def test_lightning_flow_counter(tmpdir):
-
     app = LightningApp(FlowCounter())
     app.checkpointing = True
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -653,7 +652,6 @@ class FlowSchedule(LightningFlow):
 
 
 def test_scheduling_api():
-
     app = LightningApp(FlowSchedule())
     MultiProcessRuntime(app, start_server=False).dispatch()
 
@@ -839,7 +837,6 @@ class FlowCollection(LightningFlow):
 
 
 def test_lightning_flow_flows_and_works():
-
     flow = FlowCollection()
     app = LightningApp(flow)
 

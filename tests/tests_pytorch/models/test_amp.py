@@ -238,7 +238,8 @@ def test_amp_with_apex_reload(tmpdir):
 @pytest.mark.parametrize("clip_val", [0, 10])
 @mock.patch("torch.nn.utils.clip_grad_norm_")
 def test_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0."""
+    """Ensure that clip gradients is only called if the value is greater than
+    0."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,

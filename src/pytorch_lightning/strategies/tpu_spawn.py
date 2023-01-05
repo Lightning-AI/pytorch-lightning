@@ -48,8 +48,8 @@ else:
 
 
 class TPUSpawnStrategy(DDPSpawnStrategy):
-    """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
-    method."""
+    """Strategy for training multiple TPU devices using the
+    :func:`torch_xla.distributed.xla_multiprocessing.spawn` method."""
 
     strategy_name = "tpu_spawn"
 

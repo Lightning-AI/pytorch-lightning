@@ -39,7 +39,6 @@ class NativeMixedPrecisionModule(nn.Module):
 
 
 class NativeMixedPrecisionBoringLite(BoringLite):
-
     expected_dtype: torch.dtype
 
     def get_model(self):

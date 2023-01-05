@@ -126,8 +126,7 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         num_workers: int = 0,
         **datamodule_kwargs: Any,
     ) -> "LightningDataModule":
-        r"""
-        Create an instance from torch.utils.data.Dataset.
+        r"""Create an instance from torch.utils.data.Dataset.
 
         Args:
             train_dataset: Optional dataset to be used for train_dataloader()
@@ -220,9 +219,8 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
         hparams_file: Optional[_PATH] = None,
         **kwargs: Any,
     ) -> Self:  # type: ignore[valid-type]
-        r"""
-        Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
-        it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
+        r"""Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint it stores the
+        arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
 
         Any arguments specified through \*\*kwargs will override args stored in ``"datamodule_hyper_parameters"``.
 
@@ -271,7 +269,6 @@ class LightningDataModule(DataHooks, HyperparametersMixin):
                 batch_size=32,
                 num_workers=10,
             )
-
         """
         return _load_from_checkpoint(
             cls,

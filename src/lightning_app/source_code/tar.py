@@ -59,8 +59,8 @@ def _get_split_size(
     """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are
     limited to 1000 max parts as the way we are using ListMultipartUploads. More info
     https://github.com/gridai/grid/pull/5267
-    https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html#mpu-process
-    https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
+    https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html#mpu- process
+    https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUp loads.html
     https://github.com/psf/requests/issues/2717#issuecomment-724725392 Python or requests has a limit of 2**31
     bytes for a single file upload.
 

@@ -28,7 +28,8 @@ from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 
 
 class RunIf:
-    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    """RunIf wrapper for simple marking specific cases, fully compatible with
+    pytest.mark::
 
     @RunIf(min_torch="0.0")
     @pytest.mark.parametrize("arg1", [1, 2.0])

@@ -463,7 +463,6 @@ class AnotherArgModel(BoringModel):
 
 class OtherArgsModel(BoringModel):
     def __init__(self, arg1, arg2):
-
         super().__init__()
         self.save_hyperparameters(arg1, arg2)
 
@@ -794,7 +793,6 @@ def test_hparams_name_from_container(tmpdir):
 
 @dataclass
 class DataClassModel(BoringModel):
-
     mandatory: int
     optional: str = "optional"
     ignore_me: bool = False
@@ -877,7 +875,6 @@ def test_no_datamodule_for_hparams(tmpdir):
 
 
 def test_colliding_hparams(tmpdir):
-
     model = SaveHparamsModel({"data_dir": "abc", "arg2": "abc"})
     data = DataModuleWithHparams({"data_dir": "foo"})
 

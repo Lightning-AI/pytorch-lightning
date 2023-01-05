@@ -48,7 +48,6 @@ class _DDPFullyShardedStrategyModuleWrapper(_LightningModuleWrapperBase):
 
 
 class DDPFullyShardedStrategy(DDPStrategy):
-
     strategy_name = "ddp_fully_sharded"
 
     def __init__(

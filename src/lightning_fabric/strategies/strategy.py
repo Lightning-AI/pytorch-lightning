@@ -117,8 +117,9 @@ class Strategy(ABC):
     ) -> Tuple[Module, List[Optimizer]]:
         """Set up a model and multiple optimizers together.
 
-        The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`setup_module` and :meth:`setup_optimizer` on the inputs.
+        The returned objects are expected to be in the same order they
+        were passed in. The default implementation will call
+        :meth:`setup_module` and :meth:`setup_optimizer` on the inputs.
         """
         module = self.setup_module(module)
         optimizers = [self.setup_optimizer(optimizer) for optimizer in optimizers]
@@ -297,10 +298,12 @@ class Strategy(ABC):
 
 class _BackwardSyncControl(ABC):
     """Interface for any :class:`Strategy` that wants to offer a functionality to enable or disable gradient
-    synchronization during/after back-propagation.
+    synchronization during/after back- propagation.
 
-    The most common use-case is gradient accumulation. If a :class:`Strategy` implements this interface, the user can
-    implement their gradient accumulation loop very efficiently by disabling redundant gradient synchronization.
+    The most common use-case is gradient accumulation. If a
+    :class:`Strategy` implements this interface, the user can implement
+    their gradient accumulation loop very efficiently by disabling
+    redundant gradient synchronization.
     """
 
     @contextmanager
@@ -319,9 +322,11 @@ class _Sharded(ABC):
     @abstractmethod
     @contextmanager
     def module_sharded_context(self) -> Generator:
-        """A context manager that goes over the instantiation of an :class:`torch.nn.Module` and handles sharding
-        of parameters on creation.
+        """A context manager that goes over the instantiation of an
+        :class:`torch.nn.Module` and handles sharding of parameters on
+        creation.
 
-        By sharding layers directly on instantiation, one can reduce peak memory usage and initialization time.
+        By sharding layers directly on instantiation, one can reduce
+        peak memory usage and initialization time.
         """
         yield

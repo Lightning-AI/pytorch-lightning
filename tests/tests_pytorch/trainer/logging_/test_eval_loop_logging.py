@@ -281,7 +281,6 @@ def test_log_works_in_val_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         count = 0
         choices = [False, True]
 
@@ -376,7 +375,6 @@ def test_log_works_in_test_callback(tmpdir):
     """Tests that log can be called within callback."""
 
     class TestCallback(callbacks.Callback):
-
         # helpers
         count = 0
         choices = [False, True]
@@ -509,7 +507,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     """This tests make sure we properly log_metrics to loggers."""
 
     class ExtendedModel(BoringModel):
-
         val_losses = []
 
         def __init__(self, some_val=7):

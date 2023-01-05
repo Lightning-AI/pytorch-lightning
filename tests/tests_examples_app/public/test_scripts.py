@@ -23,7 +23,6 @@ def test_scripts(file):
 @pytest.mark.skip(reason="causing some issues with CI, not sure if the test is actually needed")
 @_RunIf(pl=True)
 def test_components_app_example():
-
     runner = CliRunner()
     result = runner.invoke(
         run_app,

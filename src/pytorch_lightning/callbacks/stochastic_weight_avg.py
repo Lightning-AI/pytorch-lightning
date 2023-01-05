@@ -44,9 +44,7 @@ class StochasticWeightAveraging(Callback):
         avg_fn: Optional[_AVG_FN] = None,
         device: Optional[Union[torch.device, str]] = torch.device("cpu"),
     ):
-        r"""
-
-        Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
+        r"""Implements the Stochastic Weight Averaging (SWA) Callback to average a model.
 
         Stochastic Weight Averaging was proposed in ``Averaging Weights Leads to
         Wider Optima and Better Generalization`` by Pavel Izmailov, Dmitrii
@@ -94,7 +92,6 @@ class StochasticWeightAveraging(Callback):
             device: if provided, the averaged model will be stored on the ``device``.
                 When None is provided, it will infer the `device` from ``pl_module``.
                 (default: ``"cpu"``)
-
         """
 
         err_msg = "swa_epoch_start should be a >0 integer or a float between 0 and 1."
@@ -280,7 +277,7 @@ class StochasticWeightAveraging(Callback):
             dst_param.detach().copy_(src_param.to(dst_param.device))
 
     def reset_batch_norm_and_save_state(self, pl_module: "pl.LightningModule") -> None:
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L140-L154."""
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/op tim/swa_utils.py#L140-L154."""
         self.momenta = {}
         for module in pl_module.modules():
             if not isinstance(module, nn.modules.batchnorm._BatchNorm):
@@ -303,7 +300,7 @@ class StochasticWeightAveraging(Callback):
             module.num_batches_tracked *= 0
 
     def reset_momenta(self) -> None:
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L164-L165."""
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/op tim/swa_utils.py#L164-L165."""
         for bn_module in self.momenta:
             bn_module.momentum = self.momenta[bn_module]  # type: ignore[assignment]
 
@@ -311,7 +308,7 @@ class StochasticWeightAveraging(Callback):
     def update_parameters(
         average_model: "pl.LightningModule", model: "pl.LightningModule", n_averaged: Tensor, avg_fn: _AVG_FN
     ) -> None:
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L104-L112."""
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/op tim/swa_utils.py#L104-L112."""
         for p_swa, p_model in zip(average_model.parameters(), model.parameters()):
             device = p_swa.device
             p_swa_ = p_swa.detach()
@@ -322,7 +319,7 @@ class StochasticWeightAveraging(Callback):
 
     @staticmethod
     def avg_fn(averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: Tensor) -> Tensor:
-        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
+        """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/op tim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
 
     def state_dict(self) -> Dict[str, Any]:

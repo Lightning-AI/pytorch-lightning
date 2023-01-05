@@ -21,7 +21,6 @@ log = logging.getLogger(__name__)
 
 
 class XLAProfiler(Profiler):
-
     STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
     RECORD_FUNCTIONS = {
         "training_step",

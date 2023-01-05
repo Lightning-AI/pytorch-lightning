@@ -23,8 +23,9 @@ from lightning_app.utilities.port import disable_port
 class MultiProcessRuntime(Runtime):
     """Runtime to launch the LightningApp into multiple processes.
 
-    The MultiProcessRuntime will generate 1 process for each :class:`~lightning_app.core.work.LightningWork` and attach
-    queues to enable communication between the different processes.
+    The MultiProcessRuntime will generate 1 process for each
+    :class:`~lightning_app.core.work.LightningWork` and attach queues to
+    enable communication between the different processes.
     """
 
     backend: Union[str, Backend] = "multiprocessing"

@@ -19,7 +19,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def test_model_summary_callback_present_trainer():
-
     trainer = Trainer()
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 

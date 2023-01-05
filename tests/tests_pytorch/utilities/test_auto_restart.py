@@ -1222,7 +1222,6 @@ def test_fault_tolerant_mode_enum():
 
 
 class StatefulRandomSampler(RandomSampler):
-
     counter = 0
 
     def state_dict(self):

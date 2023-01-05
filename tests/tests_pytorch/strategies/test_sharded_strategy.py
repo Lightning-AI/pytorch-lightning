@@ -56,7 +56,8 @@ class CheckModelRestore(ModelWithAdamOptimizer):
 @RunIf(min_cuda_gpus=1, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
-    """Ensure that clip gradients is only called if the value is greater than 0."""
+    """Ensure that clip gradients is only called if the value is greater than
+    0."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -131,7 +132,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
 
 @RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_finetune(tmpdir):
-    """Test to ensure that we can save and restart training (simulate fine-tuning)"""
+    """Test to ensure that we can save and restart training (simulate fine- tuning)"""
     model = BoringModel()
     trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
     trainer.fit(model)
@@ -164,7 +165,10 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
 
 @RunIf(min_cuda_gpus=1, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
-    """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
+    """Test to ensure that resuming from checkpoint works when going from GPUs-
+
+    > CPU.
+    """
     model = BoringModel()
     trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=1, fast_dev_run=True)
 

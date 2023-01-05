@@ -129,8 +129,9 @@ class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
 
 
 def unwrap_lightning_module(wrapped_model: nn.Module, _suppress_warning: bool = False) -> "pl.LightningModule":
-    """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
-    attributes on the wrapper.
+    """Recursively unwraps a
+    :class:`~pytorch_lightning.core.module.LightningModule` by following the
+    ``.module`` attributes on the wrapper.
 
     .. deprecated:: v1.8.0
         The function ``unwrap_lightning_module`` is deprecated in v1.8.0 and will be removed in v1.10.0. Access the

@@ -276,11 +276,15 @@ class CaptureMapDataset(Dataset):
 
 
 class CaptureIterableDataset(IterableDataset):
-    """The ``CaptureIterableDataset`` is used to wrap an :class:`torch.utils.data.IterableDataset`.
+    """The ``CaptureIterableDataset`` is used to wrap an
+    :class:`torch.utils.data.IterableDataset`.
 
-    On ``__iter__`` function call,   the ``CaptureIterableDataset`` will wrap the wrapped dataset     generators into
-    ``FastForwardSampler`` to keep track of progress. On ``__next__`` function call, the ``CaptureIterableDataset`` will
-    return a dictionary containing     user data and metadata containing the ``FastForwardSampler`` samplers state_dict.
+    On ``__iter__`` function call,   the ``CaptureIterableDataset`` will
+    wrap the wrapped dataset     generators into ``FastForwardSampler``
+    to keep track of progress. On ``__next__`` function call, the
+    ``CaptureIterableDataset`` will return a dictionary containing
+    user data and metadata containing the ``FastForwardSampler``
+    samplers state_dict.
     """
 
     def __init__(self, dataset: IterableDataset) -> None:

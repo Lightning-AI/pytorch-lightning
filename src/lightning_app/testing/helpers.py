@@ -42,7 +42,8 @@ def _run_script(filepath):
 
 
 class _RunIf:
-    """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
+    """RunIf wrapper for simple marking specific cases, fully compatible with
+    pytest.mark::
 
     @RunIf(...)
     @pytest.mark.parametrize("arg1", [1, 2.0])

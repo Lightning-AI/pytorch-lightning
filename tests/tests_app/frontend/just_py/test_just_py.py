@@ -15,7 +15,6 @@ def render_fn(get_state: Callable) -> Callable:
 
 
 def test_justpy_frontend(monkeypatch):
-
     justpy = MagicMock()
     popen = MagicMock()
     monkeypatch.setitem(sys.modules, "justpy", justpy)

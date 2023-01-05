@@ -447,7 +447,6 @@ class EmptyFlow(LightningFlow):
     ],
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
-
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
 
@@ -1108,7 +1107,6 @@ class FlowWrapper(LightningFlow):
 
 
 def test_cloud_compute_binding():
-
     cloud_compute.ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER = True
 
     assert cloud_compute._CLOUD_COMPUTE_STORE == {}
@@ -1182,6 +1180,5 @@ class SimpleWork2(LightningWork):
 
 
 def test_lightning_work_stopped():
-
     app = LightningApp(SimpleWork2())
     MultiProcessRuntime(app, start_server=False).dispatch()

@@ -39,8 +39,8 @@ if TYPE_CHECKING and _XLA_AVAILABLE:
 
 
 class XLAStrategy(ParallelStrategy):
-    """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
-    method."""
+    """Strategy for training multiple TPU devices using the
+    :func:`torch_xla.distributed.xla_multiprocessing.spawn` method."""
 
     def __init__(
         self,

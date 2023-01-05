@@ -54,7 +54,10 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
 
 
 def test_lightning_run_cluster_without_cloud(monkeypatch):
-    """This test validates that running apps only supports --cluster-id if --cloud argument is passed."""
+    """This test validates that running apps only supports --cluster-id if.
+
+    --cloud argument is passed.
+    """
     monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
     with pytest.raises(click.exceptions.ClickException):
         _run_app(
@@ -187,7 +190,7 @@ def test_lightning_run_app_secrets(monkeypatch):
 @mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
 @mock.patch("lightning_app.cli.lightning_cli.dispatch")
 def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMock, caplog, monkeypatch):
-    """This test just validates the command has ran properly when --enable-basic-auth argument is passed.
+    """This test just validates the command has ran properly when --enable- basic-auth argument is passed.
 
     It checks the call to `dispatch` for the right arguments.
     """

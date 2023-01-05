@@ -92,7 +92,8 @@ class Loop(ABC, Generic[T]):
 
     @property
     def skip(self) -> bool:
-        """Determine whether to return immediately from the call to :meth:`run`.
+        """Determine whether to return immediately from the call to
+        :meth:`run`.
 
         Example::
 

@@ -34,8 +34,9 @@ UNKNOWN_SIZE = "?"
 
 
 class LayerSummary:
-    """Summary class for a single layer in a :class:`~pytorch_lightning.core.module.LightningModule`. It collects
-    the following information:
+    """Summary class for a single layer in a
+    :class:`~pytorch_lightning.core.module.LightningModule`. It collects the
+    following information:
 
     - Type of the layer (e.g. Linear, BatchNorm1d, ...)
     - Input shape
@@ -126,7 +127,8 @@ class LayerSummary:
 
 
 class ModelSummary:
-    """Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`.
+    """Generates a summary of all layers in a
+    :class:`~pytorch_lightning.core.module.LightningModule`.
 
     Args:
         model: The model to summarize (also referred to as the root module).

@@ -107,7 +107,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             Enabling this can free up a significant amount of memory at the cost of speed since activations in
             these layers need to be recomputed during backpropagation.
         \**kwargs: Passed to the FSDP context manager which will configure the FSDP class when wrapping modules.
-
     """
 
     strategy_name = "fsdp_native"

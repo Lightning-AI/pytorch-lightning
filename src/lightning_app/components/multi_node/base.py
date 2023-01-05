@@ -17,7 +17,7 @@ class MultiNode(LightningFlow):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        """This component enables performing distributed multi-node multi-device training.
+        """This component enables performing distributed multi-node multi- device training.
 
         Example::
 

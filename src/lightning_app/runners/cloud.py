@@ -205,7 +205,8 @@ class CloudRuntime(Runtime):
         open_ui: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
+        """Method to dispatch and run the
+        :class:`~lightning_app.core.app.LightningApp` in the cloud."""
         # not user facing error ideally - this should never happen in normal user workflow
         if not self.entrypoint_file:
             raise ValueError(

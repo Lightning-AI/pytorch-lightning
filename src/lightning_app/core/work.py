@@ -65,7 +65,7 @@ class LightningWork:
         run_once: Optional[bool] = None,  # TODO: Remove run_once
         start_with_flow: bool = True,
     ):
-        """LightningWork, or Work in short, is a building block for long-running jobs.
+        """LightningWork, or Work in short, is a building block for long- running jobs.
 
         The LightningApp runs its :class:`~lightning_app.core.flow.LightningFlow` component
         within an infinite loop and track the ``LightningWork`` status update.

@@ -140,8 +140,8 @@ def _patch_sys_argv():
     """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
     everything else before executing the user app script.
 
-    The command: ``lightning run app app.py --without-server --app_args --use_gpu --env ...`` will be converted into
-    ``app.py --use_gpu``
+    The command: ``lightning run app app.py --without-server --app_args
+    --use_gpu --env ...`` will be converted into ``app.py --use_gpu``
     """
     from lightning_app.cli.lightning_cli import run_app
 

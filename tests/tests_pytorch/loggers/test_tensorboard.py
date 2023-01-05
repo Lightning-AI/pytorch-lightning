@@ -243,7 +243,10 @@ def test_tensorboard_log_graph_warning_no_example_input_array(tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
 def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
-    """Tests to ensure that tensorboard log properly when accumulated_gradients > 1."""
+    """Tests to ensure that tensorboard log properly when accumulated_gradients.
+
+    > 1.
+    """
 
     class TestModel(BoringModel):
         def __init__(self):

@@ -240,7 +240,6 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
     model = BoringModel()
 
     class CurrentProgressBar(TQDMProgressBar):
-
         train_batches_seen = 0
         val_batches_seen = 0
         test_batches_seen = 0

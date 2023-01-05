@@ -238,8 +238,9 @@ class Strategy(ABC):
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
-        The returned objects are expected to be in the same order they were passed in. The default implementation will
-        call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
+        The returned objects are expected to be in the same order they
+        were passed in. The default implementation will call
+        :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
         # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
         model = self._setup_model(model)

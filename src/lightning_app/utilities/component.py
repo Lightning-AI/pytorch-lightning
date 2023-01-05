@@ -117,8 +117,9 @@ def _is_frontend_context() -> bool:
 def _context(ctx: str) -> Generator[None, None, None]:
     """Set the global component context for the block below this context manager.
 
-    The context is used to determine whether the current process is running for a LightningFlow or for a LightningWork.
-    See also :func:`_get_context`, :func:`_set_context`. For internal use only.
+    The context is used to determine whether the current process is
+    running for a LightningFlow or for a LightningWork. See also
+    :func:`_get_context`, :func:`_set_context`. For internal use only.
     """
     prev = _get_context()
     _set_context(ctx)

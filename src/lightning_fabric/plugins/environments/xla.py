@@ -22,10 +22,13 @@ log = logging.getLogger(__name__)
 
 
 class XLAEnvironment(ClusterEnvironment):
-    """Cluster environment for training on a TPU Pod with the `PyTorch/XLA <https://pytorch.org/xla>`_ library.
+    """Cluster environment for training on a TPU Pod with the `PyTorch/XLA.
 
-    A list of environment variables set by XLA can be found
-    `here <https://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py>`_.
+    <https://pytorch.org/xla>`_ library.
+
+    A list of environment variables set by XLA can be found `here <https
+    ://github.com/pytorch/xla/blob/master/torch_xla/core/xla_env_vars.py
+    >`_.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

@@ -389,7 +389,6 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
             return self.trainer.fit_loop._results
 
         def training_step(self, batch, batch_idx):
-
             # In the training step, we will accumulate metrics using batch_idx from 0 to 4
             # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
             # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.

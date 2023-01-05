@@ -105,7 +105,7 @@ class CUDAAccelerator(Accelerator):
 
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
-    """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
+    """Get GPU stats including memory, fan speed, and temperature from nvidia- smi.
 
     Args:
         device: GPU device for which to get stats

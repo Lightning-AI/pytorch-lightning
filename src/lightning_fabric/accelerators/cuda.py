@@ -184,7 +184,10 @@ def is_cuda_available() -> bool:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _parse_visible_devices() -> Set[int]:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
+    """Implementation copied from upstream:
+
+    https://github.com/pytorch/pytorch/pull/84879.
+    """
     var = os.getenv("CUDA_VISIBLE_DEVICES")
     if var is None:
         return {x for x in range(64)}
@@ -210,7 +213,10 @@ def _parse_visible_devices() -> Set[int]:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _raw_device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
+    """Implementation copied from upstream:
+
+    https://github.com/pytorch/pytorch/pull/84879.
+    """
     from ctypes import c_int, CDLL
 
     nvml_h = CDLL("libnvidia-ml.so.1")
@@ -229,7 +235,10 @@ def _raw_device_count_nvml() -> int:
 
 # TODO: Remove once minimum supported PyTorch version is 1.13
 def _device_count_nvml() -> int:
-    """Implementation copied from upstream: https://github.com/pytorch/pytorch/pull/84879."""
+    """Implementation copied from upstream:
+
+    https://github.com/pytorch/pytorch/pull/84879.
+    """
     try:
         raw_cnt = _raw_device_count_nvml()
         if raw_cnt <= 0:

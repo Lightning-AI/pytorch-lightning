@@ -109,7 +109,9 @@ class BaguaStrategy(DDPStrategy):
         precision_plugin: Optional[PrecisionPlugin] = None,
         **bagua_kwargs: Union[Any, Dict[str, Any]],
     ):
-        """Strategy for training using the `Bagua <https://github.com/BaguaSys/bagua>`_ library, with advanced
+        """Strategy for training using the `Bagua.
+
+        <https://github.com/BaguaSys/bagua>`_ library, with advanced
         distributed training algorithms and system optimizations.
 
         This strategy requires the `bagua` package to be installed. See
@@ -168,10 +170,12 @@ class BaguaStrategy(DDPStrategy):
             bagua.init_process_group()
 
     def _set_node_environment_variables(self) -> None:
-        """Set the environment variables as required by the :func:`bagua.init_process_group` call.
+        """Set the environment variables as required by the
+        :func:`bagua.init_process_group` call.
 
-        This enables the use of other cluster environments which don't set these exact variables, e.g., Bagua can be
-        launched with ``torch.distributed.run``.
+        This enables the use of other cluster environments which don't
+        set these exact variables, e.g., Bagua can be launched with
+        ``torch.distributed.run``.
         """
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address  # type: ignore[union-attr]
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)  # type: ignore[union-attr]

@@ -220,7 +220,6 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
 
 
 class ModelParallelClassification(BoringLite):
-
     num_blocks = 5
 
     def get_model(self):

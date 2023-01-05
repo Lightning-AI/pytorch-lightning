@@ -46,7 +46,8 @@ class _DeprecationManagingEnumMeta(EnumMeta):
 
 
 class TrainerStatus(LightningEnum):
-    """Enum for the status of the :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
+    """Enum for the status of the
+    :class:`~pytorch_lightning.trainer.trainer.Trainer`"""
 
     INITIALIZING = "initializing"  # trainer creation
     RUNNING = "running"
@@ -129,7 +130,8 @@ class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
 
 @dataclass
 class TrainerState:
-    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state."""
+    """Dataclass to encapsulate the current
+    :class:`~pytorch_lightning.trainer.trainer.Trainer` state."""
 
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None

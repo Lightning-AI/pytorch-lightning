@@ -37,8 +37,8 @@ _DATASETS_PATH = "./data"
 class _MNIST(Dataset):
     """Carbon copy of ``tests_pytorch.helpers.datasets.MNIST``.
 
-    We cannot import the tests as they are not distributed with the package.
-    See https://github.com/Lightning-AI/lightning/pull/7614#discussion_r671183652 for more context.
+    We cannot import the tests as they are not distributed with the package. See https://github.com/Lightning-
+    AI/lightning/pull/7614#discussion_r671183652 for more context.
     """
 
     RESOURCES = (

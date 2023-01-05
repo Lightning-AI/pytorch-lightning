@@ -47,7 +47,6 @@ def test_signal_handlers_restored_in_teardown():
 @pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
 def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
-
     if register_handler:
 
         def handler(*_):

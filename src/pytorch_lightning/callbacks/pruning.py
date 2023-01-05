@@ -261,7 +261,7 @@ class ModelPruning(Callback):
     def make_pruning_permanent(self, module: nn.Module) -> None:
         """Removes pruning buffers from any pruned modules.
 
-        Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
+        Adapted from/nn/utils/prune.py#L1176-L1180
         """
         for _, module in module.named_modules():
             for k in list(module._forward_pre_hooks):
@@ -279,8 +279,7 @@ class ModelPruning(Callback):
         dst.data = src.data.to(dst.device)
 
     def apply_lottery_ticket_hypothesis(self) -> None:
-        r"""
-        Lottery ticket hypothesis algorithm (see page 2 of the paper):
+        r"""Lottery ticket hypothesis algorithm (see page 2 of the paper):
 
             1. Randomly initialize a neural network :math:`f(x; \theta_0)` (where :math:`\theta_0 \sim \mathcal{D}_\theta`).
             2. Train the network for :math:`j` iterations, arriving at parameters :math:`\theta_j`.

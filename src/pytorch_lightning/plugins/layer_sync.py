@@ -29,7 +29,8 @@ class LayerSync(ABC):
 
     @abstractmethod
     def revert(self, model: Module) -> Module:
-        """Override this method to undo all modifications made in :meth:`apply`."""
+        """Override this method to undo all modifications made in
+        :meth:`apply`."""
 
 
 class NativeSyncBatchNorm(LayerSync):

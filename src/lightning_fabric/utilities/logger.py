@@ -40,7 +40,9 @@ def _convert_params(params: Optional[Union[Dict[str, Any], Namespace]]) -> Dict[
 
 
 def _sanitize_callable_params(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>} -> {'a': 'function_****'}``.
+    """Sanitize callable params dict, e.g. ``{'a': <function_**** at 0x****>}
+
+    -> {'a': 'function_****'}``.
 
     Args:
         params: Dictionary containing the hyperparameters
