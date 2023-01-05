@@ -1210,7 +1210,7 @@ and the Trainer will apply Truncated Backprop to it.
 
 (`Williams et al. "An efficient gradient-based algorithm for on-line training of
 recurrent network trajectories."
-<http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.7941&rep=rep1&type=pdf>`_)
+<https://ieeexplore.ieee.org/document/6797135>`_)
 
 `Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
 
