@@ -30,7 +30,6 @@ logger = Logger(__name__)
 # Required to avoid Uvicorn Server overriding Lightning App signal handlers.
 # Discussions: https://github.com/encode/uvicorn/discussions/1708
 class _DatabaseUvicornServer(uvicorn.Server):
-
     has_started_queue = None
 
     def run(self, sockets=None):
