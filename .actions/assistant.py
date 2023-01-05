@@ -39,7 +39,7 @@ REQUIREMENT_FILES = {
         "requirements/app/ui.txt",
         "requirements/app/cloud.txt",
     ),
-    "lite": (
+    "fabric": (
         "requirements/fabric/base.txt",
         "requirements/fabric/strategies.txt",
     ),
