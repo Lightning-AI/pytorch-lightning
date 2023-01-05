@@ -46,8 +46,8 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             # capture logs.
             if open_ui:
                 lauch_mock.assert_called_with("http://127.0.0.1:7501/view")
-            # else:
-            #     lauch_mock.assert_not_called()
+            else:
+                lauch_mock.assert_not_called()
         assert result.exit_code == 0
     assert len(caplog.messages) == 4
     assert bool(int(caplog.messages[0])) is open_ui
