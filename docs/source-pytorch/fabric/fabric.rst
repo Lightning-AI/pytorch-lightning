@@ -110,7 +110,7 @@ DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/t
 
     lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
 
-`DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
+`DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ with mixed precision:
 
 .. code-block:: bash
 
