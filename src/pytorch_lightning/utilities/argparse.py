@@ -19,7 +19,7 @@ from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union, _LiteralGenericAlias
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
@@ -140,7 +140,10 @@ def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, A
         arg_type = cls_default_params[arg].annotation
         arg_default = cls_default_params[arg].default
         try:
-            arg_types = tuple(arg_type.__args__)
+            if type(arg_type) == _LiteralGenericAlias:
+                arg_types = tuple(set(type(a) for a in arg_type.__args__))
+            else:
+                arg_types = tuple(arg_type.__args__)
         except (AttributeError, TypeError):
             arg_types = (arg_type,)
 
