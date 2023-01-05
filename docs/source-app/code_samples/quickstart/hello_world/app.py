@@ -3,7 +3,6 @@ import lightning as L
 
 # Step 1: Subclass LightningFlow component to define the app flow.
 class HelloWorld(L.LightningFlow):
-
     # Step 2: Add the app logic to the LightningFlow run method to
     # ``print("Hello World!")`.
     # The LightningApp executes the run method of the main LightningFlow
