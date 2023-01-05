@@ -26,7 +26,6 @@ class Mount:
     mount_path: str = ""
 
     def __post_init__(self) -> None:
-
         for protocol in __MOUNT_PROTOCOLS__:
             if self.source.startswith(protocol):
                 protocol = protocol

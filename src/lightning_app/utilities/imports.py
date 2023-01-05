@@ -46,7 +46,6 @@ def _get_extras(extras: str) -> str:
 
 
 def requires(module_paths: Union[str, List]):
-
     if not isinstance(module_paths, list):
         module_paths = [module_paths]
 

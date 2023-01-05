@@ -215,12 +215,10 @@ class Post(_HttpMethod):
 
 
 class Get(_HttpMethod):
-
     pass
 
 
 class Put(_HttpMethod):
-
     pass
 
 

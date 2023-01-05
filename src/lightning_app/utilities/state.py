@@ -35,7 +35,6 @@ def headers_for(context: Dict[str, str]) -> Dict[str, str]:
 
 
 class AppState:
-
     _APP_PRIVATE_KEYS: Tuple[str, ...] = (
         "_host",
         "_session_id",

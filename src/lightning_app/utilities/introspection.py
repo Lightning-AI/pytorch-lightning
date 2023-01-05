@@ -269,7 +269,6 @@ class LightningProfilerVisitor(LightningVisitor):
 
 
 class Scanner:
-
     """
     Finds relevant Lightning objects in files in the file system.
     Attributes
