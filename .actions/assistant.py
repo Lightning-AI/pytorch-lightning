@@ -103,7 +103,10 @@ class _RequirementWithComment(Requirement):
 def _parse_requirements(strs: Iterable) -> Iterator[_RequirementWithComment]:
     """Adapted from `pkg_resources.parse_requirements` to include comments.
 
-    >>> txt = '# this works\\n\\nthis # is an\\n--bar\\nexample\\nfoo # strict\\nthing\\n-r different/file.txt'
+    >>> txt = ['# ignored', '', 'this # is an', '--piparg', 'example', 'foo # strict', 'thing', '-r different/file.txt']
+    >>> [r.clean_str('none') for r in _parse_requirements(txt)]
+    ['this', 'example', 'foo  # strict', 'thing']
+    >>> txt = '\\n'.join(txt)
     >>> [r.clean_str('none') for r in _parse_requirements(txt)]
     ['this', 'example', 'foo  # strict', 'thing']
     """
