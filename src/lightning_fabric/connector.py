@@ -207,9 +207,9 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        precision_types = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
-        if precision not in precision_types:
-            raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {precision_types}")
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
+            raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
         self._precision_input = cast(_PRECISION_INPUT_STR, str(precision))
 
         if plugins:
