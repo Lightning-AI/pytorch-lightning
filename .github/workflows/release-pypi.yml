@@ -137,7 +137,7 @@ jobs:
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-folder: dist/fabric
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_FABRIC }}
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-folder: dist/pytorch
@@ -168,7 +168,7 @@ jobs:
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-pattern: "*fabric*"
-        pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
+        pypi-token: ${{ secrets.PYPI_TOKEN_FABRIC }}
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-folder: dist/pytorch
