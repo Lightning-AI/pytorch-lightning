@@ -26,6 +26,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies import ColossalAIStrategy
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 
@@ -188,9 +189,10 @@ class ModelParallelClassificationModel(LightningModule):
         self.lr = lr
         self.layers = None
 
-        self.train_acc = Accuracy(task="multiclass")
-        self.valid_acc = Accuracy(task="multiclass")
-        self.test_acc = Accuracy(task="multiclass")
+        metric = Accuracy(task="multiclass", num_classes=3) if _TORCHMETRICS_GREATER_EQUAL_0_11 else Accuracy()
+        self.train_acc = metric.clone()
+        self.valid_acc = metric.clone()
+        self.test_acc = metric.clone()
 
     def build_layers(self) -> nn.Module:
         layers = []

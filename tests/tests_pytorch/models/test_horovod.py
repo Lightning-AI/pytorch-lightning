@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 import json
 import os
 import shlex
@@ -30,6 +31,7 @@ from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
 from tests_pytorch.helpers.advanced_models import BasicGAN
 from tests_pytorch.helpers.runif import RunIf
 
@@ -369,9 +371,8 @@ def test_accuracy_metric_horovod():
 
         assert isinstance(trainer.accelerator, CPUAccelerator)
         # TODO: test that we selected the correct strategy based on horovod flags
-
-        metric = Accuracy(
-            task="binary",
+        metric_class = partial(Accuracy, task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else Accuracy
+        metric = metric_class(
             compute_on_step=True,
             dist_sync_on_step=True,
             dist_sync_fn=trainer.strategy.all_gather,
