@@ -15,7 +15,7 @@ from typing import Any, Callable, Union
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.types import Optimizable
@@ -27,6 +27,10 @@ from pytorch_lightning.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
 
+_PRECISION_INPUT_INT = Literal[32, 16]
+_PRECISION_INPUT_STR = Literal["32", "16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+
 
 class IPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for IPU integration.
@@ -37,13 +41,12 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Literal["32", 32, "16", 16]) -> None:
-        supported_precision_values = ("32", 32, "16", 16)
-        if precision not in supported_precision_values:
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
-                f" `precision` must be one of: {supported_precision_values}."
+                f" `precision` must be one of: {supported_precision}."
             )
-        super().__init__()
         self.precision = str(precision)
 
     def backward(  # type: ignore[override]

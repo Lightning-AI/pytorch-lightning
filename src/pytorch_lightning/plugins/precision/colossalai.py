@@ -37,13 +37,13 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
     """
 
     def __init__(self, precision: Literal["16", 16] = 16) -> None:
-        if str(precision) != "16":
+        precision = str(precision)
+        if precision != "16":
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
             )
-        super().__init__()
-        self.precision = str(precision)
+        self.precision = precision
 
     def backward(  # type: ignore[override]
         self,

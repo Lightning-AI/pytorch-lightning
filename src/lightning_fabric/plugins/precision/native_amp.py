@@ -38,7 +38,6 @@ class MixedPrecision(Precision):
     def __init__(
         self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
-        super().__init__()
         precision = str(precision)
         if scaler is None and precision == "16":
             with _patch_cuda_is_available():

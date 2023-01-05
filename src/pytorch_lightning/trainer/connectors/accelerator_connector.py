@@ -15,10 +15,10 @@
 import logging
 import os
 from collections import Counter
-from typing import Dict, List, Optional, Union
+from typing import cast, Dict, List, Optional, Union
 
 import torch
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 from lightning_fabric.plugins.environments import (
     ClusterEnvironment,
@@ -90,7 +90,9 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 _LITERAL_WARN = Literal["warn"]
-_PRECISION_INPUT = Literal["64", 64, "32", 32, "16", 16, "bf16"]
+_PRECISION_INPUT_INT = Literal[64, 32, 16]
+_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class AcceleratorConnector:
@@ -163,14 +165,13 @@ class AcceleratorConnector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[_PRECISION_INPUT] = None
+        self._precision_flag: _PRECISION_INPUT_STR = "32"
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -286,12 +287,12 @@ class AcceleratorConnector:
 
         self._accelerator_flag = accelerator
 
-        if precision is not None:
-            if str(precision) not in self._precision_types:
-                raise MisconfigurationException(
-                    f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
-                )
-            self._precision_flag = str(precision)  # type: ignore[assignment]
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
+            )
+        self._precision_flag = cast(_PRECISION_INPUT_STR, str(precision))
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -736,18 +737,12 @@ class AcceleratorConnector:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                    return ShardedNativeMixedPrecisionPlugin(
-                        self._precision_flag,
-                        device,
-                    )
+                    return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
                     return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
                 if isinstance(self.strategy, DDPFullyShardedStrategy):
-                    return FullyShardedNativeMixedPrecisionPlugin(
-                        self._precision_flag,
-                        device,
-                    )
-                return MixedPrecisionPlugin(self._precision_flag, device)  # type: ignore[arg-type]
+                    return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
+                return MixedPrecisionPlugin(self._precision_flag, device)
 
             if self._amp_type_flag == "apex":
                 self._amp_level_flag = self._amp_level_flag or "O2"

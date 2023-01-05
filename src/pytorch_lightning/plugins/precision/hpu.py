@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
+from typing import Optional, Union
 
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -21,6 +21,10 @@ from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 if _HPU_AVAILABLE:
     from habana_frameworks.torch.hpex import hmp
+
+_PRECISION_INPUT_INT = Literal[32, 16]
+_PRECISION_INPUT_STR = Literal["32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):
@@ -36,7 +40,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
 
     def __init__(
         self,
-        precision: Literal["32", 32, "16", 16, "bf16"],
+        precision: _PRECISION_INPUT,
         opt_level: str = "O2",
         bf16_file_path: Optional[str] = None,
         fp32_file_path: Optional[str] = None,
@@ -44,15 +48,14 @@ class HPUPrecisionPlugin(PrecisionPlugin):
     ) -> None:
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU precision plugin requires HPU devices.")
-        supported_precision_values = ("32", 32, "16", 16, "bf16")
-        if precision not in supported_precision_values:
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(accelerator='hpu', precision={precision!r})` is not supported."
-                f" `precision` must be one of: {supported_precision_values}."
+                f" `precision` must be one of: {supported_precision}."
             )
-        super().__init__()
-        if str(precision) in ("16", "bf16"):
+        self.precision = str(precision)
+        if self.precision in ("16", "bf16"):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
             )
-        self.precision = str(precision)

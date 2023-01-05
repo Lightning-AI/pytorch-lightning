@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, cast, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -50,7 +50,7 @@ class DeepSpeedPrecision(Precision):
                 f" `precision` must be one of: {supported_precision}."
             )
         super().__init__()
-        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
+        self.precision = str(precision)
 
     def convert_input(self, data: Tensor) -> Tensor:
         precision_to_type = {"bf16": torch.bfloat16, "16": torch.float16, "32": torch.float32}

@@ -16,7 +16,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.types import Steppable
@@ -33,12 +33,16 @@ if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
 
 warning_cache = WarningCache()
 
+_PRECISION_INPUT_INT = Literal[32, 16]
+_PRECISION_INPUT_STR = Literal["32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
+
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
 
     Args:
-        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+        precision: Full precision (32), half precision (16) or bfloat16 precision (bf16).
     Raises:
         ValueError:
             If unsupported ``precision`` is provided.
@@ -76,7 +80,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 f" in v1.10.0. This argument is no longer necessary."
             )
 
-        supported_precision = ("32", 32, "16", 16, "bf16")
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
