@@ -97,7 +97,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
             run_app_comment_commands=False,
-            enable_basic_auth=""
+            enable_basic_auth="",
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
