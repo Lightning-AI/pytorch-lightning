@@ -98,7 +98,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             secret=("BAR=my-secret",),
             run_app_comment_commands=False,
             enable_basic_auth="",
-            port=7501
+            port=7501,
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -116,7 +116,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="",
-        port=7501
+        port=7501,
     )
 
 
@@ -144,7 +144,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
             run_app_comment_commands=True,
-            enable_basic_auth=""
+            enable_basic_auth="",
         )
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
@@ -162,7 +162,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         cluster_id="",
         run_app_comment_commands=True,
         enable_basic_auth="",
-        port=7501
+        port=7501,
     )
 
 
@@ -209,7 +209,7 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
             run_app_comment_commands=False,
-            enable_basic_auth="username:password"
+            enable_basic_auth="username:password",
         )
 
     mock_dispatch.assert_called_with(
@@ -225,5 +225,5 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
         cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="username:password",
-        port=7501
+        port=7501,
     )
