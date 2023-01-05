@@ -22,7 +22,6 @@ class _PyTorchSpawnWorkProtocol(Protocol):
 
 
 class _PyTorchSpawnRunExecutor(WorkRunExecutor):
-
     enable_start_observer: bool = False
 
     def __call__(

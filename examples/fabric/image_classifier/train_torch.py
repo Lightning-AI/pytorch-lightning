@@ -54,7 +54,6 @@ class Net(nn.Module):
 
 
 def run(hparams):
-
     torch.manual_seed(hparams.seed)
 
     use_cuda = torch.cuda.is_available()
