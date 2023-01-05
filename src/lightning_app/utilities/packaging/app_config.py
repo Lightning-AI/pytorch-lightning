@@ -19,7 +19,7 @@ class AppConfig:
     """
 
     name: str = field(default_factory=get_unique_name)
-    release_id: str = None
+    release_id: str = ""
 
     def save_to_file(self, path: Union[str, pathlib.Path]) -> None:
         """Save the configuration to the given file in YAML format."""
