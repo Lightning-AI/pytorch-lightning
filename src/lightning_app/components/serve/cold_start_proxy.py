@@ -5,8 +5,6 @@ import aiohttp
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-proxy_url = "https://ulhcn-01gd3c9epmk5xj2y9a9jrrvgt8.litng-ai-03.litng.ai/api/predict"
-
 
 class ColdStartProxy:
     """ColdStartProxy allows users to configure the load balancer to use a proxy service while the work is cold
