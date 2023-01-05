@@ -355,8 +355,8 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 callbacks
 =========
 
-The callback system allows you to inject logic into your training loop from an external callback class.
-A callback class is a collection of methods that the training loop can call at a specific point, for example, at the end of an epoch:
+A callback class is a collection of methods that the training loop can call at a specific point in time, for example, at the end of an epoch.
+Add callbacks to Fabric to inject logic into your training loop from an external callback class.
 
 .. code-block:: python
 
