@@ -57,6 +57,47 @@ With only a few changes to your code, Fabric allows you to:
 
 ----------
 
+
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+
+.. customcalloutitem::
+    :description: Learn about the fundamental concepts in Fabric
+    :header: Fundamentals
+    :button_link: guide/fundamentals.html
+    :col_css: col-md-4
+
+.. customcalloutitem::
+    :description: How-to guides for common use cases and best practices
+    :header: Guides
+    :button_link: guide/index.html
+    :col_css: col-md-4
+
+.. customcalloutitem::
+    :description: Explore examples to see what's possible with Fabric
+    :header: Examples and Benchmarks
+    :button_link: examples/index.html
+    :col_css: col-md-4
+
+
+.. customcalloutitem::
+    :description: Overview of all the flags and methods that exist in Fabric
+    :header: Fabric Arguments and Methods
+    :button_link: guide/api.html
+    :col_css: col-md-4
+
+.. raw:: html
+
+        </div>
+    </div>
+
+
+
+----------
+
 *****************
 Convert to Fabric
 *****************
