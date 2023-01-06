@@ -39,19 +39,13 @@ if _IPU_AVAILABLE:
 
 class IPUModel(BoringModel):
     def training_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def validation_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def test_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
+        return self.step(batch)
 
     def training_epoch_end(self, outputs) -> None:
         pass
