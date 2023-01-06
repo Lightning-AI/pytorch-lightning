@@ -51,7 +51,9 @@ class LoggerConnector:
         should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
         return should_log or self.trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, Logger, TensorBoardLogger, Iterable[Union[Logger, TensorBoardLogger]]]) -> None:
+    def configure_logger(
+        self, logger: Union[bool, Logger, TensorBoardLogger, Iterable[Union[Logger, TensorBoardLogger]]]
+    ) -> None:
         if not logger:
             # logger is None or logger is False
             self.trainer.loggers = []
