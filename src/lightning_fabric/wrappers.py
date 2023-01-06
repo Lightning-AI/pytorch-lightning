@@ -44,7 +44,9 @@ class _FabricOptimizer:
         """
         # `__del__` is skipped in case the optimizer has implemented custom destructor logic which we would
         # not want to call on destruction of the `_FabricOptimizer
-        self.__dict__ = {k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "zero_grad", "__del__")}
+        self.__dict__ = {
+            k: v for k, v in optimizer.__dict__.items() if k not in ("state_dict", "step", "zero_grad", "__del__")
+        }
         self.__class__ = type("Fabric" + optimizer.__class__.__name__, (self.__class__, optimizer.__class__), {})
         self._optimizer = optimizer
         self._strategy = strategy
