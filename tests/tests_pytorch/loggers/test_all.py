@@ -92,8 +92,7 @@ def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
 def _test_loggers_fit_test(tmpdir, logger_class):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_some_val", loss)
             return {"loss": loss}
 
