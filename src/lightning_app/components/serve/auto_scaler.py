@@ -3,7 +3,9 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, SupportsFloat as Numeric
+from typing import Any, Dict, List, Optional
+from typing import SupportsFloat as Numeric
+from typing import Tuple, Type, Union
 
 import requests
 import uvicorn
