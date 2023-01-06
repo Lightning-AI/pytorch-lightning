@@ -23,12 +23,10 @@ from torch.utils.data import DataLoader
 
 from lightning_fabric.plugins import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning_fabric.strategies import Strategy, DeepSpeedStrategy
-from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.strategies import DeepSpeedStrategy, Strategy
+from lightning_fabric.utilities import move_data_to_device, rank_zero_info
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Optimizable
-from lightning_fabric.utilities import rank_zero_info
-
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
