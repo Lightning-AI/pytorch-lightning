@@ -23,10 +23,12 @@ from torch.utils.data import DataLoader
 
 from lightning_fabric.plugins import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
-from lightning_fabric.strategies import Strategy
+from lightning_fabric.strategies import Strategy, DeepSpeedStrategy
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Optimizable
+from lightning_fabric.utilities.warnings import PossibleUserWarning
+
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
 
@@ -67,6 +69,12 @@ class _FabricOptimizer:
             optimizer,
             **kwargs,
         )
+
+    def zero_grad(self, *args: Any, **kwargs: Any) -> None:
+        if "set_to_none" in kwargs and isinstance(self._strategy, DeepSpeedStrategy):
+            rank_zero_info("`.zero_grad(set_to_none=...)` is not supported with DeepSpeed. Ignoring it.")
+            kwargs.pop("set_to_none")
+        self.optimizer.zero_grad(*args, **kwargs)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
