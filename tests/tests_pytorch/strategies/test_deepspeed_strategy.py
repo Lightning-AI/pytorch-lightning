@@ -67,8 +67,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        output = self(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         opt.zero_grad()
         self.manual_backward(loss)
         opt.step()
