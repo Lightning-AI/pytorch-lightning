@@ -407,7 +407,6 @@ class LightningJSONEncoder(json.JSONEncoder):
 
 
 class Logger:
-
     """This class is used to improve the debugging experience."""
 
     def __init__(self, name: str):

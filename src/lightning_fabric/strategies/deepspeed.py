@@ -595,7 +595,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         import deepspeed
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
-
             missing_keys: List[str] = []
             unexpected_keys: List[str] = []
             error_msgs: List[str] = []
