@@ -589,9 +589,20 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
 
 .. code-block:: python
 
+    class MyCallback:
+        def on_train_start(self):
+            ...
+
+        def on_train_epoch_end(self, model, results):
+            ...
+
     fabric = Fabric(callbacks=[MyCallback()]))
 
     # Call any hook by name
-    fabric.call("on_train_epoch_end", results={...})
+    fabric.call("on_train_start")
 
-Only the callbacks that have this method defined will be executed.
+    # Pass in additional arguments that the hook requires
+    fabric.call("on_train_epoch_end", model=..., results={...})
+
+    # Only the callbacks that have this method defined will be executed
+    fabric.call("undefined")
