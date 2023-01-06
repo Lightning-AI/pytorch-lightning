@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Union
+from typing import Any, Callable, cast, Union
 
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import get_args, Literal
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
@@ -26,6 +26,10 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
+
+_PRECISION_INPUT_INT = Literal[32, 16]
+_PRECISION_INPUT_STR = Literal["32", "16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
@@ -36,15 +40,14 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             If the precision is neither 16 nor 32.
     """
 
-    def __init__(self, precision: int) -> None:
-        supported_precision_values = (PrecisionType.HALF, PrecisionType.FLOAT)
-        if precision not in supported_precision_values:
+    def __init__(self, precision: Literal["32", 32, "16", 16]) -> None:
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
-                f" `precision` must be one of: {supported_precision_values}."
+                f" `precision` must be one of: {supported_precision}."
             )
-        super().__init__()
-        self.precision = precision
+        self.precision = cast(_PRECISION_INPUT_STR, str(precision))
 
     def backward(  # type: ignore[override]
         self,

@@ -70,7 +70,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
     tpu_distributed,
 )
-from pytorch_lightning.utilities.enums import AMPType
+from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
@@ -431,3 +431,8 @@ def test_pick_single_gpu(_):
         RuntimeError
     ):
         pick_single_gpu([])
+
+
+def test_deprecated_precision_type():
+    with pytest.deprecated_call(match="PrecisionType` enum has been deprecated in v1.9"):
+        _ = PrecisionType.HALF
