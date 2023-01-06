@@ -13,12 +13,12 @@
 # limitations under the License.
 import contextlib
 from typing import Any, Dict, Generator, Optional
-from typing_extensions import Literal
 
 import torch
 from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
+from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.utilities.types import _PARAMETERS, Optimizable
