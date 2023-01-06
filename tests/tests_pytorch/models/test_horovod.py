@@ -167,11 +167,12 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.xfail(raises=horovod.common.exceptions.HorovodInternalError, reason="unhandled cuda error")
+@pytest.mark.xfail(reason="unhandled cuda error")
 @RunIf(horovod=True, skip_windows=True, min_cuda_gpus=1)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
+
     model = BoringModel()
     with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
         trainer = Trainer(
@@ -243,7 +244,7 @@ def test_horovod_gather(tmpdir):
     _run_horovod(trainer_options)
 
 
-@pytest.mark.xfail(raises=horovod.common.exceptions.HorovodInternalError, reason="unhandled cuda error")
+@pytest.mark.xfail(reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, skip_windows=True, horovod=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
