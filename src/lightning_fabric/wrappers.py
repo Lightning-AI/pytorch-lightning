@@ -27,7 +27,7 @@ from lightning_fabric.strategies import Strategy, DeepSpeedStrategy
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Optimizable
-from lightning_fabric.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities import rank_zero_info
 
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
