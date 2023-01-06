@@ -167,7 +167,7 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-pattern: "*fabric*"
+        pkg-folder: dist/fabric
         pypi-token: ${{ secrets.PYPI_TOKEN_FABRIC }}
     - uses: ./.github/actions/pkg-publish
       with:
