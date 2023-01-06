@@ -36,7 +36,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -662,7 +662,7 @@ def test_compute_not_a_tensor_raises():
 @pytest.mark.parametrize("log_val", [tensor(0.5), "Accuracy"])
 def test_logger_sync_dist(distributed_env, log_val):
     if log_val == "Accuracy":
-        log_val = Accuracy(task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else Accuracy()
+        log_val = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
 
     pl.trainer.connectors.logger_connector.result.warning_cache.clear()
 

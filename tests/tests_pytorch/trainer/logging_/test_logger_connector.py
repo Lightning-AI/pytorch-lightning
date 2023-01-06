@@ -29,7 +29,7 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_11 as _TM_GE_0_11
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
@@ -410,9 +410,9 @@ def test_metrics_reset(tmpdir):
             self.layer = torch.nn.Linear(32, 1)
 
         def _create_metrics(self):
-            acc = Accuracy(task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else Accuracy()
+            acc = Accuracy(task="binary") if _TM_GE_0_11 else Accuracy()
             acc.reset = mock.Mock(side_effect=acc.reset)
-            ap = AvgPre(task="binary") if _TORCHMETRICS_GREATER_EQUAL_0_11 else AvgPre(num_classes=1, pos_label=1)
+            ap = AvgPre(task="binary") if _TM_GE_0_11 else AvgPre(num_classes=1, pos_label=1)
             ap.reset = mock.Mock(side_effect=ap.reset)
             return acc, ap
 
