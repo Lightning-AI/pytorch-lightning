@@ -18,4 +18,4 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 dir_path=$(dirname "${BASH_SOURCE[0]}")
 
 args="--epochs=1"
-python -m lightning_fabric.cli "${dir_path}/fabric/image_classifier_2_fabric.py" ${args} "$@"
+python -m lightning_fabric.cli "${dir_path}/fabric/image_classifier/train_fabric.py" ${args} "$@"
