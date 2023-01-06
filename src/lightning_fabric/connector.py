@@ -41,6 +41,7 @@ from lightning_fabric.plugins.environments import (
 )
 from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
+from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT
 from lightning_fabric.strategies import (
     DDPShardedStrategy,
     DDPStrategy,
@@ -59,9 +60,6 @@ from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
-_PRECISION_INPUT_INT = Literal[64, 32, 16]
-_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
-_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class _Connector:

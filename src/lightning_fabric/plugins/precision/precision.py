@@ -19,9 +19,12 @@ from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
-import lightning_fabric as lf
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.utilities.types import _PARAMETERS, Optimizable
+
+_PRECISION_INPUT_INT = Literal[64, 32, 16]
+_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class Precision:
@@ -30,7 +33,7 @@ class Precision:
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
-    precision: "lf.connector._PRECISION_INPUT_STR" = "32"
+    precision: _PRECISION_INPUT_STR = "32"
 
     def convert_module(self, module: Module) -> Module:
         """Convert the module parameters to the precision type this plugin handles.
