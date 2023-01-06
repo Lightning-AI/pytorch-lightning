@@ -200,8 +200,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("bar", torch.tensor(batch_idx).float(), on_step=False, on_epoch=True, reduce_fx=fx)
             return {"x": loss}
 
@@ -231,9 +230,7 @@ def test_different_batch_types_for_sizing(tmpdir):
 
         def validation_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
-            a = batch["a"]
-            output = self.layer(a)
-            loss = self.loss(batch, output)
+            loss = self.step(batch["a"])
             self.log("n", {"d3": 2, "d4": torch.tensor(1)}, on_step=True, on_epoch=True)
             return {"x": loss}
 
@@ -450,8 +447,7 @@ def test_logging_sync_dist_true_ddp(tmpdir):
             return acc
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("bar", 2, on_step=False, on_epoch=True, sync_dist=True, reduce_fx="AVG")
             return {"x": loss}
 

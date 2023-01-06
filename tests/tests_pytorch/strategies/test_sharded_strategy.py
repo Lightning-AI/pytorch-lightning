@@ -10,7 +10,7 @@ from torch import Tensor
 
 from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.plugins import MixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -203,25 +203,10 @@ def test_ddp_sharded_strategy_test_multigpu(trainer_kwargs):
     trainer.test(model)
 
 
-class ManualBoringModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.automatic_optimization = False
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        opt.zero_grad()
-        output = self(batch)
-        loss = self.loss(batch, output)
-        self.manual_backward(loss)
-        opt.step()
-        return {"loss": loss}
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
 @pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
-    model = ManualBoringModel()
+    model = ManualOptimBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=strategy,

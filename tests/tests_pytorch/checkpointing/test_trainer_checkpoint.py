@@ -37,8 +37,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
             return [optimizer], [lr_scheduler]
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss, on_epoch=True, prog_bar=True)
 
     model = ExtendedBoringModel()
