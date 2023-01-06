@@ -368,7 +368,7 @@ You can then register this callback, or multiple ones directly in Fabric:
 
 .. code-block:: python
 
-    fabric = Fabric(callbacks=[MyCallback()]))
+    fabric = Fabric(callbacks=[MyCallback()])
 
 
 Then, in your training loop, you can call a hook by its name. Any callback objects that have this hook will execute it:
@@ -596,7 +596,7 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
         def on_train_epoch_end(self, model, results):
             ...
 
-    fabric = Fabric(callbacks=[MyCallback()]))
+    fabric = Fabric(callbacks=[MyCallback()])
 
     # Call any hook by name
     fabric.call("on_train_start")

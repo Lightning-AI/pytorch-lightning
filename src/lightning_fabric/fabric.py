@@ -553,7 +553,7 @@ class Fabric:
                 def on_train_epoch_end(self, results):
                     ...
 
-            fabric = Fabric(callbacks=[MyCallback()]))
+            fabric = Fabric(callbacks=[MyCallback()])
             fabric.call("on_train_epoch_end", results={...})
         """
         for callback in self._callbacks:
