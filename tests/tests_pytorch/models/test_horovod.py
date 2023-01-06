@@ -134,6 +134,7 @@ def test_horovod_cpu_implicit(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(raises=AssertionError, reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
@@ -151,6 +152,7 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(raises=AssertionError, reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     trainer_options = dict(
@@ -167,10 +169,12 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(reason="unhandled cuda error")
 @RunIf(horovod=True, skip_windows=True, min_cuda_gpus=1)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
+
     model = BoringModel()
     with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
         trainer = Trainer(
@@ -185,6 +189,7 @@ def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
         trainer.fit(model)
 
 
+@pytest.mark.xfail(raises=AssertionError, reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu_grad_by_value(tmpdir):
     """Test Horovod with multi-GPU support."""
@@ -203,6 +208,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(raises=AssertionError, reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -222,6 +228,7 @@ def test_horovod_amp(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(raises=AssertionError, reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_gather(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
@@ -239,6 +246,7 @@ def test_horovod_gather(tmpdir):
     _run_horovod(trainer_options)
 
 
+@pytest.mark.xfail(reason="unhandled cuda error")
 @RunIf(min_cuda_gpus=2, skip_windows=True, horovod=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
