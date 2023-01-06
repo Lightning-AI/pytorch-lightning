@@ -22,7 +22,9 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 from lightning_utilities.core.imports import RequirementCache
+from torch import Tensor
 
+import pytorch_lightning as pl
 from lightning_fabric.loggers import TensorBoardLogger as FabricTensorBoardLogger
 from lightning_fabric.utilities.logger import _convert_params
 from lightning_fabric.utilities.types import _PATH
@@ -170,6 +172,30 @@ class TensorBoardLogger(FabricTensorBoardLogger):
             self.hparams.update(params)
 
         return super().log_hyperparams(params=params, metrics=metrics)
+
+    @rank_zero_only
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+        if not self._log_graph:
+            return
+
+        input_array = model.example_input_array if input_array is None else input_array
+
+        if input_array is None:
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `model.example_input_array` attribute"
+                " is not set or `input_array` was not given."
+            )
+        elif not isinstance(input_array, (Tensor, tuple)):
+            rank_zero_warn(
+                "Could not log computational graph to TensorBoard: The `input_array` or `model.example_input_array`"
+                f" has type {type(input_array)} which can't be traced by TensorBoard. Make the input array a tuple"
+                f" representing the positional arguments to the model's `forward()` implementation."
+            )
+        else:
+            input_array = model._on_before_batch_transfer(input_array)
+            input_array = model._apply_batch_transfer_handler(input_array)
+            with pl.core.module._jit_is_scripting():
+                self.experiment.add_graph(model, input_array)
 
     @rank_zero_only
     def save(self) -> None:
