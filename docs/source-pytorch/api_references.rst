@@ -136,7 +136,6 @@ Training
     :nosignatures:
     :template: classtemplate.rst
 
-    ~batch.TrainingBatchLoop
     ~epoch.TrainingEpochLoop
     FitLoop
     ~optimization.ManualOptimization

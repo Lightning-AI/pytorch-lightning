@@ -106,7 +106,6 @@ class LightningModuleVisitor(LightningVisitor):
         "optimizer_zero_grad",
         "prepare_data",
         "setup",
-        "tbptt_split_batch",
         "teardown",
         "train_dataloader",
         "val_dataloader",

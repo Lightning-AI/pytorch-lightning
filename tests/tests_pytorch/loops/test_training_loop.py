@@ -217,7 +217,7 @@ def test_should_stop_early_stopping_conditions_met(
     trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0, max_epochs=100)
     trainer.num_training_batches = 10
     trainer.should_stop = True
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
+    trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
         current_epoch * trainer.num_training_batches
     )
     trainer.fit_loop.epoch_loop.batch_progress.current.ready = 10
