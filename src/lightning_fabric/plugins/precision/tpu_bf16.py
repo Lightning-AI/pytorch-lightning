@@ -15,6 +15,7 @@ import os
 
 import torch
 from torch import Tensor
+from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision import TPUPrecision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
@@ -23,7 +24,7 @@ from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 class TPUBf16Precision(TPUPrecision):
     """Plugin that enables bfloats on TPUs."""
 
-    precision: str = "bf16"
+    precision: Literal["bf16"] = "bf16"
 
     def __init__(self) -> None:
         super().__init__()

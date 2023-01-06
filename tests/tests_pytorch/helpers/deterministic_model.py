@@ -112,7 +112,7 @@ class DeterministicModel(LightningModule):
 
     def backward(self, loss, optimizer, optimizer_idx):
         if self.assert_backward:
-            if self.trainer.precision == 16:
+            if self.trainer.precision == "16":
                 assert loss > 171 * 1000
             else:
                 assert loss == 171.0

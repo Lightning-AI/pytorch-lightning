@@ -11,15 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, cast, Optional, Union
 
 from torch import Tensor
 from torch.optim import Optimizer
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.types import Steppable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.rank_zero import WarningCache
 
 warning_cache = WarningCache()
@@ -36,14 +36,13 @@ class ColossalAIPrecisionPlugin(PrecisionPlugin):
             If precison is not 16.
     """
 
-    def __init__(self, precision: Union[str, int] = 16) -> None:
-        if not (precision == PrecisionType.HALF):
+    def __init__(self, precision: Literal["16", 16] = 16) -> None:
+        if precision not in ("16", 16):
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
             )
-        super().__init__()
-        self.precision = precision
+        self.precision = cast(Literal["16"], str(precision))
 
     def backward(  # type: ignore[override]
         self,
