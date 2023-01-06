@@ -5,10 +5,10 @@ from unittest import mock
 
 import click
 import pytest
-import lightning_app.core.constants as constants
 from click.testing import CliRunner
 from tests_app import _PROJECT_ROOT
 
+import lightning_app.core.constants as constants
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
@@ -47,7 +47,7 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             # capture logs.
             if open_ui:
 
-                 # Get the designated port
+                # Get the designated port
                 port = constants.APP_SERVER_PORT
 
                 lauch_mock.assert_called_with(f"http://127.0.0.1:{port}/view")
