@@ -41,7 +41,7 @@ from lightning_fabric.plugins.environments import (
 )
 from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
-from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT_INT, _PRECISION_INPUT_STR, _PRECISION_INPUT
+from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
     DDPShardedStrategy,
     DDPStrategy,
