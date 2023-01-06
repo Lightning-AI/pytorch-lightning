@@ -179,7 +179,7 @@ The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModu
     trainer = pl.Trainer(limit_train_batches=100, max_epochs=1)
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
-The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags>`_ including:
+The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
 
 * Epoch and batch iteration
 * ``optimizer.step()``, ``loss.backward()``, ``optimizer.zero_grad()`` calls
