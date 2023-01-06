@@ -99,7 +99,7 @@ For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
       </div>
    </div>
 
-Or read the `advanced install guide <https://pytorch-lightning.readthedocs.io/en/stable/starter/installation.html>`_
+Or read the `advanced install guide <installation.html>`_
 
 ----
 

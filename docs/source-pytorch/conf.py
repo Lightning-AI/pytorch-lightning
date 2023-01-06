@@ -412,3 +412,6 @@ linkcheck_anchors = False
 
 # ignore all links in any CHANGELOG file
 linkcheck_exclude_documents = [r"^(.*\/)*CHANGELOG.*$"]
+
+# ignore the following relative links
+linkcheck_ignore = [r"^starter/installation.html$", r"^installation.html$"]
