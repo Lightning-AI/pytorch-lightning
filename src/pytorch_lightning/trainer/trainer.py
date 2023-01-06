@@ -69,7 +69,12 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import (
+    _LITERAL_WARN,
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_STR,
+    AcceleratorConnector,
+)
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -146,7 +151,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
@@ -1768,7 +1773,7 @@ class Trainer:
         return None
 
     @property
-    def precision(self) -> Union[str, int]:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 
     @property

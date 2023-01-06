@@ -140,7 +140,15 @@ def get_init_arguments_and_types(cls: _ARGPARSE_CLS) -> List[Tuple[str, Tuple, A
         arg_type = cls_default_params[arg].annotation
         arg_default = cls_default_params[arg].default
         try:
-            arg_types = tuple(arg_type.__args__)
+            if type(arg_type).__name__ == "_LiteralGenericAlias":
+                # Special case: Literal[a, b, c, ...]
+                arg_types = tuple({type(a) for a in arg_type.__args__})
+            elif "typing.Literal" in str(arg_type) or "typing_extensions.Literal" in str(arg_type):
+                # Special case: Union[Literal, ...]
+                arg_types = tuple({type(a) for union_args in arg_type.__args__ for a in union_args.__args__})
+            else:
+                # Special case: ComposedType[type0, type1, ...]
+                arg_types = tuple(arg_type.__args__)
         except (AttributeError, TypeError):
             arg_types = (arg_type,)
 

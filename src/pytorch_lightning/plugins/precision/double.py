@@ -19,6 +19,7 @@ import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import FloatTensor, Tensor
 from torch.optim import Optimizer
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
@@ -72,7 +73,7 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
 class DoublePrecisionPlugin(PrecisionPlugin):
     """Plugin for training with double (``torch.float64``) precision."""
 
-    precision: int = 64
+    precision: Literal["64"] = "64"
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

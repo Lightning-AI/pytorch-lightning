@@ -16,7 +16,8 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning.utilities.imports import _DALI_AVAILABLE, _IS_WINDOWS
+from lightning_fabric.utilities.imports import _IS_WINDOWS
+from pytorch_lightning.utilities.imports import _DALI_AVAILABLE
 
 ARGS_DEFAULT = (
     "--trainer.default_root_dir %(tmpdir)s "

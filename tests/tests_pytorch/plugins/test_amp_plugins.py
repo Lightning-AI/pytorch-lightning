@@ -185,8 +185,7 @@ def test_amp_skip_optimizer(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx):
             if optimizer_idx == 1:
                 return None
-            output = self(batch)
-            return self.loss(batch, output)
+            return self.step(batch)
 
         def configure_optimizers(self):
             return [

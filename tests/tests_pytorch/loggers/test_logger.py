@@ -80,8 +80,7 @@ class CustomLogger(Logger):
 def test_custom_logger(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -98,8 +97,7 @@ def test_custom_logger(tmpdir):
 def test_multiple_loggers(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 

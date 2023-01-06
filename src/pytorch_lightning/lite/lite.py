@@ -292,7 +292,9 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
         return LiteDoublePrecision()
 
     if type(plugin) is PLDeepSpeedPrecisionPlugin:
-        return LiteDeepSpeedPrecision(precision=plugin.precision)  # type: ignore[arg-type]
+        return LiteDeepSpeedPrecision(
+            precision=plugin.precision,  # type: ignore[arg-type]
+        )
 
     if type(plugin) is PLTPUPrecisionPlugin:
         return LiteTPUPrecision()

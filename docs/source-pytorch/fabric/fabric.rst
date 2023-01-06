@@ -171,33 +171,34 @@ Furthermore, you can access the current device from ``fabric.device`` or rely on
 
 ----------
 
-
-Distributed Training Pitfalls
-=============================
-
-The :class:`~lightning_fabric.fabric.Fabric` provides you with the tools to scale your training, but there are several major challenges ahead of you now:
+*******************
+Fabric in Notebooks
+*******************
 
 
-.. list-table::
-   :widths: 50 50
-   :header-rows: 0
-
-   * - Processes divergence
-     - This happens when processes execute a different section of the code due to different if/else conditions, race conditions on existing files and so on, resulting in hanging.
-   * - Cross processes reduction
-     - Miscalculated metrics or gradients due to errors in their reduction.
-   * - Large sharded models
-     - Instantiation, materialization and state management of large models.
-   * - Rank 0 only actions
-     - Logging, profiling, and so on.
-   * - Checkpointing / Early stopping / Callbacks / Logging
-     - Ability to customize your training behavior easily and make it stateful.
-   * - Fault-tolerant training
-     - Ability to resume from a failure as if it never happened.
+Fabric works exactly the same way in notebooks (Jupyter, Google Colab, Kaggle, etc.) if you only run in a single process or a single GPU.
+If you want to use multiprocessing, for example multi-GPU, you can put your code in a function and pass that function to the
+:meth:`~lightning_fabric.fabric.Fabric.launch` method:
 
 
-If you are facing one of those challenges, then you are already meeting the limit of :class:`~lightning_fabric.fabric.Fabric`.
-We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
+.. code-block:: python
+
+
+    # Notebook Cell
+    def train(fabric):
+
+        model = ...
+        optimizer = ...
+        model, optimizer = fabric.setup(model, optimizer)
+        ...
+
+
+    # Notebook Cell
+    fabric = Fabric(accelerator="cuda", devices=2)
+    fabric.launch(train)  # Launches the `train` function on two GPUs
+
+
+As you can see, this function accepts one argument, the ``Fabric`` object, and it gets launched on as many devices as specified.
 
 
 ----------
@@ -206,9 +207,7 @@ We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so yo
 Fabric Flags
 ************
 
-Fabric is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
-your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
-identical to Lightning, which means minimum effort for you to convert when you decide to do so.
+Fabric is designed to accelerate distributed training and inference. It makes it easy to configure your device and communication strategy, and to switch seamlessly from one to the other.
 
 
 accelerator
@@ -293,41 +292,6 @@ Configure the devices to run on. Can be of type:
     fabric = Fabric(devices="-1", accelerator="gpu")  # equivalent
 
 
-
-gpus
-====
-
-.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
-
-Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
-
-.. code-block:: python
-
-    # Run on two GPUs
-    fabric = Fabric(accelerator="gpu", devices=2)
-
-    # Equivalent
-    fabric = Fabric(devices=2, accelerator="gpu")
-
-
-tpu_cores
-=========
-
-.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
-
-Shorthand for ``devices=X`` and ``accelerator="tpu"``.
-
-.. code-block:: python
-
-    # Run on eight TPUs
-    fabric = Fabric(accelerator="tpu", devices=8)
-
-    # Equivalent
-    fabric = Fabric(devices=8, accelerator="tpu")
-
-
 num_nodes
 =========
 
@@ -394,6 +358,33 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     fabric = Fabric(plugins=[MyCluster()], ...)
+
+
+callbacks
+=========
+
+A callback class is a collection of methods that the training loop can call at a specific point in time, for example, at the end of an epoch.
+Add callbacks to Fabric to inject logic into your training loop from an external callback class.
+
+.. code-block:: python
+
+    class MyCallback:
+        def on_train_epoch_end(self, results):
+            ...
+
+You can then register this callback, or multiple ones directly in Fabric:
+
+.. code-block:: python
+
+    fabric = Fabric(callbacks=[MyCallback()])
+
+
+Then, in your training loop, you can call a hook by its name. Any callback objects that have this hook will execute it:
+
+.. code-block:: python
+
+    # Call any hook by name
+    fabric.call("on_train_epoch_end", results={...})
 
 
 ----------
@@ -596,3 +587,31 @@ For single-device strategies, it is a no-op. There are strategies that don't sup
 - xla
 
 For these, the context manager falls back to a no-op and emits a warning.
+
+
+call
+====
+
+Use this to run all registered callback hooks with a given name and inputs.
+It is useful when building a Trainer that allows the user to run arbitrary code at fixed points in the training loop.
+
+.. code-block:: python
+
+    class MyCallback:
+        def on_train_start(self):
+            ...
+
+        def on_train_epoch_end(self, model, results):
+            ...
+
+
+    fabric = Fabric(callbacks=[MyCallback()])
+
+    # Call any hook by name
+    fabric.call("on_train_start")
+
+    # Pass in additional arguments that the hook requires
+    fabric.call("on_train_epoch_end", model=..., results={...})
+
+    # Only the callbacks that have this method defined will be executed
+    fabric.call("undefined")
