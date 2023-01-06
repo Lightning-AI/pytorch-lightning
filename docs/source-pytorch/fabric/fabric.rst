@@ -596,6 +596,7 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
         def on_train_epoch_end(self, model, results):
             ...
 
+
     fabric = Fabric(callbacks=[MyCallback()])
 
     # Call any hook by name
