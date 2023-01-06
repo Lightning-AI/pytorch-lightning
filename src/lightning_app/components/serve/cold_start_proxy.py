@@ -1,9 +1,14 @@
 import asyncio
 from typing import Any
 
-import aiohttp
 from fastapi import HTTPException
 from pydantic import BaseModel
+
+from lightning_app.utilities.imports import _is_aiohttp_available, requires
+
+if _is_aiohttp_available():
+    import aiohttp
+    import aiohttp.client_exceptions
 
 
 class ColdStartProxy:
@@ -18,11 +23,10 @@ class ColdStartProxy:
         proxy_url (str): The url of the proxy service
     """
 
-    def __init__(self, proxy_url):
+    @requires(["aiohttp"])
+    def __init__(self, proxy_url: str):
         self.proxy_url = proxy_url
         self.proxy_timeout = 50
-        # checking `asyncio.iscoroutinefunction` instead of `inspect.iscoroutinefunction`
-        # because AsyncMock in the tests requres the former to pass
         if not asyncio.iscoroutinefunction(self.handle_request):
             raise TypeError("handle_request must be an `async` function")
 
@@ -49,6 +53,4 @@ class ColdStartProxy:
                 ) as response:
                     return await response.json()
         except Exception as ex:
-            # TODO - test this and make sure if cold start proxy is not up,
-            #  we are returning a useful message to the user
             raise HTTPException(status_code=500, detail=f"Error in proxy: {ex}")

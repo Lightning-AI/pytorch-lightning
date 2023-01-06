@@ -3,7 +3,7 @@ import logging
 import time
 import uuid
 from itertools import cycle
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, SupportsFloat as Numeric
 
 import requests
 import uvicorn
@@ -533,8 +533,8 @@ class AutoScaler(LightningFlow):
         work_cls: Type[LightningWork],
         min_replicas: int = 1,
         max_replicas: int = 4,
-        scale_out_interval: int = 10,
-        scale_in_interval: int = 10,
+        scale_out_interval: Numeric = 10,
+        scale_in_interval: Numeric = 10,
         max_batch_size: int = 8,
         timeout_batching: float = 1,
         endpoint: str = "api/predict",
