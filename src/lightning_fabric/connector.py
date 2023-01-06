@@ -16,7 +16,7 @@ from collections import Counter
 from typing import Any, cast, Dict, List, Optional, Union
 
 import torch
-from typing_extensions import get_args, Literal
+from typing_extensions import get_args
 
 from lightning_fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning_fabric.accelerators.accelerator import Accelerator
