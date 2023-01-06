@@ -27,31 +27,13 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class AMPTestModel(BoringModel):
-    def _step(self, batch):
+    def step(self, batch):
         self._assert_autocast_enabled()
         output = self(batch)
         is_bfloat16 = self.trainer.precision_plugin.precision == "bf16"
         assert output.dtype == torch.float16 if not is_bfloat16 else torch.bfloat16
-        loss = self.loss(batch, output)
+        loss = self.loss(output)
         return loss
-
-    def loss(self, batch, prediction):
-        # todo (sean): convert bfloat16 to float32 as mse loss for cpu amp is currently not supported
-        if self.trainer.precision_plugin.device == "cpu":
-            prediction = prediction.float()
-        return super().loss(batch, prediction)
-
-    def training_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"loss": output}
-
-    def validation_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"x": output}
-
-    def test_step(self, batch, batch_idx):
-        output = self._step(batch)
-        return {"y": output}
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         self._assert_autocast_enabled()
@@ -101,10 +83,11 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     trainer.predict(model)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
-@pytest.mark.parametrize("devices", [1, 2])
+@pytest.mark.parametrize(
+    "devices", (pytest.param(1, marks=RunIf(min_cuda_gpus=1)), pytest.param(2, marks=RunIf(min_cuda_gpus=2)))
+)
 def test_amp_gpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""
     trainer = Trainer(
@@ -122,7 +105,7 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     trainer.predict(model, DataLoader(RandomDataset(32, 64)))
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=1)
 @mock.patch.dict(
     os.environ,
     {

@@ -115,6 +115,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="",
+        port=7501,
     )
 
 
@@ -160,6 +161,7 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         cluster_id="",
         run_app_comment_commands=True,
         enable_basic_auth="",
+        port=7501,
     )
 
 
@@ -208,6 +210,7 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
             run_app_comment_commands=False,
             enable_basic_auth="username:password",
         )
+
     mock_dispatch.assert_called_with(
         Path(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")),
         RuntimeType.CLOUD,
@@ -221,4 +224,5 @@ def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMoc
         cluster_id="",
         run_app_comment_commands=False,
         enable_basic_auth="username:password",
+        port=7501,
     )

@@ -11,7 +11,6 @@ from lightning_app.utilities.component import _is_flow_context
 
 
 class Drive:
-
     __IDENTIFIER__ = "__drive__"
     __PROTOCOLS__ = ["lit://"]
 
