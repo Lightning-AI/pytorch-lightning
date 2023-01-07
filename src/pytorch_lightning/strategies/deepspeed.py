@@ -30,7 +30,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import ClusterEnvironment
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH, LRScheduler, ReduceLROnPlateau
@@ -515,9 +514,9 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision == PrecisionType.HALF:
+            if self.precision_plugin.precision == "16":
                 dtype = torch.float16
-            elif self.precision_plugin.precision == PrecisionType.BFLOAT:
+            elif self.precision_plugin.precision == "bf16":
                 dtype = torch.bfloat16
             else:
                 dtype = torch.float32
@@ -652,7 +651,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
-        if self.precision_plugin.precision == PrecisionType.HALF:
+        if self.precision_plugin.precision == "16":
             if "fp16" not in self.config and self.precision_plugin.amp_type == "native":
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
@@ -667,7 +666,7 @@ class DeepSpeedStrategy(DDPStrategy):
             elif "amp" not in self.config and self.precision_plugin.amp_type == "apex":
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
-        elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+        elif "bf16" not in self.config and self.precision_plugin.precision == "bf16":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 

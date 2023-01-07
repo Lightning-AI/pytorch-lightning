@@ -205,9 +205,7 @@ As you can see, this function accepts one argument, the ``Fabric`` object, and i
 Fabric Flags
 ************
 
-Fabric is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
-your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
-identical to Lightning, which means minimum effort for you to convert when you decide to do so.
+Fabric is designed to accelerate distributed training and inference. It makes it easy to configure your device and communication strategy, and to switch seamlessly from one to the other.
 
 
 accelerator
@@ -292,41 +290,6 @@ Configure the devices to run on. Can be of type:
     fabric = Fabric(devices="-1", accelerator="gpu")  # equivalent
 
 
-
-gpus
-====
-
-.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
-
-Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
-
-.. code-block:: python
-
-    # Run on two GPUs
-    fabric = Fabric(accelerator="gpu", devices=2)
-
-    # Equivalent
-    fabric = Fabric(devices=2, accelerator="gpu")
-
-
-tpu_cores
-=========
-
-.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
-
-Shorthand for ``devices=X`` and ``accelerator="tpu"``.
-
-.. code-block:: python
-
-    # Run on eight TPUs
-    fabric = Fabric(accelerator="tpu", devices=8)
-
-    # Equivalent
-    fabric = Fabric(devices=8, accelerator="tpu")
-
-
 num_nodes
 =========
 
@@ -393,6 +356,33 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     fabric = Fabric(plugins=[MyCluster()], ...)
+
+
+callbacks
+=========
+
+A callback class is a collection of methods that the training loop can call at a specific point in time, for example, at the end of an epoch.
+Add callbacks to Fabric to inject logic into your training loop from an external callback class.
+
+.. code-block:: python
+
+    class MyCallback:
+        def on_train_epoch_end(self, results):
+            ...
+
+You can then register this callback, or multiple ones directly in Fabric:
+
+.. code-block:: python
+
+    fabric = Fabric(callbacks=[MyCallback()])
+
+
+Then, in your training loop, you can call a hook by its name. Any callback objects that have this hook will execute it:
+
+.. code-block:: python
+
+    # Call any hook by name
+    fabric.call("on_train_epoch_end", results={...})
 
 
 ----------
@@ -595,3 +585,31 @@ For single-device strategies, it is a no-op. There are strategies that don't sup
 - xla
 
 For these, the context manager falls back to a no-op and emits a warning.
+
+
+call
+====
+
+Use this to run all registered callback hooks with a given name and inputs.
+It is useful when building a Trainer that allows the user to run arbitrary code at fixed points in the training loop.
+
+.. code-block:: python
+
+    class MyCallback:
+        def on_train_start(self):
+            ...
+
+        def on_train_epoch_end(self, model, results):
+            ...
+
+
+    fabric = Fabric(callbacks=[MyCallback()])
+
+    # Call any hook by name
+    fabric.call("on_train_start")
+
+    # Pass in additional arguments that the hook requires
+    fabric.call("on_train_epoch_end", model=..., results={...})
+
+    # Only the callbacks that have this method defined will be executed
+    fabric.call("undefined")

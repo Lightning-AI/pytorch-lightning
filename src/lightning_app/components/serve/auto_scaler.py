@@ -188,12 +188,6 @@ class _LoadBalancer(LightningWork):
                     timeout=self._timeout_inference_request,
                     headers=headers,
                 ) as response:
-                    # resetting the server status so other requests can be
-                    # scheduled on this node
-                    if server_url in self._server_status:
-                        # TODO - if the server returns an error, track that so
-                        #  we don't send more requests to it
-                        self._server_status[server_url] = True
                     if response.status == 408:
                         raise HTTPException(408, "Request timed out")
                     response.raise_for_status()
@@ -207,7 +201,12 @@ class _LoadBalancer(LightningWork):
             result = {request[0]: ex for request in batch}
             self._responses.update(result)
         finally:
-            self._server_status[server_url] = True
+            # resetting the server status so other requests can be
+            # scheduled on this node
+            if server_url in self._server_status:
+                # TODO - if the server returns an error, track that so
+                #  we don't send more requests to it
+                self._server_status[server_url] = True
 
     def _find_free_server(self) -> Optional[str]:
         existing = set(self._server_status.keys())

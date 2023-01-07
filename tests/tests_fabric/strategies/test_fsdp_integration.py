@@ -47,7 +47,7 @@ def _step(lite, model, batch):
     assert isinstance(forward_module, FullyShardedDataParallel)
     assert isinstance(lite._precision, FSDPPrecision)
 
-    precision = torch.float16 if lite._precision.precision == 16 else torch.bfloat16
+    precision = torch.float16 if lite._precision.precision == "16" else torch.bfloat16
     assert forward_module.mixed_precision.param_dtype == precision
     assert forward_module.mixed_precision.reduce_dtype == precision
     assert forward_module.mixed_precision.buffer_dtype == precision

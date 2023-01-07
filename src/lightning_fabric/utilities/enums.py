@@ -29,24 +29,6 @@ else:
     LightningEnum = StrEnum
 
 
-class PrecisionType(LightningEnum):
-    """Type of precision used."""
-
-    HALF = "16"
-    FLOAT = "32"
-    FULL = "64"
-    BFLOAT = "bf16"
-    MIXED = "mixed"
-
-    @staticmethod
-    def supported_type(precision: str | int) -> bool:
-        return any(x == precision for x in PrecisionType)
-
-    @staticmethod
-    def supported_types() -> list[str]:
-        return [x.value for x in PrecisionType]
-
-
 class _StrategyType(LightningEnum):
     """Define type of training strategy."""
 
