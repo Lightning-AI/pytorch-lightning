@@ -184,7 +184,7 @@ class _FabricDataLoader:
             yield move_data_to_device(item, self._device)
 
 
-def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs:  Dict[str, Any]) -> Dict[str, Any]:
+def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     if "set_to_none" in kwargs and "set_grads_to_None" in inspect.signature(optimizer.zero_grad).parameters:
         # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
         kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
