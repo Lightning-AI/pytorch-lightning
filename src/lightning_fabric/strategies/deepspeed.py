@@ -647,8 +647,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 def _adapt_zero_grad_kwargs_to_deepspeed(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
     """Translates arguments passed to the `.zero_grad()` method of the optimizer.
 
-    DeepSpeed has optimizers that use a different argument name for determining whether gradients get zeroed out
-    or set to None. Modifications are in-place.
+    DeepSpeed has optimizers that use a different argument name for determining whether gradients get zeroed out or set
+    to None. Modifications are in-place.
     """
 
     if _DEEPSPEED_AVAILABLE:
