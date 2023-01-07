@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
 from unittest.mock import call, Mock
 
 import pytest
@@ -291,3 +292,34 @@ def test_lite_optimizer_steps():
     lite_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=strategy)
     lite_optimizer.step()
     strategy.optimizer_step.assert_called_once_with(strategy.model)
+
+
+def test_fabric_optimizer_zero_grad_kwargs():
+    """Test that Fabric can adapt the `.zero_grad()` arguments to the underlying optimizer."""
+
+    # Test PyTorch's standard `.zero_grad()` signature
+    with mock.patch("torch.optim.SGD.zero_grad") as zero_grad_mock:
+        optimizer = torch.optim.SGD(torch.nn.Linear(1, 1).parameters(), 0.1)
+        fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
+        fabric_optimizer.zero_grad()
+        zero_grad_mock.assert_called_with()
+        fabric_optimizer.zero_grad(set_to_none=False)
+        zero_grad_mock.assert_called_with(set_to_none=False)
+        fabric_optimizer.zero_grad(set_to_none=True)
+        zero_grad_mock.assert_called_with(set_to_none=True)
+
+    # Test weird `.zero_grad()` signatures from other libraries
+    custom_zero_grad = Mock()
+
+    class CustomSGD(torch.optim.SGD):
+        def zero_grad(self, set_grads_to_None=False):
+            custom_zero_grad(set_grads_to_None=set_grads_to_None)
+
+    optimizer = CustomSGD(torch.nn.Linear(1, 1).parameters(), 0.1)
+    fabric_optimizer = _FabricOptimizer(optimizer=optimizer, strategy=Mock())
+    fabric_optimizer.zero_grad()
+    custom_zero_grad.assert_called_with(set_grads_to_None=False)
+    fabric_optimizer.zero_grad(set_to_none=False)
+    custom_zero_grad.assert_called_with(set_grads_to_None=False)
+    fabric_optimizer.zero_grad(set_to_none=True)
+    custom_zero_grad.assert_called_with(set_grads_to_None=True)

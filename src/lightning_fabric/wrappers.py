@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from typing import Any, Callable, Dict, Generator, Iterator, Mapping, Optional, overload, TypeVar, Union
 
 import torch
@@ -24,7 +25,6 @@ from torch.utils.data import DataLoader
 from lightning_fabric.plugins import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.strategies import Strategy
-from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _adapt_zero_grad_kwargs_to_deepspeed
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Optimizable
@@ -71,9 +71,9 @@ class _FabricOptimizer:
             **kwargs,
         )
 
-    def zero_grad(self, *args: Any, **kwargs: Any) -> None:
-        kwargs = _adapt_zero_grad_kwargs_to_deepspeed(self.optimizer, kwargs)
-        self.optimizer.zero_grad(*args, **kwargs)
+    def zero_grad(self, **kwargs: Any) -> None:
+        kwargs = _process_optimizer_zero_grad_kwargs(self.optimizer, kwargs)
+        self.optimizer.zero_grad(**kwargs)
 
 
 class _FabricModule(_DeviceDtypeModuleMixin):
@@ -134,13 +134,6 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True) -> _IncompatibleKeys:
         return self._original_module.load_state_dict(state_dict=state_dict, strict=strict)
 
-    def zero_grad(self, set_to_none: bool = False) -> None:
-        if _DEEPSPEED_AVAILABLE:
-            import deepspeed
-            if isinstance(self._forward_module, deepspeed.DeepSpeedEngine):
-                return self._forward_module.zero_grad()  # `set_to_none=True` is implicit
-        return super().zero_grad(set_to_none=set_to_none)
-
     def __getattr__(self, item: Any) -> Any:
         try:
             # __getattr__ gets called as a last resort if the attribute does not exist
@@ -189,3 +182,10 @@ class _FabricDataLoader:
 
         for item in iterator:
             yield move_data_to_device(item, self._device)
+
+
+def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs:  Dict[str, Any]) -> Dict[str, Any]:
+    if "set_to_none" in kwargs and "set_grads_to_None" in inspect.signature(optimizer.zero_grad).parameters:
+        # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
+        kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
+    return kwargs
