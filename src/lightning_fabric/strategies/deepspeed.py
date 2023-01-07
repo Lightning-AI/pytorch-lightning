@@ -642,3 +642,18 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
+
+
+def _adapt_zero_grad_kwargs_to_deepspeed(optimizer: Optimizer, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Translates arguments passed to the `.zero_grad()` method of the optimizer.
+
+    DeepSpeed has optimizers that use a different argument name for determining whether gradients get zeroed out
+    or set to None. Modifications are in-place.
+    """
+
+    if _DEEPSPEED_AVAILABLE:
+        from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
+
+        if "set_to_none" in kwargs and isinstance(optimizer, DeepSpeedZeroOptimizer):
+            kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
+    return kwargs
