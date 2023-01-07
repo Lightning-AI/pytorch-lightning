@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 from lightning_fabric.plugins import Precision
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.strategies import Strategy
-from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE, _adapt_zero_grad_kwargs_to_deepspeed
+from lightning_fabric.strategies.deepspeed import _adapt_zero_grad_kwargs_to_deepspeed, _DEEPSPEED_AVAILABLE
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.types import Optimizable
@@ -137,6 +137,7 @@ class _FabricModule(_DeviceDtypeModuleMixin):
     def zero_grad(self, set_to_none: bool = False) -> None:
         if _DEEPSPEED_AVAILABLE:
             import deepspeed
+
             if isinstance(self._forward_module, deepspeed.DeepSpeedEngine):
                 return self._forward_module.zero_grad()  # `set_to_none=True` is implicit
         return super().zero_grad(set_to_none=set_to_none)
