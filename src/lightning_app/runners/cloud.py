@@ -1,5 +1,6 @@
 import fnmatch
 import json
+import os
 import random
 import re
 import string
@@ -30,6 +31,8 @@ from lightning_cloud.openapi import (
     V1Flowserver,
     V1LightningappInstanceSpec,
     V1LightningappInstanceState,
+    V1LightningAuth,
+    V1LightningBasicAuth,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1Membership,
@@ -49,7 +52,6 @@ from lightning_cloud.openapi.rest import ApiException
 from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
-    CLOUD_QUEUE_TYPE,
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
@@ -59,6 +61,7 @@ from lightning_app.core.constants import (
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
+    get_cloud_queue_type,
     get_lightning_cloud_url,
 )
 from lightning_app.runners.backends.cloud import CloudBackend
@@ -67,6 +70,7 @@ from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.source_code.copytree import _filter_ignored, _parse_lightningignore
 from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import _is_headless, Logger
+from lightning_app.utilities.auth import _credential_string_to_basic_auth_params
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
@@ -192,7 +196,6 @@ def _generate_works_json_gallery(filepath: str) -> str:
 
 @dataclass
 class CloudRuntime(Runtime):
-
     backend: Union[str, CloudBackend] = "cloud"
 
     def dispatch(
@@ -208,6 +211,16 @@ class CloudRuntime(Runtime):
             raise ValueError(
                 "Entrypoint file not provided. Did you forget to "
                 "initialize the Runtime object with `entrypoint_file` argument?"
+            )
+
+        # If enable_basic_auth is set, we parse credential string and set up authentication for the app
+        auth: V1LightningAuth = None
+        if self.enable_basic_auth != "":
+            parsed_credentials = _credential_string_to_basic_auth_params(self.enable_basic_auth)
+            auth = V1LightningAuth(
+                basic=V1LightningBasicAuth(
+                    username=parsed_credentials["username"], password=parsed_credentials["password"]
+                )
             )
 
         # Determine the root of the project: Start at the entrypoint_file and look for nearby Lightning config files,
@@ -295,6 +308,7 @@ class CloudRuntime(Runtime):
                 shm_size=self.app.flow_cloud_compute.shm_size,
                 preemptible=False,
             ),
+            auth=auth,
         )
 
         # if requirements file at the root of the repository is present,
@@ -417,9 +431,11 @@ class CloudRuntime(Runtime):
                     initial_port += 1
 
             queue_server_type = V1QueueServerType.UNSPECIFIED
-            if CLOUD_QUEUE_TYPE == "http":
+            # Note: Enable app to select their own queue type.
+            queue_type = get_cloud_queue_type()
+            if queue_type == "http":
                 queue_server_type = V1QueueServerType.HTTP
-            elif CLOUD_QUEUE_TYPE == "redis":
+            elif queue_type == "redis":
                 queue_server_type = V1QueueServerType.REDIS
 
             release_body = Body8(
@@ -445,7 +461,7 @@ class CloudRuntime(Runtime):
                 raise RuntimeError("The source upload url is empty.")
 
             if getattr(lightning_app_release, "cluster_id", None):
-                logger.info(f"Running app on {lightning_app_release.cluster_id}")
+                print(f"Running app on {lightning_app_release.cluster_id}")
 
             # Save the config for re-runs
             app_config.save_to_dir(root)
@@ -470,6 +486,7 @@ class CloudRuntime(Runtime):
                             desired_state=app_release_desired_state,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
+                            auth=app_spec.auth,
                         )
                     ),
                 )
@@ -485,6 +502,7 @@ class CloudRuntime(Runtime):
                             name=app_name,
                             env=v1_env_vars,
                             queue_server_type=queue_server_type,
+                            auth=app_spec.auth,
                         ),
                     )
                 )
@@ -495,7 +513,8 @@ class CloudRuntime(Runtime):
         if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
             raise RuntimeError("Failed to create the application. Cannot upload the source code.")
 
-        if open_ui:
+        # TODO: Remove testing dependency, but this would open a tab for each test...
+        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
             click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
 
         if cleanup_handle:
@@ -589,6 +608,10 @@ class CloudRuntime(Runtime):
     @classmethod
     def load_app_from_file(cls, filepath: str) -> "LightningApp":
         """Load a LightningApp from a file, mocking the imports."""
+
+        # Pretend we are running in the cloud when loading the app locally
+        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+
         try:
             app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
         except FileNotFoundError as e:
@@ -599,6 +622,8 @@ class CloudRuntime(Runtime):
             # Create a generic app.
             logger.info("Could not load the app locally. Starting the app directly on the cloud.")
             app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
         return app
 
     @staticmethod

@@ -1,4 +1,3 @@
-from lightning_app.components.auto_scaler import AutoScaler
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
 from lightning_app.components.multi_node import (
@@ -9,6 +8,8 @@ from lightning_app.components.multi_node import (
 )
 from lightning_app.components.python.popen import PopenPythonScript
 from lightning_app.components.python.tracer import Code, TracerPythonScript
+from lightning_app.components.serve.auto_scaler import AutoScaler
+from lightning_app.components.serve.cold_start_proxy import ColdStartProxy
 from lightning_app.components.serve.gradio import ServeGradio
 from lightning_app.components.serve.python_server import Category, Image, Number, PythonServer, Text
 from lightning_app.components.serve.serve import ModelInferenceAPI
@@ -17,6 +18,7 @@ from lightning_app.components.training import LightningTrainerScript, PyTorchLig
 
 __all__ = [
     "AutoScaler",
+    "ColdStartProxy",
     "DatabaseClient",
     "Database",
     "PopenPythonScript",

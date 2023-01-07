@@ -79,7 +79,7 @@ def _app_logs_reader(
 
     # And each socket on separate thread pushing log event to print queue
     #   run_forever() will run until we close() the connection from outside
-    log_threads = [Thread(target=work.run_forever) for work in log_sockets]
+    log_threads = [Thread(target=work.run_forever, daemon=True) for work in log_sockets]
 
     # Establish connection and begin pushing logs to the print queue
     for th in log_threads:

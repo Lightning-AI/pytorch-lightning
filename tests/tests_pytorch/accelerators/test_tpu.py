@@ -144,8 +144,7 @@ def test_manual_optimization_tpus(tmpdir):
         def training_step(self, batch, batch_idx):
             self.called["training_step"] += 1
             opt = self.optimizers()
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
 
             if self.should_update:
                 self.manual_backward(loss)

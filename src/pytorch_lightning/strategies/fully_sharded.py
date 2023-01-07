@@ -18,10 +18,9 @@ from typing import Any, Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
-from lightning_lite.utilities.enums import PrecisionType
-from lightning_lite.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -208,7 +207,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            mixed_precision=(self.precision_plugin.precision == "16"),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -231,7 +230,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            mixed_precision=(precision == "16"),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,

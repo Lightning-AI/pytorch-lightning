@@ -23,7 +23,7 @@ import torch
 from lightning_utilities.core.imports import RequirementCache
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
+from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr

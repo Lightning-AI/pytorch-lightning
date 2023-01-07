@@ -17,16 +17,17 @@ from unittest import mock
 
 import pytest
 import torch
+from torch import Tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.conftest import mock_cuda_count
 from tests_pytorch.helpers.runif import RunIf
 
 
-class MyNativeAMP(NativeMixedPrecisionPlugin):
+class MyNativeAMP(MixedPrecisionPlugin):
     pass
 
 
@@ -52,7 +53,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
-        ("native", False, NativeMixedPrecisionPlugin),
+        ("native", False, MixedPrecisionPlugin),
         ("native", True, MyNativeAMP),
         pytest.param("apex", False, ApexMixedPrecisionPlugin, marks=RunIf(amp_apex=True)),
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
@@ -61,16 +62,21 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
 def test_amp_apex_ddp(cuda_count_2, strategy, devices, amp, custom_plugin, plugin_cls):
     plugin = None
     if custom_plugin:
-        plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
-    trainer = Trainer(
-        fast_dev_run=True,
-        precision=16,
-        amp_backend=amp,
-        accelerator="gpu",
-        devices=devices,
-        strategy=strategy,
-        plugins=plugin,
-    )
+        if amp == "native":
+            plugin = plugin_cls(16, "cpu")
+        else:
+            with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+                plugin = plugin_cls()
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            fast_dev_run=True,
+            precision=16,
+            amp_backend=amp,
+            accelerator="gpu",
+            devices=devices,
+            strategy=strategy,
+            plugins=plugin,
+        )
     assert isinstance(trainer.precision_plugin, plugin_cls)
 
 
@@ -146,7 +152,6 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=0,
-        amp_backend="native",
         strategy="ddp_spawn",
         accelerator="gpu",
         devices=2,
@@ -172,7 +177,7 @@ def test_amp_skip_optimizer(tmpdir):
             self.layer1 = torch.nn.Linear(32, 32)
             self.layer2 = torch.nn.Linear(32, 2)
 
-        def forward(self, x: torch.Tensor):
+        def forward(self, x: Tensor):
             x = self.layer1(x)
             x = self.layer2(x)
             return x
@@ -180,8 +185,7 @@ def test_amp_skip_optimizer(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx):
             if optimizer_idx == 1:
                 return None
-            output = self(batch)
-            return self.loss(batch, output)
+            return self.step(batch)
 
         def configure_optimizers(self):
             return [
@@ -189,14 +193,12 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, amp_backend="native", precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, precision=16)
     model = CustomBoringModel()
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2, amp_apex=True, standalone=True)
+@RunIf(min_cuda_gpus=1, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
     class CustomBoringModel(BoringModel):
@@ -205,15 +207,16 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
             assert self.trainer.precision_plugin._connected
             return super().training_step(batch, batch_idx)
 
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        plugin = ApexMixedPrecisionPlugin(amp_level=amp_level)
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
         precision=16,
-        amp_backend="apex",
         accelerator="gpu",
-        devices=2,
+        devices=1,
         strategy="ddp",
-        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        plugins=plugin,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
@@ -226,16 +229,17 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
 @RunIf(min_cuda_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=16,
-        amp_backend="apex",
-        accelerator="gpu",
-        devices=2,
-        strategy="ddp_spawn",
-        plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
-    )
+    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            precision=16,
+            amp_backend="apex",
+            accelerator="gpu",
+            devices=2,
+            strategy="ddp_spawn",
+            plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = BoringModel()
     trainer.fit(model)
@@ -243,7 +247,7 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
 
 def test_cpu_amp_precision_context_manager(tmpdir):
     """Test to ensure that the context manager correctly is set to CPU + bfloat16."""
-    plugin = NativeMixedPrecisionPlugin("bf16", "cpu")
+    plugin = MixedPrecisionPlugin("bf16", "cpu")
     assert plugin.device == "cpu"
     assert plugin.scaler is None
     context_manager = plugin.autocast_context_manager()
@@ -253,23 +257,27 @@ def test_cpu_amp_precision_context_manager(tmpdir):
 
 
 def test_precision_selection_raises(monkeypatch):
-    with pytest.raises(
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
         MisconfigurationException, match=r"precision=16, amp_type='apex'\)` but apex AMP not supported on CPU"
     ):
         Trainer(amp_backend="apex", precision=16)
 
-    with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
+        MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"
+    ):
         Trainer(amp_backend="apex", precision="bf16")
 
     mock_cuda_count(monkeypatch, 1)
-    with pytest.raises(MisconfigurationException, match="Sharded plugins are not supported with apex"):
-        with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True):
+    with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
+        MisconfigurationException, match="Sharded plugins are not supported with apex"
+    ):
+        with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
+    with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
-    ):
+    ), pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

@@ -36,7 +36,6 @@ def makedirs(path: str):
 
 
 class ClientCommand:
-
     description: str = ""
     requirements: List[str] = []
 

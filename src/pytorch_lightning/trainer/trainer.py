@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -58,12 +58,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
-from pytorch_lightning.plugins import (
-    ApexMixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PLUGIN_INPUT,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, MixedPrecisionPlugin, PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import (
     DDPFullyShardedNativeStrategy,
@@ -74,7 +69,12 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import (
+    _LITERAL_WARN,
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_STR,
+    AcceleratorConnector,
+)
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -84,7 +84,7 @@ from pytorch_lightning.trainer.connectors.signal_connector import SignalConnecto
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
-from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType, parsing
+from pytorch_lightning.utilities import GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
     add_argparse_args,
@@ -128,7 +128,7 @@ class Trainer:
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
-        auto_select_gpus: bool = False,
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         ipus: Optional[int] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
@@ -151,7 +151,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
@@ -164,8 +164,8 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: str = "native",
-        amp_level: Optional[str] = None,
+        amp_backend: Optional[str] = None,  # TODO: Remove in v1.10.0
+        amp_level: Optional[str] = None,  # TODO: Remove in v1.10.0
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -182,12 +182,16 @@ class Trainer:
 
             amp_backend: The mixed precision backend to use ("native" or "apex").
 
-            amp_level: The optimization level to use (O1, O2, etc...). By default, it will be set to "O2"
+                .. deprecated:: v1.9
+                    Setting ``amp_backend`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
+                    in v1.10.0. This argument was only relevant for apex which is being removed.
+
+            amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
                 .. deprecated:: v1.8
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0. Please set it inside the specific precision plugin and pass it to the ``Trainer``.
+                    in v1.10.0.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -205,6 +209,11 @@ class Trainer:
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
+
+                .. deprecated:: v1.9
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -1622,28 +1631,6 @@ class Trainer:
                 RunningStage.PREDICTING, model=pl_module
             )
 
-    def reset_train_val_dataloaders(self, model: Optional["pl.LightningModule"] = None) -> None:
-        """Resets train and val dataloaders if none are attached to the trainer.
-
-        The val dataloader must be initialized before training loop starts, as the training loop
-        inspects the val dataloader to determine whether to run the evaluation loop.
-
-        Args:
-            model: The ``LightningModule`` if called outside of the trainer scope.
-
-        .. deprecated:: v1.7
-            This method is deprecated in v1.7 and will be removed in v1.9.
-            Please use ``Trainer.reset_{train,val}_dataloader`` instead.
-        """
-        rank_zero_deprecation(
-            "`Trainer.reset_train_val_dataloaders` has been deprecated in v1.7 and will be removed in v1.9."
-            " Use `Trainer.reset_{train,val}_dataloader` instead"
-        )
-        if self.train_dataloader is None:
-            self.reset_train_dataloader(model=model)
-        if self.val_dataloaders is None:
-            self.reset_val_dataloader(model=model)
-
     """
     Accelerator properties
     """
@@ -1733,15 +1720,21 @@ class Trainer:
         self.strategy.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[AMPType]:
+    def amp_backend(self) -> Optional[str]:
+        rank_zero_deprecation(
+            "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
+            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            " Accessing `Trainer.amp_backend` will not be supported. You can assume it will be `'native'`",
+            stacklevel=6,
+        )
         if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            return AMPType.APEX
-        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
-            return AMPType.NATIVE
+            return "apex"
+        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
+            return "native"
         return None
 
     @property
-    def precision(self) -> Union[str, int]:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 
     @property

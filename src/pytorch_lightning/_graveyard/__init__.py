@@ -14,9 +14,11 @@
 
 import pytorch_lightning._graveyard.accelerator
 import pytorch_lightning._graveyard.callbacks
+import pytorch_lightning._graveyard.cli
 import pytorch_lightning._graveyard.core
 import pytorch_lightning._graveyard.legacy_import_unpickler
 import pytorch_lightning._graveyard.loggers
+import pytorch_lightning._graveyard.loops
 import pytorch_lightning._graveyard.profiler
 import pytorch_lightning._graveyard.strategies
 import pytorch_lightning._graveyard.trainer

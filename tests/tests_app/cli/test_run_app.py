@@ -8,6 +8,7 @@ import pytest
 from click.testing import CliRunner
 from tests_app import _PROJECT_ROOT
 
+import lightning_app.core.constants as constants
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
@@ -45,7 +46,11 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             )
             # capture logs.
             if open_ui:
-                lauch_mock.assert_called_with("http://127.0.0.1:7501/view")
+
+                # Get the designated port
+                port = constants.APP_SERVER_PORT
+
+                lauch_mock.assert_called_with(f"http://127.0.0.1:{port}/view")
             else:
                 lauch_mock.assert_not_called()
         assert result.exit_code == 0
@@ -69,6 +74,7 @@ def test_lightning_run_cluster_without_cloud(monkeypatch):
             env=("FOO=bar",),
             secret=(),
             run_app_comment_commands=False,
+            enable_basic_auth="",
         )
 
 
@@ -96,7 +102,12 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
             run_app_comment_commands=False,
+            enable_basic_auth="",
         )
+
+        # Get the designated port
+        port = constants.APP_SERVER_PORT
+
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
     #  page is being opened
@@ -112,6 +123,8 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
         secrets={"BAR": "my-secret"},
         cluster_id="",
         run_app_comment_commands=False,
+        enable_basic_auth="",
+        port=port,
     )
 
 
@@ -139,7 +152,12 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
             env=("FOO=bar",),
             secret=("BAR=my-secret",),
             run_app_comment_commands=True,
+            enable_basic_auth="",
         )
+
+        # Get the designated port
+        port = constants.APP_SERVER_PORT
+
     # capture logs.
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
     #  page is being opened
@@ -155,6 +173,8 @@ def test_lightning_run_app_cloud_with_run_app_commands(mock_dispatch: mock.Magic
         secrets={"BAR": "my-secret"},
         cluster_id="",
         run_app_comment_commands=True,
+        enable_basic_auth="",
+        port=port,
     )
 
 
@@ -175,4 +195,50 @@ def test_lightning_run_app_secrets(monkeypatch):
             env=(),
             secret=("FOO=my-secret"),
             run_app_comment_commands=False,
+            enable_basic_auth="",
         )
+
+
+@mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_URL": "https://beta.lightning.ai"})
+@mock.patch("lightning_app.cli.lightning_cli.dispatch")
+def test_lightning_run_app_enable_basic_auth_passed(mock_dispatch: mock.MagicMock, caplog, monkeypatch):
+    """This test just validates the command has ran properly when --enable-basic-auth argument is passed.
+
+    It checks the call to `dispatch` for the right arguments.
+    """
+    monkeypatch.setattr("lightning_app.runners.cloud.logger", logging.getLogger())
+
+    with caplog.at_level(logging.INFO):
+        _run_app(
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
+            cloud=True,
+            cluster_id="",
+            without_server=False,
+            name="",
+            blocking=False,
+            open_ui=False,
+            no_cache=True,
+            env=("FOO=bar",),
+            secret=("BAR=my-secret",),
+            run_app_comment_commands=False,
+            enable_basic_auth="username:password",
+        )
+
+        # Get the designated port
+        port = constants.APP_SERVER_PORT
+
+    mock_dispatch.assert_called_with(
+        Path(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")),
+        RuntimeType.CLOUD,
+        start_server=True,
+        blocking=False,
+        open_ui=False,
+        name="",
+        no_cache=True,
+        env_vars={"FOO": "bar"},
+        secrets={"BAR": "my-secret"},
+        cluster_id="",
+        run_app_comment_commands=False,
+        enable_basic_auth="username:password",
+        port=port,
+    )

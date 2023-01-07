@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator, Optional, Union
+from typing import Any, Callable, cast, Dict, Generator, Optional, Union
 
 import torch
 from torch import Tensor
 from torch.optim import LBFGS, Optimizer
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.utilities.types import Optimizable
+from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.utilities.types import Optimizable
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.utilities import AMPType, GradClipAlgorithmType
+from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
-class NativeMixedPrecisionPlugin(PrecisionPlugin):
-    """Plugin for Native Mixed Precision (AMP) training with ``torch.autocast``.
+class MixedPrecisionPlugin(PrecisionPlugin):
+    """Plugin for Automatic Mixed Precision (AMP) training with ``torch.autocast``.
 
     Args:
         precision: Whether to use ``torch.float16`` (``16``) or ``torch.bfloat16`` (``'bf16'``).
@@ -35,19 +37,16 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
         scaler: An optional :class:`torch.cuda.amp.GradScaler` to use.
     """
 
-    backend = AMPType.NATIVE
-
     def __init__(
-        self, precision: Union[str, int], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[torch.cuda.amp.GradScaler] = None
     ) -> None:
-        super().__init__()
-        if scaler is None and precision == 16:
+        self.precision = cast(Literal["16", "bf16"], str(precision))
+        if scaler is None and self.precision == "16":
             with _patch_cuda_is_available():
                 # if possible, we defer CUDA initialization to support strategies that will attempt forks
                 scaler = torch.cuda.amp.GradScaler()
-        if scaler is not None and precision == "bf16":
+        if scaler is not None and self.precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
-        self.precision = precision
         self.device = device
         self.scaler = scaler
 
@@ -123,6 +122,17 @@ class NativeMixedPrecisionPlugin(PrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+
+class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
+    backend = "native"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        rank_zero_deprecation(
+            "The `NativeMixedPrecisionPlugin` class has been renamed in v1.9.0 and will be removed in"
+            " v1.10.0. Please use `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
+        )
+        super().__init__(*args, **kwargs)
 
 
 def _optimizer_handles_unscaling(optimizer: Any) -> bool:
