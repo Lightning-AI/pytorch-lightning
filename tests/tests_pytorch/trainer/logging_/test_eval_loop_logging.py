@@ -158,8 +158,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
 def test_eval_float_logging(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("a", 12.0)
             return {"x": loss}
 
@@ -184,8 +183,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         manual_epoch_end_mean = None
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
             return {"x": loss}
@@ -517,14 +515,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.save_hyperparameters()
 
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
@@ -532,8 +528,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("test_loss", loss)
             return {"y": loss}
 

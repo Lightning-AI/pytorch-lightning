@@ -26,7 +26,6 @@ from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment, Precision
 from lightning_fabric.plugins.collectives.torch_collective import default_pg_timeout
 from lightning_fabric.strategies.ddp import DDPStrategy
 from lightning_fabric.strategies.strategy import _BackwardSyncControl
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.imports import _IS_WINDOWS
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
@@ -116,7 +115,7 @@ def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precisio
         if not isinstance(optimizer, OSS):
             optim_class = type(optimizer)
             zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
-            is_fp16 = precision.precision in (PrecisionType.MIXED, PrecisionType.HALF)
+            is_fp16 = precision.precision == "16"
             # For multi-node training, compressing the model shards in fp16 before broadcasting
             # improves performance. When using PyTorch AMP, it will not degrade
             # the model performance.

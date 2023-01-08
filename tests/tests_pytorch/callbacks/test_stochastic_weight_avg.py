@@ -65,9 +65,7 @@ class SwaTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         if self.crash_on_epoch and self.trainer.current_epoch >= self.crash_on_epoch:
             raise Exception("SWA crash test")
-        output = self.forward(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
+        return super().training_step(batch, batch_idx)
 
     def train_dataloader(self):
         dset_cls = RandomIterableDataset if self.iterable_dataset else RandomDataset

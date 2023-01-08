@@ -149,7 +149,8 @@ class DataConnector:
 
     def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
         model.trainer = proxy(self.trainer)
-        model.precision = self.trainer.precision
+        # for backward compatibility
+        model.precision = int(self.trainer.precision) if self.trainer.precision != "bf16" else "bf16"
 
     def attach_dataloaders(
         self,
