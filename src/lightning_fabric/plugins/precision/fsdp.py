@@ -17,7 +17,6 @@ import torch
 from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.native_amp import MixedPrecision
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:
@@ -29,7 +28,7 @@ class FSDPPrecision(MixedPrecision):
     """AMP for Fully Sharded Data Parallel training."""
 
     def __init__(
-        self, precision: Literal[16, "bf16"], device: str, scaler: Optional["ShardedGradScaler"] = None
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional["ShardedGradScaler"] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
             raise NotImplementedError("`FSDPPrecision` is supported from PyTorch v1.12.0 onwards.")
@@ -39,16 +38,16 @@ class FSDPPrecision(MixedPrecision):
         super().__init__(
             precision=precision,
             device=device,
-            scaler=(ShardedGradScaler() if scaler is None and precision == 16 else None),
+            scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16" else None),
         )
 
     @property
     def mixed_precision_config(self) -> "TorchMixedPrecision":
         from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision as TorchMixedPrecision
 
-        if self.precision == PrecisionType.HALF:
+        if self.precision == "16":
             dtype = torch.float16
-        elif self.precision == PrecisionType.BFLOAT:
+        elif self.precision == "bf16":
             dtype = torch.bfloat16
         else:
             raise ValueError(f"Was unable to infer precision type, received {self.precision!r}.")
