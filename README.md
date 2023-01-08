@@ -29,7 +29,7 @@ jobs:
       azure-dir: ""  # skip Azure check
 
   check-code:
-    uses: Lightning-AI/utilities//.github/workflows/check-code.yml@main
+    uses: Lightning-AI/utilities/.github/workflows/check-code.yml@main
     with:
       actions-ref: main  # normally you shall use the same version as the workflow
 ```

@@ -28,10 +28,9 @@ jobs:
       with:
           python-version: 3.8
 
-    - name: Create package 📦
+    - name: Create 📦 package
       uses: ./.github/actions/pkg-create
     - name: Upload 📤 to the share store
-      if: ${{ inputs.artifact-name != '' }}
       uses: actions/upload-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
