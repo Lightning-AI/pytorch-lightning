@@ -24,6 +24,7 @@ At the highest level, every Python script should contain the following boilerpla
         # Here goes all the rest of the code
         ...
 
+
     if __name__ == "__main__":
         # This is the entry point of your program
         main()
@@ -100,7 +101,6 @@ Here is how the code would be structured if we did that periodically during trai
         for epoch in range(num_epochs):
             for i, batch in enumerate(train_dataloader):
                 ...
-
 
             if epoch % validate_every_n_epoch == 0:
                 validate(fabric, model, val_dataloader)
