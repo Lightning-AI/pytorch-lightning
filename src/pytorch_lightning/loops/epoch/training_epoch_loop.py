@@ -390,7 +390,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if interval == "step" and self._should_accumulate():
             return
         active_optimizers = _get_active_optimizers(
-            self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
+            self.trainer.optimizers, self.trainer.optimizer_frequencies, self.batch_idx
         )
         self._update_learning_rates(
             interval=interval,

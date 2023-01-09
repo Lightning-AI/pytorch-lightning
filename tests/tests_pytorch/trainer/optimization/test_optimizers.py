@@ -286,7 +286,7 @@ def test_configure_optimizer_from_dict(tmpdir):
             (dict(step_size=5), dict(T_max=2)),
             ("epoch", "epoch"),
             (5, 10),
-            (2, 3),
+            (4, 1),
             3,
         ),
     ],
