@@ -21,11 +21,11 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_fabric.loggers import TensorBoardLogger as FabricTensorBoardLogger
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning_fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
 from lightning_fabric.utilities.logger import _convert_params
 from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -35,7 +35,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
