@@ -748,3 +748,4 @@ def _is_using_cli() -> bool:
 
 def _do_nothing(*_: Any) -> None:
     pass
+
