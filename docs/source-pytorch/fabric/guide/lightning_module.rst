@@ -31,8 +31,8 @@ Take these main incredients and put them in a LightningModule:
 
     import lightning as L
 
-    class LitModel(L.LightningModule):
 
+    class LitModel(L.LightningModule):
         def __init__(self):
             super().__init__()
             self.model = ...
