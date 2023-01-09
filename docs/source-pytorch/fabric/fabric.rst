@@ -75,6 +75,14 @@ Fundamentals
     :tag: basic
 
 .. displayitem::
+    :header: Code Structure
+    :description: Best practices for setting up your training script with Fabric
+    :button_link: fundamentals/code_structure.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
     :header: Accelerators
     :description: Take advantage of your hardware with a switch of a flag
     :button_link: fundamentals/accelerators.html
@@ -92,16 +100,8 @@ Fundamentals
 
 .. displayitem::
     :header: Fabric in Notebooks
-    :description: Launch a Python script on multiple devices and machines
+    :description: Launch on multiple devices from within a Jupyter notebook
     :button_link: fundamentals/notebooks.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
-    :header: Code Structure
-    :description: Best practices for setting up your training script with Fabric
-    :button_link: fundamentals/code_structure.html
     :col_css: col-md-4
     :height: 150
     :tag: basic
@@ -110,6 +110,9 @@ Fundamentals
 
         </div>
     </div>
+
+
+----------
 
 
 **********************
@@ -139,7 +142,7 @@ Build Your Own Trainer
 
 .. displayitem::
     :header: Logging
-    :description: Learn how Fabric helps you remove boilderplate code for tracking metrics with a logger
+    :description: Learn how Fabric helps you remove boilerplate code for tracking metrics with a logger
     :button_link: guide/logging.html
     :col_css: col-md-4
     :height: 150
@@ -158,11 +161,19 @@ Build Your Own Trainer
         </div>
     </div>
 
+
+----------
+
+
 ***************
 Advanced Topics
 ***************
 
 Comnig soon.
+
+
+
+----------
 
 
 .. _Fabric Examples:
@@ -215,6 +226,10 @@ Examples
 
         </div>
     </div>
+
+
+
+----------
 
 
 ***
