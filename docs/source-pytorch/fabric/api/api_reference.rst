@@ -1,3 +1,5 @@
+:orphan:
+
 #############
 API Reference
 #############
@@ -126,7 +128,7 @@ Strategies
 
 
 Utilities
----------
+^^^^^^^^^
 
 .. currentmodule:: pytorch_lightning.utilities
 

@@ -10,6 +10,7 @@ lightning_logs/
 docs/source-app/generated
 docs/source-app/*/generated
 docs/source-pytorch/api
+docs/source-pytorch/fabric/api/api
 docs/source-pytorch/*.md
 docs/source-pytorch/generated
 docs/source-pytorch/*/generated
