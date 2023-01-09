@@ -2154,7 +2154,7 @@ class Trainer:
     """
 
     @property
-    def logger(self) -> Optional[Union[Logger, TensorBoardLogger]]:
+    def logger(self) -> Optional[Logger]:
         return self.loggers[0] if len(self.loggers) > 0 else None
 
     @logger.setter
