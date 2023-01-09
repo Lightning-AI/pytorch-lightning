@@ -118,7 +118,7 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Union[Logger], Iterable[Union[Logger]], bool] = True,
+        logger: Union[Logger, Iterable[Logger], bool] = True,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
@@ -2165,11 +2165,11 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[Union[Logger]]:
+    def loggers(self) -> List[Logger]:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[Logger]]) -> None:
+    def loggers(self, loggers: Optional[Logger]) -> None:
         self._loggers = loggers if loggers else []
 
     @property
