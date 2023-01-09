@@ -180,4 +180,3 @@ Then, in your training loop, you can call a hook by its name. Any callback objec
 
     # Call any hook by name
     fabric.call("on_train_epoch_end", results={...})
-
