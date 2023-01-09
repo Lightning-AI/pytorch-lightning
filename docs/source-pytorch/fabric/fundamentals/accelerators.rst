@@ -4,4 +4,61 @@
 Accelerators
 ############
 
-Coming soon.
+Fabric enables you to take full advantage of the hardware on your system. It supports
+
+- CPU
+- GPU (NVIDIA, AMD, Apple Silicon)
+- TPU
+
+By default, Fabric recognizes the accelerator(s) on your system
+
+.. code-block:: python
+
+    # Default settings
+    fabric = Fabric(accelerator="auto", devices="auto")
+
+    # Same as
+    fabric = Fabric()
+
+This is the most flexible option and makes your code run on most systems.
+You can also specifically set which accelerator to use:
+
+.. code-block:: python
+
+    # CPU (slow)
+    fabric = Fabric(accelerator="cpu")
+
+    # GPU
+    fabric = Fabric(accelerator="gpu", devices=1)
+
+    # GPU (multiple)
+    fabric = Fabric(accelerator="gpu", devices=8)
+
+    # GPU: Apple M1/M2 only
+    fabric = Fabric(accelerator="mps", devices=8)
+
+    # GPU: NVIDIA CUDA only
+    fabric = Fabric(accelerator="cuda", devices=8)
+
+    # TPU
+    fabric = Fabric(accelerator="tpu", devices=8)
+
+
+For running on multiple devices in parallel, also known as "distributed", read our guide for :doc:`Launching Multiple Processes <./launch>`.
+
+
+********************
+Accessing the Device
+********************
+
+You can access the device at any time through ``fabric.device``.
+This let's you replace boilerplate code like this:
+
+.. code-block:: diff
+
+    - if torch.cuda.is_available():
+    -     device = torch.device("cuda")
+    - else:
+    -     device = torch.device("cpu")
+
+    + device = fabric.device
