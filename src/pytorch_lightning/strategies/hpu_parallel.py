@@ -20,8 +20,8 @@ from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.distributed import group as _group
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.utilities.distributed import group as _group
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO

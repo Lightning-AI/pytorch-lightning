@@ -31,13 +31,15 @@ from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
 from typing_extensions import Literal
 
+import lightning_fabric as lf
 import pytorch_lightning as pl
-from lightning_lite.utilities.apply_func import convert_to_tensors
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_lite.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
-from lightning_lite.utilities.types import Steppable
+from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities.types import Steppable
+from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
@@ -61,7 +63,9 @@ from pytorch_lightning.utilities.types import (
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
-MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
+MODULE_OPTIMIZERS = Union[
+    Optimizer, LightningOptimizer, _FabricOptimizer, List[Optimizer], List[LightningOptimizer], List[_FabricOptimizer]
+]
 
 
 class LightningModule(
@@ -88,6 +92,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "trainer",
+            "fabric",
         ]
         + _DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -118,6 +123,10 @@ class LightningModule(
         self._register_sharded_tensor_state_dict_hooks_if_available()
         self._compiler_ctx: Optional[Dict[str, Any]] = None
 
+        # attributes only used when using fabric
+        self._fabric: Optional["lf.Fabric"] = None
+        self._fabric_optimizers: List[_FabricOptimizer] = []
+
     @overload
     def optimizers(self, use_pl_optimizer: Literal[True] = True) -> Union[LightningOptimizer, List[LightningOptimizer]]:
         ...
@@ -141,13 +150,19 @@ class LightningModule(
         Returns:
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
-        if use_pl_optimizer:
-            opts: MODULE_OPTIMIZERS = list(self.trainer.strategy._lightning_optimizers.values())
+        if self._fabric:
+            opts: MODULE_OPTIMIZERS = self._fabric_optimizers
+        elif use_pl_optimizer:
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
         # single optimizer
-        if isinstance(opts, list) and len(opts) == 1 and isinstance(opts[0], (Optimizer, LightningOptimizer)):
+        if (
+            isinstance(opts, list)
+            and len(opts) == 1
+            and isinstance(opts[0], (Optimizer, LightningOptimizer, _FabricOptimizer))
+        ):
             return opts[0]
         # multiple opts
         return opts
@@ -175,6 +190,8 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
+        if self._fabric is not None:
+            return _TrainerFabricShim(fabric=self._fabric)  # type: ignore[return-value]
         if not self._jit_is_scripting and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer  # type: ignore[return-value]
@@ -187,6 +204,19 @@ class LightningModule(
         if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
             trainer = weakref.proxy(trainer)
         self._trainer = trainer
+
+    @property
+    def fabric(self) -> Optional["lf.Fabric"]:
+        return self._fabric
+
+    @fabric.setter
+    def fabric(self, fabric: Optional["lf.Fabric"]) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.fabric = fabric
+        if fabric is not None and not isinstance(fabric, weakref.ProxyTypes):
+            fabric = weakref.proxy(fabric)
+        self._fabric = fabric
 
     @property
     def example_input_array(self) -> Optional[Union[Tensor, Tuple, Dict]]:
@@ -1393,8 +1423,11 @@ class LightningModule(
             *args: Additional positional arguments to be forwarded to :meth:`~torch.Tensor.backward`
             **kwargs: Additional keyword arguments to be forwarded to :meth:`~torch.Tensor.backward`
         """
-        self._verify_is_manual_optimization("manual_backward")
-        self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
+        if self._fabric:
+            self._fabric.backward(loss, *args, **kwargs)
+        else:
+            self._verify_is_manual_optimization("manual_backward")
+            self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
         self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
@@ -1413,7 +1446,10 @@ class LightningModule(
             def backward(self, loss, optimizer, optimizer_idx):
                 loss.backward()
         """
-        loss.backward(*args, **kwargs)
+        if self._fabric:
+            self._fabric.backward(loss, *args, **kwargs)
+        else:
+            loss.backward(*args, **kwargs)
 
     def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
         """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
@@ -1743,7 +1779,7 @@ class LightningModule(
                 split_x: Union[Tensor, List[Tensor]]
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.Sequence):
+                elif isinstance(x, collections.abc.Sequence):
                     split_x = [x[batch_idx][t : t + split_size] for batch_idx in range(len(x))]
 
                 batch_split.append(split_x)
@@ -2036,3 +2072,20 @@ def _jit_is_scripting() -> Generator:
         yield
     finally:
         LightningModule._jit_is_scripting = False
+
+
+class _TrainerFabricShim:
+    """Intercepts attribute access on LightningModule's trainer reference and redirects it to the Fabric object."""
+
+    def __init__(self, fabric: lf.Fabric) -> None:
+        super().__init__()
+        self._fabric = fabric
+
+    def __getattr__(self, item: Any) -> Any:
+        try:
+            return getattr(self._fabric, item)
+        except AttributeError:
+            raise AttributeError(
+                f"Your LightningModule code tried to access `self.trainer.{item}` but this attribute is not available"
+                f" when using Fabric with a LightningModule."
+            )

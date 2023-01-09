@@ -39,9 +39,9 @@ REQUIREMENT_FILES = {
         "requirements/app/ui.txt",
         "requirements/app/cloud.txt",
     ),
-    "lite": (
-        "requirements/lite/base.txt",
-        "requirements/lite/strategies.txt",
+    "fabric": (
+        "requirements/fabric/base.txt",
+        "requirements/fabric/strategies.txt",
     ),
 }
 REQUIREMENT_FILES_ALL = list(chain(*REQUIREMENT_FILES.values()))
@@ -306,7 +306,7 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str]) -> N
     for new, previous in mapping.items():
         copy_replace_imports(
             source_dir=os.path.join(source_dir, previous),
-            # pytorch_lightning uses lightning_lite, so we need to replace all imports for all directories
+            # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
             source_imports=list(mapping.values()),
             target_imports=[f"lightning.{new}" for new in mapping],
             target_dir=os.path.join(source_dir, "lightning", new),

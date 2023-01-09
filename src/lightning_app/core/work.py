@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 
 
 class LightningWork:
-
     _INTERNAL_STATE_VARS = (
         # Internal protected variables that are still part of the state (even though they are prefixed with "_")
         "_paths",

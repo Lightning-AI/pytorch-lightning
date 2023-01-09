@@ -290,8 +290,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 self.log("train_loss", loss["loss"], batch_size=1)
             else:
                 opt = self.optimizers()
-                output = self(batch)
-                loss = self.loss(batch, output)
+                loss = self.step(batch)
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
@@ -366,8 +365,7 @@ class AsyncBoringModel(BoringModel):
 
         batch_i = self.batch_i_handle.wait()
 
-        pred = self.layer(batch_i)
-        loss = self.loss(batch_i, pred)
+        loss = self.step(batch_i)
         loss.backward()
         self.optimizers().step()
         self.optimizers().zero_grad()
@@ -429,9 +427,9 @@ def test_on_train_batch_start_overridden(tmpdir) -> None:
         def on_train_batch_start(self, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_start` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_start` hook may not match"):
         trainer.fit(m)
 
 
@@ -443,9 +441,9 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         def on_train_batch_end(self, outputs, batch, batch_idx):
             pass
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
+    trainer = Trainer(fast_dev_run=1, default_root_dir=tmpdir)
     m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="The model hook `on_train_batch_end` is not compatible with"):
+    with pytest.warns(match="InvalidModel.on_train_batch_end` hook may not match"):
         trainer.fit(m)
 
 

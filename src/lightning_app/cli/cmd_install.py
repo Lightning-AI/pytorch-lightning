@@ -148,7 +148,6 @@ def gallery_component(name: str, yes_arg: bool, version_arg: str, cwd: str = Non
 
 
 def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
-
     # give the user the chance to do a manual install
     git_url = _show_non_gallery_install_component_prompt(gh_url, yes_arg)
 
@@ -157,7 +156,6 @@ def non_gallery_component(gh_url: str, yes_arg: bool, cwd: str = None) -> None:
 
 
 def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, overwrite: bool = False) -> str:
-
     # make sure org/app-name syntax is correct
     org, app = _validate_name(name, resource_type="app", example="lightning/quick-start")
 
@@ -179,7 +177,6 @@ def gallery_app(name: str, yes_arg: bool, version_arg: str, cwd: str = None, ove
 
 
 def non_gallery_app(gh_url: str, yes_arg: bool, cwd: str = None, overwrite: bool = False) -> None:
-
     # give the user the chance to do a manual install
     repo_url, folder_name = _show_non_gallery_install_app_prompt(gh_url, yes_arg)
 

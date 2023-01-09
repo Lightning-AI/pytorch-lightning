@@ -22,7 +22,7 @@ jobs:
   upload-packages:
     runs-on: ubuntu-20.04
     needs: build-packages
-    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    if: github.event_name == 'release'
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
@@ -136,8 +136,8 @@ jobs:
         pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/lite
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LITE }}
+        pkg-folder: dist/fabric
+        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_FABRIC }}
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-folder: dist/pytorch
@@ -167,8 +167,8 @@ jobs:
         pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/lite
-        pypi-token: ${{ secrets.PYPI_TOKEN_LITE }}
+        pkg-folder: dist/fabric
+        pypi-token: ${{ secrets.PYPI_TOKEN_FABRIC }}
     - uses: ./.github/actions/pkg-publish
       with:
         pkg-folder: dist/pytorch
