@@ -2169,7 +2169,7 @@ class Trainer:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[Logger]) -> None:
+    def loggers(self, loggers: Optional[List[Logger]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property
