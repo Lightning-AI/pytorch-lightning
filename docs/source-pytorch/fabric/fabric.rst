@@ -2,8 +2,7 @@
 Fabric (Beta)
 #############
 
-
-:class:`~lightning_fabric.fabric.Fabric` library allows you to scale any PyTorch model with just a few lines of code!
+Fabric allows you to scale any PyTorch model with just a few lines of code!
 With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
 
 With only a few changes to your code, Fabric allows you to:
@@ -230,7 +229,7 @@ API
     :description: All configuration options for the Fabric object
     :button_link: api/fabric_args.html
     :col_css: col-md-4
-    :height: 160
+    :height: 150
     :tag: basic
 
 .. displayitem::
@@ -238,7 +237,7 @@ API
     :description: Explore all methods that Fabric offers
     :button_link: api/fabric_methods.html
     :col_css: col-md-4
-    :height: 160
+    :height: 150
     :tag: basic
 
 .. displayitem::
@@ -246,7 +245,7 @@ API
     :description: Explore utility functions that make your life easier
     :button_link: api/utilities.html
     :col_css: col-md-4
-    :height: 160
+    :height: 150
     :tag: basic
 
 .. displayitem::
@@ -254,7 +253,7 @@ API
     :description: Reference of all public classes, methods and functions. Useful for developers.
     :button_link: api/api_reference.html
     :col_css: col-md-4
-    :height: 160
+    :height: 150
     :tag: intermediate
 
 .. raw:: html
