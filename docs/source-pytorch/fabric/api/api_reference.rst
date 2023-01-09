@@ -13,6 +13,7 @@ Fabric
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
     Fabric
 
