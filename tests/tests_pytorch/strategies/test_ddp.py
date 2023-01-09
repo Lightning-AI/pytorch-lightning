@@ -137,6 +137,7 @@ def test_ddp_wrapper(tmpdir, precision):
 @pytest.mark.xfail(reason="Expect error at the end to be raised")
 def test_ddp_error_handler(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
+
     class CustomModel(BoringModel):
         def __init__(self):
             super().__init__()
