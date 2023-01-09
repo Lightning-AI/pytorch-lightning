@@ -44,6 +44,7 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_fabric.loggers import Logger
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.data import _auto_add_worker_init_fn
 from lightning_fabric.utilities.types import _PATH
@@ -52,7 +53,6 @@ from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.loggers import Logger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -118,7 +118,7 @@ class Trainer:
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[Union[Logger, TensorBoardLogger], Iterable[Union[Logger, TensorBoardLogger]], bool] = True,
+        logger: Union[Union[Logger], Iterable[Union[Logger]], bool] = True,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[_PATH] = None,
@@ -518,7 +518,7 @@ class Trainer:
         setup._init_profiler(self, profiler)
 
         # init logger flags
-        self._loggers: List[Union[Logger, TensorBoardLogger]]
+        self._loggers: List[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -2165,11 +2165,11 @@ class Trainer:
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[Union[Logger, TensorBoardLogger]]:
+    def loggers(self) -> List[Union[Logger]]:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[Union[Logger, TensorBoardLogger]]]) -> None:
+    def loggers(self, loggers: Optional[List[Logger]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property
