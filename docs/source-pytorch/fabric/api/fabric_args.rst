@@ -102,7 +102,7 @@ Number of cluster nodes for distributed operation.
     fabric = Fabric(num_nodes=8)
 
 
-Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster>`.
+Learn more about distributed multi-node training on clusters :doc:`here <../../clouds/cluster>`.
 
 
 precision
