@@ -453,9 +453,23 @@ class DDPStrategy(ParallelStrategy):
         if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
+        # Shutdown all other processes. First, we try sending a SIGINT since
+        # that triggers a KeyboardInterrupt exception by default, which should
+        # allow any context managers and try/finally logic to run.
         for pid in self._pids:
             if pid != os.getpid():
-                os.kill(pid, signal.SIGKILL)
+                os.kill(pid, signal.SIGINT)
+
+        time.sleep(3)  # Wait for processes to shut down
+
+        # If they haven't, go ahead and SIGKILL them
+        for pid in self._pids:
+            if pid != os.getpid():
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:  # Process already shut down!
+                    continue
+
         shutil.rmtree(sync_dir)
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
