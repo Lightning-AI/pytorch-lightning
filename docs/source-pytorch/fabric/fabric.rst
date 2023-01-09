@@ -165,6 +165,8 @@ Advanced Topics
 Comnig soon.
 
 
+.. _Fabric Examples:
+
 ********
 Examples
 ********

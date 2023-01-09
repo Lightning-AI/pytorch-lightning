@@ -46,26 +46,4 @@ or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 |
 
 That's it! You can now train on any device at any scale with a switch of a flag.
-Check out our examples that use Fabric:
-
-- `Image Classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_
-- `Generative Adversarial Network (GAN) <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md>`_
-
-
-Here is how you run DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
-
-.. code-block:: bash
-
-    lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
-
-Or `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
-
-.. code-block:: bash
-
-     lightning run model ./path/to/train.py --strategy=deepspeed --devices=8 --accelerator=cuda --precision=16
-
-:class:`~lightning_fabric.fabric.Fabric` can also figure it out automatically for you!
-
-.. code-block:: bash
-
-    lightning run model ./path/to/train.py --devices=auto --accelerator=auto --precision=16
+Check out our :ref:`examples <Fabric Examples>` that use Fabric.
