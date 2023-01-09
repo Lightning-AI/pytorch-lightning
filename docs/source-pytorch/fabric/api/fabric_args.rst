@@ -180,3 +180,27 @@ Then, in your training loop, you can call a hook by its name. Any callback objec
 
     # Call any hook by name
     fabric.call("on_train_epoch_end", results={...})
+
+
+loggers
+=======
+
+Attach one or several loggers/experiment trackers to Fabric for convenient logging of metrics.
+
+.. code-block:: python
+
+    # Default used by Fabric, no loggers are active
+    fabric = Fabric(loggers=[])
+
+    # Log to a single logger
+    fabric = Fabric(loggers=TensorBoardLogger(...))
+
+    # Or multiple instances
+    fabric = Fabric(loggers=[logger1, logger2, ...])
+
+Anywhere in your training loop, you can log metrics to all loggers at once:
+
+.. code-block:: python
+
+    fabric.log("loss", loss)
+    fabric.log_dict({"loss": loss, "accuracy": acc})

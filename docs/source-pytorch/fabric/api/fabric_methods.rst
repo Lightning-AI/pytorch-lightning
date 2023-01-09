@@ -225,3 +225,29 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
 
     # Only the callbacks that have this method defined will be executed
     fabric.call("undefined")
+
+
+log and log_dict
+================
+
+These methods allows you to send scalar metrics to a logger registered in Fabric.
+
+.. code-block:: python
+
+    # Set the logger in Fabric
+    fabric = Fabric(loggers=TensorBoardLogger(...))
+
+    # Anywhere in your training loop or model:
+    fabric.log("loss", loss)
+
+    # Or send multiple metrics at once:
+    fabric.log_dict({"loss": loss, "accuracy": acc})
+
+If no loggers are given to Fabric (default), ``log`` and ``log_dict`` won't do anything.
+Here is what's happening under the hood (pseudo code) when you call ``.log()`` or ``log_dict``:
+
+.. code-block:: python
+
+    # When you call .log() or .log_dict(), we do this:
+    for logger in fabric.loggers:
+        logger.log_metrics(metrics=metrics, step=step)
