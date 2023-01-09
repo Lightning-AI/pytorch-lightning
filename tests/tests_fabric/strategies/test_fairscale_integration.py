@@ -15,11 +15,11 @@ import os
 
 import pytest
 import torch
-from tests_fabric.helpers.models import BoringLite
+from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
 
-class ShardedSaveAndLoad(BoringLite):
+class ShardedSaveAndLoad(BoringFabric):
     def get_optimizer(self, module):
         optimizer = super().get_optimizer(module)
         if self.with_fairscale_oss:
@@ -67,5 +67,5 @@ class ShardedSaveAndLoad(BoringLite):
 def test_fairscale_multi_process_checkpoint_state_consolidation(with_fairscale_oss, strategy, accelerator, tmpdir):
     """Test that the sharded optimizer states get consolidated when saving the checkpoint, and that the loaded
     weights is identical to the saved one."""
-    lite = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
-    lite.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
+    fabric = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
+    fabric.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
