@@ -311,7 +311,8 @@ def test_setup_dataloaders_return_type():
 
 @mock.patch("lightning_fabric.fabric._replace_dunder_methods")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
-    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run method."""
+    """Test that Fabric intercepts the DataLoader constructor arguments with a context manager in its run
+    method."""
 
     class RunFabric(Fabric):
         def run(self):
@@ -323,8 +324,8 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():
-    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's run
-    method."""
+    """Test that an error raises when custom dataloaders with unknown arguments are created from outside Fabric's
+    run method."""
     fabric = EmptyFabric()
 
     class CustomDataLoader(DataLoader):
