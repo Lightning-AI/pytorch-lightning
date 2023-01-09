@@ -207,7 +207,7 @@ Examples
     :header: Meta Learning
     :description: Coming soon
     :col_css: col-md-4
-    :height: 160
+    :height: 150
 
 
 .. raw:: html
