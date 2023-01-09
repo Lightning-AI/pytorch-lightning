@@ -39,13 +39,11 @@ runs:
     shell: bash
 
   - name: Unzip packages
-    if: ${{ inputs.pkg-name != 'lightning' && inputs.pkg-name != 'notset' }}
     working-directory: dist
     run: for file in `ls *.gz`; do tar -xzf $file; done
     shell: bash
 
   - name: Check single pkg/folder
-    if: ${{ inputs.pkg-name != 'lightning' && inputs.pkg-name != 'notset' }}
     working-directory: dist
     run: |
       import os, glob, pathlib, shutil

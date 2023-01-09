@@ -97,7 +97,9 @@ def _set_manifest_path(manifest_dir: str, aggregate: bool = False) -> Generator:
                     lines.extend(fh.readlines())
         # convert lightning_foo to lightning/foo
         for new, old in mapping.items():
-            lines += [ln.replace(old, f"lightning/{new}") for ln in lines]
+            if old == "lightning":
+                continue  # avoid `lightning` -> `lightning/lightning`
+            lines = [ln.replace(old, f"lightning/{new}") for ln in lines]
         lines = sorted(set(filter(lambda ln: not ln.strip().startswith("#"), lines)))
         with open(manifest_path, mode="w") as fp:
             fp.writelines(lines)
