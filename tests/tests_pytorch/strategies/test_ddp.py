@@ -133,6 +133,36 @@ def test_ddp_wrapper(tmpdir, precision):
     trainer.fit(model)
 
 
+@RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
+@pytest.mark.xfail(reason="Expect error at the end to be raised")
+def test_ddp_error_handler(tmpdir, precision):
+    """Test parameters to ignore are carried over for DDP."""
+    class CustomModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+
+        def training_step(self, batch, batch_idx):
+            if self.trainer.global_rank != 0:
+                raise ValueError("Failed in Child Process!")
+            return super().training_step(batch, batch_idx)
+
+    model = CustomModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        precision=precision,
+        strategy="ddp",
+        accelerator="gpu",
+        devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    try:
+        trainer.fit(model)
+    finally:
+        raise ValueError("FAILED")
+
+
 @pytest.mark.parametrize(
     ["process_group_backend", "device_str", "expected_process_group_backend"],
     [
