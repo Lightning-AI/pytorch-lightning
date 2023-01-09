@@ -423,6 +423,6 @@ class CometLogger(Logger):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: "Module", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)
