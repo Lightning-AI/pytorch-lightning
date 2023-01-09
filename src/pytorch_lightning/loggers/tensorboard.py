@@ -30,6 +30,7 @@ from lightning_fabric.utilities.logger import _convert_params
 from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.saving import save_hparams_to_yaml
+from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -39,7 +40,7 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-class TensorBoardLogger(FabricTensorBoardLogger):
+class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 

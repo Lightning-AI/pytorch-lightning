@@ -33,7 +33,7 @@ from typing_extensions import Literal
 
 import lightning_fabric as lf
 import pytorch_lightning as pl
-from lightning_fabric.loggers import Logger
+from lightning_fabric.loggers import Logger as FabricLogger
 from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
@@ -46,6 +46,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -291,14 +292,20 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[Logger]:
+    def logger(self) -> Optional[Union[Logger, FabricLogger]]:
         """Reference to the logger object in the Trainer."""
+        if self._fabric is not None:
+            return self._fabric.logger
         return self._trainer.logger if self._trainer is not None else None
 
     @property
-    def loggers(self) -> List[Logger]:
+    def loggers(self) -> Union[List[Logger], List[FabricLogger]]:
         """Reference to the list of loggers in the Trainer."""
-        return self.trainer.loggers if self._trainer else []
+        if self._fabric is not None:
+            return self._fabric.loggers
+        elif self._trainer is not None:
+            return self._trainer.loggers
+        return []  # type: ignore[return-value]
 
     def _call_batch_hook(self, hook_name: str, *args: Any) -> Any:
         if self._trainer:
