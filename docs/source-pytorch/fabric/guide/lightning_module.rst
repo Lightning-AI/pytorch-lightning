@@ -9,7 +9,7 @@ Any raw PyTorch can be converted to Fabric with zero refactoring required, givin
 However, when developing a project in a team or when sharing the code publicly, it can be beneficial to conform to a standard format how core pieces of the code are organized.
 This is what the :doc:`LightningModule <../../common/lightning_module>` was made for!
 
-Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.):
+Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.).
 
 
 ----------
@@ -108,3 +108,14 @@ It is up to you to call everything at the right place.
             # Control when hooks are called
             if condition:
                 model.any_hook_you_like()
+
+
+Your code is now modular. You can switch out the entire LightningModule implemenation for another one and you don't need to touch the training loop:
+
+.. code-block:: diff
+
+    # Instantiate the LightningModule
+  - model = LitModel()
+  + model = DopeModel()
+
+    ...
