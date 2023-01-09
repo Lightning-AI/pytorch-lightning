@@ -655,4 +655,11 @@ These methods allows you to send scalar metrics to a logger registered in Fabric
     # Or send multiple metrics at once:
     fabric.log_dict({"loss": loss, "accuracy": acc})
 
-If no loggers are given to Fabric (default), `log` and `log_dict` won't do anything.
+If no loggers are given to Fabric (default), ``log`` and ``log_dict`` won't do anything.
+Here is what's happening under the hood (pseudo code) when you call ``.log()`` or ``log_dict``:
+
+.. code-block:: python
+
+    # When you call .log() or .log_dict(), we do this:
+    for logger in fabric.loggers:
+        logger.log_metrics(metrics=metrics, step=step)
