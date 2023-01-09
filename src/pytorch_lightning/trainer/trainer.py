@@ -392,9 +392,6 @@ class Trainer:
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
-        # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
-        self._ckpt_path: Optional[str] = None
-
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
@@ -574,14 +571,13 @@ class Trainer:
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        ckpt_path = ckpt_path
-        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+        ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn,
             ckpt_path,
             model_provided=True,
             model_connected=self.lightning_module is not None,
         )
-        self._run(model, ckpt_path=self.ckpt_path)
+        self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.training = False
@@ -665,14 +661,10 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, val_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+        ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-
-        self._validated_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
-
-        # run validate
-        results = self._run(model, ckpt_path=self.ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.validating = False
@@ -758,14 +750,10 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, test_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+        ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-
-        self._tested_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
-
-        # run test
-        results = self._run(model, ckpt_path=self.ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.testing = False
@@ -851,13 +839,10 @@ class Trainer:
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
 
-        self._ckpt_path = self._checkpoint_connector._set_ckpt_path(
+        ckpt_path = self._checkpoint_connector._select_ckpt_path(
             self.state.fn, ckpt_path, model_provided=model_provided, model_connected=self.lightning_module is not None
         )
-
-        self._predicted_ckpt_path = self.ckpt_path  # TODO: remove in v1.8
-
-        results = self._run(model, ckpt_path=self.ckpt_path)
+        results = self._run(model, ckpt_path=ckpt_path)
 
         assert self.state.stopped
         self.predicting = False
@@ -918,18 +903,8 @@ class Trainer:
 
         return result
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
-        # restore modules after setup
-        self._checkpoint_connector.resume_start(checkpoint_path)
-        self._checkpoint_connector._restore_quantization_callbacks()
-        self._checkpoint_connector.restore_model()
-        self._checkpoint_connector.restore_datamodule()
-        if self.state.fn == TrainerFn.FITTING:
-            # restore callback states
-            self._checkpoint_connector.restore_callbacks()
-
     def _run(
-        self, model: "pl.LightningModule", ckpt_path: Optional[str] = None
+        self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if model._compiler_ctx is not None:
             supported_strategies = [SingleDeviceStrategy, DDPStrategy, DDPFullyShardedNativeStrategy]
@@ -978,7 +953,7 @@ class Trainer:
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
         log.detail(f"{self.__class__.__name__}: configuring sharded model")
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1026,7 +1001,7 @@ class Trainer:
 
         if self.strategy.restore_checkpoint_after_setup:
             log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            self._checkpoint_connector._restore_modules_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
@@ -1811,12 +1786,30 @@ class Trainer:
         return None
 
     @property
-    def ckpt_path(self) -> Optional[str]:
+    def ckpt_path(self) -> Optional[_PATH]:
         """Set to the path/URL of a checkpoint loaded via :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`,
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`,
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`, or
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. ``None`` otherwise."""
-        return self._ckpt_path
+        return self._checkpoint_connector._ckpt_path
+
+    @ckpt_path.setter
+    def ckpt_path(self, ckpt_path: Optional[_PATH]) -> None:
+        """Allows you to manage which checkpoint is loaded statefully.
+
+        Examples::
+
+            trainer = Trainer()
+            trainer.ckpt_path = "my/checkpoint/file.ckpt"
+            trainer.fit(model)
+            ...
+
+            # you will be in charge of resetting this
+            trainer.ckpt_path = None
+            trainer.test(model)
+        """
+        self._checkpoint_connector._ckpt_path = ckpt_path
+        self._checkpoint_connector._user_managed = bool(ckpt_path)
 
     def save_checkpoint(
         self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
