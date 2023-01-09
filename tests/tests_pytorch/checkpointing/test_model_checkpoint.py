@@ -875,7 +875,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         "default_root_dir": tmpdir,
         "logger": CSVLogger(tmpdir),
     }
-    trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
+    trainer = Trainer(**trainer_kwargs, default_root_dir=tmpdir, callbacks=[checkpoint_callback])
     trainer.fit(model)
     assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
 

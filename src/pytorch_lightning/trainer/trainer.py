@@ -984,14 +984,15 @@ class Trainer:
 
         return result
 
-    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+    def _restore_modules_and_loggers_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
         self._checkpoint_connector.resume_start(checkpoint_path)
         self._checkpoint_connector._restore_quantization_callbacks()
         self._checkpoint_connector.restore_model()
         self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
-            # restore callback states
+            # restore logger and callback states
+            self._checkpoint_connector.restore_loggers()
             self._checkpoint_connector.restore_callbacks()
 
     def _run(
@@ -1043,8 +1044,10 @@ class Trainer:
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            log.detail(
+                f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}"
+            )
+            self._restore_modules_and_loggers_and_callbacks(ckpt_path)
 
         log.detail(f"{self.__class__.__name__}: configuring sharded model")
         self._call_configure_sharded_model()  # allow user to setup in model sharded environment
@@ -1091,8 +1094,10 @@ class Trainer:
         self._log_hyperparams()
 
         if self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module and callbacks from checkpoint path: {ckpt_path}")
-            self._restore_modules_and_callbacks(ckpt_path)
+            log.detail(
+                f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}"
+            )
+            self._restore_modules_and_loggers_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
         log.detail(f"{self.__class__.__name__}: restoring training state")
@@ -1466,6 +1471,30 @@ class Trainer:
             if state:
                 state = deepcopy(state)
                 callback.load_state_dict(state)
+
+    def _call_loggers_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every logger's `state_dict`, keyed by
+        `Logger.state_key`."""
+        logger_state_dicts = {}
+        for logger in self.loggers:
+            state_dict = logger.state_dict()
+            if state_dict:
+                logger_state_dicts[logger.state_key] = state_dict
+
+        return logger_state_dicts
+
+    def _call_loggers_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        logger_states: Dict[Union[Type, str], Dict] = checkpoint.get("loggers")
+
+        if logger_states is None:
+            return
+
+        for logger in self.loggers:
+            state = logger_states.get(logger.state_key)
+            if state:
+                state = deepcopy(state)
+                logger.load_state_dict(state)
 
     def _call_strategy_hook(
         self,

@@ -201,6 +201,14 @@ class TensorBoardLogger(Logger):
         self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
         return self._experiment
 
+    @property
+    def state_key(self) -> str:
+        return self._generate_state_key(
+            name=str(self._name),
+            version=str(self._version),
+            sub_dir=str(self._sub_dir),
+        )
+
     @rank_zero_only
     def log_hyperparams(
         self, params: Union[Dict[str, Any], Namespace], metrics: Optional[Dict[str, Any]] = None
@@ -301,6 +309,13 @@ class TensorBoardLogger(Logger):
         # save the metatags file if it doesn't exist and the log directory exists
         if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
+
+    def state_dict(self) -> Dict[str, Any]:
+        return {"version": self._version}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if "version" in state_dict:
+            self._version = state_dict["version"]
 
     @rank_zero_only
     def finalize(self, status: str) -> None:

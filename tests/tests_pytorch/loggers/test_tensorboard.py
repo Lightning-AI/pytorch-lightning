@@ -14,6 +14,7 @@
 import logging
 import os
 from argparse import Namespace
+from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
@@ -342,3 +343,44 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
         assert logger.version == 0
 
     assert "Missing logger folder:" in caplog.text
+
+
+def test_tensorboard_state_dict(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir, version="version_0")
+    state = logger.state_dict()
+    assert state["version"] == "version_0"
+
+
+def test_tensorboard_dump_state(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    model = BoringModel()
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model)
+
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    assert Path(ckpt_path).exists()
+
+    ckpt = torch.load(ckpt_path)
+    assert "loggers" in ckpt
+    assert "TensorBoardLogger" in ckpt["loggers"]
+    assert "version" in ckpt["loggers"]["TensorBoardLogger"]
+    assert ckpt["loggers"]["TensorBoardLogger"]["version"] == logger.version
+
+
+def test_tensorboard_resume_state(tmpdir):
+    version = "version_0"
+
+    model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, version=version)
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model)
+
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    assert Path(ckpt_path).exists()
+
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    trainer = Trainer(max_steps=2, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model, ckpt_path=ckpt_path)
+
+    assert logger.version == version
+    assert logger.state_dict() == {"version": version}

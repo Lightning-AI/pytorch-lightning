@@ -510,6 +510,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         )
     trainer.fit(model)
     saved_ckpt = {
+        "loggers": ANY,
         "callbacks": ANY,
         "epoch": 0,
         "global_step": train_batches,
@@ -615,6 +616,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     model = HookedModel(called)
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
+        "loggers": ANY,
         "callbacks": ANY,
         "epoch": 0,
         "global_step": 2,
@@ -694,6 +696,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
 
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
+        "loggers": ANY,
         "callbacks": ANY,
         "epoch": 0,
         "global_step": 1,
