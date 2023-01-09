@@ -859,8 +859,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
 
     model = ExtendedBoringModel()
@@ -898,8 +897,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
             return {"val_loss": loss}
 

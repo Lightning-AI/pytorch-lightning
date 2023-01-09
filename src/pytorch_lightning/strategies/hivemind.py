@@ -8,7 +8,6 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.types import LRScheduler, ReduceLROnPlateau
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 from pytorch_lightning.utilities.data import extract_batch_size
@@ -193,7 +192,7 @@ class HivemindStrategy(Strategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
         super().setup(trainer)
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+        if self.precision_plugin.precision == "16":
             self.precision_plugin.scaler = hivemind.GradScaler()
 
     def _initialize_hivemind(self) -> None:
