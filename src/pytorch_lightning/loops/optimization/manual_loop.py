@@ -42,7 +42,7 @@ class ManualResult(OutputResult):
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
-            extra = training_step_output
+            extra = training_step_output.copy()
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
