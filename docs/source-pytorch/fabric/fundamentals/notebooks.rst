@@ -1,5 +1,7 @@
 :orphan:
 
+.. _Fabric in Notebooks:
+
 ###################
 Fabric in Notebooks
 ###################

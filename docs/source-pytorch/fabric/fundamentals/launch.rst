@@ -132,3 +132,14 @@ In the command line, you run this like any other Python script:
 .. code-block:: bash
 
     python train.py
+
+
+----------
+
+
+************************
+Launch inside a Notebook
+************************
+
+It is also possible to use Fabric in a Jupyter notebook (including Google Colab, Kaggle, etc.) and launch multiple processes there.
+You can learn more about it :ref:`here <Fabric in Notebooks>`.
