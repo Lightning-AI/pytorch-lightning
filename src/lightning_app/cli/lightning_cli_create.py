@@ -50,11 +50,12 @@ def create() -> None:
     help="Edit the cluster specs before submitting them to the API server.",
 )
 @click.option(
-    "--async",
-    "do_async",
+    "--sync",
+    "do_sync",
     type=bool,
     required=False,
-    default=True,
+    default=False,
+    is_flag=True,
     help="This flag makes the CLI wait until cluster creation completes.",
 )
 def create_cluster(
@@ -65,7 +66,7 @@ def create_cluster(
     provider: str,
     edit_before_creation: bool,
     enable_performance: bool,
-    do_async: bool,
+    do_sync: bool,
     **kwargs: Any,
 ) -> None:
     """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
@@ -80,7 +81,7 @@ def create_cluster(
         external_id=external_id,
         edit_before_creation=edit_before_creation,
         cost_savings=not enable_performance,
-        do_async=do_async,
+        do_async=not do_sync,
     )
 
 
