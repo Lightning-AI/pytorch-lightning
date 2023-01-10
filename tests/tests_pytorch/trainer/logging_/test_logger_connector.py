@@ -11,16 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
+#import operator
 from functools import partial
 from unittest import mock
-from unittest.mock import Mock
+#from unittest.mock import Mock
 
 import pytest
 import torch
-from lightning_utilities.core.imports import compare_version
+#from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection, Precision
+from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError#, MetricCollection, Precision
 from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from pytorch_lightning import LightningModule
@@ -31,7 +31,7 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
+#from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 

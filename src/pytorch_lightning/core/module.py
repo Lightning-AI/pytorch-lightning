@@ -33,7 +33,7 @@ from lightning_utilities.core.apply_func import apply_to_collection
 from torch import ScriptModule, Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
-from torchmetrics import Metric, MetricCollection
+from torchmetrics import Metric#, MetricCollection
 from typing_extensions import Literal
 
 import lightning_fabric as lf
@@ -43,7 +43,7 @@ from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11#, _TORCH_GREATER_EQUAL_1_13
 from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
