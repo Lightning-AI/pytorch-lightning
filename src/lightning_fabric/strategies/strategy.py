@@ -63,6 +63,11 @@ class Strategy(ABC):
         """Whether the current process is the rank zero process not only on the local node, but for all nodes."""
 
     @property
+    @abstractmethod
+    def is_distributed(self) -> bool:
+        """Whether the strategy runs in a distributed environment."""
+
+    @property
     def launcher(self) -> Optional[_Launcher]:
         return self._launcher
 
