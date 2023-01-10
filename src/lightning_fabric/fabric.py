@@ -614,7 +614,7 @@ class Fabric:
                 log call. You can specify your own value here.
         """
 
-        def to_item(value: Tensor) -> int | float | bool:
+        def to_item(value: Tensor) -> Union[int, float, bool]:
             if value.numel() != 1:
                 raise ValueError("Logging tensors with more than one element is not supported.")
             return value.item()
