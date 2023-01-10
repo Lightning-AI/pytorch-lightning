@@ -5,7 +5,7 @@ from subprocess import Popen
 
 import psutil
 import pytest
-from tests_examples_app.public import _PATH_EXAMPLES
+from integrations_app_examples.public import _PATH_EXAMPLES
 
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.utilities.component import _set_context
