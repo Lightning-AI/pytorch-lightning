@@ -43,9 +43,11 @@ With only a few changes to your code, Fabric allows you to:
 
       for epoch in range(num_epochs):
           for batch in dataloader:
-    -         batch.to(device)
+              input, target = batch
+    -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              loss = model(batch)
+              output = model(input)
+              loss = loss_fn(output, target)
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
