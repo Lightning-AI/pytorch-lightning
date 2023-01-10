@@ -23,6 +23,8 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
 
+from pytorch_lightning.lite import LightningLite
+
 
 def test_v2_0_0_deprecated_num_processes():
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
@@ -330,3 +332,8 @@ def test_v2_0_0_unsupported_on_init_start_end(callback_class, tmpdir):
 def test_lightningCLI_parser_init_params_deprecation_warning(name, value):
     with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
         LightningCLI(BoringModel, run=False, **{name: value})
+
+
+def test_rename_lightning_lite():
+    with pytest.deprecated_call(match="will be renamed to `lightning.fabric.Fabric` in v2.0.0"):
+        LightningLite()
