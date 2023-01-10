@@ -14,7 +14,7 @@
 from typing import List, Optional, Union
 
 import torch.nn as nn
-from lightning_utilities.core.imports import module_available
+from lightning_utilities.core.imports import package_available
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -27,12 +27,12 @@ from pytorch_lightning.overrides.base import (
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and package_available("fairscale")
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 else:
-    OSS = ShardedDataParallel = object
+    OSS = object
 
 
 class LightningShardedDataParallel(_LightningModuleWrapperBase):
