@@ -121,7 +121,7 @@ def convert_tensors_to_scalars(data: Any) -> Any:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 
-    def to_item(value: Tensor) -> Union[int | float | bool]:
+    def to_item(value: Tensor) -> Union[int, float, bool]:
         if value.numel() != 1:
             raise ValueError(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
