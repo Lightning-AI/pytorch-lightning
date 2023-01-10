@@ -4,7 +4,7 @@ from time import sleep
 
 import pytest
 import requests
-from tests_examples_app.public import _PATH_EXAMPLES
+from integrations_app_examples.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
 from lightning_app.utilities.cloud import _get_project

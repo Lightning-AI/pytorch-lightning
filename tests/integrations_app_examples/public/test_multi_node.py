@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from lightning_utilities.core.imports import package_available
-from tests_examples_app.public import _PATH_EXAMPLES
+from integrations_app_examples.public import _PATH_EXAMPLES
 
 from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import application_testing, LightningTestApp
