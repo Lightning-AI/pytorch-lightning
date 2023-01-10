@@ -151,7 +151,8 @@ class QuantizationAwareTraining(Callback):
             not be controlled by the callback.
 
     .. _PyTorch Quantization: https://pytorch.org/docs/stable/quantization.html#quantization-aware-training
-    .. _torch.quantization.QConfig: https://pytorch.org/docs/stable/torch.quantization.html#torch.quantization.QConfig
+    .. _torch.quantization.QConfig:
+        https://pytorch.org/docs/stable/generated/torch.quantization.qconfig.QConfig.html#qconfig
     """
 
     OBSERVER_TYPES = ("histogram", "average")
