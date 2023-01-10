@@ -115,7 +115,9 @@ Here is how you run DDP with 8 GPUs and `torch.bfloat16 <https://pytorch.org/doc
 
     lightning run model ./path/to/train.py --strategy=ddp --devices=8 --accelerator=cuda --precision="bf16"
 
-Or `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with mixed precision:
+
+Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ with mixed precision:
+
 
 .. code-block:: bash
 
@@ -385,6 +387,30 @@ Then, in your training loop, you can call a hook by its name. Any callback objec
     fabric.call("on_train_epoch_end", results={...})
 
 
+loggers
+=======
+
+Attach one or several loggers/experiment trackers to Fabric for convenient logging of metrics.
+
+.. code-block:: python
+
+    # Default used by Fabric, no loggers are active
+    fabric = Fabric(loggers=[])
+
+    # Log to a single logger
+    fabric = Fabric(loggers=TensorBoardLogger(...))
+
+    # Or multiple instances
+    fabric = Fabric(loggers=[logger1, logger2, ...])
+
+Anywhere in your training loop, you can log metrics to all loggers at once:
+
+.. code-block:: python
+
+    fabric.log("loss", loss)
+    fabric.log_dict({"loss": loss, "accuracy": acc})
+
+
 ----------
 
 
@@ -613,3 +639,29 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
 
     # Only the callbacks that have this method defined will be executed
     fabric.call("undefined")
+
+
+log and log_dict
+================
+
+These methods allows you to send scalar metrics to a logger registered in Fabric.
+
+.. code-block:: python
+
+    # Set the logger in Fabric
+    fabric = Fabric(loggers=TensorBoardLogger(...))
+
+    # Anywhere in your training loop or model:
+    fabric.log("loss", loss)
+
+    # Or send multiple metrics at once:
+    fabric.log_dict({"loss": loss, "accuracy": acc})
+
+If no loggers are given to Fabric (default), ``log`` and ``log_dict`` won't do anything.
+Here is what's happening under the hood (pseudo code) when you call ``.log()`` or ``log_dict``:
+
+.. code-block:: python
+
+    # When you call .log() or .log_dict(), we do this:
+    for logger in fabric.loggers:
+        logger.log_metrics(metrics=metrics, step=step)

@@ -1,7 +1,7 @@
 import os
 
 from click.testing import CliRunner
-from tests_examples_app.local import _PATH_APPS
+from integrations_app_examples.local import _PATH_APPS
 
 from lightning_app.cli.lightning_cli import run_app
 
