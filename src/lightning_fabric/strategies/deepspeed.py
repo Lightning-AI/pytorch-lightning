@@ -301,10 +301,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def model(self) -> "deepspeed.DeepSpeedEngine":
         return self._deepspeed_engine
 
-    @property
-    def is_distributed(self) -> bool:
-        return True
-
     def setup_module_and_optimizers(
         self, module: Module, optimizers: List[Optimizer]
     ) -> Tuple["deepspeed.DeepSpeedEngine", List[Optimizer]]:
