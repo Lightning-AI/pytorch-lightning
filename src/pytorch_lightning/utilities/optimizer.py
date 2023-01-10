@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.optimizer.optimizers_to_device` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_optimizers_to_device(*args, **kwargs)
 
@@ -30,6 +30,6 @@ def optimizers_to_device(*args: Any, **kwargs: Any) -> None:
 def optimizer_to_device(*args: Any, **kwargs: Any) -> None:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.optimizer.optimizer_to_device` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_optimizer_to_device(*args, **kwargs)

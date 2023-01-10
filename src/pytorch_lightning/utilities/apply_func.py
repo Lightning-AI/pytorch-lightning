@@ -30,7 +30,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.apply_to_collection` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_utilities.core.apply_func.apply_to_collection` instead."
+        " removed in v2.0.0. Please use `lightning_utilities.core.apply_func.apply_to_collection` instead."
     )
     try:
         return new_apply_to_collection(*args, **kwargs)
@@ -42,7 +42,7 @@ def apply_to_collection(*args: Any, **kwargs: Any) -> Any:
 def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.apply_to_collections` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_utilities.core.apply_func.apply_to_collections` instead."
+        " removed in v2.0.0. Please use `lightning_utilities.core.apply_func.apply_to_collections` instead."
     )
     try:
         return new_apply_to_collections(*args, **kwargs)
@@ -54,7 +54,7 @@ def apply_to_collections(*args: Any, **kwargs: Any) -> Any:
 def convert_to_tensors(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.convert_to_tensors` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_fabric.utilities.apply_func.convert_to_tensors` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.apply_func.convert_to_tensors` instead."
     )
     return new_convert_to_tensors(*args, **kwargs)
 
@@ -62,7 +62,7 @@ def convert_to_tensors(*args: Any, **kwargs: Any) -> Any:
 def from_numpy(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.from_numpy` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `torch.from_numpy().to()` instead."
+        " removed in v2.0.0. Please use `torch.from_numpy().to()` instead."
     )
     return _from_numpy(*args, **kwargs)
 
@@ -70,7 +70,7 @@ def from_numpy(*args: Any, **kwargs: Any) -> Any:
 def move_data_to_device(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.move_data_to_device` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_fabric.utilities.apply_func.move_data_to_device` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.apply_func.move_data_to_device` instead."
     )
     return new_move_data_to_device(*args, **kwargs)
 
@@ -78,7 +78,7 @@ def move_data_to_device(*args: Any, **kwargs: Any) -> Any:
 def to_dtype_tensor(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.apply_func.to_dtype_tensor` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `torch.tensor` instead."
+        " removed in v2.0.0. Please use `torch.tensor` instead."
     )
     return torch.tensor(*args, **kwargs)
 
@@ -87,6 +87,6 @@ class TransferableDataType(NewTransferableDataType):
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.apply_func.TransferableDataType` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. This function is internal but you can copy over its implementation."
+            " removed in v2.0.0. This function is internal but you can copy over its implementation."
         )
         super().__init__()
