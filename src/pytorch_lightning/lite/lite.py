@@ -59,6 +59,11 @@ _PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
 class LightningLite(Fabric, ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
+    .. deprecated:: v1.9.0
+        The `pytorch_lightning.lite.LightningLite` class was deprecated in v1.9.0 and will be renamed to
+        `lightning.fabric.Fabric` in v2.0.0. It is no longer part of the pure `pytorch_lightning` package, and now
+        lives in the main `lightning` package.
+
     - Automatic placement of models and data onto the device.
     - Automatic support for mixed and double precision (smaller memory footprint).
     - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
@@ -101,6 +106,12 @@ class LightningLite(Fabric, ABC):
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
+
+        rank_zero_deprecation(
+            "The `pytorch_lightning.lite.LightningLite` class was deprecated in v1.9.0 and will be renamed to"
+            " `lightning.fabric.Fabric` in v2.0.0. It is no longer part of the pure `pytorch_lightning` package, and"
+            " now lives in the main `lightning` package."
+        )
 
         if gpus is not None or tpu_cores is not None:
             devices, accelerator = _convert_deprecated_device_flags(
