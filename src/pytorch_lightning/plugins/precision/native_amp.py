@@ -85,8 +85,10 @@ class MixedPrecisionPlugin(PrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
+            previous_scale = self.scaler.get_scale()
             step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
+            optimizer._skip_next_scheduler_step = self.scaler.get_scale() < previous_scale
             return step_output
         return closure_result
 

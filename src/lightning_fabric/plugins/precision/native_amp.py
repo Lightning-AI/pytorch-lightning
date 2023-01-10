@@ -76,8 +76,8 @@ class MixedPrecision(Precision):
         previous_scale = self.scaler.get_scale()
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
         step_output = self.scaler.step(optimizer, **kwargs)
-        model._skip_next_scheduler_step = self.scaler.get_scale() < previous_scale
         self.scaler.update()
+        optimizer._skip_next_scheduler_step = self.scaler.get_scale() < previous_scale
         return step_output
 
     def state_dict(self) -> Dict[str, Any]:
