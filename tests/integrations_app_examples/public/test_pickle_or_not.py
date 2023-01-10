@@ -2,7 +2,7 @@ import os
 
 import pytest
 from click.testing import CliRunner
-from tests_examples_app.public import _PATH_EXAMPLES
+from integrations_app_examples.public import _PATH_EXAMPLES
 
 from lightning_app.cli.lightning_cli import run_app
 
