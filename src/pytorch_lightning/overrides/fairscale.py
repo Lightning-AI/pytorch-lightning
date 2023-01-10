@@ -38,7 +38,7 @@ def unwrap_lightning_module_sharded(wrapped_model: nn.Module) -> "pl.LightningMo
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     rank_zero_deprecation(
-        "The function `unwrap_lightning_module_sharded` is deprecated in v1.8.0 and will be removed in v1.10.0."
+        "The function `unwrap_lightning_module_sharded` is deprecated in v1.8.0 and will be removed in v2.0.0."
         " Access the `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
     )
     model = wrapped_model

@@ -23,11 +23,11 @@ from typing import Any, Dict, Mapping, Optional, Union
 
 from lightning_utilities.core.imports import module_available
 from torch import Tensor
+from torch.nn import Module
 
-import pytorch_lightning as pl
+from lightning_fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
@@ -423,6 +423,6 @@ class CometLogger(Logger):
         state["_experiment"] = None
         return state
 
-    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
+    def log_graph(self, model: Module, input_array: Optional[Tensor] = None) -> None:
         if self._experiment is not None:
             self._experiment.set_model_graph(model)

@@ -20,7 +20,7 @@ runs:
     working-directory: ${{ inputs.pkg-folder }}
     run: |
       ls -l
-      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'lite': 'lightning_lite', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))" >> $GITHUB_ENV
+      python -c "print('PKG_IMPORT=' + {'app': 'lightning_app', 'fabric': 'lightning_fabric', 'pytorch': 'pytorch_lightning'}.get('${{matrix.pkg-name}}', 'lightning'))" >> $GITHUB_ENV
       python -c "import glob ; ls = glob.glob('*.tar.gz') ; print('PKG_SOURCE=' + ls[0])" >> $GITHUB_ENV
       python -c "import glob ; ls = glob.glob('*.whl') ; print('PKG_WHEEL=' + ls[0])" >> $GITHUB_ENV
     shell: bash
@@ -33,11 +33,10 @@ runs:
       python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
     shell: bash
 
-# FIXME !!!
-#  - name: Install package - archive
-#    working-directory: ${{ inputs.pkg-folder }}
-#    run: |
-#      pip install ${PKG_SOURCE} ${{ inputs.pip-flags }}
-#      pip list | grep lightning
-#      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
-#    shell: bash
+  - name: Install package - archive
+    working-directory: ${{ inputs.pkg-folder }}
+    run: |
+      pip install ${PKG_SOURCE} ${{ inputs.pip-flags }}
+      pip list | grep lightning
+      python -c "import ${{ env.PKG_IMPORT }}; print(${{ env.PKG_IMPORT }}.__version__)"
+    shell: bash

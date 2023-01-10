@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import torch
 
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -238,7 +238,7 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
 def test_fsdp_rewrap_limitation(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -256,8 +256,8 @@ def test_fsdp_rewrap_limitation(tmpdir):
         trainer.test(model)
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_invalid_parameters_in_optimizer(tmpdir):
+@RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
+def test_invalid_parameters_in_optimizer():
     trainer = Trainer(strategy="fsdp", accelerator="gpu", devices=1)
 
     class EmptyParametersModel(BoringModel):

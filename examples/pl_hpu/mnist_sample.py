@@ -66,7 +66,7 @@ if __name__ == "__main__":
             "plugins": lazy_instance(HPUPrecisionPlugin, precision=16),
         },
         run=False,
-        save_config_overwrite=True,
+        save_config_kwargs={"overwrite": True},
     )
 
     # Run the model ⚡

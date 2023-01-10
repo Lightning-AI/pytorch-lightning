@@ -9,7 +9,7 @@ requires = [
 known_first_party = [
     "pl_examples",
     "pytorch_lightning",
-    "lightning_lite",
+    "lightning_fabric",
     "tests_pytorch",
 ]
 profile = "black"
@@ -27,7 +27,7 @@ exclude = '(_notebooks/.*)'
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
-    "src/lightning_lite",
+    "src/lightning_fabric",
     "src/lightning_app",
 ]
 # This section is for folders with "-" as they are not valid python modules
@@ -79,8 +79,8 @@ module = [
     "lightning_app.components.serve.types.image",
     "lightning_app.components.serve.types.type",
     "lightning_app.components.serve.python_server",
+    "lightning_app.components.serve.auto_scaler",
     "lightning_app.components.training",
-    "lightning_app.components.auto_scaler",
     "lightning_app.core.api",
     "lightning_app.core.app",
     "lightning_app.core.flow",

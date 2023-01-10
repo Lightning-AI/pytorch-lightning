@@ -251,6 +251,32 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         },
     )
 
+    # Test wandb custom artifact name
+    wandb.init().log_artifact.reset_mock()
+    wandb.init().reset_mock()
+    wandb.Artifact.reset_mock()
+    logger = WandbLogger(save_dir=tmpdir, log_model=True, checkpoint_name="my-test-model")
+    logger.experiment.id = "1"
+    logger.experiment.name = "run_name"
+    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer.fit(model)
+    wandb.Artifact.assert_called_once_with(
+        name="my-test-model",
+        type="model",
+        metadata={
+            "score": None,
+            "original_filename": "epoch=1-step=6-v4.ckpt",
+            "ModelCheckpoint": {
+                "monitor": None,
+                "mode": "min",
+                "save_last": None,
+                "save_top_k": 1,
+                "save_weights_only": False,
+                "_every_n_train_steps": 0,
+            },
+        },
+    )
+
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")

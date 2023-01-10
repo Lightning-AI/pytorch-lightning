@@ -11,20 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 from typing import Any, Callable, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
-from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.nn import Module
 from torch.optim.optimizer import Optimizer
 from typing_extensions import OrderedDict
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_fabric.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -32,12 +32,12 @@ from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 _COLOSSALAI_AVAILABLE = RequirementCache("colossalai")
+_COLOSSALAI_GREATER_0_1_10 = RequirementCache("colossalai>0.1.10")
 if TYPE_CHECKING and _COLOSSALAI_AVAILABLE:
     with _patch_cuda_is_available():
         from colossalai.utils.model.colo_init_context import ColoInitContext
@@ -130,7 +130,7 @@ class ColossalAIStrategy(DDPStrategy):
         force_outputs_fp32: bool = False,
         gpu_margin_mem_ratio: float = 0.0,
         chunk_search_range: int = 64 * 1024**2,
-        chunk_search_n_grids: int = 1024,
+        chunk_search_n_grids: int = 4096,
         min_chunk_size: Optional[int] = None,
         initial_scale: float = 2**16,
         min_scale: float = 1,
@@ -146,7 +146,7 @@ class ColossalAIStrategy(DDPStrategy):
         precision_plugin: Optional[ColossalAIPrecisionPlugin] = None,
     ) -> None:
         if not _COLOSSALAI_AVAILABLE:
-            raise MisconfigurationException(
+            raise ModuleNotFoundError(
                 "To use the `ColossalAIStrategy`, please install `colossalai` first. "
                 "Download `colossalai` by consulting `https://colossalai.org/download`."
             )
@@ -237,7 +237,8 @@ class ColossalAIStrategy(DDPStrategy):
                 if getattr(module, "_colossalai_module", False) is True:
                     return
                 super()._post_init_method(module, *args, **kwargs)
-                module._colossalai_module = True  # type: ignore[assignment]
+                for sub_module in module.modules():
+                    sub_module._colossalai_module = True  # type: ignore[assignment]
 
         return ModelShardedContext()
 
@@ -264,23 +265,55 @@ class ColossalAIStrategy(DDPStrategy):
                 )
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         pl_module = self.model
-        process_group = ProcessGroup()
+
         if not hasattr(pl_module, "_colossalai_zero"):
-            if self.use_chunk:
-                chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
-                    self.model, **self.chunk_size_search_kwargs
+            if not _COLOSSALAI_GREATER_0_1_10:
+                if self.use_chunk:
+                    chunk_size = self.chunk_size or ChunkManager.search_chunk_size(
+                        self.model, **self.chunk_size_search_kwargs
+                    )
+                else:
+                    chunk_size = None
+                process_group = ProcessGroup()
+                chunk_manager = ChunkManager(
+                    chunk_size,
+                    process_group,
+                    self.enable_distributed_storage,
+                    GeminiManager.get_default_device(self.placement_policy),
                 )
+                gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
+                model = _LightningModuleWrapperBase(self.model)
+                self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
             else:
-                chunk_size = None
-            chunk_manager = ChunkManager(
-                chunk_size,
-                process_group,
-                self.enable_distributed_storage,
-                GeminiManager.get_default_device(self.placement_policy),
-            )
-            gemini_manager = GeminiManager(self.placement_policy, chunk_manager)
-            model = _LightningModuleWrapperBase(self.model)
-            self.model = ZeroDDP(model, gemini_manager, self.force_outputs_fp32)
+                with _patch_cuda_is_available():
+                    from colossalai.nn.parallel import GeminiDDP
+                    from colossalai.utils import get_current_device
+                if not self.use_chunk:
+                    raise ValueError("`ColossalAIStrategy` must use chunk in versions higher than 0.1.10")
+                chunk_search_range: int = self.chunk_size_search_kwargs.get(
+                    "search_range", 32 * 1024**2
+                )  # type: ignore[assignment]
+                search_range_mb: float = chunk_search_range / 1024**2
+                search_n_grids: int = self.chunk_size_search_kwargs.get("n_grids", 4096)  # type: ignore[assignment]
+                search_interval: int = math.ceil(chunk_search_range / search_n_grids)
+                min_chunk_size_mb: float = self.chunk_size_search_kwargs.get(
+                    "min_chunk_size", 32 * 1024**2
+                )  # type: ignore[assignment]
+                if min_chunk_size_mb is not None:
+                    min_chunk_size_mb /= 1024**2
+
+                model = _LightningModuleWrapperBase(self.model)
+                self.model = GeminiDDP(
+                    module=model,
+                    device=get_current_device(),
+                    placement_policy=self.placement_policy,
+                    pin_memory=True,
+                    force_outputs_fp32=self.force_outputs_fp32,
+                    search_range_mb=search_range_mb,
+                    hidden_dim=search_interval,
+                    min_chunk_size_mb=min_chunk_size_mb,
+                )
+
             assert self.model is not None
             pl_module._colossalai_zero = [self.model]  # type: ignore[assignment]
         else:
@@ -292,7 +325,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         precision = self.precision_plugin.precision
-        if not (precision == PrecisionType.HALF):
+        if precision != "16":
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
@@ -329,9 +362,19 @@ class ColossalAIStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
+        self.ignore_no_grad_parameters(self.root_device)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         self.model_to_device()
+
+    def ignore_no_grad_parameters(self, running_device: torch.device) -> None:
+        # for those parameters with no gradients
+        # we shold ignore them on DDP and move them to CUDA
+        assert self.model is not None
+        for param in self.model.parameters():
+            if not param.requires_grad:
+                setattr(param, "_ddp_to_ignore", True)
+                param.data = param.data.to(running_device)
 
     def model_to_device(self) -> None:
         assert self.lightning_module is not None
@@ -363,7 +406,7 @@ class ColossalAIStrategy(DDPStrategy):
         **kwargs: Any,
     ) -> Any:
         model = model or self.lightning_module
-        # TODO(lite): remove assertion once strategy's optimizer_step typing is fixed
+        # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(
             optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs

@@ -5,6 +5,7 @@ import os
 import sys
 from copy import deepcopy
 from multiprocessing import Process
+from pathlib import Path
 from time import sleep, time
 from unittest import mock
 
@@ -12,7 +13,7 @@ import aiohttp
 import pytest
 import requests
 from deepdiff import DeepDiff, Delta
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from httpx import AsyncClient
 from pydantic import BaseModel
 
@@ -31,6 +32,7 @@ from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage.drive import Drive
 from lightning_app.testing.helpers import _MockQueue
+from lightning_app.utilities.app_status import AppStatus
 from lightning_app.utilities.component import _set_frontend_context, _set_work_context
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.load_app import extract_metadata_from_app
@@ -195,7 +197,7 @@ def test_update_publish_state_and_maybe_refresh_ui():
     publish_state_queue = _MockQueue("publish_state_queue")
     api_response_queue = _MockQueue("api_response_queue")
 
-    publish_state_queue.put(app.state_with_changes)
+    publish_state_queue.put((app.state_with_changes, None))
 
     thread = UIRefresher(publish_state_queue, api_response_queue)
     thread.run_once()
@@ -226,7 +228,7 @@ async def test_start_server(x_lightning_type, monkeypatch):
     has_started_queue = _MockQueue("has_started_queue")
     api_response_queue = _MockQueue("api_response_queue")
     state = app.state_with_changes
-    publish_state_queue.put(state)
+    publish_state_queue.put((state, AppStatus(is_ui_ready=True, work_statuses={})))
     spec = extract_metadata_from_app(app)
     ui_refresher = start_server(
         publish_state_queue,
@@ -283,6 +285,9 @@ async def test_start_server(x_lightning_type, monkeypatch):
             {"name": "main_3", "content": "https://te"},
             {"name": "main_4", "content": "https://te"},
         ]
+
+        response = await client.get("/api/v1/status")
+        assert response.json() == {"is_ui_ready": True, "work_statuses": {}}
 
         response = await client.post("/api/v1/state", json={"state": new_state}, headers=headers)
         assert change_state_queue._queue[1].to_dict() == {
@@ -380,7 +385,7 @@ async def test_health_endpoint_success():
 @pytest.mark.anyio
 async def test_health_endpoint_failure(monkeypatch):
     monkeypatch.setenv("LIGHTNING_APP_STATE_URL", "http://someurl")  # adding this to make is_running_in_cloud pass
-    monkeypatch.setattr(api, "CLOUD_QUEUE_TYPE", "redis")
+    monkeypatch.setitem(os.environ, "LIGHTNING_CLOUD_QUEUE_TYPE", "redis")
     async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
         # will respond 503 if redis is not running
         response = await client.get("/healthz")
@@ -479,10 +484,13 @@ class FlowAPI(LightningFlow):
         if self.counter == 501:
             self._exit()
 
-    def request(self, config: InputRequestModel) -> OutputRequestModel:
+    def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1
         if config.index % 5 == 0:
             raise HTTPException(status_code=400, detail="HERE")
+        assert request.body()
+        assert request.json()
+        assert request.headers
         return OutputRequestModel(name=config.name, counter=self.counter)
 
     def configure_api(self):
@@ -554,3 +562,37 @@ def test_configure_api():
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
+    process.kill()
+
+
+@pytest.mark.anyio
+@mock.patch("lightning_app.core.api.UIRefresher", mock.MagicMock())
+async def test_get_annotations(tmpdir):
+    cwd = os.getcwd()
+    os.chdir(tmpdir)
+
+    Path("lightning-annotations.json").write_text('[{"test": 3}]')
+
+    try:
+        app = AppStageTestingApp(FlowA(), log_level="debug")
+        app._update_layout()
+        app.stage = AppStage.BLOCKING
+        change_state_queue = _MockQueue("change_state_queue")
+        has_started_queue = _MockQueue("has_started_queue")
+        api_response_queue = _MockQueue("api_response_queue")
+        spec = extract_metadata_from_app(app)
+        start_server(
+            None,
+            change_state_queue,
+            api_response_queue,
+            has_started_queue=has_started_queue,
+            uvicorn_run=False,
+            spec=spec,
+        )
+
+        async with AsyncClient(app=fastapi_service, base_url="http://test") as client:
+            response = await client.get("/api/v1/annotations")
+            assert response.json() == [{"test": 3}]
+    finally:
+        # Cleanup
+        os.chdir(cwd)

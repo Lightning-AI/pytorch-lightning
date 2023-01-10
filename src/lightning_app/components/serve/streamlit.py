@@ -20,6 +20,8 @@ class ServeStreamlit(LightningWork, abc.ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.ready = False
+
         self._process = None
 
     @property
@@ -58,6 +60,7 @@ class ServeStreamlit(LightningWork, abc.ABC):
             ],
             env=env,
         )
+        self.ready = True
         self._process.wait()
 
     def on_exit(self) -> None:

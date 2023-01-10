@@ -10,7 +10,7 @@ class LightningTrainerDistributed(L.LightningWork):
         trainer = L.Trainer(max_epochs=10, strategy="ddp")
         trainer.fit(model)
 
-# 8 GPU: (2 nodes of 4 x v100)
+# 8 GPUs: (2 nodes of 4 x v100)
 component = LightningTrainerMultiNode(
     LightningTrainerDistributed,
     num_nodes=4,

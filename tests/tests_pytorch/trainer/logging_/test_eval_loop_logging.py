@@ -23,6 +23,7 @@ from unittest.mock import call
 import numpy as np
 import pytest
 import torch
+from torch import Tensor
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
@@ -72,8 +73,8 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -115,8 +116,8 @@ def test__validation_step__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     assert set(trainer.callback_metrics) == {"a", "b", "b_epoch", "c", "d", "d_epoch", "g", "b_step"}
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
@@ -149,16 +150,15 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
     assert callback_metrics == (logged_metrics | pbar_metrics)
-    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
-    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, Tensor) for v in trainer.logged_metrics.values())
     assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test_eval_float_logging(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("a", 12.0)
             return {"x": loss}
 
@@ -183,8 +183,7 @@ def test_eval_logging_auto_reduce(tmpdir):
         manual_epoch_end_mean = None
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("val_loss", loss, on_epoch=True, on_step=True, prog_bar=True)
             return {"x": loss}
@@ -516,14 +515,12 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             self.save_hyperparameters()
 
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.val_losses.append(loss)
             self.log("valid_loss_0", loss, on_step=True, on_epoch=True)
             self.log("valid_loss_1", loss, on_step=False, on_epoch=True)
@@ -531,8 +528,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
             return {"val_loss": loss}  # not added to callback_metrics
 
         def test_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("test_loss", loss)
             return {"y": loss}
 

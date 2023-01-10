@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         default: |
-          ["lightning", "app", "lite", "pytorch"]
+          ["lightning", "app", "fabric", "pytorch"]
 
 defaults:
   run:
@@ -50,7 +50,8 @@ jobs:
         python-version: 3.9
 
     - run: python -c "print('NB_DIRS=' + str(2 if '${{ matrix.pkg-name }}' == 'pytorch' else 1))" >> $GITHUB_ENV
-    - uses: ./.github/actions/pkg-check
+    - name: Build & check package
+      uses: ./.github/actions/pkg-check
       with:
         pkg-name: ${{ matrix.pkg-name }}
         nb-dirs: ${{ env.NB_DIRS }}

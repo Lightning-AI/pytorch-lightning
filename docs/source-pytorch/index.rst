@@ -64,6 +64,8 @@ Conda users
 
 Or read the `advanced install guide <starter/installation.html>`_
 
+We are fully compatible with any stable PyTorch version v1.10 and above.
+
 .. raw:: html
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
@@ -172,6 +174,7 @@ Current Lightning Users
 
    common/lightning_module
    common/trainer
+   fabric/fabric
 
 .. toctree::
    :maxdepth: 2

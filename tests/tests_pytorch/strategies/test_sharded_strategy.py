@@ -6,11 +6,12 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from torch import Tensor
 
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from pytorch_lightning.plugins import MixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
@@ -42,7 +43,7 @@ class CheckModelRestore(ModelWithAdamOptimizer):
             self._is_equal(optimizer_state, state)
 
     def _is_equal(self, a, b):
-        if isinstance(a, torch.Tensor):
+        if isinstance(a, Tensor):
             return torch.allclose(a, b)
 
         if isinstance(a, Mapping):
@@ -58,6 +59,7 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         strategy="ddp_sharded",
         accelerator="gpu",
         devices=1,
@@ -90,7 +92,7 @@ def test_ddp_choice_sharded_amp(strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
     trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
-    assert isinstance(trainer.precision_plugin, NativeMixedPrecisionPlugin)
+    assert isinstance(trainer.precision_plugin, MixedPrecisionPlugin)
 
 
 @RunIf(fairscale=True)
@@ -201,25 +203,10 @@ def test_ddp_sharded_strategy_test_multigpu(trainer_kwargs):
     trainer.test(model)
 
 
-class ManualBoringModel(BoringModel):
-    def __init__(self):
-        super().__init__()
-        self.automatic_optimization = False
-
-    def training_step(self, batch, batch_idx):
-        opt = self.optimizers()
-        opt.zero_grad()
-        output = self(batch)
-        loss = self.loss(batch, output)
-        self.manual_backward(loss)
-        opt.step()
-        return {"loss": loss}
-
-
 @RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
 @pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
 def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
-    model = ManualBoringModel()
+    model = ManualOptimBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy=strategy,

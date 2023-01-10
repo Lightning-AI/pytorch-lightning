@@ -13,7 +13,6 @@ else:
 
 
 class ServeGradio(LightningWork, abc.ABC):
-
     """The ServeGradio Class enables to quickly create a ``gradio`` based UI for your LightningApp.
 
     In the example below, the ``ServeGradio`` is subclassed to deploy ``AnimeGANv2``.
@@ -42,6 +41,8 @@ class ServeGradio(LightningWork, abc.ABC):
         assert self.outputs
         self._model = None
 
+        self.ready = False
+
     @property
     def model(self):
         return self._model
@@ -62,6 +63,7 @@ class ServeGradio(LightningWork, abc.ABC):
             self._model = self.build_model()
         fn = partial(self.predict, *args, **kwargs)
         fn.__name__ = self.predict.__name__
+        self.ready = True
         gradio.Interface(
             fn=fn,
             inputs=self.inputs,

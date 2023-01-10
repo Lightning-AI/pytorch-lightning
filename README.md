@@ -90,15 +90,15 @@ Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs 
 
 <center>
 
-|   System / PyTorch ver.    |                                                                                                              1.10                                                                                                               |                                                                                                       1.12                                                                                                       |
-| :------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|  Linux py3.7 \[GPUs\*\*\]  |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
-| Linux py3.7 \[TPUs\*\*\*\] |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
-|    Linux py3.8 \[IPUs\]    |                                                                                                                -                                                                                                                |                                                                                                        -                                                                                                         |
-|    Linux py3.8 \[HPUs\]    | [![Build Status](<https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20(HPUs)?branchName=master>)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=master) |                                                                                                        -                                                                                                         |
-|      Linux py3.{7,9}       |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
-|       OSX py3.{7,9}        |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
-|     Windows py3.{7,9}      |                                                                                                                -                                                                                                                | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch-tests.yml) |
+|   System / PyTorch ver.    |                                                                                                               1.10                                                                                                                |                                                                                                       1.12                                                                                                       |
+| :------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|  Linux py3.7 \[GPUs\*\*\]  |                                                                                                                 -                                                                                                                 |                                                                                                        -                                                                                                         |
+| Linux py3.7 \[TPUs\*\*\*\] |                                                                                                                 -                                                                                                                 |                                                                                                        -                                                                                                         |
+|    Linux py3.8 \[IPUs\]    |                                                                                                                 -                                                                                                                 |                                                                                                        -                                                                                                         |
+|    Linux py3.8 \[HPUs\]    | [![Build Status](https://dev.azure.com/Lightning-AI/lightning/_apis/build/status/pytorch-lightning%20%28HPUs%29?branchName=master)](https://dev.azure.com/Lightning-AI/lightning/_build/latest?definitionId=26&branchName=master) |                                                                                                        -                                                                                                         |
+|      Linux py3.{7,9}       |                                                                                                                 -                                                                                                                 | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |
+|       OSX py3.{7,9}        |                                                                                                                 -                                                                                                                 | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |
+|     Windows py3.{7,9}      |                                                                                                                 -                                                                                                                 | [![Test](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml/badge.svg?branch=master&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-tests-pytorch.yml) |
 
 - _\*\* tests run on two NVIDIA P100_
 - _\*\*\* tests run on Google GKE TPUv2/3. TPU py3.7 means we support Colab and Kaggle env._
@@ -367,36 +367,32 @@ ______________________________________________________________________
 
 ## Examples
 
-###### Hello world
+###### Self-supervised Learning
 
-- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
+- [CPC transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#cpc-transforms)
+- [Moco v2 tranforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#moco-v2-transforms)
+- [SimCLR transforms](https://lightning-bolts.readthedocs.io/en/stable/transforms/self_supervised.html#simclr-transforms)
 
-###### Contrastive Learning
+###### Convolutional Architectures
 
-- [BYOL](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#byol)
-- [CPC v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#cpc-v2)
-- [Moco v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#moco-v2-api)
-- [SIMCLR](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#simclr)
-
-###### NLP
-
-- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2)
-- [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
+- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#gpt-2)
+- [UNet](https://lightning-bolts.readthedocs.io/en/stable/models/convolutional.html#unet)
 
 ###### Reinforcement Learning
 
-- [DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dqn-models)
-- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dueling-dqn)
-- [Reinforce](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#reinforce)
+- [DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#dqn-loss)
+- [Double DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#double-dqn-loss)
+- [Per DQN Loss](https://lightning-bolts.readthedocs.io/en/stable/losses.html#per-dqn-loss)
 
-###### Vision
+###### GANs
 
-- [GAN](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/basic-gan.html)
+- [Basic GAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#basic-gan)
+- [DCGAN](https://lightning-bolts.readthedocs.io/en/stable/models/gans.html#dcgan)
 
 ###### Classic ML
 
-- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#logistic-regression)
-- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#linear-regression)
+- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#logistic-regression)
+- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/models/classic_ml.html#linear-regression)
 
 ______________________________________________________________________
 

@@ -1,6 +1,6 @@
 # NOTE: the upper bound for the package version is only set for CI stability, and it is dropped while installing this package
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
-torchvision>=0.11.1, <=0.14.0
+torchvision>=0.11.1, <=0.14.1
 gym[classic_control]>=0.17.0, <0.26.3
-ipython[all] <8.6.1
+ipython[all] <8.7.1

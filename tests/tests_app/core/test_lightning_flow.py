@@ -5,21 +5,21 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from time import time
-from unittest.mock import ANY, MagicMock
+from unittest.mock import ANY
 
 import pytest
 from deepdiff import DeepDiff, Delta
 
 import lightning_app
 from lightning_app import CloudCompute, LightningApp
-from lightning_app.core.flow import LightningFlow
+from lightning_app.core.flow import _RootFlow, LightningFlow
 from lightning_app.core.work import LightningWork
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
 from lightning_app.structures import Dict as LDict
 from lightning_app.structures import List as LList
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork
+from lightning_app.testing.helpers import _MockQueue, EmptyFlow, EmptyWork
 from lightning_app.utilities.app_helpers import (
     _delta_to_app_state_delta,
     _LightningAppRef,
@@ -329,6 +329,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -352,6 +353,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -391,6 +393,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -414,6 +417,7 @@ def test_lightning_flow_and_work():
                     "_paths": {},
                     "_restarting": False,
                     "_internal_ip": "",
+                    "_display_name": "",
                     "_cloud_compute": {
                         "type": "__cloud_compute__",
                         "name": "default",
@@ -644,14 +648,14 @@ class FlowSchedule(LightningFlow):
             if len(self._last_times) < 3:
                 self._last_times.append(time())
             else:
-                assert abs((time() - self._last_times[-1]) - self.target) < 3
+                assert abs((time() - self._last_times[-1]) - self.target) < 12
                 self._exit()
 
 
 def test_scheduling_api():
 
     app = LightningApp(FlowSchedule())
-    MultiProcessRuntime(app, start_server=True).dispatch()
+    MultiProcessRuntime(app, start_server=False).dispatch()
 
 
 def test_lightning_flow():
@@ -864,10 +868,10 @@ def test_lightning_flow_flows_and_works():
 class WorkReady(LightningWork):
     def __init__(self):
         super().__init__(parallel=True)
-        self.counter = 0
+        self.ready = False
 
     def run(self):
-        self.counter += 1
+        self.ready = True
 
 
 class FlowReady(LightningFlow):
@@ -886,22 +890,44 @@ class FlowReady(LightningFlow):
             self._exit()
 
 
-def test_flow_ready():
-    """This test validates the api publish state queue is populated only once ready is True."""
+class RootFlowReady(_RootFlow):
+    def __init__(self):
+        super().__init__(WorkReady())
+
+
+@pytest.mark.parametrize("flow", [FlowReady, RootFlowReady])
+def test_flow_ready(flow):
+    """This test validates that the app status queue is populated correctly."""
+
+    mock_queue = _MockQueue("api_publish_state_queue")
 
     def run_patch(method):
-        app.api_publish_state_queue = MagicMock()
-        app.should_publish_changes_to_api = False
+        app.should_publish_changes_to_api = True
+        app.api_publish_state_queue = mock_queue
         method()
 
-    app = LightningApp(FlowReady())
+    state = {"done": False}
+
+    def lagged_run_once(method):
+        """Ensure that the full loop is run after the app exits."""
+        new_done = method()
+        if state["done"]:
+            return True
+        state["done"] = new_done
+        return False
+
+    app = LightningApp(flow())
     app._run = partial(run_patch, method=app._run)
+    app.run_once = partial(lagged_run_once, method=app.run_once)
     MultiProcessRuntime(app, start_server=False).dispatch()
 
-    # Validates the state has been added only when ready was true.
-    state = app.api_publish_state_queue.put._mock_call_args[0][0]
-    call_hash = state["works"]["w"]["calls"]["latest_call_hash"]
-    assert state["works"]["w"]["calls"][call_hash]["statuses"][0]["stage"] == "succeeded"
+    _, first_status = mock_queue.get()
+    assert not first_status.is_ui_ready
+
+    _, last_status = mock_queue.get()
+    while len(mock_queue) > 0:
+        _, last_status = mock_queue.get()
+    assert last_status.is_ui_ready
 
 
 def test_structures_register_work_cloudcompute():

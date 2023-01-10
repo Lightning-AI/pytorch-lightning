@@ -15,11 +15,11 @@ from abc import ABC
 from typing import Any, Dict
 
 import torch
-from lightning_utilities.core.rank_zero import rank_zero_deprecation
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.accelerator import Accelerator as _Accelerator
-from lightning_lite.utilities.types import _DEVICE
+from lightning_fabric.accelerators.accelerator import Accelerator as _Accelerator
+from lightning_fabric.utilities.types import _DEVICE
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class Accelerator(_Accelerator, ABC):
@@ -31,11 +31,11 @@ class Accelerator(_Accelerator, ABC):
     def setup_environment(self, root_device: torch.device) -> None:
         """
         .. deprecated:: v1.8.0
-            This hook was deprecated in v1.8.0 and will be removed in v1.10.0. Please use ``setup_device()`` instead.
+            This hook was deprecated in v1.8.0 and will be removed in v2.0.0. Please use ``setup_device()`` instead.
         """
         rank_zero_deprecation(
             "`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0 and will be removed in"
-            " v1.10.0. Please use ``setup_device()`` instead."
+            " v2.0.0. Please use `setup_device()` instead."
         )
         self.setup_device(root_device)
 
