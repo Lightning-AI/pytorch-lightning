@@ -109,19 +109,23 @@ class UIRefresher(Thread):
     def run_once(self):
         try:
             global app_status
-            state, app_status = self.api_publish_state_queue.get(timeout=0)
+            published_states = self.api_publish_state_queue.get_batch(timeout=0)
+
+            # Just take the latest state
+            state, app_status = published_states[-1]
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
         except queue.Empty:
             pass
 
         try:
-            responses = self.api_response_queue.get(timeout=0)
+            responses_batch = self.api_response_queue.get_batch(timeout=0)
             with lock:
                 # TODO: Abstract the responses store to support horizontal scaling.
                 global responses_store
-                for response in responses:
-                    responses_store[response["id"]] = response["response"]
+                for responses in responses_batch:
+                    for response in responses:
+                        responses_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 

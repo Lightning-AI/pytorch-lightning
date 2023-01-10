@@ -259,8 +259,8 @@ class WorkStateObserver(Thread):
     @staticmethod
     def get_state_changed_from_queue(q: "BaseQueue", timeout: Optional[int] = None):
         try:
-            delta = q.get(timeout=timeout or q.default_timeout)
-            return delta
+            deltas = q.get_batch(timeout=timeout or q.default_timeout)
+            return deltas
         except queue.Empty:
             return None
 
@@ -280,10 +280,10 @@ class WorkStateObserver(Thread):
             self._delta_queue.put(ComponentDelta(id=self._work.name, delta=delta))
 
         if self._flow_to_work_delta_queue:
-            while True:
-                deep_diff = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+            deep_diffs = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
+            for deep_diff in deep_diffs:
                 if not isinstance(deep_diff, dict):
-                    break
+                    continue
                 try:
                     with _state_observer_lock:
                         self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))

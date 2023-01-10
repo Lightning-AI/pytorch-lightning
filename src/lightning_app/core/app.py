@@ -298,14 +298,16 @@ class LightningApp:
     @staticmethod
     def get_state_changed_from_queue(q: BaseQueue, timeout: Optional[int] = None):
         try:
-            delta = q.get(timeout=timeout or q.default_timeout)
+            delta = q.get_batch(timeout=timeout or q.default_timeout)
             return delta
         except queue.Empty:
             return None
 
     def check_error_queue(self) -> None:
-        exception: Exception = self.get_state_changed_from_queue(self.error_queue)
-        if isinstance(exception, Exception):
+        exceptions = self.get_state_changed_from_queue(self.error_queue)
+
+        # If there is more than one exception, just take the first
+        if exceptions is not None and isinstance(exceptions.get(0, None), Exception):
             self.exception = exception
             self.stage = AppStage.FAILED
 
@@ -334,13 +336,11 @@ class LightningApp:
         api_or_command_request_deltas = []
         t0 = time()
 
-        while (time() - t0) < self.state_accumulate_wait:
-
-            # TODO: Fetch all available deltas at once to reduce queue calls.
-            delta: Optional[
-                Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
-            ] = self.get_state_changed_from_queue(self.delta_queue)
-            if delta:
+        deltas: Optional[
+            Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
+        ] = self.get_state_changed_from_queue(self.delta_queue)
+        if deltas is not None:
+            for delta in deltas:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
                 elif isinstance(delta, ComponentDelta):
@@ -356,8 +356,6 @@ class LightningApp:
                         deltas.append(delta)
                 else:
                     api_or_command_request_deltas.append(delta)
-            else:
-                break
 
         if api_or_command_request_deltas:
             _process_requests(self, api_or_command_request_deltas)

@@ -165,6 +165,17 @@ class BaseQueue(ABC):
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
         """
+        return self.get_batch(timeout=timeout, batch_size=1)
+
+    @abstractmethod
+    def get_batch(self, timeout=None, batch_size=-1):
+        """Returns the left most ``batch_size`` elements of the queue.
+
+        Args:
+            timeout: Read timeout in seconds, if ``timeout`` is 0, ``self.default_timeout`` is used.
+                A timeout of None can be used to block indefinitely.
+            batch_size: The maximum number of elements to pop from the queue.
+        """
         pass
 
     @property
@@ -186,10 +197,20 @@ class MultiProcessQueue(BaseQueue):
     def put(self, item):
         self.queue.put(item)
 
-    def get(self, timeout: int = None):
+    def get_batch(self, timeout=None, batch_size=-1):
         if timeout == 0:
             timeout = self.default_timeout
-        return self.queue.get(timeout=timeout, block=(timeout is None))
+        
+        results = []
+
+        # Always try to get the first element with a timeout / blocking
+        results.append(self.queue.get(timeout=timeout, block=timeout is None))
+
+        # If there are more elements available, fill the batch but don't block
+        while (batch_size == -1 or len(results) < batch_size) and not self.queue.empty():
+            results.append(self.queue.get(timeout=timeout, block=False))
+        
+        return results
 
 
 class RedisQueue(BaseQueue):
@@ -259,16 +280,11 @@ class RedisQueue(BaseQueue):
         # The backend isn't pickable.
         if is_work:
             item._backend = backend
-
-    def get(self, timeout: int = None):
-        """Returns the left most element of the redis queue.
-
-        Parameters
-        ----------
-        timeout:
-            Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
-            A timeout of None can be used to block indefinitely.
-        """
+    
+    def get_batch(self, timeout=None, batch_size=-1):
+        if batch_size == -1:
+            # If the whole queue was requested, just set `batch_size` to a very large number to avoid querying the length.
+            batch_size = 1000
 
         if timeout is None:
             # this means it's blocking in redis
@@ -277,7 +293,7 @@ class RedisQueue(BaseQueue):
             timeout = self.default_timeout
 
         try:
-            out = self.redis.blpop([self.name], timeout=timeout)
+            out = self.redis.blmpop([self.name], timeout=timeout, count=batch_size)
         except redis.exceptions.ConnectionError:
             raise ConnectionError(
                 "Your app failed because it couldn't connect to Redis. "
@@ -287,7 +303,7 @@ class RedisQueue(BaseQueue):
 
         if out is None:
             raise queue.Empty
-        return pickle.loads(out[1])
+        return [pickle.loads(element) for element in out[1]]
 
     def clear(self) -> None:
         """Clear all elements in the queue."""
