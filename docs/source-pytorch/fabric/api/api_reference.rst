@@ -1,5 +1,7 @@
 :orphan:
 
+.. include:: ../../links.rst
+
 #############
 API Reference
 #############
