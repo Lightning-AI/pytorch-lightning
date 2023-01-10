@@ -24,11 +24,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
-from lightning_lite.utilities.apply_func import convert_to_tensors
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from lightning_lite.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_lite.utilities.types import Steppable
 from lightning_utilities.core.apply_func import apply_to_collection
 from torch import ScriptModule, Tensor
 from torch.nn import Module
@@ -43,7 +38,7 @@ from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
@@ -55,14 +50,8 @@ from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
-from pytorch_lightning.utilities.imports import (
-    _TORCH_GREATER_EQUAL_1_11,
-    _TORCH_GREATER_EQUAL_1_13,
-    _TORCHMETRICS_GREATER_EQUAL_0_9_1,
-)
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _METRIC_COLLECTION,
