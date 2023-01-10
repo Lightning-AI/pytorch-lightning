@@ -1,3 +1,5 @@
+:orphan:
+
 .. _post_training_quantization:
 
 ##########################
