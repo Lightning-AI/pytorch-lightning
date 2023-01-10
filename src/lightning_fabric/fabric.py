@@ -609,7 +609,7 @@ class Fabric:
 
         Args:
             metrics: A dictionary where the key is the name of the metric and the value the scalar to be logged.
-                Any :class:`torch.Tensor`s in the dictionary get detached from the graph automatically.
+                Any :class:`torch.Tensor` in the dictionary get detached from the graph automatically.
             step: Optional step number. Most Logger implementations auto-increment this value by one with every
                 log call. You can specify your own value here.
         """
