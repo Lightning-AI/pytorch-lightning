@@ -4,4 +4,4 @@
 Raw PyTorch loop (expert)
 #########################
 
-.. include::  ../starter/lightning_lite.rst
+.. include::  ../fabric/fabric.rst

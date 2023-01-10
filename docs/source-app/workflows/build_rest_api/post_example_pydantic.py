@@ -5,7 +5,6 @@ from lightning.app.api import Post
 
 
 class Flow(L.LightningFlow):
-
     # 1. Define the state
     def __init__(self):
         super().__init__()

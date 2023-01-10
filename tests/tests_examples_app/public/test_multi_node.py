@@ -28,7 +28,7 @@ _SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightnin
         "train_pytorch.py",
         "train_any.py",
         "train_pytorch_spawn.py",
-        pytest.param("train_lite.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
+        pytest.param("train_fabric.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
         pytest.param("train_lt_script.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
         pytest.param("train_lt.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
     ],

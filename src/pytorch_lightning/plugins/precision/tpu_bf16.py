@@ -16,6 +16,7 @@ from typing import Any, List, Tuple
 
 import torch.nn as nn
 from torch.optim import Optimizer
+from typing_extensions import Literal
 
 from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 
@@ -23,7 +24,7 @@ from pytorch_lightning.plugins.precision import TPUPrecisionPlugin
 class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
     """Plugin that enables bfloats on TPUs."""
 
-    precision: str = "bf16"
+    precision: Literal["bf16"] = "bf16"
 
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]

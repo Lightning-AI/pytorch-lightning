@@ -13,6 +13,7 @@ from lightning_cloud.openapi.rest import ApiException
 from lightning_utilities.core.imports import RequirementCache
 from requests.exceptions import ConnectionError
 
+import lightning_app.core.constants as constants
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
 from lightning_app.cli.cmd_apps import _AppManager
@@ -44,6 +45,7 @@ from lightning_app.utilities.exceptions import _ApiExceptionHandler, LogLinesLim
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.logs_socket_api import _ClusterLogsSocketAPI
 from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.port import _find_lit_app_port
 
 logger = Logger(__name__)
 
@@ -267,6 +269,9 @@ def _run_app(
 
     secrets = _format_input_env_variables(secret)
 
+    port = _find_lit_app_port(constants.APP_SERVER_PORT)
+    constants.APP_SERVER_PORT = port
+
     click.echo("Your Lightning App is starting. This won't take long.")
 
     # TODO: Fixme when Grid utilities are available.
@@ -285,6 +290,7 @@ def _run_app(
         cluster_id=cluster_id,
         run_app_comment_commands=run_app_comment_commands,
         enable_basic_auth=enable_basic_auth,
+        port=port,
     )
     if runtime_type == RuntimeType.CLOUD:
         click.echo("Application is ready in the cloud")
@@ -368,9 +374,9 @@ def run_app(
     )
 
 
-if RequirementCache("lightning-lite>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
-    # lightning.lite.cli may not be available when installing only standalone lightning-app package
-    from lightning_lite.cli import _run_model
+if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightning>=1.9.0.dev0"):
+    # lightning.fabric.cli may not be available when installing only standalone lightning-app package
+    from lightning_fabric.cli import _run_model
 
     run.add_command(_run_model)
 

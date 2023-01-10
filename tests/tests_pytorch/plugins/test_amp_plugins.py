@@ -185,8 +185,7 @@ def test_amp_skip_optimizer(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx):
             if optimizer_idx == 1:
                 return None
-            output = self(batch)
-            return self.loss(batch, output)
+            return self.step(batch)
 
         def configure_optimizers(self):
             return [
@@ -272,13 +271,13 @@ def test_precision_selection_raises(monkeypatch):
     with pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):
-        with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True):
+        with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("lightning_lite.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
+    with mock.patch("lightning_fabric.accelerators.cuda.is_cuda_available", return_value=True), pytest.raises(
         MisconfigurationException, match="asked for Apex AMP but `apex` is not installed"
     ), pytest.deprecated_call(match=r"amp_backend='apex'\)` argument is deprecated"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -69,7 +69,12 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import (
+    _LITERAL_WARN,
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_STR,
+    AcceleratorConnector,
+)
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -146,7 +151,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
@@ -212,7 +217,8 @@ class Trainer:
 
                 .. deprecated:: v1.9
                     ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -1767,7 +1773,7 @@ class Trainer:
         return None
 
     @property
-    def precision(self) -> Union[str, int]:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 
     @property

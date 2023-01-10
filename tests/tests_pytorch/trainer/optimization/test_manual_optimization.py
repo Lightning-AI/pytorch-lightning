@@ -22,7 +22,7 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
@@ -268,9 +268,7 @@ class ManualOptimizationExtendedModel(BoringModel):
     def training_step(self, batch, batch_idx):
         self.called["training_step"] += 1
         opt = self.optimizers()
-        output = self.layer(batch)
-
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         loss /= loss.clone().detach()
         loss *= 0.1
 
@@ -366,9 +364,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
         def training_step(self, batch, batch_idx):
             self.called["training_step"] += 1
             opt = self.optimizers()
-            output = self.layer(batch)
-
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             loss /= loss.clone().detach()
             loss *= 0.1
 
@@ -528,7 +524,7 @@ def test_step_with_optimizer_closure(tmpdir):
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(None, predictions)
+                loss = self.loss(predictions)
                 return loss
 
             def optimizer_closure():
@@ -639,7 +635,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
                 x = F.dropout(x, 0.1)
                 predictions = self(x)
                 predictions = F.dropout(predictions, 0.1)
-                loss = self.loss(None, predictions)
+                loss = self.loss(predictions)
                 return loss
 
             def gen_closure():
@@ -958,23 +954,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
 
 def test_lr_scheduler_step_not_called(tmpdir):
     """Test `lr_scheduler.step()` is not called in manual optimization."""
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
-        def training_step(self, batch, batch_idx):
-            opt = self.optimizers()
-
-            output = self(batch)
-            loss = self.loss(batch, output)
-
-            opt.zero_grad()
-            self.manual_backward(loss)
-            opt.step()
-
-    model = TestModel()
+    model = ManualOptimBoringModel()
     model.training_step_end = None
     model.training_epoch_end = None
 
@@ -1005,7 +985,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer = self.optimizers()[optimizer_idx]
             self.toggle_optimizer(optimizer, optimizer_idx)
 
-            loss_d = self.loss(batch, self.layer(batch))
+            loss_d = self.step(batch)
             self.log("loss_d", loss_d, prog_bar=True)
 
             optimizer.zero_grad()
@@ -1018,7 +998,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer = self.optimizers()[optimizer_idx]
             self.toggle_optimizer(optimizer, optimizer_idx)
 
-            loss_g = self.loss(batch, self.layer(batch))
+            loss_g = self.step(batch)
             self.log("loss_g", loss_g, prog_bar=True)
 
             optimizer.zero_grad()
