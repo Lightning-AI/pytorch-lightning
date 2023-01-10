@@ -88,10 +88,6 @@ class XLAStrategy(ParallelStrategy):
         self._checkpoint_io = io
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
-
-    @property
     def _is_distributed(self) -> bool:
         import torch_xla.core.xla_env_vars as xenv
 

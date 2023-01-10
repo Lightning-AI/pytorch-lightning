@@ -294,10 +294,6 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         return zero_optimization is not None and zero_optimization.get("stage") == 3
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
-
-    @property
     def model(self) -> "deepspeed.DeepSpeedEngine":
         return self._deepspeed_engine
 
