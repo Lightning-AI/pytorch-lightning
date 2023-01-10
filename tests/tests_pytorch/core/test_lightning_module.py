@@ -559,8 +559,8 @@ def test_fabric_log():
     wrapped_module = fabric.setup(module)
 
     # unsupported data type
-    with pytest.raises(ValueError, match="`dict` values cannot be logged"):
-        wrapped_module.log("invalid", dict())
+    with pytest.raises(ValueError, match="`list` values cannot be logged"):
+        wrapped_module.log("invalid", list())
 
     # supported data types
     wrapped_module.log("int", 1)

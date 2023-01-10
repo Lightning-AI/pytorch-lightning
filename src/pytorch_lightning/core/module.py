@@ -404,7 +404,7 @@ class LightningModule(
                 would produce a deadlock as not all processes would perform this log call.
         """
         if self._fabric is not None:
-            self._log_through_fabric(name=name, value=value, logger=logger)
+            self._log_dict_through_fabric(dictionary={name: value}, logger=logger)
             return
 
         # check for invalid values
@@ -578,18 +578,10 @@ class LightningModule(
                     rank_zero_only=rank_zero_only,
                 )
 
-    def _log_through_fabric(self, name: str, value: _METRIC_COLLECTION, logger: Optional[bool] = None) -> None:
+    def _log_dict_through_fabric(self, dictionary: Dict[str, Any], logger: Optional[bool] = None) -> None:
         if logger is False:
             # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
             # log to, but we support it in case the original code was written for Trainer use
-            return
-        apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
-
-        assert self._fabric is not None
-        self._fabric.log(name=name, value=value)
-
-    def _log_dict_through_fabric(self, dictionary: Dict[str, Any], logger: Optional[bool] = None) -> None:
-        if logger is False:
             return
 
         if any(isinstance(v, dict) for v in dictionary.values()):
