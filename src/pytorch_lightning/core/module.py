@@ -60,7 +60,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_13,
     _TORCHMETRICS_GREATER_EQUAL_0_9_1,
 )
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1, _TORCH_GREATER_EQUAL_1_13
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
