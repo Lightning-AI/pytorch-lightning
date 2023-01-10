@@ -550,3 +550,26 @@ def test_fabric_logger_access():
     wrapped_module = fabric.setup(module)
     assert wrapped_module.logger == logger1
     assert wrapped_module.loggers == [logger1, logger2]
+
+
+def test_fabric_log():
+    logger = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=[logger])
+    wrapped_module = fabric.setup(module)
+
+    # unsupported data type
+    with pytest.raises(ValueError, match="`dict` values cannot be logged"):
+        wrapped_module.log("invalid", dict())
+
+    # unsupported data type
+    # with pytest.raises(ValueError, match="`list` values cannot be logged"):
+    #     wrapped_module.log_dict("invalid", [1, 2, 3])
+
+    # self.log()
+    wrapped_module.log("loss", 0.1)
+    logger.log_metrics.assert_called_with(metrics={'loss': 0.1}, step=None)
+
+    # self.log_dict()
+    wrapped_module.log_dict({"x": 1, "y": 2})
+    logger.log_metrics.assert_called_with(metrics={"x": 1, "y": 2}, step=None)
