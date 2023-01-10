@@ -43,6 +43,8 @@ Plugins
 Precision
 """""""""
 
+.. TODO(fabric): include DeepSpeedPrecision
+
 .. currentmodule:: lightning_fabric.plugins.precision
 
 .. autosummary::
@@ -51,7 +53,6 @@ Precision
     :template: classtemplate.rst
 
     Precision
-    DeepSpeedPrecision
     DoublePrecision
     MixedPrecision
     TPUPrecision
@@ -111,6 +112,8 @@ Collectives
 Strategies
 ^^^^^^^^^^
 
+.. TODO(fabric): include DeepSpeedStrategy, XLAStrategy
+
 .. currentmodule:: lightning_fabric.strategies
 
 .. autosummary::
@@ -120,11 +123,9 @@ Strategies
 
     Strategy
     DDPStrategy
-    DeepSpeedStrategy
     DataParallelStrategy
     DDPShardedStrategy
     FSDPStrategy
     ParallelStrategy
     SingleDeviceStrategy
     SingleTPUStrategy
-    XLAStrategy
