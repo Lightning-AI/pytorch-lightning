@@ -13,9 +13,9 @@
 # limitations under the License.
 """General utilities."""
 
-import functools
 import os
 import warnings
+from functools import wraps, lru_cache
 from typing import List, Union
 
 from lightning_utilities.core.imports import module_available
@@ -50,7 +50,7 @@ def requires(module_paths: Union[str, List]):
         module_paths = [module_paths]
 
     def decorator(func):
-        @functools.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             unavailable_modules = [f"'{module}'" for module in module_paths if not module_available(module)]
             if any(unavailable_modules):
@@ -67,79 +67,97 @@ def requires(module_paths: Union[str, List]):
     return decorator
 
 
-# TODO: Automatically detect dependencies
+@lru_cache(1)
 def _is_redis_available() -> bool:
     return module_available("redis")
 
 
+@lru_cache(1)
 def _is_torch_available() -> bool:
     return module_available("torch")
 
 
+@lru_cache(1)
 def _is_pytorch_lightning_available() -> bool:
     return module_available("pytorch_lightning")
 
 
+@lru_cache(1)
 def _is_torchvision_available() -> bool:
     return module_available("torchvision")
 
 
+@lru_cache(1)
 def _is_json_argparse_available() -> bool:
     return module_available("jsonargparse")
 
 
+@lru_cache(1)
 def _is_streamlit_available() -> bool:
     return module_available("streamlit")
 
 
+@lru_cache(1)
 def _is_param_available() -> bool:
     return module_available("param")
 
 
+@lru_cache(1)
 def _is_streamlit_tensorboard_available() -> bool:
     return module_available("streamlit_tensorboard")
 
 
+@lru_cache(1)
 def _is_starsessions_available() -> bool:
     return module_available("starsessions")
 
 
+@lru_cache(1)
 def _is_gradio_available() -> bool:
     return module_available("gradio")
 
 
+@lru_cache(1)
 def _is_lightning_flash_available() -> bool:
     return module_available("flash")
 
 
+@lru_cache(1)
 def _is_pil_available() -> bool:
     return module_available("PIL")
 
 
+@lru_cache(1)
 def _is_numpy_available() -> bool:
     return module_available("numpy")
 
 
+@lru_cache(1)
 def _is_docker_available() -> bool:
     return module_available("docker")
 
 
+@lru_cache(1)
 def _is_jinja2_available() -> bool:
     return module_available("jinja2")
 
 
+@lru_cache(1)
 def _is_playwright_available() -> bool:
     return module_available("playwright")
 
 
+@lru_cache(1)
 def _is_s3fs_available() -> bool:
     return module_available("s3fs")
 
 
+@lru_cache(1)
 def _is_sqlmodel_available() -> bool:
     return module_available("sqlmodel")
 
 
+@lru_cache(1)
 def _is_aiohttp_available() -> bool:
     return module_available("aiohttp")
 
