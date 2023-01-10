@@ -42,10 +42,6 @@ class ParallelStrategy(Strategy, ABC):
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 
     @property
-    def is_distributed(self) -> bool:
-        return True
-
-    @property
     def global_rank(self) -> int:
         return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 

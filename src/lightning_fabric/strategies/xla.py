@@ -92,7 +92,7 @@ class XLAStrategy(ParallelStrategy):
         return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
-    def is_distributed(self) -> bool:
+    def _is_distributed(self) -> bool:
         import torch_xla.core.xla_env_vars as xenv
 
         # HOST_WORLD_SIZE is not set outside the xmp.spawn process
@@ -145,13 +145,13 @@ class XLAStrategy(ParallelStrategy):
         return output
 
     def barrier(self, name: Optional[str] = None, *args: Any, **kwargs: Any) -> None:
-        if self.is_distributed:
+        if self._is_distributed:
             import torch_xla.core.xla_model as xm
 
             xm.rendezvous(name)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        if not self.is_distributed:
+        if not self._is_distributed:
             return obj
         buffer = io.BytesIO()
         torch.save(obj, buffer)
