@@ -194,8 +194,8 @@ Access all loggers from any function (except the LightningModule *init*) to use 
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            tensorboard_logger = self.logger.experiment[0]
-            wandb_logger = self.logger.experiment[1]
+            tensorboard_logger = self.loggers.experiment[0]
+            wandb_logger = self.loggers.experiment[1]
 
             fake_images = torch.Tensor(32, 3, 28, 28)
 

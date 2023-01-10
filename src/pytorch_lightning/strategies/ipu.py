@@ -64,7 +64,7 @@ class IPUStrategy(ParallelStrategy):
 
             device_iterations: Number of iterations to run on device at once before returning to host.
                 This can be used as an optimization to speed up training.
-                https://docs.graphcore.ai/projects/poptorch-user-guide/en/0.1.67/batching.html
+                https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html
             autoreport: Enable auto-reporting for IPUs using PopVision
                 https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
             autoreport_dir: Optional directory to store autoReport output.

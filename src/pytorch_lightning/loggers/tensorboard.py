@@ -19,37 +19,28 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, Union
 
-import numpy as np
-from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.cloud_io import get_filesystem
-from lightning_fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
-from lightning_fabric.utilities.logger import _sanitize_params as _utils_sanitize_params
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning_fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
+from lightning_fabric.utilities.logger import _convert_params
 from lightning_fabric.utilities.types import _PATH
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
-_TENSORBOARD_AVAILABLE = RequirementCache("tensorboard")
-if TYPE_CHECKING:
-    # assumes at least one will be installed when type checking
-    if _TENSORBOARD_AVAILABLE:
-        from torch.utils.tensorboard import SummaryWriter
-    else:
-        from tensorboardX import SummaryWriter  # type: ignore[no-redef]
-
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-class TensorBoardLogger(Logger):
+class TensorBoardLogger(Logger, FabricTensorBoardLogger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
@@ -100,7 +91,6 @@ class TensorBoardLogger(Logger):
         >>> shutil.rmtree(tmp)
     """
     NAME_HPARAMS_FILE = "hparams.yaml"
-    LOGGER_JOIN_CHAR = "-"
 
     def __init__(
         self,
@@ -113,23 +103,19 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[_PATH] = None,
         **kwargs: Any,
     ):
-        super().__init__()
-        save_dir = os.fspath(save_dir)
-        self._save_dir = save_dir
-        self._name = name or ""
-        self._version = version
-        self._sub_dir = None if sub_dir is None else os.fspath(sub_dir)
+        super().__init__(
+            root_dir=save_dir,
+            name=name,
+            version=version,
+            default_hp_metric=default_hp_metric,
+            prefix=prefix,
+            sub_dir=sub_dir,
+            **kwargs,
+        )
         if log_graph and not _TENSORBOARD_AVAILABLE:
             rank_zero_warn("You set `TensorBoardLogger(log_graph=True)` but `tensorboard` is not available.")
         self._log_graph = log_graph and _TENSORBOARD_AVAILABLE
-
-        self._default_hp_metric = default_hp_metric
-        self._prefix = prefix
-        self._fs = get_filesystem(save_dir)
-
-        self._experiment: Optional["SummaryWriter"] = None
         self.hparams: Union[Dict[str, Any], Namespace] = {}
-        self._kwargs = kwargs
 
     @property
     def root_dir(self) -> str:
@@ -138,7 +124,7 @@ class TensorBoardLogger(Logger):
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
-        return os.path.join(self.save_dir, self.name)
+        return os.path.join(super().root_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -163,43 +149,7 @@ class TensorBoardLogger(Logger):
         Returns:
             The local path to the save directory where the TensorBoard experiments are saved.
         """
-        return self._save_dir
-
-    @property
-    def sub_dir(self) -> Optional[str]:
-        """Gets the sub directory where the TensorBoard experiments are saved.
-
-        Returns:
-            The local path to the sub directory where the TensorBoard experiments are saved.
-        """
-        return self._sub_dir
-
-    @property
-    @rank_zero_experiment
-    def experiment(self) -> "SummaryWriter":
-        r"""
-        Actual tensorboard object. To use TensorBoard features in your
-        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
-
-        Example::
-
-            self.logger.experiment.some_tensorboard_function()
-
-        """
-        if self._experiment is not None:
-            return self._experiment
-
-        assert rank_zero_only.rank == 0, "tried to init log dirs in non global_rank=0"
-        if self.root_dir:
-            self._fs.makedirs(self.root_dir, exist_ok=True)
-
-        if _TENSORBOARD_AVAILABLE:
-            from torch.utils.tensorboard import SummaryWriter
-        else:
-            from tensorboardX import SummaryWriter  # type: ignore[no-redef]
-
-        self._experiment = SummaryWriter(log_dir=self.log_dir, **self._kwargs)
-        return self._experiment
+        return self._root_dir
 
     @rank_zero_only
     def log_hyperparams(
@@ -213,7 +163,6 @@ class TensorBoardLogger(Logger):
             params: a dictionary-like container with the hyperparameters
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
-
         params = _convert_params(params)
 
         # store params to output
@@ -222,49 +171,7 @@ class TensorBoardLogger(Logger):
         else:
             self.hparams.update(params)
 
-        # format params into the suitable for tensorboard
-        params = _flatten_dict(params)
-        params = self._sanitize_params(params)
-
-        if metrics is None:
-            if self._default_hp_metric:
-                metrics = {"hp_metric": -1}
-        elif not isinstance(metrics, dict):
-            metrics = {"hp_metric": metrics}
-
-        if metrics:
-            self.log_metrics(metrics, 0)
-
-            if _TENSORBOARD_AVAILABLE:
-                from torch.utils.tensorboard.summary import hparams
-            else:
-                from tensorboardX.summary import hparams  # type: ignore[no-redef]
-
-            exp, ssi, sei = hparams(params, metrics)
-            writer = self.experiment._get_file_writer()
-            writer.add_summary(exp)
-            writer.add_summary(ssi)
-            writer.add_summary(sei)
-
-    @rank_zero_only
-    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
-
-        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
-
-        for k, v in metrics.items():
-            if isinstance(v, Tensor):
-                v = v.item()
-
-            if isinstance(v, dict):
-                self.experiment.add_scalars(k, v, step)
-            else:
-                try:
-                    self.experiment.add_scalar(k, v, step)
-                # todo: specify the possible exception
-                except Exception as ex:
-                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
-                    raise ValueError(m) from ex
+        return super().log_hyperparams(params=params, metrics=metrics)
 
     @rank_zero_only
     def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
@@ -304,33 +211,18 @@ class TensorBoardLogger(Logger):
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
-        if self._experiment is not None:
-            self.experiment.flush()
-            self.experiment.close()
-
+        super().finalize(status)
         if status == "success":
             # saving hparams happens independent of experiment manager
             self.save()
 
-    @property
-    def name(self) -> str:
-        """Get the name of the experiment.
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
+        """Called after model checkpoint callback saves a new checkpoint.
 
-        Returns:
-            The name of the experiment.
+        Args:
+            checkpoint_callback: the model checkpoint callback instance
         """
-        return self._name
-
-    @property
-    def version(self) -> Union[int, str]:
-        """Get the experiment version.
-
-        Returns:
-            The experiment version if specified else the next version.
-        """
-        if self._version is None:
-            self._version = self._get_next_version()
-        return self._version
+        pass
 
     def _get_next_version(self) -> int:
         root_dir = self.root_dir
@@ -352,14 +244,3 @@ class TensorBoardLogger(Logger):
             return 0
 
         return max(existing_versions) + 1
-
-    @staticmethod
-    def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        params = _utils_sanitize_params(params)
-        # logging of arrays with dimension > 1 is not supported, sanitize as string
-        return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
-
-    def __getstate__(self) -> Dict[str, Any]:
-        state = self.__dict__.copy()
-        state["_experiment"] = None
-        return state
