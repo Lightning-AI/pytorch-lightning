@@ -8,7 +8,7 @@ from integrations_app.public import _PATH_EXAMPLES
 
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import run_app
-from lightning_app.testing.helpers import _RunIf
+from lightning_app.testing.helpers import RunIfApp
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
 
 
@@ -26,7 +26,7 @@ class QuickStartApp(LightningApp):
 
 # TODO: Investigate why it doesn't work
 @pytest.mark.skip(reason="test is skipped because CI was blocking all the PRs.")
-@_RunIf(pl=True, skip_windows=True, skip_linux=True)
+@RunIfApp(pl=True, skip_windows=True, skip_linux=True)
 def test_quick_start_example(caplog, monkeypatch):
     """This test ensures the Quick Start example properly train and serve PyTorch Lightning."""
 

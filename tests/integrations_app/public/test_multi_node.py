@@ -5,7 +5,7 @@ import pytest
 from integrations_app.public import _PATH_EXAMPLES
 from lightning_utilities.core.imports import package_available
 
-from lightning_app.testing.helpers import _RunIf
+from lightning_app.testing.helpers import RunIfApp
 from lightning_app.testing.testing import application_testing, LightningTestApp
 
 
@@ -33,7 +33,7 @@ _SKIP_LIGHTNING_UNAVAILABLE = pytest.mark.skipif(not package_available("lightnin
         pytest.param("train_lt.py", marks=_SKIP_LIGHTNING_UNAVAILABLE),
     ],
 )
-@_RunIf(skip_windows=True)  # flaky
+@RunIfApp(skip_windows=True)  # flaky
 @mock.patch("lightning_app.components.multi_node.base.is_running_in_cloud", return_value=True)
 def test_multi_node_examples(_, app_name, monkeypatch):
     # note: this test will fail locally:

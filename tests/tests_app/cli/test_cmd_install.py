@@ -7,7 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from lightning_app.cli import cmd_install, lightning_cli
-from lightning_app.testing.helpers import _RunIf
+from lightning_app.testing.helpers import RunIfApp
 
 
 @mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
@@ -271,7 +271,7 @@ def test_proper_url_parsing():
     assert git_sha
 
 
-@_RunIf(skip_windows=True)
+@RunIfApp(skip_windows=True)
 def test_install_app_shows_error(tmpdir):
 
     app_folder_dir = Path(tmpdir / "some_random_directory").absolute()

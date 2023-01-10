@@ -3,6 +3,7 @@ import sys
 from queue import Empty
 from typing import List, Optional, Tuple
 
+import pytest
 from packaging.version import Version
 
 from lightning_app import LightningFlow, LightningWork
@@ -41,7 +42,7 @@ def _run_script(filepath):
     assert not code, code
 
 
-class _RunIf:
+class RunIfApp:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
     @RunIf(...)
@@ -63,8 +64,6 @@ class _RunIf:
         cloud: bool = False,
         **kwargs,
     ):
-        import pytest
-
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
