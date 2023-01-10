@@ -16,7 +16,7 @@ import os
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -604,7 +604,7 @@ class Fabric:
         """
         self.log_dict(metrics={name: value}, step=step)
 
-    def log_dict(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
+    def log_dict(self, metrics: Mapping[str, Any], step: Optional[int] = None) -> None:
         """Log multiple scalars at once to all loggers that were added to Fabric.
 
         Args:
