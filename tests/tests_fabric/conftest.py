@@ -41,7 +41,7 @@ def restore_env_variables():
     os.environ.clear()
     os.environ.update(env_backup)
     # these are currently known leakers - ideally these would not be allowed
-    # TODO(lite): this list can be trimmed, maybe PL's too after moving tests
+    # TODO(fabric): this list can be trimmed, maybe PL's too after moving tests
     allowlist = {
         "CUDA_DEVICE_ORDER",
         "LOCAL_RANK",

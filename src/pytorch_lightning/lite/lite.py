@@ -59,6 +59,11 @@ _PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
 class LightningLite(Fabric, ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
+    .. deprecated:: v1.9.0
+        The `pytorch_lightning.lite.LightningLite` class was deprecated in v1.9.0 and will be renamed to
+        `lightning.fabric.Fabric` in v2.0.0. It is no longer part of the pure `pytorch_lightning` package, and now
+        lives in the main `lightning` package.
+
     - Automatic placement of models and data onto the device.
     - Automatic support for mixed and double precision (smaller memory footprint).
     - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
@@ -80,13 +85,13 @@ class LightningLite(Fabric, ABC):
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
 
             .. deprecated:: v1.8.0
-                ``gpus`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                ``gpus`` has been deprecated in v1.8.0 and will be removed in v2.0.0.
                 Please use ``accelerator='gpu'`` and ``devices=x`` instead.
 
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
 
             .. deprecated:: v1.8.0
-                ``tpu_cores`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                ``tpu_cores`` has been deprecated in v1.8.0 and will be removed in v2.0.0.
                 Please use ``accelerator='tpu'`` and ``devices=x`` instead.
     """
 
@@ -101,6 +106,12 @@ class LightningLite(Fabric, ABC):
         gpus: Optional[Union[List[int], str, int]] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
     ) -> None:
+
+        rank_zero_deprecation(
+            "The `pytorch_lightning.lite.LightningLite` class was deprecated in v1.9.0 and will be renamed to"
+            " `lightning.fabric.Fabric` in v2.0.0. It is no longer part of the pure `pytorch_lightning` package, and"
+            " now lives in the main `lightning` package."
+        )
 
         if gpus is not None or tpu_cores is not None:
             devices, accelerator = _convert_deprecated_device_flags(
@@ -143,12 +154,12 @@ def _convert_deprecated_device_flags(
     if gpus is not None:
         rank_zero_deprecation(
             f"Setting `Lite(gpus={gpus!r})` is deprecated in v1.8.0 and will be removed"
-            f" in v1.10.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
+            f" in v2.0.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
         )
     if tpu_cores is not None:
         rank_zero_deprecation(
             f"Setting `Lite(tpu_cores={tpu_cores!r})` is deprecated in v1.8.0 and will be removed"
-            f" in v1.10.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
+            f" in v2.0.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
         )
     deprecated_devices_specific_flag = gpus or tpu_cores
     if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):

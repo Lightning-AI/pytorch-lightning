@@ -42,7 +42,7 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
-from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
 from lightning_fabric.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
@@ -597,7 +597,8 @@ class Fabric:
 
         Args:
             name: The name of the metric to log.
-            value: The metric value to collect.
+            value: The metric value to collect. If the value is a :class:`torch.Tensor`, it gets detached from the
+                graph automatically.
             step: Optional step number. Most Logger implementations auto-increment the step value by one with every
                 log call. You can specify your own value here.
         """
@@ -608,9 +609,11 @@ class Fabric:
 
         Args:
             metrics: A dictionary where the key is the name of the metric and the value the scalar to be logged.
+                Any :class:`torch.Tensor` in the dictionary get detached from the graph automatically.
             step: Optional step number. Most Logger implementations auto-increment this value by one with every
                 log call. You can specify your own value here.
         """
+        metrics = convert_tensors_to_scalars(metrics)
         for logger in self._loggers:
             logger.log_metrics(metrics=metrics, step=step)
 
