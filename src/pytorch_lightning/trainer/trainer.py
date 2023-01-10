@@ -1681,7 +1681,7 @@ class Trainer:
 
     @property
     def strategy(self) -> Strategy:
-        # TODO(lite): remove ignore after merging lite and PL strategies
+        # TODO(fabric): remove ignore after merging Fabric and PL strategies
         return self._accelerator_connector.strategy  # type: ignore[return-value]
 
     @property

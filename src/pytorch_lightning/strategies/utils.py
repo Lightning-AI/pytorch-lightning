@@ -34,7 +34,7 @@ def on_colab_kaggle() -> bool:
 
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
-    # TODO(lite): Remove this function once PL strategies inherit from Lite's Strategy base class
+    # TODO(fabric): Remove this function once PL strategies inherit from Fabrics Strategy base class
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
