@@ -21,7 +21,7 @@ from lightning_fabric.strategies import DeepSpeedStrategy
 
 @RunIf(deepspeed=True)
 @pytest.mark.parametrize("precision", ["bf16", 16, 32])
-def test_deepspeed_precision_choice(precision, tmpdir):
+def test_deepspeed_precision_choice(precision):
     """Test to ensure precision plugin is correctly chosen.
 
     DeepSpeed handles precision via custom DeepSpeedPrecision.
@@ -34,4 +34,4 @@ def test_deepspeed_precision_choice(precision, tmpdir):
 
     assert isinstance(connector.strategy, DeepSpeedStrategy)
     assert isinstance(connector.strategy.precision, DeepSpeedPrecision)
-    assert connector.strategy.precision.precision == precision
+    assert connector.strategy.precision.precision == str(precision)

@@ -718,7 +718,7 @@ def test_callbacks_input():
     assert fabric._callbacks == [callback0, callback1]
 
 
-def test_call_callbacks():
+def test_call():
     """Test that `fabric.call` triggers the callback implementations."""
     callback0 = Mock()
     callback1 = Mock()
@@ -748,3 +748,55 @@ def test_call_callbacks():
     with pytest.warns(UserWarning, match="Skipping the callback `Mock.not_a_method`"):
         fabric.call("not_a_method")
     assert not callback1.mock_calls
+
+
+def test_loggers_input():
+    """Test the various ways in which loggers can be registered with Fabric."""
+    logger0 = Mock()
+    logger1 = Mock()
+
+    # no logger
+    fabric = Fabric(loggers=None)
+    assert fabric._loggers == []
+    fabric = Fabric(loggers=[])
+    assert fabric._loggers == []
+
+    # single logger
+    fabric = Fabric(loggers=logger0)
+    assert fabric._loggers == [logger0]
+
+    # multiple loggers
+    fabric = Fabric(loggers=[logger0, logger1])
+    assert fabric._loggers == [logger0, logger1]
+
+
+def test_log():
+    """Test that `fabric.log` sends the metrics to each logger."""
+
+    logger0 = Mock()
+    logger1 = Mock()
+    fabric = Fabric(loggers=[logger0, logger1])
+
+    fabric.log("test", 1)
+    logger0.log_metrics.assert_called_with(metrics={"test": 1}, step=None)
+    logger1.log_metrics.assert_called_with(metrics={"test": 1}, step=None)
+
+    fabric.log("test", 2, step=15)
+    logger0.log_metrics.assert_called_with(metrics={"test": 2}, step=15)
+    logger1.log_metrics.assert_called_with(metrics={"test": 2}, step=15)
+
+
+def test_log_dict():
+    """Test that `fabric.log_dict` sends the metrics dict to each logger."""
+
+    logger0 = Mock()
+    logger1 = Mock()
+    fabric = Fabric(loggers=[logger0, logger1])
+
+    fabric.log_dict({"foo": 1, "bar": 2}, step=None)
+    logger0.log_metrics.assert_called_with(metrics={"foo": 1, "bar": 2}, step=None)
+    logger1.log_metrics.assert_called_with(metrics={"foo": 1, "bar": 2}, step=None)
+
+    fabric.log_dict({"foo": 3, "bar": 4}, step=15)
+    logger0.log_metrics.assert_called_with(metrics={"foo": 3, "bar": 4}, step=15)
+    logger1.log_metrics.assert_called_with(metrics={"foo": 3, "bar": 4}, step=15)

@@ -22,9 +22,12 @@ import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
+
+from lightning_fabric.loggers import Logger
 
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
@@ -47,7 +50,6 @@ from lightning_fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning_fabric.utilities.rank_zero import rank_zero_warn
 from lightning_fabric.utilities.seed import seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -74,6 +76,10 @@ class Fabric:
         precision: Double precision (``64``), full precision (``32``), half precision (``16``),
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
+        callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
+            can be invoked through :meth:`lightning_fabric.fabric.Fabric.call` by the user.
+        loggers: A single logger or a list of loggers. See :meth:`lightning_fabric.fabric.Fabric.log` for more
+            information.
     """
 
     def __init__(
@@ -85,6 +91,7 @@ class Fabric:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         callbacks: Optional[Union[List[Any], Any]] = None,
+        loggers: Optional[Union[Logger, List[Logger]]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -99,6 +106,8 @@ class Fabric:
         self._precision: Precision = self._strategy.precision
         callbacks = callbacks if callbacks is not None else []
         self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        loggers = loggers if loggers is not None else []
+        self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
 
         self._prepare_run_method()
@@ -147,6 +156,16 @@ class Fabric:
     def is_global_zero(self) -> bool:
         """Whether this rank is rank zero."""
         return self._strategy.is_global_zero
+
+    @property
+    def loggers(self) -> List[Logger]:
+        """Returns all loggers passed to Fabric."""
+        return self._loggers
+
+    @property
+    def logger(self) -> Logger:
+        """Returns the first logger in the list passed to Fabric, which is considered the main logger."""
+        return self._loggers[0]
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Fabric.
@@ -552,7 +571,7 @@ class Fabric:
                 def on_train_epoch_end(self, results):
                     ...
 
-            fabric = Fabric(callbacks=[MyCallback]))
+            fabric = Fabric(callbacks=[MyCallback()])
             fabric.call("on_train_epoch_end", results={...})
         """
         for callback in self._callbacks:
@@ -572,6 +591,28 @@ class Fabric:
             # method(self, fabric|trainer, *args, x, y=1)
             # method(self, *args, y=1)
             # method(self, *args, **kwargs)
+
+    def log(self, name: str, value: Any, step: Optional[int] = None) -> None:
+        """Log a scalar to all loggers that were added to Fabric.
+
+        Args:
+            name: The name of the metric to log.
+            value: The metric value to collect.
+            step: Optional step number. Most Logger implementations auto-increment the step value by one with every
+                log call. You can specify your own value here.
+        """
+        self.log_dict(metrics={name: value}, step=step)
+
+    def log_dict(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
+        """Log multiple scalars at once to all loggers that were added to Fabric.
+
+        Args:
+            metrics: A dictionary where the key is the name of the metric and the value the scalar to be logged.
+            step: Optional step number. Most Logger implementations auto-increment this value by one with every
+                log call. You can specify your own value here.
+        """
+        for logger in self._loggers:
+            logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:

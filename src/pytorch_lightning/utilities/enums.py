@@ -18,7 +18,7 @@ import os
 from enum import Enum, EnumMeta
 from typing import Any
 
-from lightning_fabric.utilities.enums import LightningEnum, PrecisionType  # noqa: F401
+from lightning_fabric.utilities.enums import LightningEnum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
@@ -46,6 +46,30 @@ class _DeprecatedEnumMeta(EnumMeta):
         if isinstance(obj, Enum):
             obj.deprecate()
         return obj
+
+
+class PrecisionType(LightningEnum, metaclass=_DeprecatedEnumMeta):
+    """Type of precision used."""
+
+    HALF = "16"
+    FLOAT = "32"
+    FULL = "64"
+    BFLOAT = "bf16"
+    MIXED = "mixed"
+
+    @staticmethod
+    def supported_type(precision: str | int) -> bool:
+        return any(x == precision for x in PrecisionType)
+
+    @staticmethod
+    def supported_types() -> list[str]:
+        return [x.value for x in PrecisionType]
+
+    def deprecate(self) -> None:
+        rank_zero_deprecation(
+            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            f" Use the string value `{self.value!r}` instead."
+        )
 
 
 class AMPType(LightningEnum, metaclass=_DeprecatedEnumMeta):

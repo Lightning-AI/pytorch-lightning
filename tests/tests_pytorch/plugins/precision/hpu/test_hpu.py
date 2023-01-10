@@ -65,7 +65,7 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
 def test_pure_half_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.strategy.model.precision == "16"
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
@@ -83,7 +83,7 @@ def test_pure_half_precision(tmpdir, hmp_params: dict):
 
     assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
     with pytest.raises(RuntimeError, match=r"float16/half is not supported on Gaudi."):
         trainer.fit(model)
