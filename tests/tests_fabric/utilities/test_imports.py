@@ -18,7 +18,6 @@ from textwrap import dedent
 from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 
 
 def test_imports():
@@ -28,13 +27,6 @@ def test_imports():
         assert not _DEEPSPEED_AVAILABLE
     else:
         assert _DEEPSPEED_AVAILABLE
-
-    try:
-        import fairscale.nn  # noqa
-    except ModuleNotFoundError:
-        assert not _FAIRSCALE_AVAILABLE
-    else:
-        assert _FAIRSCALE_AVAILABLE
 
 
 def test_import_fabric_with_torch_dist_unavailable():
