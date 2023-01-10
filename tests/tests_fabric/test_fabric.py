@@ -801,3 +801,28 @@ def test_log_dict():
     fabric.log_dict({"foo": 3, "bar": 4}, step=15)
     logger0.log_metrics.assert_called_with(metrics={"foo": 3, "bar": 4}, step=15)
     logger1.log_metrics.assert_called_with(metrics={"foo": 3, "bar": 4}, step=15)
+
+
+def test_log_dict_input_parsing():
+    """Test validation of input data types and preprocessing."""
+    logger = Mock()
+    fabric = Fabric(loggers=[logger])
+
+    # Tensor scalar, 0 dims
+    fabric.log("log", torch.tensor(1))
+    logger.log_metrics.assert_called_with(metrics={"log": 1}, step=None)
+    fabric.log_dict({"log_dict": torch.tensor(1)})
+    logger.log_metrics.assert_called_with(metrics={"log_dict": 1}, step=None)
+
+    # Tensor scalar, 1 dims
+    fabric.log("log", torch.tensor([2]))
+    logger.log_metrics.assert_called_with(metrics={"log": 2}, step=None)
+    fabric.log_dict({"log_dict": torch.tensor([2])})
+    logger.log_metrics.assert_called_with(metrics={"log_dict": 2}, step=None)
+
+    # Tensor, multiple dims
+    with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
+        fabric.log("log", torch.tensor([3, 4]))
+
+    with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
+        fabric.log_dict({"log_dict": torch.tensor([3, 4])})
