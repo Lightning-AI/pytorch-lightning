@@ -43,6 +43,10 @@ class SingleDeviceStrategy(Strategy):
         self.world_size = 1
 
     @property
+    def is_distributed(self) -> bool:
+        return False
+
+    @property
     def root_device(self) -> torch.device:
         return self._root_device
 
