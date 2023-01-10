@@ -1,8 +1,8 @@
 :orphan:
 
-#####################
-Distributed Operation
-#####################
+###########################
+Launch distributed training
+###########################
 
 To run your code distributed across many devices and/or across many machines, you need to do two things:
 
@@ -23,7 +23,7 @@ The most convienent way to do all of the above is to run your Python script dire
 
     lightning run model path/to/your/script.py
 
-This is essentially the same as running ``python path/to/your/script.py`` but it also let's you configure:
+This is essentially the same as running ``python path/to/your/script.py`` but it also lets you configure:
 
 - ``--accelerator``: The accelerator to use
 - ``--devices``: The number of devices to use (per machine)

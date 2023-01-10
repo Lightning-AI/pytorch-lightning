@@ -1,8 +1,8 @@
 :orphan:
 
-##############
-Code Structure
-##############
+######################################
+How to structure your code with Fabric
+######################################
 
 Fabric is flexible enough to adapt to any project structure, regardless of whether you are experimenting with a simple script or a big framework, because it makes basically no assumptions on how your code is organized.
 Despite the ultimate freedom, this page is meant to give beginners a template for how to organize a typical training script with Fabric:

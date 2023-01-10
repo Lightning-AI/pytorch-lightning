@@ -75,20 +75,20 @@ Fundamentals
     :tag: basic
 
 .. displayitem::
-    :header: Code Structure
-    :description: Best practices for setting up your training script with Fabric
-    :button_link: fundamentals/code_structure.html
-    :col_css: col-md-4
-    :height: 150
-    :tag: basic
-
-.. displayitem::
     :header: Accelerators
     :description: Take advantage of your hardware with a switch of a flag
     :button_link: fundamentals/accelerators.html
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
+
+.. displayitem::
+    :header: Code Structure
+    :description: Best practices for setting up your training script with Fabric
+    :button_link: fundamentals/code_structure.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
 
 .. displayitem::
     :header: Distributed Operation

@@ -1,8 +1,13 @@
 :orphan:
 
-############
-Accelerators
-############
+################################
+Accelerate your code with Fabric
+################################
+
+
+***************************
+Set accelerator and devices
+***************************
 
 Fabric enables you to take full advantage of the hardware on your system. It supports
 
@@ -50,9 +55,9 @@ For running on multiple devices in parallel, also known as "distributed", read o
 ----------
 
 
-********************
-Accessing the Device
-********************
+*****************
+Access the Device
+*****************
 
 You can access the device at any time through ``fabric.device``.
 This let's you replace boilerplate code like this:
