@@ -69,7 +69,7 @@ class Fabric:
         accelerator: The hardware to run on. Possible choices are:
             ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"```, "ddp_sharded"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
@@ -673,7 +673,7 @@ class Fabric:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._connector.is_distributed
+            self.strategy.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
