@@ -54,7 +54,7 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
-from lightning_fabric.utilities import _StrategyType, rank_zero_info, rank_zero_warn
+from lightning_fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
@@ -516,7 +516,7 @@ class _Connector:
             raise RuntimeError(
                 f"`Fabric(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Fabric(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Fabric"
                 " creation inside the worker function."
             )

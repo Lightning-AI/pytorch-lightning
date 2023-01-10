@@ -29,31 +29,6 @@ else:
     LightningEnum = StrEnum
 
 
-class _StrategyType(LightningEnum):
-    """Define type of training strategy."""
-
-    DP = "dp"
-    DDP = "ddp"
-    DDP_SPAWN = "ddp_spawn"
-    DDP_FORK = "ddp_fork"
-    DEEPSPEED = "deepspeed"
-    DDP_SHARDED = "ddp_sharded"
-    DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
-    DDP_FULLY_SHARDED = "ddp_fully_sharded"
-
-    @staticmethod
-    def interactive_compatible_types() -> list[_StrategyType]:
-        """Returns a list containing interactive compatible _StrategyTypes."""
-        return [
-            _StrategyType.DP,
-            _StrategyType.DDP_FORK,
-        ]
-
-    def is_interactive_compatible(self) -> bool:
-        """Returns whether self is interactive compatible."""
-        return self in _StrategyType.interactive_compatible_types()
-
-
 class _AcceleratorType(LightningEnum):
     """Define Accelerator type by its nature."""
 
