@@ -576,10 +576,10 @@ class LightningModule(
 
         kwargs: Dict[str, bool] = {}
 
-        if isinstance(dictionary, MetricCollection):
-            kwargs["keep_base"] = False
-            if _TORCHMETRICS_GREATER_EQUAL_0_9_1 and dictionary._enable_compute_groups:
-                kwargs["copy_state"] = False
+        # if isinstance(dictionary, MetricCollection):
+        #     kwargs["keep_base"] = False
+        #     if _TORCHMETRICS_GREATER_EQUAL_0_9_1 and dictionary._enable_compute_groups:
+        #         kwargs["copy_state"] = False
 
         for k, v in dictionary.items(**kwargs):
 
