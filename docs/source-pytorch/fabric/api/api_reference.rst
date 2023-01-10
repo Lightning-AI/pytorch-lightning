@@ -65,15 +65,15 @@ Environments
 .. autosummary::
     :toctree: api
     :nosignatures:
-    :template: classtemplate.rst
+    :template: classtemplate_noindex.rst
 
-    ClusterEnvironment
-    KubeflowEnvironment
-    LightningEnvironment
-    LSFEnvironment
-    SLURMEnvironment
-    TorchElasticEnvironment
-    XLAEnvironment
+    ~cluster_environment.ClusterEnvironment
+    ~kubeflow.KubeflowEnvironment
+    ~lightning.LightningEnvironment
+    ~lsf.LSFEnvironment
+    ~slurm.SLURMEnvironment
+    ~torchelastic.TorchElasticEnvironment
+    ~xla.XLAEnvironment
 
 
 IO
@@ -86,9 +86,9 @@ IO
     :nosignatures:
     :template: classtemplate.rst
 
-    CheckpointIO
-    TorchCheckpointIO
-    XLACheckpointIO
+    ~checkpoint_io.CheckpointIO
+    ~torch_io.TorchCheckpointIO
+    ~xla.XLACheckpointIO
 
 
 Collectives
@@ -126,18 +126,3 @@ Strategies
     SingleDeviceStrategy
     SingleTPUStrategy
     XLAStrategy
-
-
-Utilities
-^^^^^^^^^
-
-.. currentmodule:: pytorch_lightning.utilities
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-
-    apply_func
-    memory
-    rank_zero
-    seed
