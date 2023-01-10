@@ -42,7 +42,7 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
-from lightning_fabric.utilities.apply_func import convert_to_tensors, convert_tensors_to_scalars
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
 from lightning_fabric.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
