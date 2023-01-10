@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Dict, List, Optional
 
 import torch
@@ -42,9 +42,8 @@ class ParallelStrategy(Strategy, ABC):
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 
     @property
-    @abstractmethod
-    def root_device(self) -> torch.device:
-        """Return the root device."""
+    def is_distributed(self) -> bool:
+        return True
 
     @property
     def global_rank(self) -> int:
