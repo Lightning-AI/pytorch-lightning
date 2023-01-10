@@ -564,11 +564,11 @@ def test_fabric_log():
 
     # supported data types
     wrapped_module.log("int", 1)
-    logger.log_metrics.assert_called_with(metrics={'int': 1}, step=None)
+    logger.log_metrics.assert_called_with(metrics={"int": 1}, step=None)
     wrapped_module.log("float", 0.1)
-    logger.log_metrics.assert_called_with(metrics={'float': 0.1}, step=None)
+    logger.log_metrics.assert_called_with(metrics={"float": 0.1}, step=None)
     wrapped_module.log("tensor", torch.tensor(0.1))
-    logger.log_metrics.assert_called_with(metrics={'tensor': torch.tensor(0.1)}, step=None)
+    logger.log_metrics.assert_called_with(metrics={"tensor": torch.tensor(0.1)}, step=None)
 
     # logger=False
     logger.reset_mock()
