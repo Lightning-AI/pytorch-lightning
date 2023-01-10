@@ -13,7 +13,7 @@ Fabric
 .. currentmodule:: lightning_fabric.fabric
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
@@ -26,7 +26,7 @@ Accelerators
 .. currentmodule:: lightning_fabric.accelerators
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
@@ -46,7 +46,7 @@ Precision
 .. currentmodule:: lightning_fabric.plugins.precision
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
@@ -65,7 +65,7 @@ Environments
 .. currentmodule:: lightning_fabric.plugins.environments
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate_noindex.rst
 
@@ -84,7 +84,7 @@ IO
 .. currentmodule:: lightning_fabric.plugins.io
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
@@ -99,7 +99,7 @@ Collectives
 .. currentmodule:: lightning_fabric.plugins.collectives
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
@@ -114,7 +114,7 @@ Strategies
 .. currentmodule:: lightning_fabric.strategies
 
 .. autosummary::
-    :toctree: api
+    :toctree: ../../api
     :nosignatures:
     :template: classtemplate.rst
 
