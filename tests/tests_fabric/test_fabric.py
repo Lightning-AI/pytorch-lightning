@@ -820,8 +820,8 @@ def test_log_dict_input_parsing():
     logger.log_metrics.assert_called_with(metrics={"log_dict": 2}, step=None)
 
     # Tensor, multiple dims
-    with pytest.raises(ValueError, match="Logging tensors with more than one element is not supported"):
+    with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
         fabric.log("log", torch.tensor([3, 4]))
 
-    with pytest.raises(ValueError, match="Logging tensors with more than one element is not supported"):
+    with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
         fabric.log_dict({"log_dict": torch.tensor([3, 4])})

@@ -42,7 +42,7 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
-from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.apply_func import convert_to_tensors, convert_tensors_to_scalars
 from lightning_fabric.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
@@ -613,13 +613,7 @@ class Fabric:
             step: Optional step number. Most Logger implementations auto-increment this value by one with every
                 log call. You can specify your own value here.
         """
-
-        def to_item(value: Tensor) -> Union[int, float, bool]:
-            if value.numel() != 1:
-                raise ValueError("Logging tensors with more than one element is not supported.")
-            return value.item()
-
-        metrics = apply_to_collection(metrics, dtype=Tensor, function=to_item)
+        metrics = convert_tensors_to_scalars(metrics)
         for logger in self._loggers:
             logger.log_metrics(metrics=metrics, step=step)
 
