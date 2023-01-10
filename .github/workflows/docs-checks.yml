@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
 
@@ -145,7 +145,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
           FREEZE_REQUIREMENTS: 1
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
           pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
