@@ -559,7 +559,10 @@ class LightningModule(
                 would produce a deadlock as not all processes would perform this log call.
         """
         if self._fabric is not None:
-            self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
+            self._log_dict_through_fabric(
+                dictionary=dictionary,  # type: ignore[arg-type]
+                logger=logger
+            )
         else:
             for k, v in dictionary.items():
                 self.log(
@@ -584,9 +587,11 @@ class LightningModule(
             # log to, but we support it in case the original code was written for Trainer use
             return
         apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
+
+        assert self._fabric is not None
         self._fabric.log(name=name, value=value)
 
-    def _log_dict_through_fabric(self, dictionary, logger: Optional[bool] = None)-> None:
+    def _log_dict_through_fabric(self, dictionary: Dict[str, Any], logger: Optional[bool] = None) -> None:
         if logger is False:
             return
 
@@ -595,6 +600,7 @@ class LightningModule(
         for name, value in dictionary.items():
             apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
 
+        assert self._fabric is not None
         self._fabric.log_dict(metrics=dictionary)
 
     @staticmethod
