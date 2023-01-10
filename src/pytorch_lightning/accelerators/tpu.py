@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from lightning_fabric.accelerators.tpu import _parse_tpu_devices, _XLA_AVAILABLE
-from lightning_fabric.accelerators.tpu import TPUAccelerator as LiteTPUAccelerator
+from lightning_fabric.accelerators.tpu import TPUAccelerator as FabricTPUAccelerator
 from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
 
@@ -74,7 +74,7 @@ class TPUAccelerator(Accelerator):
 
     @staticmethod
     def is_available() -> bool:
-        return LiteTPUAccelerator.is_available()
+        return FabricTPUAccelerator.is_available()
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:

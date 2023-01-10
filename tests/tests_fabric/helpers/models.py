@@ -32,7 +32,7 @@ class RandomIterableDataset(IterableDataset):
             yield torch.randn(self.size)
 
 
-class BoringLite(Fabric):
+class BoringFabric(Fabric):
     def get_model(self) -> Module:
         return nn.Linear(32, 2)
 

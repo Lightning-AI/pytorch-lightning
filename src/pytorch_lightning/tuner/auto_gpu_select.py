@@ -24,7 +24,7 @@ def pick_multiple_gpus(nb: int, _show_deprecation: bool = True) -> List[int]:
     """Pick a number of GPUs that are not yet in use.
 
     .. deprecated:: v1.9.0
-        The function ``pick_multiple_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+        The function ``pick_multiple_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
         Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
 
     Raises:
@@ -34,7 +34,7 @@ def pick_multiple_gpus(nb: int, _show_deprecation: bool = True) -> List[int]:
     """
     if _show_deprecation:
         rank_zero_deprecation(
-            "The function `pick_multiple_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            "The function `pick_multiple_gpus` has been deprecated in v1.9.0 and will be removed in v2.0.0."
             " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
         )
 
@@ -60,7 +60,7 @@ def pick_single_gpu(exclude_gpus: List[int], _show_deprecation: bool = True) -> 
     """Find a GPU that is not yet in use.
 
     .. deprecated:: v1.9.0
-        The function ``pick_single_gpu`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+        The function ``pick_single_gpu`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
         Please use the function ``pytorch_lightning.accelerators.find_usable_cuda_devices`` instead.
 
     Raises:
@@ -69,7 +69,7 @@ def pick_single_gpu(exclude_gpus: List[int], _show_deprecation: bool = True) -> 
     """
     if _show_deprecation:
         rank_zero_deprecation(
-            "The function `pick_single_gpu` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            "The function `pick_single_gpu` has been deprecated in v1.9.0 and will be removed in v2.0.0."
             " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
         )
 
