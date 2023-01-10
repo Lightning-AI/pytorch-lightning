@@ -251,7 +251,6 @@ Current Lightning Users
    Pretrained models <advanced/pretrained>
    Profiler <tuning/profiler>
    Pruning and Quantization <advanced/pruning_quantization>
-   Post-training Quantization <advanced/post_training_quantization>
    Remote filesystem and FSSPEC <common/remote_fs>
    Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
