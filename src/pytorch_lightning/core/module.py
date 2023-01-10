@@ -559,10 +559,7 @@ class LightningModule(
                 would produce a deadlock as not all processes would perform this log call.
         """
         if self._fabric is not None:
-            self._log_dict_through_fabric(
-                dictionary=dictionary,  # type: ignore[arg-type]
-                logger=logger
-            )
+            self._log_dict_through_fabric(dictionary=dictionary, logger=logger)  # type: ignore[arg-type]
         else:
             for k, v in dictionary.items():
                 self.log(
