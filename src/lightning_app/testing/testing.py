@@ -476,13 +476,13 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             res = callback(*args, **kwargs)
             if res:
                 return res
-        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-            print(e)
+        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as err:
+            print(err)
             try:
                 sleep(7)
                 page.reload()
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-                print(e)
+            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as err:
+                print(err)
                 pass
             sleep(3)
 
