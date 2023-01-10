@@ -261,9 +261,12 @@ def run_app_in_cloud(
     if url.endswith("/"):
         url = url[:-1]
     payload = {"apiKey": _Config.api_key, "username": _Config.username}
-    res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
+    url_login = url + "/v1/auth/login"
+    res = requests.post(url_login, data=json.dumps(payload))
     if "token" not in res.json():
-        raise Exception("You haven't properly setup your environment variables.")
+        raise RuntimeError(
+            f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
+        )
 
     token = res.json()["token"]
 
