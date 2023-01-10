@@ -403,10 +403,8 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        if self._fabric is not None and logger is not False:
-            apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
-            # TODO(fabric): Warn if on_epoch, on_step, etc. are set
-            self._fabric.log(name=name, value=value)
+        if self._fabric is not None:
+            self._log_through_fabric(name=name, value=value, logger=logger)
             return
 
         # check for invalid values
@@ -560,28 +558,44 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
-        if self._fabric is not None and logger is not False:
-            # TODO(fabric): Warn if on_epoch, on_step, etc. are set
-            # TODO(fabric): Restrict the type, check that it's not nested
-            self._fabric.log_dict(dictionary)
+        if self._fabric is not None:
+            self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
+        else:
+            for k, v in dictionary.items():
+                self.log(
+                    name=k,
+                    value=v,
+                    prog_bar=prog_bar,
+                    logger=logger,
+                    on_step=on_step,
+                    on_epoch=on_epoch,
+                    reduce_fx=reduce_fx,
+                    enable_graph=enable_graph,
+                    sync_dist=sync_dist,
+                    sync_dist_group=sync_dist_group,
+                    add_dataloader_idx=add_dataloader_idx,
+                    batch_size=batch_size,
+                    rank_zero_only=rank_zero_only,
+                )
+
+    def _log_through_fabric(self, name: str, value: _METRIC_COLLECTION, logger: Optional[bool] = None) -> None:
+        if logger is False:
+            # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
+            # log to, but we support it in case the original code was written for Trainer use
+            return
+        apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
+        self._fabric.log(name=name, value=value)
+
+    def _log_dict_through_fabric(self, dictionary, logger: Optional[bool] = None)-> None:
+        if logger is False:
             return
 
-        for k, v in dictionary.items():
-            self.log(
-                name=k,
-                value=v,
-                prog_bar=prog_bar,
-                logger=logger,
-                on_step=on_step,
-                on_epoch=on_epoch,
-                reduce_fx=reduce_fx,
-                enable_graph=enable_graph,
-                sync_dist=sync_dist,
-                sync_dist_group=sync_dist_group,
-                add_dataloader_idx=add_dataloader_idx,
-                batch_size=batch_size,
-                rank_zero_only=rank_zero_only,
-            )
+        if any(isinstance(v, dict) for v in dictionary.values()):
+            raise ValueError(f"`self.log_dict({dictionary})` was called, but nested dictionaries cannot be logged")
+        for name, value in dictionary.items():
+            apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
+
+        self._fabric.log_dict(metrics=dictionary)
 
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:

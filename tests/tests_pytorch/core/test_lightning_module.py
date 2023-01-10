@@ -562,14 +562,39 @@ def test_fabric_log():
     with pytest.raises(ValueError, match="`dict` values cannot be logged"):
         wrapped_module.log("invalid", dict())
 
+    # supported data types
+    wrapped_module.log("int", 1)
+    logger.log_metrics.assert_called_with(metrics={'int': 1}, step=None)
+    wrapped_module.log("float", 0.1)
+    logger.log_metrics.assert_called_with(metrics={'float': 0.1}, step=None)
+    wrapped_module.log("tensor", torch.tensor(0.1))
+    logger.log_metrics.assert_called_with(metrics={'tensor': torch.tensor(0.1)}, step=None)
+
+    # logger=False
+    logger.reset_mock()
+    wrapped_module.log("nothing", 1, logger=False)
+    logger.log_metrics.assert_not_called()
+
+
+def test_fabric_log_dict():
+    logger = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=[logger])
+    wrapped_module = fabric.setup(module)
+
     # unsupported data type
-    # with pytest.raises(ValueError, match="`list` values cannot be logged"):
-    #     wrapped_module.log_dict("invalid", [1, 2, 3])
+    with pytest.raises(ValueError, match="`list` values cannot be logged"):
+        wrapped_module.log_dict({"invalid": [1, 2, 3]})
 
-    # self.log()
-    wrapped_module.log("loss", 0.1)
-    logger.log_metrics.assert_called_with(metrics={'loss': 0.1}, step=None)
+    # nested dicts
+    with pytest.raises(ValueError, match="nested dictionaries cannot be logged"):
+        wrapped_module.log_dict({"nested": {"nested": 1}})
 
-    # self.log_dict()
-    wrapped_module.log_dict({"x": 1, "y": 2})
-    logger.log_metrics.assert_called_with(metrics={"x": 1, "y": 2}, step=None)
+    # supported data types
+    wrapped_module.log_dict({"int": 1, "float": 0.1, "tensor": torch.tensor(0.1)})
+    logger.log_metrics.assert_called_with(metrics={"int": 1, "float": 0.1, "tensor": torch.tensor(0.1)}, step=None)
+
+    # logger=False
+    logger.reset_mock()
+    wrapped_module.log_dict({"nothing": 1}, logger=False)
+    logger.log_metrics.assert_not_called()
