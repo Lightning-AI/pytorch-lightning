@@ -15,16 +15,6 @@
 import pytest
 
 
-def test_old_lightningmodule_path():
-    from pytorch_lightning.core.lightning import LightningModule
-
-    with pytest.deprecated_call(
-        match="pytorch_lightning.core.lightning.LightningModule has been deprecated in v1.7"
-        " and will be removed in v1.9."
-    ):
-        LightningModule()
-
-
 def test_old_callback_path():
     from pytorch_lightning.callbacks.base import Callback
 
