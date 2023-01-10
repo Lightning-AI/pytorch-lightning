@@ -82,16 +82,6 @@ core
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
 
-lightning_fabric
-----------------
-
-.. currentmodule:: lightning_fabric.fabric
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-
-    Fabric
 
 loggers
 -------
