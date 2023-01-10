@@ -23,8 +23,8 @@ from lightning_utilities.core.rank_zero import _warn
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.types import _TORCH_LRSCHEDULER
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -307,7 +307,7 @@ class LightningCLI:
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Number for the :func:`~lightning_lite.utilities.seed.seed_everything`
+            seed_everything_default: Number for the :func:`~lightning_fabric.utilities.seed.seed_everything`
                 seed value. Set to True to automatically choose a seed value.
                 Setting it to False will avoid calling ``seed_everything``.
             parser_kwargs: Additional arguments to instantiate each ``LightningArgumentParser``.
@@ -358,13 +358,6 @@ class LightningCLI:
             self._run_subcommand(self.subcommand)
 
     def _handle_deprecated_params(self, kwargs: dict) -> None:
-        if self.seed_everything_default is None:
-            rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
-                "and will be removed in v1.9. Set it to `False` instead."
-            )
-            self.seed_everything_default = False
-
         for name in kwargs.keys() & ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
             value = kwargs.pop(name)
             key = name.replace("save_config_", "").replace("filename", "config_filename")

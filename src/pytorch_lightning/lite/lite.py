@@ -15,30 +15,28 @@
 from abc import ABC
 from typing import List, Optional, Tuple, Union
 
-from lightning_utilities.core.rank_zero import rank_zero_deprecation, rank_zero_warn
-
-from lightning_lite.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
-from lightning_lite.connector import _PRECISION_INPUT
-from lightning_lite.lite import LightningLite as _NewLightningLite
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
-from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
-from lightning_lite.plugins import NativeMixedPrecision as LiteNativeMixedPrecision
-from lightning_lite.plugins import Precision as LitePrecision
-from lightning_lite.plugins import TPUBf16Precision as LiteTPUBf16Precision
-from lightning_lite.plugins import TPUPrecision as LiteTPUPrecision
-from lightning_lite.strategies import DataParallelStrategy as LiteDataParallelStrategy
-from lightning_lite.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
-from lightning_lite.strategies import DDPStrategy as LiteDDPStrategy
-from lightning_lite.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
-from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
-from lightning_lite.strategies import SingleTPUStrategy as LiteSingleTPUStrategy
-from lightning_lite.strategies import Strategy as LiteStrategy
-from lightning_lite.strategies import XLAStrategy
+from lightning_fabric import Fabric
+from lightning_fabric.connector import _PLUGIN_INPUT as _LITE_PLUGIN_INPUT
+from lightning_fabric.connector import _PRECISION_INPUT
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.plugins import DeepSpeedPrecision as LiteDeepSpeedPrecision
+from lightning_fabric.plugins import DoublePrecision as LiteDoublePrecision
+from lightning_fabric.plugins import MixedPrecision as LiteMixedPrecision
+from lightning_fabric.plugins import Precision as LitePrecision
+from lightning_fabric.plugins import TPUBf16Precision as LiteTPUBf16Precision
+from lightning_fabric.plugins import TPUPrecision as LiteTPUPrecision
+from lightning_fabric.strategies import DataParallelStrategy as LiteDataParallelStrategy
+from lightning_fabric.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
+from lightning_fabric.strategies import DDPStrategy as LiteDDPStrategy
+from lightning_fabric.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
+from lightning_fabric.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
+from lightning_fabric.strategies import SingleTPUStrategy as LiteSingleTPUStrategy
+from lightning_fabric.strategies import Strategy as LiteStrategy
+from lightning_fabric.strategies import XLAStrategy
 from pytorch_lightning.accelerators import Accelerator as PLAccelerator
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin as PLDeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin
-from pytorch_lightning.plugins import NativeMixedPrecisionPlugin as PLNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins import MixedPrecisionPlugin as PLMixedPrecisionPlugin
 from pytorch_lightning.plugins import PrecisionPlugin as PLPrecisionPlugin
 from pytorch_lightning.plugins import TPUBf16PrecisionPlugin as PLTPUBf16PrecisionPlugin
 from pytorch_lightning.plugins import TPUPrecisionPlugin as PLTPUPrecisionPlugin
@@ -52,12 +50,13 @@ from pytorch_lightning.strategies import SingleDeviceStrategy as PLSingleDeviceS
 from pytorch_lightning.strategies import SingleTPUStrategy as PLSingleTPUStrategy
 from pytorch_lightning.strategies import Strategy as PLStrategy
 from pytorch_lightning.strategies import TPUSpawnStrategy as PLTPUSpawnStrategy
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 _PL_PLUGIN = Union[PLPrecisionPlugin, ClusterEnvironment, CheckpointIO]
 _PL_PLUGIN_INPUT = Union[_PL_PLUGIN, str]
 
 
-class LightningLite(_NewLightningLite, ABC):
+class LightningLite(Fabric, ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
     - Automatic placement of models and data onto the device.
@@ -284,8 +283,8 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
     if type(plugin) is PLPrecisionPlugin:
         return LitePrecision()
 
-    if type(plugin) is PLNativeMixedPrecisionPlugin:
-        return LiteNativeMixedPrecision(
+    if type(plugin) is PLMixedPrecisionPlugin:
+        return LiteMixedPrecision(
             precision=plugin.precision, device=plugin.device, scaler=plugin.scaler  # type: ignore[arg-type]
         )
 
@@ -294,7 +293,7 @@ def _to_lite_precision(plugin: Optional[PLPrecisionPlugin]) -> LitePrecision:
 
     if type(plugin) is PLDeepSpeedPrecisionPlugin:
         return LiteDeepSpeedPrecision(
-            precision=plugin.precision, amp_type=plugin.amp_type, amp_level=plugin.amp_level  # type: ignore[arg-type]
+            precision=plugin.precision,  # type: ignore[arg-type]
         )
 
     if type(plugin) is PLTPUPrecisionPlugin:

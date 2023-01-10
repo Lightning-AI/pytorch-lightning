@@ -67,8 +67,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        output = self(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         opt.zero_grad()
         self.manual_backward(loss)
         opt.step()
@@ -140,19 +139,29 @@ def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
     """
-
-    trainer = Trainer(
-        fast_dev_run=True,
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        strategy="deepspeed",
-        amp_backend=amp_backend,
-        precision=16,
-    )
+    if amp_backend == "apex":
+        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
+            trainer = Trainer(
+                fast_dev_run=True,
+                default_root_dir=tmpdir,
+                accelerator="gpu",
+                strategy="deepspeed",
+                amp_backend=amp_backend,
+                precision=16,
+            )
+    else:
+        trainer = Trainer(
+            fast_dev_run=True,
+            default_root_dir=tmpdir,
+            accelerator="gpu",
+            strategy="deepspeed",
+            amp_backend=amp_backend,
+            precision=16,
+        )
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
 
 @RunIf(deepspeed=True)

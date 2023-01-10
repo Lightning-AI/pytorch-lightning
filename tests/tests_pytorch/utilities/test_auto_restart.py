@@ -27,12 +27,13 @@ from unittest.mock import ANY
 import numpy as np
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 
-from lightning_lite.utilities.seed import seed_everything
+from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
@@ -620,7 +621,7 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
             }
 
         def validation_step(self, batch, batch_idx):
-            assert isinstance(batch, torch.Tensor)
+            assert isinstance(batch, Tensor)
 
         validation_epoch_end = None
 

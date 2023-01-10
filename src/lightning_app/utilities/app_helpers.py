@@ -184,11 +184,22 @@ class AppStatePlugin(BaseStatePlugin):
 
 
 def target_fn():
-    from streamlit.server.server import Server
+    try:
+        # streamlit >= 1.14.0
+        from streamlit import runtime
+
+        get_instance = runtime.get_instance
+        exists = runtime.exists()
+    except ImportError:
+        # Older versions
+        from streamlit.server.server import Server
+
+        get_instance = Server.get_current
+        exists = bool(Server._singleton)
 
     async def update_fn():
-        server = Server.get_current()
-        sessions = list(server._session_info_by_id.values())
+        runtime_instance = get_instance()
+        sessions = list(runtime_instance._session_info_by_id.values())
         url = (
             "localhost:8080"
             if "LIGHTNING_APP_STATE_URL" in os.environ
@@ -198,15 +209,20 @@ def target_fn():
         last_updated = time.time()
         async with websockets.connect(ws_url) as websocket:
             while True:
-                _ = await websocket.recv()
-                while (time.time() - last_updated) < 1:
-                    time.sleep(0.1)
-                for session in sessions:
-                    session = session.session
-                    session.request_rerun(session._client_state)
-                last_updated = time.time()
+                try:
+                    _ = await websocket.recv()
 
-    if Server._singleton:
+                    while (time.time() - last_updated) < 1:
+                        time.sleep(0.1)
+                    for session in sessions:
+                        session = session.session
+                        session.request_rerun(session._client_state)
+                    last_updated = time.time()
+                except websockets.exceptions.ConnectionClosedOK:
+                    # The websocket is not enabled
+                    break
+
+    if exists:
         asyncio.run(update_fn())
 
 
@@ -391,7 +407,6 @@ class LightningJSONEncoder(json.JSONEncoder):
 
 
 class Logger:
-
     """This class is used to improve the debugging experience."""
 
     def __init__(self, name: str):

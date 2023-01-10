@@ -13,8 +13,10 @@
 # limitations under the License.
 from typing import Optional, Union
 
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
+from typing_extensions import Literal
+
+from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _FAIRSCALE_AVAILABLE:
@@ -24,16 +26,20 @@ else:
     OSS = ShardedGradScaler = object
 
 
-class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
+class ShardedNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     """Native AMP for Sharded Training."""
 
-    def __init__(self, precision: Union[str, int], device: str, scaler: Optional[ShardedGradScaler] = None) -> None:
+    def __init__(
+        self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
+    ) -> None:
         if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for sharded AMP but you have not installed it."
                 " Install `fairscale` using this guide: https://https://github.com/facebookresearch/fairscale"
             )
-        super().__init__(precision, device, scaler=ShardedGradScaler() if scaler is None and precision == 16 else None)
+        super().__init__(
+            precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16" else None)
+        )
 
     def clip_grad_by_norm(self, optimizer: "OSS", clip_val: Union[int, float]) -> None:
         optimizer.clip_grad_norm(clip_val)

@@ -70,8 +70,15 @@ img = base64.b64encode(img).decode("UTF-8")
 response = requests.post('"""
             + url
             + """', json={
-    "image": img
-})"""
+"image": img
+})
+# If you are using basic authentication for your app, you should add your credentials to the request:
+# response = requests.post('"""
+            + url
+            + """', json={
+# "image": img
+# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
+"""
         )
 
     @staticmethod
@@ -112,8 +119,14 @@ import requests
 response = requests.post('"""
             + url
             + """', json={
-    "text": "A portrait of a person looking away from the camera"
+"text": "A portrait of a person looking away from the camera"
 })
+# If you are using basic authentication for your app, you should add your credentials to the request:
+# response = requests.post('"""
+            + url
+            + """', json={
+# "text": "A portrait of a person looking away from the camera"
+# }, auth=requests.auth.HTTPBasicAuth('your_username', 'your_password'))
 """
         )
 
@@ -129,7 +142,6 @@ class Number(BaseModel):
 
 
 class PythonServer(LightningWork, abc.ABC):
-
     _start_method = "spawn"
 
     @requires(["torch"])
@@ -192,6 +204,8 @@ class PythonServer(LightningWork, abc.ABC):
             raise TypeError("output_type must be a pydantic BaseModel class")
         self._input_type = input_type
         self._output_type = output_type
+
+        self.ready = False
 
     def setup(self, *args, **kwargs) -> None:
         """This method is called before the server starts. Override this if you need to download the model or
@@ -300,5 +314,8 @@ class PythonServer(LightningWork, abc.ABC):
         fastapi_app = FastAPI()
         self._attach_predict_fn(fastapi_app)
 
-        logger.info(f"Your app has started. View it in your browser: http://{self.host}:{self.port}")
+        self.ready = True
+        logger.info(
+            f"Your {self.__class__.__qualname__} has started. View it in your browser: http://{self.host}:{self.port}"
+        )
         uvicorn.run(app=fastapi_app, host=self.host, port=self.port, log_level="error")

@@ -19,8 +19,8 @@ import torch
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.utilities.types import _DEVICE
+from lightning_fabric.plugins import CheckpointIO
+from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 

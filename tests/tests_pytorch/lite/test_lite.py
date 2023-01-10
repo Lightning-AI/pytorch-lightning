@@ -2,13 +2,13 @@ from re import escape
 
 import pytest
 
-from lightning_lite.accelerators import CPUAccelerator as LiteCPUAccelerator
-from lightning_lite.plugins import DoublePrecision as LiteDoublePrecision
-from lightning_lite.plugins import Precision as LitePrecision
-from lightning_lite.plugins.environments import SLURMEnvironment
-from lightning_lite.strategies import DDPStrategy as LiteDDPStrategy
-from lightning_lite.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
-from lightning_lite.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
+from lightning_fabric.accelerators import CPUAccelerator as LiteCPUAccelerator
+from lightning_fabric.plugins import DoublePrecision as LiteDoublePrecision
+from lightning_fabric.plugins import Precision as LitePrecision
+from lightning_fabric.plugins.environments import SLURMEnvironment
+from lightning_fabric.strategies import DDPStrategy as LiteDDPStrategy
+from lightning_fabric.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
+from lightning_fabric.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
 from pytorch_lightning.accelerators import CUDAAccelerator as PLCUDAAccelerator
 from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecisionPlugin

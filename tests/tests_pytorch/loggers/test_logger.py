@@ -21,12 +21,13 @@ import numpy as np
 import pytest
 import torch
 
+from lightning_fabric.utilities.logger import _convert_params, _sanitize_params
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params, _scan_checkpoints
+from pytorch_lightning.utilities.logger import _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
@@ -79,8 +80,7 @@ class CustomLogger(Logger):
 def test_custom_logger(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 
@@ -97,8 +97,7 @@ def test_custom_logger(tmpdir):
 def test_multiple_loggers(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("train_loss", loss)
             return {"loss": loss}
 

@@ -24,7 +24,6 @@ logger = Logger(__name__)
 
 @dataclass
 class MultiProcessRuntime(Runtime):
-
     """Runtime to launch the LightningApp into multiple processes.
 
     The MultiProcessRuntime will generate 1 process for each :class:`~lightning_app.core.work.LightningWork` and attach
