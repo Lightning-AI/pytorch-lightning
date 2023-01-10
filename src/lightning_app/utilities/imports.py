@@ -15,7 +15,7 @@
 
 import os
 import warnings
-from functools import wraps, lru_cache
+from functools import lru_cache, wraps
 from typing import List, Union
 
 from lightning_utilities.core.imports import module_available
