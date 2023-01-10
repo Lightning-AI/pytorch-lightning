@@ -304,7 +304,7 @@ class HookedModel(BoringModel):
         trainer, model, batches, device=torch.device("cpu"), current_epoch=0, current_batch=0, **kwargs
     ):
         using_deepspeed = kwargs.get("strategy") == "deepspeed"
-        using_native_amp = trainer.precision == 16 and trainer.amp_backend == 'native'
+        using_native_amp = trainer.precision == 16 and trainer.amp_backend == "native"
         out = []
         for i in range(current_batch, batches):
             out.extend(
