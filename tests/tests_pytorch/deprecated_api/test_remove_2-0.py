@@ -20,10 +20,9 @@ import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.lite import LightningLite
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
-
-from pytorch_lightning.lite import LightningLite
 
 
 def test_v2_0_0_deprecated_num_processes():

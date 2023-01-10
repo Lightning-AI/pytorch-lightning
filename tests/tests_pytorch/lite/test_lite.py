@@ -72,7 +72,9 @@ def test_lite_convert_custom_precision():
     class CustomPrecision(PLPrecisionPlugin):
         pass
 
-    with pytest.deprecated_call(match="will be renamed to `lightning.fabric.Fabric` in v2.0.0"), pytest.raises(TypeError, match=escape("You passed an unsupported plugin as input to Lite(plugins=...)")):
+    with pytest.deprecated_call(match="will be renamed to `lightning.fabric.Fabric` in v2.0.0"), pytest.raises(
+        TypeError, match=escape("You passed an unsupported plugin as input to Lite(plugins=...)")
+    ):
         EmptyLite(plugins=CustomPrecision())
 
 
