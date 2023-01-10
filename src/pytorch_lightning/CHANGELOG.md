@@ -146,6 +146,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `pytorch_lightning.core.lightning` module in favor of `pytorch_lightning.core.module` ([#16318](https://github.com/PyTorchLightning/pytorch-lightning/pull/16318))
 
 
+- Removed the deprecated `pytorch_lightning.callbacks.base` module in favor of `pytorch_lightning.callbacks.callback` ([#16318](https://github.com/PyTorchLightning/pytorch-lightning/pull/16318))
+
+
 - Removed the deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#16131](https://github.com/Lightning-AI/lightning/pull/16131))
 
 
