@@ -27,9 +27,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def on_colab_kaggle() -> bool:
-    rank_zero_deprecation(
-        "The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v1.10.0."
-    )
+    rank_zero_deprecation("The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
 
 

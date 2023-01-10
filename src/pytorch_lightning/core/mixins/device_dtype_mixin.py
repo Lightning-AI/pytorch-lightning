@@ -20,6 +20,6 @@ class DeviceDtypeModuleMixin(_DeviceDtypeModuleMixin):
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.core.mixins.DeviceDtypeModuleMixin` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. This class is internal but you can copy over its implementation."
+            " removed in v2.0.0. This class is internal but you can copy over its implementation."
         )
         super().__init__()

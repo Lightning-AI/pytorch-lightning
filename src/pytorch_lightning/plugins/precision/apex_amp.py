@@ -36,7 +36,7 @@ def _import_amp_without_deprecation() -> ModuleType:
     return amp
 
 
-# TODO: remove in v1.10.0
+# TODO: remove in v2.0.0
 class ApexMixedPrecisionPlugin(PrecisionPlugin):
     """Mixed Precision Plugin based on Nvidia/Apex (https://github.com/NVIDIA/apex)"""
 
@@ -47,7 +47,7 @@ class ApexMixedPrecisionPlugin(PrecisionPlugin):
         rank_zero_deprecation(
             "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
             f" PyTorch Lightning has been deprecated in v1.9.0. The `{type(self).__name__}` class will be removed in"
-            " v1.10.0. Please use PyTorch's AMP implementation available in"
+            " v2.0.0. Please use PyTorch's AMP implementation available in"
             " `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
         )
         if not _APEX_AVAILABLE:

@@ -85,13 +85,13 @@ class LightningLite(Fabric, ABC):
         gpus: Provides the same function as the ``devices`` argument but implies ``accelerator="gpu"``.
 
             .. deprecated:: v1.8.0
-                ``gpus`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                ``gpus`` has been deprecated in v1.8.0 and will be removed in v2.0.0.
                 Please use ``accelerator='gpu'`` and ``devices=x`` instead.
 
         tpu_cores: Provides the same function as the ``devices`` argument but implies ``accelerator="tpu"``.
 
             .. deprecated:: v1.8.0
-                ``tpu_cores`` has been deprecated in v1.8.0 and will be removed in v1.10.0.
+                ``tpu_cores`` has been deprecated in v1.8.0 and will be removed in v2.0.0.
                 Please use ``accelerator='tpu'`` and ``devices=x`` instead.
     """
 
@@ -154,12 +154,12 @@ def _convert_deprecated_device_flags(
     if gpus is not None:
         rank_zero_deprecation(
             f"Setting `Lite(gpus={gpus!r})` is deprecated in v1.8.0 and will be removed"
-            f" in v1.10.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
+            f" in v2.0.0. Please use `Lite(accelerator='gpu', devices={gpus!r})` instead."
         )
     if tpu_cores is not None:
         rank_zero_deprecation(
             f"Setting `Lite(tpu_cores={tpu_cores!r})` is deprecated in v1.8.0 and will be removed"
-            f" in v1.10.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
+            f" in v2.0.0. Please use `Lite(accelerator='tpu', devices={tpu_cores!r})` instead."
         )
     deprecated_devices_specific_flag = gpus or tpu_cores
     if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
