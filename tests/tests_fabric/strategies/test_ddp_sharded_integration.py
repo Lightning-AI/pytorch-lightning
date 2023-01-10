@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import pytest
 import torch
 from tests_fabric.helpers.models import BoringFabric
@@ -20,29 +18,17 @@ from tests_fabric.helpers.runif import RunIf
 
 
 class ShardedSaveAndLoad(BoringFabric):
-    def get_optimizer(self, module):
-        optimizer = super().get_optimizer(module)
-        if self.with_fairscale_oss:
-            from fairscale.optim import OSS
-
-            optimizer = OSS(params=optimizer.param_groups, optim=type(optimizer), **optimizer.defaults)
-        return optimizer
-
-    def run(self, tmpdir, with_fairscale_oss=False):
-        self.with_fairscale_oss = with_fairscale_oss
-
+    def run(self, tmp_path):
         super().run()
 
-        from fairscale.nn import ShardedDataParallel
-        from fairscale.optim import OSS
+        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-        # the model and optimizer is wrapped correctly
-        assert isinstance(self.model._forward_module, ShardedDataParallel)
-        assert isinstance(self.optimizer.optimizer, OSS)
+        # the model is wrapped correctly
+        assert isinstance(self.model._forward_module, FullyShardedDataParallel)
 
         self.model.cpu()
 
-        checkpoint_path = os.path.join(tmpdir, "checkpoint.ckpt")
+        checkpoint_path = tmp_path / "checkpoint.ckpt"
         # need to broadcast because tmpdir is different on each process
         checkpoint_path = self.broadcast(checkpoint_path)
 
@@ -60,12 +46,10 @@ class ShardedSaveAndLoad(BoringFabric):
             assert torch.equal(trained_param, loaded_param)
 
 
-@RunIf(fairscale=True)
-@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=2))])
+@RunIf(standalone=True, min_cuda_gpus=2, min_torch="1.12")
 @pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
-@pytest.mark.parametrize("with_fairscale_oss", (True, False))
-def test_fairscale_multi_process_checkpoint_state_consolidation(with_fairscale_oss, strategy, accelerator, tmpdir):
+def test_ddp_sharded_multi_process_checkpoint_state_consolidation(tmp_path, strategy):
     """Test that the sharded optimizer states get consolidated when saving the checkpoint, and that the loaded
     weights is identical to the saved one."""
-    fabric = ShardedSaveAndLoad(strategy=strategy, accelerator=accelerator, devices=2)
-    fabric.run(tmpdir, with_fairscale_oss=with_fairscale_oss)
+    fabric = ShardedSaveAndLoad(strategy=strategy, accelerator="cuda", devices=2)
+    fabric.run(tmp_path)

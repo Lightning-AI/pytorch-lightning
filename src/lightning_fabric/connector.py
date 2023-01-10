@@ -43,7 +43,6 @@ from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
-    DDPShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -557,7 +556,6 @@ class _Connector:
             return self.strategy.is_distributed
         distributed_strategy = (
             DDPStrategy,
-            DDPShardedStrategy,
             DeepSpeedStrategy,
             XLAStrategy,
         )

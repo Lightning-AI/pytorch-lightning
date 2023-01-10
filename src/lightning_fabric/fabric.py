@@ -32,14 +32,7 @@ from lightning_fabric.loggers import Logger
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_fabric.strategies import (
-    DDPShardedStrategy,
-    DeepSpeedStrategy,
-    FSDPStrategy,
-    SingleDeviceStrategy,
-    Strategy,
-    XLAStrategy,
-)
+from lightning_fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -713,15 +706,8 @@ class Fabric:
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
-        if isinstance(self._strategy, DDPShardedStrategy):
-            raise RuntimeError(
-                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
-                " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
-                " `ddp`."
-            )
-
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."

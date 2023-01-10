@@ -11,17 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import torch.nn as nn
+from lightning_utilities.core.imports import module_available
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from lightning_fabric.plugins import Precision
+from lightning_fabric.utilities.imports import _IS_WINDOWS
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
     _LightningPrecisionModuleWrapperBase,
     unwrap_lightning_module,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and module_available("fairscale.nn")
+
+if _FAIRSCALE_AVAILABLE:
+    from fairscale.optim import OSS
+else:
+    OSS = ShardedDataParallel = object
 
 
 class LightningShardedDataParallel(_LightningModuleWrapperBase):
@@ -46,3 +57,18 @@ def unwrap_lightning_module_sharded(wrapped_model: nn.Module) -> "pl.LightningMo
         model = model.module
 
     return unwrap_lightning_module(model, _suppress_warning=True)
+
+
+def _reinit_optimizers_with_oss(optimizers: List[Optimizer], precision: Precision, num_nodes: int) -> List["OSS"]:
+    for x, optimizer in enumerate(optimizers):
+        if not isinstance(optimizer, OSS):
+            optim_class = type(optimizer)
+            zero_optimizer = OSS(params=optimizer.param_groups, optim=optim_class, **optimizer.defaults)
+            is_fp16 = precision.precision == "16"
+            # For multi-node training, compressing the model shards in fp16 before broadcasting
+            # improves performance. When using PyTorch AMP, it will not degrade
+            # the model performance.
+            zero_optimizer.broadcast_fp16 = is_fp16 and num_nodes > 1
+            optimizers[x] = zero_optimizer
+            del optimizer
+    return optimizers
