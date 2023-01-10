@@ -404,9 +404,7 @@ class LightningModule(
                 would produce a deadlock as not all processes would perform this log call.
         """
         if self._fabric is not None and logger is not False:
-            apply_to_collection(
-                value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor)
-            )
+            apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
             # TODO(fabric): Warn if on_epoch, on_step, etc. are set
             self._fabric.log(name=name, value=value)
             return
