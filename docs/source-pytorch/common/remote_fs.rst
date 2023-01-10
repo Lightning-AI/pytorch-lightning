@@ -17,7 +17,7 @@ Working with different filesystems can be accomplished by appending a protocol l
     trainer = Trainer(default_root_dir="s3://my_bucket/data/")
     trainer.fit(model)
 
-You could pass custom paths to loggers for logging data.
+As for ``TensorBoardLogger``, by default, we use ``tensorboardX``. To use it with ``fsspec`` support, make sure you have ``tensorboard`` installed AND NO ``tensorflow`` installed in the current environment, as ``tensorboard`` will use ``tensorflow``'s GFile when detected, and it only uses fsspec on absence of ``tensorflow``.
 
 .. code-block:: python
 
