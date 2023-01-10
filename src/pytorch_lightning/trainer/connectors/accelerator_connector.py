@@ -684,7 +684,7 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            # TODO(lite): remove ignore after merging lite and PL strategies
+            # TODO(fabric): remove ignore after merging Fabric and PL strategies
             self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
