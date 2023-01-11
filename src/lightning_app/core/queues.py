@@ -309,7 +309,7 @@ class RedisQueue(BaseQueue):
 
         if out is None:
             raise queue.Empty
-        return [pickle.loads(element) for element in out[1]]
+        return [pickle.loads(element) for element in out]
 
     def clear(self) -> None:
         """Clear all elements in the queue."""
