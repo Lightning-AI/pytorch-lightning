@@ -517,7 +517,7 @@ def test_metrics_reset(tmpdir):
 @pytest.mark.parametrize("compute_groups", [True, False])
 def test_metriccollection_compute_groups(tmpdir, compute_groups):
     def assertion_calls(keep_base: bool, copy_state: bool):
-        if 'copy_state' in inspect.signature(MetricCollection.items).parameters:
+        if "copy_state" in inspect.signature(MetricCollection.items).parameters:
             assert copy_state != compute_groups
 
         assert not keep_base
