@@ -134,10 +134,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def is_distributed(self) -> bool:
-        return True
-
-    @property
     def num_nodes(self) -> int:
         return self._num_nodes
 
@@ -150,7 +146,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict:
+    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     @property
