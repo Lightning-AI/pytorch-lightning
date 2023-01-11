@@ -140,7 +140,7 @@ class LightningLite(Fabric, ABC):
                 "LightningLite's sharded implementation using FairScale has been removed in favor of PyTorch's FSDP."
                 " You can try"
                 f" `Fabric(strategy=FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP{spawn_message}))`"
-                " which implements optimizer-only sharding a-la ZeRO-2. Or full sharding with `Fabric(strategy='fsdp')`"
+                " which implements optimizer-only sharding à la ZeRO-2. Or full sharding with `Fabric(strategy='fsdp')`"
             )
 
         super().__init__(

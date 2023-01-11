@@ -96,8 +96,6 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
     )
     fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
     fabric = fabric_cls(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
-    fabric.launch()
-
     fabric.run()
 
     with tempfile.TemporaryFile() as ckpt_path:
