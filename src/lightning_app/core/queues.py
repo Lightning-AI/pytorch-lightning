@@ -292,7 +292,14 @@ class RedisQueue(BaseQueue):
             timeout = self.default_timeout
 
         try:
-            out = self.redis.blmpop(timeout, 1, self.name, direction="LEFT", count=batch_size)
+            # Blocking pop with count isn't available in our redis version so we simulate it
+            # with one blocking pop followed by a regular pop of `batch_size - 1`.
+            out = self.redis.blpop([self.name], timeout=timeout)
+            if out is not None:
+                out = [out[1]]
+                remaining = self.redis.lpop([self.name], count=batch_size - 1)
+                if remaining is not None:
+                    out.append(remaining)
         except redis.exceptions.ConnectionError:
             raise ConnectionError(
                 "Your app failed because it couldn't connect to Redis. "
