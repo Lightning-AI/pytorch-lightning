@@ -73,7 +73,6 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 
 @dataclass
 class MNISTKFoldDataModule(BaseKFoldDataModule):
-
     train_dataset: Optional[Dataset] = None
     test_dataset: Optional[Dataset] = None
     train_fold: Optional[Dataset] = None

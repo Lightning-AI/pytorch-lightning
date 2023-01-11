@@ -44,10 +44,10 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import get_filesystem
-from lightning_lite.utilities.data import _auto_add_worker_init_fn
-from lightning_lite.utilities.types import _PATH
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.cloud_io import get_filesystem
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.types import _PATH
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -69,7 +69,12 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import (
+    _LITERAL_WARN,
+    _PRECISION_INPUT,
+    _PRECISION_INPUT_STR,
+    AcceleratorConnector,
+)
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -146,7 +151,7 @@ class Trainer:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         enable_model_summary: bool = True,
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
@@ -159,8 +164,8 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: Optional[str] = None,  # TODO: Remove in v1.10.0
-        amp_level: Optional[str] = None,  # TODO: Remove in v1.10.0
+        amp_backend: Optional[str] = None,  # TODO: Remove in v2.0.0
+        amp_level: Optional[str] = None,  # TODO: Remove in v2.0.0
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -181,14 +186,14 @@ class Trainer:
 
                 .. deprecated:: v1.9
                     Setting ``amp_backend`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0. This argument was only relevant for apex which is being removed.
+                    in v2.0.0. This argument was only relevant for apex which is being removed.
 
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
                 .. deprecated:: v1.8
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0.
+                    in v2.0.0.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -211,8 +216,9 @@ class Trainer:
                 Default: ``False``.
 
                 .. deprecated:: v1.9
-                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
-                    Please use the function :func:`~lightning_lite.accelerators.cuda.find_usable_cuda_devices` instead.
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
+                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
+                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -1675,7 +1681,7 @@ class Trainer:
 
     @property
     def strategy(self) -> Strategy:
-        # TODO(lite): remove ignore after merging lite and PL strategies
+        # TODO(fabric): remove ignore after merging Fabric and PL strategies
         return self._accelerator_connector.strategy  # type: ignore[return-value]
 
     @property
@@ -1756,7 +1762,7 @@ class Trainer:
     def amp_backend(self) -> Optional[str]:
         rank_zero_deprecation(
             "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
             " Accessing `Trainer.amp_backend` will not be supported. You can assume it will be `'native'`",
             stacklevel=6,
         )
@@ -1767,7 +1773,7 @@ class Trainer:
         return None
 
     @property
-    def precision(self) -> Union[str, int]:
+    def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 
     @property
@@ -1991,12 +1997,12 @@ class Trainer:
 
     @property
     def tuning(self) -> bool:
-        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
         return self.state.stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
-        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
 
         if val:
             self.state.stage = RunningStage.TUNING

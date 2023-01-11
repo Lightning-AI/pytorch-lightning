@@ -82,16 +82,6 @@ core
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
 
-lightninglite
--------------
-
-.. currentmodule:: pytorch_lightning.lite
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-
-    LightningLite
 
 loggers
 -------

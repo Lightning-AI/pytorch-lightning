@@ -23,12 +23,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO
-from lightning_lite.strategies.launchers.base import _Launcher
-from lightning_lite.utilities import move_data_to_device
-from lightning_lite.utilities.distributed import ReduceOp
-from lightning_lite.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
-from lightning_lite.utilities.types import _PATH
+from lightning_fabric.plugins import CheckpointIO
+from lightning_fabric.strategies.launchers.base import _Launcher
+from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.distributed import ReduceOp
+from lightning_fabric.utilities.optimizer import _optimizer_to_device, _optimizers_to_device
+from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -229,7 +229,7 @@ class Strategy(ABC):
             \**kwargs: Keyword arguments to to ``optimizer.step``
         """
         model = model or self.lightning_module
-        # TODO(lite): remove assertion once strategy's optimizer_step typing is fixed
+        # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(
             optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs
@@ -241,19 +241,19 @@ class Strategy(ABC):
         The returned objects are expected to be in the same order they were passed in. The default implementation will
         call :meth:`_setup_model` and :meth:`_setup_optimizer` on the inputs.
         """
-        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         model = self._setup_model(model)
         optimizers = [self._setup_optimizer(optimizer) for optimizer in optimizers]
         return model, optimizers
 
     def _setup_model(self, model: Module) -> Module:
         """Performs setup for the model, e.g., by wrapping it by another class."""
-        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         return model
 
     def _setup_optimizer(self, optimizer: Optimizer) -> Optimizer:
         """Performs setup for the optimizer, e.g., by wrapping it by another class."""
-        # TODO: standardize this across all plugins in Lightning and Lite. Related refactor: #7324
+        # TODO: standardize this across all plugins in Lightning and Fabric. Related refactor: #7324
         return optimizer
 
     def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:

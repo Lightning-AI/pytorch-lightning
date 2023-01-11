@@ -23,7 +23,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.warnings import PossibleUserWarning
+from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.strategies.parallel import ParallelStrategy

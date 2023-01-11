@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
 
@@ -85,8 +85,8 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
-            --source_import="pytorch_lightning,lightning_lite" \
-            --target_import="lightning.pytorch,lightning.lite"
+            --source_import="pytorch_lightning,lightning_fabric" \
+            --target_import="lightning.pytorch,lightning.fabric"
 
       - name: Install this package
         env:
@@ -145,7 +145,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
           FREEZE_REQUIREMENTS: 1
         run: |
-          sudo apt-get update
+          sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
           pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
@@ -157,6 +157,12 @@ jobs:
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+
+      - name: Check External Links in Sphinx Documentation (Optional)
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        run: |
+          make linkcheck
+        continue-on-error: true
 
       - name: Upload built docs
         uses: actions/upload-artifact@v3

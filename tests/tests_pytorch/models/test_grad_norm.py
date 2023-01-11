@@ -30,12 +30,6 @@ class ModelWithManualGradTracker(BoringModel):
     validation_step = None
     val_dataloader = None
 
-    def training_step(self, batch, batch_idx, optimizer_idx=None):
-        # just return a loss, no log or progress bar meta
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return {"loss": loss}
-
     def on_after_backward(self):
         out, norms = {}, []
         prefix = f"grad_{self.norm_type}_norm_"

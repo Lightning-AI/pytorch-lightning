@@ -90,7 +90,7 @@ class FileServer(L.LightningWork):
             "size": full_size,
             "drive_path": uploaded_file,
         }
-        with open(self.get_filepath(meta_file), "wt") as f:
+        with open(self.get_filepath(meta_file), "w") as f:
             json.dump(meta, f)
 
         # 5: Put the file to the drive.
@@ -163,7 +163,6 @@ from lightning import LightningWork
 
 
 class TestFileServer(LightningWork):
-
     def __init__(self, drive: Drive):
         super().__init__(cache_calls=True)
         self.drive = drive
@@ -188,7 +187,6 @@ from lightning import LightningApp, LightningFlow
 
 
 class Flow(LightningFlow):
-
     def __init__(self):
         super().__init__()
         # 1: Create a drive to share data between works

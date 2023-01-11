@@ -22,8 +22,8 @@ from torch.utils.data import BatchSampler, DataLoader, Sampler, SequentialSample
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
-from lightning_lite.utilities.distributed import DistributedSamplerWrapper
+from lightning_fabric.utilities.data import _auto_add_worker_init_fn, _replace_dunder_methods, has_iterable_dataset
+from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
@@ -149,7 +149,8 @@ class DataConnector:
 
     def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
         model.trainer = proxy(self.trainer)
-        model.precision = self.trainer.precision
+        # for backward compatibility
+        model.precision = int(self.trainer.precision) if self.trainer.precision != "bf16" else "bf16"
 
     def attach_dataloaders(
         self,

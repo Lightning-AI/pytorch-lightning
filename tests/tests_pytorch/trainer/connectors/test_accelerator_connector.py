@@ -22,7 +22,7 @@ import torch
 import torch.distributed
 
 import pytorch_lightning
-from lightning_lite.plugins.environments import (
+from lightning_fabric.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
@@ -222,8 +222,8 @@ def test_custom_accelerator(cuda_count_0):
         ),
     ],
 )
-@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
-@mock.patch("lightning_lite.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
+@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._read_hosts", return_value=["node0", "node1"])
+@mock.patch("lightning_fabric.plugins.environments.lsf.LSFEnvironment._get_node_rank", return_value=0)
 def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_environment):
     with mock.patch.dict(os.environ, env_vars, clear=True):
         trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
@@ -670,7 +670,7 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
     with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(ValueError, match=r"accelerator='ipu', precision=64\)` is not supported"):
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='64'\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
 
 

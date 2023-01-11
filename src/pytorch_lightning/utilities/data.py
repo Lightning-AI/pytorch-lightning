@@ -29,9 +29,9 @@ from torch.utils.data import (
 )
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
-from lightning_lite.utilities.data import has_iterable_dataset as new_has_iterable_dataset
-from lightning_lite.utilities.data import has_len as new_has_len
+from lightning_fabric.utilities.data import _reinstantiate_wrapped_cls, _replace_value_in_saved_args
+from lightning_fabric.utilities.data import has_iterable_dataset as new_has_iterable_dataset
+from lightning_fabric.utilities.data import has_len as new_has_len
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -129,7 +129,7 @@ def has_len_all_ranks(
     except (TypeError, NotImplementedError):
         has_len = False
 
-    # we are checking using lightning_lite, which doesn't know CombinedLoader
+    # we are checking using lightning_fabric, which doesn't know CombinedLoader
     if has_len and new_has_iterable_dataset(dataloader):  # type: ignore [arg-type]
         rank_zero_warn(
             "Your `IterableDataset` has `__len__` defined."
@@ -426,7 +426,7 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
 def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.data.has_iterable_dataset` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_iterable_dataset` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_iterable_dataset` instead."
     )
     return new_has_iterable_dataset(*args, **kwargs)
 
@@ -434,6 +434,6 @@ def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
 def has_len(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.data.has_len` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_lite.utilities.data.has_len` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_len` instead."
     )
     return new_has_len(*args, **kwargs)

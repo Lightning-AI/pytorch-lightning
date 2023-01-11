@@ -17,6 +17,15 @@ from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 
 
+def test_v2_0_0_moved_lightningmodule():
+    from pytorch_lightning.core.lightning import LightningModule
+
+    with pytest.raises(
+        NotImplementedError, match="lightning.LightningModule.*was deprecated in v1.7.0 and removed as of v1.9"
+    ):
+        LightningModule()
+
+
 def test_v2_0_0_unsupported_datamodule_on_save_load_checkpoint():
     datamodule = LightningDataModule()
     with pytest.raises(

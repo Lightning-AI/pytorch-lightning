@@ -243,7 +243,6 @@ class _BasePayload(ABC):
 
 
 class Payload(_BasePayload):
-
     """The Payload object enables to transfer python objects from one work to another in a similar fashion as
     :class:`~lightning_app.storage.path.Path`."""
 

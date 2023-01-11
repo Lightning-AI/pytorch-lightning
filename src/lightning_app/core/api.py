@@ -417,7 +417,6 @@ def register_global_routes():
 
 
 class LightningUvicornServer(uvicorn.Server):
-
     has_started_queue = None
 
     def run(self, sockets=None):
