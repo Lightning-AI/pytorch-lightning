@@ -25,7 +25,6 @@ from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
@@ -71,7 +70,6 @@ class RunIf:
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         quantization: bool = False,
-        amp_apex: bool = False,
         bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
@@ -101,7 +99,6 @@ class RunIf:
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
-            amp_apex: Require that NVIDIA/apex is installed.
             bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
@@ -153,12 +150,6 @@ class RunIf:
             _miss_default = "fbgemm" not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
-
-        # TODO: remove in v2.0.0
-        if amp_apex:
-            conditions.append(not _APEX_AVAILABLE)
-            reasons.append("NVIDIA Apex")
-            kwargs["amp_apex"] = amp_apex
 
         if bf16_cuda:
             try:

@@ -29,12 +29,9 @@ from pytorch_lightning.loops.utilities import (
     _build_training_step_kwargs,
     _extract_hiddens,
 )
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, WarningCache
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.rank_zero import WarningCache
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -343,11 +340,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # wraps into LightningOptimizer only for running step
-        if isinstance(self.trainer.precision_plugin, ApexMixedPrecisionPlugin):
-            # apex overrides .step function and need to be wrapped on each step
-            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
-        else:
-            optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
+        optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
         # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
         # need to check again if `should_accumulate` before increasing the counters
@@ -356,17 +349,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
-        kwargs = {}
-        pl_module = self.trainer.lightning_module
-        if is_param_in_hook_signature(pl_module.optimizer_step, "using_native_amp", explicit=True):
-            rank_zero_deprecation(
-                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
-                f" The `{type(pl_module).__name__}.optimizer_step()` hook is overridden, including the"
-                " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to"
-                " return True."
-            )
-            kwargs["using_native_amp"] = isinstance(self.trainer.precision_plugin, MixedPrecisionPlugin)
         self.trainer._call_lightning_module_hook(
             "optimizer_step",
             self.trainer.current_epoch,
@@ -375,7 +357,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            **kwargs,  # type: ignore[arg-type]
             using_lbfgs=is_lbfgs,
         )
 

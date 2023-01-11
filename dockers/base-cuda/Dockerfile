@@ -119,13 +119,6 @@ RUN \
     horovodrun --check-build
 
 RUN \
-    # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
-    # install NVIDIA apex
-    pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
-    python -c "from apex import amp"
-
-RUN \
     # install Bagua
     if [[ $PYTORCH_VERSION != "1.13" ]]; then \
         CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") ; \
