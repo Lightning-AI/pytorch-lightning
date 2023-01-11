@@ -307,8 +307,8 @@ class LightningApp:
         exceptions = self.get_state_changed_from_queue(self.error_queue)
 
         # If there is more than one exception, just take the first
-        if exceptions is not None and isinstance(exceptions.get(0, None), Exception):
-            self.exception = exception
+        if exceptions is not None and len(exceptions) > 0 and isinstance(exceptions[0], Exception):
+            self.exception = exceptions[0]
             self.stage = AppStage.FAILED
 
     @property
@@ -336,11 +336,11 @@ class LightningApp:
         api_or_command_request_deltas = []
         t0 = time()
 
-        deltas: Optional[
+        queue_deltas: Optional[
             Union[_DeltaRequest, _APIRequest, _CommandRequest, ComponentDelta]
         ] = self.get_state_changed_from_queue(self.delta_queue)
-        if deltas is not None:
-            for delta in deltas:
+        if queue_deltas is not None:
+            for delta in queue_deltas:
                 if isinstance(delta, _DeltaRequest):
                     deltas.append(delta.delta)
                 elif isinstance(delta, ComponentDelta):

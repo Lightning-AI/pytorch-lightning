@@ -281,16 +281,17 @@ class WorkStateObserver(Thread):
 
         if self._flow_to_work_delta_queue:
             deep_diffs = self.get_state_changed_from_queue(self._flow_to_work_delta_queue)
-            for deep_diff in deep_diffs:
-                if not isinstance(deep_diff, dict):
-                    continue
-                try:
-                    with _state_observer_lock:
-                        self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
-                except Exception as e:
-                    print(traceback.print_exc())
-                    self._error_queue.put(e)
-                    raise e
+            if deep_diffs is not None:
+                for deep_diff in deep_diffs:
+                    if not isinstance(deep_diff, dict):
+                        continue
+                    try:
+                        with _state_observer_lock:
+                            self._work.apply_flow_delta(Delta(deep_diff, raise_errors=True))
+                    except Exception as e:
+                        print(traceback.print_exc())
+                        self._error_queue.put(e)
+                        raise e
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._exit_event.set()

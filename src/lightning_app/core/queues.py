@@ -155,7 +155,6 @@ class BaseQueue(ABC):
     def put(self, item):
         pass
 
-    @abstractmethod
     def get(self, timeout: int = None):
         """Returns the left most element of the queue.
 
@@ -165,7 +164,7 @@ class BaseQueue(ABC):
             Read timeout in seconds, in case of input timeout is 0, the `self.default_timeout` is used.
             A timeout of None can be used to block indefinitely.
         """
-        return self.get_batch(timeout=timeout, batch_size=1)
+        return self.get_batch(timeout=timeout, batch_size=1)[0]
 
     @abstractmethod
     def get_batch(self, timeout=None, batch_size=-1):
