@@ -19,7 +19,7 @@ sdiff train_torch.py train_fabric.py
 ### Requirements
 
 ```bash
-pip install lightning learn2learn cherry-rl gym<=0.22
+pip install lightning learn2learn cherry-rl 'gym<=0.22'
 ```
 
 ### Run
