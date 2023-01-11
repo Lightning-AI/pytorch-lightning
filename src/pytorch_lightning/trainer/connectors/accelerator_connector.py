@@ -284,23 +284,24 @@ class AcceleratorConnector:
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
 
-        # MPSAccelerator incompatible with ddp-family
-        # check if strategy is string and contains 'ddp' in it
+        # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
-        # MPS accelerator could be instantiated in 3 ways,
-        # 1. accelerator = "mps"
-        # 2. accelerator in ("auto", None) and MPSAccelerator.is_available()
-        # 3. accelerator = "gpu" and MPSAccelerator.is_available()
-        is_mps_accelerator = (
-            (isinstance(accelerator, str) and accelerator == "mps")
+        is_dp_str = isinstance(strategy, str) and "dp" in strategy
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str
+        is_mps_accelerator = MPSAccelerator.is_available() and (
+            accelerator == "mps"
             or (
-                ((isinstance(accelerator, str) and accelerator == "auto") or accelerator is None)
-                and MPSAccelerator.is_available()
+                accelerator in ("auto", "gpu", None)
+                or isinstance(accelerator, MPSAccelerator)
+                or isinstance(self._strategy_flag, Strategy)
+                and isinstance(self._strategy_flag.accelerator, MPSAccelerator)
             )
-            # or (isinstance(accelerator, str) and accelerator == "gpu" and MPSAccelerator.is_available())
         )
-        if is_mps_accelerator and (is_ddp_str or isinstance(strategy, ParallelStrategy)):
-            raise ValueError("With MPSAccelerator, strategies from the DDP family are not compatible.")
+        if is_mps_accelerator and is_parallel_strategy:
+            raise ValueError(
+                f"You set `strategy={strategy}` but strategies from the DDP family are not supported on the"
+                f" MPS accelerator. Either explicitly set `accelerator='cpu'` or change the strategy."
+            )
 
         self._accelerator_flag = accelerator
 
