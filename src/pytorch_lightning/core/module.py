@@ -14,7 +14,6 @@
 """The LightningModule - an nn.Module with many additional features."""
 
 import collections.abc
-import inspect
 import logging
 import numbers
 import os
@@ -51,7 +50,7 @@ from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
@@ -567,10 +566,7 @@ class LightningModule(
 
         if isinstance(dictionary, MetricCollection):
             kwargs["keep_base"] = False
-            if (
-                "copy_state" in inspect.signature(MetricCollection.items).parameters
-                and dictionary._enable_compute_groups
-            ):
+            if _TORCHMETRICS_GREATER_EQUAL_0_9_1 and dictionary._enable_compute_groups:
                 kwargs["copy_state"] = False
 
         for k, v in dictionary.items(**kwargs):
