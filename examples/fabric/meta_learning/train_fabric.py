@@ -87,7 +87,7 @@ def main(
     optimizer = torch.optim.Adam(maml.parameters(), meta_lr)
     optimizer = cherry.optim.Distributed(maml.parameters(), opt=optimizer, sync=1)
 
-    model, optimizer = fabric.setup(model, optimizer)
+    # model, optimizer = fabric.setup(model, optimizer)
 
     optimizer.sync_parameters()
     loss = torch.nn.CrossEntropyLoss(reduction="mean")
