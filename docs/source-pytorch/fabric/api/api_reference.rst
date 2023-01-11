@@ -124,7 +124,6 @@ Strategies
     Strategy
     DDPStrategy
     DataParallelStrategy
-    DDPShardedStrategy
     FSDPStrategy
     ParallelStrategy
     SingleDeviceStrategy
