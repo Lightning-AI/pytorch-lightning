@@ -290,13 +290,10 @@ class AcceleratorConnector:
         is_dp_str = isinstance(strategy, str) and "dp" in strategy
         is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str
         is_mps_accelerator = MPSAccelerator.is_available() and (
-            accelerator == "mps"
-            or (
-                accelerator in ("auto", "gpu", None)
-                or isinstance(accelerator, MPSAccelerator)
-                or isinstance(self._strategy_flag, Strategy)
-                and isinstance(self._strategy_flag.accelerator, MPSAccelerator)
-            )
+            accelerator in ("mps", "auto", "gpu", None)
+            or isinstance(accelerator, MPSAccelerator)
+            or isinstance(self._strategy_flag, Strategy)
+            and isinstance(self._strategy_flag.accelerator, MPSAccelerator)
         )
         if is_mps_accelerator and is_parallel_strategy:
             raise ValueError(
