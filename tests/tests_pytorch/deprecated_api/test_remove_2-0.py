@@ -31,7 +31,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, DeepSpeedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
@@ -67,7 +66,6 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
     tpu_distributed,
 )
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
@@ -655,56 +653,6 @@ def test_profiler_classes_deprecated_warning(cls):
         cls()
 
 
-@RunIf(amp_apex=True)
-def test_apex_deprecation_warnings():
-    class MyModel(BoringModel):
-        def optimizer_step(
-            self,
-            epoch,
-            batch_idx,
-            optimizer,
-            optimizer_idx=0,
-            optimizer_closure=None,
-            on_tpu=False,
-            using_native_amp=False,
-            **kwargs,
-        ):
-            return optimizer_closure()
-
-    model = MyModel()
-    trainer = Trainer(fast_dev_run=True)
-    with pytest.deprecated_call(match="including the `using_native_amp` argument"):
-        trainer.fit(model)
-
-    with pytest.deprecated_call(match="ApexMixedPrecisionPlugin` class will be removed in v2.0"):
-        ApexMixedPrecisionPlugin()
-
-    with pytest.deprecated_call(match="NativeMixedPrecisionPlugin` class has been renamed in v2.0"):
-        NativeMixedPrecisionPlugin(16, "cpu")
-
-    with pytest.deprecated_call(match="Support for.*DeepSpeed implementation will be removed in v2.0.0"):
-        DeepSpeedPrecisionPlugin(16, amp_type="apex")
-
-    with pytest.deprecated_call(match=r"amp_type='native'\)` been deprecated in v1.9"):
-        DeepSpeedPrecisionPlugin(16, amp_type="native")
-
-    with pytest.raises(ValueError, match=r"amp_level='O2'\)` is only relevant when using NVIDIA/apex"):
-        DeepSpeedPrecisionPlugin(16, amp_level="O2")
-
-    with pytest.deprecated_call(match=r"Trainer\(amp_backend='apex'\)` argument is deprecated"):
-        Trainer(amp_backend="apex")
-
-    with pytest.deprecated_call(match=r"Trainer\(amp_level='O2'\)` argument is deprecated"):
-        Trainer(amp_backend="apex", amp_level="O2")
-
-    with pytest.deprecated_call(match="AMPType` enum has been deprecated in v1.9"):
-        AMPType.APEX
-
-    trainer = Trainer()
-    with pytest.deprecated_call(match="amp_backend` will not be supported"):
-        trainer.amp_backend
-
-
 @RunIf(horovod=True)
 def test_horovod_deprecation_warnings(*_):
     with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
@@ -729,8 +677,3 @@ def test_pick_single_gpu(_):
         RuntimeError
     ):
         pick_single_gpu([])
-
-
-def test_deprecated_precision_type():
-    with pytest.deprecated_call(match="PrecisionType` enum has been deprecated in v1.9"):
-        _ = PrecisionType.HALF

@@ -473,13 +473,6 @@ def test_validate_precision_type(precision):
         Trainer(precision=precision)
 
 
-def test_amp_level_raises_error_with_native():
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"), pytest.raises(
-        MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"
-    ):
-        _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
-
-
 def test_strategy_choice_ddp_spawn_cpu():
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -668,11 +661,6 @@ def test_unsupported_tpu_choice(tpu_available):
         UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
     ):
         Trainer(accelerator="tpu", precision=16, strategy="ddp")
-
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"
-    ):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)

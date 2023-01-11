@@ -451,10 +451,6 @@ class HookedModel(BoringModel):
         # these precision plugins modify the optimization flow, so testing them explicitly
         pytest.param(dict(accelerator="gpu", devices=1, precision=16), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
-            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
-        ),
-        pytest.param(
             dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
             marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
@@ -483,31 +479,17 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     callback = HookedCallback(called)
     train_batches = 2
     val_batches = 2
-    if kwargs.get("amp_backend") == "apex":
-        with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-            trainer = Trainer(
-                default_root_dir=tmpdir,
-                max_epochs=1,
-                limit_train_batches=train_batches,
-                limit_val_batches=val_batches,
-                enable_progress_bar=False,
-                enable_model_summary=False,
-                callbacks=[callback],
-                track_grad_norm=1,
-                **kwargs,
-            )
-    else:
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_epochs=1,
-            limit_train_batches=train_batches,
-            limit_val_batches=val_batches,
-            enable_progress_bar=False,
-            enable_model_summary=False,
-            callbacks=[callback],
-            track_grad_norm=1,
-            **kwargs,
-        )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        callbacks=[callback],
+        track_grad_norm=1,
+        **kwargs,
+    )
     trainer.fit(model)
     saved_ckpt = {
         "callbacks": ANY,
