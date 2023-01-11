@@ -2,11 +2,11 @@
 MAML - Raw PyTorch implementation using the Learn2Learn library
 
 Adapted from https://github.com/learnables/learn2learn/blob/master/examples/vision/distributed_maml.py
-Original Author: Séb Arnold - learnables.net
-
-Paper: https://arxiv.org/pdf/1703.03400.pdf
+Original code author: Séb Arnold - learnables.net
+Based on the paper: https://arxiv.org/abs/1703.03400
 
 Requirements:
+- lightning
 - learn2learn
 - cherry-rl
 - gym<=0.22
@@ -14,7 +14,6 @@ Requirements:
 This code is written for distributed training.
 
 Run it with:
-
     torchrun --nproc_per_node=2 --standalone train_torch.py
 """
 import os
@@ -74,8 +73,8 @@ def main(
     torch.distributed.init_process_group("gloo", rank=local_rank, world_size=world_size)
     rank = torch.distributed.get_rank()
 
-    meta_batch_size = (meta_batch_size // world_size,)
-    seed = (seed + rank,)
+    meta_batch_size = (meta_batch_size // world_size)
+    seed = seed + rank
 
     random.seed(seed)
     np.random.seed(seed)
