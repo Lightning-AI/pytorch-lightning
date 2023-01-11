@@ -383,25 +383,13 @@ def test_exception_invalid_strategy():
         ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
     ),
 )
-@RunIf(mps=True)
-def test_exception_invalid_ddp_strategy_with_mps(strategy, strategy_class):
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator="mps", strategy=strategy)
+        Trainer(accelerator=accelerator, strategy=strategy)
 
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         Trainer(accelerator="mps", strategy=strategy_class())
-
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator="auto", strategy=strategy_class())
-
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator=None, strategy=strategy_class())
-
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator="gpu", strategy=strategy_class())
-
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator=MPSAccelerator(), strategy=strategy_class())
 
     strategy = strategy_class()
     strategy.accelerator = MPSAccelerator()
