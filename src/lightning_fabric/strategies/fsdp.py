@@ -275,12 +275,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strategy_registry.register(
             "fsdp",
             cls,
-            description="Fully Sharded Data Parallel training from torch.distributed.",
+            description="Fully Sharded Data Parallel",
         )
         strategy_registry.register(
             "fsdp_full_shard_offload",
             cls,
-            description="Native FSDP with Full Sharding and CPU Offloading",
+            description="Fully Sharded Data Parallel and CPU Offloading",
             cpu_offload=True,
         )
 

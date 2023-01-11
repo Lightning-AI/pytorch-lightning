@@ -24,7 +24,6 @@ from lightning_fabric.accelerators import TPUAccelerator
 from lightning_fabric.accelerators.cuda import num_cuda_devices
 from lightning_fabric.accelerators.mps import MPSAccelerator
 from lightning_fabric.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE
 
 
 class RunIf:
@@ -48,7 +47,6 @@ class RunIf:
         mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
-        fairscale: bool = False,
         deepspeed: bool = False,
         **kwargs,
     ):
@@ -66,7 +64,6 @@ class RunIf:
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
-            fairscale: Require that facebookresearch/fairscale is installed.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
@@ -132,14 +129,6 @@ class RunIf:
             reasons.append("Standalone execution")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["standalone"] = True
-
-        if fairscale:
-            if skip_windows:
-                raise ValueError(
-                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
-                )
-            conditions.append(not _FAIRSCALE_AVAILABLE)
-            reasons.append("Fairscale")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)

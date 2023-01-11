@@ -26,7 +26,6 @@ from lightning_fabric.plugins import Precision as LitePrecision
 from lightning_fabric.plugins import TPUBf16Precision as LiteTPUBf16Precision
 from lightning_fabric.plugins import TPUPrecision as LiteTPUPrecision
 from lightning_fabric.strategies import DataParallelStrategy as LiteDataParallelStrategy
-from lightning_fabric.strategies import DDPShardedStrategy as LiteDDPShardedStrategy
 from lightning_fabric.strategies import DDPStrategy as LiteDDPStrategy
 from lightning_fabric.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
 from lightning_fabric.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
@@ -75,7 +74,7 @@ class LightningLite(Fabric, ABC):
         accelerator: The hardware to run on. Possible choices are:
             ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
@@ -109,8 +108,7 @@ class LightningLite(Fabric, ABC):
 
         rank_zero_deprecation(
             "The `pytorch_lightning.lite.LightningLite` class was deprecated in v1.9.0 and will be renamed to"
-            " `lightning.fabric.Fabric` in v2.0.0. It is no longer part of the pure `pytorch_lightning` package, and"
-            " now lives in the main `lightning` package."
+            " `lightning_fabric.Fabric` in v2.0.0."
         )
 
         if gpus is not None or tpu_cores is not None:
@@ -130,6 +128,20 @@ class LightningLite(Fabric, ABC):
             ]
         else:
             lite_plugins = plugins
+
+        if type(strategy) in (PLDDPShardedStrategy, PLDDPSpawnShardedStrategy) or strategy in (
+            "ddp_sharded",
+            "ddp_sharded_spawn",
+        ):
+            spawn_message = ""
+            if type(strategy) is PLDDPSpawnShardedStrategy or strategy == "ddp_sharded_spawn":
+                spawn_message = ", start_method='spawn'"
+            raise RuntimeError(
+                "LightningLite's sharded implementation using FairScale has been removed in favor of PyTorch's FSDP."
+                " You can try"
+                f" `Fabric(strategy=FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP{spawn_message}))`"
+                " which implements optimizer-only sharding à la ZeRO-2. Or full sharding with `Fabric(strategy='fsdp')`"
+            )
 
         super().__init__(
             accelerator=accelerator,
@@ -243,31 +255,6 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             checkpoint_io=strategy.checkpoint_io,
             precision=_to_lite_precision(strategy.precision_plugin),
-        )
-
-    if strategy_cls is PLDDPShardedStrategy:
-        return LiteDDPShardedStrategy(
-            accelerator=strategy.accelerator,
-            parallel_devices=strategy.parallel_devices,
-            cluster_environment=strategy.cluster_environment,
-            checkpoint_io=strategy.checkpoint_io,
-            precision=_to_lite_precision(strategy.precision_plugin),
-            process_group_backend=strategy.process_group_backend,
-            timeout=strategy._timeout,
-            **strategy._ddp_kwargs,
-        )
-
-    if strategy_cls is PLDDPSpawnShardedStrategy:
-        return LiteDDPShardedStrategy(
-            accelerator=strategy.accelerator,
-            parallel_devices=strategy.parallel_devices,
-            cluster_environment=strategy.cluster_environment,
-            checkpoint_io=strategy.checkpoint_io,
-            precision=_to_lite_precision(strategy.precision_plugin),
-            process_group_backend=strategy.process_group_backend,
-            timeout=strategy._timeout,
-            start_method=strategy._start_method,
-            **strategy._ddp_kwargs,
         )
 
     if strategy_cls is PLSingleDeviceStrategy:
