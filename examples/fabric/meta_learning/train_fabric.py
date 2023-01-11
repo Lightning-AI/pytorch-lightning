@@ -82,6 +82,7 @@ def main(
     # Create model
     # model = l2l.vision.models.MiniImagenetCNN(ways)
     model = l2l.vision.models.OmniglotFC(28**2, ways)
+    model = fabric.to_device(model)
     maml = l2l.algorithms.MAML(model, lr=fast_lr, first_order=False)
     optimizer = torch.optim.Adam(maml.parameters(), meta_lr)
     optimizer = cherry.optim.Distributed(maml.parameters(), opt=optimizer, sync=1)
