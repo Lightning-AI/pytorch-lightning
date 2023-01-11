@@ -55,14 +55,12 @@ class BoringFabric(Fabric):
         pass
 
     def run(self) -> None:
+        model = self.get_model()
         if isinstance(self.strategy, FSDPStrategy):
-            with self.sharded_model():
-                model = self.get_model()
             model = self.setup_module(model)
             optimizer = self.get_optimizer(model)
             optimizer = self.setup_optimizers(optimizer)
         else:
-            model = self.get_model()
             optimizer = self.get_optimizer(model)
             model, optimizer = self.setup(model, optimizer)
 
