@@ -1168,15 +1168,6 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-@RunIf(min_cuda_gpus=1)
-def test_invalid_gpu_choice_with_auto_select_gpus():
-    num_gpus = torch.cuda.device_count()
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"), pytest.deprecated_call(
-        match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"
-    ):
-        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
-
-
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
 def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     """Test that the number of sanity check batches is clipped to `limit_val_batches`."""

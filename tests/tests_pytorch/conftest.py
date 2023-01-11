@@ -115,7 +115,6 @@ def reset_deterministic_algorithm():
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning_fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
     monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
 
 
 @pytest.fixture(scope="function")
