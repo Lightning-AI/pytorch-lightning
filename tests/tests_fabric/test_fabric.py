@@ -467,7 +467,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     fabric = EmptyFabric(accelerator="cpu", strategy=strategy, devices=2)
-    if fabric._connector.is_distributed:
+    if hasattr(fabric.strategy, "distributed_sampler_kwargs"):
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
             fabric.setup_dataloaders(dataloader, replace_sampler=True)
 
@@ -490,7 +490,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Fabric replaces the default samplers with DistributedSampler automatically."""
     fabric = EmptyFabric(accelerator="cpu", strategy=strategy, devices=2)
-    is_distributed = fabric._connector.is_distributed
+    is_distributed = hasattr(fabric.strategy, "distributed_sampler_kwargs")
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(fabric_dataloader.sampler, DistributedSampler)
 

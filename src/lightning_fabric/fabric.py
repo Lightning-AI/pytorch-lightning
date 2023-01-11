@@ -666,7 +666,7 @@ class Fabric:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._connector.is_distributed
+            getattr(self.strategy, "distributed_sampler_kwargs", None) is not None
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )

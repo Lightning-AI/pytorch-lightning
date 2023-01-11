@@ -43,7 +43,6 @@ from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
-    DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -546,20 +545,3 @@ class _Connector:
         if env_value is None:
             return current
         return env_value
-
-    @property
-    def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = (
-            DDPStrategy,
-            DeepSpeedStrategy,
-            XLAStrategy,
-        )
-        is_distributed = isinstance(self.strategy, distributed_strategy)
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed
