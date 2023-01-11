@@ -47,7 +47,6 @@ from lightning_fabric.strategies import (
     XLAStrategy,
 )
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
-from lightning_fabric.strategies.fsdp import FSDPStrategy
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 
 
@@ -241,9 +240,6 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(RuntimeError, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         _Connector(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(RuntimeError, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-        _Connector(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
-
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
         _Connector(strategy="dp")
@@ -276,8 +272,6 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
-        ("ddp_sharded", FSDPStrategy),
-        ("ddp_sharded_spawn", FSDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -394,27 +388,12 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
         ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", FSDPStrategy),
-        ("ddp_sharded_spawn", FSDPStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class):
     connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(connector.strategy, strategy_class)
-
-
-@pytest.mark.parametrize(
-    "strategy,expected_strategy", [("ddp_sharded", FSDPStrategy), ("ddp_sharded_spawn", FSDPStrategy)]
-)
-@pytest.mark.parametrize(
-    "precision,expected_precision", [(16, MixedPrecision), (32, Precision), ("bf16", MixedPrecision)]
-)
-@mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=1)
-def test_strategy_choice_sharded(_, strategy, expected_strategy, precision, expected_precision):
-    connector = _Connector(strategy=strategy, accelerator="cuda", devices=1, precision=precision)
-    assert isinstance(connector.strategy, expected_strategy)
-    assert isinstance(connector.precision, expected_precision)
 
 
 def test_device_type_when_strategy_instance_cpu_passed():

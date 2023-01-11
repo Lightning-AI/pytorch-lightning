@@ -28,7 +28,6 @@ from lightning_fabric.plugins import TPUPrecision as LiteTPUPrecision
 from lightning_fabric.strategies import DataParallelStrategy as LiteDataParallelStrategy
 from lightning_fabric.strategies import DDPStrategy as LiteDDPStrategy
 from lightning_fabric.strategies import DeepSpeedStrategy as LiteDeepSpeedStrategy
-from lightning_fabric.strategies import FSDPStrategy
 from lightning_fabric.strategies import SingleDeviceStrategy as LiteSingleDeviceStrategy
 from lightning_fabric.strategies import SingleTPUStrategy as LiteSingleTPUStrategy
 from lightning_fabric.strategies import Strategy as LiteStrategy
@@ -75,8 +74,7 @@ class LightningLite(Fabric, ABC):
         accelerator: The hardware to run on. Possible choices are:
             ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``, ``"ddp_sharded"``,
-            ``"ddp_sharded_spawn"``.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
@@ -131,10 +129,18 @@ class LightningLite(Fabric, ABC):
         else:
             lite_plugins = plugins
 
-        if isinstance(strategy, str) and strategy == "ddp_sharded":
-            rank_zero_deprecation(
-                "LightningLite's sharded implementation using FairScale has been replaced with PyTorch's FSDP but only"
-                " sharding the optimizer. This message will disappear in v2.0.0 or when you upgrade to use `Fabric`."
+        if type(strategy) in (PLDDPShardedStrategy, PLDDPSpawnShardedStrategy) or strategy in (
+            "ddp_sharded",
+            "ddp_sharded_spawn",
+        ):
+            spawn_message = ""
+            if type(strategy) is PLDDPSpawnShardedStrategy or strategy == "ddp_sharded_spawn":
+                spawn_message = ", start_method='spawn'"
+            raise RuntimeError(
+                "LightningLite's sharded implementation using FairScale has been removed in favor of PyTorch's FSDP."
+                " You can try"
+                f" `Fabric(strategy=FSDPStrategy(sharding_strategy=ShardingStrategy.SHARD_GRAD_OP{spawn_message}))`"
+                " which implements optimizer-only sharding a-la ZeRO-2. Or full sharding with `Fabric(strategy='fsdp')`"
             )
 
         super().__init__(
@@ -249,30 +255,6 @@ def _to_lite_strategy(strategy: PLStrategy) -> LiteStrategy:
             parallel_devices=strategy.parallel_devices,
             checkpoint_io=strategy.checkpoint_io,
             precision=_to_lite_precision(strategy.precision_plugin),
-        )
-
-    if strategy_cls is (PLDDPShardedStrategy, PLDDPSpawnShardedStrategy):
-        rank_zero_deprecation(
-            "LightningLite's sharded implementation using FairScale has been replaced with PyTorch's FSDP but only"
-            " sharding the optimizer. This warning will disappear in v2.0.0. or when you upgrade to use `Fabric`."
-            " You can try using the `Fabric(strategy='ddp_sharded')` instead."
-        )
-        kwargs = {}
-        if strategy_cls is PLDDPSpawnShardedStrategy:
-            kwargs["start_method"] = strategy._start_method
-        from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
-
-        return FSDPStrategy(
-            accelerator=strategy.accelerator,
-            parallel_devices=strategy.parallel_devices,
-            cluster_environment=strategy.cluster_environment,
-            checkpoint_io=strategy.checkpoint_io,
-            precision=_to_lite_precision(strategy.precision_plugin),
-            process_group_backend=strategy.process_group_backend,
-            timeout=strategy._timeout,
-            sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
-            **kwargs,
-            **strategy._ddp_kwargs,
         )
 
     if strategy_cls is PLSingleDeviceStrategy:

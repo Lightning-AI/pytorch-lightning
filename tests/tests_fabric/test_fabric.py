@@ -457,8 +457,6 @@ def test_seed_everything():
         "ddp_spawn",
         pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
-        pytest.param("ddp_sharded", marks=RunIf(min_torch="1.12")),
-        pytest.param("ddp_sharded_spawn", marks=RunIf(min_torch="1.12")),
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
@@ -486,8 +484,6 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
         "ddp_spawn",
         pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
-        pytest.param("ddp_sharded", marks=RunIf(min_torch="1.12")),
-        pytest.param("ddp_sharded_spawn", marks=RunIf(min_torch="1.12")),
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])

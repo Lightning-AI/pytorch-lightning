@@ -48,7 +48,7 @@ if TYPE_CHECKING:
         MixedPrecision,
     )
 
-_FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload", "ddp_sharded", "ddp_sharded_spawn")
+_FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -286,21 +286,6 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
             cls,
             description="Fully Sharded Data Parallel and CPU Offloading",
             cpu_offload=True,
-        )
-        from torch.distributed.fsdp.fully_sharded_data_parallel import ShardingStrategy
-
-        strategy_registry.register(
-            "ddp_sharded",
-            cls,
-            description="Optimizer Sharded Data Parallel",
-            sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
-        )
-        strategy_registry.register(
-            "ddp_sharded_spawn",
-            cls,
-            description="Optimizer Sharded Data Parallel with `start_method='spawn'`",
-            sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
-            start_method="spawn",
         )
 
     def _setup_distributed(self) -> None:
