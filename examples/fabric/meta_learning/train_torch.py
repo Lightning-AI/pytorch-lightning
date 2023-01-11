@@ -69,8 +69,8 @@ def main(
     world_size = int(os.environ["WORLD_SIZE"])
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "12345"
-    torch.distributed.init_process_group("gloo", rank=local_rank, world_size=world_size)
-    rank = torch.distributed.get_rank()
+    dist.init_process_group("gloo", rank=local_rank, world_size=world_size)
+    rank = dist.get_rank()
 
     meta_batch_size = meta_batch_size // world_size
     seed = seed + rank
