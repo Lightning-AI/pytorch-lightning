@@ -713,7 +713,6 @@ def test_deterministic_init(deterministic):
     assert trainer._accelerator_connector.deterministic == deterministic
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
-        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
 
 
 @pytest.mark.parametrize(

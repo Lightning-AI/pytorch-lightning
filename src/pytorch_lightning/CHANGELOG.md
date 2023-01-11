@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `pytorch_lightning.utilities.enums.AMPType` enum
   * Removed the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 
+- Removed `Trainer(strategy='horovod')` support ([#16150](https://github.com/Lightning-AI/lightning/pull/16150))
+
 
 ### Fixed
 

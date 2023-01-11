@@ -28,7 +28,6 @@ from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _HIVEMIND_AVAILABLE,
     _HPU_AVAILABLE,
@@ -38,19 +37,6 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_QUANTIZE_AVAILABLE,
 )
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
-
-_HOROVOD_NCCL_AVAILABLE = False
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
-
-    try:
-
-        # `nccl_built` returns an integer
-        _HOROVOD_NCCL_AVAILABLE = bool(hvd.nccl_built())
-    except AttributeError:
-        # AttributeError can be raised if MPI is not available:
-        # https://github.com/horovod/horovod/blob/v0.23.0/horovod/torch/__init__.py#L33-L34
-        pass
 
 
 class RunIf:
@@ -75,8 +61,6 @@ class RunIf:
         ipu: bool = False,
         hpu: bool = False,
         mps: Optional[bool] = None,
-        horovod: bool = False,  # TODO: remove in v2.0.0
-        horovod_nccl: bool = False,  # TODO: remove in v2.0.0
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
@@ -105,8 +89,6 @@ class RunIf:
             hpu: Require that HPU is available.
             mps: If True: Require that MPS (Apple Silicon) is available,
                 if False: Explicitly Require that MPS is not available
-            horovod: Require that Horovod is installed.
-            horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
@@ -192,14 +174,6 @@ class RunIf:
             else:
                 conditions.append(MPSAccelerator.is_available())
                 reasons.append("not MPS")
-
-        if horovod:
-            conditions.append(not _HOROVOD_AVAILABLE)
-            reasons.append("Horovod")
-
-        if horovod_nccl:
-            conditions.append(not _HOROVOD_NCCL_AVAILABLE)
-            reasons.append("Horovod with NCCL")
 
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
