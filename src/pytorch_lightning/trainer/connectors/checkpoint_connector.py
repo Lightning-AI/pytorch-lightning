@@ -36,7 +36,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -46,16 +46,9 @@ log: logging.Logger = logging.getLogger(__name__)
 
 
 class CheckpointConnector:
-    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
         self.resume_checkpoint_path: Optional[_PATH] = None
-        # TODO: remove resume_from_checkpoint_fit_path in v2.0
-        self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
-        if resume_from_checkpoint is not None:
-            rank_zero_deprecation(
-                "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
-                " will be removed in v2.0. Please pass `Trainer.fit(ckpt_path=)` directly instead."
-            )
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
@@ -193,12 +186,6 @@ class CheckpointConnector:
                 rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
             elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
                 rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
-        # TODO: remove resume_from_checkpoint_fit_path in v2.0
-        if (
-            self.trainer.state.fn == TrainerFn.FITTING
-            and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
-        ):
-            self.resume_from_checkpoint_fit_path = None
         self.resume_checkpoint_path = None
         self._loaded_checkpoint = {}
 
