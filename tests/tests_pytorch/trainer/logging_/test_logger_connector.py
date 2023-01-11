@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import operator
 from functools import partial
 from unittest import mock
@@ -30,7 +31,6 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHMETRICS_GREATER_EQUAL_0_9_1
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.models.test_hooks import get_members
 
@@ -517,7 +517,7 @@ def test_metrics_reset(tmpdir):
 @pytest.mark.parametrize("compute_groups", [True, False])
 def test_metriccollection_compute_groups(tmpdir, compute_groups):
     def assertion_calls(keep_base: bool, copy_state: bool):
-        if _TORCHMETRICS_GREATER_EQUAL_0_9_1:
+        if 'copy_state' in inspect.signature(MetricCollection.items).parameters:
             assert copy_state != compute_groups
 
         assert not keep_base
