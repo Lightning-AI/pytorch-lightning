@@ -48,7 +48,7 @@ class TestAuthentication:
         os.environ.setdefault("LIGHTNING_USER_ID", "7c8455e3-7c5f-4697-8a6d-105971d6b9bd")
         os.environ.setdefault("LIGHTNING_API_KEY", "e63fae57-2b50-498b-bc46-d6204cbf330e")
         auth = login.Auth()
-        # CLI login runs clear first
+        # CLI login runs clear first
         auth.clear()
 
         assert "Basic" in auth.auth_header
@@ -71,7 +71,7 @@ def test_authentication_with_environment_vars(browser_login: mock.MagicMock):
     os.environ.setdefault("LIGHTNING_API_KEY", "abc")
 
     auth = login.Auth()
-    # CLI login runs clear first
+    # CLI login runs clear first
     auth.clear()
 
     assert auth.user_id == "abc"
