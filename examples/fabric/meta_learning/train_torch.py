@@ -22,10 +22,14 @@ import random
 import numpy as np
 
 import torch
+import torch.distributed as dist
 import cherry
 import learn2learn as l2l
 
-WORLD_SIZE = 2
+
+def accuracy(predictions, targets):
+    predictions = predictions.argmax(dim=1).view(targets.shape)
+    return (predictions == targets).sum().float() / targets.size(0)
 
 
 def fast_adapt(batch, learner, loss, adaptation_steps, shots, ways, device):
@@ -33,70 +37,71 @@ def fast_adapt(batch, learner, loss, adaptation_steps, shots, ways, device):
     data, labels = data.to(device), labels.to(device)
 
     # Separate data into adaptation/evalutation sets
-    (support_data, support_labels), (query_data, query_labels) = l2l.data.partition_task(
-        data=data,
-        labels=labels,
-        shots=shots,
-    )
+    adaptation_indices = np.zeros(data.size(0), dtype=bool)
+    adaptation_indices[np.arange(shots * ways) * 2] = True
+    evaluation_indices = torch.from_numpy(~adaptation_indices)
+    adaptation_indices = torch.from_numpy(adaptation_indices)
+    adaptation_data, adaptation_labels = data[adaptation_indices], labels[adaptation_indices]
+    evaluation_data, evaluation_labels = data[evaluation_indices], labels[evaluation_indices]
 
     # Adapt the model
     for step in range(adaptation_steps):
-        adaptation_error = loss(learner(support_data), support_labels)
-        learner.adapt(adaptation_error)
+        train_error = loss(learner(adaptation_data), adaptation_labels)
+        learner.adapt(train_error)
 
     # Evaluate the adapted model
-    predictions = learner(query_data)
-    evaluation_error = loss(predictions, query_labels)
-    evaluation_accuracy = l2l.utils.accuracy(predictions, query_labels)
-    return evaluation_error, evaluation_accuracy
+    predictions = learner(evaluation_data)
+    valid_error = loss(predictions, evaluation_labels)
+    valid_accuracy = accuracy(predictions, evaluation_labels)
+    return valid_error, valid_accuracy
 
 
 def main(
-        ways=5,
-        shots=5,
-        meta_lr=0.003,
-        fast_lr=0.5,
-        meta_batch_size=32,
-        adaptation_steps=1,
-        num_iterations=60000,
-        cuda=True,
-        rank=0,
-        world_size=1,
-        seed=42,
+    ways=5,
+    shots=5,
+    meta_lr=0.003,
+    fast_lr=0.5,
+    meta_batch_size=32,
+    adaptation_steps=1,
+    num_iterations=60000,
+    cuda=True,
+    rank=0,
+    world_size=1,
+    seed=42,
 ):
     print(rank)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     if cuda and torch.cuda.device_count():
         torch.cuda.manual_seed(seed)
         device_id = rank % torch.cuda.device_count()
-        device = torch.device('cuda:' + str(device_id))
-    print(rank, ':', device)
+        device = torch.device("cuda:" + str(device_id))
+    print(rank, ":", device)
 
     # Create Tasksets using the benchmark interface
     # if rank == 0:
-    tasksets = l2l.vision.benchmarks.get_tasksets('omniglot',
-                                                  train_ways=ways,
-                                                  train_samples=2*shots,
-                                                  test_ways=ways,
-                                                  test_samples=2*shots,
-                                                  num_tasks=20000,
-                                                  root='~/data',
-                                                  )
-    # torch.distributed.barrier()
+    tasksets = l2l.vision.benchmarks.get_tasksets(
+        "omniglot",
+        train_ways=ways,
+        train_samples=2 * shots,
+        test_ways=ways,
+        test_samples=2 * shots,
+        num_tasks=20000,
+        root="~/data",
+    )
 
     # Create model
     # model = l2l.vision.models.MiniImagenetCNN(ways)
-    model = l2l.vision.models.OmniglotFC(28 ** 2, ways)
+    model = l2l.vision.models.OmniglotFC(28**2, ways)
     model.to(device)
     maml = l2l.algorithms.MAML(model, lr=fast_lr, first_order=False)
     opt = torch.optim.Adam(maml.parameters(), meta_lr)
     opt = cherry.optim.Distributed(maml.parameters(), opt=opt, sync=1)
     opt.sync_parameters()
-    loss = torch.nn.CrossEntropyLoss(reduction='mean')
-    print(rank, ':', device)
+    loss = torch.nn.CrossEntropyLoss(reduction="mean")
+    print(rank, ":", device)
 
     for iteration in range(num_iterations):
         opt.zero_grad()
@@ -138,12 +143,12 @@ def main(
 
         # Print some metrics
         if rank == 0:
-            print('\n')
-            print('Iteration', iteration)
-            print('Meta Train Error', meta_train_error / meta_batch_size)
-            print('Meta Train Accuracy', meta_train_accuracy / meta_batch_size)
-            print('Meta Valid Error', meta_valid_error / meta_batch_size)
-            print('Meta Valid Accuracy', meta_valid_accuracy / meta_batch_size)
+            print("\n")
+            print("Iteration", iteration)
+            print("Meta Train Error", meta_train_error / meta_batch_size)
+            print("Meta Train Accuracy", meta_train_accuracy / meta_batch_size)
+            print("Meta Valid Error", meta_valid_error / meta_batch_size)
+            print("Meta Valid Accuracy", meta_valid_accuracy / meta_batch_size)
 
         # Average the accumulated gradients and optimize
         for p in maml.parameters():
@@ -167,31 +172,25 @@ def main(
         )
         meta_test_error += evaluation_error.item()
         meta_test_accuracy += evaluation_accuracy.item()
-    print('Meta Test Error', meta_test_error / meta_batch_size)
-    print('Meta Test Accuracy', meta_test_accuracy / meta_batch_size)
+    print("Meta Test Error", meta_test_error / meta_batch_size)
+    print("Meta Test Accuracy", meta_test_accuracy / meta_batch_size)
 
 
 def distributed_main():
     local_rank = int(os.environ["LOCAL_RANK"])
-    print("init2")
+    world_size = int(os.environ["WORLD_SIZE"])
     os.environ["MASTER_ADDR"] = "127.0.0.1"
     os.environ["MASTER_PORT"] = "12345"
-    torch.distributed.init_process_group(
-        'gloo',
-        # init_method='tcp://localhost:23456',
-        rank=local_rank,
-        world_size=WORLD_SIZE,
-    )
-    print("init3")
+    torch.distributed.init_process_group("gloo", rank=local_rank, world_size=world_size)
 
     rank = torch.distributed.get_rank()
     main(
         seed=42 + rank,
         rank=rank,
-        world_size=WORLD_SIZE,
-        meta_batch_size=32 // WORLD_SIZE,
+        world_size=world_size,
+        meta_batch_size=32 // world_size,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     distributed_main()
