@@ -653,12 +653,6 @@ def test_profiler_classes_deprecated_warning(cls):
         cls()
 
 
-@RunIf(horovod=True)
-def test_horovod_deprecation_warnings(*_):
-    with pytest.deprecated_call(match=r"horovod'\)` has been deprecated in v1.9"):
-        Trainer(strategy="horovod")
-
-
 def test_auto_select_gpus():
     with pytest.deprecated_call(match="The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0"):
         Trainer(auto_select_gpus=False)

@@ -64,7 +64,6 @@ from pytorch_lightning.strategies import (
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
-    HorovodStrategy,
     HPUParallelStrategy,
     IPUStrategy,
     ParallelStrategy,
@@ -76,16 +75,12 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
-
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
 
 _LITERAL_WARN = Literal["warn"]
 _PRECISION_INPUT_INT = Literal[64, 32, 16]
@@ -219,10 +214,6 @@ class AcceleratorConnector:
         else:
             torch.use_deterministic_algorithms(self.deterministic)
         if self.deterministic:
-            # fixing non-deterministic part of horovod
-            # https://github.com/Lightning-AI/lightning/pull/1572/files#r420279383
-            os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"
-
             # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
@@ -582,8 +573,6 @@ class AcceleratorConnector:
             else:
                 # TODO: lazy initialized device, then here could be self._strategy_flag = "single_tpu_device"
                 return SingleTPUStrategy(device=self._parallel_devices[0])  # type: ignore
-        if _HOROVOD_AVAILABLE and ("OMPI_COMM_WORLD_RANK" in os.environ or "HOROVOD_RANK" in os.environ):
-            return HorovodStrategy.strategy_name
         if self._num_nodes_flag > 1:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
@@ -636,32 +625,8 @@ class AcceleratorConnector:
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
-    def _handle_horovod(self) -> None:
-        if self._num_nodes_flag > 1:
-            raise MisconfigurationException(
-                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
-                "horovodrun / mpirun to configure the number of processes."
-            )
-
-        if not _HOROVOD_AVAILABLE:
-            raise MisconfigurationException(
-                'Requested `strategy="horovod"`, but Horovod is not installed.'
-                " Install with `HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]`"
-            )
-
-        hvd.init()
-        if isinstance(self.accelerator, CUDAAccelerator):
-            # Horovod assigns one local GPU per process
-            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
-        else:
-            self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
-
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
-        if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
-            # handle horovod has to happen before initialize strategy because HorovodStrategy needs hvd.init() first.
-            # TODO lazy initialized and setup horovod strategy `global_rank`
-            self._handle_horovod()
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
@@ -810,7 +775,6 @@ class AcceleratorConnector:
             DDPSpawnStrategy,
             DeepSpeedStrategy,
             TPUSpawnStrategy,
-            HorovodStrategy,
             HPUParallelStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
