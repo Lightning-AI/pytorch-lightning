@@ -541,7 +541,7 @@ class _Connector:
         if env_value is not None and env_value != str(current) and str(current) != str(default):
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
-                f"`--{name}={current}` set through the CLI. "
+                f"`--{name}={env_value!r}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
         if env_value is None:
