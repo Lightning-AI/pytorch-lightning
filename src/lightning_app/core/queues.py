@@ -297,7 +297,7 @@ class RedisQueue(BaseQueue):
             out = self.redis.blpop([self.name], timeout=timeout)
             if out is not None:
                 out = [out[1]]
-                remaining = self.redis.lpop([self.name], count=batch_size - 1)
+                remaining = self.redis.lpop(self.name, count=batch_size - 1)
                 if remaining is not None:
                     out.append(remaining)
         except redis.exceptions.ConnectionError:
