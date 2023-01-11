@@ -15,6 +15,8 @@ from pytorch_lightning.plugins import DoublePrecisionPlugin as PLDoublePrecision
 from pytorch_lightning.plugins import PrecisionPlugin as PLPrecisionPlugin
 from pytorch_lightning.strategies import DDPStrategy as PLDDPStrategy
 from pytorch_lightning.strategies import DeepSpeedStrategy as PLDeepSpeedStrategy
+from pytorch_lightning.strategies.sharded import DDPShardedStrategy
+from pytorch_lightning.strategies.sharded_spawn import DDPSpawnShardedStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -86,3 +88,13 @@ def test_lite_convert_pl_strategies_deepspeed():
     assert lite._strategy.config["zero_optimization"]["stage"] == 2
     assert lite._strategy.initial_scale_power == 32
     assert lite._strategy.loss_scale_window == 500
+
+
+@pytest.mark.parametrize(
+    "strategy", ("ddp_sharded", "ddp_sharded_spawn", DDPShardedStrategy(), DDPSpawnShardedStrategy())
+)
+def test_lite_sharded_raises(strategy):
+    with pytest.deprecated_call(match="will be renamed to `lightning.fabric.Fabric` in v2.0.0"), pytest.raises(
+        RuntimeError, match=r"try `Fabric\(strategy=FSDP"
+    ):
+        EmptyLite(strategy=strategy)
