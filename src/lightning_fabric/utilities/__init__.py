@@ -14,7 +14,7 @@
 """General utilities."""
 
 from lightning_fabric.utilities.apply_func import move_data_to_device  # noqa: F401
-from lightning_fabric.utilities.enums import _AcceleratorType, _StrategyType, LightningEnum  # noqa: F401
+from lightning_fabric.utilities.enums import _AcceleratorType, LightningEnum  # noqa: F401
 from lightning_fabric.utilities.rank_zero import (  # noqa: F401
     rank_zero_deprecation,
     rank_zero_info,

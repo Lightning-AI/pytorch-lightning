@@ -28,7 +28,6 @@ from lightning_fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -110,11 +109,11 @@ class AcceleratorConnector:
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
-        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v1.10.0
-        num_processes: Optional[int] = None,  # deprecated
-        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
-        ipus: Optional[int] = None,  # deprecated
-        gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v2.0.0
+        num_processes: Optional[int] = None,  # TODO: Remove in v2.0.0
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in v2.0.0
+        ipus: Optional[int] = None,  # TODO: Remove in v2.0.0
+        gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in v2.0.0
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -177,9 +176,9 @@ class AcceleratorConnector:
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v1.10.0
-        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v1.10.0
-        self._auto_select_gpus: Optional[bool] = auto_select_gpus
+        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v2.0.0
+        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v2.0.0
+        self._auto_select_gpus: Optional[bool] = auto_select_gpus  # TODO: Remove in v2.0.0
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -380,7 +379,7 @@ class AcceleratorConnector:
         if amp_type is not None:
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 f" The `Trainer(amp_backend={amp_type!r})` argument is deprecated. Removing this argument will avoid"
                 f" this message, it will select PyTorch's implementation automatically."
             )
@@ -391,7 +390,7 @@ class AcceleratorConnector:
         if amp_level is not None:
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 f" The `Trainer(amp_level={amp_level!r})` argument is deprecated. Removing this argument will avoid"
                 f" this message."
             )
@@ -562,7 +561,7 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
         if self._auto_select_gpus is not None:
             rank_zero_deprecation(
-                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
             )
         if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
@@ -684,7 +683,7 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            # TODO(lite): remove ignore after merging lite and PL strategies
+            # TODO(fabric): remove ignore after merging Fabric and PL strategies
             self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
@@ -818,7 +817,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )

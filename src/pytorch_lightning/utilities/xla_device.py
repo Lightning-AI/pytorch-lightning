@@ -21,7 +21,7 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  # pragma: no cover
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.xla_device.inner_f` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This class is internal but you can copy over its implementation."
+        " removed in v2.0.0. This class is internal but you can copy over its implementation."
     )
     from lightning_fabric.accelerators.tpu import _inner_f
 
@@ -31,7 +31,7 @@ def inner_f(queue: Queue, func: Callable, *args: Any, **kwargs: Any) -> None:  #
 def pl_multi_process(func: Callable) -> Callable:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.xla_device.pl_multi_process` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This class is internal but you can copy over its implementation."
+        " removed in v2.0.0. This class is internal but you can copy over its implementation."
     )
     from lightning_fabric.accelerators.tpu import _multi_process
 
@@ -42,14 +42,14 @@ class XLADeviceUtils:
     def __init__(self) -> None:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils` has been deprecated in v1.8.0 and will be"
-            " removed in v1.10.0. This class is internal."
+            " removed in v2.0.0. This class is internal."
         )
 
     @staticmethod
     def xla_available() -> bool:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils.xla_available` has been deprecated in v1.8.0 and"
-            " will be removed in v1.10.0. This method is internal."
+            " will be removed in v2.0.0. This method is internal."
         )
         from pytorch_lightning.accelerators.tpu import _XLA_AVAILABLE
 
@@ -59,7 +59,7 @@ class XLADeviceUtils:
     def tpu_device_exists() -> bool:
         rank_zero_deprecation(
             "`pytorch_lightning.utilities.xla_device.XLADeviceUtils.tpu_device_exists` has been deprecated in v1.8.0"
-            " and will be removed in v1.10.0. Please use `pytorch_lightning.accelerators.TPUAccelerator.is_available()`"
+            " and will be removed in v2.0.0. Please use `pytorch_lightning.accelerators.TPUAccelerator.is_available()`"
             " instead."
         )
         from pytorch_lightning.accelerators.tpu import TPUAccelerator
