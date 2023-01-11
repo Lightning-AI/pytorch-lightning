@@ -16,6 +16,12 @@ Tip: You can easily inspect the difference between the two files with:
 sdiff train_torch.py train_fabric.py
 ```
 
+### Requirements
+
+```bash
+pip install lightning learn2learn cherry-rl gym<=0.22
+```
+
 ### Run
 
 **Raw PyTorch:**
