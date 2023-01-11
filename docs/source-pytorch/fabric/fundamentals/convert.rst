@@ -56,20 +56,20 @@ All steps combined, this is how your code will change:
 
     + from lightning.fabric import Fabric
 
-      class MyModel(nn.Module):
+      class PyTorchModel(nn.Module):
           ...
 
-      class MyDataset(Dataset):
+      class PyTorchDataset(Dataset):
           ...
 
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
     - device = "cuda" if torch.cuda.is_available() else "cpu
-      model = MyModel(...)
+      model = PyTorchModel(...)
       optimizer = torch.optim.SGD(model.parameters())
     + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(MyDataset(...), ...)
+      dataloader = DataLoader(PyTorchDataset(...), ...)
     + dataloader = fabric.setup_dataloaders(dataloader)
       model.train()
 
