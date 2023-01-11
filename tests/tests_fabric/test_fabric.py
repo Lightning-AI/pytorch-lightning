@@ -37,7 +37,6 @@ from lightning_fabric.strategies import (
     XLAStrategy,
 )
 from lightning_fabric.strategies.strategy import _Sharded
-from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 from lightning_fabric.utilities.seed import pl_worker_init_function, seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
@@ -463,13 +462,13 @@ def test_seed_everything():
 @pytest.mark.parametrize(
     "strategy",
     [
-        _StrategyType.DP,
-        _StrategyType.DDP,
-        _StrategyType.DDP_SPAWN,
-        pytest.param(_StrategyType.DDP_FORK, marks=RunIf(skip_windows=True)),
-        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        "dp",
+        "ddp",
+        "ddp_spawn",
+        pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
+        pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
@@ -492,13 +491,13 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 @pytest.mark.parametrize(
     "strategy",
     [
-        _StrategyType.DP,
-        _StrategyType.DDP,
-        _StrategyType.DDP_SPAWN,
-        pytest.param(_StrategyType.DDP_FORK, marks=RunIf(skip_windows=True)),
-        pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
-        pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
-        pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
+        "dp",
+        "ddp",
+        "ddp_spawn",
+        pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
+        pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
+        pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
+        pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])
