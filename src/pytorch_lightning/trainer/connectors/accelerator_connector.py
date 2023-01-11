@@ -75,10 +75,9 @@ from pytorch_lightning.strategies import (
     TPUSpawnStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +100,6 @@ class AcceleratorConnector:
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
-        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v2.0.0
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -163,7 +161,6 @@ class AcceleratorConnector:
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._auto_select_gpus: Optional[bool] = auto_select_gpus  # TODO: Remove in v2.0.0
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -442,7 +439,6 @@ class AcceleratorConnector:
             )
 
         self._set_devices_flag_if_auto_passed()
-        self._set_devices_flag_if_auto_select_gpus_passed()
         self._devices_flag = accelerator_cls.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
@@ -450,24 +446,6 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
-
-    def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
-        if self._auto_select_gpus is not None:
-            rank_zero_deprecation(
-                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v2.0.0."
-                " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
-            )
-        if (
-            self._auto_select_gpus
-            and isinstance(self._devices_flag, int)
-            and isinstance(self.accelerator, CUDAAccelerator)
-        ):
-            self._devices_flag = pick_multiple_gpus(
-                self._devices_flag,
-                # we already show a deprecation message when user sets Trainer(auto_select_gpus=...)
-                _show_deprecation=False,
-            )
-            log.info(f"Auto select gpus: {self._devices_flag}")
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):

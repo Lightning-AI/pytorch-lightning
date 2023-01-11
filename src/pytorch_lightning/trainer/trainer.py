@@ -125,7 +125,6 @@ class Trainer:
         gradient_clip_algorithm: Optional[str] = None,
         num_nodes: int = 1,
         devices: Optional[Union[List[int], str, int]] = None,
-        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -368,7 +367,6 @@ class Trainer:
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
-            auto_select_gpus=auto_select_gpus,
             precision=precision,
             plugins=plugins,
         )
