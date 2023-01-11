@@ -13,7 +13,6 @@
 # limitations under the License
 
 import os
-from re import escape
 from typing import Any, Dict
 from unittest import mock
 
