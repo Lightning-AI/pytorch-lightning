@@ -561,7 +561,7 @@ class LightningModule(
                 would produce a deadlock as not all processes would perform this log call.
         """
         if self._fabric is not None:
-            return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)  # type: ignore[arg-type]
+            return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
 
         kwargs: Dict[str, bool] = {}
 
