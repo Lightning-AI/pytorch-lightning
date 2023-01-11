@@ -21,7 +21,6 @@ import torch
 from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection, Precision
-from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback

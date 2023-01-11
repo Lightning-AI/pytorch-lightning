@@ -567,7 +567,10 @@ class LightningModule(
 
         if isinstance(dictionary, MetricCollection):
             kwargs["keep_base"] = False
-            if "copy_state" in inspect.signature(MetricCollection.items).parameters and dictionary._enable_compute_groups:
+            if (
+                "copy_state" in inspect.signature(MetricCollection.items).parameters
+                and dictionary._enable_compute_groups
+            ):
                 kwargs["copy_state"] = False
 
         for k, v in dictionary.items(**kwargs):
