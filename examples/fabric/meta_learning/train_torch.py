@@ -19,12 +19,12 @@ Run it with:
 """
 import os
 import random
-import numpy as np
 
-import torch
-import torch.distributed as dist
 import cherry
 import learn2learn as l2l
+import numpy as np
+import torch
+import torch.distributed as dist
 
 
 def accuracy(predictions, targets):
@@ -65,11 +65,18 @@ def main(
     adaptation_steps=1,
     num_iterations=60000,
     cuda=True,
-    rank=0,
-    world_size=1,
     seed=42,
 ):
-    print(rank)
+    local_rank = int(os.environ["LOCAL_RANK"])
+    world_size = int(os.environ["WORLD_SIZE"])
+    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    os.environ["MASTER_PORT"] = "12345"
+    torch.distributed.init_process_group("gloo", rank=local_rank, world_size=world_size)
+    rank = torch.distributed.get_rank()
+
+    meta_batch_size = (meta_batch_size // world_size,)
+    seed = (seed + rank,)
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -78,12 +85,10 @@ def main(
         torch.cuda.manual_seed(seed)
         device_id = rank % torch.cuda.device_count()
         device = torch.device("cuda:" + str(device_id))
-    print(rank, ":", device)
 
     # Create Tasksets using the benchmark interface
-    # if rank == 0:
     tasksets = l2l.vision.benchmarks.get_tasksets(
-        "omniglot",
+        "omniglot",  # mini-imagenet
         train_ways=ways,
         train_samples=2 * shots,
         test_ways=ways,
@@ -101,7 +106,6 @@ def main(
     opt = cherry.optim.Distributed(maml.parameters(), opt=opt, sync=1)
     opt.sync_parameters()
     loss = torch.nn.CrossEntropyLoss(reduction="mean")
-    print(rank, ":", device)
 
     for iteration in range(num_iterations):
         opt.zero_grad()
@@ -176,21 +180,5 @@ def main(
     print("Meta Test Accuracy", meta_test_accuracy / meta_batch_size)
 
 
-def distributed_main():
-    local_rank = int(os.environ["LOCAL_RANK"])
-    world_size = int(os.environ["WORLD_SIZE"])
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
-    os.environ["MASTER_PORT"] = "12345"
-    torch.distributed.init_process_group("gloo", rank=local_rank, world_size=world_size)
-
-    rank = torch.distributed.get_rank()
-    main(
-        seed=42 + rank,
-        rank=rank,
-        world_size=world_size,
-        meta_batch_size=32 // world_size,
-    )
-
-
 if __name__ == "__main__":
-    distributed_main()
+    main()
