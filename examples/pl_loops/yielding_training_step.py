@@ -74,7 +74,7 @@ class YieldLoop(OptimizerLoop):
         return partial(self._training_step, self._generator)
 
     def _get_generator(self, kwargs, opt_idx=0):
-        kwargs = self._build_kwargs(kwargs, opt_idx, hiddens=None)
+        kwargs = self._build_kwargs(kwargs, opt_idx)
 
         # Here we are basically calling `lightning_module.training_step()`
         # and this returns a generator! The `training_step` is handled by
@@ -285,8 +285,8 @@ class GAN(LightningModule):
 #############################################################################################
 #                       Step 3 / 3: Connect the loop to the Trainer                         #
 #                                                                                           #
-# Finally, attach the loop to the `Trainer`. Here, we modified the `AutomaticOptimization`  #
-# loop which is a subloop of the `TrainingBatchLoop`. We use `.connect()` to attach it.     #
+# Finally, attach the loop to the `Trainer`. Here, we modified the `OptimizerLoop`          #
+# loop which is a subloop of the `TrainingEpochLoop`. We use `.connect()` to attach it.     #
 #############################################################################################
 
 if __name__ == "__main__":
@@ -296,7 +296,7 @@ if __name__ == "__main__":
 
     # Connect the new loop
     # YieldLoop now replaces the previous optimizer loop
-    trainer.fit_loop.epoch_loop.batch_loop.connect(optimizer_loop=YieldLoop())
+    trainer.fit_loop.epoch_loop.connect(optimizer_loop=YieldLoop())
 
     # fit() will now use the new loop!
     trainer.fit(model, dm)

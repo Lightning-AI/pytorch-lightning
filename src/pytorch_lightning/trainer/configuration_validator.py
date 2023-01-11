@@ -178,12 +178,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
                     " argument in your `training_step`."
                 )
 
-        if model.truncated_bptt_steps > 0:
-            raise MisconfigurationException(
-                "The model taking a `dataloader_iter` argument in your `training_step` "
-                "is incompatible with `truncated_bptt_steps > 0`."
-            )
-
 
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (

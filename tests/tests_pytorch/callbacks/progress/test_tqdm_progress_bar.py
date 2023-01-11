@@ -659,10 +659,8 @@ def test_get_progress_bar_metrics(tmpdir: str):
     )
     model = BoringModel()
     trainer.fit(model)
-    model.truncated_bptt_steps = 2
     standard_metrics = progress_bar.get_metrics(trainer, model)
     assert "loss" in standard_metrics.keys()
-    assert "split_idx" in standard_metrics.keys()
     assert "v_num" not in standard_metrics.keys()
 
 
