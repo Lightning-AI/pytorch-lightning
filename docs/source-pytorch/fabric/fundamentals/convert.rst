@@ -87,3 +87,41 @@ All steps combined, this is how your code will change:
 
 That's it! You can now train on any device at any scale with a switch of a flag.
 Check out our before-and-after example for `image classification <https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md>`_ and many more :ref:`examples <Fabric Examples>` that use Fabric.
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Examples
+   :description: See examples across computer vision, NLP, RL, etc.
+   :col_css: col-md-4
+   :button_link: ../fabric.html#examples
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+    :header: Accelerators
+    :description: Take advantage of your hardware with a switch of a flag
+    :button_link: accelerators.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. displayitem::
+   :header: Build your own Trainer
+   :description: Learn how to build a trainer tailored for you
+   :col_css: col-md-4
+   :button_link: ../fabric.html#build-your-own-trainer
+   :height: 150
+   :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
