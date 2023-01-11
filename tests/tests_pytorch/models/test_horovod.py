@@ -220,7 +220,6 @@ def test_horovod_amp(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="horovod",
-        amp_backend="native",
         precision=16,
     )
     _run_horovod(trainer_options)

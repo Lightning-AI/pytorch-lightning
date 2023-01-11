@@ -58,7 +58,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, MixedPrecisionPlugin, PLUGIN_INPUT, PrecisionPlugin
+from pytorch_lightning.plugins import PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.profilers import Profiler
 from pytorch_lightning.strategies import (
     DDPFullyShardedNativeStrategy,
@@ -164,8 +164,6 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: Optional[str] = None,  # TODO: Remove in v2.0.0
-        amp_level: Optional[str] = None,  # TODO: Remove in v2.0.0
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -180,20 +178,6 @@ class Trainer:
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
                 Default: ``None``.
-
-            amp_backend: The mixed precision backend to use ("native" or "apex").
-                Default: ``'native''``.
-
-                .. deprecated:: v1.9
-                    Setting ``amp_backend`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v2.0.0. This argument was only relevant for apex which is being removed.
-
-            amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
-                if ``amp_backend`` is set to "apex".
-
-                .. deprecated:: v1.8
-                    Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v2.0.0.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -431,8 +415,6 @@ class Trainer:
             deterministic=deterministic,
             auto_select_gpus=auto_select_gpus,
             precision=precision,
-            amp_type=amp_backend,
-            amp_level=amp_level,
             plugins=plugins,
         )
         self._logger_connector = LoggerConnector(self)
@@ -1757,20 +1739,6 @@ class Trainer:
     @optimizer_frequencies.setter
     def optimizer_frequencies(self, new_freqs: List[int]) -> None:
         self.strategy.optimizer_frequencies = new_freqs
-
-    @property
-    def amp_backend(self) -> Optional[str]:
-        rank_zero_deprecation(
-            "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
-            " Accessing `Trainer.amp_backend` will not be supported. You can assume it will be `'native'`",
-            stacklevel=6,
-        )
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            return "apex"
-        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
-            return "native"
-        return None
 
     @property
     def precision(self) -> _PRECISION_INPUT_STR:
