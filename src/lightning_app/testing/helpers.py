@@ -42,7 +42,7 @@ def _run_script(filepath):
     assert not code, code
 
 
-class RunIfApp:
+class _RunIf:
     """RunIf wrapper for simple marking specific cases, fully compatible with pytest.mark::
 
     @RunIf(...)

@@ -20,7 +20,7 @@ from lightning_app.storage.path import (
     Path,
 )
 from lightning_app.storage.requests import _ExistsResponse, _GetResponse
-from lightning_app.testing.helpers import _MockQueue, EmptyWork, RunIfApp
+from lightning_app.testing.helpers import _MockQueue, EmptyWork, _RunIf
 from lightning_app.utilities.app_helpers import LightningJSONEncoder
 from lightning_app.utilities.component import _context
 from lightning_app.utilities.imports import _is_s3fs_available
@@ -157,7 +157,7 @@ def test_path_with_replacement():
     assert rel_path._consumer == "consumer"
 
 
-@RunIfApp(min_python="3.9")
+@_RunIf(min_python="3.9")
 def test_path_with_stem_replacement():
     """Test that the ``Path.with_stem`` modifier keep the properties.
 

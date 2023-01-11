@@ -5,10 +5,10 @@ from click.testing import CliRunner
 from integrations_app.public import _PATH_EXAMPLES
 
 from lightning_app.cli.lightning_cli import run_app
-from lightning_app.testing.helpers import _run_script, RunIfApp
+from lightning_app.testing.helpers import _run_script, _RunIf
 
 
-@RunIfApp(pl=True)
+@_RunIf(pl=True)
 @pytest.mark.parametrize(
     "file",
     [
@@ -21,7 +21,7 @@ def test_scripts(file):
 
 
 @pytest.mark.skip(reason="causing some issues with CI, not sure if the test is actually needed")
-@RunIfApp(pl=True)
+@_RunIf(pl=True)
 def test_components_app_example():
 
     runner = CliRunner()

@@ -23,7 +23,7 @@ from lightning_app.frontend import StreamlitFrontend
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.storage import Path
 from lightning_app.storage.path import _storage_root_dir
-from lightning_app.testing.helpers import RunIfApp
+from lightning_app.testing.helpers import _RunIf
 from lightning_app.testing.testing import LightningTestApp
 from lightning_app.utilities.app_helpers import affiliation
 from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
@@ -777,7 +777,7 @@ class FaultToleranceLightningTestApp(LightningTestApp):
 
 
 # TODO (tchaton) Resolve this test with Resumable App.
-@RunIfApp(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_fault_tolerance_work():
     app = FaultToleranceLightningTestApp(FlowCCTolerance())
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -886,7 +886,7 @@ class FlowStop(LightningFlow):
         self.w.run()
 
 
-@RunIfApp(skip_windows=True)
+@_RunIf(skip_windows=True)
 def test_lightning_stop():
     app = LightningApp(FlowStop())
     MultiProcessRuntime(app, start_server=False).dispatch()
