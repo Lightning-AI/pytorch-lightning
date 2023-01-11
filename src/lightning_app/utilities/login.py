@@ -45,10 +45,7 @@ class Auth:
             setattr(self, key.suffix, os.environ.get(key.value, None))
 
         self._with_env_var = bool(self.user_id and self.api_key)  # used by authenticate method
-        if self._with_env_var:
-            self.save("", self.user_id, self.api_key, self.user_id)
-            logger.info("Credentials loaded from environment variables")
-        elif self.api_key or self.user_id:
+        if not self._with_env_var and (self.api_key or self.user_id):
             raise ValueError(
                 "To use env vars for authentication both "
                 f"{Keys.USER_ID.value} and {Keys.API_KEY.value} should be set."
@@ -88,13 +85,10 @@ class Auth:
         self.api_key = api_key
         logger.debug("credentials saved successfully")
 
-    @classmethod
-    def clear(cls) -> None:
-        """remove credentials from disk and env variables."""
-        if cls.secrets_file.exists():
-            cls.secrets_file.unlink()
-        for key in Keys:
-            os.environ.pop(key.value, None)
+    def clear(self) -> None:
+        """Remove credentials from disk."""
+        if self.secrets_file.exists():
+            self.secrets_file.unlink()
         logger.debug("credentials removed successfully")
 
     @property
@@ -120,7 +114,8 @@ class Auth:
         authorization header to use when authentication completes.
         """
         if self._with_env_var:
-            logger.debug("successfully loaded credentials from env")
+            self.save("", self.user_id, self.api_key, self.user_id)
+            logger.info("Credentials loaded from environment variables")
             return self.auth_header
 
         if not self.load():

@@ -11,7 +11,9 @@ LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", "https://lightning.ai")
 
 @pytest.fixture(autouse=True)
 def before_each():
-    login.Auth.clear()
+    for key in login.Keys:
+        os.environ.pop(key.value, None)
+    login.Auth().clear()
 
 
 class TestAuthentication:
@@ -46,6 +48,9 @@ class TestAuthentication:
         os.environ.setdefault("LIGHTNING_USER_ID", "7c8455e3-7c5f-4697-8a6d-105971d6b9bd")
         os.environ.setdefault("LIGHTNING_API_KEY", "e63fae57-2b50-498b-bc46-d6204cbf330e")
         auth = login.Auth()
+        # CLI login runs clear first
+        auth.clear()
+
         assert "Basic" in auth.auth_header
         assert (
             auth.auth_header
@@ -66,6 +71,9 @@ def test_authentication_with_environment_vars(browser_login: mock.MagicMock):
     os.environ.setdefault("LIGHTNING_API_KEY", "abc")
 
     auth = login.Auth()
+    # CLI login runs clear first
+    auth.clear()
+
     assert auth.user_id == "abc"
     assert auth.auth_header == "Basic YWJjOmFiYw=="
     assert auth._with_env_var is True
@@ -103,6 +111,7 @@ def test_login_with_browser(
 def test_authenticate(click_launch: mock.MagicMock, head: mock.MagicMock, run: mock.MagicMock, port: mock.MagicMock):
     port.return_value = 1234
     auth = login.Auth()
+    auth.clear()
     auth.user_id = "user_id"
     auth.api_key = "api_key"
     auth.authenticate()
