@@ -39,7 +39,7 @@ Here are five easy steps to let :class:`~lightning_fabric.fabric.Fabric` scale y
 
 .. code-block:: bash
 
-    lightning run model path/to/train.py``
+    lightning run model path/to/train.py
 
 or use the :meth:`~lightning_fabric.fabric.Fabric.launch` method in a notebook.
 Learn more about :doc:`launching distributed training <launch>`.
