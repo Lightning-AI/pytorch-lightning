@@ -933,6 +933,7 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
                 scheduler = {
                     "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
                     "monitor": "train_loss",
+                    "interval": "step",  # not warned
                 }
             else:
                 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
@@ -946,8 +947,9 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
     )
 
     if scheduler_as_dict:
-        with pytest.warns(RuntimeWarning, match="but the keys will be ignored"):
+        with pytest.warns(RuntimeWarning, match=r"\['monitor'\], but the keys will be ignored"):
             trainer.fit(model)
+        assert trainer.lr_scheduler_configs[0].interval == "step"
     else:
         trainer.fit(model)
 

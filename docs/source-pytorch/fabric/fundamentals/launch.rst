@@ -10,7 +10,7 @@ To run your code distributed across many devices and/or across many machines, yo
 2. Launch your code in multiple processes
 
 
-----------
+----
 
 
 *******************
@@ -105,7 +105,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
         --precision=16
 
 
-----------
+----
 
 
 *******************
@@ -134,7 +134,7 @@ In the command line, you run this like any other Python script:
     python train.py
 
 
-----------
+----
 
 
 ************************
