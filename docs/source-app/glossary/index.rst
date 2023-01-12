@@ -156,8 +156,8 @@ Glossary
    :height: 100
 
 .. displayitem::
-   :header: Using local Lightning on the cloud
-   :description: Learn how to run apps with your local version of Lightning on the cloud
+   :header: Using a development branch of Lightning on the Cloud
+   :description: Learn how to contribute to the Lightning framework in the cloud
    :col_css: col-md-12
    :button_link: use_local_lightning.html
    :height: 100
