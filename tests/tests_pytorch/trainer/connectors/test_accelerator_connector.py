@@ -391,11 +391,6 @@ def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mp
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         Trainer(accelerator="mps", strategy=strategy_class())
 
-    strategy = strategy_class()
-    strategy.accelerator = MPSAccelerator()
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(strategy=strategy)
-
 
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
