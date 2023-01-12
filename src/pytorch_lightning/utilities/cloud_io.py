@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 def atomic_save(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.cloud_io.atomic_save` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_atomic_save(*args, **kwargs)
 
@@ -32,7 +32,7 @@ def atomic_save(*args: Any, **kwargs: Any) -> Any:
 def get_filesystem(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.cloud_io.get_filesystem` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_fabric.utilities.cloud_io.get_filesystem` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.cloud_io.get_filesystem` instead."
     )
     return new_get_filesystem(*args, **kwargs)
 
@@ -40,6 +40,6 @@ def get_filesystem(*args: Any, **kwargs: Any) -> Any:
 def load(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.cloud_io.load` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_load(*args, **kwargs)

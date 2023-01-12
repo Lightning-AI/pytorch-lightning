@@ -279,7 +279,7 @@ class LightningCLI:
         args: ArgsType = None,
         run: bool = True,
         auto_configure_optimizers: bool = True,
-        **kwargs: Any,  # Remove with deprecations of v1.10
+        **kwargs: Any,  # Remove with deprecations of v2.0.0
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -364,7 +364,7 @@ class LightningCLI:
             self.save_config_kwargs[key] = value
             rank_zero_deprecation(
                 f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
-                f"be removed in v1.10. Use `save_config_kwargs={{'{key}': ...}}` instead."
+                f"be removed in v2.0.0. Use `save_config_kwargs={{'{key}': ...}}` instead."
             )
 
         for name in kwargs.keys() & ["description", "env_prefix", "env_parse"]:

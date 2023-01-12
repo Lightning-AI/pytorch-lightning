@@ -164,8 +164,8 @@ class Trainer:
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        amp_backend: Optional[str] = None,  # TODO: Remove in v1.10.0
-        amp_level: Optional[str] = None,  # TODO: Remove in v1.10.0
+        amp_backend: Optional[str] = None,  # TODO: Remove in v2.0.0
+        amp_level: Optional[str] = None,  # TODO: Remove in v2.0.0
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -186,14 +186,14 @@ class Trainer:
 
                 .. deprecated:: v1.9
                     Setting ``amp_backend`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0. This argument was only relevant for apex which is being removed.
+                    in v2.0.0. This argument was only relevant for apex which is being removed.
 
             amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
                 if ``amp_backend`` is set to "apex".
 
                 .. deprecated:: v1.8
                     Setting ``amp_level`` inside the ``Trainer`` is deprecated in v1.8.0 and will be removed
-                    in v1.10.0.
+                    in v2.0.0.
 
             auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
                 trying to optimize initial learning for faster convergence. trainer.tune() method will
@@ -216,7 +216,7 @@ class Trainer:
                 Default: ``False``.
 
                 .. deprecated:: v1.9
-                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v1.10.0.
+                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
                     Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
                     instead.
 
@@ -1681,7 +1681,7 @@ class Trainer:
 
     @property
     def strategy(self) -> Strategy:
-        # TODO(lite): remove ignore after merging lite and PL strategies
+        # TODO(fabric): remove ignore after merging Fabric and PL strategies
         return self._accelerator_connector.strategy  # type: ignore[return-value]
 
     @property
@@ -1762,7 +1762,7 @@ class Trainer:
     def amp_backend(self) -> Optional[str]:
         rank_zero_deprecation(
             "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
             " Accessing `Trainer.amp_backend` will not be supported. You can assume it will be `'native'`",
             stacklevel=6,
         )
@@ -1997,12 +1997,12 @@ class Trainer:
 
     @property
     def tuning(self) -> bool:
-        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+        rank_zero_deprecation("`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
         return self.state.stage == RunningStage.TUNING
 
     @tuning.setter
     def tuning(self, val: bool) -> None:
-        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v1.10.0.")
+        rank_zero_deprecation("Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
 
         if val:
             self.state.stage = RunningStage.TUNING

@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 class AdvancedProfiler(NewAdvancedProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.AdvancedProfiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.AdvancedProfiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.AdvancedProfiler` class instead."
         )
         super().__init__(*args, **kwargs)
@@ -34,7 +34,7 @@ class AdvancedProfiler(NewAdvancedProfiler):
 class PassThroughProfiler(NewPassThroughProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.PassThroughProfiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.PassThroughProfiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.PassThroughProfiler` class instead."
         )
         super().__init__(*args, **kwargs)
@@ -43,7 +43,7 @@ class PassThroughProfiler(NewPassThroughProfiler):
 class Profiler(NewProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.Profiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.Profiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.Profiler` class instead."
         )
         super().__init__(*args, **kwargs)
@@ -52,7 +52,7 @@ class Profiler(NewProfiler):
 class PyTorchProfiler(NewPyTorchProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.PyTorchProfiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.PyTorchProfiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.PyTorchProfiler` class instead."
         )
         super().__init__(*args, **kwargs)
@@ -61,7 +61,7 @@ class PyTorchProfiler(NewPyTorchProfiler):
 class SimpleProfiler(NewSimpleProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.SimpleProfiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.SimpleProfiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.SimpleProfiler` class instead."
         )
         super().__init__(*args, **kwargs)
@@ -70,7 +70,7 @@ class SimpleProfiler(NewSimpleProfiler):
 class XLAProfiler(NewXLAProfiler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
-            "`pytorch_lightning.profiler.XLAProfiler` is deprecated in v1.9.0 and will be removed in v1.10.0."
+            "`pytorch_lightning.profiler.XLAProfiler` is deprecated in v1.9.0 and will be removed in v2.0.0."
             " Use the equivalent `pytorch_lightning.profilers.XLAProfiler` class instead."
         )
         super().__init__(*args, **kwargs)

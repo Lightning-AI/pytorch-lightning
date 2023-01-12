@@ -19,7 +19,7 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tests_fabric.helpers.models import BoringLite, RandomDataset, RandomIterableDataset
+from tests_fabric.helpers.models import BoringFabric, RandomDataset, RandomIterableDataset
 from tests_fabric.helpers.runif import RunIf
 from tests_fabric.test_fabric import BoringModel
 from torch.utils.data import DataLoader
@@ -31,7 +31,7 @@ from lightning_fabric.strategies import DeepSpeedStrategy
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
-    class Lite(Fabric):
+    class RunFabric(Fabric):
         def run(self):
             model = BoringModel()
             optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
@@ -102,7 +102,7 @@ def test_deepspeed_multiple_models():
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 
-    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    RunFabric(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
 
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
@@ -118,19 +118,19 @@ def test_deepspeed_multiple_models():
 def test_deepspeed_auto_batch_size_config_select(dataset_cls, logging_batch_size_per_gpu, expected_batch_size):
     """Test to ensure that the batch size is correctly set as expected for deepspeed logging purposes."""
 
-    class Lite(Fabric):
+    class RunFabric(Fabric):
         def run(self):
             assert isinstance(self._strategy, DeepSpeedStrategy)
             _ = self.setup_dataloaders(DataLoader(dataset_cls(32, 64)))
             config = self._strategy.config
             assert config["train_micro_batch_size_per_gpu"] == expected_batch_size
 
-    lite = Lite(
+    fabric = RunFabric(
         accelerator="cuda",
         devices=1,
         strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=logging_batch_size_per_gpu, zero_optimization=False),
     )
-    lite.run()
+    fabric.run()
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -139,7 +139,7 @@ def test_deepspeed_configure_optimizers():
 
     from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
 
-    class Lite(Fabric):
+    class RunFabric(Fabric):
         def run(self):
             model = nn.Linear(3, 3)
             optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -147,13 +147,13 @@ def test_deepspeed_configure_optimizers():
             assert isinstance(optimizer.optimizer, DeepSpeedZeroOptimizer)
             assert isinstance(optimizer.optimizer.optimizer, torch.optim.SGD)
 
-    lite = Lite(
+    fabric = RunFabric(
         strategy=DeepSpeedStrategy(),
         accelerator="cuda",
         devices=1,
         precision=16,
     )
-    lite.run()
+    fabric.run()
 
 
 @RunIf(min_cuda_gpus=1, deepspeed=True)
@@ -161,7 +161,7 @@ def test_deepspeed_custom_precision_params():
     """Test that if the FP16 parameters are set via the DeepSpeedStrategy, the deepspeed config contains these
     changes."""
 
-    class Lite(Fabric):
+    class RunFabric(Fabric):
         def run(self):
             assert self._strategy._config_initialized
             assert self._strategy.config["fp16"]["loss_scale"] == 10
@@ -173,13 +173,13 @@ def test_deepspeed_custom_precision_params():
     strategy = DeepSpeedStrategy(
         loss_scale=10, initial_scale_power=11, loss_scale_window=12, hysteresis=13, min_loss_scale=14
     )
-    lite = Lite(
+    fabric = RunFabric(
         strategy=strategy,
         precision=16,
         accelerator="cuda",
         devices=1,
     )
-    lite.run()
+    fabric.run()
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -188,7 +188,7 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
     correctly."""
     import deepspeed
 
-    class Lite(Fabric):
+    class RunFabric(Fabric):
         def run(self):
             model = nn.Linear(3, 3)
             optimizer = torch.optim.Adam(model.parameters())
@@ -210,16 +210,16 @@ def test_deepspeed_custom_activation_checkpointing_params_forwarded():
         contiguous_memory_optimization=True,
         synchronize_checkpoint_boundary=True,
     )
-    lite = Lite(
+    fabric = RunFabric(
         strategy=strategy,
         precision=16,
         accelerator="cuda",
         devices=1,
     )
-    lite.run()
+    fabric.run()
 
 
-class ModelParallelClassification(BoringLite):
+class ModelParallelClassification(BoringFabric):
 
     num_blocks = 5
 
@@ -243,13 +243,13 @@ class ModelParallelClassification(BoringLite):
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3(tmpdir):
     """Test to ensure ZeRO Stage 3 works with a parallel model."""
-    lite = ModelParallelClassification(
+    fabric = ModelParallelClassification(
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="cuda",
         devices=2,
         precision=16,
     )
-    lite.run()
+    fabric.run()
 
 
 @RunIf(deepspeed=True)
@@ -260,8 +260,8 @@ def test_deepspeed_env_variables_on_platforms(deepspeed_dist_mock, tmpdir, platf
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.
     """
-    lite = BoringLite(strategy=DeepSpeedStrategy(stage=3))
-    strategy = lite._strategy
+    fabric = BoringFabric(strategy=DeepSpeedStrategy(stage=3))
+    strategy = fabric._strategy
     assert isinstance(strategy, DeepSpeedStrategy)
     with mock.patch("platform.system", return_value=platform) as platform_mock:
         strategy._init_deepspeed_distributed()
@@ -282,7 +282,7 @@ def test_deepspeed_env_variables_on_platforms(deepspeed_dist_mock, tmpdir, platf
 def test_deepspeed_specific_gpu_device_index(tmpdir):
     """Test that the DeepSpeed strategy can run on specific device indices."""
 
-    class Lite(BoringLite):
+    class RunFabric(BoringFabric):
         def step(self, model, batch):
             assert self.device.type == "cuda"
             assert self.device.index == 1
@@ -290,8 +290,8 @@ def test_deepspeed_specific_gpu_device_index(tmpdir):
             assert model.device.index == 1
             return super().step(model, batch)
 
-    lite = Lite(accelerator="cuda", devices=[1], strategy="deepspeed")
-    lite.run()
+    fabric = RunFabric(accelerator="cuda", devices=[1], strategy="deepspeed")
+    fabric.run()
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True, bf16_cuda=True)
@@ -307,7 +307,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
             assert x.dtype == torch.bfloat16
             return self.layer(x)
 
-    class Lite(BoringLite):
+    class RunFabric(BoringFabric):
         def get_model(self):
             return Model()
 
@@ -317,8 +317,8 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
             assert model.layer.weight.dtype == torch.bfloat16
             return super().step(model, batch)
 
-    lite = Lite(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16")
-    assert isinstance(lite._strategy.precision, DeepSpeedPrecision)
-    assert lite._strategy.precision.precision == "bf16"
-    assert lite._strategy.config["zero_optimization"]["stage"] == 3
-    lite.run()
+    fabric = RunFabric(accelerator="cuda", devices=2, strategy="deepspeed_stage_3", precision="bf16")
+    assert isinstance(fabric._strategy.precision, DeepSpeedPrecision)
+    assert fabric._strategy.precision.precision == "bf16"
+    assert fabric._strategy.config["zero_optimization"]["stage"] == 3
+    fabric.run()
