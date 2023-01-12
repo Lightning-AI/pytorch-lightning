@@ -10,7 +10,6 @@ if _is_pytorch_lightning_available():
     from pytorch_lightning import LightningDataModule, LightningModule, Trainer
     from pytorch_lightning.accelerators.accelerator import Accelerator
     from pytorch_lightning.callbacks import Callback
-    from pytorch_lightning.lite import LightningLite
     from pytorch_lightning.loggers import Logger
     from pytorch_lightning.loops import Loop
     from pytorch_lightning.plugins import PrecisionPlugin
@@ -47,9 +46,6 @@ if __name__ == "__main__":
         pass
 
     class BoringMetric(Metric):
-        pass
-
-    class BoringLightningLite(LightningLite):
         pass
 
     class BoringFabric(Fabric):
