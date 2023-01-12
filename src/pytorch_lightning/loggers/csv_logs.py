@@ -115,7 +115,7 @@ class CSVLogger(Logger):
 
     Args:
         save_dir: Save directory
-        name: Experiment name. Defaults to ``'default'``.
+        name: Experiment name. Defaults to ``'lightning_logs'``.
         version: Experiment version. If version is not specified the logger inspects the save
             directory for existing versions, then automatically assigns the next available version.
         prefix: A string to put at the beginning of metric keys.
@@ -175,7 +175,7 @@ class CSVLogger(Logger):
     def experiment(self) -> ExperimentWriter:
         r"""
 
-        Actual ExperimentWriter object. To use ExperimentWriter features in your
+        Actual _ExperimentWriter object. To use _ExperimentWriter features in your
         :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
