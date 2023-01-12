@@ -6,7 +6,7 @@ Original code author: Séb Arnold - learnables.net
 Based on the paper: https://arxiv.org/abs/1703.03400
 
 Requirements:
-- lightning
+- lightning>=1.9.0
 - learn2learn
 - cherry-rl
 - gym<=0.22
