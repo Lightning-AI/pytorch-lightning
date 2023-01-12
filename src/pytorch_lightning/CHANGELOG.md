@@ -169,6 +169,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a type error when dividing the chunk size in the ColossalAI strategy ([#16212](https://github.com/Lightning-AI/lightning/pull/16212))
 
 
+- Fixed bug where the ``interval`` key of the scheduler would be ignored during manual optimization, making the LearningRateMonitor callback fail to log the learning rate ([#16308](https://github.com/Lightning-AI/lightning/pull/16308))
+
+
 ## [1.8.6] - 2022-12-21
 
 - minor cleaning
