@@ -22,7 +22,7 @@ Here is how that gets done in Fabric:
 
     class MyCallback:
         def on_train_batch_end(self, loss, output):
-            # Here, put yny code you want to run at the end of a training step
+            # Here, put any code you want to run at the end of a training step
             ...
 
 
@@ -63,7 +63,7 @@ This enables flexibility in extending the loop in arbitrary ways.
 Multiple callbacks
 ******************
 
-The callback system is designed so that it can run multiple callbacks at the same time.
+The callback system is designed to easily run multiple callbacks at the same time.
 You can simply pass a list to Fabric:
 
 .. code-block:: python
