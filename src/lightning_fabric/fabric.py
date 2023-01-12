@@ -16,7 +16,7 @@ import os
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -32,14 +32,7 @@ from lightning_fabric.loggers import Logger
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_fabric.strategies import (
-    DDPShardedStrategy,
-    DeepSpeedStrategy,
-    FSDPStrategy,
-    SingleDeviceStrategy,
-    Strategy,
-    XLAStrategy,
-)
+from lightning_fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
@@ -69,7 +62,7 @@ class Fabric:
         accelerator: The hardware to run on. Possible choices are:
             ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
@@ -77,8 +70,8 @@ class Fabric:
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
-            can be invoked through :meth:`lightning_fabric.fabric.Fabric.call` by the user.
-        loggers: A single logger or a list of loggers. See :meth:`lightning_fabric.fabric.Fabric.log` for more
+            can be invoked through :meth:`~lightning_fabric.fabric.Fabric.call` by the user.
+        loggers: A single logger or a list of loggers. See :meth:`~lightning_fabric.fabric.Fabric.log` for more
             information.
     """
 
@@ -604,7 +597,7 @@ class Fabric:
         """
         self.log_dict(metrics={name: value}, step=step)
 
-    def log_dict(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
+    def log_dict(self, metrics: Mapping[str, Any], step: Optional[int] = None) -> None:
         """Log multiple scalars at once to all loggers that were added to Fabric.
 
         Args:
@@ -673,7 +666,7 @@ class Fabric:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._connector.is_distributed
+            getattr(self.strategy, "distributed_sampler_kwargs", None) is not None
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
@@ -713,15 +706,8 @@ class Fabric:
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
-        if isinstance(self._strategy, DDPShardedStrategy):
-            raise RuntimeError(
-                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
-                " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
-                " `ddp`."
-            )
-
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."

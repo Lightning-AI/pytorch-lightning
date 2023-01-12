@@ -261,9 +261,12 @@ def run_app_in_cloud(
     if url.endswith("/"):
         url = url[:-1]
     payload = {"apiKey": _Config.api_key, "username": _Config.username}
-    res = requests.post(url + "/v1/auth/login", data=json.dumps(payload))
+    url_login = url + "/v1/auth/login"
+    res = requests.post(url_login, data=json.dumps(payload))
     if "token" not in res.json():
-        raise Exception("You haven't properly setup your environment variables.")
+        raise RuntimeError(
+            f"You haven't properly setup your environment variables with {url_login} and data: \n{payload}"
+        )
 
     token = res.json()["token"]
 
@@ -409,7 +412,7 @@ def run_app_in_cloud(
                 print("App is running, continuing with testing...")
                 wait_openapi(view_page, app.status.url)
                 break
-            elif app.status.phase != V1LightningappInstanceState.PENDING:
+            elif app.status.phase not in (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.NOT_STARTED):
                 # there's a race condition if the app goes from pending to running to something else before we evaluate
                 # the condition above. avoid it by checking stopped explicitly
                 print(f"App finished with phase {app.status.phase}, finished testing...")
@@ -473,13 +476,13 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             res = callback(*args, **kwargs)
             if res:
                 return res
-        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-            print(e)
+        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as err:
+            print(err)
             try:
                 sleep(7)
                 page.reload()
-            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as e:
-                print(e)
+            except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError) as err:
+                print(err)
                 pass
             sleep(3)
 

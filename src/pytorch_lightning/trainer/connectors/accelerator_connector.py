@@ -28,7 +28,6 @@ from lightning_fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -70,6 +69,7 @@ from pytorch_lightning.strategies import (
     HorovodStrategy,
     HPUParallelStrategy,
     IPUStrategy,
+    ParallelStrategy,
     SingleDeviceStrategy,
     SingleHPUStrategy,
     SingleTPUStrategy,
@@ -283,6 +283,20 @@ class AcceleratorConnector:
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
                 f" Available names are: {', '.join(self._accelerator_types)}."
+            )
+
+        # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
+        is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
+        is_dp_str = isinstance(strategy, str) and "dp" in strategy
+        is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_mps_accelerator = MPSAccelerator.is_available() and (
+            accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
+        )
+        if is_mps_accelerator and is_parallel_strategy:
+            raise ValueError(
+                f"You set `strategy={strategy}` but strategies from the DDP family are not supported on the"
+                f" MPS accelerator. Either explicitly set `accelerator='cpu'` or change the strategy."
             )
 
         self._accelerator_flag = accelerator
@@ -818,7 +832,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )

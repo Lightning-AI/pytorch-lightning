@@ -11,7 +11,7 @@ on:
       - ".actions/**"
       - ".github/workflows/ci-examples-app.yml"
       - "src/lightning_app/**"
-      - "tests/integrations_app_examples/**"
+      - "tests/integrations_app/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
@@ -114,7 +114,7 @@ jobs:
           PYTEST_ARTIFACT: results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
         run: |
           python -m coverage run --source ${COVERAGE_SCOPE} \
-            -m pytest -m "not cloud" integrations_app_examples \
+            -m pytest -m "not cloud" integrations_app \
             --timeout=300 --durations=0 -vvvv \
             --junitxml=$PYTEST_ARTIFACT
 

@@ -56,12 +56,13 @@ def environment_combinations():
     yield environment, variables, expected
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     "strategy_cls",
     [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
 @mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
-def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strategy_cls):
+def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
@@ -77,6 +78,7 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
             assert trainer.world_size == expected["world_size"]
 
 
+@RunIf(mps=False)
 @pytest.mark.parametrize(
     "trainer_kwargs",
     [
@@ -86,7 +88,7 @@ def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strat
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
 )
-def test_ranks_available_automatic_strategy_selection(mps_count_4, cuda_count_4, trainer_kwargs):
+def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwargs):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
