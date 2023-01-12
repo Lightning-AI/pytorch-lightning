@@ -106,6 +106,14 @@ Fundamentals
     :height: 150
     :tag: basic
 
+.. displayitem::
+    :header: Mixed Precision Training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
 .. raw:: html
 
         </div>
