@@ -109,7 +109,7 @@ class AWSClusterManager:
         region: str = "us-east-1",
         external_id: str = None,
         edit_before_creation: bool = False,
-        do_async: bool = False,
+        do_async: bool = True,
     ) -> None:
         """request Lightning AI BYOC compute cluster creation.
 
@@ -192,7 +192,7 @@ class AWSClusterManager:
         console = Console()
         console.print(clusters.as_table())
 
-    def delete(self, cluster_id: str, force: bool = False, do_async: bool = False) -> None:
+    def delete(self, cluster_id: str, force: bool = False, do_async: bool = True) -> None:
         if force:
             click.echo(
                 """
