@@ -77,9 +77,9 @@ If you're using a notebook environment such as *Google Colab* or *Kaggle* or *Ju
 ----
 
 
-************************
-Conrol logging frequency
-************************
+*************************
+Control logging frequency
+*************************
 
 Logging a metric in every iteration can slow down training.
 Reduce the added overhead by logging less frequently:
