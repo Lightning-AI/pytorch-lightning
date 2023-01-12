@@ -27,14 +27,12 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def on_colab_kaggle() -> bool:
-    rank_zero_deprecation(
-        "The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v1.10.0."
-    )
+    rank_zero_deprecation("The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
 
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
-    # TODO(lite): Remove this function once PL strategies inherit from Lite's Strategy base class
+    # TODO(fabric): Remove this function once PL strategies inherit from Fabrics Strategy base class
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):

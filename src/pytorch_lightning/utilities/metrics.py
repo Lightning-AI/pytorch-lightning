@@ -12,29 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions to operate on metric values."""
-from __future__ import annotations
 
 from typing import Any
 
-from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
-
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 
 
 def metrics_to_scalars(metrics: Any) -> Any:
     """Recursively walk through a collection and convert single-item tensors to scalar values.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 
-    def to_item(value: Tensor) -> int | float | bool:
-        if value.numel() != 1:
-            raise MisconfigurationException(
-                f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
-            )
-        return value.item()
-
-    return apply_to_collection(metrics, Tensor, to_item)
+    return convert_tensors_to_scalars(metrics)
