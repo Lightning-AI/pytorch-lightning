@@ -39,7 +39,6 @@ from lightning_fabric.plugins.environments import (
 from lightning_fabric.plugins.io import TorchCheckpointIO
 from lightning_fabric.strategies import (
     DataParallelStrategy,
-    DDPShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -240,9 +239,6 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(RuntimeError, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         _Connector(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(RuntimeError, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-        _Connector(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
-
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
         _Connector(strategy="dp")
@@ -275,8 +271,6 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -393,27 +387,12 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
         ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class):
     connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(connector.strategy, strategy_class)
-
-
-@RunIf(fairscale=True)
-@pytest.mark.parametrize(
-    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
-)
-@pytest.mark.parametrize(
-    "precision,expected_precision", [(16, MixedPrecision), (32, Precision), ("bf16", MixedPrecision)]
-)
-def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
-    connector = _Connector(strategy=strategy, devices=1, precision=precision)
-    assert isinstance(connector.strategy, expected_strategy)
-    assert isinstance(connector.precision, expected_precision)
 
 
 def test_device_type_when_strategy_instance_cpu_passed():

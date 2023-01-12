@@ -1,12 +1,12 @@
 :orphan:
 
-##################################
-Working with distributed processes
-##################################
+###########################################
+Communication between distributed processes
+###########################################
 
 Page is under construction.
 
-----------
+----
 
 
 You can also easily use distributed collectives if required.

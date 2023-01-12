@@ -16,9 +16,8 @@ from unittest import mock
 
 import pytest
 import torch
-from tests_fabric.helpers.models import RandomDataset
+from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
-from torch.utils.data import DataLoader
 
 from lightning_fabric import Fabric
 from lightning_fabric.plugins import FSDPPrecision
@@ -30,15 +29,22 @@ if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.wrap import wrap
 
 
-def _get_model(manual_wrapping=False):
-    model = torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
-    if not manual_wrapping:
+def _get_model():
+    return torch.nn.Sequential(torch.nn.Linear(32, 32), torch.nn.ReLU(), torch.nn.Linear(32, 2))
+
+
+class _MyFabricManualWrapping(BoringFabric):
+    def get_model(self):
+        model = _get_model()
+        for i, layer in enumerate(model):
+            if i % 2 == 0:
+                model[i] = wrap(layer)
         return model
 
-    for i, layer in enumerate(model):
-        if i % 2 == 0:
-            model[i] = wrap(layer)
-    return model
+
+class _MyFabric(BoringFabric):
+    def get_model(self):
+        return _get_model()
 
 
 def _step(fabric, model, batch):
@@ -79,7 +85,7 @@ def _custom_auto_wrap_policy(module, recurse, unwrapped_params: int, min_num_par
     return unwrapped_params >= 2
 
 
-@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.13")
 @pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
 @pytest.mark.parametrize("manual_wrapping", [True, False])
 def test_fsdp_train_save_load(manual_wrapping, precision):
@@ -88,38 +94,15 @@ def test_fsdp_train_save_load(manual_wrapping, precision):
         auto_wrap_policy=_custom_auto_wrap_policy,
         activation_checkpointing=[torch.nn.Linear],
     )
-    fabric = Fabric(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
-    fabric.launch()
-
-    with fabric.sharded_model():
-        model = _get_model(manual_wrapping)
-
-    dataloader = DataLoader(RandomDataset(32, 64))
-
-    # model needs to be set up first in FSDP
-    model = fabric.setup_module(model)
-
-    # get parameters on the wrapped model
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-    # optimizer nees to be set up independently
-    optimizer = fabric.setup_optimizers(optimizer)
-
-    dataloader = fabric.setup_dataloaders(dataloader)
-    model.train()
-
-    data_iter = iter(dataloader)
-    batch = next(data_iter)
-    loss = _step(fabric, model, batch)
-    fabric.backward(loss)
-    optimizer.step()
-    optimizer.zero_grad()
+    fabric_cls = _MyFabricManualWrapping if manual_wrapping else _MyFabric
+    fabric = fabric_cls(accelerator="cuda", strategy=strategy, devices=2, precision=precision)
+    fabric.run()
 
     with tempfile.TemporaryFile() as ckpt_path:
         ckpt_path = fabric.broadcast(str(ckpt_path))
-        fabric._strategy.save_checkpoint(model.state_dict(), ckpt_path)
+        fabric._strategy.save_checkpoint(fabric.model.state_dict(), ckpt_path)
 
-    _assert_save_equality(fabric, model, ckpt_path)
+    _assert_save_equality(fabric, fabric.model, ckpt_path)
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
