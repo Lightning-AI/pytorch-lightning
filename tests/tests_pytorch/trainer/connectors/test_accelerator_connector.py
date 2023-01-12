@@ -126,6 +126,7 @@ def test_custom_cluster_environment_in_slurm_environment(cuda_count_0, tmpdir):
     assert isinstance(trainer.strategy.cluster_environment, CustomCluster)
 
 
+@RunIf(mps=False)
 @mock.patch.dict(
     os.environ,
     {
@@ -231,7 +232,8 @@ def test_fallback_from_ddp_spawn_to_ddp_on_cluster(_, __, env_vars, expected_env
     assert isinstance(trainer.strategy.cluster_environment, expected_environment)
 
 
-def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monkeypatch):
+@RunIf(mps=False)
+def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
@@ -247,7 +249,7 @@ def test_interactive_incompatible_backend_error(mps_count_2, cuda_count_2, monke
         Trainer(strategy="dp")
 
 
-def test_interactive_compatible_dp_strategy_gpu(cuda_count_2, monkeypatch):
+def test_interactive_compatible_dp_strategy_gpu(mps_count_0, cuda_count_2, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.trainer.connectors.accelerator_connector, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="dp", accelerator="gpu")
     assert trainer.strategy.launcher is None
@@ -358,7 +360,7 @@ def test_set_devices_if_none_cpu():
 
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(strategy="dp", num_processes=2)
+        trainer = Trainer(accelerator="cpu", strategy="dp", num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
@@ -367,6 +369,28 @@ def test_exception_invalid_strategy():
         Trainer(strategy="ddp_cpu")
     with pytest.raises(MisconfigurationException, match=r"strategy='tpu_spawn'\)` is not a valid"):
         Trainer(strategy="tpu_spawn")
+
+
+@pytest.mark.parametrize(
+    ["strategy", "strategy_class"],
+    (
+        ("ddp_spawn", DDPSpawnStrategy),
+        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
+        ("ddp", DDPStrategy),
+        ("ddp_find_unused_parameters_false", DDPStrategy),
+        ("dp", DataParallelStrategy),
+        ("ddp_sharded", DDPShardedStrategy),
+        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
+    ),
+)
+@pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
+def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+        Trainer(accelerator=accelerator, strategy=strategy)
+
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+        Trainer(accelerator="mps", strategy=strategy_class())
 
 
 @pytest.mark.parametrize(
@@ -471,14 +495,6 @@ def test_strategy_choice_ddp_fork_cpu():
 def test_strategy_choice_ddp_cuda(strategy, expected_cls, mps_count_0, cuda_count_2):
     trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
-    assert isinstance(trainer.strategy, expected_cls)
-    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
-
-
-@pytest.mark.parametrize("strategy,expected_cls", [("ddp", DDPStrategy), ("ddp_spawn", DDPSpawnStrategy)])
-def test_strategy_choice_ddp_mps(strategy, expected_cls, mps_count_1, cuda_count_0):
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=1)
-    assert isinstance(trainer.accelerator, MPSAccelerator)
     assert isinstance(trainer.strategy, expected_cls)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
@@ -704,9 +720,9 @@ def test_deterministic_init(deterministic):
         (False, [Mock(spec=LayerSync)], LayerSync),
     ],
 )
-def test_sync_batchnorm_set(tmpdir, sync_batchnorm, plugins, expected):
+def test_sync_batchnorm_set(sync_batchnorm, plugins, expected):
     """Test valid combinations of the sync_batchnorm Trainer flag and the plugins list of layer-sync plugins."""
-    trainer = Trainer(sync_batchnorm=sync_batchnorm, plugins=plugins, strategy="ddp")
+    trainer = Trainer(accelerator="cpu", sync_batchnorm=sync_batchnorm, plugins=plugins, strategy="ddp")
     assert isinstance(trainer._accelerator_connector._layer_sync, expected)
     assert isinstance(trainer.strategy._layer_sync, expected)
 
@@ -733,7 +749,7 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
 
     strategy = CustomParallelStrategy()
     assert strategy._layer_sync is None
-    Trainer(strategy=strategy, sync_batchnorm=True)
+    Trainer(accelerator="cpu", strategy=strategy, sync_batchnorm=True)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
 
 
@@ -809,12 +825,12 @@ def test_accelerator_specific_checkpoint_io(*_):
 )
 def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
-        Trainer(strategy=strategy)
+        Trainer(accelerator="cpu", strategy=strategy)
 
 
 @pytest.mark.parametrize(
     ["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("DDP_FIND_UNUSED_PARAMETERS_FALSE", DDPStrategy)]
 )
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
-    trainer = Trainer(strategy=strategy)
+    trainer = Trainer(accelerator="cpu", strategy=strategy)
     assert isinstance(trainer.strategy, strategy_cls)

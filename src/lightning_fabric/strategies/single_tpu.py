@@ -49,10 +49,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
         self._checkpoint_io = io
 
-    @property
-    def is_distributed(self) -> bool:
-        return False
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("single_tpu", cls, description=f"{cls.__class__.__name__}")
