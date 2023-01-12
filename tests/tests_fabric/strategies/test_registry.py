@@ -43,7 +43,6 @@ def test_strategy_registry_with_new_strategy():
 
 def test_available_strategies_in_registry():
     expected = {
-        "ddp_sharded",
         "ddp",
         "deepspeed",
         "deepspeed_stage_1",
@@ -52,7 +51,6 @@ def test_available_strategies_in_registry():
         "deepspeed_stage_3",
         "deepspeed_stage_3_offload",
         "deepspeed_stage_3_offload_nvme",
-        "ddp_sharded_spawn",
         "ddp_spawn",
         "ddp_fork",
         "ddp_notebook",
