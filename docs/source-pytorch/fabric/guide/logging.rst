@@ -34,6 +34,13 @@ To track a metric, add the following:
     fabric = Fabric(loggers=logger)
 
 
+Built-in loggers you can choose from:
+
+- :class:`~lightning_fabric.loggers.TensorBoardLogger`
+- :class:`~lightning_fabric.loggers.CSVLogger`
+
+|
+
 **Step 2:** Add :meth:`~lightning_fabric.fabric.Fabric.log` calls in your code.
 
 .. code-block:: python
