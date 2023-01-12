@@ -20,7 +20,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.distributed import _DatasetSamplerWrapper
+from lightning_fabric.utilities.distributed import _DatasetSamplerWrapper
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 
 

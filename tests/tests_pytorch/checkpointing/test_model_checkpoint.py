@@ -31,7 +31,7 @@ import yaml
 from torch import optim
 
 import pytorch_lightning as pl
-from lightning_lite.utilities.cloud_io import _load as pl_load
+from lightning_fabric.utilities.cloud_io import _load as pl_load
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -859,8 +859,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
 
     model = ExtendedBoringModel()
@@ -898,8 +897,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     class ExtendedBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.log("val_loss", loss)
             return {"val_loss": loss}
 

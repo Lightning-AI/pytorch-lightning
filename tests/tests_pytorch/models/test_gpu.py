@@ -20,8 +20,8 @@ import pytest
 import torch
 
 import tests_pytorch.helpers.pipelines as tpipes
-from lightning_lite.plugins.environments import TorchElasticEnvironment
-from lightning_lite.utilities.device_parser import _parse_gpu_ids
+from lightning_fabric.plugins.environments import TorchElasticEnvironment
+from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -184,7 +184,7 @@ def test_single_gpu_batch_parse():
 
 @RunIf(min_cuda_gpus=1)
 def test_non_blocking():
-    """Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects."""
+    """Tests that non_blocking=True only gets passed on Tensor.to, but not on other objects."""
     trainer = Trainer()
 
     batch = torch.zeros(2, 3)

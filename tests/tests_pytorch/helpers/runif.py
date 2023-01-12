@@ -20,11 +20,11 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from lightning_lite.accelerators.cuda import num_cuda_devices
-from lightning_lite.strategies.fairscale import _FAIRSCALE_AVAILABLE
+from lightning_fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
@@ -77,8 +77,8 @@ class RunIf:
         ipu: bool = False,
         hpu: bool = False,
         mps: Optional[bool] = None,
-        horovod: bool = False,  # TODO: remove in v1.10.0
-        horovod_nccl: bool = False,  # TODO: remove in v1.10.0
+        horovod: bool = False,  # TODO: remove in v2.0.0
+        horovod_nccl: bool = False,  # TODO: remove in v2.0.0
         skip_windows: bool = False,
         standalone: bool = False,
         fairscale: bool = False,
@@ -154,7 +154,7 @@ class RunIf:
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
 
-        # TODO: remove in v1.10.0
+        # TODO: remove in v2.0.0
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")

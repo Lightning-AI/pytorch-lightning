@@ -12,7 +12,6 @@ from lightning.app.components import ServeGradio
 # Credit to @akhaliq for his inspiring work.
 # Find his original code there: https://huggingface.co/spaces/akhaliq/AnimeGANv2/blob/main/app.py
 class AnimeGANv2UI(ServeGradio):
-
     inputs = gr.inputs.Image(type="pil")
     outputs = gr.outputs.Image(type="pil")
     elon = "https://upload.wikimedia.org/wikipedia/commons/3/34/Elon_Musk_Royal_Society_%28crop2%29.jpg"

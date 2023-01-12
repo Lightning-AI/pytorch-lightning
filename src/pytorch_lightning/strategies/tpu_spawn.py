@@ -22,12 +22,12 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.tpu import _XLA_AVAILABLE
-from lightning_lite.plugins import CheckpointIO, XLACheckpointIO
-from lightning_lite.plugins.environments import XLAEnvironment
-from lightning_lite.utilities.data import has_len
-from lightning_lite.utilities.optimizer import _optimizers_to_device
-from lightning_lite.utilities.types import _PATH, ReduceOp
+from lightning_fabric.accelerators.tpu import _XLA_AVAILABLE
+from lightning_fabric.plugins import CheckpointIO, XLACheckpointIO
+from lightning_fabric.plugins.environments import XLAEnvironment
+from lightning_fabric.utilities.data import has_len
+from lightning_fabric.utilities.optimizer import _optimizers_to_device
+from lightning_fabric.utilities.types import _PATH, ReduceOp
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin

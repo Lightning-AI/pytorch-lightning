@@ -21,8 +21,8 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
-from lightning_lite.plugins import CheckpointIO, ClusterEnvironment
-from lightning_lite.utilities.cloud_io import get_filesystem
+from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
+from lightning_fabric.utilities.cloud_io import get_filesystem
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -64,7 +64,7 @@ class IPUStrategy(ParallelStrategy):
 
             device_iterations: Number of iterations to run on device at once before returning to host.
                 This can be used as an optimization to speed up training.
-                https://docs.graphcore.ai/projects/poptorch-user-guide/en/0.1.67/batching.html
+                https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html
             autoreport: Enable auto-reporting for IPUs using PopVision
                 https://docs.graphcore.ai/projects/graphcore-popvision-user-guide/en/latest/graph/graph.html
             autoreport_dir: Optional directory to store autoReport output.

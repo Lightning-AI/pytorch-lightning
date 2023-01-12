@@ -1,6 +1,6 @@
 # placeholdername app
 
-This ⚡ [Lightning app](lightning.ai) ⚡ was generated automatically with:
+This ⚡ [Lightning app](https://lightning.ai/) ⚡ was generated automatically with:
 
 ```bash
 lightning init app placeholdername
@@ -20,7 +20,7 @@ Once the app is installed, run it locally with:
 lightning run app placeholdername/app.py
 ```
 
-Run it on the [lightning cloud](lightning.ai) with:
+Run it on the [lightning cloud](https://lightning.ai/) with:
 
 ```bash
 lightning run app placeholdername/app.py --cloud
