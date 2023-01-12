@@ -281,7 +281,7 @@ def test_mlflow_logger_finalize(_, __, status, expected):
     # Pretend we are in a worker process and finalizing
     _ = logger.experiment
     assert logger._initialized
-    
+
     logger.finalize(status)
     logger.experiment.set_terminated.assert_called_once_with(logger.run_id, expected)
 
