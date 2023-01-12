@@ -28,7 +28,6 @@ from lightning_fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -818,7 +817,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
