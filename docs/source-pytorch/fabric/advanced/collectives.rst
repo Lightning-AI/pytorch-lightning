@@ -1,8 +1,8 @@
 :orphan:
 
-##################################
-Working with distributed processes
-##################################
+###########################################
+Communication between distributed processes
+###########################################
 
 Page is under construction.
 
