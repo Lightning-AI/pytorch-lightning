@@ -121,6 +121,13 @@ jobs:
     runs-on: ubuntu-20.04
     needs: build-packages
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        include:
+          - {dir: "app", name: "APP"}
+          - {dir: "fabric", name: "FABRIC"}
+          - {dir: "pytorch", name: "PYTORCH"}
+          - {dir: "lightning", name: "LAI"}
     steps:
     - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
@@ -132,26 +139,21 @@ jobs:
         tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/app
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_APP }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/fabric
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_FABRIC }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/pytorch
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_PYTORCH }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/lightning
-        pypi-test-token: ${{ secrets.PYPI_TEST_TOKEN_LAI }}
+        pkg-folder: dist/${{ matrix.dir }}
+        pypi-test-token: ${{ secrets[format('PYPI_TEST_TOKEN_{0}', matrix.name)] }}
 
 
   publish-packages:
     runs-on: ubuntu-20.04
     needs: [build-packages, waiting]
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    strategy:
+      matrix:
+        include:
+          - {dir: "app", name: "APP"}
+          - {dir: "fabric", name: "FABRIC"}
+          - {dir: "pytorch", name: "PYTORCH"}
+          - {dir: "lightning", name: "LAI"}
     steps:
     - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
@@ -163,20 +165,8 @@ jobs:
         tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/app
-        pypi-token: ${{ secrets.PYPI_TOKEN_APP }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/fabric
-        pypi-token: ${{ secrets.PYPI_TOKEN_FABRIC }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/pytorch
-        pypi-token: ${{ secrets.PYPI_TOKEN_PYTORCH }}
-    - uses: ./.github/actions/pkg-publish
-      with:
-        pkg-folder: dist/lightning
-        pypi-token: ${{ secrets.PYPI_TOKEN_LAI }}
+        pkg-folder: dist/${{ matrix.dir }}
+        pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
 
 
   legacy-checkpoints:
