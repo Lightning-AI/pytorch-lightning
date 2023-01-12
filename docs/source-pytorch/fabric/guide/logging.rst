@@ -99,3 +99,27 @@ Reduce the added overhead by logging less frequently:
         if iteration % log_every_n_steps == 0:
             value = ...
             fabric.log("some_value", value)
+
+
+----
+
+
+********************
+Use multiple loggers
+********************
+
+You can add as many loggers as you want without changing the code.
+
+.. code-block:: python
+
+    from lightning.fabric import Fabric
+    from lightning.fabric.loggers import CSVLogger, TensorBoardLogger
+
+    tb_logger = TensorBoardLogger(root_dir="logs/tensorboard")
+    csv_logger = CSVLogger(root_dir="logs/csv")
+
+    # Add multiple loggers into a list
+    fabric = Fabric(loggers=[tb_logger, csv_logger])
+
+    # Calling .log() or .log_dict() always logs to all loggers simultaneously
+    fabric.log("some_value", value)
