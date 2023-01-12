@@ -56,7 +56,7 @@ With only a few changes to your code, Fabric allows you to:
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
 
 
-----------
+----
 
 
 ************
@@ -108,13 +108,21 @@ Fundamentals
     :height: 150
     :tag: basic
 
+.. displayitem::
+    :header: Mixed Precision Training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
 .. raw:: html
 
         </div>
     </div>
 
 
-----------
+----
 
 
 **********************
@@ -164,18 +172,41 @@ Build Your Own Trainer
     </div>
 
 
-----------
+----
 
 
 ***************
 Advanced Topics
 ***************
 
-Comnig soon.
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Efficient Gradient Accumulation
+    :description: Learn how to perform efficient gradient accumulation in distributed settings
+    :button_link: advanced/gradient_accumulation.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. displayitem::
+    :header: Collectives
+    :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
+    :button_link: advanced/collectives.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
 
 
-
-----------
+----
 
 
 .. _Fabric Examples:
@@ -231,7 +262,7 @@ Examples
 
 
 
-----------
+----
 
 
 ***

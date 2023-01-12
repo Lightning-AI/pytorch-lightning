@@ -9,7 +9,7 @@ Despite the ultimate freedom, this page is meant to give beginners a template fo
 We also have several :ref:`examples <Fabric Examples>` that you can take inspiration from.
 
 
-----------
+----
 
 
 *****************
@@ -33,7 +33,7 @@ At the highest level, every Python script should contain the following boilerpla
 This ensures that any kind of multiprocessing will work properly (for example ``DataLoader(num_workers=...)`` etc.)
 
 
-----------
+----
 
 
 **************
@@ -79,7 +79,7 @@ Here is a skeleton for training a model in a function ``train()``:
         main()
 
 
-----------
+----
 
 
 *****************************
@@ -135,7 +135,7 @@ Here is how the code would be structured if we did that periodically during trai
 
 
 
-----------
+----
 
 
 ************

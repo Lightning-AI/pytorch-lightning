@@ -70,8 +70,8 @@ class Fabric:
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
         callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
-            can be invoked through :meth:`lightning_fabric.fabric.Fabric.call` by the user.
-        loggers: A single logger or a list of loggers. See :meth:`lightning_fabric.fabric.Fabric.log` for more
+            can be invoked through :meth:`~lightning_fabric.fabric.Fabric.call` by the user.
+        loggers: A single logger or a list of loggers. See :meth:`~lightning_fabric.fabric.Fabric.log` for more
             information.
     """
 
