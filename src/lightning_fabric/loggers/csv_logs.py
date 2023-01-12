@@ -20,10 +20,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from torch import Tensor
 
-from lightning_fabric.utilities.logger import _add_prefix
-from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.loggers.logger import Logger, rank_zero_experiment
+from lightning_fabric.utilities.logger import _add_prefix
 from lightning_fabric.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from lightning_fabric.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +110,8 @@ class CSVLogger(Logger):
     @property
     @rank_zero_experiment
     def experiment(self) -> "_ExperimentWriter":
-        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the following.
+        """Actual ExperimentWriter object. To use ExperimentWriter features anywhere in your code, do the
+        following.
 
         Example::
 
