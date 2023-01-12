@@ -98,12 +98,12 @@ Next steps
         <div class="row">
 
 .. displayitem::
-   :header: Examples
-   :description: See examples across computer vision, NLP, RL, etc.
-   :col_css: col-md-4
-   :button_link: ../fabric.html#examples
-   :height: 150
-   :tag: basic
+    :header: Examples
+    :description: See examples across computer vision, NLP, RL, etc.
+    :col_css: col-md-4
+    :button_link: ../fabric.html#examples
+    :height: 150
+    :tag: basic
 
 .. displayitem::
     :header: Accelerators
@@ -114,12 +114,12 @@ Next steps
     :tag: intermediate
 
 .. displayitem::
-   :header: Build your own Trainer
-   :description: Learn how to build a trainer tailored for you
-   :col_css: col-md-4
-   :button_link: ../fabric.html#build-your-own-trainer
-   :height: 150
-   :tag: intermediate
+    :header: Build your own Trainer
+    :description: Learn how to build a trainer tailored for you
+    :col_css: col-md-4
+    :button_link: ../fabric.html#build-your-own-trainer
+    :height: 150
+    :tag: intermediate
 
 .. raw:: html
 
