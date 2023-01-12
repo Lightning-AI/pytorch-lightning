@@ -2,7 +2,7 @@ import os
 from time import sleep
 
 import pytest
-from integrations_app_examples.public import _PATH_EXAMPLES
+from integrations_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
 
