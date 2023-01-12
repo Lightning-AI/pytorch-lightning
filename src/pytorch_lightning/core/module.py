@@ -403,6 +403,10 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
+        if self._fabric is not None:
+            self._log_dict_through_fabric(dictionary={name: value}, logger=logger)
+            return
+
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
@@ -554,6 +558,8 @@ class LightningModule(
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
         """
+        if self._fabric is not None:
+            return self._log_dict_through_fabric(dictionary=dictionary, logger=logger)
         for k, v in dictionary.items():
             self.log(
                 name=k,
@@ -570,6 +576,20 @@ class LightningModule(
                 batch_size=batch_size,
                 rank_zero_only=rank_zero_only,
             )
+
+    def _log_dict_through_fabric(self, dictionary: Mapping[str, Any], logger: Optional[bool] = None) -> None:
+        if logger is False:
+            # Passing `logger=False` with Fabric does not make much sense because there is no other destination to
+            # log to, but we support it in case the original code was written for Trainer use
+            return
+
+        if any(isinstance(v, dict) for v in dictionary.values()):
+            raise ValueError(f"`self.log_dict({dictionary})` was called, but nested dictionaries cannot be logged")
+        for name, value in dictionary.items():
+            apply_to_collection(value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Tensor))
+
+        assert self._fabric is not None
+        self._fabric.log_dict(metrics=dictionary)
 
     @staticmethod
     def __check_not_nested(value: dict, name: str) -> None:

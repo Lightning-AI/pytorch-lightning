@@ -608,7 +608,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self._format_precision_config()
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
-        # todo: using lite, we do not support these variables within the config
+        # TODO: Using Fabric, we do not support these variables within the config
         assert isinstance(self.config, dict)
         if self.lightning_module is None:
             return

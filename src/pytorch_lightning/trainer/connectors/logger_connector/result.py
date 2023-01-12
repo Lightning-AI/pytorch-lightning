@@ -22,13 +22,13 @@ from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
-from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
@@ -610,7 +610,7 @@ class _ResultCollection(dict):
 
             # populate progress_bar metrics. convert tensors to numbers
             if result_metric.meta.prog_bar:
-                metrics["pbar"][forked_name] = metrics_to_scalars(value)
+                metrics["pbar"][forked_name] = convert_tensors_to_scalars(value)
 
         return metrics
 

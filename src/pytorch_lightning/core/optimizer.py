@@ -322,7 +322,9 @@ def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig
     lr_scheduler_configs = []
     for scheduler in schedulers:
         if isinstance(scheduler, dict):
-            invalid_keys = {"interval", "frequency", "reduce_on_plateau", "monitor", "strict"}
+            # interval is not in this list even though the user needs to manually call the scheduler because
+            # the `LearningRateMonitor` callback needs to check its value to know when to log the learning rate
+            invalid_keys = {"frequency", "reduce_on_plateau", "monitor", "strict"}
             keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
 
             if keys_to_warn:
