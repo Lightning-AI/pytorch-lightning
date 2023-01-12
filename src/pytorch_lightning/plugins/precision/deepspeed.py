@@ -55,11 +55,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         amp_level: Optional[str] = None,
     ) -> None:
         if amp_type == "apex":
-            # TODO: remove in v1.10.0
+            # TODO: remove in v2.0.0
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
                 " PyTorch Lightning has been deprecated in v1.9.0. Support for using it through the DeepSpeed"
-                " implementation will be removed in v1.10.0."
+                " implementation will be removed in v2.0.0."
             )
             if not _APEX_AVAILABLE:
                 raise MisconfigurationException(
@@ -77,7 +77,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         else:
             rank_zero_deprecation(
                 f"Passing `{type(self).__name__}(amp_type={amp_type!r})` been deprecated in v1.9.0 and will be removed"
-                f" in v1.10.0. This argument is no longer necessary."
+                f" in v2.0.0. This argument is no longer necessary."
             )
 
         supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)

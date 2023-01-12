@@ -51,7 +51,7 @@ class HorovodStrategy(ParallelStrategy):
     ):
         rank_zero_deprecation(
             "`The `HorovodStrategy`: `Trainer(strategy='horovod')` has been deprecated in v1.9.0 and will be removed"
-            " in v1.10.0. You can try using the `Trainer(strategy='ddp')` instead."
+            " in v2.0.0. You can try using the `Trainer(strategy='ddp')` instead."
         )
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(

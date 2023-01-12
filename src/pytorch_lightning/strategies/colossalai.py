@@ -406,7 +406,7 @@ class ColossalAIStrategy(DDPStrategy):
         **kwargs: Any,
     ) -> Any:
         model = model or self.lightning_module
-        # TODO(lite): remove assertion once strategy's optimizer_step typing is fixed
+        # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(
             optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs

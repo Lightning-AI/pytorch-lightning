@@ -74,7 +74,7 @@ class TrainerFn(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     def deprecate(self) -> None:
         if self == self.TUNING:
             rank_zero_deprecation(
-                f"`TrainerFn.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+                f"`TrainerFn.{self.name}` has been deprecated in v1.8.0 and will be removed in v2.0.0."
             )
 
     @classmethod
@@ -118,7 +118,7 @@ class RunningStage(LightningEnum, metaclass=_DeprecationManagingEnumMeta):
     def deprecate(self) -> None:
         if self == self.TUNING:
             rank_zero_deprecation(
-                f"`RunningStage.{self.name}` has been deprecated in v1.8.0 and will be removed in v1.10.0."
+                f"`RunningStage.{self.name}` has been deprecated in v1.8.0 and will be removed in v2.0.0."
             )
 
     @classmethod

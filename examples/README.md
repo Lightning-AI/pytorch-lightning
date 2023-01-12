@@ -38,14 +38,6 @@ for advanced use cases.
 
 ______________________________________________________________________
 
-## Basic Examples
-
-In this folder, we have 1 simple example:
-
-- [Image Classifier + DALI](pl_integrations/dali_image_classifier.py) (defines the model inside the `LightningModule`).
-
-______________________________________________________________________
-
 ## Loop examples
 
 Contains implementations leveraging [loop customization](https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html) to enhance the Trainer with new optimization routines.

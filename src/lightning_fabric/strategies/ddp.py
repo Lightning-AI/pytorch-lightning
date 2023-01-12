@@ -82,10 +82,6 @@ class DDPStrategy(ParallelStrategy):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def is_distributed(self) -> bool:
-        return True
-
-    @property
     def num_nodes(self) -> int:
         return self._num_nodes
 
