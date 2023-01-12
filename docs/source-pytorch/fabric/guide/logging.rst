@@ -108,9 +108,10 @@ Reduce the added overhead by logging less frequently:
 Use multiple loggers
 ********************
 
-You can add as many loggers as you want without changing the code.
+You can add as many loggers as you want without changing the logging code in your loop.
 
 .. code-block:: python
+    :emphasize-lines: 8
 
     from lightning.fabric import Fabric
     from lightning.fabric.loggers import CSVLogger, TensorBoardLogger

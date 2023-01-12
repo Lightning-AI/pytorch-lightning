@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 class CSVLogger(Logger):
     r"""
-    Log to local file system in yaml and CSV format.
+    Log to the local file system in CSV format.
 
     Logs are saved to ``os.path.join(root_dir, name, version)``.
 
@@ -47,8 +47,7 @@ class CSVLogger(Logger):
         from lightning.fabric.loggers import CSVLogger
 
         logger = CSVLogger("path/to/logs/root", name="my_model")
-        logger.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
-        logger.log_metrics({"acc": 0.75})
+        logger.log_metrics({"loss": 0.235, "acc": 0.75})
         logger.finalize("success")
     """
 
@@ -169,9 +168,6 @@ class CSVLogger(Logger):
 class _ExperimentWriter:
     r"""
     Experiment writer for CSVLogger.
-
-    Currently supports to log hyperparameters and metrics in YAML and CSV
-    format, respectively.
 
     Args:
         log_dir: Directory for the experiment logs
