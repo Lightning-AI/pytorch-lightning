@@ -26,7 +26,7 @@ def test_file_logger_automatic_versioning(tmpdir):
     root_dir = tmpdir.mkdir("exp")
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
-    logger = CSVLogger(root_dir=tmpdir, name="exp")
+    logger = CSVLogger(root_dir=root_dir, name="exp")
     assert logger.version == 2
 
 
@@ -36,7 +36,7 @@ def test_file_logger_manual_versioning(tmpdir):
     root_dir.mkdir("version_0")
     root_dir.mkdir("version_1")
     root_dir.mkdir("version_2")
-    logger = CSVLogger(root_dir=tmpdir, name="exp", version=1)
+    logger = CSVLogger(root_dir=root_dir, name="exp", version=1)
     assert logger.version == 1
 
 
@@ -59,6 +59,7 @@ def test_file_logger_named_version(tmpdir):
 def test_file_logger_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = CSVLogger(root_dir=tmpdir, name=name)
+    logger.log_metrics({"a": 1})
     logger.save()
     assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
