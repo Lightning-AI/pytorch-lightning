@@ -92,3 +92,19 @@ Next steps
 
 Callbacks are a powerful tool to build a Trainer. Learn how in our comprehensive guide.
 
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Template Trainer
+   :description: Coming soon
+   :col_css: col-md-4
+   :height: 150
+   :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
