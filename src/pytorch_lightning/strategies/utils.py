@@ -17,33 +17,31 @@ from inspect import getmembers, isclass
 
 import torch
 from torch import Tensor
+from typing_extensions import Literal
 
 from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.strategies import _StrategyRegistry
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.registry import _is_register_method_overridden
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def on_colab_kaggle() -> bool:
-    rank_zero_deprecation(
-        "The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v1.10.0."
-    )
+    rank_zero_deprecation("The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
     return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
 
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:
-    # TODO(lite): Remove this function once PL strategies inherit from Lite's Strategy base class
+    # TODO(fabric): Remove this function once PL strategies inherit from Fabrics Strategy base class
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
         if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
             mod.register_strategies(registry)
 
 
-def _fp_to_half(tensor: Tensor, precision: PrecisionType) -> Tensor:
-    if precision == PrecisionType.HALF:
+def _fp_to_half(tensor: Tensor, precision: Literal["64", 64, "32", 32, "16", 16, "bf16"]) -> Tensor:
+    if str(precision) == "16":
         return _convert_fp_tensor(tensor, torch.half)
-    if precision == PrecisionType.BFLOAT:
+    if precision == "bf16":
         return _convert_fp_tensor(tensor, torch.bfloat16)
     return tensor

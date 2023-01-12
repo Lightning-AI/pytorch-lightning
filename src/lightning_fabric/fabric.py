@@ -16,30 +16,26 @@ import os
 from contextlib import contextmanager, nullcontext
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, List, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
 from lightning_utilities.core.apply_func import apply_to_collection
 from lightning_utilities.core.overrides import is_overridden
+from lightning_utilities.core.rank_zero import rank_zero_warn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
+from lightning_fabric.loggers import Logger
+
 from lightning_fabric.plugins import Precision  # avoid circular imports: # isort: split
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.connector import _Connector, _PLUGIN_INPUT, _PRECISION_INPUT
-from lightning_fabric.strategies import (
-    DDPShardedStrategy,
-    DeepSpeedStrategy,
-    FSDPStrategy,
-    SingleDeviceStrategy,
-    Strategy,
-    XLAStrategy,
-)
+from lightning_fabric.strategies import DeepSpeedStrategy, FSDPStrategy, SingleDeviceStrategy, Strategy, XLAStrategy
 from lightning_fabric.strategies.strategy import _Sharded, TBroadcast
 from lightning_fabric.utilities import move_data_to_device
-from lightning_fabric.utilities.apply_func import convert_to_tensors
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars, convert_to_tensors
 from lightning_fabric.utilities.data import (
     _auto_add_worker_init_fn,
     _replace_dunder_methods,
@@ -47,7 +43,6 @@ from lightning_fabric.utilities.data import (
     has_iterable_dataset,
 )
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
-from lightning_fabric.utilities.rank_zero import rank_zero_warn
 from lightning_fabric.utilities.seed import seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
@@ -67,13 +62,17 @@ class Fabric:
         accelerator: The hardware to run on. Possible choices are:
             ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
-            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+            ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"fsdp"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
         precision: Double precision (``64``), full precision (``32``), half precision (``16``),
             or bfloat16 precision (``"bf16"``).
         plugins: One or several custom plugins
+        callbacks: A single callback or a list of callbacks. A callback can contain any arbitrary methods that
+            can be invoked through :meth:`~lightning_fabric.fabric.Fabric.call` by the user.
+        loggers: A single logger or a list of loggers. See :meth:`~lightning_fabric.fabric.Fabric.log` for more
+            information.
     """
 
     def __init__(
@@ -85,6 +84,7 @@ class Fabric:
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
         callbacks: Optional[Union[List[Any], Any]] = None,
+        loggers: Optional[Union[Logger, List[Logger]]] = None,
     ) -> None:
         self._connector = _Connector(
             accelerator=accelerator,
@@ -99,6 +99,8 @@ class Fabric:
         self._precision: Precision = self._strategy.precision
         callbacks = callbacks if callbacks is not None else []
         self._callbacks = callbacks if isinstance(callbacks, list) else [callbacks]
+        loggers = loggers if loggers is not None else []
+        self._loggers = loggers if isinstance(loggers, list) else [loggers]
         self._models_setup: int = 0
 
         self._prepare_run_method()
@@ -147,6 +149,16 @@ class Fabric:
     def is_global_zero(self) -> bool:
         """Whether this rank is rank zero."""
         return self._strategy.is_global_zero
+
+    @property
+    def loggers(self) -> List[Logger]:
+        """Returns all loggers passed to Fabric."""
+        return self._loggers
+
+    @property
+    def logger(self) -> Logger:
+        """Returns the first logger in the list passed to Fabric, which is considered the main logger."""
+        return self._loggers[0]
 
     def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Fabric.
@@ -413,8 +425,7 @@ class Fabric:
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""
-        Gather tensors or collections of tensors from multiple processes.
+        r"""Gather tensors or collections of tensors from multiple processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
@@ -553,7 +564,7 @@ class Fabric:
                 def on_train_epoch_end(self, results):
                     ...
 
-            fabric = Fabric(callbacks=[MyCallback]))
+            fabric = Fabric(callbacks=[MyCallback()])
             fabric.call("on_train_epoch_end", results={...})
         """
         for callback in self._callbacks:
@@ -573,6 +584,31 @@ class Fabric:
             # method(self, fabric|trainer, *args, x, y=1)
             # method(self, *args, y=1)
             # method(self, *args, **kwargs)
+
+    def log(self, name: str, value: Any, step: Optional[int] = None) -> None:
+        """Log a scalar to all loggers that were added to Fabric.
+
+        Args:
+            name: The name of the metric to log.
+            value: The metric value to collect. If the value is a :class:`torch.Tensor`, it gets detached from the
+                graph automatically.
+            step: Optional step number. Most Logger implementations auto-increment the step value by one with every
+                log call. You can specify your own value here.
+        """
+        self.log_dict(metrics={name: value}, step=step)
+
+    def log_dict(self, metrics: Mapping[str, Any], step: Optional[int] = None) -> None:
+        """Log multiple scalars at once to all loggers that were added to Fabric.
+
+        Args:
+            metrics: A dictionary where the key is the name of the metric and the value the scalar to be logged.
+                Any :class:`torch.Tensor` in the dictionary get detached from the graph automatically.
+            step: Optional step number. Most Logger implementations auto-increment this value by one with every
+                log call. You can specify your own value here.
+        """
+        metrics = convert_tensors_to_scalars(metrics)
+        for logger in self._loggers:
+            logger.log_metrics(metrics=metrics, step=step)
 
     @staticmethod
     def seed_everything(seed: Optional[int] = None, workers: Optional[bool] = None) -> int:
@@ -630,7 +666,7 @@ class Fabric:
 
     def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
-            self._connector.is_distributed
+            getattr(self.strategy, "distributed_sampler_kwargs", None) is not None
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
         )
@@ -670,15 +706,8 @@ class Fabric:
         if isinstance(module, _FabricModule):
             raise ValueError("A model should be passed only once to the `setup_module` method.")
 
-        if isinstance(self._strategy, DDPShardedStrategy):
-            raise RuntimeError(
-                f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
-                " through `.setup(model, optimizer, ...)`. For inference, choose a different strategy, for example"
-                " `ddp`."
-            )
-
     def _validate_setup_optimizers(self, optimizers: Sequence[Optimizer]) -> None:
-        if isinstance(self._strategy, (DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy)):
+        if isinstance(self._strategy, (DeepSpeedStrategy, XLAStrategy)):
             raise RuntimeError(
                 f"The `{type(self._strategy).__name__}` requires the model and optimizer(s) to be set up jointly"
                 " through `.setup(model, optimizer, ...)`."

@@ -186,10 +186,10 @@ def test_warning_valid_train_step_end(tmpdir):
     class ValidTrainStepEndModel(BoringModel):
         def training_step(self, batch, batch_idx):
             output = self(batch)
-            return {"output": output, "batch": batch}
+            return {"output": output}
 
         def training_step_end(self, outputs):
-            loss = self.loss(outputs["batch"], outputs["output"])
+            loss = self.loss(outputs["output"])
             return loss
 
     # No error is raised

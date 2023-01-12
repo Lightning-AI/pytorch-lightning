@@ -15,7 +15,7 @@
 import pytest
 import torch
 import torch.nn as nn
-from tests_fabric.helpers.models import BoringLite
+from tests_fabric.helpers.models import BoringFabric
 from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric import Fabric, seed_everything
@@ -38,7 +38,7 @@ class NativeMixedPrecisionModule(nn.Module):
         return output
 
 
-class NativeMixedPrecisionBoringLite(BoringLite):
+class NativeMixedPrecisionBoringFabric(BoringFabric):
 
     expected_dtype: torch.dtype
 
@@ -68,22 +68,22 @@ class NativeMixedPrecisionBoringLite(BoringLite):
     ],
 )
 def test_native_mixed_precision(accelerator, precision, expected_dtype):
-    lite = NativeMixedPrecisionBoringLite(accelerator=accelerator, precision=precision)
-    lite.expected_dtype = expected_dtype
-    lite.run()
+    fabric = NativeMixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+    fabric.expected_dtype = expected_dtype
+    fabric.run()
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
 def test_native_mixed_precision_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)
-        lite = Fabric(accelerator="cuda", precision=16, devices=1)
+        fabric = Fabric(accelerator="cuda", precision=16, devices=1)
 
-        model = nn.Linear(10, 10).to(lite.device)  # TODO: replace with individual setup_model call
+        model = nn.Linear(10, 10).to(fabric.device)  # TODO: replace with individual setup_model call
         optimizer = torch.optim.Adam(model.parameters(), lr=1.0, fused=fused)
 
-        model, optimizer = lite.setup(model, optimizer)
-        assert isinstance(lite._precision.scaler, torch.cuda.amp.GradScaler)
+        model, optimizer = fabric.setup(model, optimizer)
+        assert isinstance(fabric._precision.scaler, torch.cuda.amp.GradScaler)
 
         data = torch.randn(10, 10, device="cuda")
         target = torch.randn(10, 10, device="cuda")
@@ -93,7 +93,7 @@ def test_native_mixed_precision_fused_optimizer_parity():
             optimizer.zero_grad()
             output = model(data)
             loss = (output - target).abs().sum()
-            lite.backward(loss)
+            fabric.backward(loss)
             optimizer.step()
             losses.append(loss.detach())
         return torch.stack(losses), model.parameters()

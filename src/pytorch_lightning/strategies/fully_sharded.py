@@ -16,13 +16,13 @@ import logging
 from typing import Any, Dict, Generator, List, Optional
 
 import torch
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
-from lightning_fabric.strategies.fairscale import _FAIRSCALE_AVAILABLE, _optimizer_has_flat_params
-from lightning_fabric.utilities.enums import PrecisionType
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -217,7 +217,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            mixed_precision=(self.precision_plugin.precision == "16"),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -240,7 +240,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(precision in (PrecisionType.MIXED, PrecisionType.HALF)),
+            mixed_precision=(precision == "16"),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -298,3 +298,9 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+
+def _optimizer_has_flat_params(optimizer: Optimizer) -> bool:
+    from fairscale.nn.misc.flatten_params_wrapper import FlatParameter
+
+    return any(isinstance(param, FlatParameter) for param in optimizer.param_groups[0]["params"])

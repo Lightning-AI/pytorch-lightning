@@ -13,10 +13,10 @@
 # limitations under the License.
 import os
 from collections import Counter
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, cast, Dict, List, Optional, Union
 
 import torch
-from typing_extensions import Literal
+from typing_extensions import get_args
 
 from lightning_fabric.accelerators import ACCELERATOR_REGISTRY
 from lightning_fabric.accelerators.accelerator import Accelerator
@@ -41,9 +41,8 @@ from lightning_fabric.plugins.environments import (
 )
 from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
+from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
-    DDPShardedStrategy,
-    DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -53,13 +52,12 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
-from lightning_fabric.utilities import _StrategyType, rank_zero_info, rank_zero_warn
+from lightning_fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
 _PLUGIN = Union[Precision, ClusterEnvironment, CheckpointIO]
 _PLUGIN_INPUT = Union[_PLUGIN, str]
-_PRECISION_INPUT = Literal[16, 32, 64, "bf16"]
 
 
 class _Connector:
@@ -113,14 +111,13 @@ class _Connector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = STRATEGY_REGISTRY.available_strategies()
         self._registered_accelerators = ACCELERATOR_REGISTRY.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_input: Optional[_PRECISION_INPUT] = None
+        self._precision_input: _PRECISION_INPUT_STR = "32"
         self._precision_instance: Optional[Precision] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
@@ -206,12 +203,10 @@ class _Connector:
 
         self._accelerator_flag = accelerator
 
-        if precision is not None:
-            if str(precision) not in self._precision_types:
-                raise ValueError(
-                    f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
-                )
-            self._precision_input = precision
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
+            raise ValueError(f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}")
+        self._precision_input = cast(_PRECISION_INPUT_STR, str(precision))
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -442,10 +437,10 @@ class _Connector:
             return self._precision_instance
 
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == 32:
+            if self._precision_input == "32":
                 return TPUPrecision()
-            elif self._precision_input in (16, "bf16"):
-                if self._precision_input == 16:
+            elif self._precision_input in ("16", "bf16"):
+                if self._precision_input == "16":
                     rank_zero_warn(
                         "You passed `Fabric(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
@@ -454,22 +449,22 @@ class _Connector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecision(self._precision_input)  # type: ignore
 
-        if self._precision_input == 32:
+        if self._precision_input == "32":
             return Precision()
-        if self._precision_input == 64:
+        if self._precision_input == "64":
             return DoublePrecision()
 
-        if self._precision_input == 16 and self._accelerator_flag == "cpu":
+        if self._precision_input == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
                 "You passed `Fabric(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_input = "bf16"
 
-        if self._precision_input in (16, "bf16"):
+        if self._precision_input in ("16", "bf16"):
             rank_zero_info(
                 "Using 16-bit Automatic Mixed Precision (AMP)"
-                if self._precision_input == 16
+                if self._precision_input == "16"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
@@ -483,7 +478,7 @@ class _Connector:
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_input == 64:
+            if self._precision_input == "64":
                 raise NotImplementedError(
                     "`Fabric(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
@@ -519,7 +514,7 @@ class _Connector:
             raise RuntimeError(
                 f"`Fabric(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Fabric(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Fabric"
                 " creation inside the worker function."
             )
@@ -536,39 +531,17 @@ class _Connector:
 
     @staticmethod
     def _argument_from_env(name: str, current: Any, default: Any) -> Any:
-        env_value: Optional[Union[str, int]] = os.environ.get("LT_" + name.upper())
+        env_value: Optional[str] = os.environ.get("LT_" + name.upper())
 
         if env_value is None:
             return current
 
-        if name == "precision":
-            # TODO: support precision input as string, then this special handling is not needed
-            env_value = int(env_value) if env_value in ("16", "32", "64") else env_value
-
-        if env_value is not None and env_value != current and current != default:
+        if env_value is not None and env_value != str(current) and str(current) != str(default):
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
-                f"`--{name}={current}` set through the CLI. "
+                f"`--{name}={env_value}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
         if env_value is None:
             return current
         return env_value
-
-    @property
-    def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = (
-            DDPStrategy,
-            DDPShardedStrategy,
-            DeepSpeedStrategy,
-            XLAStrategy,
-        )
-        is_distributed = isinstance(self.strategy, distributed_strategy)
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed

@@ -85,8 +85,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
             assert isinstance(opt_2, LightningOptimizer)
 
             def closure(opt):
-                output = self.layer(batch)
-                loss = self.loss(batch, output)
+                loss = self.step(batch)
                 opt.zero_grad()
                 self.manual_backward(loss)
 
@@ -323,8 +322,7 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
 def test_params_groups_and_state_are_accessible(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
+            loss = self.step(batch)
             self.__loss = loss
             return loss
 

@@ -67,8 +67,7 @@ class ModelParallelBoringModelManualOptim(BoringModel):
 
     def training_step(self, batch, batch_idx):
         opt = self.optimizers()
-        output = self(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         opt.zero_grad()
         self.manual_backward(loss)
         opt.step()
@@ -162,7 +161,7 @@ def test_deepspeed_precision_choice(cuda_count_1, amp_backend, tmpdir):
 
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
-    assert trainer.strategy.precision_plugin.precision == 16
+    assert trainer.strategy.precision_plugin.precision == "16"
 
 
 @RunIf(deepspeed=True)

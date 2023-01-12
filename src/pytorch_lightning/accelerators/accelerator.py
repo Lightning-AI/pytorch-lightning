@@ -31,11 +31,11 @@ class Accelerator(_Accelerator, ABC):
     def setup_environment(self, root_device: torch.device) -> None:
         """
         .. deprecated:: v1.8.0
-            This hook was deprecated in v1.8.0 and will be removed in v1.10.0. Please use ``setup_device()`` instead.
+            This hook was deprecated in v1.8.0 and will be removed in v2.0.0. Please use ``setup_device()`` instead.
         """
         rank_zero_deprecation(
             "`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0 and will be removed in"
-            " v1.10.0. Please use ``setup_device()`` instead."
+            " v2.0.0. Please use `setup_device()` instead."
         )
         self.setup_device(root_device)
 

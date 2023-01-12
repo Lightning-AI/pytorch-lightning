@@ -106,3 +106,21 @@ def convert_to_tensors(data: Any, device: _DEVICE) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
     return move_data_to_device(data, device)
+
+
+def convert_tensors_to_scalars(data: Any) -> Any:
+    """Recursively walk through a collection and convert single-item tensors to scalar values.
+
+    Raises:
+        ValueError:
+            If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
+    """
+
+    def to_item(value: Tensor) -> Union[int, float, bool]:
+        if value.numel() != 1:
+            raise ValueError(
+                f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
+            )
+        return value.item()
+
+    return apply_to_collection(data, Tensor, to_item)

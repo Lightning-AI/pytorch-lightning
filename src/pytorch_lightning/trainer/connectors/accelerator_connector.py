@@ -15,10 +15,10 @@
 import logging
 import os
 from collections import Counter
-from typing import Dict, List, Optional, Union
+from typing import cast, Dict, List, Optional, Union
 
 import torch
-from typing_extensions import Literal
+from typing_extensions import get_args, Literal
 
 from lightning_fabric.plugins.environments import (
     ClusterEnvironment,
@@ -28,7 +28,6 @@ from lightning_fabric.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from lightning_fabric.utilities import _StrategyType
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.accelerators import AcceleratorRegistry
@@ -70,6 +69,7 @@ from pytorch_lightning.strategies import (
     HorovodStrategy,
     HPUParallelStrategy,
     IPUStrategy,
+    ParallelStrategy,
     SingleDeviceStrategy,
     SingleHPUStrategy,
     SingleTPUStrategy,
@@ -90,6 +90,9 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 _LITERAL_WARN = Literal["warn"]
+_PRECISION_INPUT_INT = Literal[64, 32, 16]
+_PRECISION_INPUT_STR = Literal["64", "32", "16", "bf16"]
+_PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 
 
 class AcceleratorConnector:
@@ -100,18 +103,18 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: Union[int, str] = 32,
+        precision: _PRECISION_INPUT = 32,
         amp_type: Optional[str] = None,
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
-        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v1.10.0
-        num_processes: Optional[int] = None,  # deprecated
-        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
-        ipus: Optional[int] = None,  # deprecated
-        gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
+        auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v2.0.0
+        num_processes: Optional[int] = None,  # TODO: Remove in v2.0.0
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in v2.0.0
+        ipus: Optional[int] = None,  # TODO: Remove in v2.0.0
+        gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in v2.0.0
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -162,22 +165,21 @@ class AcceleratorConnector:
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
         self._accelerator_types = AcceleratorRegistry.available_accelerators()
-        self._precision_types = ("16", "32", "64", "bf16")
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_flag: _PRECISION_INPUT_STR = "32"
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
-        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v1.10.0
-        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v1.10.0
-        self._auto_select_gpus: Optional[bool] = auto_select_gpus
+        self._amp_type_flag: Optional[str] = None  # TODO: Remove in v2.0.0
+        self._amp_level_flag: Optional[str] = amp_level  # TODO: Remove in v2.0.0
+        self._auto_select_gpus: Optional[bool] = auto_select_gpus  # TODO: Remove in v2.0.0
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -236,7 +238,7 @@ class AcceleratorConnector:
         self,
         strategy: Optional[Union[str, Strategy]],
         accelerator: Optional[Union[str, Accelerator]],
-        precision: Union[int, str],
+        precision: _PRECISION_INPUT,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: Optional[str],
         amp_level: Optional[str],
@@ -283,14 +285,28 @@ class AcceleratorConnector:
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
 
+        # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
+        is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
+        is_dp_str = isinstance(strategy, str) and "dp" in strategy
+        is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_mps_accelerator = MPSAccelerator.is_available() and (
+            accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
+        )
+        if is_mps_accelerator and is_parallel_strategy:
+            raise ValueError(
+                f"You set `strategy={strategy}` but strategies from the DDP family are not supported on the"
+                f" MPS accelerator. Either explicitly set `accelerator='cpu'` or change the strategy."
+            )
+
         self._accelerator_flag = accelerator
 
-        if precision is not None:
-            if str(precision) not in self._precision_types:
-                raise MisconfigurationException(
-                    f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
-                )
-            self._precision_flag = precision
+        supported_precision = get_args(_PRECISION_INPUT_STR) + get_args(_PRECISION_INPUT_INT)
+        if precision not in supported_precision:
+            raise MisconfigurationException(
+                f"Precision {repr(precision)} is invalid. Allowed precision values: {supported_precision}"
+            )
+        self._precision_flag = cast(_PRECISION_INPUT_STR, str(precision))
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -378,7 +394,7 @@ class AcceleratorConnector:
         if amp_type is not None:
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 f" The `Trainer(amp_backend={amp_type!r})` argument is deprecated. Removing this argument will avoid"
                 f" this message, it will select PyTorch's implementation automatically."
             )
@@ -389,7 +405,7 @@ class AcceleratorConnector:
         if amp_level is not None:
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 f" The `Trainer(amp_level={amp_level!r})` argument is deprecated. Removing this argument will avoid"
                 f" this message."
             )
@@ -560,7 +576,7 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
         if self._auto_select_gpus is not None:
             rank_zero_deprecation(
-                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                "The Trainer argument `auto_select_gpus` has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 " Please use the function `pytorch_lightning.accelerators.find_usable_cuda_devices` instead."
             )
         if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
@@ -682,7 +698,7 @@ class AcceleratorConnector:
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
-            # TODO(lite): remove ignore after merging lite and PL strategies
+            # TODO(fabric): remove ignore after merging Fabric and PL strategies
             self.strategy = self._strategy_flag  # type: ignore[assignment]
         else:
             raise RuntimeError(f"{self.strategy} is not valid type: {self.strategy}")
@@ -697,10 +713,10 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, HPUAccelerator):
             return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 32:
+            if self._precision_flag == "32":
                 return TPUPrecisionPlugin()
-            elif self._precision_flag in (16, "bf16"):
-                if self._precision_flag == 16:
+            elif self._precision_flag in ("16", "bf16"):
+                if self._precision_flag == "16":
                     rank_zero_warn(
                         "You passed `Trainer(accelerator='tpu', precision=16)` but AMP"
                         " is not supported with TPUs. Using `precision='bf16'` instead."
@@ -712,22 +728,22 @@ class AcceleratorConnector:
         if isinstance(self.strategy, DeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(self._precision_flag, self._amp_type_flag, self._amp_level_flag)
 
-        if self._precision_flag == 32:
+        if self._precision_flag == "32":
             return PrecisionPlugin()
-        if self._precision_flag == 64:
+        if self._precision_flag == "64":
             return DoublePrecisionPlugin()
 
-        if self._precision_flag == 16 and self._accelerator_flag == "cpu":
+        if self._precision_flag == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
                 "You passed `Trainer(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_flag = "bf16"
 
-        if self._precision_flag in (16, "bf16"):
+        if self._precision_flag in ("16", "bf16"):
             rank_zero_info(
                 f"Using 16bit {self._amp_type_flag} Automatic Mixed Precision (AMP)"
-                if self._precision_flag == 16
+                if self._precision_flag == "16"
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
 
@@ -751,7 +767,7 @@ class AcceleratorConnector:
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
         if isinstance(self.accelerator, TPUAccelerator):
-            if self._precision_flag == 64:
+            if self._precision_flag == "64":
                 raise MisconfigurationException(
                     "`Trainer(accelerator='tpu', precision=64)` is not implemented."
                     " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
@@ -765,12 +781,12 @@ class AcceleratorConnector:
                     f" found: {self._precision_plugin_flag}."
                 )
         if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in (16, "bf16", 32):
+            if self._precision_flag not in ("16", "bf16", "32"):
                 raise MisconfigurationException(
                     f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
         if (
-            self._precision_flag == 16
+            self._precision_flag == "16"
             and isinstance(self.accelerator, CPUAccelerator)
             and self._amp_type_flag == "apex"
         ):
@@ -778,7 +794,7 @@ class AcceleratorConnector:
                 "You passed `Trainer(accelerator='cpu', precision=16, amp_type='apex')`"
                 " but apex AMP not supported on CPU."
             )
-        if self._precision_flag in (16, "bf16") and self._amp_type_flag == "apex":
+        if self._precision_flag in ("16", "bf16") and self._amp_type_flag == "apex":
             if self._precision_flag == "bf16":
                 raise MisconfigurationException(
                     "You passed `Trainer(amp_type='apex', precision='bf16')` but it's not supported."
@@ -816,7 +832,7 @@ class AcceleratorConnector:
             raise MisconfigurationException(
                 f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
                 " creation inside the worker function."
             )
