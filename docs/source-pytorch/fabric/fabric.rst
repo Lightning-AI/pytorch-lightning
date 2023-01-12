@@ -237,6 +237,14 @@ Examples
     :tag: intermediate
 
 .. displayitem::
+    :header: Meta-Learning
+    :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning/README.md
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. displayitem::
     :header: Reinforcement Learning
     :description: Coming soon
     :col_css: col-md-4
@@ -248,11 +256,6 @@ Examples
     :col_css: col-md-4
     :height: 150
 
-.. displayitem::
-    :header: Meta Learning
-    :description: Coming soon
-    :col_css: col-md-4
-    :height: 150
 
 
 .. raw:: html
