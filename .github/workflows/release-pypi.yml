@@ -145,11 +145,7 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     strategy:
       matrix:
-        include:
-          - {dir: "app", name: "APP"}
-          - {dir: "fabric", name: "FABRIC"}
-          - {dir: "pytorch", name: "PYTORCH"}
-          - {dir: "lightning", name: "LAI"}
+        name: ["APP", "FABRIC", "PYTORCH", "LIGHTNING"]
     steps:
     - uses: actions/checkout@v3  # needed for local action bellow
     - uses: actions/download-artifact@v3
@@ -161,7 +157,7 @@ jobs:
         tree -L 2 -h dist/
     - uses: ./.github/actions/pkg-publish
       with:
-        pkg-folder: dist/${{ matrix.dir }}
+        pkg-folder: dist/$(echo 'console.log("${{ matrix.name }}".toLowerCase())')
         pypi-token: ${{ secrets[format('PYPI_TOKEN_{0}', matrix.name)] }}
 
 
