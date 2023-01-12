@@ -24,28 +24,30 @@ With only a few changes to your code, Fabric allows you to:
 
     + from lightning.fabric import Fabric
 
-      class MyModel(nn.Module):
+      class PyTorchModel(nn.Module):
           ...
 
-      class MyDataset(Dataset):
+      class PyTorchDataset(Dataset):
           ...
 
     + fabric = Fabric(accelerator="cuda", devices=8, strategy="ddp")
     + fabric.launch()
 
     - device = "cuda" if torch.cuda.is_available() else "cpu
-      model = MyModel(...)
+      model = PyTorchModel(...)
       optimizer = torch.optim.SGD(model.parameters())
     + model, optimizer = fabric.setup(model, optimizer)
-      dataloader = DataLoader(MyDataset(...), ...)
+      dataloader = DataLoader(PyTorchDataset(...), ...)
     + dataloader = fabric.setup_dataloaders(dataloader)
       model.train()
 
       for epoch in range(num_epochs):
           for batch in dataloader:
-    -         batch.to(device)
+              input, target = batch
+    -         input, target = input.to(device), target.to(device)
               optimizer.zero_grad()
-              loss = model(batch)
+              output = model(input)
+              loss = loss_fn(output, target)
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
@@ -54,7 +56,7 @@ With only a few changes to your code, Fabric allows you to:
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
 
 
-----------
+----
 
 
 ************
@@ -106,13 +108,21 @@ Fundamentals
     :height: 150
     :tag: basic
 
+.. displayitem::
+    :header: Mixed Precision Training
+    :description: Save memory and speed up training using mixed precision
+    :button_link: fundamentals/precision.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
 .. raw:: html
 
         </div>
     </div>
 
 
-----------
+----
 
 
 **********************
@@ -162,18 +172,41 @@ Build Your Own Trainer
     </div>
 
 
-----------
+----
 
 
 ***************
 Advanced Topics
 ***************
 
-Comnig soon.
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Efficient Gradient Accumulation
+    :description: Learn how to perform efficient gradient accumulation in distributed settings
+    :button_link: advanced/gradient_accumulation.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. displayitem::
+    :header: Collectives
+    :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
+    :button_link: advanced/collectives.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
 
 
-
-----------
+----
 
 
 .. _Fabric Examples:
@@ -204,6 +237,14 @@ Examples
     :tag: intermediate
 
 .. displayitem::
+    :header: Meta-Learning
+    :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning/README.md
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
+
+.. displayitem::
     :header: Reinforcement Learning
     :description: Coming soon
     :col_css: col-md-4
@@ -215,11 +256,6 @@ Examples
     :col_css: col-md-4
     :height: 150
 
-.. displayitem::
-    :header: Meta Learning
-    :description: Coming soon
-    :col_css: col-md-4
-    :height: 150
 
 
 .. raw:: html
@@ -229,7 +265,7 @@ Examples
 
 
 
-----------
+----
 
 
 ***

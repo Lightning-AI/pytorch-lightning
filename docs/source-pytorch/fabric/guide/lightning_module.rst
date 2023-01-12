@@ -12,7 +12,7 @@ This is what the :doc:`LightningModule <../../common/lightning_module>` was made
 Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.).
 
 
-----------
+----
 
 
 *************************************************
@@ -65,7 +65,7 @@ Take these main incredients and put them in a LightningModule:
 This is a minimal LightningModule, but there are :doc:`many other useful hooks <../../common/lightning_module>` you can use.
 
 
-----------
+----
 
 
 ****************************************

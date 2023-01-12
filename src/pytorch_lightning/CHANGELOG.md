@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased] - 202Y-MM-DD
 
 ### Added
+- Added support for native logging of `MetricCollection` with enabled compute groups ([#15580](https://github.com/Lightning-AI/lightning/pull/15580))
+
 
 - Added support for custom artifact names in `pl.loggers.WandbLogger` ([#16173](https://github.com/Lightning-AI/lightning/pull/16173))
 
@@ -28,6 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added a check to validate that wrapped FSDP models are used while initializing optimizers ([#15301](https://github.com/Lightning-AI/lightning/pull/15301))
 
+-
 
 - Added a warning when `self.log(..., logger=True)` is called without a configured logger ([#15814](https://github.com/Lightning-AI/lightning/pull/15814))
 
@@ -167,6 +170,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed a type error when dividing the chunk size in the ColossalAI strategy ([#16212](https://github.com/Lightning-AI/lightning/pull/16212))
+
+
+- Fixed bug where the ``interval`` key of the scheduler would be ignored during manual optimization, making the LearningRateMonitor callback fail to log the learning rate ([#16308](https://github.com/Lightning-AI/lightning/pull/16308))
+
+
+- Fixed an issue with `MLFlowLogger` not finalizing correctly when status code 'finished' was passed ([#16340](https://github.com/Lightning-AI/lightning/pull/16340))
 
 
 ## [1.8.6] - 2022-12-21
