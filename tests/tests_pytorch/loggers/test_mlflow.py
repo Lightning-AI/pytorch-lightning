@@ -268,11 +268,14 @@ def test_mlflow_logger_experiment_calls(client, _, time, param, metric, tmpdir):
     )
 
 
-@pytest.mark.parametrize("status,expected", [
-    ("success", "FINISHED"),
-    ("failed", "FAILED"),
-    ("finished", "FINISHED"),
-])
+@pytest.mark.parametrize(
+    "status,expected",
+    [
+        ("success", "FINISHED"),
+        ("failed", "FAILED"),
+        ("finished", "FINISHED"),
+    ],
+)
 @mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_finalize(_, __, status, expected):
