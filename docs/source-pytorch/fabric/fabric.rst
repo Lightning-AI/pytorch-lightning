@@ -54,7 +54,7 @@ With only a few changes to your code, Fabric allows you to:
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
 
 
-----------
+----
 
 
 ************
@@ -120,7 +120,7 @@ Fundamentals
     </div>
 
 
-----------
+----
 
 
 **********************
@@ -170,7 +170,7 @@ Build Your Own Trainer
     </div>
 
 
-----------
+----
 
 
 ***************
@@ -204,7 +204,7 @@ Advanced Topics
     </div>
 
 
-----------
+----
 
 
 .. _Fabric Examples:
@@ -260,7 +260,7 @@ Examples
 
 
 
-----------
+----
 
 
 ***

@@ -52,7 +52,7 @@ The same values can also be set through the :doc:`command line interface <launch
     For example, when running scatter operations during the forward (such as torchpoint3d), computation must remain in FP32.
 
 
-----------
+----
 
 
 ********************
@@ -80,7 +80,7 @@ This is how you enable FP16 in Fabric:
     When using TPUs, setting ``precision=16`` will enable bfloat16, the only supported half-precision type on TPUs.
 
 
-----------
+----
 
 
 ************************
@@ -106,7 +106,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
     Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
 
 
-----------
+----
 
 
 ************************************

@@ -7,7 +7,7 @@ Callbacks
 Callbacks enable you, or the users of your code, to add new behavior to the training loop without the need to modify the source code in-place.
 
 
-----------
+----
 
 
 *************************************
@@ -56,7 +56,7 @@ This enables flexibility in extending the loop in arbitrary ways.
 **Exercise**: Implement a callback that computes and prints the time to complete an iteration.
 
 
-----------
+----
 
 
 ******************
@@ -86,6 +86,9 @@ Not all objects registered via ``Fabric(callbacks=...)`` must implement a method
 The ones that have a matching method name will get called.
 
 
+----
+
+
 **********
 Next steps
 **********
@@ -98,11 +101,12 @@ Callbacks are a powerful tool to build a Trainer. Learn how in our comprehensive
         <div class="row">
 
 .. displayitem::
-   :header: Template Trainer
-   :description: Coming soon
-   :col_css: col-md-4
-   :height: 150
-   :tag: intermediate
+    :header: Template Trainer
+    :description: Coming soon
+    :button_link: guide/trainer_template.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: intermediate
 
 .. raw:: html
 
