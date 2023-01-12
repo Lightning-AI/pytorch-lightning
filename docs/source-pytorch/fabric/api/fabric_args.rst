@@ -8,7 +8,7 @@ Fabric Arguments
 accelerator
 ===========
 
-Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"`` (IPU support is coming soon).
+Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
 
 .. code-block:: python
 
@@ -35,7 +35,7 @@ The ``"auto"`` option recognizes the machine you are on and selects the availabl
 strategy
 ========
 
-Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``, or ``"ddp_sharded_spawn"``.
+Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"xla"``, ``"deepspeed"``, ``"fsdp"````.
 
 .. code-block:: python
 
@@ -53,9 +53,6 @@ Additionally, you can pass in your custom strategy by configuring additional par
     from lightning.fabric.strategies import DeepSpeedStrategy
 
     fabric = Fabric(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
-
-
-Support for Fully Sharded training strategies are coming soon.
 
 
 devices

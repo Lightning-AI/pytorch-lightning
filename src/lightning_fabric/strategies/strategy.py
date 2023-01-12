@@ -239,7 +239,7 @@ class Strategy(ABC):
         Allows for syncing/collating optimizer state from processes in custom plugins.
         """
         if hasattr(optimizer, "consolidate_state_dict"):
-            # there are optimizers like Fairscale's OSS or PyTorch's ZeroRedundancyOptimizer that shard their
+            # there are optimizers like PyTorch's ZeroRedundancyOptimizer that shard their
             # states, and to avoid OOM we consolidate the full state on rank 0 only
             optimizer.consolidate_state_dict()
             return optimizer.state_dict() if self.is_global_zero else {}
