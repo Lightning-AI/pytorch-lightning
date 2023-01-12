@@ -13,7 +13,6 @@
 # limitations under the License
 
 import os
-from re import escape
 from typing import Any, Dict
 from unittest import mock
 
@@ -808,27 +807,23 @@ def test_devices_from_environment(*_):
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
     with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(accelerator='cuda', ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"):
             _Connector(accelerator="cuda")
 
     with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(strategy='ddp_spawn', ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"):
             _Connector(strategy="ddp_spawn")
 
     with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(devices=3, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"):
             _Connector(devices=3)
 
     with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(num_nodes=2, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
             _Connector(num_nodes=2)
 
     with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(precision=64, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(precision=64, ...\\)` but .* `--precision=16`"):
             _Connector(precision=64)
 
 
