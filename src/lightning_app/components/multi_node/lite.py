@@ -40,7 +40,6 @@ class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
             try:
                 pkg = importlib.import_module(pkg_name)
                 fabrics.append(pkg.Fabric)
-                strategies.append(pkg.strategies.DDPShardedStrategy)
                 strategies.append(pkg.strategies.DDPStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
             except (ImportError, ModuleNotFoundError):
