@@ -20,8 +20,9 @@ import pytest
 import torch
 from lightning_utilities.core.imports import compare_version
 from torch.utils.data import DataLoader
+from torchmetrics import Accuracy
 from torchmetrics import AveragePrecision as AvgPre
-from torchmetrics import Accuracy, MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
