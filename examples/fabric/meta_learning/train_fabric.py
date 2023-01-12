@@ -110,7 +110,7 @@ def main(
                 shots,
                 ways,
             )
-            evaluation_error.backward()
+            fabric.backward(evaluation_error)
             meta_train_error += evaluation_error.item()
             meta_train_accuracy += evaluation_accuracy.item()
 
