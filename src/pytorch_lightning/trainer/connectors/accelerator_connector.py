@@ -288,7 +288,8 @@ class AcceleratorConnector:
         # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
         is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
         is_dp_str = isinstance(strategy, str) and "dp" in strategy
-        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str
+        is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
         is_mps_accelerator = MPSAccelerator.is_available() and (
             accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
         )

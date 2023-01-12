@@ -381,6 +381,7 @@ def test_exception_invalid_strategy():
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
+        pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
