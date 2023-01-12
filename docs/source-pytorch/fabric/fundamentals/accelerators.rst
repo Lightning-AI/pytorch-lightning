@@ -52,7 +52,7 @@ You can also specifically set which accelerator to use:
 For running on multiple devices in parallel, also known as "distributed", read our guide for :doc:`Launching Multiple Processes <./launch>`.
 
 
-----------
+----
 
 
 *****************
