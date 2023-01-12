@@ -28,7 +28,6 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 from lightning_fabric.fabric import Fabric
 from lightning_fabric.plugins import Precision
 from lightning_fabric.strategies import (
-    DDPShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     ParallelStrategy,
@@ -241,16 +240,7 @@ def test_setup_optimizers_twice_fails():
         fabric.setup_optimizers(fabric_optimizer)
 
 
-def test_setup_module_not_supported():
-    """Test that `setup_module` validates the strategy supports setting up model and optimizers independently."""
-    fabric = EmptyFabric()
-    model = nn.Linear(1, 2)
-    fabric._strategy = Mock(spec=DDPShardedStrategy)
-    with pytest.raises(RuntimeError, match=escape("requires the model and optimizer(s) to be set up jointly through")):
-        fabric.setup_module(model)
-
-
-@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, DDPShardedStrategy, XLAStrategy])
+@pytest.mark.parametrize("strategy_cls", [DeepSpeedStrategy, XLAStrategy])
 def test_setup_optimizers_not_supported(strategy_cls):
     """Test that `setup_optimizers` validates the strategy supports setting up model and optimizers
     independently."""
@@ -467,8 +457,6 @@ def test_seed_everything():
         "ddp_spawn",
         pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
-        pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
-        pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
     ],
 )
 def test_setup_dataloaders_replace_custom_sampler(strategy):
@@ -479,7 +467,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
 
     # explicitly asking to replace when a custom sampler is already configured raises an exception
     fabric = EmptyFabric(accelerator="cpu", strategy=strategy, devices=2)
-    if fabric._connector.is_distributed:
+    if hasattr(fabric.strategy, "distributed_sampler_kwargs"):
         with pytest.raises(TypeError, match="You seem to have configured a sampler in your DataLoader"):
             fabric.setup_dataloaders(dataloader, replace_sampler=True)
 
@@ -496,15 +484,13 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
         "ddp_spawn",
         pytest.param("ddp_fork", marks=RunIf(skip_windows=True)),
         pytest.param("deepspeed", marks=RunIf(deepspeed=True)),
-        pytest.param("ddp_sharded", marks=RunIf(fairscale=True)),
-        pytest.param("ddp_sharded_spawn", marks=RunIf(fairscale=True)),
     ],
 )
 @pytest.mark.parametrize("shuffle", [True, False])
 def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     """Test that Fabric replaces the default samplers with DistributedSampler automatically."""
     fabric = EmptyFabric(accelerator="cpu", strategy=strategy, devices=2)
-    is_distributed = fabric._connector.is_distributed
+    is_distributed = hasattr(fabric.strategy, "distributed_sampler_kwargs")
     fabric_dataloader = fabric.setup_dataloaders(DataLoader(range(3), shuffle=shuffle))
     assert not is_distributed or isinstance(fabric_dataloader.sampler, DistributedSampler)
 
