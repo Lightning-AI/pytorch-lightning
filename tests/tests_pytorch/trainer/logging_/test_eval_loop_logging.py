@@ -684,6 +684,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 def test_metrics_and_outputs_device(tmpdir, accelerator):
     class TestModel(BoringModel):
         def on_before_backward(self, loss: Tensor) -> None:
+            # the loss should be on the correct device before backward
             assert loss.device.type == accelerator
 
         def validation_step(self, *args):
@@ -698,7 +699,7 @@ def test_metrics_and_outputs_device(tmpdir, accelerator):
         def validation_epoch_end(self, outputs):
             # the step outputs were not moved
             assert all(o.device == self.device for o in outputs)
-            # and the logged metrics isn't
+            # and the logged metrics aren't
             assert self.trainer.callback_metrics["foo"].device.type == accelerator
 
     model = TestModel()
