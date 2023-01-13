@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.11
+ARG PYTORCH_VERSION=1.13
 
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
@@ -45,13 +44,10 @@ RUN \
         texlive-latex-extra \
         dvipng \
         texlive-pictures \
-    # Install python
-    apt-get install -y \
-        python${PYTHON_VERSION} \
-        python${PYTHON_VERSION}-distutils \
-        python${PYTHON_VERSION}-dev \
+        python3 \
+        python3-distutils \
+        python3-dev \
     && \
-    update-alternatives --install /usr/bin/python${PYTHON_VERSION%%.*} python${PYTHON_VERSION%%.*} /usr/bin/python${PYTHON_VERSION} 1 && \
     update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
     # Cleaning
     apt-get autoremove -y && \
@@ -59,7 +55,11 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requiremets/docs.txt docs.txt
+COPY requirements/docs.txt docs.txt
 
 RUN \
-    pip install torch -r docs.txt -f https://download.pytorch.org/whl/cpu/torch_stable.html \
+    wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
+    python get-pip.py && \
+    rm get-pip.py && \
+    pip install "torch==${PYTORCH_VERSION}" -r docs.txt \
+      -f https://download.pytorch.org/whl/cpu/torch_stable.html
