@@ -151,9 +151,9 @@ Here's an example of changing the placement policy to "cpu".
 
 .. _sharded-training:
 
-**************************
+****************
 Sharded Training
-**************************
+****************
 
 The technique can be found within `DeepSpeed ZeRO <https://arxiv.org/abs/1910.02054>`_ and
 `ZeRO-2 <https://www.microsoft.com/en-us/research/blog/zero-2-deepspeed-shattering-barriers-of-deep-learning-speed-scale/>`_,
@@ -180,9 +180,9 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 .. _fully-sharded-training:
 
-******************************
+**********************
 Fully Sharded Training
-******************************
+**********************
 
 PyTorch has it's own version of `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_ which is upstreamed from their `fairscale <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ project.
 It was introduced in their `v1.11.0 release <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_ but it is recommended to use it with PyTorch v1.12 or more and that's what
