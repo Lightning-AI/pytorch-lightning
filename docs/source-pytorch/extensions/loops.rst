@@ -306,14 +306,11 @@ Here is what the structure would look like in plain Python:
         # TrainingEpochLoop
         for batch_idx, batch in enumerate(train_dataloader):
 
-            # TrainingBatchLoop
-            for split_batch in tbptt_split(batch):
+            # OptimizerLoop
+            for optimizer_idx, opt in enumerate(optimizers):
 
-                # OptimizerLoop
-                for optimizer_idx, opt in enumerate(optimizers):
-
-                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
-                    ...
+                loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
+                ...
 
             # ValidationEpochLoop
             for batch_idx, batch in enumerate(val_dataloader):
@@ -339,13 +336,8 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
        The validation is carried out by yet another loop, :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
 
        In the :code:`run()` method, the training epoch loop could in theory simply call the :code:`LightningModule.training_step` already and perform the optimization.
-       However, Lightning has built-in support for automatic optimization with multiple optimizers and on top of that also supports :ref:`TBPTT <sequential-data>`.
+       However, Lightning has built-in support for automatic optimization with multiple optimizers.
        For this reason there are actually two more loops nested under :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
-   * - :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop`
-     - The responsibility of the :class:`~pytorch_lightning.loops.batch.training_batch_loop.TrainingBatchLoop` is to split a batch given by the :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop` along the time-dimension and iterate over the list of splits.
-       It also keeps track of the hidden state *hiddens* returned by the training step.
-       By default, when truncated back-propagation through time (TBPTT) is turned off, this loop does not do anything except redirect the call to the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`.
-       Read more about :ref:`TBPTT <sequential-data>`.
    * - :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop`
      - The :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` iterates over one or multiple optimizers and for each one it calls the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method with the batch, the current batch index and the optimizer index if multiple optimizers are requested.
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
