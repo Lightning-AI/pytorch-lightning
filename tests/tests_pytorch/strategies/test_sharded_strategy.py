@@ -183,7 +183,8 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
@@ -382,12 +383,13 @@ def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     old_optimizer_states = deepcopy(ckpt["optimizer_states"])
 
     model = CheckModelRestore(old_model_state_dict, old_optimizer_states)
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn",
-        max_epochs=2,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        accelerator="gpu",
-        devices=1,
-    )
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(
+            strategy="ddp_sharded_spawn",
+            max_epochs=2,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            accelerator="gpu",
+            devices=1,
+        )
     trainer.fit(model, ckpt_path=checkpoint_path)
