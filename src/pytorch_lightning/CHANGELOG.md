@@ -51,12 +51,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecated the `Trainer.amp_backend` property
   * Deprecated the `Trainer(amp_level=...)` argument
   * Deprecated the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class
-  * Deprecates the `pytorch_lightning.utilities.enum.sAMPType` enum
+  * Deprecates the `pytorch_lightning.utilities.enums.AMPType` enum
   * Deprecates the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 - `horovod` deprecation ([#16141](https://github.com/PyTorchLightning/pytorch-lightning/pull/16141))
   * Deprecated `Trainer(strategy="horovod")`
   * Deprecated the `HorovodStrategy` class
 - Deprecated `pytorch_lightning.lite.LightningLite` in favor of `lightning.fabric.Fabric` ([#16314](https://github.com/Lightning-AI/lightning/pull/16314))
+- `FairScale` deprecation (in favor of PyTorch's FSDP implementation) ([#16353](https://github.com/PyTorchLightning/pytorch-lightning/pull/16353))
+  * Deprecated the `pytorch_lightning.overrides.fairscale.LightningShardedDataParallel` class
+  * Deprecated the `pytorch_lightning.plugins.precision.fully_sharded_native_amp.FullyShardedNativeMixedPrecisionPlugin` class
+  * Deprecated the `pytorch_lightning.plugins.precision.sharded_native_amp.ShardedNativeMixedPrecisionPlugin` class
+  * Deprecated the `pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy` class
+  * Deprecated the `pytorch_lightning.strategies.sharded.DDPShardedStrategy` class
+  * Deprecated the `pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy` class
 
 
 ### Removed
