@@ -49,6 +49,7 @@ class DDPShardedStrategy(DDPStrategy):
             " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
             " the native version by default."
         )
+        super().__init__(*args, **kwargs)
 
     def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover

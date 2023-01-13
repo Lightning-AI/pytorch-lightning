@@ -241,7 +241,10 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+    with (
+        pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"),
+        pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"),
+    ):
         Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
@@ -282,7 +285,13 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
 )
 @pytest.mark.parametrize("devices", [1, 2])
 def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmpdir, strategy, strategy_class, devices):
-    trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
+    if "sharded" in strategy:
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(
+                default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices
+            )
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 
@@ -386,10 +395,16 @@ def test_exception_invalid_strategy():
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator=accelerator, strategy=strategy)
+    if "sharded" in strategy:
+        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+            Trainer(accelerator=accelerator, strategy=strategy)
+    else:
+        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+            Trainer(accelerator=accelerator, strategy=strategy)
 
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"), pytest.deprecated_call(
+        match="FairScale has been deprecated in v1.9.0"
+    ):
         Trainer(accelerator="mps", strategy=strategy_class())
 
 
