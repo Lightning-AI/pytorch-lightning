@@ -78,11 +78,6 @@ class FitLoop(Loop[None]):
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> int:
-        """Returns the index of the current batch split (within the current batch) for bptt."""
-        return self.epoch_loop.batch_loop.split_idx
-
-    @property
     def min_steps(self) -> Optional[int]:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum number of steps to run."""
@@ -112,7 +107,7 @@ class FitLoop(Loop[None]):
     @property
     def running_loss(self) -> TensorRunningAccum:
         """Returns the running loss."""
-        return self.epoch_loop.batch_loop.running_loss
+        return self.epoch_loop.running_loss
 
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
@@ -131,12 +126,12 @@ class FitLoop(Loop[None]):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
+        return self.epoch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
+        self.epoch_loop.optimizer_loop._skip_backward = value
 
     @property
     def _results(self) -> _ResultCollection:
@@ -239,7 +234,7 @@ class FitLoop(Loop[None]):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
+        self.epoch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 

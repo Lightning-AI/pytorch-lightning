@@ -13,32 +13,7 @@
 # limitations under the License.
 from unittest.mock import Mock
 
-import pytest
-import torch
-
-from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-
-
-def test_extract_hiddens():
-    # tbptt not enabled, no hiddens return
-    training_step_output = 1  # anything
-    hiddens = _extract_hiddens(training_step_output, 0)
-    assert hiddens is None
-
-    # tbptt enabled, hiddens return
-    hiddens = torch.tensor(321.12, requires_grad=True)
-    training_step_output = {"hiddens": hiddens}
-    hiddens = _extract_hiddens(training_step_output, 2)
-    assert "hiddens" in training_step_output
-    assert not hiddens.requires_grad
-
-    # tbptt not enabled, hiddens return
-    with pytest.raises(MisconfigurationException, match='returned "hiddens" .* but `truncated_bptt_steps` is disabled'):
-        _extract_hiddens(training_step_output, 0)
-    # tbptt enabled, no hiddens return
-    with pytest.raises(MisconfigurationException, match="enabled `truncated_bptt_steps` but did not `return"):
-        _extract_hiddens(None, 1)
+from pytorch_lightning.loops.utilities import _set_sampler_epoch
 
 
 def test_set_sampler_epoch():

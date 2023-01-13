@@ -18,15 +18,17 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.batch import TrainingBatchLoop
-from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
+from pytorch_lightning.loops.optimization import ManualOptimization, OptimizerLoop
+from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
+from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.trainer.supporters import CombinedLoader
+from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
@@ -34,6 +36,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
+_BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
@@ -57,7 +60,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.batch_loop = TrainingBatchLoop()
+        self.accumulated_loss = TensorRunningAccum(window_length=20)
+        self.running_loss = TensorRunningAccum(window_length=20)
+        self.optimizer_loop = OptimizerLoop()
+        self.manual_loop = ManualOptimization()
+
         self.val_loop = loops.EvaluationLoop(verbose=False)
 
         self._results = _ResultCollection(training=True)
@@ -85,8 +92,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def global_step(self) -> int:
         lightning_module = self.trainer.lightning_module
         if lightning_module is None or lightning_module.automatic_optimization:
-            return self.batch_loop.optimizer_loop.optim_progress.optimizer_steps
-        return self.batch_loop.manual_loop.optim_step_progress.total.completed
+            return self.optimizer_loop.optim_progress.optimizer_steps
+        return self.manual_loop.optim_step_progress.total.completed
 
     @property
     def _is_training_done(self) -> bool:
@@ -119,12 +126,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def connect(  # type: ignore[override]
         self,
-        batch_loop: Optional[TrainingBatchLoop] = None,
+        optimizer_loop: Optional[OptimizerLoop] = None,
+        manual_loop: Optional[ManualOptimization] = None,
         val_loop: Optional["loops.EvaluationLoop"] = None,
     ) -> None:
         """Optionally connect a custom batch or validation loop to this training epoch loop."""
-        if batch_loop is not None:
-            self.batch_loop = batch_loop
+        if optimizer_loop is not None:
+            self.optimizer_loop = optimizer_loop
+        if manual_loop is not None:
+            self.manual_loop = manual_loop
         if val_loop is not None:
             self.val_loop = val_loop
 
@@ -133,7 +143,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
-            self.batch_loop.optimizer_loop.optim_progress.reset_on_restart()
+            self.optimizer_loop.optim_progress.reset_on_restart()
 
             trainer = self.trainer
             if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
@@ -148,7 +158,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
-            self.batch_loop.optimizer_loop.optim_progress.reset_on_run()
+            self.optimizer_loop.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
@@ -195,9 +205,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.trainer._logger_connector.on_batch_start(batch, batch_idx)
 
+        batch_output: _BATCH_OUTPUTS_TYPE = None  # for mypy
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
-            batch_output = []
         else:
             # hook
             self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
@@ -210,7 +220,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.increment_started()
 
             with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(kwargs)
+                # choose which loop will run the optimization
+                if self.trainer.lightning_module.automatic_optimization:
+                    optimizers = _get_active_optimizers(
+                        self.trainer.optimizers, self.trainer.optimizer_frequencies, kwargs.get("batch_idx", 0)
+                    )
+                    batch_output = self.optimizer_loop.run(optimizers, kwargs)
+                else:
+                    batch_output = self.manual_loop.run(kwargs)
 
         self.batch_progress.increment_processed()
 
@@ -232,7 +249,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.batch_progress.increment_completed()
 
-        if is_overridden("training_epoch_end", self.trainer.lightning_module):
+        if batch_output and is_overridden("training_epoch_end", self.trainer.lightning_module):
+            # batch_output may be empty
+            # automatic: can be empty if all optimizers skip their batches
+            # manual: #9052 added support for raising `StopIteration` in the `training_step`. If that happens,
+            # then `advance` doesn't finish and an empty dict is returned
             self._outputs.append(batch_output)
 
         # -----------------------------------------
@@ -254,7 +275,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.update_lr_schedulers("step", update_plateau_schedulers=True)
 
         if not self._should_accumulate():
-            # this is increased once per batch disregarding multiple optimizers or tbptt on purpose for loggers
+            # this is increased once per batch disregarding multiple optimizers on purpose for loggers
             self._batches_that_stepped += 1
         # this will save based on the `batches_that_stepped` value
         self._save_loggers_on_train_batch_end()
@@ -271,7 +292,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def teardown(self) -> None:
         self._results.cpu()
-        self.batch_loop.teardown()
+        self.optimizer_loop.teardown()
+        self.manual_loop.teardown()
+        # release memory
+        if self.accumulated_loss.memory is not None:
+            self.accumulated_loss.memory = self.accumulated_loss.memory.cpu()
+        if self.running_loss.memory is not None:
+            self.running_loss.memory = self.running_loss.memory.cpu()
         self.val_loop.teardown()
 
     def on_save_checkpoint(self) -> Dict:
@@ -526,6 +553,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
+
+    def _update_running_loss(self, current_loss: Tensor) -> None:
+        """Updates the running loss value with the current value."""
+        if self.trainer.lightning_module.automatic_optimization:
+            # track total loss for logging (avoid mem leaks)
+            self.accumulated_loss.append(current_loss)
+
+        accumulated_loss = self.accumulated_loss.mean()
+
+        if accumulated_loss is not None:
+            # calculate running loss for display
+            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
+
+        # reset for next set of accumulated grads
+        self.accumulated_loss.reset()
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:
