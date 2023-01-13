@@ -40,7 +40,7 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 # Skip doctests if requirements aren't available
-if not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE:
+if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
     __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
 
 
