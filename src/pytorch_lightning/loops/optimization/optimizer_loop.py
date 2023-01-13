@@ -237,7 +237,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            self._optimizer_step(optimizer, opt_idx, kwargs["batch_idx"], closure)
+            self._optimizer_step(optimizer, opt_idx, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
 
@@ -257,7 +257,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         opt_idx = kwargs.get("optimizer_idx", 0)
         step_fn = self._make_step_fn(kwargs)
         backward_fn = self._make_backward_fn(optimizer, opt_idx)
-        zero_grad_fn = self._make_zero_grad_fn(kwargs["batch_idx"], opt_idx, optimizer)
+        zero_grad_fn = self._make_zero_grad_fn(kwargs.get("batch_idx", 0), opt_idx, optimizer)
         return Closure(step_fn=step_fn, backward_fn=backward_fn, zero_grad_fn=zero_grad_fn)
 
     def _make_step_fn(self, kwargs: OrderedDict) -> Callable[[], ClosureResult]:
