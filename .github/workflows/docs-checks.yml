@@ -76,8 +76,6 @@ jobs:
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
         if: ${{ matrix.pkg-name == 'app' }}
-        env:
-          FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
 
@@ -92,7 +90,6 @@ jobs:
       - name: Install this package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
           pip list
@@ -111,6 +108,8 @@ jobs:
       fail-fast: false
       matrix:
         pkg-name: ["app", "pytorch"]
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -144,7 +143,6 @@ jobs:
       - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
           cat /etc/apt/sources.list
           sudo apt-get update --fix-missing
