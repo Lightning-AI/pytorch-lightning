@@ -22,20 +22,13 @@ from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import (
-    AbstractDataFetcher,
-    DataFetcher,
-    DataLoaderIterDataFetcher,
-    InterBatchParallelDataFetcher,
-)
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -83,8 +76,7 @@ class EvaluationLoop(DataLoaderLoop):
     def prefetch_batches(self) -> int:
         batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
         is_unsized = batches[self.current_dataloader_idx] == float("inf")
-        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
-        return 1 if is_unsized or inter_batch_parallelism else 0
+        return int(is_unsized)
 
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
@@ -403,8 +395,4 @@ def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher
             "this signature is experimental and the behavior is subject to change."
         )
         return DataLoaderIterDataFetcher
-    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-        if not isinstance(trainer.accelerator, CUDAAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
-        return InterBatchParallelDataFetcher
     return DataFetcher
