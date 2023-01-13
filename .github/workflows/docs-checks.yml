@@ -68,8 +68,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cat /etc/apt/sources.list
-          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
@@ -145,8 +143,6 @@ jobs:
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
-          cat /etc/apt/sources.list
-          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc  # texlive-latex-extra dvipng texlive-pictures
           pip --version
