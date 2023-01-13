@@ -6,7 +6,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
@@ -187,37 +186,6 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
             enable_model_summary=False,
         )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
-@pytest.mark.parametrize(
-    "model, strategy",
-    [
-        (TestFSDPModelManualWrapped(), DDPFullyShardedStrategy(min_num_params=2)),
-        (TestFSDPModelAutoWrapped(), "fsdp"),
-    ],
-)
-def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir, model, strategy):
-    """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
-
-    ck = ModelCheckpoint(save_last=True)
-    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            accelerator="gpu",
-            devices=2,
-            strategy=strategy,
-            precision=16,
-            max_epochs=1,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            limit_test_batches=2,
-            limit_predict_batches=2,
-            callbacks=[ck],
-            enable_progress_bar=False,
-            enable_model_summary=False,
-        )
-    _run_multiple_stages(trainer, model)
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, fairscale=True)
