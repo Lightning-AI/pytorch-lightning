@@ -181,7 +181,7 @@ class PLAppProgressTracker(Callback):
     def _progress_bar_metrics(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> Dict[str, Union[str, float]]:
-        standard_metrics = get_standard_metrics(trainer, pl_module)
+        standard_metrics = get_standard_metrics(trainer)
         pbar_metrics = trainer.progress_bar_metrics
         return {**standard_metrics, **pbar_metrics}
 
