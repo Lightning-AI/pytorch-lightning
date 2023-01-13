@@ -426,7 +426,7 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
 def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.data.has_iterable_dataset` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_fabric.utilities.data.has_iterable_dataset` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_iterable_dataset` instead."
     )
     return new_has_iterable_dataset(*args, **kwargs)
 
@@ -434,6 +434,6 @@ def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
 def has_len(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.data.has_len` has been deprecated in v1.8.0 and will be"
-        " removed in v1.10.0. Please use `lightning_fabric.utilities.data.has_len` instead."
+        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_len` instead."
     )
     return new_has_len(*args, **kwargs)

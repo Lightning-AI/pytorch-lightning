@@ -13,7 +13,6 @@
 # limitations under the License
 
 import os
-from re import escape
 from typing import Any, Dict
 from unittest import mock
 
@@ -40,7 +39,6 @@ from lightning_fabric.plugins.environments import (
 from lightning_fabric.plugins.io import TorchCheckpointIO
 from lightning_fabric.strategies import (
     DataParallelStrategy,
-    DDPShardedStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
@@ -241,9 +239,6 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(RuntimeError, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         _Connector(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(RuntimeError, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-        _Connector(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
-
     with pytest.raises(RuntimeError, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: _Connector maps dp to ddp if accelerator != gpu
         _Connector(strategy="dp")
@@ -276,8 +271,6 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
@@ -394,27 +387,12 @@ def test_strategy_choice_cpu_str(strategy, strategy_class):
         ("ddp_spawn", DDPStrategy),
         ("ddp", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class):
     connector = _Connector(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(connector.strategy, strategy_class)
-
-
-@RunIf(fairscale=True)
-@pytest.mark.parametrize(
-    "strategy,expected_strategy", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPShardedStrategy)]
-)
-@pytest.mark.parametrize(
-    "precision,expected_precision", [(16, MixedPrecision), (32, Precision), ("bf16", MixedPrecision)]
-)
-def test_strategy_choice_sharded(strategy, expected_strategy, precision, expected_precision):
-    connector = _Connector(strategy=strategy, devices=1, precision=precision)
-    assert isinstance(connector.strategy, expected_strategy)
-    assert isinstance(connector.precision, expected_precision)
 
 
 def test_device_type_when_strategy_instance_cpu_passed():
@@ -829,27 +807,23 @@ def test_devices_from_environment(*_):
 def test_arguments_from_environment_collision():
     """Test that the connector raises an error when the CLI settings conflict with settings in the code."""
     with mock.patch.dict(os.environ, {"LT_ACCELERATOR": "cpu"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(accelerator='cuda', ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match="`Fabric\\(accelerator='cuda', ...\\)` but .* `--accelerator=cpu`"):
             _Connector(accelerator="cuda")
 
     with mock.patch.dict(os.environ, {"LT_STRATEGY": "ddp"}):
-        with pytest.raises(
-            ValueError, match=escape("Your code has `Fabric(strategy='ddp_spawn', ...)` but it conflicts")
-        ):
+        with pytest.raises(ValueError, match="`Fabric\\(strategy='ddp_spawn', ...\\)` but .* `--strategy=ddp`"):
             _Connector(strategy="ddp_spawn")
 
     with mock.patch.dict(os.environ, {"LT_DEVICES": "2"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(devices=3, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(devices=3, ...\\)` but .* `--devices=2`"):
             _Connector(devices=3)
 
     with mock.patch.dict(os.environ, {"LT_NUM_NODES": "3"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(num_nodes=2, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(num_nodes=2, ...\\)` but .* `--num_nodes=3`"):
             _Connector(num_nodes=2)
 
     with mock.patch.dict(os.environ, {"LT_PRECISION": "16"}):
-        with pytest.raises(ValueError, match=escape("Your code has `Fabric(precision=64, ...)` but it conflicts")):
+        with pytest.raises(ValueError, match="`Fabric\\(precision=64, ...\\)` but .* `--precision=16`"):
             _Connector(precision=64)
 
 

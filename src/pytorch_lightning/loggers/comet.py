@@ -160,7 +160,7 @@ class CometLogger(Logger):
         audio = "<path to audio data>"
         logger.experiment.log_audio(audio, file_name="my_audio.wav")
 
-    Log arbitary data assets:
+    Log arbitrary data assets:
 
     You can log any type of data to Comet as an asset. These can be model
     checkpoints, datasets, debug logs, etc.

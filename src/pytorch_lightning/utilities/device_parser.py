@@ -26,7 +26,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 def parse_hpus(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.parse_hpus` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_parse_hpus(*args, **kwargs)
 
@@ -34,7 +34,7 @@ def parse_hpus(*args: Any, **kwargs: Any) -> Any:
 def determine_root_gpu_device(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.determine_root_gpu_device` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_determine_root_gpu_device(*args, **kwargs)
 
@@ -42,7 +42,7 @@ def determine_root_gpu_device(*args: Any, **kwargs: Any) -> Any:
 def is_cuda_available() -> bool:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.is_cuda_available` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_fabric.accelerators.cuda.is_cuda_available` instead."
+        " be removed in v2.0.0. Please use `lightning_fabric.accelerators.cuda.is_cuda_available` instead."
     )
     return new_is_cuda_available()
 
@@ -50,7 +50,7 @@ def is_cuda_available() -> bool:
 def num_cuda_devices() -> int:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.num_cuda_devices` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. Please use `lightning_fabric.accelerators.cuda.num_cuda_devices` instead."
+        " be removed in v2.0.0. Please use `lightning_fabric.accelerators.cuda.num_cuda_devices` instead."
     )
     return new_num_cuda_devices()
 
@@ -58,7 +58,7 @@ def num_cuda_devices() -> int:
 def parse_cpu_cores(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.parse_cpu_cores` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_parse_cpu_cores(*args, **kwargs)
 
@@ -66,7 +66,7 @@ def parse_cpu_cores(*args: Any, **kwargs: Any) -> Any:
 def parse_gpu_ids(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.parse_gpu_ids` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_parse_gpu_ids(*args, **kwargs)
 
@@ -74,6 +74,6 @@ def parse_gpu_ids(*args: Any, **kwargs: Any) -> Any:
 def parse_tpu_cores(*args: Any, **kwargs: Any) -> Any:
     rank_zero_deprecation(
         "`pytorch_lightning.utilities.device_parser.parse_tpu_cores` has been deprecated in v1.8.0 and will"
-        " be removed in v1.10.0. This function is internal but you can copy over its implementation."
+        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
     )
     return new_parse_tpu_cores(*args, **kwargs)
