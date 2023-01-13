@@ -52,7 +52,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: pip --version  # fixme
+      - run: |
+          curl https://bootstrap.pypa.io/pip/get-pip.py --output get-pip.py
+          python get-pip.py
+          pip --version  # fixme
 
       - run: |
           pip install awscli
@@ -122,7 +125,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: pip --version  # fixme
+      - run: |
+          curl https://bootstrap.pypa.io/pip/get-pip.py --output get-pip.py
+          python get-pip.py
+          pip --version  # fixme
 
       - run: |
           pip install awscli
