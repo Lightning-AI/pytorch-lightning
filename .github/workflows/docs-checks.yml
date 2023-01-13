@@ -6,7 +6,7 @@ on:
     branches: ["master", "release/*"]
   # use this event type to share secrets with forks.
   # it's important that the PR head SHA is checked out to run the changes
-  pull_request_target:
+  pull_request:  # FIXME: pull_request_target
     branches: ["master", "release/*"]
     paths:
       - ".actions/**"
@@ -69,7 +69,7 @@ jobs:
       - name: Install dependencies
         run: |
           cat /etc/apt/sources.list
-          echo "HERE"  # FIXME
+          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
@@ -146,7 +146,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           cat /etc/apt/sources.list
-          echo "HERE"  # FIXME
+          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc  # texlive-latex-extra dvipng texlive-pictures
           pip --version
