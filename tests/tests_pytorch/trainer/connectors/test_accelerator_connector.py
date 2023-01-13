@@ -443,7 +443,11 @@ def test_strategy_choice_cpu_instance(strategy_class):
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class):
-    trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+    if "sharded" in strategy:
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+    else:
+        trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
