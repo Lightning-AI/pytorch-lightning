@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+import codecs
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -368,7 +369,11 @@ class HTTPQueue(BaseQueue):
         self.default_timeout = default_timeout
         self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
 
-    def get(self, timeout: int = None) -> Any:
+    def get_batch(self, timeout=None, batch_size=-1):
+        if batch_size == -1:
+            # If the whole queue was requested, just set `batch_size` to a large number to avoid querying the length.
+            batch_size = 1000
+
         if not self.app_id:
             raise ValueError(f"App ID couldn't be extracted from the queue name: {self.name}")
 
@@ -376,19 +381,19 @@ class HTTPQueue(BaseQueue):
         if timeout is None:
             while True:
                 try:
-                    return self._get()
+                    return self._get_batch(batch_size)
                 except queue.Empty:
                     time.sleep(HTTP_QUEUE_REFRESH_INTERVAL)
 
         # make one request and return the result
         if timeout == 0:
-            return self._get()
+            return self._get_batch(batch_size)
 
         # timeout is some value - loop until the timeout is reached
         start_time = time.time()
         while (time.time() - start_time) < timeout:
             try:
-                return self._get()
+                return self._get_batch(batch_size)
             except queue.Empty:
                 # Note: In theory, there isn't a need for a sleep as the queue shouldn't
                 # block the flow if the queue is empty.
@@ -399,11 +404,14 @@ class HTTPQueue(BaseQueue):
                     time.sleep(0.05)
                 pass
 
-    def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
+    def _get_batch(self, batch_size):
+        resp = self.client.post(
+            f"v1/{self.app_id}/{self._name_suffix}",
+            query_params={"action": "popCount", "count": str(batch_size)},
+        )
         if resp.status_code == 204:
             raise queue.Empty
-        return pickle.loads(resp.content)
+        return [pickle.loads(codecs.decode(r.encode(), "base64")) for r in resp.json()]
 
     def put(self, item: Any) -> None:
         if not self.app_id:
