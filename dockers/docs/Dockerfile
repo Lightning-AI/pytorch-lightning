@@ -37,6 +37,7 @@ RUN \
         wget \
         curl \
         unzip \
+        rsync \
         ninja-build \
         pandoc \
         texlive-latex-extra \
