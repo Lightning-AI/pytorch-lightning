@@ -104,11 +104,6 @@ class FitLoop(Loop[None]):
             )
         self.epoch_loop.max_steps = value
 
-    @property
-    def running_loss(self) -> TensorRunningAccum:
-        """Returns the running loss."""
-        return self.epoch_loop.running_loss
-
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
@@ -232,9 +227,6 @@ class FitLoop(Loop[None]):
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
-
-        # stores accumulated grad fractions per batch
-        self.epoch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 
