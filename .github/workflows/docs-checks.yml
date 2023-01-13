@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo sed -i 's/azure\.//' /etc/apt/sources.list  # https://github.com/actions/runner-images/issues/675
+          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
@@ -146,7 +146,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
           FREEZE_REQUIREMENTS: 1
         run: |
-          sudo sed -i 's/azure\.//' /etc/apt/sources.list  # https://github.com/actions/runner-images/issues/675
+          sudo rm -rf /var/lib/apt/lists/*
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
