@@ -48,7 +48,7 @@ RUN \
         python3-distutils \
         python3-dev \
     && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 1 && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
     # Cleaning
     apt-get autoremove -y && \
     apt-get clean && \
