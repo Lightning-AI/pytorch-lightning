@@ -45,16 +45,14 @@ jobs:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-
       - uses: aws-actions/configure-aws-credentials@v1
         if: ${{ matrix.pkg-name == 'app' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
+      - run: pip --version  # fixme
 
       - run: |
           pip install awscli
@@ -117,16 +115,14 @@ jobs:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-
       - uses: aws-actions/configure-aws-credentials@v1
         if: ${{ matrix.pkg-name != 'pytorch' }}
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
+
+      - run: pip --version  # fixme
 
       - run: |
           pip install awscli
