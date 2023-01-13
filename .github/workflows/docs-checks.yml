@@ -31,8 +31,7 @@ jobs:
   make-doctest:
     runs-on: ubuntu-latest
     container:
-      image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user 1001
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
@@ -52,15 +51,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: |
-          asdf plugin add python
-          asdf install python 3.8.16
-          asdf global python 3.8.16
-          pip --version  # fixme
-
-      - run: |
-          pip install awscli
-          aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name == 'app' }}
 
       # Note: This uses an internal pip API and may not always work
@@ -105,8 +96,7 @@ jobs:
   make-html:
     runs-on: ubuntu-latest
     container:
-      image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user 1001
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
@@ -126,15 +116,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           aws-region: us-east-1
 
-      - run: |
-          asdf plugin add python
-          asdf install python 3.8.16
-          asdf global python 3.8.16
-          pip --version  # fixme
-
-      - run: |
-          pip install awscli
-          aws s3 sync s3://sphinx-packages/ pypi/
+      - run: aws s3 sync s3://sphinx-packages/ pypi/
         if: ${{ matrix.pkg-name != 'pytorch' }}
 
       # Note: This uses an internal pip API and may not always work
