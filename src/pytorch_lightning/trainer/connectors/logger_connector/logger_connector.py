@@ -71,7 +71,7 @@ class LoggerConnector:
                     " `logger=True` will use `CSVLogger` as the default logger, unless the `tensorboard` package"
                     " is found. Please `pip install lightning[extra]` to enable TensorBoard support by default"
                 )
-                logger_ = CSVLogger(root_dir=self.trainer.default_root_dir)
+                logger_ = CSVLogger(root_dir=self.trainer.default_root_dir)  # type: ignore[assignment]
             self.trainer.loggers = [logger_]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
