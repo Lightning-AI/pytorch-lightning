@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [unreleased] - 202Y-MM-DD
+## [1.9.0] - 2023-01-12
 
 ### Added
 
@@ -13,26 +13,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-
 - The LoadBalancer now uses internal ip + port instead of URL exposed ([#16119](https://github.com/Lightning-AI/lightning/pull/16119))
-
 - Added support for logging in different trainer stages with  `DeviceStatsMonitor`
 ([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
-
-
-### Deprecated
-
--
-
-
-### Removed
-
--
+- Made cluster creation/deletion async by default ([#16185](https://github.com/Lightning-AI/lightning/pull/16185))
 
 
 ### Fixed
 
 - Fixed not being able to run multiple lightning apps locally due to port collision ([#15819](https://github.com/Lightning-AI/lightning/pull/15819))
+- Avoid `relpath` bug on Windows ([#16164](https://github.com/Lightning-AI/lightning/pull/16164))
+- Avoid using the deprecated `LooseVersion` ([#16162](https://github.com/Lightning-AI/lightning/pull/16162))
+- Porting fixes to autoscaler component ([#16249](https://github.com/Lightning-AI/lightning/pull/16249))
 
 - Fixed a bug where `lightning login` with env variables would not correctly save the credentials ([#16339](https://github.com/Lightning-AI/lightning/pull/16339))
 
