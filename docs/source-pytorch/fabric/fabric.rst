@@ -189,7 +189,7 @@ Advanced Topics
     :description: Learn how to perform efficient gradient accumulation in distributed settings
     :button_link: advanced/gradient_accumulation.html
     :col_css: col-md-4
-    :height: 150
+    :height: 160
     :tag: advanced
 
 .. displayitem::
@@ -197,7 +197,7 @@ Advanced Topics
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
     :button_link: advanced/collectives.html
     :col_css: col-md-4
-    :height: 150
+    :height: 160
     :tag: advanced
 
 .. raw:: html
