@@ -9,7 +9,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-
 - Added `Fabric.launch()` to programmatically launch processes (e.g. in Jupyter notebook) ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
 - Added the option to launch Fabric scripts from the CLI, without the need to wrap the code into the `run` method ([#14992](https://github.com/Lightning-AI/lightning/issues/14992))
 - Added `Fabric.setup_module()` and `Fabric.setup_optimizers()` to support strategies that need to set up the model before an optimizer can be created ([#15185](https://github.com/Lightning-AI/lightning/pull/15185))
@@ -24,6 +23,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Added `Fabric.loggers` and `Fabric.logger` attributes to access the individual logger instances
   * Added support for calling `self.log` and `self.log_dict` in a LightningModule when using Fabric
   * Added access to `self.logger` and `self.loggers` in a LightningModule when using Fabric
+- Added `lightning_fabric.loggers.TensorBoardLogger` ([#16121](https://github.com/Lightning-AI/lightning/issues/16121))
+- Added `lightning_fabric.loggers.CSVLogger` ([#16346](https://github.com/Lightning-AI/lightning/issues/16346))
 - Added support for a consistent `.zero_grad(set_to_none=...)` on the wrapped optimizer regardless of which strategy is used ([#16275](https://github.com/Lightning-AI/lightning/issues/16275))
 
 

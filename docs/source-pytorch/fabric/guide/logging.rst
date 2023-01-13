@@ -34,6 +34,13 @@ To track a metric, add the following:
     fabric = Fabric(loggers=logger)
 
 
+Built-in loggers you can choose from:
+
+- :class:`~lightning_fabric.loggers.TensorBoardLogger`
+- :class:`~lightning_fabric.loggers.CSVLogger`
+
+|
+
 **Step 2:** Add :meth:`~lightning_fabric.fabric.Fabric.log` calls in your code.
 
 .. code-block:: python
@@ -92,3 +99,28 @@ Reduce the added overhead by logging less frequently:
         if iteration % log_every_n_steps == 0:
             value = ...
             fabric.log("some_value", value)
+
+
+----
+
+
+********************
+Use multiple loggers
+********************
+
+You can add as many loggers as you want without changing the logging code in your loop.
+
+.. code-block:: python
+    :emphasize-lines: 8
+
+    from lightning.fabric import Fabric
+    from lightning.fabric.loggers import CSVLogger, TensorBoardLogger
+
+    tb_logger = TensorBoardLogger(root_dir="logs/tensorboard")
+    csv_logger = CSVLogger(root_dir="logs/csv")
+
+    # Add multiple loggers into a list
+    fabric = Fabric(loggers=[tb_logger, csv_logger])
+
+    # Calling .log() or .log_dict() always logs to all loggers simultaneously
+    fabric.log("some_value", value)
