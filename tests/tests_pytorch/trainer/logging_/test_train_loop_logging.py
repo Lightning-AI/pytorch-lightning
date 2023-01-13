@@ -728,7 +728,6 @@ def test_move_metrics_to_cpu(tmpdir):
         default_root_dir=tmpdir,
         fast_dev_run=True,
         precision=16,
-        move_metrics_to_cpu=True,
         accelerator="gpu",
         devices=1,
     )
