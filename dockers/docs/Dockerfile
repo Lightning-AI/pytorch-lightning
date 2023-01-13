@@ -60,5 +60,5 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python get-pip.py && \
     rm get-pip.py && \
-    pip install awscli torch -r docs.txt \
+    pip install awscli gsutil torch -r docs.txt \
       -f https://download.pytorch.org/whl/cpu/torch_stable.html

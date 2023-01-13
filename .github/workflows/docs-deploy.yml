@@ -68,10 +68,9 @@ jobs:
           clean: true # Automatically remove deleted files from deploy branch
           target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
           single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
-        if: success()
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
+      - name: 'Authenticate to Google Cloud'
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
@@ -84,11 +83,9 @@ jobs:
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/stable to GCS 🪣
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-stable
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
