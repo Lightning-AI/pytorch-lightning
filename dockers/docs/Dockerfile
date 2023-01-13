@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=1.13
+ARG PYTORCH_VERSION=1.13.*
 
 FROM ubuntu:20.04
 
