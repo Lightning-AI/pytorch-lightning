@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=1.13.*
-
 FROM ubuntu:20.04
 
 LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
@@ -61,5 +59,5 @@ RUN \
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python get-pip.py && \
     rm get-pip.py && \
-    pip install "torch==${PYTORCH_VERSION}" -r docs.txt \
+    pip install torch -r docs.txt \
       -f https://download.pytorch.org/whl/cpu/torch_stable.html
