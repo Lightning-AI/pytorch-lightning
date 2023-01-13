@@ -329,7 +329,8 @@ def test_block_backward_sync():
     ],
 )
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
-    trainer = Trainer(strategy=strategy_name)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
 
 
