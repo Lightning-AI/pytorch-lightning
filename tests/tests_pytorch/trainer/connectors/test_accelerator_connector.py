@@ -241,10 +241,9 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with (
-        pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"),
-        pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"),
-    ):
+    with pytest.raises(
+        MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"
+    ), pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
         Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
