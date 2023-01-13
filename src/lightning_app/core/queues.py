@@ -1,3 +1,4 @@
+import codecs
 import multiprocessing
 import pickle
 import queue  # needed as import instead from/import for mocking in tests
@@ -7,7 +8,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
-import codecs
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -200,7 +200,7 @@ class MultiProcessQueue(BaseQueue):
     def get_batch(self, timeout=None, batch_size=-1):
         if timeout == 0:
             timeout = self.default_timeout
-        
+
         results = []
 
         # Always try to get the first element with a timeout / blocking
@@ -209,7 +209,7 @@ class MultiProcessQueue(BaseQueue):
         # If there are more elements available, fill the batch but don't block
         while (batch_size == -1 or len(results) < batch_size) and not self.queue.empty():
             results.append(self.queue.get(timeout=timeout, block=False))
-        
+
         return results
 
 
@@ -280,7 +280,7 @@ class RedisQueue(BaseQueue):
         # The backend isn't pickable.
         if is_work:
             item._backend = backend
-    
+
     def get_batch(self, timeout=None, batch_size=-1):
         if batch_size == -1:
             # If the whole queue was requested, just set `batch_size` to a very large number to avoid querying the length.
