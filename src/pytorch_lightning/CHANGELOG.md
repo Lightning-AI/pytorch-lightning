@@ -49,6 +49,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `FitLoop.split_idx` property
   * Removed the `LoggerConnector.on_train_split_start` method
 
+- Removed the experimental `PL_INTER_BATCH_PARALLELISM` environment flag ([#16355](https://github.com/Lightning-AI/lightning/pull/16355))
+
 
 ## [unreleased] - 202Y-MM-DD
 
