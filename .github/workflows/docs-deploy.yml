@@ -25,9 +25,6 @@ jobs:
         # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
 
       - uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -86,12 +83,12 @@ jobs:
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/stable to GCS 🪣
-        if: ${{ success() && startsWith(github.ref, 'refs/heads/release/') }}
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
         run: |-
           gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
-        if: ${{ success() && github.ref == 'refs/heads/master' }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |-
           gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
