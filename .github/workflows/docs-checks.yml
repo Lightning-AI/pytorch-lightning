@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user root
+      options: --user 1001
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user root
+      options: --user 1001
     strategy:
       fail-fast: false
       matrix:
