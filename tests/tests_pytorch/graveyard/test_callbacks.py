@@ -17,6 +17,13 @@ import pytest
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
+def test_v2_0_0_moved_callback():
+    from pytorch_lightning.callbacks.base import Callback
+
+    with pytest.raises(NotImplementedError, match="base.Callback.*was deprecated in v1.7.0 and removed as of v1.9"):
+        Callback()
+
+
 def test_v2_0_0_deprecated_mc_save_checkpoint():
     mc = ModelCheckpoint()
     with pytest.raises(

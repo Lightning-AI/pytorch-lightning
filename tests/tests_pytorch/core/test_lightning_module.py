@@ -512,13 +512,89 @@ def test_fabric_attributes():
 
     fabric = Fabric()
     wrapped_module, wrapped_optimizer = fabric.setup(module, optimizer)
-    assert module.fabric is fabric
-    assert module._fabric_optimizers == [wrapped_optimizer]
+    assert wrapped_module.fabric is fabric
+    assert wrapped_module._fabric_optimizers == [wrapped_optimizer]
 
     # Attribute access on LightningModule.trainer gets redirected to Fabric
-    assert isinstance(module.trainer, _TrainerFabricShim)
-    assert module.trainer.global_rank == 0
+    assert isinstance(wrapped_module.trainer, _TrainerFabricShim)
+    assert wrapped_module.trainer.global_rank == 0
     with pytest.raises(AttributeError, match="Your LightningModule code tried to access `self.trainer.current_epoch`"):
-        _ = module.trainer.current_epoch
+        _ = wrapped_module.trainer.current_epoch
 
-    assert module.optimizers() == wrapped_optimizer
+    assert wrapped_module.optimizers() == wrapped_optimizer
+
+
+def test_fabric_logger_access():
+    """Test that the logger attribute can be accessed when the LightningModule is used together with Fabric."""
+    # No logger
+    module = BoringModel()
+    fabric = Fabric()
+    wrapped_module = fabric.setup(module)
+    assert wrapped_module.loggers == []
+    with pytest.raises(IndexError):
+        _ = wrapped_module.logger
+
+    # Single Logger
+    logger = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=logger)
+    wrapped_module = fabric.setup(module)
+    assert wrapped_module.logger == logger
+    assert wrapped_module.loggers == [logger]
+
+    # Multiple loggers
+    logger1 = Mock()
+    logger2 = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=[logger1, logger2])
+    wrapped_module = fabric.setup(module)
+    assert wrapped_module.logger == logger1
+    assert wrapped_module.loggers == [logger1, logger2]
+
+
+def test_fabric_log():
+    logger = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=[logger])
+    wrapped_module = fabric.setup(module)
+
+    # unsupported data type
+    with pytest.raises(ValueError, match="`list` values cannot be logged"):
+        wrapped_module.log("invalid", list())
+
+    # supported data types
+    wrapped_module.log("int", 1)
+    logger.log_metrics.assert_called_with(metrics={"int": 1}, step=None)
+    wrapped_module.log("float", 0.1)
+    logger.log_metrics.assert_called_with(metrics={"float": 0.1}, step=None)
+    wrapped_module.log("tensor", torch.tensor(0.1))
+    logger.log_metrics.assert_called_with(metrics={"tensor": torch.tensor(0.1)}, step=None)
+
+    # logger=False
+    logger.reset_mock()
+    wrapped_module.log("nothing", 1, logger=False)
+    logger.log_metrics.assert_not_called()
+
+
+def test_fabric_log_dict():
+    logger = Mock()
+    module = BoringModel()
+    fabric = Fabric(loggers=[logger])
+    wrapped_module = fabric.setup(module)
+
+    # unsupported data type
+    with pytest.raises(ValueError, match="`list` values cannot be logged"):
+        wrapped_module.log_dict({"invalid": [1, 2, 3]})
+
+    # nested dicts
+    with pytest.raises(ValueError, match="nested dictionaries cannot be logged"):
+        wrapped_module.log_dict({"nested": {"nested": 1}})
+
+    # supported data types
+    wrapped_module.log_dict({"int": 1, "float": 0.1, "tensor": torch.tensor(0.1)})
+    logger.log_metrics.assert_called_with(metrics={"int": 1, "float": 0.1, "tensor": torch.tensor(0.1)}, step=None)
+
+    # logger=False
+    logger.reset_mock()
+    wrapped_module.log_dict({"nothing": 1}, logger=False)
+    logger.log_metrics.assert_not_called()
