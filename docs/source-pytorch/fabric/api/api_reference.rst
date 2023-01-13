@@ -37,6 +37,21 @@ Accelerators
     TPUAccelerator
 
 
+Loggers
+^^^^^^^
+
+.. currentmodule:: lightning_fabric.loggers
+
+.. autosummary::
+    :toctree: ../../api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    Logger
+    CSVLogger
+    TensorBoardLogger
+
+
 Plugins
 ^^^^^^^
 
