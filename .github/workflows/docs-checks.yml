@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user docs
+      options: --user root
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +53,7 @@ jobs:
           aws-region: us-east-1
 
       - run: |
+          asdf plugin add python
           asdf install python 3.8.16
           asdf global python 3.8.16
           pip --version  # fixme
@@ -105,7 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user docs
+      options: --user root
     strategy:
       fail-fast: false
       matrix:
@@ -126,6 +127,7 @@ jobs:
           aws-region: us-east-1
 
       - run: |
+          asdf plugin add python
           asdf install python 3.8.16
           asdf global python 3.8.16
           pip --version  # fixme
