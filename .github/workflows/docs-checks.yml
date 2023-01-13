@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user root
+      options: --user docs
     strategy:
       fail-fast: false
       matrix:
@@ -55,8 +55,6 @@ jobs:
       - run: |
           asdf install python 3.8.16
           asdf global python 3.8.16
-          curl https://bootstrap.pypa.io/pip/get-pip.py --output get-pip.py
-          python get-pip.py
           pip --version  # fixme
 
       - run: |
@@ -107,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: readthedocs/build:ubuntu-20.04-2022.02.16
-      options: --user root
+      options: --user docs
     strategy:
       fail-fast: false
       matrix:
@@ -130,8 +128,6 @@ jobs:
       - run: |
           asdf install python 3.8.16
           asdf global python 3.8.16
-          curl https://bootstrap.pypa.io/pip/get-pip.py --output get-pip.py
-          python get-pip.py
           pip --version  # fixme
 
       - run: |
