@@ -677,12 +677,15 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
+def test_metrics_and_outputs_device(tmpdir, accelerator):
     class TestModel(BoringModel):
+        def on_before_backward(self, loss: Tensor) -> None:
+            assert loss.device.type == accelerator
+
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
             y = x * 2
@@ -695,11 +698,12 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
         def validation_epoch_end(self, outputs):
             # the step outputs were not moved
             assert all(o.device == self.device for o in outputs)
-            # but the logging results were
-            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+            # and the logged metrics isn't
+            assert self.trainer.callback_metrics["foo"].device.type == accelerator
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, accelerator=accelerator, devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
+    trainer.fit(model)
     trainer.validate(model, verbose=False)
 
 
