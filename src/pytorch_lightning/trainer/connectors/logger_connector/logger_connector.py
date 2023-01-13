@@ -63,15 +63,15 @@ class LoggerConnector:
         elif logger is True:
             # default logger
             if _TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE:
-                logger = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+                logger_ = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
             else:
                 warning_cache.warn(
                     "We are setting default logger but you have not installed preferred `tensorboard`,"
                     " so we will fall bck to `CSVLogger` instead. If you want to continue with TB,"
                     " please install this package with `[extra]` options."
                 )
-                logger = CSVLogger(root_dir=self.trainer.default_root_dir)
-            self.trainer.loggers = [logger]
+                logger_ = CSVLogger(root_dir=self.trainer.default_root_dir)
+            self.trainer.loggers = [logger_]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:
