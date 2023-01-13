@@ -257,8 +257,8 @@ class ProgressBarBase(Callback):
 
 def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
     r"""
-    Returns several standard metrics displayed in the progress bar, including the latest loss value,
-    split index of BPTT (if used) and the version of the experiment when using a logger.
+    Returns several standard metrics displayed in the progress bar, including the latest loss value (if logged as
+    ``train_loss``), and the version of the experiment when using a logger.
 
     .. code-block::
 
@@ -270,10 +270,10 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     loss_value = None
     loss_metric = None
 
-    # call .item() only once but store elements without graphs
     if trainer.training:
         loss_metric = trainer.fit_loop._results.get("training_step.train_loss")
     if loss_metric is not None:
+        # call .item() only once but store elements without graphs
         loss_value = loss_metric.value.cpu().item()
     elif pl_module.automatic_optimization:
         loss_value = float("NaN")
