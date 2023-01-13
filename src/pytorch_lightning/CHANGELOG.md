@@ -49,6 +49,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `FitLoop.split_idx` property
   * Removed the `LoggerConnector.on_train_split_start` method
 
+- Removed moving average of training step loss value for the progress bar ([#16192](https://github.com/Lightning-AI/lightning/issues/16192))
+
 
 ## [unreleased] - 202Y-MM-DD
 
