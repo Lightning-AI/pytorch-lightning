@@ -5,13 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [2.0.0] - 202Y-MM-DD
-
-### Removed
-
-- Removed moving average of training step loss value for the progress bar ([#16192](https://github.com/Lightning-AI/lightning/issues/16192))
-
-
 ## [1.9.0] - 202Y-MM-DD
 
 ### Added
