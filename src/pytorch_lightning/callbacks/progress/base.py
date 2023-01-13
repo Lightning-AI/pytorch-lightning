@@ -267,9 +267,12 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     Return:
         Dictionary with the standard metrics to be displayed in the progress bar.
     """
-    # call .item() only once but store elements without graphs
-    loss_metric = trainer.fit_loop._results.get("training_step.train_loss")
     loss_value = None
+    loss_metric = None
+
+    # call .item() only once but store elements without graphs
+    if trainer.training:
+        loss_metric = trainer.fit_loop._results.get("training_step.train_loss")
     if loss_metric is not None:
         loss_value = loss_metric.value.cpu().item()
     elif pl_module.automatic_optimization:

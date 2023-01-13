@@ -18,8 +18,6 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
-from lightning_utilities.core.rank_zero import WarningCache
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
