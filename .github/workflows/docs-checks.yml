@@ -69,6 +69,7 @@ jobs:
       - name: Install dependencies
         run: |
           cat /etc/apt/sources.list
+          echo "HERE"  # FIXME
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc
           pip --version
@@ -145,6 +146,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
         run: |
           cat /etc/apt/sources.list
+          echo "HERE"  # FIXME
           sudo apt-get update --fix-missing
           sudo apt-get install -y cmake pandoc  # texlive-latex-extra dvipng texlive-pictures
           pip --version
