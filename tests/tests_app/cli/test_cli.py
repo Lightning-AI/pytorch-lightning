@@ -88,6 +88,7 @@ def test_create_cluster(create_command: mock.MagicMock):
             "dummy",
             "--role-arn",
             "arn:aws:iam::1234567890:role/lai-byoc",
+            "--sync",
         ],
     )
 
@@ -124,7 +125,7 @@ def test_list_clusters(list_command: mock.MagicMock):
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.delete")
 def test_delete_cluster(delete: mock.MagicMock):
     runner = CliRunner()
-    runner.invoke(delete_cluster, ["test-7"])
+    runner.invoke(delete_cluster, ["test-7", "--sync"])
 
     delete.assert_called_once_with(cluster_id="test-7", force=False, do_async=False)
 

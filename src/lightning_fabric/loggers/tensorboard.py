@@ -72,7 +72,7 @@ class TensorBoardLogger(Logger):
 
         from lightning.fabric.loggers import TensorBoardLogger
 
-        logger = TensorBoardLogger("path/to/logs/rot", name="my_model")
+        logger = TensorBoardLogger("path/to/logs/root", name="my_model")
         logger.log_hyperparams({"epochs": 5, "optimizer": "Adam"})
         logger.log_metrics({"acc": 0.75})
         logger.finalize("success")
