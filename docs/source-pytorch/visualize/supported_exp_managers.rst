@@ -179,7 +179,7 @@ Use multiple exp managers
 To use multiple experiment managers at the same time, pass a list to the *logger* :class:`~pytorch_lightning.trainer.trainer.Trainer` argument.
 
 .. testcode::
-    :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE and not _WANDB_AVAILABLE
+    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _WANDB_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
