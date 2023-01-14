@@ -30,7 +30,7 @@ ENV \
 # show system info
 RUN lsb_release -a && cat /etc/*-release
 
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
