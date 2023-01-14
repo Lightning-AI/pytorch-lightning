@@ -67,7 +67,7 @@ class PrecisionType(LightningEnum, metaclass=_DeprecatedEnumMeta):
 
     def deprecate(self) -> None:
         rank_zero_deprecation(
-            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v2.0.0."
             f" Use the string value `{self.value!r}` instead."
         )
 
@@ -80,7 +80,7 @@ class AMPType(LightningEnum, metaclass=_DeprecatedEnumMeta):
 
     def deprecate(self) -> None:
         rank_zero_deprecation(
-            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v1.10.0."
+            f"The `{type(self).__name__}` enum has been deprecated in v1.9.0 and will be removed in v2.0.0."
             f" Use the string value `{self.value!r}` instead."
         )
 

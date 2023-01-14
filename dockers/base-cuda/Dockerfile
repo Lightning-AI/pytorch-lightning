@@ -42,7 +42,6 @@ RUN \
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     mkdir -p /etc/apt/keyrings/ && mv 3bf863cc.pub /etc/apt/keyrings/ && \
     echo "deb [signed-by=/etc/apt/keyrings/3bf863cc.pub] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /" /etc/apt/sources.list.d/cuda.list && \
-    apt-get update && \
     apt-get update -qq --fix-missing && \
     NCCL_VER=$(dpkg -s libnccl2 | grep '^Version:' | awk -F ' ' '{print $2}' | awk -F '-' '{print $1}' | grep -ve '^\s*$') && \
     CUDA_VERSION_MM="${CUDA_VERSION%.*}" && \
@@ -118,16 +117,6 @@ RUN \
     cmake --version && \
     pip install --no-cache-dir horovod && \
     horovodrun --check-build
-
-RUN \
-    CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
-    py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
-    # install DALI, needed for examples
-    # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
-    if [ $py_ver -eq "0" ]; then \
-        pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-        python -c 'from nvidia.dali.pipeline import Pipeline' ; \
-    fi
 
 RUN \
     # CUDA 10.2 doesn't support ampere architecture (8.0).

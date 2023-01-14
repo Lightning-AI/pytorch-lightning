@@ -19,9 +19,9 @@ from torch import Tensor
 import pytorch_lightning as pl
 from lightning_fabric.plugins.environments import SLURMEnvironment
 from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.utilities.metrics import metrics_to_scalars
 
 
 class LoggerConnector:
@@ -80,7 +80,7 @@ class LoggerConnector:
         self._logged_metrics.update(metrics)
 
         # turn all tensors to scalars
-        scalar_metrics = metrics_to_scalars(metrics)
+        scalar_metrics = convert_tensors_to_scalars(metrics)
 
         if step is None:
             step = scalar_metrics.pop("step", None)
