@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, Dict, List, Optional
 
 import torch
@@ -42,11 +42,6 @@ class ParallelStrategy(Strategy, ABC):
         self.cluster_environment: Optional[ClusterEnvironment] = cluster_environment
 
     @property
-    @abstractmethod
-    def root_device(self) -> torch.device:
-        """Return the root device."""
-
-    @property
     def global_rank(self) -> int:
         return self.cluster_environment.global_rank() if self.cluster_environment is not None else 0
 
@@ -75,11 +70,12 @@ class ParallelStrategy(Strategy, ABC):
         self._parallel_devices = parallel_devices
 
     @property
-    def distributed_sampler_kwargs(self) -> Dict[str, Any]:
-        return dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
-            rank=self.global_rank,
-        )
+    def distributed_sampler_kwargs(self) -> Optional[Dict[str, Any]]:
+        """Arguments for the ``DistributedSampler``.
+
+        If this method is not defined, or it returns ``None``, then the ``DistributedSampler`` will not be used.
+        """
+        return {"num_replicas": self.world_size, "rank": self.global_rank}
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""

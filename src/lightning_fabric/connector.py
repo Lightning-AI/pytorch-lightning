@@ -43,8 +43,6 @@ from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
-    DDPShardedStrategy,
-    DDPStrategy,
     DeepSpeedStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
@@ -54,7 +52,7 @@ from lightning_fabric.strategies import (
 )
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
 from lightning_fabric.strategies.fsdp import _FSDP_ALIASES, FSDPStrategy
-from lightning_fabric.utilities import _StrategyType, rank_zero_info, rank_zero_warn
+from lightning_fabric.utilities import rank_zero_info, rank_zero_warn
 from lightning_fabric.utilities.device_parser import _determine_root_gpu_device
 from lightning_fabric.utilities.imports import _IS_INTERACTIVE
 
@@ -516,7 +514,7 @@ class _Connector:
             raise RuntimeError(
                 f"`Fabric(strategy={self._strategy_flag!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
-                f" Fabric(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
+                f" `Fabric(strategy=None|'dp'|'ddp_notebook')`."
                 " In case you are spawning processes yourself, make sure to include the Fabric"
                 " creation inside the worker function."
             )
@@ -541,27 +539,9 @@ class _Connector:
         if env_value is not None and env_value != str(current) and str(current) != str(default):
             raise ValueError(
                 f"Your code has `Fabric({name}={current!r}, ...)` but it conflicts with the value "
-                f"`--{name}={current}` set through the CLI. "
+                f"`--{name}={env_value}` set through the CLI. "
                 " Remove it either from the CLI or from the Lightning Fabric object."
             )
         if env_value is None:
             return current
         return env_value
-
-    @property
-    def is_distributed(self) -> bool:
-        # TODO: deprecate this property
-        # Used for custom plugins.
-        # Custom plugins should implement is_distributed property.
-        if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
-            return self.strategy.is_distributed
-        distributed_strategy = (
-            DDPStrategy,
-            DDPShardedStrategy,
-            DeepSpeedStrategy,
-            XLAStrategy,
-        )
-        is_distributed = isinstance(self.strategy, distributed_strategy)
-        if isinstance(self.accelerator, TPUAccelerator):
-            is_distributed |= self.strategy.is_distributed
-        return is_distributed

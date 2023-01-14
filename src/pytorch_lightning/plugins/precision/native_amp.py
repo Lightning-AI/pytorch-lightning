@@ -130,7 +130,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         rank_zero_deprecation(
             "The `NativeMixedPrecisionPlugin` class has been renamed in v1.9.0 and will be removed in"
-            " v1.10.0. Please use `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
+            " v2.0.0. Please use `pytorch_lightning.plugins.MixedPrecisionPlugin` instead."
         )
         super().__init__(*args, **kwargs)
 

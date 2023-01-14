@@ -284,6 +284,8 @@ class MLFlowLogger(Logger):
             status = "FINISHED"
         elif status == "failed":
             status = "FAILED"
+        elif status == "finished":
+            status = "FINISHED"
 
         # log checkpoints as artifacts
         if self._checkpoint_callback:

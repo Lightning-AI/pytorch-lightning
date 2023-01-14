@@ -361,7 +361,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         if is_param_in_hook_signature(pl_module.optimizer_step, "using_native_amp", explicit=True):
             rank_zero_deprecation(
                 "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v1.10.0."
+                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
                 f" The `{type(pl_module).__name__}.optimizer_step()` hook is overridden, including the"
                 " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to"
                 " return True."

@@ -60,4 +60,4 @@ Lightning supports dumping all reports to a directory to open using the tool.
     trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
     trainer.fit(model)
 
-This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graph-analyser-userguide/en/latest/graph-analyser.html#opening-reports>`__.
+This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graph-analyser-userguide/en/latest/opening-reports.html>`__.
