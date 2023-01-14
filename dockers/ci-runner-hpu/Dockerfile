@@ -23,7 +23,7 @@ FROM vault.habana.ai/gaudi-docker/${GAUDI_VERSION}/ubuntu20.04/habanalabs/pytorc
 LABEL maintainer="https://vault.habana.ai/"
 # update the base packages and add a non-sudo user
 RUN \
-    apt-get update -y && \
+    apt-get update --fix-missing && \
     apt-get upgrade -y && \
     useradd -m docker
 
