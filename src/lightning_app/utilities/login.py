@@ -40,20 +40,6 @@ class Auth:
 
     secrets_file = pathlib.Path(LIGHTNING_CREDENTIAL_PATH)
 
-    def __post_init__(self):
-        for key in Keys:
-            setattr(self, key.suffix, os.environ.get(key.value, None))
-
-        self._with_env_var = bool(self.user_id and self.api_key)  # used by authenticate method
-        if self._with_env_var:
-            self.save("", self.user_id, self.api_key, self.user_id)
-            logger.info("Credentials loaded from environment variables")
-        elif self.api_key or self.user_id:
-            raise ValueError(
-                "To use env vars for authentication both "
-                f"{Keys.USER_ID.value} and {Keys.API_KEY.value} should be set."
-            )
-
     def load(self) -> bool:
         """Load credentials from disk and update properties with credentials.
 
@@ -88,13 +74,12 @@ class Auth:
         self.api_key = api_key
         logger.debug("credentials saved successfully")
 
-    @classmethod
-    def clear(cls) -> None:
-        """remove credentials from disk and env variables."""
-        if cls.secrets_file.exists():
-            cls.secrets_file.unlink()
+    def clear(self) -> None:
+        """Remove credentials from disk."""
+        if self.secrets_file.exists():
+            self.secrets_file.unlink()
         for key in Keys:
-            os.environ.pop(key.value, None)
+            setattr(self, key.suffix, None)
         logger.debug("credentials removed successfully")
 
     @property
@@ -119,11 +104,21 @@ class Auth:
         ----------
         authorization header to use when authentication completes.
         """
-        if self._with_env_var:
-            logger.debug("successfully loaded credentials from env")
-            return self.auth_header
-
         if not self.load():
+            # First try to authenticate from env
+            for key in Keys:
+                setattr(self, key.suffix, os.environ.get(key.value, None))
+
+            if self.user_id and self.api_key:
+                self.save("", self.user_id, self.api_key, self.user_id)
+                logger.info("Credentials loaded from environment variables")
+                return self.auth_header
+            elif self.api_key or self.user_id:
+                raise ValueError(
+                    "To use env vars for authentication both "
+                    f"{Keys.USER_ID.value} and {Keys.API_KEY.value} should be set."
+                )
+
             logger.debug("failed to load credentials, opening browser to get new.")
             self._run_server()
             return self.auth_header

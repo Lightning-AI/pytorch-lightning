@@ -16,16 +16,15 @@ jobs:
   # https://github.com/marketplace/actions/deploy-to-github-pages
   build-docs-deploy:
     if: github.repository_owner == 'Lightning-AI'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: pytorchlightning/pytorch_lightning:docs
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
         # If you're using actions/checkout@v3 you must set persist-credentials to false in most cases for the deployment to work correctly.
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
 
       - uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -48,9 +47,6 @@ jobs:
         env:
           FREEZE_REQUIREMENTS: 1
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip --version
           pip install -e . --quiet -r requirements/app/docs.txt \
             -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
@@ -72,10 +68,9 @@ jobs:
           clean: true # Automatically remove deleted files from deploy branch
           target-folder: docs # If you'd like to push the contents of the deployment folder into a specific directory
           single-commit: true # you'd prefer to have a single commit on the deployment branch instead of full history
-        if: success()
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
+      - name: 'Authenticate to Google Cloud'
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCS_SA_KEY }}
@@ -87,12 +82,10 @@ jobs:
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/stable to GCS 🪣
-        if: ${{ success() && startsWith(github.ref, 'refs/heads/release/') }}
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-stable
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-stable
 
       # Uploading docs to GCS, so they can be served on lightning.ai
       - name: Upload docs/latest to GCS 🪣
-        if: ${{ success() && github.ref == 'refs/heads/master' }}
-        run: |-
-          gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: gsutil -m rsync -d -R docs/build/html/ gs://lightning-docs-latest
