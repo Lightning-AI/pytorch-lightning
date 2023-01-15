@@ -33,9 +33,8 @@ from lightning_fabric.utilities import move_data_to_device
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_fabric.utilities.types import _PATH
-from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 
 class _MultiProcessingLauncher(_Launcher):
@@ -154,14 +153,7 @@ class _MultiProcessingLauncher(_Launcher):
         # load last weights
         if worker_output.weights_path is not None:
             ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
-            missing_keys, _ = trainer.lightning_module.load_state_dict(ckpt, strict=False)
-            if missing_keys:
-                rank_zero_warn(
-                    "Detected missing model layer keys while loading the state back into the main process."
-                    " If you want to use the full model after `Trainer.fit()` completes, all layers need to exist"
-                    " before calling `Trainer.fit()`.",
-                    category=PossibleUserWarning,
-                )
+            trainer.lightning_module.load_state_dict(ckpt, strict=False)
             self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
         trainer.state = worker_output.trainer_state
