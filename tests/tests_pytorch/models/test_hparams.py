@@ -296,6 +296,24 @@ class SubClassBoringModel(CustomBoringModel):
         self.save_hyperparameters()
 
 
+class MixinForBoringModel:
+    any_other_loss = torch.nn.CrossEntropyLoss()
+
+    def __init__(self, *args, subclass_arg=1200, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
+class BoringModelWithMixin(MixinForBoringModel, CustomBoringModel):
+    pass
+
+
+class BoringModelWithMixinAndInit(MixinForBoringModel, CustomBoringModel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
+
 class NonSavingSubClassBoringModel(CustomBoringModel):
     any_other_loss = torch.nn.CrossEntropyLoss()
 
@@ -345,6 +363,8 @@ else:
         AggSubClassBoringModel,
         UnconventionalArgsBoringModel,
         pytest.param(DictConfSubClassBoringModel, marks=RunIf(omegaconf=True)),
+        BoringModelWithMixin,
+        BoringModelWithMixinAndInit,
     ],
 )
 def test_collect_init_arguments(tmpdir, cls):
@@ -360,7 +380,7 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls(batch_size=179, **extra_args)
     assert model.hparams.batch_size == 179
 
-    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
+    if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel, MixinForBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
     if isinstance(model, AggSubClassBoringModel):
