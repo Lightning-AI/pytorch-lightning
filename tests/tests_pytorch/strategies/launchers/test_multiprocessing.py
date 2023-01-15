@@ -128,8 +128,8 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
 
 @pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
 def test_transfer_weights(tmpdir, trainer_fn):
-    """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the temporary
-    file."""
+    """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the
+    temporary file."""
     model = Mock(wraps=BoringModel(), spec=BoringModel)
     strategy = DDPSpawnStrategy()
     trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
