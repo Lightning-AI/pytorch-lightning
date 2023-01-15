@@ -53,7 +53,7 @@ class SingleDeviceStrategy(Strategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
+    def all_reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
 

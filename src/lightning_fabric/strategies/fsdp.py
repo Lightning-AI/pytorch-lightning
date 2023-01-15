@@ -245,7 +245,7 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         ):
             yield
 
-    def reduce(
+    def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
         if isinstance(tensor, Tensor):
