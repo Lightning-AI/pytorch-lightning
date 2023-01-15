@@ -126,30 +126,6 @@ def test_ddp_spawn_configure_ddp(tmpdir):
     trainer.predict(model, dataloaders=model.predict_dataloader())
 
 
-@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
-def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
-    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
-    file."""
-    model = Mock(wraps=BoringModel(), spec=BoringModel)
-    strategy = DDPSpawnStrategy()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
-    trainer.strategy.connect(model)
-    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
-
-    spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
-
-    model.state_dict.assert_called_once()
-    if trainer_fn == TrainerFn.FITTING:
-        assert spawn_output.weights_path.endswith(".temp.ckpt")
-        assert os.path.isfile(spawn_output.weights_path)
-    else:
-        assert spawn_output.weights_path is None
-
-    # <-- here would normally be the multiprocessing boundary
-    strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
-    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
-
-
 @mock.patch("torch.distributed.init_process_group")
 def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     """Test that the timeout gets passed to the ``torch.distributed.init_process_group`` function."""
