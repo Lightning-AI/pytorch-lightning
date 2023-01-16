@@ -6,10 +6,17 @@ Communication between distributed processes
 
 Fabric enables you to easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
 
+
 ----
 
+
+*******************
 Rank and world size
-===================
+*******************
+
+.. figure:: Collectives.001.jpeg
+   :alt: The different type of process ranks: Local, global, node.
+   :width: 100%
 
 .. code-block:: python
 
@@ -34,9 +41,17 @@ Rank and world size
         ...
 
 
-Broadcast
-=========
 
+----
+
+
+*********
+Broadcast
+*********
+
+.. figure:: Collectives.002.jpeg
+   :alt: The broadcast collective operation
+   :width: 100%
 
 .. code-block:: python
 
@@ -46,8 +61,17 @@ Broadcast
     fabric.broadcast(..., src=...)
 
 
+
+----
+
+
+******
 Gather
-======
+******
+
+.. figure:: Collectives.003.jpeg
+   :alt: The All-gather collective operation
+   :width: 100%
 
 .. code-block:: python
 
@@ -57,8 +81,16 @@ Gather
     fabric.all_gather(...)
 
 
+----
+
+
+******
 Reduce
-======
+******
+
+.. figure:: Collectives.004.jpeg
+   :alt: The All-reduce collective operation
+   :width: 100%
 
 .. code-block:: python
 
@@ -68,11 +100,16 @@ Reduce
     fabric.all_reduce(...)
 
 
+----
 
 
+*******
 Barrier
-=======
+*******
 
+.. figure:: Collectives.005.jpeg
+   :alt: The barrier for process synchronization
+   :width: 100%
 
 .. code-block:: python
 
