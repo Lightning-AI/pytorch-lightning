@@ -5,9 +5,6 @@ inputs:
   python-version:
     description: Python version
     required: true
-  pytorch-version:
-    description: PyTorch version
-    required: true
   pkg-name:
     description: package name for coverage collctions
     required: true
@@ -39,19 +36,24 @@ runs:
       pip list
     shell: ${{ inputs.shell-type }}
 
-  - run: echo "PYTEST_ARTEFACT=test-results-${{ runner.os }}-py${{ inputs.python-version }}-pt{{ inputs.pytorch-version }}-${{ inputs.requires }}" >> $GITHUB_ENV
+  - run: |
+      echo "artifact=test-results-${{ runner.os }}-py${{ inputs.python-version }}-${{ inputs.requires }}" >> $GITHUB_OUTPUT
+    id: location
     shell: bash
 
   - name: Unittests
     working-directory: ./tests
-    run: python -m pytest ${{ inputs.dirs }} --cov=${{ inputs.pkg-name }} --junitxml="$PYTEST_ARTEFACT.xml" --durations=50 ${{ inputs.test-timeout }}
+    run: |
+      python -m pytest ${{ inputs.dirs }} \
+        --cov=${{ inputs.pkg-name }} --durations=50 ${{ inputs.test-timeout }} \
+        --junitxml="${{ steps.location.outputs.artifact }}.xml"
     shell: ${{ inputs.shell-type }}
 
   - name: Upload pytest results
     uses: actions/upload-artifact@v2
     with:
-      name: ${{env.PYTEST_ARTEFACT}}
-      path: "test/${{env.PYTEST_ARTEFACT}}.xml"
+      name: ${{ steps.location.outputs.artifact }}
+      path: "test/${{ steps.location.outputs.artifact }}.xml"
     if: failure()
 
   - name: Statistics

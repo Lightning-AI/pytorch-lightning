@@ -33,16 +33,15 @@ runs:
     shell: bash
 
   - name: Determine caches
-    env:
-      PWD: $(pwd)
+    id: cache_dirs
     run: |
-      python -c "from pip._internal.locations import USER_CACHE_DIR; print('PIP_CACHE_DIR=' + USER_CACHE_DIR)" >> $GITHUB_ENV
+      echo "pip_dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     shell: bash
 
   - name: Cache 💽 pip
     uses: actions/cache@v3
     with:
-      path: $PIP_CACHE_DIR
+      path: ${{ steps.cache_dirs.outputs.pip_dir }}
       key: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
       restore-keys: ${{ runner.os }}-py${{ inputs.python-version }}-pip-${{ inputs.offset }}-
 

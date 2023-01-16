@@ -4,15 +4,24 @@ on:
   schedule:
     # on Sundays
     - cron: "0 0 * * 0"
-
-defaults:
-  run:
-    shell: bash
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: 'patter for cleaning cache'
+        default: "pip"
+        required: false
+        type: string
 
 jobs:
 
-  clear-cache:
-    if: ${{ github.repository_owner == 'Lightning-AI' }}
+  cron-clear:
+    if: github.event_name == 'schedule'
     uses: ./.github/workflows/clear-cache.yml
     with:
       pattern: 'pip|conda'
+
+  direct-clear:
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/clear-cache.yml
+    with:
+      pattern: ${{ inputs.pattern }}
