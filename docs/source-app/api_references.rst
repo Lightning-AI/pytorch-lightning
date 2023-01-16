@@ -37,7 +37,7 @@ ___________________
     ~python.popen.PopenPythonScript
     ~python.tracer.TracerPythonScript
     ~training.LightningTrainerScript
-    ~serve.gradio.ServeGradio
+    ~serve.gradio_server.ServeGradio
     ~serve.serve.ModelInferenceAPI
     ~serve.python_server.PythonServer
     ~serve.streamlit.ServeStreamlit
