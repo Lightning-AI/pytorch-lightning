@@ -352,21 +352,6 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
     trainer.test(model)
 
 
-def test_logging_to_progress_bar_with_reserved_key(tmpdir):
-    """Test that logging a metric with a reserved name to the progress bar raises a warning."""
-
-    class TestModel(BoringModel):
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            self.log("loss", output["loss"], prog_bar=True)
-            return output
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-    with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
-        trainer.fit(model)
-
-
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """test that auto_add_dataloader_idx argument works."""

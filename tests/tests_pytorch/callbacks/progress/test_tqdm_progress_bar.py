@@ -660,7 +660,6 @@ def test_get_progress_bar_metrics(tmpdir: str):
     model = BoringModel()
     trainer.fit(model)
     standard_metrics = progress_bar.get_metrics(trainer, model)
-    assert "loss" in standard_metrics.keys()
     assert "v_num" not in standard_metrics.keys()
 
 
@@ -673,7 +672,6 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
-            del items["loss"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append(
                 (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)
