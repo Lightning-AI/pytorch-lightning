@@ -189,7 +189,8 @@ class ModelSummary:
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
-        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        precision_to_bits = {"64": 64, "32": 32, "16": 16, "bf16": 16}
+        precision = precision_to_bits.get(self._model.trainer.precision, 32) if self._model._trainer else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
