@@ -99,4 +99,4 @@ jobs:
           pip install -q "pytest-doctestplus>=0.9.0"
           pip list
           PKG_NAME=$(python -c "print({'app': 'lit_app', 'fabric': 'lit_fabric', 'pytorch': 'pl'}.get('${{matrix.pkg-name}}', ''))")
-          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**"
+          python -m pytest src/${PKG_NAME} --ignore-glob="**/cli/*-template/**" --doctest-plus
