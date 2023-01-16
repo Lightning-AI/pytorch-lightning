@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.9.0] - 2023-01-12
+## [1.9.0] - 2023-01-17
 
 ### Added
 
@@ -26,7 +26,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `lightning_fabric.loggers.TensorBoardLogger` ([#16121](https://github.com/Lightning-AI/lightning/issues/16121))
 - Added `lightning_fabric.loggers.CSVLogger` ([#16346](https://github.com/Lightning-AI/lightning/issues/16346))
 - Added support for a consistent `.zero_grad(set_to_none=...)` on the wrapped optimizer regardless of which strategy is used ([#16275](https://github.com/Lightning-AI/lightning/issues/16275))
-
 
 ### Changed
 

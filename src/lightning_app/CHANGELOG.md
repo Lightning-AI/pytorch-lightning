@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [1.9.0] - 2023-01-12
+## [1.9.0] - 2023-01-17
 
 ### Added
 
@@ -25,7 +25,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid `relpath` bug on Windows ([#16164](https://github.com/Lightning-AI/lightning/pull/16164))
 - Avoid using the deprecated `LooseVersion` ([#16162](https://github.com/Lightning-AI/lightning/pull/16162))
 - Porting fixes to autoscaler component ([#16249](https://github.com/Lightning-AI/lightning/pull/16249))
-
 - Fixed a bug where `lightning login` with env variables would not correctly save the credentials ([#16339](https://github.com/Lightning-AI/lightning/pull/16339))
 
 
