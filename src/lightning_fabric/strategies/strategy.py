@@ -169,7 +169,17 @@ class Strategy(ABC):
         return self.precision.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
-    def reduce(
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """Perform an all_gather on all processes.
+
+        Args:
+            tensor: the tensor to all_gather
+            group: the process group to gather results from
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        """
+
+    @abstractmethod
+    def all_reduce(
         self,
         tensor: Union[Tensor, Any],
         group: Optional[Any] = None,
@@ -199,16 +209,6 @@ class Strategy(ABC):
         Args:
             obj: the object to broadcast
             src: source rank
-        """
-
-    @abstractmethod
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """Perform an all_gather on all processes.
-
-        Args:
-            tensor: the tensor to all_gather
-            group: the process group to gather results from
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
