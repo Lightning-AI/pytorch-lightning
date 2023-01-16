@@ -113,8 +113,8 @@ class LightningClient(GridRestClient):
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
-        if kwargs.get("retry", False):
+    def __new__(cls, *args: Any, retry=True, **kwargs: Any) -> "LightningClient":
+        if retry:
             for base_class in GridRestClient.__mro__:
                 for name, attribute in base_class.__dict__.items():
                     if callable(attribute) and attribute.__name__ != "__init__":
