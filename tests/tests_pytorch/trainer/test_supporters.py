@@ -32,33 +32,11 @@ from pytorch_lightning.trainer.supporters import (
     CombinedLoader,
     CombinedLoaderIterator,
     CycleIterator,
-    TensorRunningAccum,
 )
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_tensor_running_accum_reset():
-    """Test that reset would set all attributes to the initialization state."""
-
-    window_length = 10
-
-    accum = TensorRunningAccum(window_length=window_length)
-    assert accum.last() is None
-    assert accum.mean() is None
-
-    accum.append(torch.tensor(1.5))
-    assert accum.last() == torch.tensor(1.5)
-    assert accum.mean() == torch.tensor(1.5)
-
-    accum.reset()
-    assert accum.window_length == window_length
-    assert accum.memory is None
-    assert accum.current_idx == 0
-    assert accum.last_idx is None
-    assert not accum.rotated
 
 
 def test_cycle_iterator():

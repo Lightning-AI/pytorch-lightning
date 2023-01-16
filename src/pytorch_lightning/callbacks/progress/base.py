@@ -242,7 +242,7 @@ class ProgressBarBase(Callback):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        standard_metrics = get_standard_metrics(trainer, pl_module)
+        standard_metrics = get_standard_metrics(trainer)
         pbar_metrics = trainer.progress_bar_metrics
         duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:
@@ -255,30 +255,20 @@ class ProgressBarBase(Callback):
         return {**standard_metrics, **pbar_metrics}
 
 
-def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
+def get_standard_metrics(trainer: "pl.Trainer") -> Dict[str, Union[int, str]]:
     r"""
-    Returns several standard metrics displayed in the progress bar, including the average loss value,
-    split index of BPTT (if used) and the version of the experiment when using a logger.
+    Returns the standard metrics displayed in the progress bar.
+    Currently, it only includes the version of the experiment when using a logger.
 
     .. code-block::
 
-        Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
+        Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, v_num=10]
 
     Return:
         Dictionary with the standard metrics to be displayed in the progress bar.
     """
-    # call .item() only once but store elements without graphs
-    running_train_loss = trainer.fit_loop.running_loss.mean()
-    avg_training_loss = None
-    if running_train_loss is not None:
-        avg_training_loss = running_train_loss.cpu().item()
-    elif pl_module.automatic_optimization:
-        avg_training_loss = float("NaN")
 
     items_dict: Dict[str, Union[int, str]] = {}
-    if avg_training_loss is not None:
-        items_dict["loss"] = f"{avg_training_loss:.3g}"
-
     if trainer.loggers:
         version = _version(trainer.loggers)
         if version is not None:
