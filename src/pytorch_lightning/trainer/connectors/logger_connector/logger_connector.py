@@ -42,11 +42,9 @@ class LoggerConnector:
         self,
         logger: Union[bool, Logger, Iterable[Logger]],
         log_every_n_steps: int,
-        move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
         self.trainer.log_every_n_steps = log_every_n_steps
-        self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
 
     @property
     def should_update_logs(self) -> bool:
