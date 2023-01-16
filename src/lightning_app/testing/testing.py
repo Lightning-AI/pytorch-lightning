@@ -392,33 +392,27 @@ def run_app_in_cloud(
             process = Process(target=_print_logs, kwargs={"app_id": app_id})
             process.start()
 
-        def wait_openapi(page: playwright.sync_api.Page, app_url: str) -> None:
-            page.goto(f"{app_url}/view")
-            j = 1
-            status_code = None
-            while status_code != 200:
-                status_code = requests.get(f"{app_url}/openapi.json").status_code
-                if debug and j % 30 == 0:
-                    print(f"Received status code {status_code} at {app_url!r}, continuing infinite loop...")
-                j += 1
-                sleep(1)
-
         view_page = context.new_page()
         i = 1
         while True:
             app = _fetch_app_by_name(client, project_id, name)
-            # wait until the app is running
+            msg = f"Still in phase {app.status.phase}"
+
+            # wait until the app is running and openapi.json is ready
             if app.status.phase == V1LightningappInstanceState.RUNNING:
-                print("App is running, continuing with testing...")
-                wait_openapi(view_page, app.status.url)
-                break
+                view_page.goto(f"{app.status.url}/view")
+                status_code = requests.get(f"{app.status.url}/openapi.json").status_code
+                if status_code == 200:
+                    print("App is running, continuing with testing...")
+                    break
+                msg = f"Received status code {status_code} at {app.status.url!r}"
             elif app.status.phase not in (V1LightningappInstanceState.PENDING, V1LightningappInstanceState.NOT_STARTED):
                 # there's a race condition if the app goes from pending to running to something else before we evaluate
                 # the condition above. avoid it by checking stopped explicitly
                 print(f"App finished with phase {app.status.phase}, finished testing...")
                 break
             if debug and i % 30 == 0:
-                print(f"Still in phase {app.status.phase}, continuing infinite loop...")
+                print(f"{msg}, continuing infinite loop...")
             i += 1
             sleep(1)
 
