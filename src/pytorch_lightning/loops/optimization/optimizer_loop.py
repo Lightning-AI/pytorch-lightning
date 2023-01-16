@@ -172,9 +172,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         """Returns ``True`` when the last optimizer in the sequence has run."""
         return self.optim_progress.optimizer_position >= len(self._indices)
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
-
     def reset(self) -> None:
         if not self.restarting:
             # when reset() is called from outside (manually), we reset the loop progress
