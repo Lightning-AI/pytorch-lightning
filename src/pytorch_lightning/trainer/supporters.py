@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Mapping, Optio
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
-from torch import Tensor
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter, _MultiProcessingDataLoaderIter, DataLoader
 from torch.utils.data.dataset import IterableDataset
@@ -31,83 +30,6 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-
-
-class TensorRunningAccum:
-    """Tracks a running accumulation values (min, max, mean) without graph references.
-
-    Examples:
-        >>> accum = TensorRunningAccum(5)
-        >>> accum.last(), accum.mean()
-        (None, None)
-        >>> accum.append(torch.tensor(1.5))
-        >>> accum.last(), accum.mean()
-        (tensor(1.5000), tensor(1.5000))
-        >>> accum.append(torch.tensor(2.5))
-        >>> accum.last(), accum.mean()
-        (tensor(2.5000), tensor(2.))
-        >>> accum.reset()
-        >>> _= [accum.append(torch.tensor(i)) for i in range(13)]
-        >>> accum.last(), accum.mean(), accum.min(), accum.max()
-        (tensor(12.), tensor(10.), tensor(8.), tensor(12.))
-    """
-
-    def __init__(self, window_length: int):
-        self.window_length = window_length
-        self.reset(window_length)
-
-    def reset(self, window_length: Optional[int] = None) -> None:
-        """Empty the accumulator."""
-        if window_length is not None:
-            self.window_length = window_length
-        self.memory: Optional[Tensor] = None
-        self.current_idx: int = 0
-        self.last_idx: Optional[int] = None
-        self.rotated: bool = False
-
-    def last(self) -> Optional[Tensor]:
-        """Get the last added element."""
-        if self.last_idx is not None:
-            assert isinstance(self.memory, Tensor)
-            return self.memory[self.last_idx].float()
-
-    def append(self, x: Tensor) -> None:
-        """Add an element to the accumulator."""
-        if self.memory is None:
-            # tradeoff memory for speed by keeping the memory on device
-            self.memory = torch.zeros(self.window_length, *x.shape, device=x.device, dtype=x.dtype)
-
-        # store without grads
-        with torch.no_grad():
-            self.memory[self.current_idx] = x
-            self.last_idx = self.current_idx
-
-        # increase index
-        self.current_idx += 1
-
-        # reset index when hit limit of tensor
-        self.current_idx = self.current_idx % self.window_length
-        if self.current_idx == 0:
-            self.rotated = True
-
-    def mean(self) -> Optional[Tensor]:
-        """Get mean value from stored elements."""
-        return self._agg_memory("mean")
-
-    def max(self) -> Optional[Tensor]:
-        """Get maximal value from stored elements."""
-        return self._agg_memory("max")
-
-    def min(self) -> Optional[Tensor]:
-        """Get minimal value from stored elements."""
-        return self._agg_memory("min")
-
-    def _agg_memory(self, how: str) -> Optional[Tensor]:
-        if self.last_idx is not None:
-            assert isinstance(self.memory, Tensor)
-            if self.rotated:
-                return getattr(self.memory.float(), how)()
-            return getattr(self.memory[: self.current_idx].float(), how)()
 
 
 @dataclass

@@ -18,7 +18,6 @@ from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, 
 import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -28,7 +27,7 @@ from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as
 from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
@@ -60,8 +59,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.accumulated_loss = TensorRunningAccum(window_length=20)
-        self.running_loss = TensorRunningAccum(window_length=20)
         self.optimizer_loop = OptimizerLoop()
         self.manual_loop = ManualOptimization()
 
@@ -294,11 +291,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._results.cpu()
         self.optimizer_loop.teardown()
         self.manual_loop.teardown()
-        # release memory
-        if self.accumulated_loss.memory is not None:
-            self.accumulated_loss.memory = self.accumulated_loss.memory.cpu()
-        if self.running_loss.memory is not None:
-            self.running_loss.memory = self.running_loss.memory.cpu()
         self.val_loop.teardown()
 
     def on_save_checkpoint(self) -> Dict:
@@ -553,21 +545,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
-
-    def _update_running_loss(self, current_loss: Tensor) -> None:
-        """Updates the running loss value with the current value."""
-        if self.trainer.lightning_module.automatic_optimization:
-            # track total loss for logging (avoid mem leaks)
-            self.accumulated_loss.append(current_loss)
-
-        accumulated_loss = self.accumulated_loss.mean()
-
-        if accumulated_loss is not None:
-            # calculate running loss for display
-            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-
-        # reset for next set of accumulated grads
-        self.accumulated_loss.reset()
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:

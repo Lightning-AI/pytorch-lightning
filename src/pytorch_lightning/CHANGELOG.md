@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the `Trainer(move_metrics_to_cpu=True)` argument ([#16358](https://github.com/Lightning-AI/lightning/pull/16358))
 
+- Removed the `LightningModule.precision` attribute ([#16203](https://github.com/Lightning-AI/lightning/pull/16203))
+
+- Removed the automatic addition of a moving average of the `training_step` loss in the progress bar. Use `self.log("loss", ..., prog_bar=True)` instead. ([#16192](https://github.com/Lightning-AI/lightning/issues/16192))
 
 
 ## [unreleased] - 202Y-MM-DD

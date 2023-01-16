@@ -189,7 +189,7 @@ def test_optimization(tmpdir):
 def test_half_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.precision == "16"
             raise SystemExit
 
     model = IPUModel()

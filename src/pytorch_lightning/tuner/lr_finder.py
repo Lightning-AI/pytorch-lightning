@@ -379,7 +379,7 @@ class _LRCallback(Callback):
         if self.progress_bar:
             self.progress_bar.update()
 
-        loss_tensor = trainer.fit_loop.running_loss.last()
+        loss_tensor = outputs if isinstance(outputs, torch.Tensor) else outputs["loss"]
         assert loss_tensor is not None
         current_loss = loss_tensor.item()
         current_step = trainer.global_step
