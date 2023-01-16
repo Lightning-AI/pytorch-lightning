@@ -64,7 +64,7 @@ class TestFSDPModel(BoringModel):
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
-        precision = torch.float16 if self.precision == 16 else torch.bfloat16
+        precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         assert self.layer.mixed_precision.param_dtype == precision
         assert self.layer.mixed_precision.reduce_dtype == precision
         assert self.layer.mixed_precision.buffer_dtype == precision
@@ -100,7 +100,7 @@ class TestFSDPModelAutoWrapped(BoringModel):
         assert isinstance(self.layer, torch.nn.Sequential)
         assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
 
-        precision = torch.float16 if self.precision == 16 else torch.bfloat16
+        precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         for layer_num in [0, 2]:
             assert isinstance(self.layer[layer_num], FullyShardedDataParallel)
             assert self.layer[layer_num].mixed_precision.param_dtype == precision
