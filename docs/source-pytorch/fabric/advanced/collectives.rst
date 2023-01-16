@@ -4,33 +4,28 @@
 Communication between distributed processes
 ###########################################
 
-Page is under construction.
+Fabric enables you to easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
 
 ----
 
-
-You can also easily use distributed collectives if required.
+Rank and world size
+===================
 
 .. code-block:: python
 
-    fabric = Fabric()
+    # devices and num_nodes determine how many processes there are
+    fabric = Fabric(devices=2, num_nodes=3)
 
-    # Transfer and concatenate tensors across processes
-    fabric.all_gather(...)
+    # The total number of processes running across all devices and nodes
+    fabric.world_size  # 2 * 3 = 6
 
-    # Transfer an object from one process to all the others
-    fabric.broadcast(..., src=...)
-
-    # The total number of processes running across all devices and nodes.
-    fabric.world_size
-
-    # The global index of the current process across all devices and nodes.
+    # The global index of the current process across all devices and nodes
     fabric.global_rank
 
-    # The index of the current process among the processes running on the local node.
+    # The index of the current process among the processes running on the local node
     fabric.local_rank
 
-    # The index of the current node.
+    # The index of the current node
     fabric.node_rank
 
     # Whether this global rank is rank zero.
@@ -38,11 +33,50 @@ You can also easily use distributed collectives if required.
         # do something on rank 0
         ...
 
+
+Broadcast
+=========
+
+
+.. code-block:: python
+
+    fabric = Fabric(...)
+
+    # Transfer an object from one process to all the others
+    fabric.broadcast(..., src=...)
+
+
+Gather
+======
+
+.. code-block:: python
+
+    fabric = Fabric(...)
+
+    # Transfer and concatenate tensors across processes
+    fabric.all_gather(...)
+
+
+Reduce
+======
+
+.. code-block:: python
+
+    fabric = Fabric(...)
+
+    # TODO
+    fabric.all_reduce(...)
+
+
+
+
+Barrier
+=======
+
+
+.. code-block:: python
+
+    fabric = Fabric(...)
+
     # Wait for all processes to enter this call.
     fabric.barrier()
-
-
-The code stays agnostic, whether you are running on CPU, on two GPUS or on multiple machines with many GPUs.
-
-If you require custom data or model device placement, you can deactivate :class:`~lightning_fabric.fabric.Fabric`'s automatic placement by doing ``fabric.setup_dataloaders(..., move_to_device=False)`` for the data and ``fabric.setup(..., move_to_device=False)`` for the model.
-Furthermore, you can access the current device from ``fabric.device`` or rely on :meth:`~lightning_fabric.fabric.Fabric.to_device` utility to move an object to the current device.
