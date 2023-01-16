@@ -116,12 +116,6 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
-        if self.trainer.move_metrics_to_cpu:
-            # training step output does not get moved because it is not considered a "metric"
-            # the user might need them on the correct device for an operation in `training_epoch_end`
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
-
         self._done = True
         self._output = result.asdict()
 
