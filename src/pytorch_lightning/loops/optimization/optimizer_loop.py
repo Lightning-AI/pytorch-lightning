@@ -237,7 +237,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            # the `batch_idx` is optional with inter-batch parallelism
             self._optimizer_step(optimizer, opt_idx, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
