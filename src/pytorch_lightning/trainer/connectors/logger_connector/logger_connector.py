@@ -14,14 +14,19 @@
 from typing import Any, Iterable, Optional, Union
 
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.rank_zero import WarningCache
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_lite.plugins.environments import SLURMEnvironment
-from lightning_lite.utilities import move_data_to_device
+from lightning_fabric.loggers import CSVLogger
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
+from lightning_fabric.plugins.environments import SLURMEnvironment
+from lightning_fabric.utilities import move_data_to_device
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.utilities.metrics import metrics_to_scalars
+
+warning_cache = WarningCache()
 
 
 class LoggerConnector:
@@ -57,9 +62,18 @@ class LoggerConnector:
             self.trainer.loggers = []
         elif logger is True:
             # default logger
-            self.trainer.loggers = [
-                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
-            ]
+            if _TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE:
+                logger_ = TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            else:
+                warning_cache.warn(
+                    "Starting from v1.9.0, `tensorboardX` has been removed as a dependency of the `pytorch_lightning`"
+                    " package, due to potential conflicts with other packages in the ML ecosystem. For this reason,"
+                    " `logger=True` will use `CSVLogger` as the default logger, unless the `tensorboard`"
+                    " or `tensorboardX` packages are found."
+                    " Please `pip install lightning[extra]` or one of them to enable TensorBoard support by default"
+                )
+                logger_ = CSVLogger(root_dir=self.trainer.default_root_dir)  # type: ignore[assignment]
+            self.trainer.loggers = [logger_]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:
@@ -80,7 +94,7 @@ class LoggerConnector:
         self._logged_metrics.update(metrics)
 
         # turn all tensors to scalars
-        scalar_metrics = metrics_to_scalars(metrics)
+        scalar_metrics = convert_tensors_to_scalars(metrics)
 
         if step is None:
             step = scalar_metrics.pop("step", None)

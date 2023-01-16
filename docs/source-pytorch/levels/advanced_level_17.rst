@@ -27,7 +27,7 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :header: Use a Raw PyTorch Loop
    :description: Migrate complex PyTorch projects to Lightning and push bleeding-edge research with the raw PyTorch loop.
    :col_css: col-md-4
-   :button_link: ../model/build_model_expert.html
+   :button_link: ../fabric/fabric.html
    :height: 150
    :tag: advanced
 

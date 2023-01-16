@@ -104,7 +104,7 @@ Here's the full documentation for the :class:`~pytorch_lightning.loggers.Neptune
 
 Tensorboard
 ===========
-`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ already comes installed with Lightning. If you removed the install install the following package.
+`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ can be installed with:
 
 .. code-block:: bash
 
@@ -179,7 +179,7 @@ Use multiple exp managers
 To use multiple experiment managers at the same time, pass a list to the *logger* :class:`~pytorch_lightning.trainer.trainer.Trainer` argument.
 
 .. testcode::
-    :skipif: not _WANDB_AVAILABLE
+    :skipif: (not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE) or not _WANDB_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
@@ -194,8 +194,8 @@ Access all loggers from any function (except the LightningModule *init*) to use 
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            tensorboard_logger = self.logger.experiment[0]
-            wandb_logger = self.logger.experiment[1]
+            tensorboard_logger = self.loggers.experiment[0]
+            wandb_logger = self.loggers.experiment[1]
 
             fake_images = torch.Tensor(32, 3, 28, 28)
 

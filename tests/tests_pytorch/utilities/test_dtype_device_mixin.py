@@ -13,7 +13,7 @@
 # limitations under the License.
 import torch.nn as nn
 
-from lightning_lite.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
+from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.helpers.runif import RunIf

@@ -29,9 +29,10 @@ from lightning_utilities.core.imports import RequirementCache
 from torch import Tensor
 from typing_extensions import Literal
 
+from lightning_fabric.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
-from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _scan_checkpoints
+from pytorch_lightning.utilities.logger import _scan_checkpoints
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -283,6 +284,8 @@ class MLFlowLogger(Logger):
             status = "FINISHED"
         elif status == "failed":
             status = "FAILED"
+        elif status == "finished":
+            status = "FINISHED"
 
         # log checkpoints as artifacts
         if self._checkpoint_callback:

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from lightning_lite.strategies.registry import _StrategyRegistry
+from lightning_fabric.strategies.registry import _StrategyRegistry
 from pytorch_lightning.strategies.bagua import BaguaStrategy  # noqa: F401
 from pytorch_lightning.strategies.colossalai import ColossalAIStrategy  # noqa: F401
 from pytorch_lightning.strategies.ddp import DDPStrategy  # noqa: F401

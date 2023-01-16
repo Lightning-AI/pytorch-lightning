@@ -29,7 +29,9 @@ defaults:
 
 jobs:
   make-doctest:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
@@ -41,10 +43,6 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
 
       - uses: aws-actions/configure-aws-credentials@v1
         if: ${{ matrix.pkg-name == 'app' }}
@@ -66,17 +64,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docs-test-${{ matrix.pkg-name }}-
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          pip --version
-
       - name: Install LAI package
         # This is needed as App docs is heavily using/referring to lightning package
         if: ${{ matrix.pkg-name == 'app' }}
-        env:
-          FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e . -U -v -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
 
@@ -85,13 +75,12 @@ jobs:
         run: |
           pip install -q -r .actions/requirements.txt
           python .actions/assistant.py copy_replace_imports --source_dir="./docs" \
-            --source_import="pytorch_lightning,lightning_lite" \
-            --target_import="lightning.pytorch,lightning.lite"
+            --source_import="pytorch_lightning,lightning_fabric" \
+            --target_import="lightning.pytorch,lightning.fabric"
 
       - name: Install this package
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
           pip install -e .[extra,cloud,ui] -U -r requirements/${{ matrix.pkg-name }}/docs.txt -f pypi
           pip list
@@ -105,20 +94,20 @@ jobs:
           make coverage
 
   make-html:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: pytorchlightning/pytorch_lightning:docs
     strategy:
       fail-fast: false
       matrix:
         pkg-name: ["app", "pytorch"]
+    env:
+      FREEZE_REQUIREMENTS: "1"
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
 
       - uses: aws-actions/configure-aws-credentials@v1
         if: ${{ matrix.pkg-name != 'pytorch' }}
@@ -143,10 +132,7 @@ jobs:
       - name: Install package & dependencies
         env:
           PACKAGE_NAME: ${{ matrix.pkg-name }}
-          FREEZE_REQUIREMENTS: 1
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc texlive-latex-extra dvipng texlive-pictures
           pip --version
           pip install -e . -U -r requirements/${{ matrix.pkg-name }}/docs.txt \
             -f https://download.pytorch.org/whl/cpu/torch_stable.html -f pypi
@@ -157,6 +143,12 @@ jobs:
         working-directory: ./docs/source-${{ matrix.pkg-name }}
         run: |
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+
+      - name: Check External Links in Sphinx Documentation (Optional)
+        working-directory: ./docs/source-${{ matrix.pkg-name }}
+        run: |
+          make linkcheck
+        continue-on-error: true
 
       - name: Upload built docs
         uses: actions/upload-artifact@v3

@@ -34,8 +34,8 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
-from lightning_lite.utilities.cloud_io import _load as pl_load
-from lightning_lite.utilities.seed import seed_everything
+from lightning_fabric.utilities.cloud_io import _load as pl_load
+from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
@@ -1605,7 +1605,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
             output = self.layer(batch)
             # will crash if not moved to correct device
             output = self.new_layer(output)
-            loss = self.loss(batch, output)
+            loss = self.loss(output)
             return {"loss": loss}
 
     # fake data
@@ -1745,8 +1745,7 @@ def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
 
 class TestDummyModelForCheckpoint(BoringModel):
     def validation_step(self, batch, batch_idx):
-        output = self.layer(batch)
-        loss = self.loss(batch, output)
+        loss = self.step(batch)
         self.log("x", loss)
 
     def validation_epoch_end(self, outputs) -> None:
@@ -1922,7 +1921,7 @@ class ExceptionCounter(Callback):
         self.exceptions += 1
 
 
-@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True, mps=False))])
 def test_error_handling_all_stages(tmpdir, strategy):
     model = TrainerStagesErrorsModel()
     counter = ExceptionCounter()
@@ -2018,9 +2017,11 @@ def test_detect_anomaly_nan(tmpdir):
     ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        pytest.param({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
+        pytest.param({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
+        pytest.param(
+            {"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)
+        ),
         (
             {"strategy": None, "accelerator": "cuda", "devices": 1},
             SingleDeviceStrategy,
@@ -2076,7 +2077,7 @@ def test_detect_anomaly_nan(tmpdir):
             CUDAAccelerator,
             2,
         ),
-        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        pytest.param({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1, marks=RunIf(mps=False)),
         ({"strategy": DDPStrategy(), "accelerator": "cuda", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         (
             {"strategy": DataParallelStrategy(), "accelerator": "cuda", "devices": 2},
@@ -2147,12 +2148,6 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
-
-    # Test with `gpus` and `num_processes` flags
-    if trainer_kwargs.get("accelerator") == "gpu":
-        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
-    else:
-        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
 
     trainer_kwargs.pop("accelerator", None)
     trainer_kwargs.pop("devices", None)

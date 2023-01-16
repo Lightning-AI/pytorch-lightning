@@ -22,9 +22,9 @@ from torch.optim.optimizer import Optimizer
 from typing_extensions import OrderedDict
 
 import pytorch_lightning as pl
-from lightning_lite.accelerators.cuda import _patch_cuda_is_available
-from lightning_lite.plugins.environments.cluster_environment import ClusterEnvironment
-from lightning_lite.utilities.distributed import ReduceOp
+from lightning_fabric.accelerators.cuda import _patch_cuda_is_available
+from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
+from lightning_fabric.utilities.distributed import ReduceOp
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -32,7 +32,6 @@ from pytorch_lightning.plugins.precision import ColossalAIPrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -326,7 +325,7 @@ class ColossalAIStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         precision = self.precision_plugin.precision
-        if not (precision == PrecisionType.HALF):
+        if precision != "16":
             raise ValueError(
                 f"`Trainer(strategy='colossalai', precision={precision!r})` is not supported."
                 " Consider setting `precision=16`."
@@ -407,7 +406,7 @@ class ColossalAIStrategy(DDPStrategy):
         **kwargs: Any,
     ) -> Any:
         model = model or self.lightning_module
-        # TODO(lite): remove assertion once strategy's optimizer_step typing is fixed
+        # TODO(fabric): remove assertion once strategy's optimizer_step typing is fixed
         assert isinstance(model, pl.LightningModule)
         return self.precision_plugin.optimizer_step(
             optimizer, model=model, optimizer_idx=opt_idx, closure=closure, **kwargs

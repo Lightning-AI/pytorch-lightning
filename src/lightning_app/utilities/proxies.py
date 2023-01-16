@@ -341,7 +341,6 @@ class ComponentDelta:
 
 @dataclass
 class WorkRunExecutor:
-
     work: "LightningWork"
     work_run: Callable
     delta_queue: "BaseQueue"
