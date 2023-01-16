@@ -73,7 +73,7 @@ module = [
     "lightning_app.components.database.utilities",
     "lightning_app.components.python.popen",
     "lightning_app.components.python.tracer",
-    "lightning_app.components.serve.gradio",
+    "lightning_app.components.serve.gradio_server",
     "lightning_app.components.serve.serve",
     "lightning_app.components.serve.streamlit",
     "lightning_app.components.serve.types.image",
