@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
@@ -66,15 +65,6 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.helpers.runif import RunIf
-
-
-@pytest.mark.parametrize(
-    ["name", "value"],
-    [("description", "description"), ("env_prefix", "PL"), ("env_parse", False)],
-)
-def test_lightningCLI_parser_init_params_deprecation_warning(name, value):
-    with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
-        LightningCLI(BoringModel, run=False, **{name: value})
 
 
 @pytest.mark.parametrize(
@@ -279,15 +269,6 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_accelerator_setup_environment_method():
     with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
         CPUAccelerator().setup_environment(torch.device("cpu"))
-
-
-@pytest.mark.parametrize(
-    ["name", "value"],
-    [("save_config_filename", "config.yaml"), ("save_config_overwrite", False), ("save_config_multifile", False)],
-)
-def test_lightningCLI_save_config_init_params_deprecation_warning(name, value):
-    with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(match=f".*{name!r} init parameter is deprecated.*"):
-        LightningCLI(BoringModel, run=False, **{name: value})
 
 
 def test_tuning_enum():
