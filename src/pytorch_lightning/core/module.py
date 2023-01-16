@@ -108,9 +108,6 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        # the precision used
-        self.precision: Union[int, str] = 32
-
         # optionally can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
