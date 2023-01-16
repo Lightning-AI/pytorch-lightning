@@ -60,14 +60,14 @@ def test_broadcast_on_tpu():
 
 def tpu_reduce_fn(strategy):
     with pytest.raises(ValueError, match="XLAStrategy only supports"):
-        strategy.reduce(1, reduce_op="undefined")
+        strategy.all_reduce(1, reduce_op="undefined")
 
     with pytest.raises(ValueError, match="XLAStrategy only supports"):
-        strategy.reduce(1, reduce_op=ReduceOp.MAX)
+        strategy.all_reduce(1, reduce_op=ReduceOp.MAX)
 
         # it is faster to loop over here than to parameterize the test
         for reduce_op in ("mean", "AVG", "sum", ReduceOp.SUM):
-            result = strategy.reduce(1, reduce_op=reduce_op)
+            result = strategy.all_reduce(1, reduce_op=reduce_op)
             if isinstance(reduce_op, str) and reduce_op.lower() in ("mean", "avg"):
                 assert result.item() == 1
             else:
@@ -77,7 +77,7 @@ def tpu_reduce_fn(strategy):
 @RunIf(tpu=True)
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 def test_tpu_reduce():
-    """Test tpu spawn reduce operation."""
+    """Test tpu spawn all_reduce operation."""
     xla_launch(tpu_reduce_fn)
 
 
