@@ -23,7 +23,7 @@ from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import (
     AbstractDataFetcher,
@@ -103,11 +103,6 @@ class FitLoop(Loop[None]):
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
             )
         self.epoch_loop.max_steps = value
-
-    @property
-    def running_loss(self) -> TensorRunningAccum:
-        """Returns the running loss."""
-        return self.epoch_loop.running_loss
 
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
@@ -232,9 +227,6 @@ class FitLoop(Loop[None]):
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
-
-        # stores accumulated grad fractions per batch
-        self.epoch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 

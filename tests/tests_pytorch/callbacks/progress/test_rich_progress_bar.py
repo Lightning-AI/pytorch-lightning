@@ -353,7 +353,6 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
         def get_metrics(self, trainer, pl_module):
             items = super().get_metrics(trainer, model)
             del items["v_num"]
-            del items["loss"]
             # this is equivalent to mocking `set_postfix` as this method gets called every time
             self.calls[trainer.state.fn].append(
                 (trainer.state.stage, trainer.current_epoch, trainer.global_step, items)
