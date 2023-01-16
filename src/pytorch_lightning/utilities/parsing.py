@@ -137,7 +137,7 @@ def parse_class_init_keys(
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: types.FrameType) -> Tuple[Any, Dict[str, Any]]:
+def get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars:
         return None, {}
