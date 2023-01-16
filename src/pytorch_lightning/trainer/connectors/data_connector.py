@@ -144,13 +144,8 @@ class DataConnector:
         elif self.trainer.state.fn == TrainerFn.PREDICTING:
             _check_dataloader_none(predict_dataloaders, self._predict_dataloader_source, self.trainer.state.fn)
 
-        # set local properties on the model
-        self._copy_trainer_model_properties(model)
-
-    def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
+        # Attach the trainer to the LightningModule
         model.trainer = proxy(self.trainer)
-        # for backward compatibility
-        model.precision = int(self.trainer.precision) if self.trainer.precision != "bf16" else "bf16"
 
     def attach_dataloaders(
         self,
