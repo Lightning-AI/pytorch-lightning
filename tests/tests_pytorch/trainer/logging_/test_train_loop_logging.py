@@ -718,23 +718,6 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-@RunIf(min_cuda_gpus=1)
-def test_move_metrics_to_cpu(tmpdir):
-    class TestModel(BoringModel):
-        def on_before_backward(self, loss: Tensor) -> None:
-            assert loss.device.type == "cuda"
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-        precision=16,
-        move_metrics_to_cpu=True,
-        accelerator="gpu",
-        devices=1,
-    )
-    trainer.fit(TestModel())
-
-
 def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     class TestModel(BoringModel):
         def on_train_epoch_end(self):

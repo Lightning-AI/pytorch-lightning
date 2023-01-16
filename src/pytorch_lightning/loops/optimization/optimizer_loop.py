@@ -397,11 +397,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             training_step_output, self.trainer.accumulate_grad_batches
         )
 
-        if self.trainer.move_metrics_to_cpu:
-            # training step output does not get moved because it is not considered a "metric"
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
-
         return result
 
     def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int) -> OrderedDict:
