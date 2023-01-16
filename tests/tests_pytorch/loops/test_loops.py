@@ -25,9 +25,8 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import EvaluationLoop, Loop, OptimizerLoop, TrainingEpochLoop
+from pytorch_lightning.loops import Loop, OptimizerLoop
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -118,49 +117,6 @@ def test_connect_subloops(tmpdir):
 
     trainer.fit(model)
     assert new_optimizer_loop.trainer is trainer
-
-
-def test_replace_loops():
-    class TestLoop(TrainingEpochLoop):
-        def __init__(self, foo):
-            super().__init__()
-
-    trainer = Trainer(min_steps=123, max_steps=321)
-
-    with pytest.raises(
-        MisconfigurationException, match=r"FitLoop.replace\(TestLoop\)`.*`__init__`.*`TrainingEpochLoop`"
-    ):
-        trainer.fit_loop.replace(epoch_loop=TestLoop)
-
-    class TestLoop(TrainingEpochLoop):
-        ...
-
-    # test passing a loop where previous state should be connected
-    old_loop = trainer.fit_loop.epoch_loop
-    trainer.fit_loop.replace(epoch_loop=TestLoop)
-    new_loop = trainer.fit_loop.epoch_loop
-
-    assert isinstance(new_loop, TestLoop)
-    assert trainer.fit_loop.epoch_loop is new_loop
-    assert new_loop.min_steps == 123
-    assert new_loop.max_steps == 321
-    assert new_loop.optimizer_loop is old_loop.optimizer_loop
-    assert new_loop.val_loop is old_loop.val_loop
-    assert new_loop.trainer is trainer
-
-    class MyOptimizerLoop(OptimizerLoop):
-        ...
-
-    class MyEvalLoop(EvaluationLoop):
-        ...
-
-    # test passing more than one where one is an instance and the other a class
-    trainer.fit_loop.epoch_loop.replace(optimizer_loop=MyOptimizerLoop, val_loop=MyEvalLoop())
-    new_optimizer_loop = trainer.fit_loop.epoch_loop.optimizer_loop
-    new_val_loop = trainer.fit_loop.epoch_loop.val_loop
-
-    assert isinstance(new_optimizer_loop, MyOptimizerLoop)
-    assert isinstance(new_val_loop, MyEvalLoop)
 
 
 class CustomException(Exception):
