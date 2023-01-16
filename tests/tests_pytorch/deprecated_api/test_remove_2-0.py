@@ -20,7 +20,6 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-import pytorch_lightning.profiler as profiler
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
@@ -320,21 +319,3 @@ def test_v1_8_1_deprecated_rank_zero_only():
 
     with pytest.deprecated_call(match="rank_zero_only` has been deprecated in v1.8.1"):
         rank_zero_only(lambda: None)
-
-
-@pytest.mark.parametrize(
-    "cls",
-    [
-        profiler.AdvancedProfiler,
-        profiler.PassThroughProfiler,
-        profiler.PyTorchProfiler,
-        profiler.SimpleProfiler,
-        pytest.param(profiler.XLAProfiler, marks=RunIf(tpu=True)),
-    ],
-)
-def test_profiler_classes_deprecated_warning(cls):
-    with pytest.deprecated_call(
-        match=f"profiler.{cls.__name__}` is deprecated in v1.9.0 and will be removed in v2.0.0."
-        f" Use .*profilers.{cls.__name__}` class instead."
-    ):
-        cls()
