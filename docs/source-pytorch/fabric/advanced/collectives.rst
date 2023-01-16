@@ -14,14 +14,31 @@ Fabric enables you to easily access information about a process or send data bet
 Rank and world size
 *******************
 
+The rank assigned to a process is a number in the range of *0, ..., world size - 1*, where *world size* is the total number of distributed processes.
+If you are using multi-GPU, think of the rank as the *GPU ID* or *GPU index*, although rank extends to distributed processing in general.
+
+The rank is unique across all processes, regardless of how they are distributed across machines, and it is therefore also called **global rank**.
+We can also identify processes by their **local rank**, which is only unique among processes runing on the same machine, but is not unique globally across all machines.
+Finally, each process is associated with a **node rank** in the range *0, ..., num nodes - 1*, which identifies on which machine (node) the process is running on.
+
 .. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/ranks.jpeg
    :alt: The different type of process ranks: Local, global, node.
    :width: 100%
 
+Here is how you launch multiple processes in Fabric:
+
 .. code-block:: python
+
+    from lightning.fabric import Fabric
 
     # Devices and num_nodes determine how many processes there are
     fabric = Fabric(devices=2, num_nodes=3)
+    fabric.launch()
+
+Learn more about :doc:`launching distributed training <../fundamentals/launch>`.
+And here is how you access all rank and world size information:
+
+.. code-block:: python
 
     # The total number of processes running across all devices and nodes
     fabric.world_size  # 2 * 3 = 6
@@ -35,11 +52,84 @@ Rank and world size
     # The index of the current node
     fabric.node_rank
 
-    # Whether this global rank is rank zero.
-    if fabric.is_global_zero:
-        # do something on rank 0
+    # Do something only on rank 0
+    if fabric.global_rank == 0:
         ...
 
+
+.. _race conditions:
+
+Avoid race conditions
+=====================
+
+Access to the rank information helps you avoid *racing conditions* which could crash your script or lead to corrupted data.
+Such conditions can occur when multiple processes are trying to write to the same file all at the same time, for example, in the case of writing a checkpoint file or downloading a dataset.
+Avoid this from happening by guarding your logic with a rank check:
+
+.. code-block:: python
+
+    # Only write files from one process (rank 0) ...
+    if fabric.global_rank == 0:
+        with open("output.txt", "w") as file:
+            file.write(...)
+
+    # ... or save from all processes but don't write to the same file
+    with open(f"output-{fabric.global_rank}.txt", "w") as file:
+        file.write(...)
+
+    # Multi-node: download a dataset, the filesystem between nodes is shared
+    if fabric.global_rank == 0:
+        download_dataset()
+
+    # Multi-node: download a dataset, the filesystem between nodes is NOT shared
+    if fabric.local_rank == 0:
+        download_dataset()
+
+----
+
+
+*******
+Barrier
+*******
+
+The barrier forces every process to wait until all processes have reached the barrier.
+In other words, it is a **synchronization**.
+
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/barrier.jpeg
+   :alt: The barrier for process synchronization
+   :width: 100%
+
+A barrier is needed when processes do different amounts of work and as a result fall out of sync.
+
+.. code-block:: python
+
+    fabric = Fabric(accelerator="cpu", devices=4)
+    fabric.launch()
+
+    # Simulate each process taking a different amount of time
+    sleep(2 * fabric.global_rank)
+    print(f"Process {fabric.global_rank} is done.")
+
+    # Wait for all processes to reach the barrier
+    fabric.barrier()
+    print("All processes reached the barrier!")
+
+
+A more realistic scenario is when downloading data.
+Here, we need to ensure that processes only start to load the data once it has completed downloading.
+Since downloading should be done on rank 0 only to :ref:`avoid race conditions <race conditions>`, we need a barrier:
+
+.. code-block:: python
+
+    if fabric.global_rank == 0:
+        print("Downloading dataset. This can take a while ...")
+        download_dataset()
+
+    # All other processes wait here until rank 0 is done with downloading:
+    fabric.barrier()
+
+    # After everyone reached the barrier, they can access the downloaded files:
+    load_dataset()
 
 
 ----
@@ -98,27 +188,3 @@ Reduce
 
     # TODO
     fabric.all_reduce(...)
-
-
-----
-
-
-*******
-Barrier
-*******
-
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/barrier.jpeg
-   :alt: The barrier for process synchronization
-   :width: 100%
-
-.. code-block:: python
-
-    fabric = Fabric(accelerator="cpu", devices=4)
-    fabric.launch()
-
-    # Simulate each process taking a different amount of time
-    sleep(2 * fabric.global_rank)
-
-    # Wait for all processes to reach the barrier
-    fabric.barrier()
-    print("All processes synchronized!")
