@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `pytorch_lightning.profiler` module ([#16359](https://github.com/Lightning-AI/lightning/pull/16359))
 
-- Removed the deprecated `LightningCLI` arguments ([#TODO](https://github.com/Lightning-AI/lightning/pull/TODO))
+- Removed the deprecated `LightningCLI` arguments ([#16380](https://github.com/Lightning-AI/lightning/pull/16380))
   * save_config_filename
   * save_config_overwrite
   * save_config_multifile
