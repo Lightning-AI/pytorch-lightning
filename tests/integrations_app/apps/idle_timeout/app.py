@@ -65,7 +65,7 @@ class RootFlow(LightningFlow):
         if self.dest_work.status.stage == WorkStageStatus.STOPPED:
             print(self.dest_work.statuses)
             print("Application End")
-            self._exit()
+            self.stop()
 
 
 app = LightningApp(RootFlow(), log_level="debug")

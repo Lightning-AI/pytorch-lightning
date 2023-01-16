@@ -109,7 +109,7 @@ def test_client_server():
                 self._client.insert(TestConfig(name="name", secrets=secrets))
 
                 assert self._client.select_all(TestConfig)
-                self._exit()
+                self.stop()
 
     app = LightningApp(Flow())
     MultiProcessRuntime(app, start_server=False).dispatch()
@@ -143,11 +143,11 @@ def test_work_database_restart():
 
             if not self.restart:
                 self._client.insert(TestConfig(name="echo", secrets=[Secret(name="example", value="secret")]))
-                self._exit()
+                self.stop()
             else:
                 assert os.path.exists(self._db_filename)
                 assert len(self._client.select_all()) == 1
-                self._exit()
+                self.stop()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         app = LightningApp(Flow(db_root=tmpdir))
@@ -196,7 +196,7 @@ def test_work_database_periodic_store():
             elif (time.time() - self._start_time) > 2:
                 assert os.path.exists(self._db_filename)
                 assert len(self._client.select_all()) == 1
-                self._exit()
+                self.stop()
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:

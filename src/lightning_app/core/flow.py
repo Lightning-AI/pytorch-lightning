@@ -366,7 +366,7 @@ class LightningFlow:
         for structure, state in provided_state["structures"].items():
             getattr(self, structure).set_state(state)
 
-    def _exit(self, end_msg: str = "") -> None:
+    def stop(self, end_msg: str = "") -> None:
         """Private method used to exit the application."""
         if end_msg:
             print(end_msg)
@@ -803,7 +803,7 @@ class _RootFlow(LightningFlow):
     def run(self):
         if self.work.has_succeeded:
             self.work.stop()
-            self._exit()
+            self.stop()
         self.work.run()
 
     def configure_layout(self):

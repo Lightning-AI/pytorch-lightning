@@ -7,4 +7,4 @@ class BBB(LightningFlow):
         self.work = work
 
     def run(self):
-        self._exit()
+        self.stop()
