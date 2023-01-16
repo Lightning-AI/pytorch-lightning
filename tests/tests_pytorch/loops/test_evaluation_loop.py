@@ -20,7 +20,6 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import EvaluationEpochLoop
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests_pytorch.helpers.runif import RunIf
 
@@ -190,20 +189,22 @@ def test_evaluation_loop_doesnt_store_outputs_if_epoch_end_not_overridden(tmpdir
             # check `test_step` returns something
             assert outputs is not None
 
-    class TestLoop(EvaluationEpochLoop):
-        def on_advance_end(self):
-            # should be empty
-            assert not self._outputs
-            # sanity check
-            nonlocal did_assert
-            did_assert = True
-            super().on_advance_end()
-
     model = TestModel()
     model.test_epoch_end = None
     assert not is_overridden("test_epoch_end", model)
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=3)
-    trainer.test_loop.replace(epoch_loop=TestLoop)
+    loop = trainer.test_loop.epoch_loop
+    original_advance = loop.advance
+
+    def assert_on_advance_end(*args, **kwargs):
+        original_advance(*args, **kwargs)
+        # should be empty
+        assert not loop._outputs
+        # sanity check
+        nonlocal did_assert
+        did_assert = True
+
+    loop.advance = assert_on_advance_end
     trainer.test(model)
     assert did_assert
