@@ -11,22 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from time import time
 from typing import Any, Iterator
-from unittest import mock
 
 import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
-from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
+from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests_pytorch.helpers.runif import RunIf
 
@@ -215,53 +212,6 @@ class RecommenderModel(BoringModel):
 
     def test_dataloader(self):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
-
-
-@pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize("accelerator", [pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))])
-def test_trainer_num_prefetch_batches(tmpdir, accelerator):
-
-    model = RecommenderModel()
-
-    class AssertFetcher(Callback):
-        def __init__(self, check_inter_batch):
-            self._check_inter_batch = check_inter_batch
-
-        def on_train_epoch_end(self, trainer, lightning_module):
-            fetcher = trainer.fit_loop._data_fetcher
-            assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
-            assert fetcher.prefetch_batches == int(self._check_inter_batch)
-
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        accelerator=accelerator,
-        devices=1,
-        limit_train_batches=4,
-        limit_val_batches=0,
-        num_sanity_val_steps=0,
-        enable_progress_bar=0,
-    )
-
-    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=True))
-    with mock.patch.dict(os.environ, {"PL_INTER_BATCH_PARALLELISM": "1"}):
-        t0 = time()
-        trainer.fit(model)
-        t1 = time()
-        inter_batch_duration = t1 - t0
-    global_step = trainer.global_step
-
-    torch.cuda.synchronize()
-
-    trainer = Trainer(**trainer_kwargs, callbacks=AssertFetcher(check_inter_batch=False))
-    t2 = time()
-    trainer.fit(model)
-    t3 = time()
-    regular_duration = t3 - t2
-
-    assert global_step == trainer.global_step == 4
-    ratio = regular_duration / inter_batch_duration
-    assert ratio > 1.1, (regular_duration, inter_batch_duration, ratio)
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
