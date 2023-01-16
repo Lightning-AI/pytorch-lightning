@@ -120,7 +120,7 @@ class DDPStrategy(ParallelStrategy):
     def module_to_device(self, module: Module) -> None:
         module.to(self.root_device)
 
-    def reduce(
+    def all_reduce(
         self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.

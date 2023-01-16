@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional, Union
 from torch import Tensor
 
 import pytorch_lightning as pl
-from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from lightning_fabric.loggers.tensorboard import TensorBoardLogger as FabricTensorBoardLogger
 from lightning_fabric.utilities.logger import _convert_params
 from lightning_fabric.utilities.types import _PATH
@@ -38,6 +38,10 @@ log = logging.getLogger(__name__)
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
+
+# Skip doctests if requirements aren't available
+if not (_TENSORBOARD_AVAILABLE or _TENSORBOARDX_AVAILABLE):
+    __doctest_skip__ = ["TensorBoardLogger", "TensorBoardLogger.*"]
 
 
 class TensorBoardLogger(Logger, FabricTensorBoardLogger):

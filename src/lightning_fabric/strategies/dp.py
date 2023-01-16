@@ -65,7 +65,7 @@ class DataParallelStrategy(ParallelStrategy):
         # DataParallel handles the transfer of batch to the device
         return batch
 
-    def reduce(
+    def all_reduce(
         self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> TReduce:
         def mean(t: Tensor) -> Tensor:

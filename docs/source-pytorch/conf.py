@@ -400,6 +400,7 @@ from pytorch_lightning.cli import _JSONARGPARSE_SIGNATURES_AVAILABLE as _JSONARG
 from pytorch_lightning.utilities import (
     _TORCHVISION_AVAILABLE,
 )
+from lightning_fabric.loggers.tensorboard import _TENSORBOARD_AVAILABLE, _TENSORBOARDX_AVAILABLE
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE

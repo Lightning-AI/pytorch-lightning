@@ -58,13 +58,13 @@ TODO: need progress bar here
 
 View in the browser
 ===================
-To view metrics in the browser you need to use an *experiment manager* with these capabilities. By Default, Lightning uses Tensorboard which is free and opensource.
+To view metrics in the browser you need to use an *experiment manager* with these capabilities.
 
-Tensorboard is already enabled by default
+By Default, Lightning uses Tensorboard (if available) and a simple CSV logger otherwise.
 
 .. code-block:: python
 
-    # every trainer already has tensorboard enabled by default
+    # every trainer already has tensorboard enabled by default (if the dependency is available)
     trainer = Trainer()
 
 To launch the tensorboard dashboard run the following command on the commandline.
