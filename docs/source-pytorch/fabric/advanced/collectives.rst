@@ -14,7 +14,7 @@ Fabric enables you to easily access information about a process or send data bet
 Rank and world size
 *******************
 
-.. figure:: Collectives.001.jpeg
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/ranks.jpeg
    :alt: The different type of process ranks: Local, global, node.
    :width: 100%
 
@@ -49,7 +49,7 @@ Rank and world size
 Broadcast
 *********
 
-.. figure:: Collectives.002.jpeg
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/broadcast.jpeg
    :alt: The broadcast collective operation
    :width: 100%
 
@@ -69,7 +69,7 @@ Broadcast
 Gather
 ******
 
-.. figure:: Collectives.003.jpeg
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/all-gather.jpeg
    :alt: The All-gather collective operation
    :width: 100%
 
@@ -88,7 +88,7 @@ Gather
 Reduce
 ******
 
-.. figure:: Collectives.004.jpeg
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/all-reduce.jpeg
    :alt: The All-reduce collective operation
    :width: 100%
 
@@ -107,7 +107,7 @@ Reduce
 Barrier
 *******
 
-.. figure:: Collectives.005.jpeg
+.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/barrier.jpeg
    :alt: The barrier for process synchronization
    :width: 100%
 
