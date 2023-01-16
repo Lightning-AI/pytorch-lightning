@@ -139,7 +139,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             z = self.encoder(x)
             x_hat = self.decoder(z)
             loss = nn.functional.mse_loss(x_hat, x)
-            # Logging to TensorBoard by default
+            # Logging to TensorBoard (if installed) by default
             self.log("train_loss", loss)
             return loss
 
@@ -218,7 +218,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 *********************
 6: Visualize training
 *********************
-Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard for visualizing experiments.
+If you have tensorboard installed, you can use it for visualizing experiments.
 
 Run this on your commandline and open your browser to **http://localhost:6006/**
 

@@ -817,10 +817,11 @@ logger
 :doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
+    :skipif: not _TENSORBOARD_AVAILABLE and not _TENSORBOARDX_AVAILABLE
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
-    # default logger used by trainer
+    # default logger used by trainer (if tensorboard is installed)
     logger = TensorBoardLogger(save_dir=os.getcwd(), version=1, name="lightning_logs")
     Trainer(logger=logger)
 

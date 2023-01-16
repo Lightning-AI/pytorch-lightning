@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The LoadBalancer now uses internal ip + port instead of URL exposed ([#16119](https://github.com/Lightning-AI/lightning/pull/16119))
 - Added support for logging in different trainer stages with  `DeviceStatsMonitor`
 ([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
+- Changed `lightning_app.components.serve.gradio` to  `lightning_app.components.serve.gradio_server` ([#16201](https://github.com/Lightning-AI/lightning/pull/16201))
 - Made cluster creation/deletion async by default ([#16185](https://github.com/Lightning-AI/lightning/pull/16185))
 
 
