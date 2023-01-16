@@ -108,7 +108,7 @@ def _collect_rng_states() -> Dict[str, Any]:
     """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     return {
         "torch": torch.get_rng_state(),
-        # "torch.cuda": torch.cuda.get_rng_state_all(),
+        "torch.cuda": torch.cuda.get_rng_state_all(),
         "numpy": np.random.get_state(),
         "python": python_get_rng_state(),
     }
