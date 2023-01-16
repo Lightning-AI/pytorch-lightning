@@ -154,11 +154,6 @@ class EvaluationEpochLoop(Loop):
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
             self._outputs.append(output)
 
-        if self.trainer.move_metrics_to_cpu:
-            # the evaluation step output is not moved as they are not considered "metrics"
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
-
         if not self.batch_progress.is_last_batch:
             # if fault tolerant is enabled and process has been notified, exit.
             self.trainer._exit_gracefully_on_signal()
