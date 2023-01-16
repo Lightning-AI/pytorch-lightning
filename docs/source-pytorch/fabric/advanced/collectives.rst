@@ -20,7 +20,7 @@ Rank and world size
 
 .. code-block:: python
 
-    # devices and num_nodes determine how many processes there are
+    # Devices and num_nodes determine how many processes there are
     fabric = Fabric(devices=2, num_nodes=3)
 
     # The total number of processes running across all devices and nodes
@@ -113,7 +113,12 @@ Barrier
 
 .. code-block:: python
 
-    fabric = Fabric(...)
+    fabric = Fabric(accelerator="cpu", devices=4)
+    fabric.launch()
 
-    # Wait for all processes to enter this call.
+    # Simulate each process taking a different amount of time
+    sleep(2 * fabric.global_rank)
+
+    # Wait for all processes to reach the barrier
     fabric.barrier()
+    print("All processes synchronized!")
