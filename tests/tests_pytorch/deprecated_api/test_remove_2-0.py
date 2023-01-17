@@ -17,17 +17,12 @@ from unittest import mock
 import numpy
 import pytest
 import torch
-from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
-from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
-from pytorch_lightning.overrides.base import unwrap_lightning_module
-from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
+from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.plugins.environments import LightningEnvironment
-from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
@@ -62,51 +57,6 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
-from tests_pytorch.helpers.runif import RunIf
-
-
-@pytest.mark.parametrize(
-    "wrapper_class",
-    [
-        LightningParallelModule,
-        LightningDistributedModule,
-        LightningBaguaModule,
-    ],
-)
-def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
-    with no_warning_call(
-        DeprecationWarning, match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8.0"
-    ):
-        wrapper_class(BoringModel())
-
-    with pytest.deprecated_call(
-        match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8.0"
-    ):
-        wrapper_class(pl_module=BoringModel())
-
-
-@RunIf(fairscale=True)
-def test_v1_10_deprecated_fairscale_pl_module_init_parameter():
-    with no_warning_call(
-        DeprecationWarning, match=r"The argument `pl_module` in `LightningShardedDataParallel` is deprecated in v1.8.0"
-    ), pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-        LightningShardedDataParallel(BoringModel())
-
-    with pytest.deprecated_call(
-        match=r"The argument `pl_module` in `LightningShardedDataParallel` is deprecated in v1.8.0"
-    ):
-        LightningShardedDataParallel(pl_module=BoringModel())
-
-
-def test_v1_10_deprecated_unwrap_lightning_module():
-    with pytest.deprecated_call(match=r"The function `unwrap_lightning_module` is deprecated in v1.8.0"):
-        unwrap_lightning_module(BoringModel())
-
-
-@RunIf(fairscale=True)
-def test_v1_10_deprecated_unwrap_lightning_module_sharded():
-    with pytest.deprecated_call(match=r"The function `unwrap_lightning_module_sharded` is deprecated in v1.8.0"):
-        unwrap_lightning_module_sharded(BoringModel())
 
 
 def test_v1_10_deprecated_on_colab_kaggle_func():

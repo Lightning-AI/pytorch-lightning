@@ -64,6 +64,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * env_prefix
   * env_parse
 
+- Mark the `forward_module` argument as required ([#16386](https://github.com/Lightning-AI/lightning/pull/16386))
+  * Removed the deprecated `pl_module` argument from the distributed module wrappers
+  * Removed the deprecated `pytorch_lightning.overrides.base.unwrap_lightning_module` function
+  * Removed the `pytorch_lightning.overrides.distributed.LightningDistributedModule` class
+  * Removed the deprecated `pytorch_lightning.overrides.fairscale.unwrap_lightning_module_sharded` function
+  * Removed the `pytorch_lightning.overrides.fairscale.LightningDistributedModule` class
+
 - Removed the deprecated automatic GPU selection ([#16184](https://github.com/Lightning-AI/lightning/pull/16184))
   * Removed the `Trainer(auto_select_gpus=...)` argument
   * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions
