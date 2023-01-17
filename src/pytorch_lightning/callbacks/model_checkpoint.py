@@ -584,7 +584,7 @@ class ModelCheckpoint(Checkpoint):
 
         if len(trainer.loggers) > 0:
             logger_ = trainer.loggers[0]
-            save_dir = getattr(logger_, "save_dir", trainer.default_root_dir)
+            save_dir = getattr(logger_, "save_dir") or trainer.default_root_dir
             version = logger_.version
             version = version if isinstance(version, str) else f"version_{version}"
             ckpt_path = os.path.join(save_dir, str(logger_.name), version, "checkpoints")
