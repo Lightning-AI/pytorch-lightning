@@ -92,7 +92,7 @@ Avoid this from happening by guarding your logic with a rank check:
 Barrier
 *******
 
-The barrier forces every process to wait until all processes have reached the barrier.
+The barrier forces every process to wait until all processes have reached it.
 In other words, it is a **synchronization**.
 
 .. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/barrier.jpeg
@@ -187,7 +187,7 @@ Gather
    :alt: The All-gather collective operation
    :width: 100%
 
-The gather operation transfers the tensors from each process to every other process and concatenates the results.
+The gather operation transfers the tensors from each process to every other process and stacks the results.
 As opposed to the :ref:`broadcast <broadcast collective>`, every process gets the data from every other process, not just from a particular rank.
 
 .. code-block:: python
@@ -216,7 +216,7 @@ A concrete example:
     result = torch.tensor(10 * fabric.global_rank)
 
     # Every process gathers the tensors from all other processes
-    # and concatenates the result:
+    # and stacks the result:
     result = fabric.all_gather(data)
     print("Result of all-gather:", result)  # tensor([ 0, 10, 20, 30])
 
