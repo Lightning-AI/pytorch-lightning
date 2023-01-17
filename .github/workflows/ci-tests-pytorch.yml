@@ -186,7 +186,9 @@ jobs:
 
     - name: Testing legacy creation
       working-directory: tests/
-      run: python legacy/simple_classif_training.py
+      run: |
+        export PYTHONPATH=$(dirname $LEGACY_PATH);$PYTHONPATH  # for `import tests_pytorch`
+        python legacy/simple_classif_training.py
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
