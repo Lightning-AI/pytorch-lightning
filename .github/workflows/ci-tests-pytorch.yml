@@ -185,8 +185,8 @@ jobs:
       run: python utilities/test_warnings.py
 
     - name: Testing legacy creation
-      working-directory: tests/legacy
-      run: python simple_classif_training.py
+      working-directory: tests/
+      run: python legacy/simple_classif_training.py
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
