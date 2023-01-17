@@ -121,20 +121,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         return False
 
-    def connect(  # type: ignore[override]
-        self,
-        optimizer_loop: Optional[OptimizerLoop] = None,
-        manual_loop: Optional[ManualOptimization] = None,
-        val_loop: Optional["loops.EvaluationLoop"] = None,
-    ) -> None:
-        """Optionally connect a custom batch or validation loop to this training epoch loop."""
-        if optimizer_loop is not None:
-            self.optimizer_loop = optimizer_loop
-        if manual_loop is not None:
-            self.manual_loop = manual_loop
-        if val_loop is not None:
-            self.val_loop = val_loop
-
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
         if self.restarting:

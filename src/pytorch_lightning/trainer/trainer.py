@@ -371,21 +371,16 @@ class Trainer:
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
-        fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
-        training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        fit_loop.connect(epoch_loop=training_epoch_loop)
-
-        # default .fit() loop
-        self.fit_loop = fit_loop
-
-        # default .validate() loop
+        # init loops
+        self.fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
+        self.fit_loop.epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         self.validate_loop = EvaluationLoop()
-
-        # default .test() loop
         self.test_loop = EvaluationLoop()
-
-        # default .predict() loop
         self.predict_loop = PredictionLoop()
+        self.fit_loop.trainer = self
+        self.validate_loop.trainer = self
+        self.test_loop.trainer = self
+        self.predict_loop.trainer = self
 
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
@@ -1103,8 +1098,6 @@ class Trainer:
         self.model.train()
         torch.set_grad_enabled(True)
 
-        self.fit_loop.trainer = self
-
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
 
@@ -1113,9 +1106,6 @@ class Trainer:
 
         # reload dataloaders
         self._evaluation_loop._reload_evaluation_dataloaders()
-
-        # reset trainer on this loop and all child loops in case user connected a custom loop
-        self._evaluation_loop.trainer = self
 
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(
             self.accelerator, self._inference_mode
@@ -1133,8 +1123,6 @@ class Trainer:
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
-        # reset trainer on this loop and all child loops in case user connected a custom loop
-        self.predict_loop.trainer = self
         with _evaluation_context(self.accelerator, self._inference_mode):
             return self.predict_loop.run()
 
@@ -1954,63 +1942,6 @@ class Trainer:
     def is_last_batch(self) -> bool:
         """Whether trainer is executing the last batch."""
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
-
-    @property
-    def fit_loop(self) -> FitLoop:
-        return self._fit_loop
-
-    @fit_loop.setter
-    def fit_loop(self, loop: FitLoop) -> None:
-        """Attach a custom fit loop to this Trainer.
-
-        It will run with
-        :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`.
-        """
-        loop.trainer = self
-        self._fit_loop = loop
-
-    @property
-    def validate_loop(self) -> EvaluationLoop:
-        return self._validate_loop
-
-    @validate_loop.setter
-    def validate_loop(self, loop: EvaluationLoop) -> None:
-        """Attach a custom validation loop to this Trainer.
-
-        It will run with
-        :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. Note that this loop is different from the one
-        running during training inside the :meth:`pytorch_lightning.trainer.trainer.Trainer.fit` call.
-        """
-        loop.trainer = self
-        self._validate_loop = loop
-
-    @property
-    def test_loop(self) -> EvaluationLoop:
-        return self._test_loop
-
-    @test_loop.setter
-    def test_loop(self, loop: EvaluationLoop) -> None:
-        """Attach a custom test loop to this Trainer.
-
-        It will run with
-        :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
-        """
-        loop.trainer = self
-        self._test_loop = loop
-
-    @property
-    def predict_loop(self) -> PredictionLoop:
-        return self._predict_loop
-
-    @predict_loop.setter
-    def predict_loop(self, loop: PredictionLoop) -> None:
-        """Attach a custom prediction loop to this Trainer.
-
-        It will run with
-        :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
-        """
-        loop.trainer = self
-        self._predict_loop = loop
 
     @property
     def _evaluation_loop(self) -> EvaluationLoop:
