@@ -2101,13 +2101,6 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         (
-            {"strategy": DDPShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPShardedStrategy,
-            "ddp_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
@@ -2141,7 +2134,12 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
 
-    trainer = Trainer(**trainer_kwargs)
+    strategy = trainer_kwargs.get("strategy")
+    if (isinstance(strategy, str) and "sharded" in strategy) or isinstance(strategy, (DDPShardedStrategy)):
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(**trainer_kwargs)
+    else:
+        trainer = Trainer(**trainer_kwargs)
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
