@@ -7,6 +7,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urljoin
+
+import requests
+from requests.exceptions import ConnectionError, ConnectTimeout, ReadTimeout
 
 from lightning_app.core.constants import (
     HTTP_QUEUE_REFRESH_INTERVAL,
@@ -345,6 +349,21 @@ class HTTPQueue(BaseQueue):
         self.name = name  # keeping the name for debugging
         self.default_timeout = default_timeout
         self.client = HTTPClient(base_url=HTTP_QUEUE_URL, auth_token=HTTP_QUEUE_TOKEN, log_callback=debug_log_callback)
+
+    @property
+    def is_running(self) -> bool:
+        """Pinging the http redis server to see if it is alive."""
+        try:
+            url = urljoin(HTTP_QUEUE_URL, "health")
+            resp = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {HTTP_QUEUE_TOKEN}"},
+                timeout=1,
+            )
+            if resp.status_code == 200:
+                return True
+        except (ConnectionError, ConnectTimeout, ReadTimeout):
+            return False
 
     def get(self, timeout: int = None) -> Any:
         if not self.app_id:

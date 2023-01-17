@@ -288,6 +288,9 @@ class CloudRuntime(Runtime):
         if not ENABLE_PUSHING_STATE_ENDPOINT:
             v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
 
+        if get_cloud_queue_type():
+            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value=get_cloud_queue_type()))
+
         works: List[V1Work] = _get_work_specs(self.app)
 
         # We need to collect a spec for each flow that contains a frontend so that the backend knows

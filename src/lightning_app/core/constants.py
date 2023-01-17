@@ -81,3 +81,19 @@ def get_cloud_queue_type() -> Optional[str]:
 
 # Number of seconds to wait between filesystem checks when waiting for files in remote storage
 REMOTE_STORAGE_WAIT = 0.5
+
+
+# preemptible support
+def enable_preemptible_works() -> bool:
+    return bool(int(os.getenv("LIGHTNING_ENABLE_PREEMPTIBLE_WORKS", "0")))
+
+
+# Get Cluster Driver
+_CLUSTER_DRIVERS = ["k8s", "direct"]
+
+
+def get_cluster_driver() -> str:
+    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", "k8s")
+    if value not in _CLUSTER_DRIVERS:
+        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
+    return value
