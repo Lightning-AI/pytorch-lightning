@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Renamed `Strategy.reduce` to `Strategy.all_reduce` in all strategies ([#16370](https://github.com/Lightning-AI/lightning/issues/16370))
 
+- When using multiple devices, the strategy now defaults to "ddp" instead of "ddp_spawn" when none is set ([#16388](https://github.com/Lightning-AI/lightning/issues/16388))
+
 
 ## [1.9.0] - 2023-01-12
 
