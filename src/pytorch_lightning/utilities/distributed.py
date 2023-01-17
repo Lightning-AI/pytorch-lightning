@@ -17,16 +17,8 @@ from typing import Any, Callable, Dict, Optional
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from lightning_fabric.utilities.distributed import _all_gather_ddp_if_available as new_all_gather_ddp_if_available
 from lightning_fabric.utilities.distributed import _distributed_available as new_distributed_available
-from lightning_fabric.utilities.distributed import _gather_all_tensors as new_gather_all_tensors
-from lightning_fabric.utilities.distributed import (
-    _get_default_process_group_backend_for_device as new_get_default_process_group_backend_for_device,
-)
-from lightning_fabric.utilities.distributed import _init_dist_connection as new_init_dist_connection
-from lightning_fabric.utilities.distributed import _sync_ddp as new_sync_ddp
-from lightning_fabric.utilities.distributed import _sync_ddp_if_available as new_sync_ddp_if_available
-from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info
 
 
 def register_ddp_comm_hook(
@@ -150,80 +142,3 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     if not new_distributed_available():
         return {0: state}
     return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
-
-
-def all_gather_ddp_if_available(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.all_gather_ddp_if_available` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_all_gather_ddp_if_available(*args, **kwargs)
-
-
-def distributed_available() -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.distributed_available` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_distributed_available()
-
-
-def gather_all_tensors(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.gather_all_tensors` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_gather_all_tensors(*args, **kwargs)
-
-
-def get_default_process_group_backend_for_device(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.get_default_process_group_backend_for_device` has been deprecated"
-        " in v1.8.0 and will be removed in v2.0.0. This function is internal but you can copy over its implementation."
-        " `lightning_fabric.utilities.distributed.get_default_process_group_backend_for_device` instead."
-    )
-    return new_get_default_process_group_backend_for_device(*args, **kwargs)
-
-
-def init_dist_connection(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.init_dist_connection` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_init_dist_connection(*args, **kwargs)
-
-
-def sync_ddp(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.sync_ddp` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_sync_ddp(*args, **kwargs)
-
-
-def sync_ddp_if_available(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.sync_ddp_if_available` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    return new_sync_ddp_if_available(*args, **kwargs)
-
-
-def tpu_distributed() -> bool:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.tpu_distributed` has been deprecated in v1.8.0 and will"
-        " be removed in v2.0.0. This function is internal but you can copy over its implementation."
-    )
-    from lightning_fabric.accelerators.tpu import _tpu_distributed
-
-    return _tpu_distributed()
-
-
-def rank_zero_only(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.distributed.rank_zero_only` has been deprecated in v1.8.1 and will"
-        " be removed in v2.0.0. You can import it from `pytorch_lightning.utilities` instead."
-    )
-    from pytorch_lightning.utilities.rank_zero import rank_zero_only as new_rank_zero_only
-
-    return new_rank_zero_only(*args, **kwargs)

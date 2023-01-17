@@ -64,6 +64,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * env_prefix
   * env_parse
 
+- Removed the deprecated code in `pl.utilities.distributed` ([#16390](https://github.com/Lightning-AI/lightning/pull/16390))
+
 - Mark the `forward_module` argument as required ([#16386](https://github.com/Lightning-AI/lightning/pull/16386))
   * Removed the deprecated `pl_module` argument from the distributed module wrappers
   * Removed the deprecated `pytorch_lightning.overrides.base.unwrap_lightning_module` function
