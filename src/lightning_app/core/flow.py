@@ -383,7 +383,7 @@ class LightningFlow:
         """
         warnings.warn(
             DeprecationWarning(
-                "This function is deprecated and will be removed in 2.0.0. " "Use `LightningFlow.stop` instead."
+                "This function is deprecated and will be removed in 2.0.0. Use `LightningFlow.stop` instead."
             )
         )
 
