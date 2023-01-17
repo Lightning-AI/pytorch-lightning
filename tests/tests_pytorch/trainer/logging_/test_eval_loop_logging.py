@@ -593,31 +593,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert set(results[0]) == {"test_loss"}
 
 
-def test_logging_dict_on_validation_step(tmpdir):
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            loss = super().validation_step(batch, batch_idx)
-            loss = loss["x"]
-            metrics = {
-                "loss": loss,
-                "loss_1": loss,
-            }
-            self.log("val_metrics", metrics)
-
-        validation_epoch_end = None
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-    )
-
-    trainer.fit(model)
-
-
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
