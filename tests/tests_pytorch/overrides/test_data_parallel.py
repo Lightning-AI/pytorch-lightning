@@ -20,7 +20,7 @@ from torch.nn import DataParallel
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.overrides.data_parallel import (
     LightningParallelModule,
     python_scalar_to_tensor,
@@ -30,7 +30,7 @@ from pytorch_lightning.trainer.states import RunningStage
 from tests_pytorch.helpers.runif import RunIf
 
 
-@pytest.mark.parametrize("wrapper_class", [LightningParallelModule, LightningDistributedModule])
+@pytest.mark.parametrize("wrapper_class", [LightningParallelModule, _LightningModuleWrapperBase])
 @pytest.mark.parametrize(
     "stage",
     [
