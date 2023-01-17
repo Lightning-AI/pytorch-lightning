@@ -70,6 +70,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed support for loop customization
   * Removed `Loop.replace()` ([#16361](https://github.com/Lightning-AI/lightning/pull/16361))
+  * Removed `Loop.connect()` ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
+  * Removed the `trainer.{fit,validate,test,predict}_loop` properties ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
 
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute

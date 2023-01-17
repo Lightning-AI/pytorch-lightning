@@ -78,10 +78,6 @@ class EvaluationLoop(DataLoaderLoop):
         is_unsized = batches[self.current_dataloader_idx] == float("inf")
         return int(is_unsized)
 
-    def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
-        """Connect the evaluation epoch loop with this loop."""
-        self.epoch_loop = epoch_loop
-
     @property
     def done(self) -> bool:
         """Returns whether all dataloaders are processed or evaluation should be skipped altogether."""

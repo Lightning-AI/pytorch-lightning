@@ -100,12 +100,6 @@ class Loop(ABC, Generic[T]):
         """
         return False
 
-    def connect(self, **kwargs: "Loop") -> None:
-        """Optionally connect one or multiple loops to this one.
-
-        Linked loops should form a tree.
-        """
-
     def on_skip(self) -> T:
         """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
 
