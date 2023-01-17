@@ -35,17 +35,6 @@ then access the logger's API directly
 
 ----
 
-****************************************
-Track multiple metrics in the same chart
-****************************************
-If your logger supports plotting multiple metrics on the same chart, pass in a dictionary to *self.log*.
-
-.. code-block:: python
-
-    self.log("performance", {"acc": acc, "recall": recall})
-
-----
-
 *********************
 Track hyperparameters
 *********************

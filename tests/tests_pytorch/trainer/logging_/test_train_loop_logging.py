@@ -224,13 +224,13 @@ def test_different_batch_types_for_sizing(tmpdir):
             assert isinstance(batch, dict)
             a = batch["a"]
             acc = self.step(a)
-            self.log("a", {"d1": 2, "d2": torch.tensor(1)}, on_step=True, on_epoch=True)
+            self.log("a", 2, on_step=True, on_epoch=True)
             return acc
 
         def validation_step(self, batch, batch_idx):
             assert isinstance(batch, dict)
             loss = self.step(batch["a"])
-            self.log("n", {"d3": 2, "d4": torch.tensor(1)}, on_step=True, on_epoch=True)
+            self.log("n", 3, on_step=True, on_epoch=True)
             return {"x": loss}
 
         def train_dataloader(self):
@@ -594,9 +594,10 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
 
 
 @pytest.mark.parametrize(
-    "value", [None, dict(a=None), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]]
+    "value",
+    [None, dict(a=None), dict(a=1), dict(a=dict(b=None)), dict(a=dict(b=1)), "foo", [1, 2, 3], (1, 2, 3), [[1, 2], 3]],
 )
-def test_log_none_raises(tmpdir, value):
+def test_log_invalid_raises(tmpdir, value):
     class TestModel(BoringModel):
         def training_step(self, *args):
             self.log("foo", value)
@@ -702,7 +703,7 @@ def test_sanity_metrics_are_reset(tmpdir):
             return output
 
         def training_step(self, batch, batch_idx):
-            loss = super().training_step(batch, batch_idx)
+            loss = super().training_step(batch, batch_idx)["loss"]
             if batch_idx == 0:
                 assert self.trainer.progress_bar_metrics == {}
                 assert self.trainer.logged_metrics == {}
