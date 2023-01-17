@@ -4,7 +4,7 @@
 Communication between distributed processes
 ###########################################
 
-Fabric enables you to easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
+With Fabric you can easily access information about a process or send data between processes with a standardized API and agnostic to the distributed strategy.
 
 
 ----
