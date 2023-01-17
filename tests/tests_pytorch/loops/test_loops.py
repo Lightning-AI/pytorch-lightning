@@ -25,71 +25,26 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import Loop, OptimizerLoop
+from pytorch_lightning.loops import Loop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests_pytorch.helpers.runif import RunIf
 
 
-class NestedLoop(Loop):
-    def __init__(self):
-        super().__init__()
-        self.child_loop0 = None
-        self.child_loop1 = None
-
-    @property
-    def done(self) -> bool:
-        return False
-
-    def connect(self, child0, child1):
-        self.child_loop0 = child0
-        self.child_loop1 = child1
-
-    def reset(self) -> None:
-        pass
-
-    def advance(self, *args, **kwargs):
-        pass
-
-
-@pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
-def test_connect_loops_direct(loop_name):
-    """Test Trainer references in loops on assignment."""
-    loop = NestedLoop()
-
-    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
-        _ = loop.trainer
-
-    trainer = Trainer()
-
-    # trainer.loop_name = loop
-    setattr(trainer, loop_name, loop)
-    assert loop.trainer is trainer
-
-
-def test_connect_loops_recursive():
-    """Test Trainer references in a nested loop assigned to a Trainer."""
-    main_loop = NestedLoop()
-    child0 = NestedLoop()
-    child1 = NestedLoop()
-    main_loop.connect(child0, child1)
-
-    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
-        _ = main_loop.trainer
-
-    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
-        _ = main_loop.child_loop0.trainer
-
-    trainer = Trainer()
-    trainer.fit_loop = main_loop
-    assert child0.trainer is child1.trainer
-    assert child0.trainer is trainer
-
-
 def test_restarting_loops_recursive():
-    class MyLoop(NestedLoop):
+    class MyLoop(Loop):
         def __init__(self, loop=None):
             super().__init__()
             self.child = loop
+
+        @property
+        def done(self) -> bool:
+            return False
+
+        def reset(self) -> None:
+            pass
+
+        def advance(self, *args, **kwargs):
+            pass
 
     loop = MyLoop(MyLoop(MyLoop()))
 
@@ -100,23 +55,6 @@ def test_restarting_loops_recursive():
     assert loop.restarting
     assert loop.child.restarting
     assert loop.child.child.restarting
-
-
-def test_connect_subloops(tmpdir):
-    """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-
-    epoch_loop = trainer.fit_loop.epoch_loop
-    new_optimizer_loop = OptimizerLoop()
-    epoch_loop.connect(optimizer_loop=new_optimizer_loop)
-    assert epoch_loop.optimizer_loop is new_optimizer_loop
-
-    with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
-        _ = new_optimizer_loop.trainer
-
-    trainer.fit(model)
-    assert new_optimizer_loop.trainer is trainer
 
 
 class CustomException(Exception):

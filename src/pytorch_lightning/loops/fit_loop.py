@@ -169,10 +169,6 @@ class FitLoop(Loop[None]):
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
 
-    def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
-        """Connects a training epoch loop to this fit loop."""
-        self.epoch_loop = epoch_loop
-
     def reset(self) -> None:
         """Resets the internal state of this loop."""
         if self.restarting:
