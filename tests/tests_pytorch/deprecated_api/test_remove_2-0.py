@@ -20,7 +20,6 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
@@ -30,7 +29,6 @@ from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, 
 from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.strategies.bagua import LightningBaguaModule
 from pytorch_lightning.strategies.utils import on_colab_kaggle
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.apply_func import (
     apply_to_collection,
     apply_to_collections,
@@ -269,30 +267,6 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_accelerator_setup_environment_method():
     with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
         CPUAccelerator().setup_environment(torch.device("cpu"))
-
-
-def test_tuning_enum():
-    with pytest.deprecated_call(
-        match="`TrainerFn.TUNING` has been deprecated in v1.8.0 and will be removed in v2.0.0."
-    ):
-        TrainerFn.TUNING
-
-    with pytest.deprecated_call(
-        match="`RunningStage.TUNING` has been deprecated in v1.8.0 and will be removed in v2.0.0."
-    ):
-        RunningStage.TUNING
-
-
-def test_tuning_trainer_property():
-    trainer = Trainer()
-
-    with pytest.deprecated_call(match="`Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0."):
-        trainer.tuning
-
-    with pytest.deprecated_call(
-        match="Setting `Trainer.tuning` has been deprecated in v1.8.0 and will be removed in v2.0.0."
-    ):
-        trainer.tuning = True
 
 
 def test_v1_8_1_deprecated_rank_zero_only():
