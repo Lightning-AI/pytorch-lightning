@@ -588,25 +588,6 @@ def test_accelerator_auto_with_devices_ipu():
 
 
 @RunIf(ipu=True)
-def test_accelerator_ipu_with_ipus_priority():
-    """Test for checking `ipus` flag takes priority over `devices`."""
-
-    ipus = 8
-    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
-        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
-
-    assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.num_devices == ipus
-
-
-@RunIf(ipu=True)
-def test_set_devices_if_none_ipu():
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        trainer = Trainer(accelerator="ipu", ipus=8)
-    assert trainer.num_devices == 8
-
-
-@RunIf(ipu=True)
 def test_strategy_choice_ipu_strategy():
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
