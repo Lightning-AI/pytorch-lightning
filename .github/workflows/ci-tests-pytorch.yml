@@ -218,10 +218,3 @@ jobs:
         flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
-
-# TODO
-#    - name: Testing legacy creation
-#      working-directory: tests/
-#      run: |
-#        export PYTHONPATH=$(dirname $LEGACY_PATH);$PYTHONPATH  # for `import tests_pytorch`
-#        python legacy/simple_classif_training.py

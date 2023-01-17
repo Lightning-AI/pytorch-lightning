@@ -53,6 +53,7 @@ from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, Pro
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
@@ -1806,8 +1807,10 @@ class Trainer:
     @property
     def log_dir(self) -> Optional[str]:
         if len(self.loggers) > 0:
-            logger_ = self.loggers[0]
-            dirpath = getattr(logger_, "log_dir", None) or getattr(logger_, "save_dir", None)
+            if not isinstance(self.loggers[0], TensorBoardLogger):
+                dirpath = self.loggers[0].save_dir
+            else:
+                dirpath = self.loggers[0].log_dir
         else:
             dirpath = self.default_root_dir
 
