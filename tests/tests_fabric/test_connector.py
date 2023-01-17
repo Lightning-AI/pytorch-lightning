@@ -46,6 +46,7 @@ from lightning_fabric.strategies import (
     XLAStrategy,
 )
 from lightning_fabric.strategies.ddp import _DDP_FORK_ALIASES
+from lightning_fabric.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 
 
@@ -412,6 +413,15 @@ def test_device_type_when_strategy_instance_gpu_passed():
 def test_validate_precision_type(precision):
     with pytest.raises(ValueError, match=f"Precision {repr(precision)} is invalid"):
         _Connector(precision=precision)
+
+
+def test_multi_device_default_strategy():
+    """The default strategy when multiple devices are selected is "ddp" with the subprocess launcher."""
+    connector = _Connector(strategy=None, accelerator="cpu", devices=2)
+    assert isinstance(connector.accelerator, CPUAccelerator)
+    assert isinstance(connector.strategy, DDPStrategy)
+    assert connector.strategy._start_method == "popen"
+    assert isinstance(connector.strategy.launcher, _SubprocessScriptLauncher)
 
 
 def test_strategy_choice_ddp_spawn_cpu():
