@@ -35,8 +35,8 @@ To train a model using multiple nodes, do the following:
     .. testcode::
 
         # train.py
-        def main(hparams):
-            model = LightningTemplateModel(hparams)
+        def main(args):
+            model = YourLightningModule(args)
 
             trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
@@ -45,11 +45,10 @@ To train a model using multiple nodes, do the following:
 
         if __name__ == "__main__":
             root_dir = os.path.dirname(os.path.realpath(__file__))
-            parent_parser = ArgumentParser(add_help=False)
-            hyperparams = parser.parse_args()
+            args = ...
 
             # TRAIN
-            main(hyperparams)
+            main(args)
 
 4.  Create the appropriate SLURM job:
 
