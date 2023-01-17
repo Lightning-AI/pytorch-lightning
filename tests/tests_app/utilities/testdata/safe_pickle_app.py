@@ -57,7 +57,7 @@ class RootFlow(LightningFlow):
         # deleting the pkl file
         Path("work.pkl").unlink()
 
-        self._exit("Exiting the pickling app successfully!!")
+        self.stop("Exiting the pickling app successfully!!")
 
 
 app = LightningApp(RootFlow())

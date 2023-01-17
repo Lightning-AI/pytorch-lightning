@@ -64,7 +64,7 @@ class BoringApp(L.LightningFlow):
 
             # the flow passes the file from one work to another.
             self.dict["dst_w"].run(self.dict["src_w"].boring_path)
-            self._exit("Boring App End")
+            self.stop("Boring App End")
 
     def configure_layout(self):
         return {"name": "Boring Tab", "content": self.dict["dst_w"].url + "/file" if "dst_w" in self.dict else ""}

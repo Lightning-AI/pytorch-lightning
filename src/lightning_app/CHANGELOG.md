@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
-## [1.9.0] - 2023-01-12
+## [1.9.0] - 2023-01-17
 
 ### Added
 
@@ -18,8 +18,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
 - Changed `lightning_app.components.serve.gradio` to  `lightning_app.components.serve.gradio_server` ([#16201](https://github.com/Lightning-AI/lightning/pull/16201))
 - Made cluster creation/deletion async by default ([#16185](https://github.com/Lightning-AI/lightning/pull/16185))
+- Expose `LightningFlow.stop` method to stop the flow similar to works ([##16378](https://github.com/Lightning-AI/lightning/pull/16378))
 - Changed the default `LightningClient(retry=False)` to `retry=True` ([#16382](https://github.com/Lightning-AI/lightning/pull/16382))
-
 
 ### Fixed
 
