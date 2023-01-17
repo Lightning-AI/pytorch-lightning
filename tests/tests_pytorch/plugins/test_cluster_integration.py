@@ -65,11 +65,17 @@ def environment_combinations():
 def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
-    for cluster, variables, expected in environment_combinations():
+    for i, (cluster, variables, expected) in enumerate(environment_combinations()):
         with mock.patch.dict(os.environ, variables):
-            strategy = strategy_cls(
-                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
-            )
+            if strategy_cls is DDPShardedStrategy and i == 0:
+                with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+                    strategy = strategy_cls(
+                        parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
+                    )
+            else:
+                strategy = strategy_cls(
+                    parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
+                )
             trainer = Trainer(strategy=strategy, num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
@@ -93,7 +99,7 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
 
-    for cluster, variables, expected in environment_combinations():
+    for i, (cluster, variables, expected) in enumerate(environment_combinations()):
         if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn strategies
@@ -102,7 +108,11 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
             expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
 
         with mock.patch.dict(os.environ, variables):
-            trainer = Trainer(**trainer_kwargs)
+            if "sharded" in trainer_kwargs["strategy"] and i == 0:
+                with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+                    trainer = Trainer(**trainer_kwargs)
+            else:
+                trainer = Trainer(**trainer_kwargs)
             assert type(trainer.strategy.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]

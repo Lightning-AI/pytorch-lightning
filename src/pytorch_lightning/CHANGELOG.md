@@ -5,10 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-- Disabled strict loading in multiprocessing launcher ("ddp_spawn", etc.) when loading weights back into the main process ([#16365](https://github.com/Lightning-AI/lightning/pull/16365))
-
-
-## [1.9.0] - 2023-01-12
+## [1.9.0] - 2023-01-17
 
 ### Added
 - Added support for native logging of `MetricCollection` with enabled compute groups ([#15580](https://github.com/Lightning-AI/lightning/pull/15580))
@@ -23,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for colossalai 0.1.11 ([#15888](https://github.com/Lightning-AI/lightning/pull/15888))
 - Added `LightningCLI` support for optimizer and learning schedulers via callable type dependency injection ([#15869](https://github.com/Lightning-AI/lightning/pull/15869))
 - Added support for activation checkpointing for the `DDPFullyShardedNativeStrategy` strategy ([#15826](https://github.com/Lightning-AI/lightning/pull/15826))
-- Added the option to set `DDPFullyShardedNativeStrategy(cpu_offload=True|False)` via bool instead of needing to pass a configufation object ([#15832](https://github.com/Lightning-AI/lightning/pull/15832))
+- Added the option to set `DDPFullyShardedNativeStrategy(cpu_offload=True|False)` via bool instead of needing to pass a configuration object ([#15832](https://github.com/Lightning-AI/lightning/pull/15832))
 - Added info message for Ampere CUDA GPU users to enable tf32 matmul precision ([#16037](https://github.com/Lightning-AI/lightning/pull/16037))
 - Added support for returning optimizer-like classes in `LightningModule.configure_optimizers` ([#16189](https://github.com/Lightning-AI/lightning/pull/16189))
 
@@ -38,7 +35,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The Trainer now raises an error if it is given multiple stateful callbacks of the same time with colliding state keys ([#15634](https://github.com/Lightning-AI/lightning/pull/15634))
 - `MLFlowLogger` now logs hyperparameters and metrics in batched API calls ([#15915](https://github.com/Lightning-AI/lightning/pull/15915))
 - Overriding the `on_train_batch_{start,end}` hooks in conjunction with taking a `dataloader_iter` in the `training_step` no longer errors out and instead shows a warning ([#16062](https://github.com/Lightning-AI/lightning/pull/16062))
-
+- Move `tensorboardX` to extra dependencies. Use the `CSVLogger` by default ([#16349](https://github.com/Lightning-AI/lightning/pull/16349))
+- Disabled strict loading in multiprocessing launcher ("ddp_spawn", etc.) when loading weights back into the main process ([#16365](https://github.com/Lightning-AI/lightning/pull/16365))
 
 ### Deprecated
 
@@ -53,12 +51,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Deprecated the `Trainer.amp_backend` property
   * Deprecated the `Trainer(amp_level=...)` argument
   * Deprecated the `pytorch_lightning.plugins.ApexMixedPrecisionPlugin` class
-  * Deprecates the `pytorch_lightning.utilities.enum.sAMPType` enum
+  * Deprecates the `pytorch_lightning.utilities.enums.AMPType` enum
   * Deprecates the `DeepSpeedPrecisionPlugin(amp_type=..., amp_level=...)` arguments
 - `horovod` deprecation ([#16141](https://github.com/PyTorchLightning/pytorch-lightning/pull/16141))
   * Deprecated `Trainer(strategy="horovod")`
   * Deprecated the `HorovodStrategy` class
 - Deprecated `pytorch_lightning.lite.LightningLite` in favor of `lightning.fabric.Fabric` ([#16314](https://github.com/Lightning-AI/lightning/pull/16314))
+- `FairScale` deprecation (in favor of PyTorch's FSDP implementation) ([#16353](https://github.com/PyTorchLightning/pytorch-lightning/pull/16353))
+  * Deprecated the `pytorch_lightning.overrides.fairscale.LightningShardedDataParallel` class
+  * Deprecated the `pytorch_lightning.plugins.precision.fully_sharded_native_amp.FullyShardedNativeMixedPrecisionPlugin` class
+  * Deprecated the `pytorch_lightning.plugins.precision.sharded_native_amp.ShardedNativeMixedPrecisionPlugin` class
+  * Deprecated the `pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy` class
+  * Deprecated the `pytorch_lightning.strategies.sharded.DDPShardedStrategy` class
+  * Deprecated the `pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy` class
 
 
 ### Removed

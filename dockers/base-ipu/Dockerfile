@@ -27,7 +27,7 @@ ENV \
     DEBIAN_FRONTEND=noninteractive \
     CONDA_ENV=lightning
 
-RUN apt-get update -qq && \
+RUN apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
