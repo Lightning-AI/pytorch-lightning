@@ -66,10 +66,6 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(self, epoch_loop: PredictionEpochLoop) -> None:  # type: ignore[override]
-        """Connect the prediction epoch loop with this loop."""
-        self.epoch_loop = epoch_loop
-
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
         self.predictions = []
