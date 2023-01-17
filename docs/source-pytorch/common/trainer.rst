@@ -492,8 +492,6 @@ devices
 ^^^^^^^
 
 Number of devices to train on (``int``), which devices to train on (``list`` or ``str``), or ``"auto"``.
-It will be mapped to either ``gpus``, ``tpu_cores``, ``num_processes`` or ``ipus``,
-based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
 .. code-block:: python
 
@@ -624,56 +622,6 @@ impact to subsequent runs. These are the changes enabled:
 - Disables the Tuner.
 - If using the CLI, the configuration file is not saved.
 
-.. _gpus:
-
-gpus
-^^^^
-
-.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/gpus.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/gpus.mp4"></video>
-
-|
-
-- Number of GPUs to train on (int)
-- or which GPUs to train on (list)
-- can handle strings
-
-.. testcode::
-
-    # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(gpus=None)
-
-    # equivalent
-    trainer = Trainer(gpus=0)
-
-Example::
-
-    # int: train on 2 gpus
-    trainer = Trainer(gpus=2)
-
-    # list: train on GPUs 1, 4 (by bus ordering)
-    trainer = Trainer(gpus=[1, 4])
-    trainer = Trainer(gpus='1, 4') # equivalent
-
-    # -1: train on all gpus
-    trainer = Trainer(gpus=-1)
-    trainer = Trainer(gpus='-1') # equivalent
-
-    # combine with num_nodes to train on multiple GPUs across nodes
-    # uses 8 gpus in total
-    trainer = Trainer(gpus=2, num_nodes=4)
-
-    # train only on GPUs 1 and 4 across nodes
-    trainer = Trainer(gpus=[1, 4], num_nodes=4)
-
-See Also:
-    - :ref:`Multi GPU Training <multi_gpu>`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -952,33 +900,6 @@ Number of GPU nodes for distributed training.
     # to train on 8 nodes
     trainer = Trainer(num_nodes=8)
 
-num_processes
-^^^^^^^^^^^^^
-
-.. warning:: ``num_processes=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/num_processes.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/num_processes.mp4"></video>
-
-|
-
-Number of processes to train with. Automatically set to the number of GPUs
-when using ``strategy="ddp"``. Set to a number greater than 1 when
-using ``accelerator="cpu"`` and ``strategy="ddp"`` to mimic distributed training on a
-machine without GPUs. This is useful for debugging, but **will not** provide
-any speedup, since single-process Torch already makes efficient use of multiple
-CPUs. While it would typically spawns subprocesses for training, setting
-``num_nodes > 1`` and keeping ``num_processes = 1`` runs training in the main
-process.
-
-.. testcode::
-
-    # Simulate DDP for debugging on your GPU-less laptop
-    trainer = Trainer(accelerator="cpu", strategy="ddp", num_processes=2)
 
 num_sanity_val_steps
 ^^^^^^^^^^^^^^^^^^^^
@@ -1320,65 +1241,6 @@ track_grad_norm
 
     # track the 2-norm
     trainer = Trainer(track_grad_norm=2)
-
-.. _tpu_cores:
-
-tpu_cores
-^^^^^^^^^
-
-.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
-    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/tpu_cores.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
-
-|
-
-- How many TPU cores to train on (1 or 8).
-- Which TPU core to train on [1-8]
-
-A single TPU v2 or v3 has 8 cores. A TPU pod has
-up to 2048 cores. A slice of a POD means you get as many cores
-as you request.
-
-Your effective batch size is batch_size * total tpu cores.
-
-This parameter can be either 1 or 8.
-
-Example::
-
-    # your_trainer_file.py
-
-    # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(tpu_cores=None)
-
-    # int: train on a single core
-    trainer = Trainer(tpu_cores=1)
-
-    # list: train on a single selected core
-    trainer = Trainer(tpu_cores=[2])
-
-    # int: train on all cores few cores
-    trainer = Trainer(tpu_cores=8)
-
-    # for 8+ cores must submit via xla script with
-    # a max of 8 cores specified. The XLA script
-    # will duplicate script onto each TPU in the POD
-    trainer = Trainer(tpu_cores=8)
-
-To train on more than 8 cores (ie: a POD),
-submit this script using the xla_dist script.
-
-Example::
-
-    python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    --env=XLA_USE_BF16=1
-    -- python your_trainer_file.py
 
 
 val_check_interval
