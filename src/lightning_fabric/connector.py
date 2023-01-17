@@ -383,10 +383,8 @@ class _Connector:
                 device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
-        if len(self._parallel_devices) > 1:
-            if _IS_INTERACTIVE:
-                return "ddp_fork"
-            return "ddp_spawn"
+        if len(self._parallel_devices) > 1 and _IS_INTERACTIVE:
+            return "ddp_fork"
 
         return "ddp"
 
