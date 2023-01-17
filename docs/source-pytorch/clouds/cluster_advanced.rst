@@ -44,9 +44,7 @@ To train a model using multiple nodes, do the following:
 
 
         if __name__ == "__main__":
-            root_dir = os.path.dirname(os.path.realpath(__file__))
-            args = ...
-
+            args = ...  # you can use your CLI parser of choice, or the `LightningCLI`
             # TRAIN
             main(args)
 
