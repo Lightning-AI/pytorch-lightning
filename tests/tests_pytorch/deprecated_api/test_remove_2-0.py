@@ -20,7 +20,6 @@ import torch
 from lightning_utilities.test.warning import no_warning_call
 from torch.utils.data import DataLoader
 
-import pytorch_lightning
 import pytorch_lightning.profiler as profiler
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Callback, Trainer
@@ -71,29 +70,6 @@ from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed
 from pytorch_lightning.utilities.xla_device import inner_f, pl_multi_process, XLADeviceUtils
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
 from tests_pytorch.helpers.runif import RunIf
-
-
-def test_v2_0_0_deprecated_num_processes():
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(num_processes=2)
-
-
-def test_v2_0_0_deprecated_gpus(cuda_count_4):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(gpus=0)
-
-
-@RunIf(skip_windows=True)
-def test_v2_0_0_deprecated_tpu_cores(tpu_available):
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(tpu_cores=8)
-
-
-@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_v2_0_0_deprecated_ipus(_, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
-        _ = Trainer(ipus=4)
 
 
 def test_v2_0_0_resume_from_checkpoint_trainer_constructor(tmpdir):
