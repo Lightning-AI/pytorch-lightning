@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
@@ -26,6 +26,7 @@ from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE, _reinit_
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -39,6 +40,16 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
     strategy_name = "ddp_sharded_spawn"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        rank_zero_deprecation(
+            "PyTorch Lightning's sharded implementation using FairScale has been deprecated in v1.9.0 and will be"
+            " removed in v2.0.0. You can try using the `Trainer(strategy='fsdp_native')` instead."
+            " The difference is that native FSDP uses PyTorch's implementation and the current strategy uses"
+            " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
+            " the native version by default."
+        )
+        super().__init__(*args, **kwargs)
 
     def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover

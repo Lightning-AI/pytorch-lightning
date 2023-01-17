@@ -398,7 +398,6 @@ def test_rename_lightning_lite():
         LightningParallelModule,
         LightningDistributedModule,
         LightningBaguaModule,
-        pytest.param(LightningShardedDataParallel, marks=RunIf(fairscale=True)),
     ],
 )
 def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
@@ -411,6 +410,19 @@ def test_v1_10_deprecated_pl_module_init_parameter(wrapper_class):
         match=rf"The argument `pl_module` in `{wrapper_class.__name__}` is deprecated in v1.8.0"
     ):
         wrapper_class(pl_module=BoringModel())
+
+
+@RunIf(fairscale=True)
+def test_v1_10_deprecated_fairscale_pl_module_init_parameter():
+    with no_warning_call(
+        DeprecationWarning, match=r"The argument `pl_module` in `LightningShardedDataParallel` is deprecated in v1.8.0"
+    ), pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        LightningShardedDataParallel(BoringModel())
+
+    with pytest.deprecated_call(
+        match=r"The argument `pl_module` in `LightningShardedDataParallel` is deprecated in v1.8.0"
+    ):
+        LightningShardedDataParallel(pl_module=BoringModel())
 
 
 def test_v1_10_deprecated_unwrap_lightning_module():
