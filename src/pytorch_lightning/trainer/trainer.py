@@ -1807,7 +1807,7 @@ class Trainer:
     def log_dir(self) -> Optional[str]:
         if len(self.loggers) > 0:
             logger_ = self.loggers[0]
-            dirpath = getattr(logger_, "log_dir", getattr(logger_, "save_dir", None))
+            dirpath = getattr(logger_, "log_dir", None) or getattr(logger_, "save_dir", None)
         else:
             dirpath = self.default_root_dir
 
