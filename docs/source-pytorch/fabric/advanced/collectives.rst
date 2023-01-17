@@ -143,13 +143,36 @@ Broadcast
    :alt: The broadcast collective operation
    :width: 100%
 
+The broadcast operation sends a tensor of data from one process to all other processes so that all end up with the same data.
+
 .. code-block:: python
 
     fabric = Fabric(...)
 
-    # Transfer an object from one process to all the others
-    fabric.broadcast(..., src=...)
+    # Transfer a tensor from one process to all the others
+    output = fabric.broadcast(tensor)
 
+    # By default, the source is the process rank 0 ...
+    output = fabric.broadcast(tensor, src=0)
+
+    # ... which can be change to a different rank
+    output = fabric.broadcast(tensor, src=3)
+
+
+A concrete example:
+
+.. code-block:: python
+
+    fabric = Fabric(devices=4, accelerator="cpu")
+    fabric.launch()
+
+    # Data is different on each process
+    learning_rate = torch.rand(1)
+    print("Before broadcast:", learning_rate)
+
+    # Transfer the tensor from one process to all the others
+    learning_rate = fabric.broadcast(learning_rate)
+    print("After broadcast:", learning_rate)
 
 
 ----
