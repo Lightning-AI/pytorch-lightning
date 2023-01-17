@@ -385,7 +385,6 @@ class _Connector:
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1 and _IS_INTERACTIVE:
             return "ddp_fork"
-
         return "ddp"
 
     def _check_strategy_and_fallback(self) -> None:
