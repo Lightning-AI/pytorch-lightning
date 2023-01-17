@@ -145,7 +145,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.cpu_offload = _init_cpu_offload(cpu_offload)
         self.backward_prefetch = backward_prefetch
         self.mixed_precision = mixed_precision
-        self._rank_0_will_call_children_scripts: bool = False
         if activation_checkpointing and not _TORCH_GREATER_EQUAL_1_13:
             raise ValueError("Activation checkpointing requires torch >= 1.13.0. HINT: `pip install -U torch`")
         activation_checkpointing = activation_checkpointing or []
@@ -215,7 +214,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
-            self._rank_0_will_call_children_scripts = True
 
     def _setup_model(self, model: torch.nn.Module) -> FullyShardedDataParallel:
         """Wraps the model into a
@@ -248,8 +246,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
-        # share ddp pids to all processes
-        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             assert self.model is not None
