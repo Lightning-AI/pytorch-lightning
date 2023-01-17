@@ -134,6 +134,7 @@ Since downloading should be done on rank 0 only to :ref:`avoid race conditions <
 
 ----
 
+.. _broadcast collective:
 
 *********
 Broadcast
@@ -150,13 +151,13 @@ The broadcast operation sends a tensor of data from one process to all other pro
     fabric = Fabric(...)
 
     # Transfer a tensor from one process to all the others
-    output = fabric.broadcast(tensor)
+    result = fabric.broadcast(tensor)
 
     # By default, the source is the process rank 0 ...
-    output = fabric.broadcast(tensor, src=0)
+    result = fabric.broadcast(tensor, src=0)
 
     # ... which can be change to a different rank
-    output = fabric.broadcast(tensor, src=3)
+    result = fabric.broadcast(tensor, src=3)
 
 
 A concrete example:
@@ -186,12 +187,38 @@ Gather
    :alt: The All-gather collective operation
    :width: 100%
 
+The gather operation transfers the tensors from each process to every other process and concatenates the results.
+As opposed to the :ref:`broadcast <broadcast collective>`, every process gets the data from every other process, not just from a particular rank.
+
 .. code-block:: python
 
     fabric = Fabric(...)
 
-    # Transfer and concatenate tensors across processes
-    fabric.all_gather(...)
+    # Gather the data from
+    result = fabric.all_gather(tensor)
+
+    # By default, you can't back-propagate through the all-gather operation
+    result = fabric.all_gather(tensor, sync_grads=False)
+
+    # You can turn on gradient sync so you can backpropagate if needed
+    result = fabric.all_gather(tensor, sync_grads=True)
+
+
+
+A concrete example:
+
+.. code-block:: python
+
+    fabric = Fabric(devices=4, accelerator="cpu")
+    fabric.launch()
+
+    # Data is different in each process
+    result = torch.tensor(10 * fabric.global_rank)
+
+    # Every process gathers the tensors from all other processes
+    # and concatenates the result:
+    result = fabric.all_gather(data)
+    print("Result of all-gather:", result)  # tensor([ 0, 10, 20, 30])
 
 
 ----
@@ -209,5 +236,5 @@ Reduce
 
     fabric = Fabric(...)
 
-    # TODO
-    fabric.all_reduce(...)
+    # Coming soon
+    result = fabric.all_reduce(tensor)
