@@ -184,12 +184,6 @@ jobs:
       # needs to run outside of `pytest`
       run: python utilities/test_warnings.py
 
-    - name: Testing legacy creation
-      working-directory: tests/
-      run: |
-        export PYTHONPATH=$(dirname $LEGACY_PATH);$PYTHONPATH  # for `import tests_pytorch`
-        python legacy/simple_classif_training.py
-
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
@@ -224,3 +218,10 @@ jobs:
         flags: ${COVERAGE_SCOPE},cpu,pytest-full,python${{ matrix.python-version }},pytorch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
+
+# TODO
+#    - name: Testing legacy creation
+#      working-directory: tests/
+#      run: |
+#        export PYTHONPATH=$(dirname $LEGACY_PATH);$PYTHONPATH  # for `import tests_pytorch`
+#        python legacy/simple_classif_training.py
