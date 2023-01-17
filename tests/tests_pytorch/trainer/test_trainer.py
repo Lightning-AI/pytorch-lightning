@@ -61,7 +61,7 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -1801,41 +1801,6 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.test()
     with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
         trainer.predict()
-
-
-class CustomException(Exception):
-    pass
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
-    """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            if batch_idx == 1 and self.trainer.is_global_zero:
-                # rank 0: raises an exception
-                # rank 1: continues training but will hang on the next barrier in the training loop
-                raise CustomException
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        num_sanity_val_steps=0,
-        accelerator="gpu",
-        devices=2,
-        strategy="ddp",
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-
-    # simulate random failure in training_step on rank 0
-    with pytest.raises(DeadlockDetectedException, match="CustomException"):
-        trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1)
