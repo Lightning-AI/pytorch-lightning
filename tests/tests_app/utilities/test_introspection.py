@@ -52,7 +52,6 @@ def test_introspection_lightning_overrides():
         "Profiler",
         "Callback",
         "LightningDataModule",
-        "LightningLite",  # deprecated
         "Fabric",
         "Logger",
         "LightningModule",

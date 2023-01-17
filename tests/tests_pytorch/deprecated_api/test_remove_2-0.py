@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v2.0.0."""
-from re import escape
 from unittest import mock
 
 import numpy
@@ -23,15 +22,12 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning
 import pytorch_lightning.profiler as profiler
-from lightning_fabric.accelerators import CUDAAccelerator as LiteCUDAAccelerator
-from lightning_fabric.accelerators import TPUAccelerator as LiteTPUAccelerator
 from lightning_fabric.utilities.exceptions import MisconfigurationException
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.overrides import LightningDistributedModule, LightningParallelModule
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
@@ -387,11 +383,6 @@ def test_lightningCLI_parser_init_params_deprecation_warning(name, value):
         LightningCLI(BoringModel, run=False, **{name: value})
 
 
-def test_rename_lightning_lite():
-    with pytest.deprecated_call(match="will be renamed to `lightning.fabric.Fabric` in v2.0.0"):
-        LightningLite()
-
-
 @pytest.mark.parametrize(
     "wrapper_class",
     [
@@ -594,26 +585,6 @@ def test_v1_10_deprecated_seed_utilities():
 def test_v1_10_deprecated_accelerator_setup_environment_method():
     with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
         CPUAccelerator().setup_environment(torch.device("cpu"))
-
-
-class EmptyLite(LightningLite):
-    def run(self):
-        pass
-
-
-def test_lite_convert_deprecated_gpus_argument(cuda_count_2):
-    with pytest.deprecated_call(match=escape("Setting `Lite(gpus=2)` is deprecated in v1.8.0")):
-        lite = EmptyLite(gpus=2)
-    assert isinstance(lite._accelerator, LiteCUDAAccelerator)
-    assert lite._connector._parallel_devices == [torch.device("cuda", 0), torch.device("cuda", 1)]
-
-
-@RunIf(skip_windows=True)
-def test_lite_convert_deprecated_tpus_argument(tpu_available):
-    with pytest.deprecated_call(match=escape("Setting `Lite(tpu_cores=8)` is deprecated in v1.8.0")):
-        lite = EmptyLite(tpu_cores=8)
-    assert isinstance(lite._accelerator, LiteTPUAccelerator)
-    assert lite._connector._parallel_devices == list(range(8))
 
 
 @pytest.mark.parametrize(
