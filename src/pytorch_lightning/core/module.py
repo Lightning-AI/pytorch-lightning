@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORC
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
-    _METRIC_COLLECTION,
+    _METRIC,
     EPOCH_OUTPUT,
     LRSchedulerPLType,
     LRSchedulerTypeUnion,
@@ -337,7 +337,7 @@ class LightningModule(
     def log(
         self,
         name: str,
-        value: _METRIC_COLLECTION,
+        value: _METRIC,
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
@@ -361,7 +361,7 @@ class LightningModule(
 
         Args:
             name: key to log.
-            value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
+            value: value to log. Can be a ``float``, ``Tensor``, or a ``Metric``.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
             on_step: if ``True`` logs at this step. The default value is determined by the hook.
@@ -390,7 +390,7 @@ class LightningModule(
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
-            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor)
         )
 
         if self._trainer is None:
@@ -492,7 +492,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: Mapping[str, _METRIC_COLLECTION],
+        dictionary: Mapping[str, _METRIC],
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
@@ -514,8 +514,7 @@ class LightningModule(
 
         Args:
             dictionary: key value pairs.
-                The values can be a ``float``, ``Tensor``, ``Metric``, a dictionary of the former
-                or a ``MetricCollection``.
+                The values can be a ``float``, ``Tensor``, ``Metric``, or ``MetricCollection``.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.
             on_step: if ``True`` logs at this step.

@@ -237,11 +237,10 @@ def test_result_collection_restoration(tmpdir):
             lightning_log("training_step", "c", metric_c, on_step=True, on_epoch=False, metric_attribute="metric_c")
             lightning_log("training_step", "a_1", a, on_step=True, on_epoch=True)
             lightning_log("training_step", "b_1", b, on_step=False, on_epoch=True)
-            lightning_log("training_step", "c_1", {"1": c, "2": c}, on_step=True, on_epoch=False)
+            lightning_log("training_step", "c_1", c, on_step=True, on_epoch=False)
 
             batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
-            assert set(batch_log["c_1"]) == {"1", "2"}
 
             result_copy = deepcopy(result)
             new_result = _ResultCollection(True, torch.device("cpu"))
@@ -250,7 +249,7 @@ def test_result_collection_restoration(tmpdir):
             assert "fn" not in state_dict["items"]["training_step.a"]["meta"]["_sync"]
 
             assert not new_result.result_metrics
-            assert len(result.result_metrics) == 7 + epoch > 0
+            assert len(result.result_metrics) == 6 + epoch > 0
 
             new_result.load_state_dict(
                 state_dict, metrics={"metric": metric, "metric_b": metric_b, "metric_c": metric_c}
