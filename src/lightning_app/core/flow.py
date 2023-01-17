@@ -374,10 +374,12 @@ class LightningFlow:
         raise ExitAppException
 
     def _exit(self, end_msg: str = "") -> None:
-        """Private method used to exit the application.
+        """Used to exit the application.
 
-        .. deprecated:: 1.9.0     This function is deprecated and will be removed in 2.0.0.     Use :meth:`stop`
-        instead. instead.
+        Private method.
+
+        .. deprecated:: 1.9.0
+            This function is deprecated and will be removed in 2.0.0. Use :meth:`stop` instead.
         """
         warnings.warn(
             DeprecationWarning(
