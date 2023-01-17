@@ -236,7 +236,7 @@ class FlowTimeout(LightningFlow):
         if not self.work.has_started:
             self.work.run()
         if self.work.has_timeout:
-            self._exit()
+            self.stop()
 
 
 class WorkRunnerPatch(WorkRunner):
@@ -634,7 +634,7 @@ class FlowState(LightningFlow):
                 self.counter = 2
         elif self.counter == 2:
             if len(self.w.vars) == 10 and self.w.counter == 10:
-                self._exit()
+                self.stop()
 
 
 def test_state_observer():
@@ -723,7 +723,7 @@ class FlowBi(LightningFlow):
         if self.w.counter > 3:
             self.w.finished = True
         if self.w.counter == -1 and self.w.has_succeeded:
-            self._exit()
+            self.stop()
 
 
 def test_bi_directional_proxy():

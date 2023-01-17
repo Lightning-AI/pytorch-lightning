@@ -140,7 +140,7 @@ class Flow(LightningFlow):
         if self.sender.value_c:
             self.receiver_c.run(self.sender.value_c)
         if self.receiver_all.has_succeeded and self.receiver_b.has_succeeded and self.receiver_c.has_succeeded:
-            self._exit()
+            self.stop()
 
 
 def test_payload_works(tmpdir):
