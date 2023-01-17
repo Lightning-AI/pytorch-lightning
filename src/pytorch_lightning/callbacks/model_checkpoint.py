@@ -369,7 +369,8 @@ class ModelCheckpoint(Checkpoint):
         # notify loggers
         if trainer.is_global_zero:
             for logger in trainer.loggers:
-                logger.after_save_checkpoint(proxy(self))
+                if hasattr(logger, "after_save_checkpoint"):
+                    logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
