@@ -955,6 +955,7 @@ def test_structures_register_work_cloudcompute():
         assert v.component_names[0][:-1] in ("root.w_list.", "root.w_dict.")
         assert v.component_names[0][-1].isdigit()
 
+
 def test_deprecation_warning_exit():
     with pytest.raises(ExitAppException):
         with pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
