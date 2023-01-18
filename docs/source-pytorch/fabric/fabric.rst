@@ -93,7 +93,7 @@ Fundamentals
     :tag: basic
 
 .. displayitem::
-    :header: Distributed Operation
+    :header: Launch Distributed Training
     :description: Launch a Python script on multiple devices and machines
     :button_link: fundamentals/launch.html
     :col_css: col-md-4
@@ -193,9 +193,9 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Collectives
+    :header: Distributed Communication
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
-    :button_link: advanced/collectives.html
+    :button_link: advanced/distributed_communication.html
     :col_css: col-md-4
     :height: 160
     :tag: advanced
