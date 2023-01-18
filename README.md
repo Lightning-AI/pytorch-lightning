@@ -1,7 +1,7 @@
 # Lightning Utilities
 
 [![UnitTests](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-testing.yml)
-[![Apply checks](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yml)
+[![Apply checks](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yaml/badge.svg?event=push)](https://github.com/Lightning-AI/utilities/actions/workflows/ci-use-checks.yaml)
 [![Documentation Status](https://readthedocs.org/projects/lightning_utilities/badge/?version=latest)](https://lightning-tools.readthedocs.io/en/latest/?badge=latest)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Lightning-AI/utilities/main.svg)](https://results.pre-commit.ci/latest/github/Lightning-AI/utilities/main)
 
@@ -34,7 +34,7 @@ jobs:
       actions-ref: main  # normally you shall use the same version as the workflow
 ```
 
-See usage of other workflows in [.github/workflows/ci-use-checks.yml](https://github.com/Lightning-AI/utilities/tree/main/.github/workflows/ci-use-checks.yml).
+See usage of other workflows in [.github/workflows/ci-use-checks.yaml](https://github.com/Lightning-AI/utilities/tree/main/.github/workflows/ci-use-checks.yaml).
 
 ## 2. Reusable composite actions
 

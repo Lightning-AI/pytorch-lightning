@@ -24,24 +24,41 @@ jobs:
         submodules: recursive
 
     - name: Install dependencies
-      run: pip install check-jsonschema
+      run: |
+        pip install check-jsonschema -q
+        pip list | grep "check-jsonschema"
 
     - name: Scan repo
-      run: python -c "import os; is_dir = os.path.isdir('.github/actions'); print(f'GH_ACTIONS={int(is_dir)}')" >> $GITHUB_ENV
+      id: folders
+      run: python -c "import os; print('gh_actions=' + str(int(os.path.isdir('.github/actions'))))" >> $GITHUB_OUTPUT
 
     # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-workflow.json
     - name: GitHub Actions - workflow
-      run: check-jsonschema -v $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
+      run: |
+        files=$(find .github/workflows -name '*.yml' -or -name '*.yaml' -not -name '__*')
+        for f in $files; do
+          echo $f;
+          check-jsonschema -v $f --builtin-schema "github-workflows";
+        done
 
     # https://github.com/SchemaStore/schemastore/blob/master/src/schemas/json/github-action.json
     - name: GitHub Actions - action
-      if: ${{ env.GH_ACTIONS == '1' }}
-      run: check-jsonschema -v .github/actions/*/*.yml --builtin-schema "github-actions"
+      if: steps.folders.outputs.gh_actions == '1'
+      run: |
+        files=$(find .github/actions -name '*.yml' -or -name '*.yaml')
+        for f in $files; do
+          echo $f;
+          check-jsonschema -v $f --builtin-schema "github-actions";
+        done
 
     # https://github.com/microsoft/azure-pipelines-vscode/blob/main/service-schema.json
     - name: Azure Pipelines
       if: ${{ inputs.azure-dir != '' }}
       env:
-        SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.205.0/service-schema.json
+        SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.208.0/service-schema.json
       run: |
-        check-jsonschema -v ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
+        files=$(find ${{ inputs.azure-dir }} -name '*.yml' -or -name '*.yaml')
+        for f in $files; do
+          echo $f;
+          check-jsonschema -v $f --schemafile "$SCHEMA_FILE";
+        done
