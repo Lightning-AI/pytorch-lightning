@@ -21,7 +21,7 @@ A good mental representation of the Path Object usage is the `relay race <https:
 To make a transfer, the receiver asks (e.g when the path object is passed by the flow to the receiver)
 for a copy of the files (baton) owned by their producer (e.g the LightningWork which created the files).
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/path2.png
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/path2.png
 
 *******************************************
 How does the Path Object works internally ?
