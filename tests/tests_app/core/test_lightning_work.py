@@ -425,4 +425,3 @@ def test_lightning_work_clone():
 
     work = EmptyWork()
     work.clone()
-
