@@ -14,7 +14,7 @@ With Fabric you can easily access information about a process or send data betwe
 Rank and world size
 *******************
 
-The rank assigned to a process is a number in the range of *0, ..., world size - 1*, where *world size* is the total number of distributed processes.
+The rank assigned to a process is a zero-based index in the range of *0, ..., world size - 1*, where *world size* is the total number of distributed processes.
 If you are using multi-GPU, think of the rank as the *GPU ID* or *GPU index*, although rank extends to distributed processing in general.
 
 The rank is unique across all processes, regardless of how they are distributed across machines, and it is therefore also called **global rank**.
@@ -47,10 +47,10 @@ And here is how you access all rank and world size information:
     fabric.global_rank  # -> {0, 1, 2, 3, 4, 5}
 
     # The index of the current process among the processes running on the local node
-    fabric.local_rank  # -> {0, 1, 2}
+    fabric.local_rank  # -> {0, 1}
 
     # The index of the current node
-    fabric.node_rank  # -> {0, 1}
+    fabric.node_rank  # -> {0, 1, 2}
 
     # Do something only on rank 0
     if fabric.global_rank == 0:
