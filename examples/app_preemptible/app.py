@@ -1,4 +1,4 @@
-from time import time
+from time import sleep
 
 import lightning as L
 
@@ -10,17 +10,19 @@ class Work(L.LightningWork):
 
     def run(self):
         while True:
+            print(self.counter)
             self.counter += 1
-            time(1)
+            sleep(1)
 
 
 class Flow(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        self.w = Work(cloud_compute=L.CloudCompute("gpu", preemptible=True), start_with_flow=False)
+        self.w = Work(cloud_compute=L.CloudCompute("gpu", preemptible=True), start_with_flow=False, parallel=True)
 
     def run(self):
         self.w.run()
+        print(self.w.counter)
 
 
 app = L.LightningApp(Flow())

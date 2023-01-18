@@ -397,10 +397,13 @@ class HTTPQueue(BaseQueue):
                 pass
 
     def _get(self):
-        resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
-        if resp.status_code == 204:
+        try:
+            resp = self.client.post(f"v1/{self.app_id}/{self._name_suffix}", query_params={"action": "pop"})
+            if resp.status_code == 204:
+                raise queue.Empty
+            return pickle.loads(resp.content)
+        except ConnectionError:
             raise queue.Empty
-        return pickle.loads(resp.content)
 
     def put(self, item: Any) -> None:
         if not self.app_id:
