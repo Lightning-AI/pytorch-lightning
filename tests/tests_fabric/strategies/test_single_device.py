@@ -42,7 +42,7 @@ def test_single_device_collectives():
     strategy = SingleDeviceStrategy()
     tensor = Mock()
     assert strategy.all_gather(tensor) == tensor
-    assert strategy.reduce(tensor) == tensor
+    assert strategy.all_reduce(tensor) == tensor
     assert strategy.broadcast(tensor) == tensor
 
 

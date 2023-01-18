@@ -18,6 +18,7 @@ from typing_extensions import Literal
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -32,6 +33,13 @@ class ShardedNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def __init__(
         self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
     ) -> None:
+        rank_zero_deprecation(
+            "PyTorch Lightning's sharded implementation using FairScale has been deprecated in v1.9.0 and will be"
+            " removed in v2.0.0. You can try using the `Trainer(strategy='fsdp_native')` instead."
+            " The difference is that native FSDP uses PyTorch's implementation and the current strategy uses"
+            " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
+            " the native version by default."
+        )
         if not _FAIRSCALE_AVAILABLE:
             raise MisconfigurationException(
                 "You have asked for sharded AMP but you have not installed it."

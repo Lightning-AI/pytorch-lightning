@@ -69,7 +69,7 @@ class _A(LightningFlow):
 
     def run(self):
         if self.work_a.var_a == -1:
-            self._exit()
+            self.stop()
         self.work_a.run()
 
 
@@ -102,7 +102,7 @@ class A2(LightningFlow):
         if self.var_a == 0:
             self.update_state()
         elif self.var_a == -1:
-            self._exit()
+            self.stop()
 
 
 def test_app_state_api_with_flows(tmpdir):
@@ -131,7 +131,7 @@ class FlowA(LightningFlow):
     def run(self):
         self.counter += 1
         if self.counter >= 3:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         return [
@@ -482,7 +482,7 @@ class FlowAPI(LightningFlow):
 
     def run(self):
         if self.counter == 501:
-            self._exit()
+            self.stop()
 
     def request(self, config: InputRequestModel, request: Request) -> OutputRequestModel:
         self.counter += 1

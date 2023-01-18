@@ -96,7 +96,7 @@ class SimpleFlow(LightningFlow):
 
     def run(self):
         if self.work_a.has_finished and self.work_b.has_finished:
-            self._exit()
+            self.stop()
         self.work_a.run()
         self.work_b.run()
 
@@ -221,7 +221,7 @@ class A(LightningFlow):
         self.w_a.run()
         self.b.run()
         if self.b.c.d.e.w_e.c == 1:
-            self._exit()
+            self.stop()
 
 
 def test_nested_component_names():
@@ -346,7 +346,7 @@ class A4(LightningFlow):
     def run(self):
         self.work.run()
         if self.work.var_a == 1:
-            self._exit()
+            self.stop()
 
 
 @pytest.mark.parametrize("runtime_cls", [MultiProcessRuntime])
@@ -612,7 +612,7 @@ class WaitForAllFlow(LightningFlow):
         self.c += 1
         assert [w.counter for w in self.works()] == [self.c, expected, self.c, expected]
         if self.c > 3:
-            self._exit()
+            self.stop()
 
 
 # TODO (tchaton) Resolve this test.
@@ -648,7 +648,7 @@ class CheckpointFlow(LightningFlow):
 
     def run(self):
         if self.works()[0].counter == 5:
-            self._exit()
+            self.stop()
 
         if self.depth >= 10:
             self.work.run()
@@ -762,7 +762,7 @@ class FlowCCTolerance(LightningFlow):
     def run(self):
         self.work.run()
         if self.work.counter == 10:
-            self._exit()
+            self.stop()
 
 
 class FaultToleranceLightningTestApp(LightningTestApp):
@@ -829,7 +829,7 @@ class ProtectedAttributesFlow(LightningFlow):
             self.protected_work._protected = 1
 
         if self.done and self.protected_work.done:
-            self._exit()
+            self.stop()
 
 
 def test_protected_attributes_not_in_state():
@@ -854,7 +854,7 @@ class FlowExit(LightningFlow):
 
     def run(self):
         if self.work.counter == 1:
-            self._exit()
+            self.stop()
         self.work.run()
 
 
@@ -880,7 +880,7 @@ class FlowStop(LightningFlow):
 
     def run(self):
         if self.w.status.stage == WorkStageStatus.STOPPED:
-            self._exit()
+            self.stop()
         if self.w.counter == 1:
             self.w.stop()
         self.w.run()
@@ -900,7 +900,7 @@ class SleepyFlow(LightningFlow):
 
     def run(self):
         if self.counter == 2 * FLOW_DURATION_SAMPLES:
-            self._exit()
+            self.stop()
         sleep(self.sleep_interval)
         self.counter += 1
 
@@ -923,7 +923,7 @@ class SleepyFlowWithWork(LightningFlow):
 
     def run(self):
         if self.counter == 2 * FLOW_DURATION_SAMPLES:
-            self._exit()
+            self.stop()
         self.work.run()
         sleep(self.sleep_interval)
         self.counter += 1
@@ -981,7 +981,7 @@ class SizeFlow(LightningFlow):
         self._state_sizes[self.work0.counter] = asizeof.asizeof(self.state)
 
         if self.work0.counter >= 20:
-            self._exit()
+            self.stop()
 
 
 def test_state_size_constant_growth():
