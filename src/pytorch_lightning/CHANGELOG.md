@@ -60,7 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated code in `pl.utilities.device_parser` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
 
-- Removed the deprecated code in `pl.utilities.seed` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
+- Removed the deprecated code in `pl.utilities.seed` ([#16422](https://github.com/Lightning-AI/lightning/pull/16422))
 
 - Mark the `forward_module` argument as required ([#16386](https://github.com/Lightning-AI/lightning/pull/16386))
   * Removed the deprecated `pl_module` argument from the distributed module wrappers
