@@ -356,12 +356,12 @@ def test_structure_with_iterate_and_fault_tolerance(run_once_iterable, cache_cal
             for work_idx, work in self.experimental_iterate(enumerate(self.iter), run_once=self.run_once_iterable):
                 if not self.restarting and work_idx == 1:
                     # gives time to the delta to be sent.
-                    self._exit()
+                    self.stop()
                 if isinstance(work, str) and isinstance(self.iter, Dict):
                     work = self.iter[work]
                 work.run()
             if self.looping > 0:
-                self._exit()
+                self.stop()
             self.looping += 1
 
     app = LightningApp(RootFlow(use_list, run_once_iterable, cache_calls))
@@ -411,7 +411,7 @@ class CheckpointFlow(LightningFlow):
         if hasattr(self, "counter"):
             self.counter += 1
             if self.counter >= self.exit:
-                self._exit()
+                self.stop()
         if self.depth >= 4:
             self.collection.run()
         else:
@@ -437,7 +437,7 @@ class FlowDict(LightningFlow):
             self.dict["w"] = SimpleCounterWork()
 
         if self.dict["w"].status.stage == WorkStageStatus.SUCCEEDED:
-            self._exit()
+            self.stop()
 
         self.dict["w"].run()
 
@@ -458,7 +458,7 @@ class FlowList(LightningFlow):
             self.list.append(SimpleCounterWork())
 
         if self.list[-1].status.stage == WorkStageStatus.SUCCEEDED:
-            self._exit()
+            self.stop()
 
         self.list[-1].run()
 
@@ -495,7 +495,7 @@ class FlowPayload(LightningFlow):
             for work in self.dst.values():
                 work.run(self.src.payload)
         if all(w.has_succeeded for w in self.dst.values()):
-            self._exit()
+            self.stop()
 
 
 def test_structures_with_payload():

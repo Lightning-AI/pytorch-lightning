@@ -11,7 +11,7 @@ class EnvVarTestApp(LightningFlow):
         # these env vars are set here: tests/integrations_app/test_core_features_app.py:15
         assert os.getenv("FOO", "") == "bar"
         assert os.getenv("BLA", "") == "bloz"
-        self._exit()
+        self.stop()
 
 
 app = LightningApp(EnvVarTestApp())

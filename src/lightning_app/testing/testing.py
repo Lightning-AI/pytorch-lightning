@@ -161,7 +161,7 @@ class _SingleWorkFlow(LightningFlow):
 
     def run(self):
         if self.work.has_succeeded or self.work.has_failed:
-            self._exit()
+            self.stop()
         self.work.run(*self.args, **self.kwargs)
 
 
