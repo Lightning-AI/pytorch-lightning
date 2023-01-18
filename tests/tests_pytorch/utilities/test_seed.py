@@ -41,7 +41,7 @@ def test_isolate_rng(with_torch_cuda):
 @mock.patch("torch.cuda.set_rng_state_all")
 @mock.patch("torch.cuda.get_rng_state_all")
 def test_isolate_rng_cuda(get_cuda_rng, set_cuda_rng):
-    """Test that `include_cuda` controls whether isolate_rng also manages torch.cuda's seed."""
+    """Test that `include_cuda` controls whether isolate_rng also manages torch.cuda's rng."""
     with isolate_rng(include_cuda=False):
         get_cuda_rng.assert_not_called()
     set_cuda_rng.assert_not_called()
