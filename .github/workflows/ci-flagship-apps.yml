@@ -41,8 +41,6 @@ jobs:
           # - StreamLit / Gradio
           # - All homepage & docs apps
 
-    # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 20
     env:
       HEADLESS: '1'
       PACKAGE_LIGHTNING: '1'
@@ -52,6 +50,8 @@ jobs:
       SLOW_MO: '50'
       LIGHTNING_DEBUG: '1'
       TORCH_URL: 'https://download.pytorch.org/whl/cpu/torch_stable.html'
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v3
@@ -69,21 +69,8 @@ jobs:
       - name: Adjust testing
         run: |
           pip install -q -r .actions/requirements.txt
-          python .actions/assistant.py copy_replace_imports \
-            --source_dir="./tests" \
-            --source_import="lightning_app" \
-            --target_import="lightning.app"
-
-#      - name: Get pip cache dir
-#        id: pip-cache
-#        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
-#
-#      - name: Cache pip
-#        uses: actions/cache@v3
-#        with:
-#          path: ${{ steps.pip-cache.outputs.dir }}
-#          key: ${{ runner.os }}-flagships
-#          restore-keys: ${{ runner.os }}-flagships
+          python .actions/assistant.py copy_replace_imports --source_dir="./tests" \
+            --source_import="lightning_app" --target_import="lightning.app"
 
       - name: Clone the Repo/App
         uses: actions/checkout@v3
