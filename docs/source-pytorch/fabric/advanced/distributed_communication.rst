@@ -62,7 +62,7 @@ And here is how you access all rank and world size information:
 Avoid race conditions
 =====================
 
-Access to the rank information helps you avoid *racing conditions* which could crash your script or lead to corrupted data.
+Access to the rank information helps you avoid *race conditions* which could crash your script or lead to corrupted data.
 Such conditions can occur when multiple processes are trying to write to the same file all at the same time, for example, in the case of writing a checkpoint file or downloading a dataset.
 Avoid this from happening by guarding your logic with a rank check:
 
