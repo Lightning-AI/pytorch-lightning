@@ -197,11 +197,9 @@ As opposed to the :ref:`broadcast <broadcast collective>`, every process gets th
     # Gather the data from
     result = fabric.all_gather(tensor)
 
-    # By default, you can't back-propagate through the all-gather operation
-    result = fabric.all_gather(tensor, sync_grads=False)
-
-    # You can turn on gradient sync so you can backpropagate if needed
-    result = fabric.all_gather(tensor, sync_grads=True)
+    # Tip: Turn off gradient syncing if you don't need to back-propagate through it
+    with torch.no_grad():
+        result = fabric.all_gather(tensor)
 
 
 
