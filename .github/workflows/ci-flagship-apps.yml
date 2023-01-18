@@ -20,7 +20,7 @@ defaults:
     shell: bash
 
 jobs:
-  app-examples:
+  app-flagships:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     container:
@@ -49,6 +49,7 @@ jobs:
       HAR_LOCATION: './artifacts/hars'
       SLOW_MO: '50'
       LIGHTNING_DEBUG: '1'
+      TORCH_URL: 'https://download.pytorch.org/whl/cpu/torch_stable.html'
 
     steps:
       - uses: actions/checkout@v3
@@ -86,38 +87,16 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: ${{ matrix.repo }}
-          path: tests/_flagships/${{ matrix.app }}
+          path: tests/_flagship-app
 
-      - name: adjust env -> Flashy
-        if: matrix.app == 'flashy'
-        working-directory: tests/_flagships/${{ matrix.app }}
-        run: |
-          ls -l .
-          pip install -r requirements-dev.txt
-          python -m playwright install  # --with-deps
-          pip install -e .
-
-      - name: adjust env -> Muse
-        if: matrix.app == 'muse'
-        working-directory: tests/
-        run: |
-          pip install -e _flagships/${{ matrix.app }}
-          cp _flagships/${{ matrix.app }}/tests/test_app.py \
-            integrations_app/flagship/test_${{ matrix.app }}.py
-
-      - name: adjust env -> Jupyter
-        if: matrix.app == 'jupyter'
-        working-directory: tests/
-        run: |
-          pip install -e _flagships/${{ matrix.app }}
-          # pip install -r _flagships/${{ matrix.app }}/tests/requirements-dev.txt
-          cp _flagships/${{ matrix.app }}/tests/test_jupyter_app.py \
-            integrations_app/flagship/test_${{ matrix.app }}.py
+      - name: Adjust env. for this App
+        uses: ./.github/actions/prep-apps
+        with:
+          name: ${{ matrix.app }}
 
       - name: Install Lightning package & dependencies
         run: |
-          pip install -e .[cloud,test] \
-            -f https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e .[cloud,test] -f $TORCH_URL
       - name: List pip dependency
         run: pip --version && pip list
 
