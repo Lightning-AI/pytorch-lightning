@@ -39,7 +39,7 @@ class ExperimentWriter(_FabricExperimentWriter):
     r"""
     Experiment writer for CSVLogger.
 
-    Currently supports to log hyperparameters and metrics in YAML and CSV
+    Currently, supports to log hyperparameters and metrics in YAML and CSV
     format, respectively.
 
     Args:

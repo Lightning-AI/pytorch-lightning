@@ -55,7 +55,7 @@ class RootFlow(LightningFlow):
         self.flow_b = FlowB()
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 app = LightningApp(RootFlow())

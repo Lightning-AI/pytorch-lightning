@@ -42,7 +42,7 @@ class SyncFlowLITDrives(LightningFlow):
     def run(self):
         self.work_a.run(self.log_dir)
         self.work_b.run(self.log_dir)
-        self._exit()
+        self.stop()
 
 
 def test_synchronization_lit_drive(tmpdir):
@@ -100,7 +100,7 @@ class LITDriveFlow(LightningFlow):
         if self.work2.has_succeeded:
             self.work.run("1")
         if self.work.counter == 2:
-            self._exit()
+            self.stop()
 
 
 def test_lit_drive_transferring_files():

@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from copy import deepcopy
 from datetime import datetime
 from types import FrameType
@@ -366,11 +367,27 @@ class LightningFlow:
         for structure, state in provided_state["structures"].items():
             getattr(self, structure).set_state(state)
 
-    def _exit(self, end_msg: str = "") -> None:
-        """Private method used to exit the application."""
+    def stop(self, end_msg: str = "") -> None:
+        """Method used to exit the application."""
         if end_msg:
             print(end_msg)
         raise ExitAppException
+
+    def _exit(self, end_msg: str = "") -> None:
+        """Used to exit the application.
+
+        Private method.
+
+        .. deprecated:: 1.9.0
+            This function is deprecated and will be removed in 2.0.0. Use :meth:`stop` instead.
+        """
+        warnings.warn(
+            DeprecationWarning(
+                "This function is deprecated and will be removed in 2.0.0. Use `LightningFlow.stop` instead."
+            )
+        )
+
+        return self.stop(end_msg=end_msg)
 
     @staticmethod
     def _is_state_attribute(name: str) -> bool:
@@ -803,7 +820,7 @@ class _RootFlow(LightningFlow):
     def run(self):
         if self.work.has_succeeded:
             self.work.stop()
-            self._exit()
+            self.stop()
         self.work.run()
 
     def configure_layout(self):
