@@ -166,7 +166,6 @@ src/lightning_app/ui/*
 hars*
 artifacts/*
 *docs/examples*
-*docs/source-app/api*
 
 # tutorials
 our_model.tar
