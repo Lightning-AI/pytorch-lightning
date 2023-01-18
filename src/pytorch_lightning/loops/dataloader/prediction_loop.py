@@ -66,6 +66,22 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
+    def run(self) -> Optional[_PREDICT_OUTPUT]:
+        if self.skip:
+            return
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
         self.predictions = []
@@ -84,7 +100,7 @@ class PredictionLoop(DataLoaderLoop):
         self._on_predict_start()
         self._on_predict_epoch_start()
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
+    def advance(self) -> None:
         """Predicts one entire dataloader."""
         dataloader = self.current_dataloader
         if dataloader is not None:

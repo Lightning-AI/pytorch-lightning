@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Optional
 
 from torchmetrics import Metric
 
@@ -21,28 +21,13 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
-T = TypeVar("T")  # the output type of `run`
 
-
-class Loop(ABC, Generic[T]):
+class Loop(ABC):
     """Basic Loops interface. All classes derived from this must implement the following properties and methods:
 
-        * :attr:`done` (property): Condition to break the loop
-        * :attr:`reset` (method): Resets the internal state between multiple calls of :attr:`run`
-        * :attr:`advance` (method): Implements one step of the loop
-
-    This class implements the following loop structure:
-
-    .. code-block:: python
-
-        on_run_start()
-
-        while not done:
-            on_advance_start()
-            advance()
-            on_advance_end()
-
-        on_run_end()
+    * :attr:`done` (property): Condition to break the loop
+    * :attr:`reset` (method): Resets the internal state between multiple calls of :attr:`run`
+    * :attr:`advance` (method): Implements one step of the loop
     """
 
     def __init__(self) -> None:
@@ -100,58 +85,9 @@ class Loop(ABC, Generic[T]):
         """
         return False
 
-    def on_skip(self) -> T:
-        """The function to run when :meth:`run` should be skipped, determined by the condition in :attr:`skip`.
-
-        Returns:
-            the default output value of :meth:`on_run_end`
-        """
-
-    def run(self, *args: Any, **kwargs: Any) -> T:
-        """The main entry point to the loop.
-
-        Will frequently check the :attr:`done` condition and calls :attr:`advance`
-        until :attr:`done` evaluates to ``True``.
-
-        Override this if you wish to change the default behavior. The default implementation is:
-
-        Example::
-
-            def run(self, *args, **kwargs):
-                if self.skip:
-                    return self.on_skip()
-
-                self.reset()
-                self.on_run_start(*args, **kwargs)
-
-                while not self.done:
-                    self.advance(*args, **kwargs)
-
-                output = self.on_run_end()
-                return output
-
-        Returns:
-            The output of :attr:`on_run_end` (often outputs collected from each step of the loop)
-        """
-        if self.skip:
-            return self.on_skip()
-
-        self.reset()
-
-        self.on_run_start(*args, **kwargs)
-
-        while not self.done:
-            try:
-                self.on_advance_start(*args, **kwargs)
-                self.advance(*args, **kwargs)
-                self.on_advance_end()
-                self._restarting = False
-            except StopIteration:
-                break
-        self._restarting = False
-
-        output = self.on_run_end()
-        return output
+    @abstractmethod
+    def run(self, *args: Any, **kwargs: Any) -> Any:
+        """The main entry point to the loop."""
 
     @abstractmethod
     def reset(self) -> None:
@@ -195,7 +131,7 @@ class Loop(ABC, Generic[T]):
     def on_advance_end(self) -> None:
         """Hook to be called each time after :attr:`advance` is called."""
 
-    def on_run_end(self) -> T:
+    def on_run_end(self) -> Any:
         """Hook to be called at the end of the run.
 
         Its return argument is returned from :attr:`run`.

@@ -55,6 +55,18 @@ class EvaluationEpochLoop(Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
+    def run(self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict) -> EPOCH_OUTPUT:
+        self.reset()
+        self.on_run_start(data_fetcher, dl_max_batches, kwargs)
+        while not self.done:
+            try:
+                self.advance(data_fetcher, kwargs)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         """Resets the loop's internal state."""
         self._dl_max_batches = 0
@@ -103,14 +115,12 @@ class EvaluationEpochLoop(Loop):
     def advance(
         self,
         data_fetcher: AbstractDataFetcher,
-        dl_max_batches: int,
         kwargs: OrderedDict,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
         Args:
             data_fetcher: iterator over the dataloader
-            dl_max_batches: maximum number of batches the dataloader can produce
             kwargs: the kwargs passed down to the hooks.
 
         Raises:

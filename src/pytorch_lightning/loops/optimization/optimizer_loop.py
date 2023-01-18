@@ -146,7 +146,7 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
-class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
+class OptimizerLoop(Loop):
     """Runs over a sequence of optimizers.
 
     This loop implements what is known in Lightning as Automatic Optimization.
@@ -172,6 +172,18 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         """Returns ``True`` when the last optimizer in the sequence has run."""
         return self.optim_progress.optimizer_position >= len(self._indices)
 
+    def run(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> _OUTPUTS_TYPE:
+        self.reset()
+        self.on_run_start(optimizers)
+        while not self.done:
+            try:
+                self.advance(kwargs)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         if not self.restarting:
             # when reset() is called from outside (manually), we reset the loop progress
@@ -180,12 +192,12 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.reset_on_restart()
         self._outputs = {}
 
-    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
+    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]]) -> None:
         self._indices, self._optimizers = zip(*optimizers)
         if self.done:
             self.optim_progress.optimizer_position = 0
 
-    def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
+    def advance(self, kwargs: OrderedDict) -> None:
         kwargs = self._build_kwargs(kwargs, self.optimizer_idx)
 
         result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])

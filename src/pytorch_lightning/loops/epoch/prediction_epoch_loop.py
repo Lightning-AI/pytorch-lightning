@@ -38,6 +38,24 @@ class PredictionEpochLoop(Loop):
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
+    def run(
+        self,
+        dataloader_iter: Iterator,
+        dataloader_idx: int,
+        dl_max_batches: int,
+        num_dataloaders: int,
+    ) -> Tuple[List[Any], List[List[int]]]:
+        self.reset()
+        self.on_run_start(dataloader_idx, dl_max_batches, num_dataloaders)
+        while not self.done:
+            try:
+                self.advance(dataloader_iter, dataloader_idx)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         """Resets the loops internal state."""
         self._seen_batch_indices = []
@@ -46,7 +64,6 @@ class PredictionEpochLoop(Loop):
 
     def on_run_start(
         self,
-        dataloader_iter: Iterator,
         dataloader_idx: int,
         dl_max_batches: int,
         num_dataloaders: int,
@@ -54,7 +71,6 @@ class PredictionEpochLoop(Loop):
         """Prepares the loops internal state.
 
         Args:
-            dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
             dl_max_batches: the maximum number of batches the current loader can produce
             num_dataloaders: the total number of dataloaders
@@ -68,16 +84,12 @@ class PredictionEpochLoop(Loop):
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
-        dl_max_batches: int,
-        num_dataloaders: int,
     ) -> None:
         """Runs one prediction step.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
-            dl_max_batches: the maximum number of batches the current loader can produce
-            num_dataloaders: the total number of dataloaders
         """
         action_name = f"[{self.__class__.__name__}].predict_dataloader_idx_{dataloader_idx}_next"
         with self.trainer.profiler.profile(action_name):
