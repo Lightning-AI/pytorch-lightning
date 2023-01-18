@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/pytorch-lightning.png" width="400px">
+<img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/pytorch-lightning.png" width="400px">
 
 **The lightweight PyTorch wrapper for high-performance AI research.
 Scale your models, not the boilerplate.**

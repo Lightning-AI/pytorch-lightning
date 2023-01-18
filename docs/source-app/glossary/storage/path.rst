@@ -46,7 +46,7 @@ But with Lightning Storage, this is easy: Simply declare which files need to be 
 
 .. raw:: html
 
-    <video width="100%" max-width="800px" controls autoplay src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/storage/path.m4v" />
+    <video width="100%" max-width="800px" controls autoplay src="https://pl-public-data.s3.amazonaws.com/assets_lightning//path.m4v" />
 
 
 ----
