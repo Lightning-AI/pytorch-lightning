@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v2.0.0."""
-
-import numpy
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -22,15 +20,6 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.mixins.device_dtype_mixin import DeviceDtypeModuleMixin
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.strategies.utils import on_colab_kaggle
-from pytorch_lightning.utilities.apply_func import (
-    apply_to_collection,
-    apply_to_collections,
-    convert_to_tensors,
-    from_numpy,
-    move_data_to_device,
-    to_dtype_tensor,
-    TransferableDataType,
-)
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
@@ -47,32 +36,6 @@ def test_v1_10_deprecated_device_dtype_module_mixin():
         pass
 
     with pytest.deprecated_call(match="mixins.DeviceDtypeModuleMixin` has been deprecated in v1.8.0"):
-        MyModule()
-
-
-def test_v1_10_deprecated_apply_func_utilities():
-    with pytest.deprecated_call(match="apply_func.apply_to_collection` has been deprecated in v1.8.0"):
-        apply_to_collection([], dtype=object, function=(lambda x: x))
-
-    with pytest.deprecated_call(match="apply_func.apply_to_collections` has been deprecated in v1.8.0"):
-        apply_to_collections([], [], dtype=object, function=(lambda x, y: x))
-
-    with pytest.deprecated_call(match="apply_func.convert_to_tensors` has been deprecated in v1.8.0"):
-        convert_to_tensors([], torch.device("cpu"))
-
-    with pytest.deprecated_call(match="apply_func.from_numpy` has been deprecated in v1.8.0"):
-        from_numpy(numpy.zeros(2), torch.device("cpu"))
-
-    with pytest.deprecated_call(match="apply_func.move_data_to_device` has been deprecated in v1.8.0"):
-        move_data_to_device(torch.tensor(2), torch.device("cpu"))
-
-    with pytest.deprecated_call(match="apply_func.to_dtype_tensor` has been deprecated in v1.8.0"):
-        to_dtype_tensor(torch.tensor(2), dtype=torch.float32, device=torch.device("cpu"))
-
-    class MyModule(TransferableDataType):
-        pass
-
-    with pytest.deprecated_call(match="apply_func.TransferableDataType` has been deprecated in v1.8.0"):
         MyModule()
 
 

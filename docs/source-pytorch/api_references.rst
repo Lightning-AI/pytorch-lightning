@@ -314,7 +314,6 @@ utilities
     :toctree: api
     :nosignatures:
 
-    apply_func
     argparse
     cloud_io
     deepspeed
