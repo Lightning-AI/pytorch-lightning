@@ -123,4 +123,3 @@ jobs:
 #          LIGHTNING_CLOUD_URL: $(LIGHTNING_CLOUD_URL_PROD)
 #        run: |
 #          time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
-
