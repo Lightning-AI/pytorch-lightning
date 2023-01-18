@@ -283,7 +283,6 @@ strategies
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
-    HivemindStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy

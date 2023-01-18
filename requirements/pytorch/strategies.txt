@@ -4,4 +4,3 @@
 # colossalai>=0.1.10  # TODO: uncomment when there's a stable version released
 fairscale>=0.4.5, <0.4.13
 deepspeed>=0.6.0, <=0.7.0
-hivemind==1.1.5; sys_platform == 'linux'

@@ -29,7 +29,6 @@ from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
-    _HIVEMIND_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
@@ -71,7 +70,6 @@ class RunIf:
         bagua: bool = False,
         colossalai: bool = False,
         psutil: bool = False,
-        hivemind: bool = False,
         sklearn: bool = False,
         **kwargs,
     ):
@@ -100,7 +98,6 @@ class RunIf:
                 This requires that the ``PL_RUN_SLOW_TESTS=1`` environment variable is set.
             bagua: Require that BaguaSys/bagua is installed.
             psutil: Require that psutil is installed.
-            hivemind: Require that Hivemind is installed.
             sklearn: Require that scikit-learn is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
@@ -220,10 +217,6 @@ class RunIf:
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)
             reasons.append("psutil")
-
-        if hivemind:
-            conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
-            reasons.append("Hivemind")
 
         if sklearn:
             conditions.append(not _SKLEARN_AVAILABLE)
