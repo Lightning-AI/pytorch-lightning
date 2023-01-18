@@ -35,14 +35,14 @@ jobs:
           - {app: "muse", repo: "Lightning-AI/stable-diffusion-deploy"}
           - {app: "jupyter", repo: "Lightning-AI/LAI-Jupyter-Component"}
 
-    # TODO:
-    # - Training Studio
-    # - Echo
-    # - StreamLit / Gradio
-    # - All homepage & docs apps
+          # TODO:
+          # - Training Studio
+          # - Echo
+          # - StreamLit / Gradio
+          # - All homepage & docs apps
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       HEADLESS: '1'
       PACKAGE_LIGHTNING: '1'
@@ -113,7 +113,12 @@ jobs:
           python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
             --capture=no -v --color=yes
 
-      # TODO: upload artifact
+      - name: Upload recordings
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: flahship-app-${{ matrix.app }}
+          path: ${{ env.VIDEO_LOCATION }}
 
 #      - name: Clean Previous Apps
 #        if: always()
