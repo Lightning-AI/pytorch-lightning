@@ -3,7 +3,7 @@ import base64
 import os
 import platform
 from typing import Any, Dict, Optional, TYPE_CHECKING
-
+import asyncio
 import requests
 import uvicorn
 from fastapi import FastAPI
@@ -263,6 +263,13 @@ class PythonServer(LightningWork, abc.ABC):
         def predict_fn(request: input_type):  # type: ignore
             with context():
                 return self.predict(request)
+
+        async def async_predict_fn(request: input_type):  # type: ignore
+            with context():
+                return await self.predict(request)
+
+        if asyncio.iscoroutinefunction(self.predict):
+            predict_fn = async_predict_fn
 
         fastapi_app.post("/predict", response_model=output_type)(predict_fn)
 

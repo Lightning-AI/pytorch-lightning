@@ -728,3 +728,11 @@ class LightningWork:
             :class:`~lightning_app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
             in order for the runtime to start the server.
         """
+
+    def clone(self):
+        backend = self._backend
+        self._backend = None
+        new_work = deepcopy(self)
+        new_work.name = ""
+        self._backend = backend
+        new_work._backend = backend

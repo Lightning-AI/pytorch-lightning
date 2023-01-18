@@ -419,3 +419,10 @@ def test_lightning_work_display_name():
     with pytest.raises(RuntimeError, match="The display name can be set only before the work has started."):
         work.display_name = "HELLO"
     work.display_name = "Hello"
+
+
+def test_lightning_work_clone():
+
+    work = EmptyWork()
+    work.clone()
+
