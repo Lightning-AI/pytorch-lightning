@@ -44,13 +44,13 @@ And here is how you access all rank and world size information:
     fabric.world_size  # 2 * 3 = 6
 
     # The global index of the current process across all devices and nodes
-    fabric.global_rank
+    fabric.global_rank  # -> {0, 1, 2, 3, 4, 5}
 
     # The index of the current process among the processes running on the local node
-    fabric.local_rank
+    fabric.local_rank  # -> {0, 1, 2}
 
     # The index of the current node
-    fabric.node_rank
+    fabric.node_rank  # -> {0, 1}
 
     # Do something only on rank 0
     if fabric.global_rank == 0:
