@@ -54,6 +54,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated code in `pl.utilities.distributed` ([#16390](https://github.com/Lightning-AI/lightning/pull/16390))
 
+- Removed the deprecated code in `pl.utilities.apply_func` ([#16413](https://github.com/Lightning-AI/lightning/pull/16413))
+
 - Removed the deprecated code in `pl.utilities.xla_device` ([#16404](https://github.com/Lightning-AI/lightning/pull/16404))
 
 - Removed the deprecated code in `pl.utilities.device_parser` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
