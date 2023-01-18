@@ -94,9 +94,8 @@ jobs:
         with:
           name: ${{ matrix.app }}
 
-      - name: Install Lightning package & dependencies
-        run: |
-          pip install -e .[cloud,test] -f $TORCH_URL
+      - name: Install Lightning package
+        run: pip install -e .[cloud,test] -f $TORCH_URL
       - name: List pip dependency
         run: pip --version && pip list
 
