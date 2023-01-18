@@ -1,0 +1,147 @@
+name: Test App - flagships
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: ["release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths:
+      - ".github/workflows/ci-flagship-apps.yml"
+      - "tests/integrations_app/flagship/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  app-examples:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.29.1-focal
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {app: "flashy", repo: "Lightning-AI/LAI-Flashy-App"}
+          - {app: "muse", repo: "Lightning-AI/stable-diffusion-deploy"}
+          - {app: "jupyter", repo: "Lightning-AI/LAI-Jupyter-Component"}
+
+    # TODO:
+    # - Training Studio
+    # - Echo
+    # - StreamLit / Gradio
+    # - All homepage & docs apps
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 15
+    env:
+      HEADLESS: '1'
+      PACKAGE_LIGHTNING: '1'
+      CLOUD: '1'
+      VIDEO_LOCATION: './videos'
+      HAR_LOCATION: './artifacts/hars'
+      SLOW_MO: '50'
+      LIGHTNING_DEBUG: '1'
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: basic setup
+        run: |
+          mkdir -p tests/_flagships
+          mkdir -p $VIDEO_LOCATION
+          python -m playwright install  # --with-deps
+
+      - name: Adjust testing
+        run: |
+          pip install -q -r .actions/requirements.txt
+          python .actions/assistant.py copy_replace_imports \
+            --source_dir="./tests" \
+            --source_import="lightning_app" \
+            --target_import="lightning.app"
+
+#      - name: Get pip cache dir
+#        id: pip-cache
+#        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+#
+#      - name: Cache pip
+#        uses: actions/cache@v3
+#        with:
+#          path: ${{ steps.pip-cache.outputs.dir }}
+#          key: ${{ runner.os }}-flagships
+#          restore-keys: ${{ runner.os }}-flagships
+
+      - name: Clone the Repo/App
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ matrix.repo }}
+          path: tests/_flagships/${{ matrix.app }}
+
+      - name: adjust env -> Flashy
+        if: matrix.app == 'flashy'
+        working-directory: tests/_flagships/${{ matrix.app }}
+        run: |
+          ls -l .
+          pip install -r requirements-dev.txt
+          python -m playwright install  # --with-deps
+          pip install -e .
+
+      - name: adjust env -> Muse
+        if: matrix.app == 'muse'
+        working-directory: tests/
+        run: |
+          pip install -e _flagships/${{ matrix.app }}
+          cp _flagships/${{ matrix.app }}/tests/test_app.py \
+            integrations_app/flagship/test_${{ matrix.app }}.py
+
+      - name: adjust env -> Jupyter
+        if: matrix.app == 'jupyter'
+        working-directory: tests/
+        run: |
+          pip install -e _flagships/${{ matrix.app }}
+          # pip install -r _flagships/${{ matrix.app }}/tests/requirements-dev.txt
+          cp _flagships/${{ matrix.app }}/tests/test_jupyter_app.py \
+            integrations_app/flagship/test_${{ matrix.app }}.py
+
+      - name: Install Lightning package & dependencies
+        run: |
+          pip install -e .[cloud,test] \
+            -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      - name: List pip dependency
+        run: pip --version && pip list
+
+      - name: Run the tests
+        working-directory: tests/
+        env:
+          LIGHTNING_USER_ID: $(LIGHTNING_USER_ID_PROD)
+          LIGHTNING_API_KEY: $(LIGHTNING_API_KEY_PROD)
+          LIGHTNING_USERNAME: $(LIGHTNING_USERNAME_PROD)
+          LIGHTNING_CLOUD_URL: $(LIGHTNING_CLOUD_URL_PROD)
+        run: |
+          ls -l _flagships
+          python -m pytest integrations_app/flagship/test_${{ matrix.app }}.py \
+            --capture=no -v --color=yes
+
+      # TODO: upload artifact
+
+#      - name: Clean Previous Apps
+#        if: always()
+#        env:
+#          LIGHTNING_USER_ID: $(LIGHTNING_USER_ID_PROD)
+#          LIGHTNING_API_KEY: $(LIGHTNING_API_KEY_PROD)
+#          LIGHTNING_USERNAME: $(LIGHTNING_USERNAME_PROD)
+#          LIGHTNING_CLOUD_URL: $(LIGHTNING_CLOUD_URL_PROD)
+#        run: |
+#          time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
+
