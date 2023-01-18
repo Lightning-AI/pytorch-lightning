@@ -68,7 +68,7 @@ class PredictionLoop(DataLoaderLoop):
 
     def run(self) -> Optional[_PREDICT_OUTPUT]:
         if self.skip:
-            return
+            return None
         self.reset()
         self.on_run_start()
         while not self.done:
