@@ -228,7 +228,7 @@ def _run_state_transformation(tmpdir, attribute, update_fn, inplace=False):
 
         def run(self):
             if self.finished:
-                self._exit()
+                self.stop()
 
             x = update_fn(self.x)
             if not inplace:
@@ -308,7 +308,7 @@ def test_lightning_flow_and_work():
                 self.work_b.run()
                 self.counter += 1
             else:
-                self._exit()
+                self.stop()
 
     flow_a = Flow_A()
     assert flow_a.named_works() == [("root.work_a", flow_a.work_a), ("root.work_b", flow_a.work_b)]
@@ -517,11 +517,11 @@ class CFlow(LightningFlow):
         for idx in self.experimental_iterate(range(0, 10), run_once=self.run_once):
             if not self.restarting and (idx + 1) == 5:
                 _LightningAppRef.get_current()._dump_checkpoint()
-                self._exit()
+                self.stop()
             self.tracker += 1
         self.looping += 1
         if self.looping == 2:
-            self._exit()
+            self.stop()
 
 
 @pytest.mark.parametrize("run_once", [False, True])
@@ -555,7 +555,7 @@ class FlowCounter(LightningFlow):
 
     def run(self):
         if self.counter >= 3:
-            self._exit()
+            self.stop()
         self.counter += 1
 
 
@@ -619,7 +619,7 @@ def test_flow_state_change_with_path():
             self.none_to_path = "lit://none/to/path"
             self.path_to_none = None
             self.path_to_path = "lit://path/to/path"
-            self._exit()
+            self.stop()
 
     flow = Flow()
     MultiProcessRuntime(LightningApp(flow)).dispatch()
@@ -649,7 +649,7 @@ class FlowSchedule(LightningFlow):
                 self._last_times.append(time())
             else:
                 assert abs((time() - self._last_times[-1]) - self.target) < 12
-                self._exit()
+                self.stop()
 
 
 def test_scheduling_api():
@@ -887,7 +887,7 @@ class FlowReady(LightningFlow):
         self.w.run()
 
         if self.ready:
-            self._exit()
+            self.stop()
 
 
 class RootFlowReady(_RootFlow):
@@ -954,3 +954,9 @@ def test_structures_register_work_cloudcompute():
         assert len(v.component_names) == 1
         assert v.component_names[0][:-1] in ("root.w_list.", "root.w_dict.")
         assert v.component_names[0][-1].isdigit()
+
+
+def test_deprecation_warning_exit():
+    with pytest.raises(ExitAppException):
+        with pytest.warns(DeprecationWarning, match="*Use LightningFlow.stop instead"):
+            RootFlowReady()._exit()

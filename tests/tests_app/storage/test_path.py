@@ -372,7 +372,7 @@ class SourceToDestFlow(LightningFlow):
         if self.src_work.has_succeeded:
             self.dst_work.run()
         if self.dst_work.has_succeeded:
-            self._exit()
+            self.stop()
 
 
 def test_multiprocess_path_in_work_and_flow(tmpdir):
@@ -395,7 +395,7 @@ class DynamicSourceToDestFlow(LightningFlow):
                 self.dst_work = DestinationWork(self.src_work.path)
             self.dst_work.run()
         if hasattr(self, "dst_work") and self.dst_work.has_succeeded:
-            self._exit()
+            self.stop()
 
 
 # FIXME(alecmerdler): This test is failing...
@@ -434,7 +434,7 @@ class RunPathFlow(LightningFlow):
             nested_kwarg_path=nested_kwarg_path,
         )
         sleep(1)
-        self._exit()
+        self.stop()
 
 
 class PathSourceWork(EmptyWork):
@@ -545,7 +545,7 @@ class OverwriteFolderFlow(LightningFlow):
         if self.src_work.has_succeeded:
             self.dst_work.run()
         if self.dst_work.has_succeeded:
-            self._exit()
+            self.stop()
 
 
 def test_path_get_overwrite(tmpdir):

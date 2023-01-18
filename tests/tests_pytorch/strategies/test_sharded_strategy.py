@@ -9,7 +9,7 @@ import torch
 from torch import Tensor
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins import MixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
@@ -58,15 +58,16 @@ class CheckModelRestore(ModelWithAdamOptimizer):
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="ddp_sharded",
-        accelerator="gpu",
-        devices=1,
-        precision=16,
-        fast_dev_run=True,
-        gradient_clip_val=clip_val,
-    )
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            strategy="ddp_sharded",
+            accelerator="gpu",
+            devices=1,
+            precision=16,
+            fast_dev_run=True,
+            gradient_clip_val=clip_val,
+        )
     trainer.fit(model)
     if clip_val > 0:
         mock_oss_clip_grad_norm.assert_called()
@@ -80,7 +81,8 @@ def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_v
 )
 def test_sharded_ddp_choice(strategy, expected):
     """Test to ensure that strategy is correctly chosen."""
-    trainer = Trainer(fast_dev_run=True, strategy=strategy)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(fast_dev_run=True, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
 
 
@@ -90,7 +92,8 @@ def test_sharded_ddp_choice(strategy, expected):
 )
 def test_ddp_choice_sharded_amp(strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-    trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
     assert isinstance(trainer.precision_plugin, MixedPrecisionPlugin)
 
@@ -99,7 +102,8 @@ def test_ddp_choice_sharded_amp(strategy, expected):
 def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -116,7 +120,8 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -133,7 +138,8 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
@@ -148,7 +154,8 @@ def test_ddp_sharded_strategy_finetune(tmpdir):
 def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -166,7 +173,8 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=1, fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=1, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -175,7 +183,8 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
@@ -191,32 +200,17 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 def test_ddp_sharded_strategy_test_multigpu(trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn",
-        fast_dev_run=True,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-        **trainer_kwargs,
-    )
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(
+            strategy="ddp_sharded_spawn",
+            fast_dev_run=True,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            **trainer_kwargs,
+        )
 
     trainer.validate(model)
     trainer.test(model)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True, fairscale=True)
-@pytest.mark.parametrize("strategy", ("ddp_sharded", "ddp_sharded_spawn"))
-def test_ddp_sharded_strategy_manual_optimization(tmpdir, strategy):
-    model = ManualOptimBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy=strategy,
-        fast_dev_run=2,
-        accelerator="gpu",
-        devices=2,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
 
 
 class BoringModelSharded(BoringModel):
@@ -243,7 +237,8 @@ class BoringModelSharded(BoringModel):
 @RunIf(fairscale=True)
 def test_configure_ddp(tmpdir):
     """Tests with ddp sharded strategy."""
-    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=True)
 
     model = BoringModelSharded()
 
@@ -258,7 +253,8 @@ def test_configure_ddp(tmpdir):
 @pytest.mark.parametrize("cls", [DDPShardedStrategy, DDPSpawnShardedStrategy])
 def test_custom_kwargs_sharded(_, cls):
     """Tests to ensure that if custom kwargs are passed, they are set correctly."""
-    strategy = cls(reduce_fp16=True)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        strategy = cls(reduce_fp16=True)
     strategy._lightning_module = Mock(spec=LightningModule)
     strategy._lightning_module.trainer = Mock()
     strategy.parallel_devices = [Mock()]
@@ -277,7 +273,8 @@ def test_custom_kwargs_sharded(_, cls):
 @pytest.mark.parametrize("num_nodes", [1, 2])
 def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_size, num_nodes):
     """Tests to ensure that ``reduce_buffer_size`` is correctly set based on user kwargs."""
-    strategy = DDPShardedStrategy(**params)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        strategy = DDPShardedStrategy(**params)
     strategy.num_nodes = num_nodes
     strategy._lightning_module = Mock(spec=LightningModule)
     strategy._lightning_module.trainer = Mock()
@@ -297,7 +294,8 @@ def test_custom_kwargs_sharded_reduce_buffer_size(_, params, expected_buffer_siz
 
 @RunIf(fairscale=True)
 def test_block_backward_sync():
-    strategy = DDPShardedStrategy()
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        strategy = DDPShardedStrategy()
     model = mock.MagicMock(spec=ShardedDataParallel)
     with mock.patch.object(strategy, "_model", model):
         with strategy.block_backward_sync():
@@ -315,7 +313,8 @@ def test_block_backward_sync():
     ],
 )
 def test_ddp_kwargs_from_registry(strategy_name, expected_ddp_kwargs):
-    trainer = Trainer(strategy=strategy_name)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy=strategy_name)
     assert trainer.strategy._ddp_kwargs == expected_ddp_kwargs
 
 
@@ -326,37 +325,17 @@ class BoringFairScaleOptimizerModel(BoringModel):
 
 
 @RunIf(min_cuda_gpus=2, fairscale=True)
-@pytest.mark.parametrize("strategy", (pytest.param("ddp_sharded", marks=RunIf(standalone=True)), "ddp_sharded_spawn"))
-def test_ddp_sharded_strategy_checkpoint_multi_gpu_fairscale_optimizer(tmpdir, strategy):
-    """Test to ensure that checkpoint is saved correctly when using fairscale optimizers."""
-    model = BoringFairScaleOptimizerModel()
-    trainer = Trainer(accelerator="gpu", devices=2, strategy=strategy, max_steps=1)
-
-    trainer.fit(model)
-
-    checkpoint_path = os.path.join(tmpdir, "model.pt")
-    # need to broadcast because tmpdir is different on each process
-    checkpoint_path = trainer.strategy.broadcast(checkpoint_path)
-    trainer.save_checkpoint(checkpoint_path)
-    trainer.strategy.barrier()  # ensure the checkpoint is saved before load
-    saved_model = BoringModel.load_from_checkpoint(checkpoint_path)
-
-    # Assert model parameters are identical after loading
-    for trained_param, loaded_param in zip(model.parameters(), saved_model.parameters()):
-        assert torch.equal(trained_param.to("cpu"), loaded_param)
-
-
-@RunIf(min_cuda_gpus=2, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     model = ModelWithAdamOptimizer()
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn",
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        accelerator="gpu",
-        devices=2,
-    )
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(
+            strategy="ddp_sharded_spawn",
+            max_epochs=1,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            accelerator="gpu",
+            devices=2,
+        )
     trainer.fit(model)
 
     checkpoint_path = trainer.checkpoint_callback.best_model_path
@@ -365,12 +344,13 @@ def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     old_optimizer_states = deepcopy(ckpt["optimizer_states"])
 
     model = CheckModelRestore(old_model_state_dict, old_optimizer_states)
-    trainer = Trainer(
-        strategy="ddp_sharded_spawn",
-        max_epochs=2,
-        limit_train_batches=1,
-        limit_val_batches=0,
-        accelerator="gpu",
-        devices=1,
-    )
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(
+            strategy="ddp_sharded_spawn",
+            max_epochs=2,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            accelerator="gpu",
+            devices=1,
+        )
     trainer.fit(model, ckpt_path=checkpoint_path)

@@ -48,7 +48,7 @@ class CustomWorkBuildConfigChecker(LightningFlow):
 
         if self.work1.has_succeeded and self.work2.has_succeeded:
             print("--- Custom Work Dependency checker End ----")
-            self._exit()
+            self.stop()
 
 
 app = LightningApp(CustomWorkBuildConfigChecker())

@@ -55,7 +55,7 @@ class StreamlitFrontendFlow(LightningFlow):
 
     def run(self):
         if self.counter > 2:
-            self._exit()
+            self.stop()
         self.counter += 1
 
     def configure_layout(self):
@@ -76,7 +76,7 @@ class StaticWebFrontendFlow(LightningFlow):
 
     def run(self):
         if self.counter > 2:
-            self._exit()
+            self.stop()
         self.counter += 1
 
     def configure_layout(self):
@@ -184,7 +184,7 @@ class DynamicContentComponent(EmptyFlow):
         self.run_assertion()
         self.counter += 1
         if self.counter == 3:
-            self._exit()
+            self.stop()
 
     def configure_layout(self):
         self.configure_layout_called += 1

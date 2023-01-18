@@ -28,6 +28,7 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
@@ -117,7 +118,13 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 If ``False``, this will default to ``compute_device``.
                 (Default: True).
         """
-
+        rank_zero_deprecation(
+            "PyTorch Lightning's sharded implementation using FairScale has been deprecated in v1.9.0 and will be"
+            " removed in v2.0.0. You can try using the `Trainer(strategy='fsdp_native')` instead."
+            " The difference is that native FSDP uses PyTorch's implementation and the current strategy uses"
+            " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
+            " the native version by default."
+        )
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

@@ -118,7 +118,25 @@ class XLAStrategy(ParallelStrategy):
         dataloader.dataset = dataloader._loader.dataset
         return dataloader
 
-    def reduce(
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """Function to gather a tensor from several distributed processes.
+
+        Args:
+            tensor: tensor of shape (batch, ...)
+            group: not available with TPUs
+            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
+        Return:
+            A tensor of shape (world_size, batch, ...)
+        """
+        if isinstance(tensor, Tensor) and tensor.dim() == 0:
+            tensor = tensor.unsqueeze(0)
+
+        import torch_xla.core.functions as xf
+        import torch_xla.core.xla_model as xm
+
+        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
+
+    def all_reduce(
         self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
     ) -> Tensor:
         if not isinstance(output, Tensor):
@@ -159,24 +177,6 @@ class XLAStrategy(ParallelStrategy):
         buffer = io.BytesIO(data.cpu().byte().numpy())
         obj = torch.load(buffer)
         return obj
-
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """Function to gather a tensor from several distributed processes.
-
-        Args:
-            tensor: tensor of shape (batch, ...)
-            group: not available with TPUs
-            sync_grads: flag that allows users to synchronize gradients for the all_gather operation
-        Return:
-            A tensor of shape (world_size, batch, ...)
-        """
-        if isinstance(tensor, Tensor) and tensor.dim() == 0:
-            tensor = tensor.unsqueeze(0)
-
-        import torch_xla.core.functions as xf
-        import torch_xla.core.xla_model as xm
-
-        return xf.all_gather(tensor) if sync_grads else xm.all_gather(tensor)
 
     def save_checkpoint(
         self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None

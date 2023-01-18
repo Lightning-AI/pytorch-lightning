@@ -41,6 +41,13 @@ class LightningShardedDataParallel(_LightningModuleWrapperBase):
         forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
         pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
     ) -> None:
+        rank_zero_deprecation(
+            "PyTorch Lightning's sharded implementation using FairScale has been deprecated in v1.9.0 and will be"
+            " removed in v2.0.0. You can try using the `Trainer(strategy='fsdp_native')` instead."
+            " The difference is that native FSDP uses PyTorch's implementation and the current strategy uses"
+            " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
+            " the native version by default."
+        )
         self._validate_init_arguments(pl_module, forward_module)
         super().__init__(forward_module=(pl_module or forward_module))
 
