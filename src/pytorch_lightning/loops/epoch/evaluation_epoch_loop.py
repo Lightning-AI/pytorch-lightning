@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -45,7 +45,7 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress = BatchProgress()
 
         self._outputs: EPOCH_OUTPUT = []
-        self._dl_max_batches = 0
+        self._dl_max_batches: Union[int, float] = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
         self._dl_batch_idx = [0]
@@ -55,7 +55,9 @@ class EvaluationEpochLoop(Loop):
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
 
-    def run(self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict) -> EPOCH_OUTPUT:
+    def run(
+        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
+    ) -> EPOCH_OUTPUT:
         self.reset()
         self.on_run_start(data_fetcher, dl_max_batches, kwargs)
         while not self.done:
@@ -82,7 +84,9 @@ class EvaluationEpochLoop(Loop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict) -> None:
+    def on_run_start(
+        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
+    ) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:

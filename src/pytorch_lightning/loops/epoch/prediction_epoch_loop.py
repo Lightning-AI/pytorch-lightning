@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import torch
 
@@ -22,7 +22,7 @@ class PredictionEpochLoop(Loop):
         self.current_batch_indices: List[int] = []
         self.batch_progress = Progress()
 
-        self._dl_max_batches = 0
+        self._dl_max_batches: Union[int, float] = 0
         self._num_dataloaders = 0
         self._warning_cache = WarningCache()
         self._seen_batch_indices: List[List[int]] = []
@@ -42,7 +42,7 @@ class PredictionEpochLoop(Loop):
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
-        dl_max_batches: int,
+        dl_max_batches: Union[int, float],
         num_dataloaders: int,
     ) -> Tuple[List[Any], List[List[int]]]:
         self.reset()
@@ -65,7 +65,7 @@ class PredictionEpochLoop(Loop):
     def on_run_start(
         self,
         dataloader_idx: int,
-        dl_max_batches: int,
+        dl_max_batches: Union[int, float],
         num_dataloaders: int,
     ) -> None:
         """Prepares the loops internal state.

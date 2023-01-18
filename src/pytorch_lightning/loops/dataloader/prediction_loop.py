@@ -16,7 +16,7 @@ class PredictionLoop(DataLoaderLoop):
     def __init__(self) -> None:
         super().__init__()
         self.predictions: List[List[Any]] = []
-        self.epoch_batch_indices: List[List[int]] = []
+        self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
         self.epoch_loop = PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
