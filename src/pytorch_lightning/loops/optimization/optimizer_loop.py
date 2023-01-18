@@ -147,9 +147,12 @@ _OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
 class OptimizerLoop(Loop):
-    """Runs over a sequence of optimizers.
+    """Iterates over one or multiple optimizers and for each one it calls the
+    :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method with the batch, the current batch index
+    and the optimizer index if multiple optimizers are requested.
 
-    This loop implements what is known in Lightning as Automatic Optimization.
+    It is the leaf node in the tree of loops and performs automatic optimization
+    (forward, zero grad, backward, optimizer step).
     """
 
     output_result_cls = ClosureResult

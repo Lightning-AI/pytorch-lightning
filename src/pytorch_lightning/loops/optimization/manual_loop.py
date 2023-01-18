@@ -81,27 +81,14 @@ class ManualOptimization(Loop):
         # `OptimizationProgress`
         self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
 
-        self._done: bool = False
         self._output: _OUTPUTS_TYPE = {}
-
-    @property
-    def done(self) -> bool:
-        return self._done
 
     def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
         self.reset()
         self.on_run_start()
-        while not self.done:
-            try:
-                self.advance(kwargs)
-                self._restarting = False
-            except StopIteration:
-                break
+        self.advance(kwargs)
         self._restarting = False
         return self.on_run_end()
-
-    def reset(self) -> None:
-        self._done = False
 
     def on_run_start(self) -> None:
         # inject logic around the optimizer step
@@ -128,7 +115,6 @@ class ManualOptimization(Loop):
 
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
-        self._done = True
         self._output = result.asdict()
 
     def on_run_end(self) -> _OUTPUTS_TYPE:

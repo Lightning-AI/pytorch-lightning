@@ -11,7 +11,11 @@ from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
 class PredictionLoop(DataLoaderLoop):
-    """Loop to run over dataloaders for prediction."""
+    """Top-level loop where prediction starts.
+
+    It simply iterates over each predict dataloader from one to the next by calling ``PredictionEpochLoop.run()`` in its
+    ``advance()`` method.
+    """
 
     def __init__(self) -> None:
         super().__init__()
