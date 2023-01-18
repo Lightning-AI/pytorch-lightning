@@ -30,8 +30,10 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
 
     It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
 
-    If you are starting pytorch lightning using fork method then collecting cuda state will result in error.
-    Use function with paremeter `include_cuda=False` then.
+    Args:
+        include_cuda: Whether to allow this function to also control the `torch.cuda` random number generator.
+            Set this to ``False`` when using the function in a forked process where CUDA re-initialization is
+            prohibited.
 
     Example:
         >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
