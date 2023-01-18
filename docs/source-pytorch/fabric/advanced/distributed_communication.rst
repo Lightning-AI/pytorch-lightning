@@ -21,7 +21,7 @@ The rank is unique across all processes, regardless of how they are distributed 
 We can also identify processes by their **local rank**, which is only unique among processes runing on the same machine, but is not unique globally across all machines.
 Finally, each process is associated with a **node rank** in the range *0, ..., num nodes - 1*, which identifies on which machine (node) the process is running on.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/ranks.jpeg
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_ranks.jpeg
    :alt: The different type of process ranks: Local, global, node.
    :width: 100%
 
@@ -95,7 +95,7 @@ Barrier
 The barrier forces every process to wait until all processes have reached it.
 In other words, it is a **synchronization**.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/barrier.jpeg
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_barrier.jpeg
    :alt: The barrier for process synchronization
    :width: 100%
 
@@ -140,7 +140,7 @@ Since downloading should be done on rank 0 only to :ref:`avoid race conditions <
 Broadcast
 *********
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/broadcast.jpeg
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_broadcast.jpeg
    :alt: The broadcast collective operation
    :width: 100%
 
@@ -183,7 +183,7 @@ A concrete example:
 Gather
 ******
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/all-gather.jpeg
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_all-gather.jpeg
    :alt: The All-gather collective operation
    :width: 100%
 
@@ -228,7 +228,7 @@ A concrete example:
 Reduce
 ******
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/fabric/docs/collectives/all-reduce.jpeg
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric_collectives_all-reduce.jpeg
    :alt: The All-reduce collective operation
    :width: 100%
 
