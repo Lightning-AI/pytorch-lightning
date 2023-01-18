@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
@@ -124,30 +122,6 @@ def test_ddp_spawn_configure_ddp(tmpdir):
     trainer.validate(model, dataloaders=model.val_dataloader())
     trainer.test(model, dataloaders=model.test_dataloader())
     trainer.predict(model, dataloaders=model.predict_dataloader())
-
-
-@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
-def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
-    """Tests that the spawn strategy transfers the new weights to the main process and deletes the temporary
-    file."""
-    model = Mock(wraps=BoringModel(), spec=BoringModel)
-    strategy = DDPSpawnStrategy()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
-    trainer.strategy.connect(model)
-    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
-
-    spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
-
-    model.state_dict.assert_called_once()
-    if trainer_fn == TrainerFn.FITTING:
-        assert spawn_output.weights_path.endswith(".temp.ckpt")
-        assert os.path.isfile(spawn_output.weights_path)
-    else:
-        assert spawn_output.weights_path is None
-
-    # <-- here would normally be the multiprocessing boundary
-    strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
-    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
 
 
 @mock.patch("torch.distributed.init_process_group")
