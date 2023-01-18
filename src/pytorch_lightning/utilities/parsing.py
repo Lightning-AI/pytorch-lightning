@@ -137,10 +137,10 @@ def parse_class_init_keys(
     return n_self, n_args, n_kwargs
 
 
-def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
+def get_init_args(frame: types.FrameType) -> Tuple[Optional[Any], Dict[str, Any]]:
     _, _, _, local_vars = inspect.getargvalues(frame)
     if "__class__" not in local_vars:
-        return {}
+        return None, {}
     cls = local_vars["__class__"]
     init_parameters = inspect.signature(cls.__init__).parameters
     self_var, args_var, kwargs_var = parse_class_init_keys(cls)
@@ -152,7 +152,8 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
     if kwargs_var:
         local_args.update(local_args.get(kwargs_var, {}))
     local_args = {k: v for k, v in local_args.items() if k not in exclude_argnames}
-    return local_args
+    self_arg = local_vars.get(self_var, None)
+    return self_arg, local_args
 
 
 def collect_init_args(
@@ -179,8 +180,8 @@ def collect_init_args(
     if not isinstance(frame.f_back, types.FrameType):
         return path_args
 
-    if "__class__" in local_vars and (not classes or issubclass(local_vars["__class__"], classes)):
-        local_args = get_init_args(frame)
+    local_self, local_args = get_init_args(frame)
+    if "__class__" in local_vars and (not classes or isinstance(local_self, classes)):
         # recursive update
         path_args.append(local_args)
         return collect_init_args(frame.f_back, path_args, inside=True, classes=classes)
