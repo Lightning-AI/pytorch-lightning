@@ -104,7 +104,7 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     random.seed(stdlib_seed)
 
 
-def _collect_rng_states(include_cuda: bool=True) -> Dict[str, Any]:
+def _collect_rng_states(include_cuda: bool = True) -> Dict[str, Any]:
     """Collect the global random state of :mod:`torch`, :mod:`torch.cuda`, :mod:`numpy` and Python."""
     states = {
         "torch": torch.get_rng_state(),

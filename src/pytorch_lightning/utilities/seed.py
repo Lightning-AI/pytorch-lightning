@@ -29,7 +29,7 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
     """A context manager that resets the global random state on exit to what it was before entering.
 
     It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
-    
+
     If you are starting pytorch lightning using fork method then collecting cuda state will result in error.
     Use function with paremeter `include_cuda=False` then.
 
