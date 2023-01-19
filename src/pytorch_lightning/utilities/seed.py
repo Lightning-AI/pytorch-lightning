@@ -15,7 +15,6 @@
 from contextlib import contextmanager
 from typing import Any, Generator
 
-
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_fabric.utilities.seed import pl_worker_init_function as new_pl_worker_init_function
 from lightning_fabric.utilities.seed import reset_seed as new_reset_seed
