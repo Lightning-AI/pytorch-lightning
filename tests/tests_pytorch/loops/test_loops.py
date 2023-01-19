@@ -447,7 +447,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.optimizer_loop.reset()
-    trainer.fit_loop.epoch_loop.manual_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
