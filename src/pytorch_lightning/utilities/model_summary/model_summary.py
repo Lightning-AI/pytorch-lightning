@@ -340,14 +340,14 @@ def _format_summary_table(
     # Formatting
     s = "{:<{}}"
     total_width = sum(col_widths) + 3 * n_cols
-    header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
+    header = [s.format(c[0], w) for c, w in zip(cols, col_widths)]
 
     # Summary = header + divider + Rest of table
     summary = " | ".join(header) + "\n" + "-" * total_width
     for i in range(n_rows):
         line = []
-        for c, l in zip(cols, col_widths):
-            line.append(s.format(str(c[1][i]), l))
+        for c, w in zip(cols, col_widths):
+            line.append(s.format(str(c[1][i]), w))
         summary += "\n" + " | ".join(line)
     summary += "\n" + "-" * total_width
 

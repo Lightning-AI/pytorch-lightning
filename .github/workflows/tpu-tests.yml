@@ -16,7 +16,7 @@ on:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"

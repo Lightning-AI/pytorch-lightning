@@ -144,7 +144,7 @@ class Loop(ABC, Generic[T]):
                 loop = type_or_object
 
             # connect sub-loops
-            kwargs = {n: l for n, l in old_loop.__dict__.items() if isinstance(l, Loop)}
+            kwargs = {n: lp for n, lp in old_loop.__dict__.items() if isinstance(lp, Loop)}
             loop.connect(**kwargs)
             # set the trainer reference
             loop.trainer = self.trainer
