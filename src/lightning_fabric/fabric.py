@@ -79,7 +79,7 @@ class Fabric:
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,

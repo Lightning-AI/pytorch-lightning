@@ -90,7 +90,7 @@ _PRECISION_INPUT = Union[_PRECISION_INPUT_INT, _PRECISION_INPUT_STR]
 class AcceleratorConnector:
     def __init__(
         self,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -364,7 +364,7 @@ class AcceleratorConnector:
 
     def _check_device_config_and_set_final_flags(
         self,
-        devices: Optional[Union[List[int], str, int]],
+        devices: Union[List[int], str, int],
         num_nodes: int,
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
@@ -444,7 +444,7 @@ class AcceleratorConnector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or self._devices_flag is None:
+        if self._devices_flag == "auto":
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:

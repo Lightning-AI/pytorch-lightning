@@ -94,7 +94,7 @@ class _Connector:
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
-        devices: Optional[Union[List[int], str, int]] = None,
+        devices: Union[List[int], str, int] = "auto",
         num_nodes: int = 1,
         precision: _PRECISION_INPUT = 32,
         plugins: Optional[Union[_PLUGIN_INPUT, List[_PLUGIN_INPUT]]] = None,
@@ -103,7 +103,7 @@ class _Connector:
         # These arguments can be set through environment variables set by the CLI
         accelerator = self._argument_from_env("accelerator", accelerator, default=None)
         strategy = self._argument_from_env("strategy", strategy, default=None)
-        devices = self._argument_from_env("devices", devices, default=None)
+        devices = self._argument_from_env("devices", devices, default="auto")
         num_nodes = self._argument_from_env("num_nodes", num_nodes, default=1)
         precision = self._argument_from_env("precision", precision, default=32)
 
@@ -277,9 +277,7 @@ class _Connector:
                         self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
-    def _check_device_config_and_set_final_flags(
-        self, devices: Optional[Union[List[int], str, int]], num_nodes: int
-    ) -> None:
+    def _check_device_config_and_set_final_flags(self, devices: Union[List[int], str, int], num_nodes: int) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
@@ -348,7 +346,7 @@ class _Connector:
             self._parallel_devices = accelerator_cls.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or self._devices_flag is None:
+        if self._devices_flag == "auto":
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
