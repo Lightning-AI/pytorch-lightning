@@ -16,7 +16,6 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Sized, Tuple
 
-import torch
 from lightning_utilities.core.apply_func import apply_to_collection, apply_to_collections
 from torch.utils.data.dataloader import DataLoader
 
@@ -297,53 +296,6 @@ class DataFetcher(AbstractDataFetcher):
     def reset(self) -> None:
         super().reset()
         self.batches = []
-
-
-class InterBatchParallelDataFetcher(DataFetcher):
-
-    """This class implements inter-batch parallelism, which aims at hiding the latency of host-to-device copy of
-    input batches behind computationally intensive operations.
-
-    code-block::
-
-        Without parallelization:
-
-        batch 0: [HtoD][forward][backward]
-        batch 1:                          [HtoD][forward][backward]
-        batch 2:                                                   [HtoD][forward][backward]
-
-        With parallelization, the latency of HtoD copy can be hidden:
-
-        batch 0: [HtoD][forward][backward]
-        batch 1:       [HtoD]             [forward][backward]
-        batch 2:             [HtoD]                          [forward][backward]
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.cuda_stream = torch.cuda.Stream()
-        self.events: List[torch.cuda.Event] = []
-
-    def move_to_device(self, batch: Any) -> Any:
-        with torch.cuda.stream(self.cuda_stream):
-            return super().move_to_device(batch)
-
-    def on_fetch_start(self) -> "torch.cuda.Event":
-        # create a cuda event used to record the async stream of data to device.
-        event = torch.cuda.Event()
-        self._start_profiler()
-        return event
-
-    def on_fetch_end(self, batch: Any, event: torch.cuda.Event) -> None:
-        self._stop_profiler()
-        self.batches.append(batch)
-        event.record()
-        self.events.append(event)
-
-    def wait(self) -> None:
-        # pop first event from the queue and wait for the batch to be available on device.
-        event = self.events.pop(0)
-        event.wait()
 
 
 class StepFuncDataLoaderIter(Iterator):

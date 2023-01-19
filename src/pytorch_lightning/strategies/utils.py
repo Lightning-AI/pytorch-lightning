@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
-import os
 from inspect import getmembers, isclass
 
 import torch
@@ -23,12 +22,6 @@ from lightning_fabric.plugins.precision.utils import _convert_fp_tensor
 from lightning_fabric.strategies import _StrategyRegistry
 from lightning_fabric.utilities.registry import _is_register_method_overridden
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
-
-
-def on_colab_kaggle() -> bool:
-    rank_zero_deprecation("The function `on_colab_kaggle` has been deprecated in v1.8.0 and will be removed in v2.0.0.")
-    return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
 
 
 def _call_register_strategies(registry: _StrategyRegistry, base_module: str) -> None:

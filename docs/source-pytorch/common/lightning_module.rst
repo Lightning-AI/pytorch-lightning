@@ -1035,7 +1035,7 @@ global_step
 ~~~~~~~~~~~
 
 The number of optimizer steps taken (does not reset each epoch).
-This includes multiple optimizers and TBPTT steps (if enabled).
+This includes multiple optimizers (if enabled).
 
 .. code-block:: python
 
@@ -1194,79 +1194,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-truncated_bptt_steps
-~~~~~~~~~~~~~~~~~~~~
-
-Truncated Backpropagation Through Time (TBPTT) performs perform backpropogation every k steps of
-a much longer sequence. This is made possible by passing training batches
-split along the time-dimensions into splits of size k to the
-``training_step``. In order to keep the same forward propagation behavior, all
-hidden states should be kept in-between each time-dimension split.
-
-
-If this is enabled, your batches will automatically get truncated
-and the Trainer will apply Truncated Backprop to it.
-
-(`Williams et al. "An efficient gradient-based algorithm for on-line training of
-recurrent network trajectories."
-<https://ieeexplore.ieee.org/document/6797135>`_)
-
-`Tutorial <https://d2l.ai/chapter_recurrent-neural-networks/bptt.html>`_
-
-.. testcode:: python
-
-    from pytorch_lightning import LightningModule
-
-
-    class MyModel(LightningModule):
-        def __init__(self, input_size, hidden_size, num_layers):
-            super().__init__()
-            # batch_first has to be set to True
-            self.lstm = nn.LSTM(
-                input_size=input_size,
-                hidden_size=hidden_size,
-                num_layers=num_layers,
-                batch_first=True,
-            )
-
-            ...
-
-            # Important: This property activates truncated backpropagation through time
-            # Setting this value to 2 splits the batch into sequences of size 2
-            self.truncated_bptt_steps = 2
-
-        # Truncated back-propagation through time
-        def training_step(self, batch, batch_idx, hiddens):
-            x, y = batch
-
-            # the training step must be updated to accept a ``hiddens`` argument
-            # hiddens are the hiddens from the previous truncated backprop step
-            out, hiddens = self.lstm(x, hiddens)
-
-            ...
-
-            return {"loss": ..., "hiddens": hiddens}
-
-Lightning takes care of splitting your batch along the time-dimension. It is
-assumed to be the second dimension of your batches. Therefore, in the
-example above, we have set ``batch_first=True``.
-
-.. code-block:: python
-
-    # we use the second as the time dimension
-    # (batch, time, ...)
-    sub_batch = batch[0, 0:t, ...]
-
-To modify how the batch is split,
-override the :meth:`pytorch_lightning.core.module.LightningModule.tbptt_split_batch` method:
-
-.. testcode:: python
-
-    class LitMNIST(LightningModule):
-        def tbptt_split_batch(self, batch, split_size):
-            # do your own splitting on the batch
-            return splits
 
 --------------
 
@@ -1634,12 +1561,6 @@ setup
 ~~~~~
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.setup
-    :noindex:
-
-tbptt_split_batch
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.tbptt_split_batch
     :noindex:
 
 teardown
