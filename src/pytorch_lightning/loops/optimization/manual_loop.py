@@ -84,7 +84,6 @@ class ManualOptimization(Loop):
         self._output: _OUTPUTS_TYPE = {}
 
     def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
-        self.reset()
         self.on_run_start()
         self.advance(kwargs)
         self._restarting = False

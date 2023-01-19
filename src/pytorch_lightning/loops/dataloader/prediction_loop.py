@@ -125,6 +125,9 @@ class PredictionLoop(DataLoaderLoop):
         self._on_predict_end()
         return results
 
+    def teardown(self) -> None:
+        pass
+
     def _on_predict_start(self) -> None:
         """Calls ``on_predict_start`` hooks."""
         self.trainer._call_callback_hooks("on_predict_start")
