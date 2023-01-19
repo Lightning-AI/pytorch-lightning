@@ -39,7 +39,7 @@ _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_
 _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
-class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
+class TrainingEpochLoop(loops.Loop):
     """Runs over all batches in a dataloader (one epoch).
 
     Args:
@@ -120,6 +120,19 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             return should_stop_early
 
         return False
+
+    def run(self, data_fetcher: AbstractDataFetcher) -> _OUTPUTS_TYPE:
+        self.reset()
+        self.on_run_start(data_fetcher)
+        while not self.done:
+            try:
+                self.advance(data_fetcher)
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""

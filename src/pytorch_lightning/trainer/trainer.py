@@ -43,6 +43,7 @@ from torch.utils.data import DataLoader
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
+from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.data import _auto_add_worker_init_fn
 from lightning_fabric.utilities.types import _PATH
@@ -1113,13 +1114,7 @@ class Trainer:
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
-        for result in eval_loop_results:
-            if isinstance(result, dict):
-                for k, v in result.items():
-                    if isinstance(v, Tensor):
-                        result[k] = v.cpu().item()
-
-        return eval_loop_results
+        return convert_tensors_to_scalars(eval_loop_results)
 
     def _run_predict(self) -> Optional[_PREDICT_OUTPUT]:
         self.reset_predict_dataloader(self.lightning_module)
