@@ -811,3 +811,27 @@ def test_log_dict_input_parsing():
 
     with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
         fabric.log_dict({"log_dict": torch.tensor([3, 4])})
+
+
+@pytest.mark.parametrize("setup", [True, False])
+def test_save_wrapped_objects(setup, tmp_path):
+    """Test that when modules and optimizers are in the state, they get unwrapped properly."""
+    fabric = Fabric()
+    save_checkpoint_mock = Mock()
+    fabric.strategy.save_checkpoint = save_checkpoint_mock
+
+    unwrapped_model = BoringModel()
+    unwrapped_optimizer = torch.optim.Adam(unwrapped_model.parameters())
+
+    if setup:
+        model, optimizer = fabric.setup(unwrapped_model, unwrapped_optimizer)
+        assert isinstance(model, _FabricModule)
+        assert isinstance(optimizer, _FabricOptimizer)
+    else:
+        model, optimizer = unwrapped_model, unwrapped_optimizer
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything}
+    expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
+    fabric.save(tmp_path, state)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
