@@ -143,3 +143,37 @@ Launch inside a Notebook
 
 It is also possible to use Fabric in a Jupyter notebook (including Google Colab, Kaggle, etc.) and launch multiple processes there.
 You can learn more about it :ref:`here <Fabric in Notebooks>`.
+
+
+----
+
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Mixed Precision Training
+    :description:  Save memory and speed up training using mixed precision
+    :col_css: col-md-4
+    :button_link: ../fundamentals/precision.html
+    :height: 160
+    :tag: intermediate
+
+.. displayitem::
+    :header: Distributed Communication
+    :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
+    :button_link: ../advanced/distributed_communication.html
+    :col_css: col-md-4
+    :height: 160
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
