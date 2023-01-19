@@ -59,7 +59,7 @@ For example, you want to only restore the model weights in your inference script
 
 .. code-block:: python
 
-    state = state = {"model1": model1}
+    state = {"model1": model1}
     remainder = fabric.load("path/to/checkpoint.ckpt", state)
 
 The remainder of the checkpoint that wasn't restored gets returned in case you want to do something else with it.
