@@ -42,8 +42,6 @@ select = [
 #]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
-    "W503",  # Ignore "Line break occurred before a binary operator"
-    "E203",  # Ignore "whitespace before ':'"
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [
