@@ -178,9 +178,9 @@ def cli_main():
         LitAutoEncoder,
         MyDataModule,
         seed_everything_default=1234,
-        save_config_overwrite=True,
         run=False,  # used to de-activate automatic fitting.
         trainer_defaults={"callbacks": ImageSampler(), "max_epochs": 10},
+        save_config_kwargs={"overwrite": True},
     )
     cli.trainer.fit(cli.model, datamodule=cli.datamodule)
     cli.trainer.test(ckpt_path="best", datamodule=cli.datamodule)

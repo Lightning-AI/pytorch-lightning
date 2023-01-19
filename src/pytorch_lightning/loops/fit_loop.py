@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-import os
 from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import CombinedLoader, TensorRunningAccum
+from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import (
-    AbstractDataFetcher,
-    DataFetcher,
-    DataLoaderIterDataFetcher,
-    InterBatchParallelDataFetcher,
-)
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -38,8 +31,28 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 log = logging.getLogger(__name__)
 
 
-class FitLoop(Loop[None]):
-    """This Loop iterates over the epochs to run the training.
+class FitLoop(Loop):
+    """This loop is the top-level loop where training starts.
+
+    It simply counts the epochs and iterates from one to the next by calling ``TrainingEpochLoop.run()`` in its
+    ``advance()`` method.
+
+    Example::
+
+        # FitLoop
+        for epoch in range(max_epochs):
+            # TrainingEpochLoop
+            for batch_idx, batch in enumerate(train_dataloader):
+                # OptimizerLoop
+                for optimizer_idx, opt in enumerate(optimizers):
+                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
+                    ...
+                # ValidationEpochLoop
+                for batch_idx, batch in enumerate(val_dataloader):
+                    lightning_module.validation_step(batch, batch_idx, optimizer_idx)
+                    ...
+                ...
+            ...
 
     Args:
         min_epochs: The minimum number of epochs
@@ -78,13 +91,7 @@ class FitLoop(Loop[None]):
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> int:
-        """Returns the index of the current batch split (within the current batch) for bptt."""
-        return self.epoch_loop.batch_loop.split_idx
-
-    @property
     def min_steps(self) -> Optional[int]:
-        # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
@@ -109,11 +116,6 @@ class FitLoop(Loop[None]):
             )
         self.epoch_loop.max_steps = value
 
-    @property
-    def running_loss(self) -> TensorRunningAccum:
-        """Returns the running loss."""
-        return self.epoch_loop.batch_loop.running_loss
-
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
@@ -125,18 +127,17 @@ class FitLoop(Loop[None]):
     @property
     def prefetch_batches(self) -> int:
         is_unsized = self.trainer.num_training_batches == float("inf")
-        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
-        return 1 if is_unsized or inter_batch_parallelism else 0
+        return int(is_unsized)
 
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
+        return self.epoch_loop.optimizer_loop._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
+        self.epoch_loop.optimizer_loop._skip_backward = value
 
     @property
     def _results(self) -> _ResultCollection:
@@ -188,9 +189,21 @@ class FitLoop(Loop[None]):
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
 
-    def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
-        """Connects a training epoch loop to this fit loop."""
-        self.epoch_loop = epoch_loop
+    def run(self) -> None:
+        if self.skip:
+            return
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
@@ -237,9 +250,6 @@ class FitLoop(Loop[None]):
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
-
-        # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss.reset(window_length=self.trainer.accumulate_grad_batches)
 
         self.epoch_progress.increment_ready()
 
@@ -346,8 +356,4 @@ def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
             "this signature is experimental and the behavior is subject to change."
         )
         return DataLoaderIterDataFetcher
-    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-        if not isinstance(trainer.accelerator, CUDAAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
-        return InterBatchParallelDataFetcher
     return DataFetcher

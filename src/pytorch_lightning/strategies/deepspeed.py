@@ -652,7 +652,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _format_precision_config(self) -> None:
         assert isinstance(self.config, dict)
         if self.precision_plugin.precision == "16":
-            if "fp16" not in self.config and self.precision_plugin.amp_type == "native":
+            if "fp16" not in self.config:
                 # FP16 is a DeepSpeed standalone AMP implementation
                 rank_zero_info("Enabling DeepSpeed FP16.")
                 self.config["fp16"] = {
@@ -663,9 +663,6 @@ class DeepSpeedStrategy(DDPStrategy):
                     "hysteresis": self.hysteresis,
                     "min_loss_scale": self.min_loss_scale,
                 }
-            elif "amp" not in self.config and self.precision_plugin.amp_type == "apex":
-                rank_zero_info("Enabling DeepSpeed APEX Implementation.")
-                self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
         elif "bf16" not in self.config and self.precision_plugin.precision == "bf16":
             rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}

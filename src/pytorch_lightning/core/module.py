@@ -13,7 +13,6 @@
 # limitations under the License.
 """The LightningModule - an nn.Module with many additional features."""
 
-import collections.abc
 import logging
 import numbers
 import weakref
@@ -52,7 +51,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_13, _TORC
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
-    _METRIC_COLLECTION,
+    _METRIC,
     EPOCH_OUTPUT,
     LRSchedulerPLType,
     LRSchedulerTypeUnion,
@@ -89,7 +88,6 @@ class LightningModule(
             "logger",
             "loggers",
             "automatic_optimization",
-            "truncated_bptt_steps",
             "trainer",
             "fabric",
         ]
@@ -108,14 +106,10 @@ class LightningModule(
         # pointer to the trainer object
         self._trainer: Optional["pl.Trainer"] = None
 
-        # the precision used
-        self.precision: Union[int, str] = 32
-
         # optionally can be set by user
         self._example_input_array: Optional[Union[Tensor, Tuple, Dict]] = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
-        self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state: Dict[str, bool] = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
@@ -276,20 +270,6 @@ class LightningModule(
         self._automatic_optimization = automatic_optimization
 
     @property
-    def truncated_bptt_steps(self) -> int:
-        """Enables `Truncated Backpropagation Through Time` in the Trainer when set to a positive integer.
-
-        It represents
-        the number of times :meth:`training_step` gets called before backpropagation. If this is > 0, the
-        :meth:`training_step` receives an additional argument ``hiddens`` and is expected to return a hidden state.
-        """
-        return self._truncated_bptt_steps
-
-    @truncated_bptt_steps.setter
-    def truncated_bptt_steps(self, truncated_bptt_steps: int) -> None:
-        self._truncated_bptt_steps = truncated_bptt_steps
-
-    @property
     def logger(self) -> Optional[Union[Logger, FabricLogger]]:
         """Reference to the logger object in the Trainer."""
         if self._fabric is not None:
@@ -355,7 +335,7 @@ class LightningModule(
     def log(
         self,
         name: str,
-        value: _METRIC_COLLECTION,
+        value: _METRIC,
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
@@ -379,7 +359,7 @@ class LightningModule(
 
         Args:
             name: key to log.
-            value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
+            value: value to log. Can be a ``float``, ``Tensor``, or a ``Metric``.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
             on_step: if ``True`` logs at this step. The default value is determined by the hook.
@@ -408,7 +388,7 @@ class LightningModule(
         # check for invalid values
         apply_to_collection(value, dict, self.__check_not_nested, name)
         apply_to_collection(
-            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
+            value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor)
         )
 
         if self._trainer is None:
@@ -510,7 +490,7 @@ class LightningModule(
 
     def log_dict(
         self,
-        dictionary: Mapping[str, _METRIC_COLLECTION],
+        dictionary: Mapping[str, _METRIC],
         prog_bar: bool = False,
         logger: Optional[bool] = None,
         on_step: Optional[bool] = None,
@@ -532,8 +512,7 @@ class LightningModule(
 
         Args:
             dictionary: key value pairs.
-                The values can be a ``float``, ``Tensor``, ``Metric``, a dictionary of the former
-                or a ``MetricCollection``.
+                The values can be a ``float``, ``Tensor``, ``Metric``, or ``MetricCollection``.
             prog_bar: if ``True`` logs to the progress base.
             logger: if ``True`` logs to the logger.
             on_step: if ``True`` logs at this step.
@@ -683,8 +662,6 @@ class LightningModule(
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (``int``): Integer displaying index of this batch
             optimizer_idx (``int``): When using multiple optimizers, this argument will also be present.
-            hiddens (``Any``): Passed in if
-                :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
             Any of.
@@ -718,19 +695,6 @@ class LightningModule(
                 if optimizer_idx == 1:
                     # do training_step with decoder
                     ...
-
-
-        If you add truncated back propagation through time you will also get an additional
-        argument with the hidden states of the previous step.
-
-        .. code-block:: python
-
-            # Truncated back-propagation through time
-            def training_step(self, batch, batch_idx, hiddens):
-                # hiddens are the hidden states from the previous truncated backprop step
-                out, hiddens = self.lstm(data, hiddens)
-                loss = ...
-                return {"loss": loss, "hiddens": hiddens}
 
         Note:
             The loss value shown in the progress bar is smoothed (averaged) over the last values,
@@ -817,9 +781,8 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers or when
-                using ``truncated_bptt_steps > 0``, the lists have the dimensions
-                (n_batches, tbptt_steps, n_optimizers). Dimensions of length 1 are squeezed.
+            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers, the lists
+                have the dimensions (n_batches, n_optimizers). Dimensions of length 1 are squeezed.
 
         Return:
             None
@@ -1763,64 +1726,6 @@ class LightningModule(
         See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.
         """
         optimizer.zero_grad()
-
-    def tbptt_split_batch(self, batch: Any, split_size: int) -> List[Any]:
-        r"""
-        When using truncated backpropagation through time, each batch must be split along the
-        time dimension. Lightning handles this by default, but for custom behavior override
-        this function.
-
-        Args:
-            batch: Current batch
-            split_size: The size of the split
-
-        Return:
-            List of batch splits. Each split will be passed to :meth:`training_step` to enable truncated
-            back propagation through time. The default implementation splits root level Tensors and
-            Sequences at dim=1 (i.e. time dim). It assumes that each time dim is the same length.
-
-        Examples::
-
-            def tbptt_split_batch(self, batch, split_size):
-                splits = []
-                for t in range(0, time_dims[0], split_size):
-                    batch_split = []
-                    for i, x in enumerate(batch):
-                        if isinstance(x, torch.Tensor):
-                            split_x = x[:, t:t + split_size]
-                        elif isinstance(x, collections.abc.Sequence):
-                            split_x = [None] * len(x)
-                            for batch_idx in range(len(x)):
-                              split_x[batch_idx] = x[batch_idx][t:t + split_size]
-                        batch_split.append(split_x)
-                    splits.append(batch_split)
-                return splits
-
-        Note:
-            Called in the training loop after
-            :meth:`~pytorch_lightning.callbacks.base.Callback.on_train_batch_start`
-            if :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
-            Each returned batch split is passed separately to :meth:`training_step`.
-        """
-        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.abc.Sequence))]
-        assert len(time_dims) >= 1, "Unable to determine batch time dimension"
-        assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
-
-        splits = []
-        for t in range(0, time_dims[0], split_size):
-            batch_split = []
-            for i, x in enumerate(batch):
-                split_x: Union[Tensor, List[Tensor]]
-                if isinstance(x, Tensor):
-                    split_x = x[:, t : t + split_size]
-                elif isinstance(x, collections.abc.Sequence):
-                    split_x = [x[batch_idx][t : t + split_size] for batch_idx in range(len(x))]
-
-                batch_split.append(split_x)
-
-            splits.append(batch_split)
-
-        return splits
 
     def freeze(self) -> None:
         r"""

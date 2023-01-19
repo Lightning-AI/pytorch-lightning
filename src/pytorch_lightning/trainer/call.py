@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import traceback
 from typing import Any, Callable
 
 import pytorch_lightning as pl
-from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -54,9 +52,6 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
                 logger.finalize("failed")
     except BaseException as exception:
         trainer.state.status = TrainerStatus.INTERRUPTED
-        if _distributed_available() and trainer.world_size > 1:
-            # try syncing remaining processes, kill otherwise
-            trainer.strategy.reconciliate_processes(traceback.format_exc())
         trainer._call_callback_hooks("on_exception", exception)
         for logger in trainer.loggers:
             logger.finalize("failed")

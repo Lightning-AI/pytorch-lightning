@@ -100,11 +100,11 @@ def parse_env_variables(cls: _ARGPARSE_CLS, template: str = "PL_%(cls_name)s_%(c
         >>> parse_env_variables(Trainer)
         Namespace()
         >>> import os
-        >>> os.environ["PL_TRAINER_GPUS"] = '42'
+        >>> os.environ["PL_TRAINER_DEVICES"] = '42'
         >>> os.environ["PL_TRAINER_BLABLABLA"] = '1.23'
         >>> parse_env_variables(Trainer)
-        Namespace(gpus=42)
-        >>> del os.environ["PL_TRAINER_GPUS"]
+        Namespace(devices=42)
+        >>> del os.environ["PL_TRAINER_DEVICES"]
     """
     cls_arg_defaults = get_init_arguments_and_types(cls)
 
@@ -253,8 +253,8 @@ def add_argparse_args(
         else:
             use_type = arg_types[0]
 
-        if arg == "gpus" or arg == "tpu_cores":
-            use_type = _gpus_allowed_type
+        if arg == "devices":
+            use_type = _devices_allowed_type
 
         # hack for types in (int, float)
         if len(arg_types) == 2 and int in set(arg_types) and float in set(arg_types):
@@ -306,7 +306,7 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     return parsed
 
 
-def _gpus_allowed_type(x: str) -> Union[int, str]:
+def _devices_allowed_type(x: str) -> Union[int, str]:
     if "," in x:
         return str(x)
     return int(x)

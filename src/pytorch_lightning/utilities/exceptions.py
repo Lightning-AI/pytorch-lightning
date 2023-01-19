@@ -15,10 +15,6 @@
 from lightning_fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
-class DeadlockDetectedException(Exception):
-    """Exception used when a deadlock has been detected and processes are being killed."""
-
-
 class ExitGracefullyException(SystemExit):
     """Exception used when a ``signal.SIGTERM`` is sent to the process.
 

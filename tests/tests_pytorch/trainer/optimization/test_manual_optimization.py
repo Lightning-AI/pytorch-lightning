@@ -23,7 +23,6 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
-from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
 from pytorch_lightning.strategies import Strategy
 from tests_pytorch.helpers.runif import RunIf
 
@@ -106,64 +105,6 @@ def test_multiple_optimizers_manual_no_return(tmpdir, kwargs):
     if kwargs.get("precision") == 16:
         scaler_step_patch.stop()
         assert scaler_step.call_count == len(model.optimizers()) * limit_train_batches
-
-
-@RunIf(min_cuda_gpus=1, amp_apex=True)
-def test_multiple_optimizers_manual_no_return_apex(tmpdir):
-    apex_optimizer_patches = []
-    apex_optimizer_steps = []
-
-    class TestModel(ManualOptModel):
-        def training_step(self, batch, batch_idx):
-            # avoid returning a value
-            super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs):
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert not outputs
-
-        def on_train_start(self):
-            # extremely ugly. APEX patches all the native torch optimizers on `_initialize` which we call on
-            # `ApexMixedPrecisionPlugin.dispatch`. Additionally, their replacement `new_step` functions are locally
-            # defined so can't even patch those, thus we need to create the mock after APEX has been initialized
-            nonlocal apex_optimizer_patches, apex_optimizer_steps
-            for opt in self.trainer.optimizers:
-                # `amp.scale_loss` will also patch the step to avoid it when gradient overflow happens. avoid it
-                opt._amp_stash.already_patched = True
-                patch = mock.patch.object(opt, "step")
-                apex_optimizer_patches.append(patch)
-                apex_optimizer_steps.append(patch.start())
-
-        def on_train_end(self):
-            for p in apex_optimizer_patches:
-                p.stop()
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    limit_train_batches = 2
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"):
-        plugins = [ApexMixedPrecisionPlugin(amp_level="O2")]
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-        plugins=plugins,
-        accelerator="gpu",
-        devices=1,
-        precision=16,
-    )
-
-    with mock.patch.object(Strategy, "backward", wraps=trainer.strategy.backward) as bwd_mock:
-        trainer.fit(model)
-    assert bwd_mock.call_count == limit_train_batches * 3
-
-    assert [s.call_count for s in apex_optimizer_steps] == [len(model.optimizers())] * limit_train_batches
 
 
 def test_multiple_optimizers_manual_return(tmpdir):
