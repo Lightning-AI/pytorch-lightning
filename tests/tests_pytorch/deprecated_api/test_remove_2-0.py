@@ -13,13 +13,11 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v2.0.0."""
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
-from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 
 
 def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
@@ -39,11 +37,3 @@ def test_v1_10_deprecated_data_utilities():
 
     with pytest.deprecated_call(match="data.has_len` has been deprecated in v1.8.0"):
         has_len(DataLoader(RandomDataset(2, 4)))
-
-
-def test_v1_10_deprecated_optimizer_utilities():
-    with pytest.deprecated_call(match="optimizer.optimizers_to_device` has been deprecated in v1.8.0"):
-        optimizers_to_device([torch.optim.Adam(torch.nn.Linear(1, 1).parameters())], "cpu")
-
-    with pytest.deprecated_call(match="optimizer.optimizer_to_device` has been deprecated in v1.8.0"):
-        optimizer_to_device(torch.optim.Adam(torch.nn.Linear(1, 1).parameters()), "cpu")
