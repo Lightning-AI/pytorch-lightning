@@ -1,3 +1,22 @@
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+[metadata]
+name = "pytorch-lightning"
+author = "Lightning-AI et al."
+url = "https://github.com/Lightning-AI/lightning"
+
 [build-system]
 requires = [
     "setuptools",
@@ -22,6 +41,29 @@ skip = ["_notebooks"]
 [tool.black]
 line-length = 120
 exclude = '(_notebooks/.*)'
+
+
+[tool.ruff]
+line-length = 120
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+]
+ignore = [
+    "E731",  # Do not assign a lambda expression, use a def
+]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    "docs",
+    "_notebooks"
+]
+ignore-init-module-imports = true
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
 
 
 [tool.mypy]
@@ -148,6 +190,7 @@ module = [
 ]
 ignore_errors = "True"
 
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
@@ -156,6 +199,7 @@ exclude_lines = [
     "rank_zero_warn",
     "raise NotImplementedError",
 ]
+
 
 [tool.pytest.ini_options]
 norecursedirs = [
