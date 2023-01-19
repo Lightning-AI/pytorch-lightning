@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * env_prefix
   * env_parse
 
+- Removed the deprecated code in `pl.core.mixins` ([#16424](https://github.com/Lightning-AI/lightning/pull/16424))
+
 - Removed the deprecated code in `pl.utilities.distributed` ([#16390](https://github.com/Lightning-AI/lightning/pull/16390))
 
 - Removed the deprecated code in `pl.utilities.apply_func` ([#16413](https://github.com/Lightning-AI/lightning/pull/16413))
@@ -59,6 +61,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated code in `pl.utilities.xla_device` ([#16404](https://github.com/Lightning-AI/lightning/pull/16404))
 
 - Removed the deprecated code in `pl.utilities.device_parser` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
+
+- Removed the deprecated code in `pl.utilities.seed` ([#16422](https://github.com/Lightning-AI/lightning/pull/16422))
 
 - Mark the `forward_module` argument as required ([#16386](https://github.com/Lightning-AI/lightning/pull/16386))
   * Removed the deprecated `pl_module` argument from the distributed module wrappers
