@@ -60,6 +60,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `Trainer(auto_select_gpus=...)` argument
   * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions
 
+- Removed support for loop customization
+  * Removed `Loop.replace()` ([#16361](https://github.com/Lightning-AI/lightning/pull/16361))
+
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute
   * Removed the `LightningModule.tbptt_split_batch` hook
