@@ -17,20 +17,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-
-
-def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
-    with pytest.deprecated_call(match="cloud_io.atomic_save` has been deprecated in v1.8.0"):
-        atomic_save({}, tmpdir / "atomic_save.ckpt")
-
-    with pytest.deprecated_call(match="cloud_io.get_filesystem` has been deprecated in v1.8.0"):
-        get_filesystem(tmpdir)
-
-    with pytest.deprecated_call(match="cloud_io.load` has been deprecated in v1.8.0"):
-        load(str(tmpdir / "atomic_save.ckpt"))
 
 
 def test_v1_10_deprecated_data_utilities():
