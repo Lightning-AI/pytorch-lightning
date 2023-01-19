@@ -146,6 +146,8 @@ Fabric will take care of handling the saving part correctly, no matter if you ar
 
 You can pass in the model and optimizer objects directly, and Fabric will unwrap them and retrieve their *state-dict* automatically.
 
+See also: :doc:`../guide/checkpoint`
+
 
 load
 ====
@@ -172,6 +174,8 @@ Fabric will take care of handling the loading part correctly, no matter if you a
     model.load_state_dict(all_states["model"])
     ...
 
+
+See also: :doc:`../guide/checkpoint`
 
 
 barrier
