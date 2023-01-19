@@ -44,7 +44,7 @@ class TrainingEpochLoop(loops.Loop):
     Iterates over all batches in the dataloader (one epoch) that the user returns in their
     :meth:`~pytorch_lightning.core.module.LightningModule.train_dataloader` method.
 
-    Its main responsibilities are calling the ``*_epoch_{start,end}` hooks, accumulating outputs if the user request
+    Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
     them in one of these hooks, and running validation at the requested interval.
 
     The validation is carried out by yet another loop,

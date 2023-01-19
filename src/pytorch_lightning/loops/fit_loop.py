@@ -35,7 +35,7 @@ class FitLoop(Loop):
     """This loop is the top-level loop where training starts.
 
     It simply counts the epochs and iterates from one to the next by calling ``TrainingEpochLoop.run()`` in its
-    ``advance()` method.
+    ``advance()`` method.
 
     Example::
 
