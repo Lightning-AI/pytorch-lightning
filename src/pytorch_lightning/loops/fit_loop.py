@@ -79,7 +79,6 @@ class FitLoop(Loop[None]):
 
     @property
     def min_steps(self) -> Optional[int]:
-        # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
