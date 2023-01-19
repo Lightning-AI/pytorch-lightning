@@ -199,6 +199,7 @@ module = [
 ]
 ignore_errors = "True"
 
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
@@ -207,6 +208,7 @@ exclude_lines = [
     "rank_zero_warn",
     "raise NotImplementedError",
 ]
+
 
 [tool.pytest.ini_options]
 norecursedirs = [
