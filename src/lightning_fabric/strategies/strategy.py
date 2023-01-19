@@ -266,6 +266,13 @@ class Strategy(ABC):
         if not state:
             return checkpoint
 
+        invalid_keys = [k for k in state if k not in checkpoint]
+        if invalid_keys:
+            # TODO(fabric): Make strict loading configurable to avoid this error if desired.
+            raise KeyError(
+                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+            )
+
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue

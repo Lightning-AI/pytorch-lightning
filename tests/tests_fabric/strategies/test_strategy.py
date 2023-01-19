@@ -66,7 +66,7 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
     assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
 
 
-def test_load_out_of_place(tmp_path):
+def test_load_checkpoint_out_of_place(tmp_path):
     """Test that one can load the full checkpoint into memory just like `torch.load()`."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
     load_checkpoint_mock = Mock()
@@ -79,7 +79,7 @@ def test_load_out_of_place(tmp_path):
     assert checkpoint == load_checkpoint_mock()
 
 
-def test_load_in_place(tmp_path):
+def test_load_checkpoint_in_place(tmp_path):
     """Test that the object's state gets reloaded in-place."""
     strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
 
@@ -103,10 +103,20 @@ def test_load_in_place(tmp_path):
     assert state["dict"] == saved_state["dict"]
     assert not remainder
 
-    # partial load - only model, no optimizer, new key added
+    # partial load - only model, no optimizer
     model = nn.Linear(2, 2)
-    state = {"model": model, "anything": 3}
+    state = {"model": model}
     remainder = strategy.load_checkpoint(tmp_path / "checkpoint", state)
     assert torch.equal(model.weight, saved_model.weight)
-    assert state["anything"] == 3
     assert list(remainder.keys()) == ["optimizer", "int", "dict"]
+
+
+def test_load_checkpoint_strict_loading(tmp_path):
+    """Test that an error is raised if a key is requested to be restored but does not exist in the checkpoint."""
+    strategy = SingleDeviceStrategy()  # surrogate class to test implementation in base class
+    saved_state = {"a": 1, "b": 2}
+    requested_state = {"a": 1, "b": 2, "c": 3}  # key `c` does not exist in the saved state
+    load_checkpoint_mock = Mock(return_value=saved_state)
+    strategy.checkpoint_io.load_checkpoint = load_checkpoint_mock
+    with pytest.raises(KeyError, match="contains a key 'c' that does not exist"):
+        strategy.load_checkpoint(tmp_path, requested_state)
