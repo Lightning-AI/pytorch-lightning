@@ -319,7 +319,6 @@ utilities
     finite_checks
     memory
     model_summary
-    optimizer
     parsing
     rank_zero
     seed
