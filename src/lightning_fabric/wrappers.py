@@ -30,7 +30,6 @@ from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixi
 from lightning_fabric.utilities.types import Optimizable
 
 T_destination = TypeVar("T_destination", bound=Dict[str, Any])
-T_collection = TypeVar("T_collection")
 
 
 class _FabricOptimizer:
@@ -192,7 +191,7 @@ def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, 
     return kwargs
 
 
-def _unwrap_objects(collection: T_collection) -> T_collection:
+def _unwrap_objects(collection: Any) -> Any:
     def _unwrap(
         obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
     ) -> Union[nn.Module, Optimizer, DataLoader]:
