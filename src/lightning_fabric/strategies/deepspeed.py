@@ -365,24 +365,70 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        raise NotImplementedError
+        """Save model, optimizer, and other state in a checkpoint directory.
 
-    def load_checkpoint(
-        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
-    ) -> Dict[str, Any]:
-        raise NotImplementedError
+        Args:
+            path: A path to where the files should be saved
+            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
+                state-dict will be retrieved and converted automatically.
+            storage_options: Unused by this strategy, since it doesn't use a ``CheckpointIO`` plugin.
 
-    def load_optimizer_state_dict(
-        self, optimizers: Union[Optimizer, Iterable[Optimizer]], checkpoint: Mapping[str, Any]
-    ) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
-        pass
+        Raises:
+            TypeError if the unused ``storage_options`` gets passed.
+        """
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
 
-    def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
+        if storage_options is not None:
+            raise TypeError(
+                f"`{self.__class__.__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
+                f" {self.__class__.__name__} does not use the `CheckpointIO`."
+            )
+
+        excluded_objects = (self._deepspeed_engine, self._deepspeed_engine.optimizer)
+        state = {k: v for k, v in state.items() if v not in excluded_objects}
+        state = self._convert_stateful_objects_in_state(state)
+        # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        self._deepspeed_engine.save_checkpoint(path, client_state=state, tag="checkpoint")
+
+    def load_checkpoint(self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None) -> Dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Args:
+            path: A path to where the file is located
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                If no state is given, then the checkpoint will be returned in full.
+
+        Returns:
+            The remaining items that were not restored into the given state dictionary. If no state dictionary is
+            given, the full checkpoint will be returned.
+        """
         if self.load_full_weights and self.zero_stage_3:
-            self.module_to_device(module)
-            self._restore_zero_state(module, checkpoint)
+            # Broadcast to ensure we load from the rank 0 checkpoint
+            # This doesn't have to be the case when using deepspeed sharded checkpointing
+            path = self.broadcast(path)
+            return super().load_checkpoint(path=path, state=state)
+
+        if self._deepspeed_engine not in state.values():
+            # TODO
+            raise ValueError()
+        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        torch.cuda.empty_cache()
+        _, client_state = self._deepspeed_engine.load_checkpoint(
+            path, load_optimizer_states=optimzer_state_requested, load_lr_scheduler_states=False
+        )
+        if client_state is None:
+            # TODO: fix message
+            raise ValueError(
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
+                "or a single checkpoint file with `Trainer(strategy=DeepSpeedStrategy(load_full_weights=True))`."
+            )
+        for k, v in client_state.copy().items():
+            if k not in state:
+                continue
+            state[k] = client_state.pop(k)
+        return client_state
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
