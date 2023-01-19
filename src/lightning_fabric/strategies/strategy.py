@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -28,7 +28,6 @@ from lightning_fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.launchers.base import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
-from lightning_fabric.utilities.optimizer import _optimizer_to_device
 from lightning_fabric.utilities.types import _PATH, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
