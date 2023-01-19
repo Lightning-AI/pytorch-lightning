@@ -15,7 +15,7 @@ on:
       - "docs/**"
       - "src/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
 

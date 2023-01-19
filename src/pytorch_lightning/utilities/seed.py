@@ -15,8 +15,6 @@
 from contextlib import contextmanager
 from typing import Any, Generator
 
-import torch
-
 from lightning_fabric.utilities.seed import _collect_rng_states, _set_rng_states
 from lightning_fabric.utilities.seed import pl_worker_init_function as new_pl_worker_init_function
 from lightning_fabric.utilities.seed import reset_seed as new_reset_seed
@@ -31,6 +29,7 @@ def isolate_rng() -> Generator[None, None, None]:
     It supports isolating the states for PyTorch, Numpy, and Python built-in random number generators.
 
     Example:
+        >>> import torch
         >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
         <torch._C.Generator object at ...>
         >>> with isolate_rng():
