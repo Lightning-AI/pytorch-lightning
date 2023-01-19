@@ -354,3 +354,10 @@ subprojects:
       - "install-pkg (windows-2022, lightning, 3.10)"
       - "install-pkg (windows-2022, notset, 3.7)"
       - "install-pkg (windows-2022, notset, 3.10)"
+
+  - id: "link-check"
+    paths:
+      - ".github/workflows/md-check-links.yml"
+      - "**/*.md"
+    checks:
+      - "markdown-link-check"
