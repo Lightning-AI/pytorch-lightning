@@ -24,11 +24,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
-from pytorch_lightning.loops.utilities import (
-    _block_parallel_sync_behavior,
-    _build_training_step_kwargs,
-    _extract_hiddens,
-)
+from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import WarningCache
@@ -72,7 +68,7 @@ class ClosureResult(OutputResult):
                 raise MisconfigurationException(
                     "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
                 )
-            extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+            extra = {k: v for k, v in training_step_output.items() if k != "loss"}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
         elif training_step_output is not None:
@@ -166,7 +162,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._skip_backward: bool = False
         self._optimizers: Tuple[Optimizer, ...] = tuple()
         self._indices: Tuple[int, ...] = tuple()
-        self._hiddens: Optional[Any] = None
 
     @property
     def optimizer_idx(self) -> int:
@@ -194,7 +189,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.optimizer_position = 0
 
     def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
-        kwargs = self._build_kwargs(kwargs, self.optimizer_idx, self._hiddens)
+        kwargs = self._build_kwargs(kwargs, self.optimizer_idx)
 
         result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])
         if result.loss is not None:
@@ -251,7 +246,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             # if no result, user decided to skip optimization
             # otherwise update running loss + reset accumulated loss
             # TODO: find proper way to handle updating running loss
-            self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
+            self.trainer.fit_loop.epoch_loop._update_running_loss(result.loss)
 
         # untoggle model params
         self._run_optimization_end(opt_idx)
@@ -404,30 +399,25 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
 
-        self._hiddens = _extract_hiddens(training_step_output, self.trainer.lightning_module.truncated_bptt_steps)
-
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
         )
 
         if self.trainer.move_metrics_to_cpu:
-            # hiddens and the training step output are not moved as they are not considered "metrics"
+            # training step output does not get moved because it is not considered a "metric"
             assert self.trainer._results is not None
             self.trainer._results.cpu()
 
         return result
 
-    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int, hiddens: Optional[Any]) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
             opt_idx: the index of the current optimizer.
-            hiddens: the hidden state of the previous RNN iteration.
 
         Returns:
             The kwargs passed down to the hooks.
         """
-        return _build_training_step_kwargs(
-            kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx, hiddens
-        )
+        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx)

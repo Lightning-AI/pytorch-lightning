@@ -165,9 +165,3 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
                     " not match with the actual batch index when using a `dataloader_iter`"
                     " argument in your `training_step`."
                 )
-
-        if model.truncated_bptt_steps > 0:
-            raise MisconfigurationException(
-                "The model taking a `dataloader_iter` argument in your `training_step` "
-                "is incompatible with `truncated_bptt_steps > 0`."
-            )

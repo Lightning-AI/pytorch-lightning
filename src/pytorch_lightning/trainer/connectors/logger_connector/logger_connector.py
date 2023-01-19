@@ -37,7 +37,6 @@ class LoggerConnector:
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
-        self._split_idx: Optional[int] = None
 
     def on_trainer_init(
         self,
@@ -144,9 +143,6 @@ class LoggerConnector:
     Train metric updates
     """
 
-    def on_train_split_start(self, split_idx: int) -> None:
-        self._split_idx = split_idx
-
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
@@ -185,7 +181,6 @@ class LoggerConnector:
     def epoch_end_reached(self) -> None:
         self._epoch_end_reached = True
         self._batch_idx = None
-        self._split_idx = None
 
     def on_epoch_end(self) -> None:
         assert self._epoch_end_reached
@@ -209,10 +204,7 @@ class LoggerConnector:
 
     def should_reset_tensors(self, fx: str) -> bool:
         is_different_fx = self._current_fx != fx
-        if self._split_idx is None:
-            is_first_batch = self._batch_idx in (None, 0)
-        else:
-            is_first_batch = bool(self._batch_idx) + self._split_idx == 0
+        is_first_batch = self._batch_idx in (None, 0)
         return is_different_fx and is_first_batch
 
     def reset_metrics(self) -> None:
@@ -226,7 +218,6 @@ class LoggerConnector:
             results.reset()
 
         self._batch_idx = None
-        self._split_idx = None
         self._current_fx = None
 
     @property

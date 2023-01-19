@@ -46,7 +46,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
         "1.6.5": [_migrate_loop_batches_that_stepped],
         "1.9.0": [_migrate_model_checkpoint_save_on_train_epoch_end_default],
-        "2.0.0": [_drop_apex_amp_state],
+        "2.0.0": [_drop_apex_amp_state, _migrate_loop_structure_after_tbptt_removal],
     }
 
 
@@ -218,4 +218,41 @@ def _drop_apex_amp_state(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
     if key in checkpoint:
         rank_zero_warn("This checkpoint contains apex AMP data, but apex support has been removed in v2.0.0.")
         del checkpoint[key]
+    return checkpoint
+
+
+def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Adjusts the loop structure since it changed when the support for truncated backpropagation was removed. The
+    optimizer loop and the manual loop were previously children of the training batch loop. After its removal, they
+    became the children of the training epoch loop.
+
+    Version: 2.0.0
+    Commit: TBD
+    PR: #16172
+    """
+    if "loops" not in checkpoint:
+        return checkpoint
+
+    fit_loop = checkpoint["loops"]["fit_loop"]
+
+    # remap `x.batch_loop.y` to `x.y`
+    old_key_new_key_mapping = {
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": "epoch_loop.manual_loop.optim_step_progress",
+        "epoch_loop.batch_loop.manual_loop.state_dict": "epoch_loop.manual_loop.state_dict",
+        "epoch_loop.batch_loop.optimizer_loop.optim_progress": "epoch_loop.optimizer_loop.optim_progress",
+        "epoch_loop.batch_loop.optimizer_loop.state_dict": "epoch_loop.optimizer_loop.state_dict",
+    }
+    for old, new in list(old_key_new_key_mapping.items()):
+        if old in fit_loop:
+            fit_loop[new] = fit_loop[old]
+            del fit_loop[old]
+
+    # We can safely drop this key: our default implementation of `batch_loop` did not have state.
+    # If there was state from a custom batch loop, we wouldn't be able to load it meaningfully.
+    # But just in case, we save a copy of it in `epoch_loop.state_dict` in case the user wants to process it after
+    # loading the checkpoint.
+    if "epoch_loop.batch_loop.state_dict" in fit_loop and fit_loop["epoch_loop.batch_loop.state_dict"]:
+        fit_loop["epoch_loop.state_dict"]["old_batch_loop_state_dict"] = fit_loop["epoch_loop.batch_loop.state_dict"]
+    fit_loop.pop("epoch_loop.batch_loop.state_dict", None)
+
     return checkpoint

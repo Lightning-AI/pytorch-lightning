@@ -14,7 +14,7 @@
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -30,11 +30,8 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -45,28 +42,6 @@ def check_finite_loss(loss: Optional[Tensor]) -> None:
     """
     if loss is not None and not torch.isfinite(loss).all():
         raise ValueError(f"The loss returned in `training_step` is {loss}.")
-
-
-def _extract_hiddens(training_step_output: STEP_OUTPUT, truncated_bptt_steps: int) -> Optional[Any]:
-    """Get the hidden state if present from the training step output.
-
-    Raises:
-        MisconfigurationException: If :attr:`~pytorch_lightning.core.Lightning.LightningModule.truncated_bptt_steps` is
-            not enabled and hiddens are returned or vice versa.
-    """
-    if not truncated_bptt_steps:
-        if isinstance(training_step_output, dict) and "hiddens" in training_step_output:
-            raise MisconfigurationException(
-                'You returned "hiddens" in your `training_step` but `truncated_bptt_steps` is disabled'
-            )
-        return None
-    if not isinstance(training_step_output, dict) or "hiddens" not in training_step_output:
-        raise MisconfigurationException(
-            'You enabled `truncated_bptt_steps` but did not `return {..., "hiddens": ...}` in your `training_step`'
-        )
-    # detach hiddens to avoid `RuntimeError: Trying to backward through the graph a second time`
-    hiddens = recursive_detach(training_step_output["hiddens"])
-    return hiddens
 
 
 def _parse_loop_limits(
@@ -116,7 +91,6 @@ def _build_training_step_kwargs(
     lightning_module: "pl.LightningModule",
     optimizers: Sequence[Optimizer],
     opt_idx: Optional[int],
-    hiddens: Optional[Any],
 ) -> OrderedDict:
     """Builds the keyword arguments for training_step.
 
@@ -125,7 +99,6 @@ def _build_training_step_kwargs(
         lightning_module: the LightningModule with a `training_step` hook implementation
         optimizers: the list of optimizers from the Trainer
         opt_idx: the index of the current optimizer
-        hiddens: the hidden state of the previous RNN iteration
 
     Returns:
         the keyword arguments for the training step
@@ -146,10 +119,6 @@ def _build_training_step_kwargs(
                 f"Your LightningModule defines {len(optimizers)} optimizers but"
                 " `training_step` is missing the `optimizer_idx` argument."
             )
-
-    # pass hiddens if using tbptt
-    if lightning_module.truncated_bptt_steps > 0:
-        kwargs["hiddens"] = hiddens
 
     return kwargs
 

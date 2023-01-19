@@ -56,6 +56,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed the `Trainer(auto_select_gpus=...)` argument
   * Removed the `pytorch_lightning.tuner.auto_gpu_select.{pick_single_gpu,pick_multiple_gpus}` functions
 
+- Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
+  * Removed the `LightningModule.truncated_bptt_steps` attribute
+  * Removed the `LightningModule.tbptt_split_batch` hook
+  * The `LightningModule.training_step` no longer accepts a `hiddens` argument
+  * Removed the `pytorch_lightning.loops.batch.TrainingBatchLoop`
+  * Removed the `FitLoop.split_idx` property
+  * Removed the `LoggerConnector.on_train_split_start` method
+
 
 ### Fixed
 

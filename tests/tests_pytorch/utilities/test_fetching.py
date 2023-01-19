@@ -447,21 +447,6 @@ def test_on_train_batch_end_overridden(tmpdir) -> None:
         trainer.fit(m)
 
 
-def test_tbptt_split_batch_overridden(tmpdir) -> None:
-    """Verify that a `MisconfigurationException` is raised when `tbptt_split_batch` is overridden on the
-    `LightningModule`."""
-
-    class InvalidModel(AsyncBoringModel):
-        def __init__(self) -> None:
-            super().__init__()
-            self.truncated_bptt_steps = 2
-
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir)
-    m = InvalidModel()
-    with pytest.raises(MisconfigurationException, match="is incompatible with `truncated_bptt_steps > 0`."):
-        trainer.fit(m)
-
-
 def test_transfer_hooks_with_unpacking(tmpdir):
 
     """This test asserts the `transfer_batch` hooks are called only once per batch."""

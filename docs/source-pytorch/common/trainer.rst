@@ -1418,7 +1418,7 @@ global_step
 ***********
 
 The number of optimizer steps taken (does not reset each epoch).
-This includes multiple optimizers and TBPTT steps (if enabled).
+This includes multiple optimizers (if enabled).
 
 .. code-block:: python
 
