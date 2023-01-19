@@ -24,6 +24,59 @@ line-length = 120
 exclude = '(_notebooks/.*)'
 
 
+[tool.ruff]
+line-length = 120
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+# TODO
+#    "D",  # see: https://pypi.org/project/pydocstyle
+#    "N",  # see: https://pypi.org/project/pep8-naming
+]
+#extend-select = [
+#    "C4",  # see: https://pypi.org/project/flake8-comprehensions
+#    "PT",  # see: https://pypi.org/project/flake8-pytest-style
+#    "RET",  # see: https://pypi.org/project/flake8-return
+#    "SIM",  # see: https://pypi.org/project/flake8-simplify
+#]
+ignore = [
+    "E731",  # Do not assign a lambda expression, use a def
+    "W503",  # Ignore "Line break occurred before a binary operator"
+    "E203",  # Ignore "whitespace before ':'"
+]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "docs",
+    "_notebooks"
+]
+ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+"setup.py" = ["D100", "SIM115"]
+"__about__.py" = ["D100"]
+"__init__.py" = ["D100"]
+
+[tool.ruff.pydocstyle]
+# Use Google-style docstrings.
+convention = "google"
+
+#[tool.ruff.pycodestyle]
+#ignore-overlong-task-comments = true
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+
 [tool.mypy]
 files = [
     "src/pytorch_lightning",
