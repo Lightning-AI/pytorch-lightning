@@ -314,6 +314,7 @@ utilities
     :nosignatures:
 
     argparse
+    data
     deepspeed
     distributed
     finite_checks
