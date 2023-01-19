@@ -29,14 +29,14 @@ from lightning_fabric.plugins.environments.slurm import SLURMEnvironment
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, MixedPrecisionPlugin
+from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container
@@ -46,16 +46,11 @@ log: logging.Logger = logging.getLogger(__name__)
 
 
 class CheckpointConnector:
-    def __init__(self, trainer: "pl.Trainer", resume_from_checkpoint: Optional[_PATH] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
-        self.resume_checkpoint_path: Optional[_PATH] = None
-        # TODO: remove resume_from_checkpoint_fit_path in v2.0
-        self.resume_from_checkpoint_fit_path: Optional[_PATH] = resume_from_checkpoint
-        if resume_from_checkpoint is not None:
-            rank_zero_deprecation(
-                "Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and"
-                " will be removed in v2.0. Please pass `Trainer.fit(ckpt_path=)` directly instead."
-            )
+        self._ckpt_path: Optional[_PATH] = None
+        # flag to know if the user is changing the checkpoint path statefully. See `trainer.ckpt_path.setter`
+        self._user_managed: bool = False
         self._loaded_checkpoint: Dict[str, Any] = {}
 
     @property
@@ -80,7 +75,7 @@ class CheckpointConnector:
         3. from `checkpoint_path` file if provided
         4. don't restore
         """
-        self.resume_checkpoint_path = checkpoint_path
+        self._ckpt_path = checkpoint_path
         if not checkpoint_path:
             log.detail("`checkpoint_path` not specified. Skipping checkpoint loading.")
             return
@@ -90,9 +85,41 @@ class CheckpointConnector:
             loaded_checkpoint = self.trainer.strategy.load_checkpoint(checkpoint_path)
         self._loaded_checkpoint = _pl_migrate_checkpoint(loaded_checkpoint, checkpoint_path)
 
-    def _set_ckpt_path(
-        self, state_fn: TrainerFn, ckpt_path: Optional[str], model_provided: bool, model_connected: bool
-    ) -> Optional[str]:
+    def _select_ckpt_path(
+        self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
+    ) -> Optional[_PATH]:
+        """Called by the ``Trainer`` to select the checkpoint path source."""
+        if self._user_managed:
+            if ckpt_path:
+                rank_zero_warn(
+                    f"`trainer.ckpt_path = {self._ckpt_path!r}` was called but then you"
+                    f" passed `trainer.fit(ckpt_path={ckpt_path!r})`. The latter will be loaded."
+                )
+                # reset the previous path
+                self._ckpt_path = None
+                self._user_managed = False
+                ckpt_path = self._parse_ckpt_path(
+                    state_fn,
+                    ckpt_path,
+                    model_provided=model_provided,
+                    model_connected=model_connected,
+                )
+            else:
+                ckpt_path = self._ckpt_path
+        else:
+            ckpt_path = self._parse_ckpt_path(
+                state_fn,
+                ckpt_path,
+                model_provided=model_provided,
+                model_connected=model_connected,
+            )
+        return ckpt_path
+
+    def _parse_ckpt_path(
+        self, state_fn: TrainerFn, ckpt_path: Optional[_PATH], model_provided: bool, model_connected: bool
+    ) -> Optional[_PATH]:
+        """Converts the ``ckpt_path`` special values into an actual filepath, depending on the trainer
+        configuration."""
         if ckpt_path is None and SLURMEnvironment.detect() and self._hpc_resume_path is not None:
             ckpt_path = "hpc"
 
@@ -188,21 +215,12 @@ class CheckpointConnector:
         """Signal the connector that all states have resumed and memory for the checkpoint object can be
         released."""
         assert self.trainer.state.fn is not None
-        if self.resume_checkpoint_path:
-            if self.trainer.state.fn == TrainerFn.FITTING:
-                rank_zero_info(f"Restored all states from the checkpoint file at {self.resume_checkpoint_path}")
-            elif self.trainer.state.fn in (TrainerFn.VALIDATING, TrainerFn.TESTING, TrainerFn.PREDICTING):
-                rank_zero_info(f"Loaded model weights from checkpoint at {self.resume_checkpoint_path}")
-        # TODO: remove resume_from_checkpoint_fit_path in v2.0
-        if (
-            self.trainer.state.fn == TrainerFn.FITTING
-            and self.resume_checkpoint_path == self.resume_from_checkpoint_fit_path
-        ):
-            self.resume_from_checkpoint_fit_path = None
-        self.resume_checkpoint_path = None
-        self._loaded_checkpoint = {}
+        if self._ckpt_path:
+            message = "Restored all states" if self.trainer.state.fn == TrainerFn.FITTING else "Loaded model weights"
+            rank_zero_info(f"{message} from the checkpoint at {self._ckpt_path}")
 
-        # clear cache after restore
+        # free memory
+        self._loaded_checkpoint = {}
         torch.cuda.empty_cache()
 
         # wait for all to catch up
@@ -293,8 +311,6 @@ class CheckpointConnector:
             prec_plugin.load_state_dict(self._loaded_checkpoint[prec_plugin.__class__.__qualname__])
 
         # old checkpoints compatibility
-        if "amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, ApexMixedPrecisionPlugin):
-            prec_plugin.load_state_dict(self._loaded_checkpoint["amp_scaling_state"])
         if "native_amp_scaling_state" in self._loaded_checkpoint and isinstance(prec_plugin, MixedPrecisionPlugin):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
@@ -406,9 +422,15 @@ class CheckpointConnector:
         for config, lrs_state in zip(self.trainer.lr_scheduler_configs, lr_schedulers):
             config.scheduler.load_state_dict(lrs_state)
 
-    # ----------------------------------
-    # PRIVATE OPS
-    # ----------------------------------
+    def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
+        # restore modules after setup
+        self.resume_start(checkpoint_path)
+        self._restore_quantization_callbacks()
+        self.restore_model()
+        self.restore_datamodule()
+        if self.trainer.state.fn == TrainerFn.FITTING:
+            # restore callback states
+            self.restore_callbacks()
 
     def dump_checkpoint(self, weights_only: bool = False) -> dict:
         """Creating a model checkpoint dictionary object from various component states.

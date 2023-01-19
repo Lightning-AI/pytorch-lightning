@@ -13,7 +13,7 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
@@ -52,23 +52,15 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         )
 
     Args:
-        pl_module: The module to wrap. See description for `forward_module`.
-
-            .. deprecated:: v1.8.0
-                The argument ``pl_module`` is deprecated in v1.8.0 and will be removed in v2.0.0. Please use
-                ``forward_module`` instead.
-
         forward_module: The module to wrap. If it's not a ``LightningModule``, it must have an attribute ``.module``
             pointing to a ``LightningModule`` reference.
     """
 
     def __init__(
         self,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
+        forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase],
     ) -> None:
-        self._validate_init_arguments(pl_module, forward_module)
-        super().__init__(forward_module=(pl_module or forward_module))
+        super().__init__(forward_module=forward_module)
         _ignore_scalar_return_in_dp()
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:

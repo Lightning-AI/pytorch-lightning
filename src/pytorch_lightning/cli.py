@@ -28,7 +28,7 @@ from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = RequirementCache("jsonargparse[signatures]>=4.17.0")
 
@@ -279,7 +279,6 @@ class LightningCLI:
         args: ArgsType = None,
         run: bool = True,
         auto_configure_optimizers: bool = True,
-        **kwargs: Any,  # Remove with deprecations of v2.0.0
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -331,8 +330,6 @@ class LightningCLI:
         self.parser_kwargs = parser_kwargs or {}  # type: ignore[var-annotated]  # github.com/python/mypy/issues/6463
         self.auto_configure_optimizers = auto_configure_optimizers
 
-        self._handle_deprecated_params(kwargs)
-
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
         self._model_class = model_class or LightningModule
@@ -356,28 +353,6 @@ class LightningCLI:
 
         if self.subcommand is not None:
             self._run_subcommand(self.subcommand)
-
-    def _handle_deprecated_params(self, kwargs: dict) -> None:
-        for name in kwargs.keys() & ["save_config_filename", "save_config_overwrite", "save_config_multifile"]:
-            value = kwargs.pop(name)
-            key = name.replace("save_config_", "").replace("filename", "config_filename")
-            self.save_config_kwargs[key] = value
-            rank_zero_deprecation(
-                f"LightningCLI's {name!r} init parameter is deprecated from v1.8 and will "
-                f"be removed in v2.0.0. Use `save_config_kwargs={{'{key}': ...}}` instead."
-            )
-
-        for name in kwargs.keys() & ["description", "env_prefix", "env_parse"]:
-            value = kwargs.pop(name)
-            key = name.replace("env_parse", "default_env")
-            self.parser_kwargs[key] = value
-            rank_zero_deprecation(
-                f"LightningCLI's {name!r} init parameter is deprecated from v1.9 and will "
-                f"be removed in v2.0. Use `parser_kwargs={{'{key}': ...}}` instead."
-            )
-
-        if kwargs:
-            raise ValueError(f"Unexpected keyword parameters: {kwargs}")
 
     def _setup_parser_kwargs(self, parser_kwargs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         subcommand_names = self.subcommands().keys()
