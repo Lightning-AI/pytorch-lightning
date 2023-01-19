@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -85,7 +86,8 @@ class ManualOptimization(Loop):
 
     def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
         self.on_run_start()
-        self.advance(kwargs)
+        with suppress(StopIteration):  # no loop to break at this level
+            self.advance(kwargs)
         self._restarting = False
         return self.on_run_end()
 
