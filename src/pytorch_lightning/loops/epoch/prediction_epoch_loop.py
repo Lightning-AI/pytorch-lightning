@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterator, List, Tuple, Union
 import torch
 
 from lightning_fabric.utilities import move_data_to_device
-from pytorch_lightning.loops.loop import Loop
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.rank_zero import WarningCache
@@ -12,7 +12,7 @@ from pytorch_lightning.utilities.rank_zero import WarningCache
 warning_cache = WarningCache()
 
 
-class PredictionEpochLoop(Loop):
+class _PredictionEpochLoop(_Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
 
     def __init__(self) -> None:

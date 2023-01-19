@@ -22,7 +22,7 @@ from typing_extensions import OrderedDict
 
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
 from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
 from pytorch_lightning.trainer.progress import OptimizationProgress
@@ -146,7 +146,7 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
-class OptimizerLoop(Loop):
+class _OptimizerLoop(_Loop):
     """Iterates over one or multiple optimizers and for each one it calls the
     :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method with the batch, the current batch index
     and the optimizer index if multiple optimizers are requested.
