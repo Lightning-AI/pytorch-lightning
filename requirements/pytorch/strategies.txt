@@ -2,5 +2,4 @@
 #  in case you want to preserve/enforce restrictions on the latest compatible version, add "strict" as an in-line comment
 
 # colossalai>=0.1.10  # TODO: uncomment when there's a stable version released
-fairscale>=0.4.5, <0.4.13
 deepspeed>=0.6.0, <=0.7.0

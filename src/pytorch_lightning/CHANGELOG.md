@@ -44,6 +44,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `Trainer(strategy='horovod')` support ([#16150](https://github.com/Lightning-AI/lightning/pull/16150))
 
+- `FairScale` removal (in favor of PyTorch's FSDP implementation) ([#TODO](https://github.com/PyTorchLightning/pytorch-lightning/pull/TODO))
+  * Removed the `pytorch_lightning.overrides.fairscale.LightningShardedDataParallel` class
+  * Removed the `pytorch_lightning.plugins.precision.fully_sharded_native_amp.FullyShardedNativeMixedPrecisionPlugin` class
+  * Removed the `pytorch_lightning.plugins.precision.sharded_native_amp.ShardedNativeMixedPrecisionPlugin` class
+  * Removed the `pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy` (fsdp) class
+  * Removed the `pytorch_lightning.strategies.sharded.DDPShardedStrategy` (ddp_sharded) class
+  * Removed the `pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy` (ddp_sharded_spawn) class
+
 - Removed legacy device arguments in Trainer ([#16171](https://github.com/Lightning-AI/lightning/pull/16171))
   * Removed the `Trainer(gpus=...)` argument
   * Removed the `Trainer(tpu_cores=...)` argument

@@ -176,13 +176,11 @@ precision
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeMixedPrecisionPlugin
     FullyShardedNativeNativeMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     PrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
@@ -276,9 +274,6 @@ strategies
     BaguaStrategy
     ColossalAIStrategy
     DDPFullyShardedNativeStrategy
-    DDPFullyShardedStrategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
     DDPSpawnStrategy
     DDPStrategy
     DataParallelStrategy
