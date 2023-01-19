@@ -28,7 +28,7 @@ from lightning_fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.launchers.base import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
-from lightning_fabric.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning_fabric.utilities.types import _PATH, Optimizable, ReduceOp, _Stateful
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -269,11 +269,12 @@ class Strategy(ABC):
         for name, obj in state.copy().items():
             if name not in checkpoint:
                 continue
-            elif isinstance(obj, Module):
-                # TODO(fabric): Make strict loading configurable
-                obj.load_state_dict(checkpoint.pop(name), strict=True)
-            elif isinstance(obj, Optimizer):
-                obj.load_state_dict(checkpoint.pop(name))
+            elif isinstance(obj, _Stateful):
+                if isinstance(obj, Module):
+                    # TODO(fabric): Make strict loading configurable
+                    obj.load_state_dict(checkpoint.pop(name), strict=True)
+                else:
+                    obj.load_state_dict(checkpoint.pop(name))
             else:
                 state[name] = checkpoint.pop(name)
         return checkpoint
