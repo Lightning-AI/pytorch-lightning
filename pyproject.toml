@@ -68,18 +68,6 @@ exclude = [
 ]
 ignore-init-module-imports = true
 
-[tool.ruff.per-file-ignores]
-"setup.py" = ["D100", "SIM115"]
-"__about__.py" = ["D100"]
-"__init__.py" = ["D100"]
-
-[tool.ruff.pydocstyle]
-# Use Google-style docstrings.
-convention = "google"
-
-#[tool.ruff.pycodestyle]
-#ignore-overlong-task-comments = true
-
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
