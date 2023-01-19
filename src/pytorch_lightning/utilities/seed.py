@@ -35,6 +35,7 @@ def isolate_rng(include_cuda: bool = True) -> Generator[None, None, None]:
             prohibited.
 
     Example:
+        >>> import torch
         >>> torch.manual_seed(1)  # doctest: +ELLIPSIS
         <torch._C.Generator object at ...>
         >>> with isolate_rng():

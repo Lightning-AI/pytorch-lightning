@@ -97,6 +97,7 @@ def _flatten_dict(params: MutableMapping[Any, Any], delimiter: str = "/", parent
 def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """Returns params with non-primitvies converted to strings for logging.
 
+    >>> import torch
     >>> params = {"float": 0.3,
     ...           "int": 1,
     ...           "string": "abc",
