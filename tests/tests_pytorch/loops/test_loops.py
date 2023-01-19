@@ -69,17 +69,6 @@ def test_loop_restore():
                     break
             self._restarting = False
 
-        def run(self):
-            self.reset()
-            while not self.done:
-                try:
-                    self.advance()
-                    self.on_advance_end()
-                    self._restarting = False
-                except StopIteration:
-                    break
-            self._restarting = False
-
         def reset(self) -> None:
             self.iter_dataset = iter(self.dataset)
             if self.restarting:
