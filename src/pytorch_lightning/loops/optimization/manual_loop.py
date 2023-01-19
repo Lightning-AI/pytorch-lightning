@@ -64,7 +64,7 @@ class ManualResult(OutputResult):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class ManualOptimization(Loop[_OUTPUTS_TYPE]):
+class ManualOptimization(Loop):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` and therefore the user is
     responsible for back-propagating gradients and making calls to the optimizers.
@@ -88,10 +88,22 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def done(self) -> bool:
         return self._done
 
+    def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.advance(kwargs)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         self._done = False
 
-    def on_run_start(self, *_: Any, **__: Any) -> None:
+    def on_run_start(self) -> None:
         # inject logic around the optimizer step
         for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
             lightning_optimizer._on_before_step = self._on_before_step

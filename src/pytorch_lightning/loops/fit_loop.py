@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 log = logging.getLogger(__name__)
 
 
-class FitLoop(Loop[None]):
+class FitLoop(Loop):
     """This Loop iterates over the epochs to run the training.
 
     Args:
@@ -168,6 +168,22 @@ class FitLoop(Loop[None]):
         # since `trainer.num_training_batches` depends on the `train_dataloader` but that won't be called
         # until `on_run_start`, we use `limit_train_batches` instead
         return self.done or self.trainer.limit_train_batches == 0
+
+    def run(self) -> None:
+        if self.skip:
+            return
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""

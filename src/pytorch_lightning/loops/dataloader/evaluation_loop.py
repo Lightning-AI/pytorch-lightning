@@ -89,6 +89,22 @@ class EvaluationLoop(DataLoaderLoop):
         max_batches = self._get_max_batches()
         return sum(max_batches) == 0
 
+    def run(self) -> List[_OUT_DICT]:
+        if self.skip:
+            return []
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
+
     def reset(self) -> None:
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
@@ -105,10 +121,7 @@ class EvaluationLoop(DataLoaderLoop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.dataloader_progress.reset_on_run()
 
-    def on_skip(self) -> List:
-        return []
-
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
@@ -120,7 +133,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
+    def advance(self) -> None:
         """Performs evaluation on one single dataloader."""
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader

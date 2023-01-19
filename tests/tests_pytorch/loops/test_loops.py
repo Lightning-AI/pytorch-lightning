@@ -46,6 +46,9 @@ def test_restarting_loops_recursive():
         def advance(self, *args, **kwargs):
             pass
 
+        def run(self):
+            pass
+
     loop = MyLoop(MyLoop(MyLoop()))
 
     assert not loop.restarting
@@ -69,12 +72,19 @@ def test_loop_restore():
             self.dataset = dataset
 
         @property
-        def skip(self) -> bool:
-            return False
-
-        @property
         def done(self) -> bool:
             return self.iteration_count > len(self.dataset)
+
+        def run(self):
+            self.reset()
+            while not self.done:
+                try:
+                    self.advance()
+                    self.on_advance_end()
+                    self._restarting = False
+                except StopIteration:
+                    break
+            self._restarting = False
 
         def reset(self) -> None:
             self.iter_dataset = iter(self.dataset)
@@ -134,6 +144,16 @@ def test_loop_hierarchy():
             super().__init__()
             self.a = a
             self.progress = SimpleProgress()
+
+        def run(self):
+            while not self.done:
+                try:
+                    self.advance()
+                    self.on_advance_end()
+                    self._restarting = False
+                except StopIteration:
+                    break
+            self._restarting = False
 
         def advance(self, *args: Any, **kwargs: Any) -> None:
             loop = getattr(self, "loop_child", None)
