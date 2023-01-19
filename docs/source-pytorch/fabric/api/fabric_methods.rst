@@ -144,7 +144,7 @@ Fabric will take care of handling the saving part correctly, no matter if you ar
     # Instead of `torch.save(...)`
     fabric.save("path/to/checkpoint.ckpt", state)
 
-You can pass in the model and optimizer objects directly, and Fabric will unwrap them and retrieve their *state-dict* automatically.
+You should pass the model and optimizer objects directly into the dictionary so that Fabric can unwrap them and retrieve their *state-dict* automatically.
 
 See also: :doc:`../guide/checkpoint`
 
