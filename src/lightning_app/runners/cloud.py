@@ -103,6 +103,7 @@ def _get_work_specs(app: LightningApp) -> List[V1Work]:
             disk_size=work.cloud_compute.disk_size,
             preemptible=work.cloud_compute.preemptible,
             shm_size=work.cloud_compute.shm_size,
+            affinity_identifier=work.cloud_compute.colocation_group_id
         )
 
         drive_specs: List[V1LightningworkDrives] = []

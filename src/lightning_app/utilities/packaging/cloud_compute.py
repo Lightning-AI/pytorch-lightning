@@ -66,6 +66,8 @@ class CloudCompute:
             For example 1100 will become 1024. If set to zero (the default) will get the default 64MiB inside docker.
 
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
+        colocation_group_id: Identifier for groups of works to be colocated in the same datacenter. 
+            Can be a a string of max. 64 characters.
     """
 
     name: str = "default"
@@ -73,6 +75,7 @@ class CloudCompute:
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
+    colocation_group_id: Optional[str] = None
     _internal_id: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -92,6 +95,9 @@ class CloudCompute:
 
         # Internal arguments for now.
         self.preemptible = False
+
+        if isinstance(self.colocation_group_id, str) and len(self.colocation_group_id) > 64:
+            raise ValueError('colocation_group_id can only be a string of maximum 64 characters.')
 
     def to_dict(self) -> dict:
         _verify_mount_root_dirs_are_unique(self.mounts)
