@@ -32,7 +32,27 @@ log = logging.getLogger(__name__)
 
 
 class FitLoop(Loop):
-    """This Loop iterates over the epochs to run the training.
+    """This loop is the top-level loop where training starts.
+
+    It simply counts the epochs and iterates from one to the next by calling ``TrainingEpochLoop.run()`` in its
+    ``advance()`` method.
+
+    Example::
+
+        # FitLoop
+        for epoch in range(max_epochs):
+            # TrainingEpochLoop
+            for batch_idx, batch in enumerate(train_dataloader):
+                # OptimizerLoop
+                for optimizer_idx, opt in enumerate(optimizers):
+                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
+                    ...
+                # ValidationEpochLoop
+                for batch_idx, batch in enumerate(val_dataloader):
+                    lightning_module.validation_step(batch, batch_idx, optimizer_idx)
+                    ...
+                ...
+            ...
 
     Args:
         min_epochs: The minimum number of epochs

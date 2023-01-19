@@ -39,7 +39,11 @@ if _RICH_AVAILABLE:
 
 
 class EvaluationLoop(DataLoaderLoop):
-    """Loops over all dataloaders for evaluation."""
+    """Top-level loop where validation/testing starts.
+
+    It simply iterates over each evaluation dataloader from one to the next by calling ``EvaluationEpochLoop.run()`` in
+    its ``advance()`` method.
+    """
 
     def __init__(self, verbose: bool = True) -> None:
         super().__init__()

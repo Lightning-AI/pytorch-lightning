@@ -4,7 +4,7 @@ Welcome to ⚡ PyTorch Lightning
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
-         :alt: Animation showing how to convert a standard training loop to a Lightning loop
+         :alt: Animation showing how to convert standard training code to Lightning
    :right:
       PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
       Lightning evolves with you as your projects go from idea to paper/production.
@@ -240,7 +240,6 @@ Current Lightning Users
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
-   Loops <extensions/loops>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
