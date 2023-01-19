@@ -111,5 +111,4 @@ repos:
         # Respect `exclude` and `extend-exclude` settings.
         args:
           - "--fix"
-          - "--respect-gitignore"
           - "--force-exclude"

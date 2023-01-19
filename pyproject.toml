@@ -55,14 +55,7 @@ ignore = [
 ]
 # Exclude a variety of commonly ignored directories.
 exclude = [
-    ".eggs",
     ".git",
-    ".mypy_cache",
-    ".ruff_cache",
-    "__pypackages__",
-    "_build",
-    "build",
-    "dist",
     "docs",
     "_notebooks"
 ]
