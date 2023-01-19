@@ -59,11 +59,11 @@ def test_save_checkpoint_convert_stateful_objects(tmp_path):
     state = {"model": model, "optimizer": optimizer, "anything": anything}
     expected = {"model": model.state_dict(), "optimizer": optimizer.state_dict(), "anything": anything}
     strategy.save_checkpoint(tmp_path, state)
-    assert save_checkpoint_mock.call_args.kwargs["checkpoint"].keys() == expected.keys()
-    saved_model_state = save_checkpoint_mock.call_args.kwargs["checkpoint"]["model"]
+    assert save_checkpoint_mock.call_args[1]["checkpoint"].keys() == expected.keys()
+    saved_model_state = save_checkpoint_mock.call_args[1]["checkpoint"]["model"]
     assert all(torch.equal(p0, p1) for p0, p1 in zip(saved_model_state.values(), expected["model"].values()))
-    assert save_checkpoint_mock.call_args.kwargs["checkpoint"]["optimizer"] == expected["optimizer"]
-    assert save_checkpoint_mock.call_args.kwargs["checkpoint"]["anything"] == expected["anything"]
+    assert save_checkpoint_mock.call_args[1]["checkpoint"]["optimizer"] == expected["optimizer"]
+    assert save_checkpoint_mock.call_args[1]["checkpoint"]["anything"] == expected["anything"]
 
 
 def test_load_out_of_place(tmp_path):
