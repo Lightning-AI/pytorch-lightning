@@ -127,25 +127,51 @@ This avoids excessive printing and logs when running on multiple devices/nodes.
 save
 ====
 
-Save contents to a checkpoint. Replaces all occurrences of ``torch.save(...)`` in your code. Fabric will take care of
-handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
+Save the state of objects to a checkpoint file.
+Replaces all occurrences of ``torch.save(...)`` in your code.
+Fabric will take care of handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
 
 .. code-block:: python
 
-    # Instead of `torch.save(...)`, call:
-    fabric.save(model.state_dict(), "path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Instead of `torch.save(...)`
+    fabric.save("path/to/checkpoint.ckpt", state)
+
+You can pass in the model and optimizer objects directly, and Fabric will unwrap them and retrieve their *state-dict* automatically.
 
 
 load
 ====
 
-Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Fabric will take care of
-handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
+Load checkpoint contents from a file and restore the state of objects in your program.
+Replaces all occurrences of ``torch.load(...)`` in your code.
+Fabric will take care of handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 
-    # Instead of `torch.load(...)`, call:
-    fabric.load("path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Restore the state of objects (in-place)
+    fabric.load("path/to/checkpoint.ckpt", state)
+
+    # Or load everything and restore your objects manually
+    checkpoint = fabric.load("./checkpoints/version_2/checkpoint.ckpt")
+    model.load_state_dict(all_states["model"])
+    ...
+
 
 
 barrier
