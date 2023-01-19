@@ -18,15 +18,9 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import RandomDataset
-from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-
-
-def test_v1_10_deprecated_on_colab_kaggle_func():
-    with pytest.deprecated_call(match="The function `on_colab_kaggle` has been deprecated in v1.8.0"):
-        on_colab_kaggle()
 
 
 def test_v1_10_deprecated_cloud_io_utilities(tmpdir):
