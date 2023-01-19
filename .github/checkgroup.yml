@@ -13,7 +13,7 @@ subprojects:
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
       - "tests/legacy/back-compatible-versions.txt"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -51,7 +51,7 @@ subprojects:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "!requirements/docs.txt"
@@ -82,7 +82,7 @@ subprojects:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -98,7 +98,7 @@ subprojects:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/docs.txt"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -118,7 +118,7 @@ subprojects:
   #    - "requirements/pytorch/**"
   #    - "src/pytorch_lightning/**"
   #    - "tests/tests_pytorch/**"
-  #    - "setup.cfg"  # includes pytest config
+  #    - "pyproject.toml"  # includes pytest config
   #    - "!requirements/*/docs.txt"
   #    - "!*.md"
   #    - "!**/*.md"
@@ -134,7 +134,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -175,7 +175,7 @@ subprojects:
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -209,7 +209,7 @@ subprojects:
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - "!requirements/*/docs.txt"
       - "!*.md"
       - "!**/*.md"
@@ -286,7 +286,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:

@@ -16,8 +16,6 @@
 import collections.abc
 import logging
 import numbers
-import os
-import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
@@ -1877,6 +1875,7 @@ class LightningModule(
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+            >>> import os, tempfile
             >>> with tempfile.NamedTemporaryFile(suffix='.onnx', delete=False) as tmpfile:
             ...     model = SimpleModel()
             ...     input_sample = torch.randn((1, 64))
@@ -1939,6 +1938,7 @@ class LightningModule(
             ...     def forward(self, x):
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
+            >>> import os
             >>> model = SimpleModel()
             >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
