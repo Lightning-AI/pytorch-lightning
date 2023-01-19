@@ -241,7 +241,9 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
+    with pytest.raises(
+        MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"
+    ), pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
         Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
@@ -282,7 +284,13 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
 )
 @pytest.mark.parametrize("devices", [1, 2])
 def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmpdir, strategy, strategy_class, devices):
-    trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
+    if "sharded" in strategy:
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(
+                default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices
+            )
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 
@@ -290,21 +298,14 @@ def test_accelerator_cpu(cuda_count_0):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(
-        MisconfigurationException,
-        match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
-    ):
-        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-            Trainer(gpus=1)
+    trainer = Trainer(devices=1)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(
         MisconfigurationException,
         match="CUDAAccelerator` can not run on your system since the accelerator is not available.",
     ):
         Trainer(accelerator="cuda")
-
-    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
-        Trainer(accelerator="cpu", gpus=1)
 
 
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False]))
@@ -360,7 +361,7 @@ def test_set_devices_if_none_cpu():
 
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator="cpu", strategy="dp", num_processes=2)
+        trainer = Trainer(accelerator="cpu", strategy="dp", devices=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
@@ -386,10 +387,16 @@ def test_exception_invalid_strategy():
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-        Trainer(accelerator=accelerator, strategy=strategy)
+    if "sharded" in strategy:
+        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+            Trainer(accelerator=accelerator, strategy=strategy)
+    else:
+        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+            Trainer(accelerator=accelerator, strategy=strategy)
 
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"), pytest.deprecated_call(
+        match="FairScale has been deprecated in v1.9.0"
+    ):
         Trainer(accelerator="mps", strategy=strategy_class())
 
 
@@ -428,7 +435,11 @@ def test_strategy_choice_cpu_instance(strategy_class):
     ],
 )
 def test_strategy_choice_gpu_str(strategy, strategy_class):
-    trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+    if "sharded" in strategy:
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+    else:
+        trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
@@ -453,13 +464,6 @@ def test_validate_precision_type(precision):
 
     with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
-
-
-def test_amp_level_raises_error_with_native():
-    with pytest.deprecated_call(match="apex AMP implementation has been deprecated"), pytest.raises(
-        MisconfigurationException, match="O2'` but it's only supported with `amp_backend='apex'`"
-    ):
-        _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
 def test_strategy_choice_ddp_spawn_cpu():
@@ -651,11 +655,6 @@ def test_unsupported_tpu_choice(tpu_available):
     ):
         Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
-    with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but apex AMP is not supported"
-    ):
-        Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
-
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
@@ -707,7 +706,6 @@ def test_deterministic_init(deterministic):
     assert trainer._accelerator_connector.deterministic == deterministic
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
-        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
 
 
 @pytest.mark.parametrize(

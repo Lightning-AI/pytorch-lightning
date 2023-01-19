@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from torch import Tensor
 from torch.nn import Module
@@ -26,6 +26,7 @@ from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE, _reinit_
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -40,6 +41,16 @@ class DDPShardedStrategy(DDPStrategy):
     strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        rank_zero_deprecation(
+            "PyTorch Lightning's sharded implementation using FairScale has been deprecated in v1.9.0 and will be"
+            " removed in v2.0.0. You can try using the `Trainer(strategy='fsdp_native')` instead."
+            " The difference is that native FSDP uses PyTorch's implementation and the current strategy uses"
+            " FairScale's implementation (which was upstreamed to PyTorch). After removal, `strategy='fsdp'` will use"
+            " the native version by default."
+        )
+        super().__init__(*args, **kwargs)
+
     def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
@@ -49,11 +60,6 @@ class DDPShardedStrategy(DDPStrategy):
         return super().connect(model)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        # share ddp pids to all processes
-        self._rank_0_will_call_children_scripts: bool = self.broadcast(self._rank_0_will_call_children_scripts)
-        if self._should_run_deadlock_detection():
-            self._share_information_to_prevent_deadlock()
-
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 

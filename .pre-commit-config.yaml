@@ -104,8 +104,11 @@ repos:
               src/lightning_fabric/CHANGELOG.md
           )$
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.0.226'
     hooks:
-      - id: flake8
-        name: Check PEP8
+      - id: ruff
+        # Respect `exclude` and `extend-exclude` settings.
+        args:
+          - "--fix"
+          - "--force-exclude"

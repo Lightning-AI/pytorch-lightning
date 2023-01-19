@@ -103,7 +103,7 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
     strategy._local_rank = fake_local_rank
 
     launcher = _MultiProcessingLauncher(strategy=strategy)
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy)
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
 
     assert strategy.node_rank == fake_node_rank
     assert strategy.local_rank == fake_local_rank
@@ -124,3 +124,42 @@ def test_collect_rank_zero_results(trainer_fn, fake_node_rank, fake_local_rank, 
     else:
         # all other ranks don't have outputs (rank 0 needs to handle the output)
         assert spawn_output is None
+
+
+@pytest.mark.parametrize("trainer_fn", [TrainerFn.FITTING, "other"])
+def test_transfer_weights(tmpdir, trainer_fn):
+    """Tests that the multiprocessing launcher transfers the new weights to the main process and deletes the
+    temporary file."""
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    strategy = DDPSpawnStrategy()
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
+    trainer.strategy.connect(model)
+    trainer.state.fn = trainer_fn  # pretend we are in a particular trainer state
+
+    spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
+
+    model.state_dict.assert_called_once()
+    if trainer_fn == TrainerFn.FITTING:
+        assert spawn_output.weights_path.endswith(".temp.ckpt")
+        assert os.path.isfile(spawn_output.weights_path)
+    else:
+        assert spawn_output.weights_path is None
+
+    # <-- here would normally be the multiprocessing boundary
+    strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
+    assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
+
+
+def test_non_strict_loading(tmpdir):
+    """Tests that the multiprocessing launcher loads the weights back into the main process but with strict loading
+    disabled, not erroring for missing keys."""
+    model = Mock(wraps=BoringModel(), spec=BoringModel)
+    strategy = DDPSpawnStrategy()
+    trainer = Trainer(accelerator="cpu", default_root_dir=tmpdir, strategy=strategy)
+    trainer.strategy.connect(model)
+    trainer.state.fn = TrainerFn.FITTING  # state dict loading only relevant for the FITTING case
+
+    spawn_output = strategy._launcher._collect_rank_zero_results(trainer, {})
+    # <-- here would normally be the multiprocessing boundary
+    strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
+    model.load_state_dict.assert_called_once_with(ANY, strict=False)

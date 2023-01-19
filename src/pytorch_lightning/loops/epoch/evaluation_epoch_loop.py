@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -45,7 +45,7 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress = BatchProgress()
 
         self._outputs: EPOCH_OUTPUT = []
-        self._dl_max_batches = 0
+        self._dl_max_batches: Union[int, float] = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
         self._dl_batch_idx = [0]
@@ -54,6 +54,20 @@ class EvaluationEpochLoop(Loop):
     def done(self) -> bool:
         """Returns ``True`` if the current iteration count reaches the number of dataloader batches."""
         return self.batch_progress.current.completed >= self._dl_max_batches
+
+    def run(
+        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
+    ) -> EPOCH_OUTPUT:
+        self.reset()
+        self.on_run_start(data_fetcher, dl_max_batches, kwargs)
+        while not self.done:
+            try:
+                self.advance(data_fetcher, kwargs)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the loop's internal state."""
@@ -70,7 +84,9 @@ class EvaluationEpochLoop(Loop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.batch_progress.reset_on_run()
 
-    def on_run_start(self, data_fetcher: AbstractDataFetcher, dl_max_batches: int, kwargs: OrderedDict) -> None:
+    def on_run_start(
+        self, data_fetcher: AbstractDataFetcher, dl_max_batches: Union[int, float], kwargs: OrderedDict
+    ) -> None:
         """Adds the passed arguments to the loop's state if necessary.
 
         Args:
@@ -103,14 +119,12 @@ class EvaluationEpochLoop(Loop):
     def advance(
         self,
         data_fetcher: AbstractDataFetcher,
-        dl_max_batches: int,
         kwargs: OrderedDict,
     ) -> None:
         """Calls the evaluation step with the corresponding hooks and updates the logger connector.
 
         Args:
             data_fetcher: iterator over the dataloader
-            dl_max_batches: maximum number of batches the dataloader can produce
             kwargs: the kwargs passed down to the hooks.
 
         Raises:
@@ -153,11 +167,6 @@ class EvaluationEpochLoop(Loop):
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
             self._outputs.append(output)
-
-        if self.trainer.move_metrics_to_cpu:
-            # the evaluation step output is not moved as they are not considered "metrics"
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
 
         if not self.batch_progress.is_last_batch:
             # if fault tolerant is enabled and process has been notified, exit.

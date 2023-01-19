@@ -236,7 +236,7 @@ class Flow(LightningFlow):
     def run(self):
         if self.should_start:
             self.w.run()
-            self._exit()
+            self.stop()
 
 
 class MockResponse:
@@ -290,7 +290,7 @@ class FlowStructures(LightningFlow):
         self.w_dict = Dict(**{"toto": Work(), "toto_2": Work()})
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 class FlowStructuresEmpty(LightningFlow):
@@ -300,7 +300,7 @@ class FlowStructuresEmpty(LightningFlow):
         self.w_dict = Dict()
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 def test_app_state_with_structures():

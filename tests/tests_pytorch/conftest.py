@@ -69,7 +69,6 @@ def restore_env_variables():
         "WANDB_MODE",
         "WANDB_REQUIRE_SERVICE",
         "WANDB_SERVICE",
-        "HOROVOD_FUSION_THRESHOLD",  # set by HorovodStrategy # TODO: remove in v2.0.0
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
         "CUDA_MODULE_LOADING",  # leaked since PyTorch 1.13
@@ -116,7 +115,6 @@ def reset_deterministic_algorithm():
 def mock_cuda_count(monkeypatch, n: int) -> None:
     monkeypatch.setattr(lightning_fabric.accelerators.cuda, "num_cuda_devices", lambda: n)
     monkeypatch.setattr(pytorch_lightning.accelerators.cuda, "num_cuda_devices", lambda: n)
-    monkeypatch.setattr(pytorch_lightning.tuner.auto_gpu_select, "num_cuda_devices", lambda: n)
 
 
 @pytest.fixture(scope="function")

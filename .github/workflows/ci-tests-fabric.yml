@@ -12,7 +12,7 @@ on:
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"

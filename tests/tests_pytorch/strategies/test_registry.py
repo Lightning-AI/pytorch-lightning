@@ -74,7 +74,8 @@ def test_fsdp_strategy_registry(tmpdir):
     assert strategy in StrategyRegistry
     assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedStrategy
 
-    trainer = Trainer(strategy=strategy)
+    with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+        trainer = Trainer(strategy=strategy)
 
     assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
 
@@ -117,7 +118,11 @@ def test_fsdp_strategy_registry(tmpdir):
     ],
 )
 def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params):
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
+    if "sharded" in strategy_name:
+        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
+            trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
+    else:
+        trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
     assert isinstance(trainer.strategy, strategy)
     assert strategy_name in StrategyRegistry
     assert StrategyRegistry[strategy_name]["init_params"] == expected_init_params

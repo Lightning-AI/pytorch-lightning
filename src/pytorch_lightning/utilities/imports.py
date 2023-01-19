@@ -27,7 +27,6 @@ _TORCHMETRICS_GREATER_EQUAL_0_9_1 = RequirementCache("torchmetrics>=0.9.1")
 _TORCHMETRICS_GREATER_EQUAL_0_11 = compare_version("torchmetrics", operator.ge, "0.11.0")  # using new API with task
 
 _HABANA_FRAMEWORK_AVAILABLE = package_available("habana_frameworks")
-_HIVEMIND_AVAILABLE = package_available("hivemind")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
 _OMEGACONF_AVAILABLE = package_available("omegaconf")
 _POPTORCH_AVAILABLE = package_available("poptorch")
