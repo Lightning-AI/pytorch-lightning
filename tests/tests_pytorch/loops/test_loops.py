@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator
+from typing import Dict, Iterator
 from unittest import mock
 from unittest.mock import ANY
 
@@ -35,19 +35,6 @@ def test_restarting_loops_recursive():
         def __init__(self, loop=None):
             super().__init__()
             self.child = loop
-
-        @property
-        def done(self) -> bool:
-            return False
-
-        def reset(self) -> None:
-            pass
-
-        def advance(self, *args, **kwargs):
-            pass
-
-        def run(self):
-            pass
 
     loop = MyLoop(MyLoop(MyLoop()))
 
@@ -71,16 +58,12 @@ def test_loop_restore():
             self.iteration_count = 0
             self.dataset = dataset
 
-        @property
-        def done(self) -> bool:
-            return self.iteration_count > len(self.dataset)
-
         def run(self):
             self.reset()
-            while not self.done:
+            while not self.iteration_count > len(self.dataset):
                 try:
                     self.advance()
-                    self.on_advance_end()
+                    self.iteration_count += 1
                     self._restarting = False
                 except StopIteration:
                     break
@@ -102,9 +85,6 @@ def test_loop_restore():
                 raise CustomException
 
             self.outputs.append(value)
-
-        def on_advance_end(self) -> None:
-            self.iteration_count += 1
 
         def state_dict(self) -> Dict:
             return {"iteration_count": self.iteration_count, "outputs": self.outputs}
@@ -146,30 +126,20 @@ def test_loop_hierarchy():
             self.progress = SimpleProgress()
 
         def run(self):
-            while not self.done:
+            while not self.progress.increment > 0:
                 try:
                     self.advance()
-                    self.on_advance_end()
+                    self.progress.increment += 1
                     self._restarting = False
                 except StopIteration:
                     break
             self._restarting = False
 
-        def advance(self, *args: Any, **kwargs: Any) -> None:
+        def advance(self) -> None:
             loop = getattr(self, "loop_child", None)
             if not loop:
                 return
             loop.run()
-
-        def on_advance_end(self):
-            self.progress.increment += 1
-
-        @property
-        def done(self) -> bool:
-            return self.progress.increment > 0
-
-        def reset(self) -> None:
-            ...
 
         def on_save_checkpoint(self) -> Dict:
             return {"a": self.a}
@@ -477,7 +447,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.optimizer_loop.reset()
-    trainer.fit_loop.epoch_loop.manual_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch

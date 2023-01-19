@@ -40,7 +40,21 @@ _OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
 class TrainingEpochLoop(loops.Loop):
-    """Runs over all batches in a dataloader (one epoch).
+    """
+    Iterates over all batches in the dataloader (one epoch) that the user returns in their
+    :meth:`~pytorch_lightning.core.module.LightningModule.train_dataloader` method.
+
+    Its main responsibilities are calling the ``*_epoch_{start,end}`` hooks, accumulating outputs if the user request
+    them in one of these hooks, and running validation at the requested interval.
+
+    The validation is carried out by yet another loop,
+    :class:`~pytorch_lightning.loops.epoch.validation_epoch_loop.ValidationEpochLoop`.
+
+    In the ``run()`` method, the training epoch loop could in theory simply call the
+    ``LightningModule.training_step`` already and perform the optimization.
+    However, Lightning has built-in support for automatic optimization with multiple optimizers.
+    For this reason there are actually two more loops nested under
+    :class:`~pytorch_lightning.loops.epoch.training_epoch_loop.TrainingEpochLoop`.
 
     Args:
         min_steps: The minimum number of steps (batches) to process
@@ -288,8 +302,6 @@ class TrainingEpochLoop(loops.Loop):
 
     def teardown(self) -> None:
         self._results.cpu()
-        self.optimizer_loop.teardown()
-        self.manual_loop.teardown()
         self.val_loop.teardown()
 
     def on_save_checkpoint(self) -> Dict:
