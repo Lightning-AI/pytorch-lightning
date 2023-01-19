@@ -134,7 +134,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/pytorch/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
@@ -286,7 +286,7 @@ subprojects:
       - "requirements/docs.txt"
       - "requirements/app/**"
       - "setup.py"
-      - "setup.cfg"  # includes metadata used in the package creation
+      - "pyproject.toml"  # includes metadata used in the package creation
       - "!*.md"
       - "!**/*.md"
     checks:
