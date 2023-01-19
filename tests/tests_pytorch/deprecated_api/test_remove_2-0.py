@@ -16,7 +16,6 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
@@ -48,8 +47,3 @@ def test_v1_10_deprecated_optimizer_utilities():
 
     with pytest.deprecated_call(match="optimizer.optimizer_to_device` has been deprecated in v1.8.0"):
         optimizer_to_device(torch.optim.Adam(torch.nn.Linear(1, 1).parameters()), "cpu")
-
-
-def test_v1_10_deprecated_accelerator_setup_environment_method():
-    with pytest.deprecated_call(match="`Accelerator.setup_environment` has been deprecated in deprecated in v1.8.0"):
-        CPUAccelerator().setup_environment(torch.device("cpu"))
