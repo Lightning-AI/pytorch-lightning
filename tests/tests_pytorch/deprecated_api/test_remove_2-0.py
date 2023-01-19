@@ -22,7 +22,6 @@ from pytorch_lightning.strategies.utils import on_colab_kaggle
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem, load
 from pytorch_lightning.utilities.data import has_iterable_dataset, has_len
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.seed import pl_worker_init_function, reset_seed, seed_everything
 
 
 def test_v1_10_deprecated_on_colab_kaggle_func():
@@ -55,17 +54,6 @@ def test_v1_10_deprecated_optimizer_utilities():
 
     with pytest.deprecated_call(match="optimizer.optimizer_to_device` has been deprecated in v1.8.0"):
         optimizer_to_device(torch.optim.Adam(torch.nn.Linear(1, 1).parameters()), "cpu")
-
-
-def test_v1_10_deprecated_seed_utilities():
-    with pytest.deprecated_call(match="seed.seed_everything` has been deprecated in v1.8.0"):
-        seed_everything(1)
-
-    with pytest.deprecated_call(match="seed.reset_seed` has been deprecated in v1.8.0"):
-        reset_seed()
-
-    with pytest.deprecated_call(match="seed.pl_worker_init_function` has been deprecated in v1.8.0"):
-        pl_worker_init_function(0)
 
 
 def test_v1_10_deprecated_accelerator_setup_environment_method():
