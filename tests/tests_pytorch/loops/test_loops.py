@@ -25,7 +25,7 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
+from pytorch_lightning.loops import EvaluationLoop, Loop, OptimizerLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -109,15 +109,15 @@ def test_connect_subloops(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
 
     epoch_loop = trainer.fit_loop.epoch_loop
-    new_batch_loop = TrainingBatchLoop()
-    epoch_loop.connect(batch_loop=new_batch_loop)
-    assert epoch_loop.batch_loop is new_batch_loop
+    new_optimizer_loop = OptimizerLoop()
+    epoch_loop.connect(optimizer_loop=new_optimizer_loop)
+    assert epoch_loop.optimizer_loop is new_optimizer_loop
 
     with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
-        _ = new_batch_loop.trainer
+        _ = new_optimizer_loop.trainer
 
     trainer.fit(model)
-    assert new_batch_loop.trainer is trainer
+    assert new_optimizer_loop.trainer is trainer
 
 
 def test_replace_loops():
@@ -144,22 +144,22 @@ def test_replace_loops():
     assert trainer.fit_loop.epoch_loop is new_loop
     assert new_loop.min_steps == 123
     assert new_loop.max_steps == 321
-    assert new_loop.batch_loop is old_loop.batch_loop
+    assert new_loop.optimizer_loop is old_loop.optimizer_loop
     assert new_loop.val_loop is old_loop.val_loop
     assert new_loop.trainer is trainer
 
-    class MyBatchLoop(TrainingBatchLoop):
+    class MyOptimizerLoop(OptimizerLoop):
         ...
 
     class MyEvalLoop(EvaluationLoop):
         ...
 
     # test passing more than one where one is an instance and the other a class
-    trainer.fit_loop.epoch_loop.replace(batch_loop=MyBatchLoop, val_loop=MyEvalLoop())
-    new_batch_loop = trainer.fit_loop.epoch_loop.batch_loop
+    trainer.fit_loop.epoch_loop.replace(optimizer_loop=MyOptimizerLoop, val_loop=MyEvalLoop())
+    new_optimizer_loop = trainer.fit_loop.epoch_loop.optimizer_loop
     new_val_loop = trainer.fit_loop.epoch_loop.val_loop
 
-    assert isinstance(new_batch_loop, MyBatchLoop)
+    assert isinstance(new_optimizer_loop, MyOptimizerLoop)
     assert isinstance(new_val_loop, MyEvalLoop)
 
 
@@ -436,7 +436,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert os.path.exists(ckpt_path)
     checkpoint = torch.load(ckpt_path)
 
-    optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
     sch_progress = trainer.fit_loop.epoch_loop.scheduler_progress
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
@@ -510,14 +510,13 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             "total": {"ready": nbe_sch_steps + be_sch_steps, "completed": nbe_sch_steps + be_sch_steps},
             "current": {"ready": be_sch_steps, "completed": be_sch_steps},
         },
-        "epoch_loop.batch_loop.state_dict": ANY,
-        "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.manual_loop.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+        "epoch_loop.optimizer_loop.state_dict": {},
+        "epoch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": stop_optimizer,
             "optimizer": {
                 "step": {
@@ -563,8 +562,8 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     # test resetting manually, we expect all `ready` counters to be reset to `completed`
     trainer.fit_loop.reset()
     trainer.fit_loop.epoch_loop.reset()
-    trainer.fit_loop.epoch_loop.batch_loop.reset()
-    trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.reset()
+    trainer.fit_loop.epoch_loop.optimizer_loop.reset()
+    trainer.fit_loop.epoch_loop.manual_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
@@ -574,7 +573,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert batch_progress.current.ready == be_batches_completed
     assert batch_progress.current.completed == be_batches_completed
 
-    optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
+    optim_progress = trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress
     assert optim_progress.optimizer.step.current.ready == be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     assert optim_progress.optimizer.zero_grad.current.ready == be_total_zero_grad
@@ -677,14 +676,13 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
             "total": {"ready": n_sch_steps_total, "completed": n_sch_steps_total},
             "current": {"ready": n_sch_steps_current, "completed": n_sch_steps_current},
         },
-        "epoch_loop.batch_loop.state_dict": ANY,
-        "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
-        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+        "epoch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.manual_loop.optim_step_progress": {
             "total": {"ready": 0, "completed": 0},
             "current": {"ready": 0, "completed": 0},
         },
-        "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
-        "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+        "epoch_loop.optimizer_loop.state_dict": {},
+        "epoch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": n_optimizers,
             "optimizer": {
                 "step": {
@@ -746,7 +744,7 @@ def test_fit_loop_reset(tmpdir):
     mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=2.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
-    optimizer_loop = epoch_loop.batch_loop.optimizer_loop
+    optimizer_loop = epoch_loop.optimizer_loop
     assert not fit_loop.restarting
     assert not epoch_loop.restarting
     assert not optimizer_loop.restarting
