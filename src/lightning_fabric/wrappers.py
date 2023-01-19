@@ -202,5 +202,6 @@ def _unwrap_objects(collection: T_collection) -> T_collection:
             return obj.optimizer
         if isinstance(obj, _FabricDataLoader):
             return obj._dataloader
+        return obj
 
     return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)
