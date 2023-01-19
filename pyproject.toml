@@ -49,16 +49,7 @@ line-length = 120
 select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
     "F",  # see: https://pypi.org/project/pyflakes
-# TODO
-#    "D",  # see: https://pypi.org/project/pydocstyle
-#    "N",  # see: https://pypi.org/project/pep8-naming
 ]
-#extend-select = [
-#    "C4",  # see: https://pypi.org/project/flake8-comprehensions
-#    "PT",  # see: https://pypi.org/project/flake8-pytest-style
-#    "RET",  # see: https://pypi.org/project/flake8-return
-#    "SIM",  # see: https://pypi.org/project/flake8-simplify
-#]
 ignore = [
     "E731",  # Do not assign a lambda expression, use a def
 ]
