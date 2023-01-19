@@ -4,9 +4,7 @@
 .. testsetup:: *
 
     import os
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.module import LightningModule
-    from pytorch_lightning.utilities.seed import seed_everything
+    from pytorch_lightning import Trainer, LightningModule, seed_everything
 
 .. _trainer:
 
@@ -195,7 +193,7 @@ Example::
     trainer = Trainer(deterministic=True)
 
 
-By setting ``workers=True`` in :func:`~pytorch_lightning.utilities.seed.seed_everything`, Lightning derives
+By setting ``workers=True`` in :func:`~pytorch_lightning.seed_everything`, Lightning derives
 unique seeds across all dataloader workers and processes for :mod:`torch`, :mod:`numpy` and stdlib
 :mod:`random` number generators. When turned on, it ensures that e.g. data augmentations are not repeated across workers.
 
