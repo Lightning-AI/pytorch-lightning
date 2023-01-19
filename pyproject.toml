@@ -147,3 +147,30 @@ module = [
     "lightning_app.utilities.tree",
 ]
 ignore_errors = "True"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "warnings",
+    "pass",
+    "rank_zero_warn",
+    "raise NotImplementedError",
+]
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".github",
+    "dist",
+    "build",
+    "docs",
+]
+addopts = "--strict-markers --doctest-modules --color=yes --disable-pytest-warnings --ignore=legacy/checkpoints"
+markers = [
+    "cloud:Run the cloud tests for example",
+]
+filterwarnings = [
+    "error::FutureWarning",
+]
+xfail_strict = true
+junit_duration_report = "call"
