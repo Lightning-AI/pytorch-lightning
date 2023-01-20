@@ -276,7 +276,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ),
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
-def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
+def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class):
     with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         _Connector(accelerator=accelerator, strategy=strategy)
 
