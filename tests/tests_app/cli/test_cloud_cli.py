@@ -186,7 +186,7 @@ class FakeLightningClientException(FakeLightningClient):
         super().__init__()
         self.message = message
 
-    def lightningapp_v2_service_list_lightningapps_v2(self, *args, **kwargs):
+    def cloud_space_service_list_cloud_spaces(self, *args, **kwargs):
         raise ApiException(
             http_resp=HttpHeaderDict(
                 data=self.message,
@@ -207,7 +207,7 @@ class FakeLightningClientException(FakeLightningClient):
 def test_start_app_exception(message, monkeypatch, caplog):
 
     monkeypatch.setattr(cloud, "V1LightningappInstanceState", MagicMock())
-    monkeypatch.setattr(cloud, "Body8", MagicMock())
+    monkeypatch.setattr(cloud, "CloudspaceIdRunsBody", MagicMock())
     monkeypatch.setattr(cloud, "V1Flowserver", MagicMock())
     monkeypatch.setattr(cloud, "V1LightningappInstanceSpec", MagicMock())
     monkeypatch.setattr(cloud, "LocalSourceCodeDir", MagicMock())
