@@ -227,14 +227,23 @@ def test_mlflow_logger_with_unexpected_characters(client, _, __, tmpdir):
 @mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_long_param_value(client, _, tmpdir):
-    """Test that the logger raises warning with special characters not accepted by MLFlow."""
+    """Test that the logger doesn't crash when logging a long parameter value."""
     logger = MLFlowLogger("test", save_dir=tmpdir)
-    value = "test" * 100
+    value = "test" * 200
     key = "test_param"
     params = {key: value}
 
-    with pytest.warns(RuntimeWarning, match=f"Discard {key}={value}"):
-        logger.log_hyperparams(params)
+    logger.log_hyperparams(params)
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_with_many_params(client, _, tmpdir):
+    """Test that the logger doesn't crash when logging more than 100 parameters."""
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+    params = {f"test_param_{idx}": f"test_value_{idx}" for idx in range(200)}
+
+    logger.log_hyperparams(params)
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.Metric")
