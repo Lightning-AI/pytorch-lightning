@@ -1,5 +1,7 @@
 import os
 
+_TEST_ROOT = os.path.dirname(__file__)
+_PROJECT_ROOT = os.path.dirname( os.path.dirname(_TEST_ROOT))
 _LIGHTNING_DIR = f"{os.path.expanduser('~')}/.lightning"
 
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING") == "1":

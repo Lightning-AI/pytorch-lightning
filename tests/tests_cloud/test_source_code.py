@@ -2,7 +2,7 @@ import inspect
 import os
 import tempfile
 
-from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME, STORAGE_DIR
+from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _TEST_ROOT, _USERNAME, STORAGE_DIR
 from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
@@ -38,7 +38,7 @@ def test_source_code_saving_disabled(model_name: str = "model_test_source_code_d
 def test_source_code_explicit_relative_folder(model_name: str = "model_test_source_code_explicit_relative"):
     cleanup()
 
-    dir_upload_path = f"../{os.path.basename(os.getcwd())}/tests/"
+    dir_upload_path = _TEST_ROOT
     to_lightning_cloud(
         model_name, model=BoringModel(), source_code_path=dir_upload_path, api_key=_API_KEY, project_id=_PROJECT_ID
     )
@@ -69,7 +69,7 @@ def test_source_code_explicit_absolute_folder(model_name: str = "model_test_sour
 def test_source_code_explicit_file(model_name: str = "model_test_source_code_explicit_file"):
     cleanup()
 
-    file_name = os.path.abspath("setup.py")
+    file_name = os.path.join(_PROJECT_ROOT, "setup.py")
     to_lightning_cloud(
         model_name, model=BoringModel(), source_code_path=file_name, api_key=_API_KEY, project_id=_PROJECT_ID
     )
