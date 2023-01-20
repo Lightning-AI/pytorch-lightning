@@ -35,12 +35,12 @@ from lightning.store.save import (
     _write_and_save_requirements,
     get_linked_output_dir,
 )
-from lightning.store.utils import get_model_data, LIGHTNING_CLOUD_URL, LIGHTNING_STORAGE_FILE, split_name, stage
+from lightning.store.utils import get_model_data, _LIGHTNING_CLOUD_URL, _LIGHTNING_STORAGE_FILE, split_name, stage
 
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING", 0):
     from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
 else:
-    from lightning.store.utils import LIGHTNING_STORAGE_DIR
+    from lightning.store.utils import _LIGHTNING_STORAGE_DIR
 
 import lightning as L
 import pytorch_lightning as PL
@@ -262,7 +262,7 @@ def download_from_lightning_cloud(
 
     linked_output_dir = ""
     if not output_dir:
-        output_dir = LIGHTNING_STORAGE_DIR
+        output_dir = _LIGHTNING_STORAGE_DIR
         output_dir = os.path.join(output_dir, username, model_name, version)
         linked_output_dir = get_linked_output_dir(output_dir)
     else:
@@ -271,7 +271,7 @@ def download_from_lightning_cloud(
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    response = requests.get(f"{LIGHTNING_CLOUD_URL}/v1/models?name={username}/{model_name}&version={version}")
+    response = requests.get(f"{_LIGHTNING_CLOUD_URL}/v1/models?name={username}/{model_name}&version={version}")
     assert response.status_code == 200, (
         f"Unable to download the model with name {name} and version {version}."
         " Maybe reach out to the model owner or check the arguments again?"
@@ -294,7 +294,7 @@ def download_from_lightning_cloud(
 
         os.symlink(output_dir, linked_output_dir)
 
-    with open(LIGHTNING_STORAGE_FILE, "w+") as storage_file:
+    with open(_LIGHTNING_STORAGE_FILE, "w+") as storage_file:
         storage = {
             username: {
                 model_name: {
@@ -354,7 +354,7 @@ def load_from_lightning_cloud(
             " it's expected that only one of them are requested in a single call."
         )
 
-    if os.path.exists(LIGHTNING_STORAGE_FILE):
+    if os.path.exists(_LIGHTNING_STORAGE_FILE):
         version = version or "latest"
         model_data = get_model_data(name, version)
         output_dir = model_data["output_dir"]

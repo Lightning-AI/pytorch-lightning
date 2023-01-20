@@ -23,10 +23,10 @@ class stage(Enum):
     DOWNLOAD = 2
 
 
-LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
-LIGHTNING_STORAGE_FILE = os.path.join(LIGHTNING_DIR, ".lightning_model_storage")
-LIGHTNING_STORAGE_DIR = os.path.join(LIGHTNING_DIR, "lightning_model_store")
-LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", default="https://lightning.ai")
+_LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
+_LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, ".lightning_model_storage")
+_LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, "lightning_model_store")
+_LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", default="https://lightning.ai")
 
 
 def _check_version(version: str):
@@ -59,10 +59,10 @@ def get_model_data(name: str, version: str):
     username, model_name, version = split_name(name, version, stage.LOAD)
 
     assert os.path.exists(
-        LIGHTNING_STORAGE_FILE
-    ), f"ERROR: Could not find {LIGHTNING_STORAGE_FILE} (to be generated after download_from_lightning_cloud(...))"
+        _LIGHTNING_STORAGE_FILE
+    ), f"ERROR: Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_from_lightning_cloud(...))"
 
-    with open(LIGHTNING_STORAGE_FILE) as storage_file:
+    with open(_LIGHTNING_STORAGE_FILE) as storage_file:
         storage_data = json.load(storage_file)
 
     assert username in storage_data, (

@@ -19,7 +19,7 @@ import requests
 from requests.models import HTTPBasicAuth
 
 from lightning.app.utilities.network import LightningClient
-from lightning.store.utils import LIGHTNING_CLOUD_URL
+from lightning.store.utils import _LIGHTNING_CLOUD_URL
 
 
 def get_user_details():
@@ -34,7 +34,7 @@ def get_user_details():
 
 def get_username_from_api_key(api_key: str):
     response = requests.get(
-        url=f"{LIGHTNING_CLOUD_URL}/v1/auth/user",
+        url=f"{_LIGHTNING_CLOUD_URL}/v1/auth/user",
         auth=HTTPBasicAuth("lightning", api_key),
     )
     assert response.status_code == 200, (

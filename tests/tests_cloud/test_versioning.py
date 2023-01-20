@@ -10,12 +10,12 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
     from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
 else:
-    from lightning.store.utils import LIGHTNING_STORAGE_DIR
+    from lightning.store.utils import _LIGHTNING_STORAGE_DIR
 
 
 def assert_download_successful(username, model_name, version):
     folder_name = os.path.join(
-        LIGHTNING_STORAGE_DIR,
+        _LIGHTNING_STORAGE_DIR,
         username,
         model_name,
         version,
