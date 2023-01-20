@@ -431,7 +431,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             path = self.broadcast(path)
             return super().load_checkpoint(path=path, state=state)
 
-        torch.cuda.empty_cache()
+        if not state:
+            # TODO:
+            raise ValueError()
 
         engines = _get_deepspeed_engines_from_state(state)
         if len(engines) == 0:
@@ -447,14 +449,15 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 " states, call the load method for each model checkpoint separately."
             )
         engine = engines[0]
-
         optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        torch.cuda.empty_cache()
         _, client_state = engine.load_checkpoint(
             path,
             tag="checkpoint",
             load_optimizer_states=optimzer_state_requested,
             load_lr_scheduler_states=False,
-            load_module_strict=True,  # TODO: make strict loading configurable
+            load_module_strict=True,  # TODO(fabric): make strict loading configurable
         )
         if client_state is None:
             raise ValueError(
