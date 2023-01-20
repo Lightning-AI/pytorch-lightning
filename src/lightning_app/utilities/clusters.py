@@ -6,7 +6,7 @@ from lightning_cloud.openapi.rest import ApiException
 from lightning_app.utilities.network import LightningClient
 
 
-def _ensure_cluster_project_binding(client: LightningClient, project_id: str, cluster_id: str):
+def _ensure_cluster_project_binding(client: LightningClient, project_id: str, cluster_id: str) -> None:
     cluster_bindings = client.projects_service_list_project_cluster_bindings(project_id=project_id)
 
     for cluster_binding in cluster_bindings.clusters:
