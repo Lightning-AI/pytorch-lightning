@@ -375,7 +375,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             storage_options: Unused by this strategy, since it doesn't use a ``CheckpointIO`` plugin.
 
         Raises:
-            TypeError if the unused ``storage_options`` gets passed.
+            TypeError:
+                If the unused ``storage_options`` gets passed.
+            ValueError:
+                When no :class:`deepspeed.DeepSpeedEngine` objects were found in the state, or when multiple
+                :class:`deepspeed.DeepSpeedEngine` objects were found.
         """
         if storage_options is not None:
             raise TypeError(
@@ -419,11 +423,18 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Args:
             path: A path to where the file is located
             state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
-                If no state is given, then the checkpoint will be returned in full.
+                This should contain exactly one model, and the model must already be set up by DeepSpeed.
 
         Returns:
-            The remaining items that were not restored into the given state dictionary. If no state dictionary is
-            given, the full checkpoint will be returned.
+            Dictionary with metadata from DeepSpeed
+
+        Raises:
+            ValueError:
+                If no state is provided, when no :class:`deepspeed.DeepSpeedEngine` objects were found in the
+                state, or when multiple :class:`deepspeed.DeepSpeedEngine` objects were found.
+            RuntimeError:
+                If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
+                not in the expected DeepSpeed format.
         """
         if self.load_full_weights and self.zero_stage_3:
             # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
