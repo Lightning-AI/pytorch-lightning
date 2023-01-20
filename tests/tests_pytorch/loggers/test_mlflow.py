@@ -224,6 +224,7 @@ def test_mlflow_logger_with_unexpected_characters(client, _, __, tmpdir):
         logger.log_metrics(metrics)
 
 
+@mock.patch("pytorch_lightning.loggers.mlflow.Param")
 @mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_long_param_value(client, _, tmpdir):
@@ -236,6 +237,7 @@ def test_mlflow_logger_with_long_param_value(client, _, tmpdir):
     logger.log_hyperparams(params)
 
 
+@mock.patch("pytorch_lightning.loggers.mlflow.Param")
 @mock.patch("pytorch_lightning.loggers.mlflow._MLFLOW_AVAILABLE", return_value=True)
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_logger_with_many_params(client, _, tmpdir):
