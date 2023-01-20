@@ -34,7 +34,8 @@ logging.basicConfig(level=logging.INFO)
 def _check_id(id: str):
     if id[-1] != "/":
         id += "/"
-    assert id.count("/") == 2, "The format for the ID should be: <username>/<model_name or any id>"
+    if id.count("/") != 2:
+        raise ValueError("The format for the ID should be: <username>/<model_name or any id>")
     return id
 
 
@@ -71,7 +72,8 @@ def _save_model(name, model, tmpdir, stored, *args, **kwargs):
 def _save_model_code(name, model_cls, source_code_path, tmpdir, stored):
     if source_code_path:
         source_code_path = os.path.abspath(source_code_path)
-        assert os.path.exists(source_code_path), f"Given path {source_code_path} does not exist."
+        if not os.path.exists(source_code_path):
+            raise FileExistsError(f"Given path {source_code_path} does not exist.")
 
         # Copy contents to tmpdir folder
         if os.path.isdir(source_code_path):
@@ -83,12 +85,13 @@ def _save_model_code(name, model_cls, source_code_path, tmpdir, stored):
             shutil.copytree(source_code_path, f"{tmpdir}/{dir_name}/")
             stored["code"] = {"type": "folder", "path": f"{dir_name}"}
         else:
-            assert os.path.splitext(source_code_path)[-1] == ".py", (
-                "Expected a Python file or a directory, to be uploaded for model definition,"
-                f" but found {source_code_path}. If your file is not a Python file, and you still"
-                " want to save it, please consider saving it in a folder and passing the folder"
-                " path instead."
-            )
+            if os.path.splitext(source_code_path)[-1] != ".py":
+                raise FileExistsError(
+                    "Expected a Python file or a directory, to be uploaded for model definition,"
+                    f" but found {source_code_path}. If your file is not a Python file, and you still"
+                    " want to save it, please consider saving it in a folder and passing the folder"
+                    " path instead."
+                )
 
             logging.warning(
                 f"NOTE: File: {source_code_path} is being uploaded to the cloud so that the"
@@ -104,12 +107,13 @@ def _save_model_code(name, model_cls, source_code_path, tmpdir, stored):
         # As those will be executed on import
         model_class_path = inspect.getsourcefile(model_cls)
         if model_class_path:
-            assert os.path.splitext(model_class_path)[-1] == ".py", (
-                f"The model definition was found in a non-python file ({model_class_path}),"
-                " which is not currently supported (for safety reasons). If your file is not a"
-                " Python file, and you still want to save it, please consider saving it in a"
-                " folder and passing the folder path instead."
-            )
+            if os.path.splitext(model_class_path)[-1] != ".py":
+                raise FileExistsError(
+                    f"The model definition was found in a non-python file ({model_class_path}),"
+                    " which is not currently supported (for safety reasons). If your file is not a"
+                    " Python file, and you still want to save it, please consider saving it in a"
+                    " folder and passing the folder path instead."
+                )
 
             file_name = os.path.basename(model_class_path)
             logging.warning(
@@ -166,10 +170,10 @@ def _upload_metadata(
         auth=HTTPBasicAuth(username, api_key),
         json=json_field,
     )
-
-    assert (
-        response.status_code == 200
-    ), f"Unable to upload content, did you pass correct credentials? Error: {response.content}"
+    if response.status_code != 200:
+        raise ConnectionRefusedError(
+            f"Unable to upload content, did you pass correct credentials? Error: {response.content}"
+        )
     return _get_url(response.content)
 
 
@@ -276,10 +280,11 @@ def _download_and_extract_data_to(output_dir: str, download_url: str, progress_b
                 os.path.join(root, filename),
             )
 
-        assert os.path.isdir(f"{output_dir}"), (
-            "Data downloading to the output"
-            f" directory: {output_dir} failed. Maybe try again or contact the model owner?"
-        )
+        if not os.path.isdir(f"{output_dir}"):
+            raise NotADirectoryError(
+                "Data downloading to the output"
+                f" directory: {output_dir} failed. Maybe try again or contact the model owner?"
+            )
     except Exception as e:
         _common_clean_up()
         raise e

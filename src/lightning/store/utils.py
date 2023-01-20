@@ -58,29 +58,31 @@ def split_name(name: str, version: str, l_stage: stage):
 def get_model_data(name: str, version: str):
     username, model_name, version = split_name(name, version, stage.LOAD)
 
-    assert os.path.exists(
-        _LIGHTNING_STORAGE_FILE
-    ), f"ERROR: Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_from_lightning_cloud(...))"
+    if not os.path.exists(_LIGHTNING_STORAGE_FILE):
+        raise NotADirectoryError(
+            f"Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_from_lightning_cloud(...))"
+        )
 
     with open(_LIGHTNING_STORAGE_FILE) as storage_file:
         storage_data = json.load(storage_file)
 
-    assert username in storage_data, (
-        f"No data found for the given username {username}. Make sure to call"
-        " `download_from_lightning_cloud` before loading"
-    )
+    if username not in storage_data:
+        raise KeyError(
+            f"No data found for the given username {username}. Make sure to call"
+            " `download_from_lightning_cloud` before loading"
+        )
     user_data = storage_data[username]
 
-    assert model_name in user_data, (
-        f"No data found for the given model name: {model_name} for the given"
-        f" username: {username}. Make sure to call `download_from_lightning_cloud` before loading"
-    )
+    if model_name not in user_data:
+        raise KeyError(
+            f"No data found for the given model name: {model_name} for the given"
+            f" username: {username}. Make sure to call `download_from_lightning_cloud` before loading"
+        )
     model_data = user_data[model_name]
 
     version = version or "latest"
-    assert (
-        version in model_data
-    ), f"No data found for the given version: {version}, did you download the model successfully?"
+    if version not in model_data:
+        raise KeyError(f"No data found for the given version: {version}, did you download the model successfully?")
     model_version_data = model_data[version]
 
     return model_version_data

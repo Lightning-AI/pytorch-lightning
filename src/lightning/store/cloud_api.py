@@ -273,10 +273,11 @@ def download_from_lightning_cloud(
         os.makedirs(output_dir)
 
     response = requests.get(f"{_LIGHTNING_CLOUD_URL}/v1/models?name={username}/{model_name}&version={version}")
-    assert response.status_code == 200, (
-        f"Unable to download the model with name {name} and version {version}."
-        " Maybe reach out to the model owner or check the arguments again?"
-    )
+    if response.status_code != 200:
+        raise ConnectionRefusedError(
+            f"Unable to download the model with name {name} and version {version}."
+            " Maybe reach out to the model owner or check the arguments again?"
+        )
 
     download_url_response = json.loads(response.content)
     download_url = download_url_response["downloadUrl"]
