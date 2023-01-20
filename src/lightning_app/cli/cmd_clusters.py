@@ -99,7 +99,7 @@ class AWSClusterManager:
     is selected as the backend compute."""
 
     def __init__(self) -> None:
-        self.api_client = LightningClient()
+        self.api_client = LightningClient(retry=False)
 
     def create(
         self,
