@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
 from lightning_cloud.openapi import (
@@ -107,6 +107,10 @@ class CloudRuntime(Runtime):
     backend: Union[str, CloudBackend] = "cloud"
 
     def _resolve_config(self, name: Optional[str]) -> AppConfig:
+        """Find and load the config file if it exists (otherwise create an empty config).
+
+        Override the name if provided.
+        """
         config_file = _get_config_file(self.entrypoint_file)
         cloudspace_config = AppConfig.load_from_file(config_file) if config_file.exists() else AppConfig()
         if name:
@@ -115,6 +119,7 @@ class CloudRuntime(Runtime):
         return cloudspace_config
 
     def _resolve_root(self) -> Path:
+        """Determine the root of the project."""
         return Path(self.entrypoint_file).absolute().parent
 
     def _resolve_repo(self, root: Path) -> LocalSourceCodeDir:
@@ -135,6 +140,7 @@ class CloudRuntime(Runtime):
         return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
 
     def _resolve_project(self) -> V1Membership:
+        """Determine the project to run on, choosing a default if multiple projects are found."""
         return _get_project(self.backend.client)
 
     def _resolve_existing_cloudspaces(self, project, cloudspace_name: str) -> List[V1CloudSpace]:
@@ -161,8 +167,10 @@ class CloudRuntime(Runtime):
             cluster_id = _get_default_cluster(self.backend.client, project_id)
         return cluster_id
 
-    def _resolve_existing_run_instance(self, cluster_id: Optional[str], project_id: str, existing_cloudspaces):
-        """Look for an existing run and instance."""
+    def _resolve_existing_run_instance(
+        self, cluster_id: Optional[str], project_id: str, existing_cloudspaces: List[V1CloudSpace]
+    ) -> Tuple[Optional[V1CloudSpace], Optional[Externalv1LightningappInstance]]:
+        """Look for an existing run and instance from one of the provided cloudspaces on the provided cluster."""
         existing_cloudspace = None
         existing_run_instance = None
 
@@ -183,7 +191,7 @@ class CloudRuntime(Runtime):
         cloudspace_name: str,
         existing_cloudspace: Optional[V1CloudSpace],
         existing_cloudspaces: List[V1CloudSpace],
-    ):
+    ) -> str:
         """If there are existing cloudspaces but not on the cluster - choose a randomised name."""
         if len(existing_cloudspaces) > 0 and existing_cloudspace is None:
             letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -197,6 +205,7 @@ class CloudRuntime(Runtime):
         return cloudspace_name
 
     def _resolve_queue_server_type(self) -> V1QueueServerType:
+        """Resolve the cloud queue type from the environment."""
         queue_server_type = V1QueueServerType.UNSPECIFIED
         # Note: Enable app to select their own queue type.
         queue_type = get_cloud_queue_type()
@@ -254,6 +263,7 @@ class CloudRuntime(Runtime):
             logger.warn(warning_msg)
 
     def _validate_cluster_id(self, cluster_id: Optional[str], project_id: str):
+        """Check that the provided cluster exists and ensure that it is bound to the given project."""
         if cluster_id is not None:
             # Verify that the cluster exists
             list_clusters_resp = self.backend.client.cluster_service_list_clusters()
@@ -264,6 +274,7 @@ class CloudRuntime(Runtime):
             _ensure_cluster_project_binding(self.backend.client, project_id, cluster_id)
 
     def _validate_work_build_specs_and_compute(self) -> None:
+        """Check that the cloud compute and build configs are valid for all works in the app."""
         for work in self.app.works:
             if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
                 raise ValueError(
@@ -272,7 +283,8 @@ class CloudRuntime(Runtime):
                     "configuration, for example `CloudCompute('cpu-medium')`."
                 )
 
-    def _validate_drives(self):
+    def _validate_drives(self) -> None:
+        """Check that all drives in the app have a valid protocol."""
         for work in self.app.works:
             for drive_attr_name, drive in [
                 (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
@@ -282,7 +294,8 @@ class CloudRuntime(Runtime):
                         f"Unknown drive protocol `{drive.protocol}` for drive `{work.name}.{drive_attr_name}`."
                     )
 
-    def _validate_mounts(self):
+    def _validate_mounts(self) -> None:
+        """Check that all mounts in the app have a valid protocol."""
         for work in self.app.works:
             if work.cloud_compute.mounts is not None:
                 mounts = work.cloud_compute.mounts
@@ -290,9 +303,9 @@ class CloudRuntime(Runtime):
                     if mount.protocol != "s3://":
                         raise RuntimeError(f"Unknown mount protocol `{mount.protocol}` for work `{work.name}`.")
 
-    def _get_flow_servers(self):
-        """We need to collect a spec for each flow that contains a frontend so that the backend knows for which
-        flows it needs to start servers."""
+    def _get_flow_servers(self) -> List[V1Flowserver]:
+        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
+        to start servers."""
         flow_servers: List[V1Flowserver] = []
         for flow_name in self.app.frontends.keys():
             flow_server = V1Flowserver(name=flow_name)
@@ -300,8 +313,9 @@ class CloudRuntime(Runtime):
         return flow_servers
 
     @staticmethod
-    def _get_network_configs(flow_servers):
-        network_configs: Optional[List[V1NetworkConfig]] = None
+    def _get_network_configs(flow_servers: List[V1Flowserver]) -> Optional[List[V1NetworkConfig]]:
+        """Get the list of network configs for the run if multiple works in default container is enabled."""
+        network_configs = None
         if enable_multiple_works_in_default_container():
             network_configs = []
             initial_port = 8080 + 1 + len(flow_servers)
@@ -317,6 +331,7 @@ class CloudRuntime(Runtime):
 
     @staticmethod
     def _get_drives(work: LightningWork) -> List[V1LightningworkDrives]:
+        """Get the list of drive specifications for the provided work."""
         drives: List[V1LightningworkDrives] = []
         for drive_attr_name, drive in [
             (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
@@ -340,7 +355,8 @@ class CloudRuntime(Runtime):
         return drives
 
     @staticmethod
-    def _get_mounts(work: LightningWork):
+    def _get_mounts(work: LightningWork) -> List[V1LightningworkDrives]:
+        """Get the list of mount specifications for the provided work."""
         mounts = []
         if work.cloud_compute.mounts is not None:
             mount_objects = work.cloud_compute.mounts
@@ -364,7 +380,7 @@ class CloudRuntime(Runtime):
         return mounts
 
     def _get_works(self) -> List[V1Work]:
-        """Generate the list of work specs."""
+        """Get the list of work specs from the app."""
         works: List[V1Work] = []
         for work in self.app.works:
             if not work._start_with_flow:
@@ -401,8 +417,16 @@ class CloudRuntime(Runtime):
         return works
 
     def _get_run_body(
-        self, cluster_id, flow_servers, network_configs, works, no_cache, root, start_server
+        self,
+        cluster_id: str,
+        flow_servers: List[V1Flowserver],
+        network_configs: List[V1NetworkConfig],
+        works: List[V1Work],
+        no_cache: bool,
+        root: Path,
+        start_server: bool,
     ) -> CloudspaceIdRunsBody:
+        """Get the specification of the run creation request."""
         # The entry point file needs to be relative to the root of the uploaded source file directory,
         # because the backend will invoke the lightning commands relative said source directory
         app_entrypoint_file = Path(self.entrypoint_file).absolute().relative_to(root)
@@ -450,7 +474,9 @@ class CloudRuntime(Runtime):
         return auth
 
     @staticmethod
-    def _get_env_vars(env_vars: Dict, secrets: Dict, run_app_comment_commands: bool) -> List[V1EnvVar]:
+    def _get_env_vars(
+        env_vars: Dict[str, str], secrets: Dict[str, str], run_app_comment_commands: bool
+    ) -> List[V1EnvVar]:
         """Generate the list of environment variable specs for the app, including variables set by the
         framework."""
         v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in env_vars.items()]
@@ -477,7 +503,13 @@ class CloudRuntime(Runtime):
 
         return v1_env_vars
 
-    def _api_create_cloudspace_if_not_exists(self, project_id, name, existing_cloudspace: Optional[V1CloudSpace]):
+    def _api_create_cloudspace_if_not_exists(
+        self, project_id: str, name: str, existing_cloudspace: Optional[V1CloudSpace]
+    ) -> str:
+        """Create the cloudspace if it doesn't exist.
+
+        Return the cloudspace ID.
+        """
         if existing_cloudspace is None:
             cloudspace_body = ProjectIdCloudspacesBody(name=name, can_download_source_code=True)
             cloudspace = self.backend.client.cloud_space_service_create_cloud_space(
@@ -486,8 +518,10 @@ class CloudRuntime(Runtime):
             return cloudspace.id
         return existing_cloudspace.id
 
-    def _api_stop_existing_run_instance(self, project_id, existing_run_instance):
-        """Stop the instance if it isn't stopped yet."""
+    def _api_stop_existing_run_instance(
+        self, project_id: str, existing_run_instance: Optional[Externalv1LightningappInstance]
+    ) -> None:
+        """If an existing instance is provided and it isn't stopped, stop it."""
         if existing_run_instance and existing_run_instance.status.phase != V1LightningappInstanceState.STOPPED:
             # TODO(yurij): Implement release switching in the UI and remove this
             # We can only switch release of the stopped instance
@@ -507,14 +541,26 @@ class CloudRuntime(Runtime):
             if existing_run_instance.status.phase != V1LightningappInstanceState.STOPPED:
                 raise RuntimeError("Failed to stop the existing instance.")
 
-    def _api_create_run(self, project_id, cloudspace_id, run_body: CloudspaceIdRunsBody) -> V1LightningRun:
+    def _api_create_run(self, project_id: str, cloudspace_id: str, run_body: CloudspaceIdRunsBody) -> V1LightningRun:
+        """Create and return the run."""
         return self.backend.client.cloud_space_service_create_lightning_run(
             project_id=project_id, cloudspace_id=cloudspace_id, body=run_body
         )
 
     def _api_transfer_run_instance(
-        self, project_id, run_id, instance_id, desired_state, queue_server_type, env_vars, auth
-    ):
+        self,
+        project_id: str,
+        run_id: str,
+        instance_id: str,
+        desired_state: V1LightningappInstanceState,
+        queue_server_type: V1QueueServerType,
+        env_vars: List[V1EnvVar],
+        auth: V1LightningAuth,
+    ) -> Externalv1LightningappInstance:
+        """Transfer an existing instance to the given run ID and update its specification.
+
+        Return the instance.
+        """
         run_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
             project_id=project_id,
             id=instance_id,
@@ -538,16 +584,17 @@ class CloudRuntime(Runtime):
 
     def _api_create_run_instance(
         self,
-        cluster_id,
-        project_id,
-        cloudspace_name,
-        cloudspace_id,
-        run_id,
-        desired_state,
-        queue_server_type,
-        env_vars,
-        auth,
-    ):
+        cluster_id: str,
+        project_id: str,
+        cloudspace_name: str,
+        cloudspace_id: str,
+        run_id: str,
+        desired_state: V1LightningappInstanceState,
+        queue_server_type: V1QueueServerType,
+        env_vars: List[V1EnvVar],
+        auth: V1LightningAuth,
+    ) -> Externalv1LightningappInstance:
+        """Create a new instance of the given run with the given specification."""
         return self.backend.client.cloud_space_service_create_lightning_run_instance(
             project_id=project_id,
             cloudspace_id=cloudspace_id,
@@ -563,14 +610,16 @@ class CloudRuntime(Runtime):
         )
 
     @staticmethod
-    def _api_package_and_upload_repo(repo, run: V1LightningRun):
+    def _api_package_and_upload_repo(repo: LocalSourceCodeDir, run: V1LightningRun) -> None:
+        """Package and upload the provided local source code directory to the provided run."""
         if run.source_upload_url == "":
             raise RuntimeError("The source upload url is empty.")
         repo.package()
         repo.upload(url=run.source_upload_url)
 
     @staticmethod
-    def _print_specs(run_body: CloudspaceIdRunsBody, print_format: str):
+    def _print_specs(run_body: CloudspaceIdRunsBody, print_format: str) -> None:
+        """Print the given run body in either `web` or `gallery` format."""
         if print_format not in ("web", "gallery"):
             raise ValueError(
                 f"`LIGHTNING_CLOUD_PRINT_SPECS` should be either `web` or `gallery`. You provided: {print_format}"
