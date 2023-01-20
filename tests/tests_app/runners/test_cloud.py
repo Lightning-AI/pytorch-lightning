@@ -1624,8 +1624,11 @@ def test_incompatible_cloud_compute_and_build_config():
         def run(self):
             pass
 
+    app = MagicMock()
+    app.works = [Work()]
+
     with pytest.raises(ValueError, match="You requested a custom base image for the Work with name"):
-        CloudRuntime(app=LightningApp(Work()))._validate_work_build_specs_and_compute()
+        CloudRuntime(app=app)._validate_work_build_specs_and_compute()
 
 
 def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
