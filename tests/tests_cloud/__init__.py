@@ -8,9 +8,10 @@ else:
     from lightning.store.utils import _LIGHTNING_STORAGE_DIR as STORAGE_DIR
 
 _USERNAME = os.getenv("API_USERNAME", "")
-if not _USERNAME:
-    raise ValueError(
-        "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-    )
+assert _USERNAME, "No API_USERNAME env variable, make sure to add it before testing"
+_API_KEY = os.getenv("API_KEY", "")
+assert _API_KEY, "No API_KEY env variable, make sure to add it before testing"
+_PROJECT_ID = os.getenv("PROJECT_ID", "")
+assert _PROJECT_ID, "No PROJECT_ID env variable, make sure to add it before testing"
 
 __all__ = ["STORAGE_DIR"]

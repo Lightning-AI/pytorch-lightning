@@ -1,6 +1,6 @@
 import os
 
-from tests_cloud import _USERNAME, STORAGE_DIR
+from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME, STORAGE_DIR
 from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
@@ -17,8 +17,8 @@ def test_requirements_as_a_file(version: str = "latest", model_name: str = "bori
         version=version,
         model=BoringModel(),
         requirements_file_path=requirements_file_path,
-        api_key=os.getenv("API_KEY", ""),
-        project_id=os.getenv("PROJECT_ID", ""),
+        api_key=_API_KEY,
+        project_id=_PROJECT_ID,
     )
 
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
@@ -38,8 +38,8 @@ def test_requirements_as_a_list(version: str = "1.0.0", model_name: str = "borin
         version=version,
         model=BoringModel(),
         requirements=requirements_list,
-        api_key=os.getenv("API_KEY", ""),
-        project_id=os.getenv("PROJECT_ID", ""),
+        api_key=_API_KEY,
+        project_id=_PROJECT_ID,
     )
 
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=version)
