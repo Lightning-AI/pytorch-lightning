@@ -266,6 +266,7 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     assert connector.strategy.launcher.is_interactive_compatible
 
 
+@RunIf(mps=True)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     (
