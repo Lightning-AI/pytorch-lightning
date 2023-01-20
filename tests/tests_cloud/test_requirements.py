@@ -1,14 +1,10 @@
 import os
 
+from tests_cloud import STORAGE_DIR
 from tests_cloud.utils import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
-
-if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
-    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
-else:
-    from lightning.store.utils import _LIGHTNING_STORAGE_DIR
 
 
 def test_requirements_as_a_file():
@@ -34,7 +30,7 @@ def test_requirements_as_a_file():
 
     download_from_lightning_cloud(f"{username}/{model_name}")
 
-    req_folder_path = os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version)
+    req_folder_path = os.path.join(STORAGE_DIR, username, model_name, version)
     assert os.path.isdir(req_folder_path)
     assert "requirements.txt" in os.listdir(req_folder_path)
 
@@ -62,7 +58,7 @@ def test_requirements_as_a_list():
 
     download_from_lightning_cloud(f"{username}/{model_name}", version=version)
 
-    req_folder_path = os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version)
+    req_folder_path = os.path.join(STORAGE_DIR, username, model_name, version)
     assert os.path.isdir(req_folder_path)
     assert "requirements.txt" in os.listdir(req_folder_path)
 

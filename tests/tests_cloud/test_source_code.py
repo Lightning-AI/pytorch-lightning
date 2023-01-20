@@ -2,15 +2,11 @@ import inspect
 import os
 import tempfile
 
+from tests_cloud import STORAGE_DIR
 from tests_cloud.utils import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
-
-if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
-    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
-else:
-    from lightning.store import LIGHTNING_STORAGE_DIR
 
 
 def test_source_code_implicit():
@@ -33,7 +29,7 @@ def test_source_code_implicit():
     download_from_lightning_cloud(f"{username}/{model_name}")
     assert os.path.isfile(
         os.path.join(
-            LIGHTNING_STORAGE_DIR,
+            STORAGE_DIR,
             username,
             model_name,
             "latest",
@@ -62,7 +58,7 @@ def test_source_code_saving_disabled():
     download_from_lightning_cloud(f"{username}/{model_name}")
     assert not os.path.isfile(
         os.path.join(
-            LIGHTNING_STORAGE_DIR,
+            STORAGE_DIR,
             username,
             model_name,
             "latest",
@@ -94,7 +90,7 @@ def test_source_code_explicit_relative_folder():
 
     assert os.path.isdir(
         os.path.join(
-            LIGHTNING_STORAGE_DIR,
+            STORAGE_DIR,
             username,
             model_name,
             "latest",
@@ -127,7 +123,7 @@ def test_source_code_explicit_absolute_folder():
 
     assert os.path.isdir(
         os.path.join(
-            LIGHTNING_STORAGE_DIR,
+            STORAGE_DIR,
             username,
             model_name,
             "latest",
@@ -159,7 +155,7 @@ def test_source_code_explicit_file():
 
     assert os.path.isfile(
         os.path.join(
-            LIGHTNING_STORAGE_DIR,
+            STORAGE_DIR,
             username,
             model_name,
             "latest",

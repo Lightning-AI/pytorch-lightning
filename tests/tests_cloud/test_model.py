@@ -1,15 +1,11 @@
 import os
 
+from tests_cloud import STORAGE_DIR
 from tests_cloud.utils import cleanup
 
 import pytorch_lightning as pl
 from lightning.store import download_from_lightning_cloud, load_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
-
-if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
-    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
-else:
-    from lightning.store.utils import _LIGHTNING_STORAGE_DIR
 
 
 def test_model():
@@ -31,7 +27,7 @@ def test_model():
     )
 
     download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version))
+    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
 
     model = load_from_lightning_cloud(f"{username}/{model_name}")
     assert model is not None
@@ -57,7 +53,7 @@ def test_model_without_progress_bar():
     )
 
     download_from_lightning_cloud(f"{username}/{model_name}", progress_bar=False)
-    assert os.path.isdir(os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version))
+    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
 
     model = load_from_lightning_cloud(f"{username}/{model_name}")
     assert model is not None
@@ -86,7 +82,7 @@ def test_only_weights():
     )
 
     download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version))
+    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
 
     model_with_weights = load_from_lightning_cloud(f"{username}/{model_name}", load_weights=True, model=model)
     assert model_with_weights is not None
@@ -116,7 +112,7 @@ def test_checkpoint_path():
     )
 
     download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version))
+    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
 
     ckpt = load_from_lightning_cloud(f"{username}/{model_name}", load_checkpoint=True, model=model)
     assert ckpt is not None
