@@ -1,23 +1,16 @@
 import os
 
-from tests_cloud import STORAGE_DIR
-from tests_cloud.utils import cleanup
+from tests_cloud import _USERNAME, STORAGE_DIR
+from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_requirements_as_a_file():
+def test_requirements_as_a_file(version: str = "latest", model_name: str = "boring_model"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
     requirements_file_path = "tests/requirements.txt"
-    version = "latest"
-    model_name = "boring_model"
 
     to_lightning_cloud(
         model_name,
@@ -28,23 +21,16 @@ def test_requirements_as_a_file():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
-    req_folder_path = os.path.join(STORAGE_DIR, username, model_name, version)
+    req_folder_path = os.path.join(STORAGE_DIR, _USERNAME, model_name, version)
     assert os.path.isdir(req_folder_path)
     assert "requirements.txt" in os.listdir(req_folder_path)
 
 
-def test_requirements_as_a_list():
+def test_requirements_as_a_list(version: str = "1.0.0", model_name: str = "boring_model"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    version = "1.0.0"
-    model_name = "boring_model"
     requirements_list = ["pytorch_lightning==1.7.7", "lightning"]
 
     to_lightning_cloud(
@@ -56,9 +42,9 @@ def test_requirements_as_a_list():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}", version=version)
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=version)
 
-    req_folder_path = os.path.join(STORAGE_DIR, username, model_name, version)
+    req_folder_path = os.path.join(STORAGE_DIR, _USERNAME, model_name, version)
     assert os.path.isdir(req_folder_path)
     assert "requirements.txt" in os.listdir(req_folder_path)
 

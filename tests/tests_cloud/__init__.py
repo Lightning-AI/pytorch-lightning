@@ -7,4 +7,10 @@ if os.getenv("LIGHTNING_MODEL_STORE_TESTING") == "1":
 else:
     from lightning.store.utils import _LIGHTNING_STORAGE_DIR as STORAGE_DIR
 
+_USERNAME = os.getenv("API_USERNAME", "")
+if not _USERNAME:
+    raise ValueError(
+        "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
+    )
+
 __all__ = ["STORAGE_DIR"]

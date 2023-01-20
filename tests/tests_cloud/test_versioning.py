@@ -2,8 +2,8 @@ import os
 import platform
 
 import pytest
-from tests_cloud import STORAGE_DIR
-from tests_cloud.utils import cleanup
+from tests_cloud import _USERNAME, STORAGE_DIR
+from tests_cloud.helpers import cleanup
 
 from lightning.store.cloud_api import download_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -21,10 +21,7 @@ def assert_download_successful(username, model_name, version):
 
 
 @pytest.mark.parametrize(
-    (
-        "case",
-        "expected_case",
-    ),
+    ("case", "expected_case"),
     (
         [
             ("1.0.0", "version_1_0_0"),
@@ -37,15 +34,8 @@ def assert_download_successful(username, model_name, version):
         ]
     ),
 )
-def test_versioning_valid_case(case, expected_case):
+def test_versioning_valid_case(case, expected_case, model_name: str = "boring_model_versioning"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model_versioning"
 
     api_key = os.getenv("API_KEY", "")
     to_lightning_cloud(
@@ -55,8 +45,8 @@ def test_versioning_valid_case(case, expected_case):
         api_key=api_key,
         project_id=os.getenv("PROJECT_ID", ""),
     )
-    download_from_lightning_cloud(f"{username}/{model_name}", version=case)
-    assert_download_successful(username, model_name, expected_case)
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=case)
+    assert_download_successful(_USERNAME, model_name, expected_case)
 
 
 @pytest.mark.parametrize(
@@ -71,15 +61,8 @@ def test_versioning_valid_case(case, expected_case):
         ]
     ),
 )
-def test_versioning_invalid_case(case):
+def test_versioning_invalid_case(case, model_name: str = "boring_model_versioning"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model_versioning"
 
     with pytest.raises(AssertionError):
         api_key = os.getenv("API_KEY", "")
@@ -93,4 +76,4 @@ def test_versioning_invalid_case(case):
 
     error = OSError if case == "*" and platform.system() == "Windows" else AssertionError
     with pytest.raises(error):
-        download_from_lightning_cloud(f"{username}/{model_name}", version=case)
+        download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=case)

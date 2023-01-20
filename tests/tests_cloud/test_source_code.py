@@ -2,23 +2,16 @@ import inspect
 import os
 import tempfile
 
-from tests_cloud import STORAGE_DIR
-from tests_cloud.utils import cleanup
+from tests_cloud import _USERNAME, STORAGE_DIR
+from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_source_code_implicit():
+def test_source_code_implicit(model_name: str = "model_test_source_code_implicit"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    username = os.getenv("API_USERNAME")
-    model_name = "model_test_source_code_implicit"
     to_lightning_cloud(
         model_name,
         model=BoringModel(),
@@ -26,11 +19,11 @@ def test_source_code_implicit():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert os.path.isfile(
         os.path.join(
             STORAGE_DIR,
-            username,
+            _USERNAME,
             model_name,
             "latest",
             str(os.path.basename(inspect.getsourcefile(BoringModel))),
@@ -38,15 +31,9 @@ def test_source_code_implicit():
     )
 
 
-def test_source_code_saving_disabled():
+def test_source_code_saving_disabled(model_name: str = "model_test_source_code_dont_save"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    model_name = "model_test_source_code_dont_save"
     to_lightning_cloud(
         model_name,
         model=BoringModel(),
@@ -55,11 +42,11 @@ def test_source_code_saving_disabled():
         save_code=False,
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert not os.path.isfile(
         os.path.join(
             STORAGE_DIR,
-            username,
+            _USERNAME,
             model_name,
             "latest",
             str(os.path.basename(inspect.getsourcefile(BoringModel))),
@@ -67,16 +54,9 @@ def test_source_code_saving_disabled():
     )
 
 
-def test_source_code_explicit_relative_folder():
+def test_source_code_explicit_relative_folder(model_name: str = "model_test_source_code_explicit_relative"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    username = os.getenv("API_USERNAME")
-    model_name = "model_test_source_code_explicit_relative"
     dir_upload_path = f"../{os.path.basename(os.getcwd())}/tests/"
     to_lightning_cloud(
         model_name,
@@ -86,12 +66,12 @@ def test_source_code_explicit_relative_folder():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
         os.path.join(
             STORAGE_DIR,
-            username,
+            _USERNAME,
             model_name,
             "latest",
             os.path.basename(os.path.abspath(dir_upload_path)),
@@ -99,16 +79,9 @@ def test_source_code_explicit_relative_folder():
     )
 
 
-def test_source_code_explicit_absolute_folder():
+def test_source_code_explicit_absolute_folder(model_name: str = "model_test_source_code_explicit_absolute_path"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    username = os.getenv("API_USERNAME")
-    model_name = "model_test_source_code_explicit_absolute_path"
     with tempfile.TemporaryDirectory() as tmpdir:
         dir_upload_path = os.path.abspath(tmpdir)
         to_lightning_cloud(
@@ -119,12 +92,12 @@ def test_source_code_explicit_absolute_folder():
             project_id=os.getenv("PROJECT_ID", ""),
         )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
         os.path.join(
             STORAGE_DIR,
-            username,
+            _USERNAME,
             model_name,
             "latest",
             os.path.basename(os.path.abspath(dir_upload_path)),
@@ -132,16 +105,9 @@ def test_source_code_explicit_absolute_folder():
     )
 
 
-def test_source_code_explicit_file():
+def test_source_code_explicit_file(model_name: str = "model_test_source_code_explicit_file"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
 
-    username = os.getenv("API_USERNAME")
-    model_name = "model_test_source_code_explicit_file"
     file_name = os.path.abspath("setup.py")
     to_lightning_cloud(
         model_name,
@@ -151,12 +117,12 @@ def test_source_code_explicit_file():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
     assert os.path.isfile(
         os.path.join(
             STORAGE_DIR,
-            username,
+            _USERNAME,
             model_name,
             "latest",
             os.path.basename(file_name),

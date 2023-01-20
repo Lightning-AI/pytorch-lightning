@@ -1,23 +1,15 @@
 import os
 
-from tests_cloud import STORAGE_DIR
-from tests_cloud.utils import cleanup
+from tests_cloud import _USERNAME, STORAGE_DIR
+from tests_cloud.helpers import cleanup
 
 import pytorch_lightning as pl
 from lightning.store import download_from_lightning_cloud, load_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_model():
+def test_model(model_name: str = "boring_model", version: str = "latest"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model"
-    version = "latest"
 
     to_lightning_cloud(
         model_name,
@@ -26,23 +18,15 @@ def test_model():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
+    assert os.path.isdir(os.path.join(STORAGE_DIR, _USERNAME, model_name, version))
 
-    model = load_from_lightning_cloud(f"{username}/{model_name}")
+    model = load_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert model is not None
 
 
-def test_model_without_progress_bar():
+def test_model_without_progress_bar(model_name: str = "boring_model", version: str = "latest"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model"
-    version = "latest"
 
     to_lightning_cloud(
         model_name,
@@ -52,23 +36,15 @@ def test_model_without_progress_bar():
         progress_bar=False,
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}", progress_bar=False)
-    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}", progress_bar=False)
+    assert os.path.isdir(os.path.join(STORAGE_DIR, _USERNAME, model_name, version))
 
-    model = load_from_lightning_cloud(f"{username}/{model_name}")
+    model = load_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert model is not None
 
 
-def test_only_weights():
+def test_only_weights(model_name: str = "boring_model_only_weights", version: str = "latest"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model_only_weights"
-    version = "latest"
 
     model = BoringModel()
     trainer = pl.Trainer(fast_dev_run=True)
@@ -81,24 +57,16 @@ def test_only_weights():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
+    assert os.path.isdir(os.path.join(STORAGE_DIR, _USERNAME, model_name, version))
 
-    model_with_weights = load_from_lightning_cloud(f"{username}/{model_name}", load_weights=True, model=model)
+    model_with_weights = load_from_lightning_cloud(f"{_USERNAME}/{model_name}", load_weights=True, model=model)
     assert model_with_weights is not None
     assert model_with_weights.state_dict() is not None
 
 
-def test_checkpoint_path():
+def test_checkpoint_path(model_name: str = "boring_model_only_checkpoint_path", version: str = "latest"):
     cleanup()
-    username = os.getenv("API_USERNAME", "")
-    if not username:
-        raise ValueError(
-            "No API_USERNAME env variable, to test, make sure to add export API_USERNAME='yourusername' before testing"
-        )
-
-    model_name = "boring_model_only_checkpoint_path"
-    version = "latest"
 
     model = BoringModel()
     trainer = pl.Trainer(fast_dev_run=True)
@@ -111,8 +79,8 @@ def test_checkpoint_path():
         project_id=os.getenv("PROJECT_ID", ""),
     )
 
-    download_from_lightning_cloud(f"{username}/{model_name}")
-    assert os.path.isdir(os.path.join(STORAGE_DIR, username, model_name, version))
+    download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
+    assert os.path.isdir(os.path.join(STORAGE_DIR, _USERNAME, model_name, version))
 
-    ckpt = load_from_lightning_cloud(f"{username}/{model_name}", load_checkpoint=True, model=model)
+    ckpt = load_from_lightning_cloud(f"{_USERNAME}/{model_name}", load_checkpoint=True, model=model)
     assert ckpt is not None
