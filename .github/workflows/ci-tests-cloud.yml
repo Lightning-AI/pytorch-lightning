@@ -1,0 +1,101 @@
+name: Test Cloud
+
+# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
+on:
+  push:
+    branches: [master, "release/*"]
+  pull_request:
+    branches: [master, "release/*"]
+    types: [opened, reopened, ready_for_review, synchronize]  # added `ready_for_review` since draft is skipped
+    paths:
+      - ".actions/**"
+      - ".github/workflows/ci-tests-cloud.yml"
+      - "src/lightning/store/**"
+      - "tests/tests_cloud/**"
+      - "setup.py"
+      - "!*.md"
+      - "!**/*.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  app-pytest:
+    if: github.event.pull_request.draft == false
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, macOS-11, windows-2022]
+        python-version: ["3.8"]
+        requires: ["oldest", "latest"]
+
+    # Timeout: https://stackoverflow.com/a/59076067/4521646
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: basic setup
+        run: pip install -q -r .actions/requirements.txt
+
+      - name: Set min. dependencies
+        if: ${{ matrix.requires == 'oldest' }}
+        run: python .actions/assistant.py replace_oldest_ver
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/app/base.txt') }}
+          restore-keys: ${{ runner.os }}-pip-py${{ matrix.python-version }}-${{ matrix.requires }}-
+
+      - name: Install package & dependencies
+        env:
+          FREEZE_REQUIREMENTS: 1
+          TORCH_URL: https://download.pytorch.org/whl/cpu/torch_stable.html
+        run: |
+          pip install -e .[dev] --upgrade --find-links ${TORCH_URL}
+          pip list
+
+      - name: Tests
+        working-directory: ./tests
+        env:
+          API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          API_USERNAME: ${{ secrets.LIGHTNING_API_USERNAME }}
+          PROJECT_ID: ${{ secrets.LIGHTNING_PROJECT_ID }}
+          LIGHTNING_MODEL_STORE_TESTING: 1
+        run: |
+          python -m coverage run --source lightning \
+            -m pytest -m "not cloud" tests_cloud \
+            --timeout=300 -vvvv --durations=50
+
+      - name: Statistics
+        if: success()
+        working-directory: ./tests
+        run: |
+          coverage xml -i
+          coverage report -i
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: tests/coverage.xml
+          flags: ${COVERAGE_SCOPE},cpu,pytest
+          env_vars: OS,PYTHON
+          name: codecov-umbrella
+          fail_ci_if_error: false
