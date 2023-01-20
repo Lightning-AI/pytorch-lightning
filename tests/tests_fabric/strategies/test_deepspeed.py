@@ -20,6 +20,7 @@ from unittest.mock import ANY, Mock
 import pytest
 import torch
 from tests_fabric.helpers.runif import RunIf
+from torch.optim import Optimizer
 
 from lightning_fabric.accelerators import CPUAccelerator
 from lightning_fabric.strategies import DeepSpeedStrategy
@@ -258,7 +259,7 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
     model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
     model.modules.return_value = [model]
 
-    # the client state contains the additional user data that was proveded when saving plus some deepspeed metadata
+    # the client state contains the additional user data that was proveded when saving, plus some deepspeed metadata
     loaded_client_state = {"user_data": {"iteration": 5}, "deepspeed_metadata": "data"}
     model.load_checkpoint.return_value = [None, loaded_client_state]
 
@@ -269,3 +270,31 @@ def test_deepspeed_load_checkpoint_state_updated_with_client_state(tmp_path):
     assert state == {"model": model, "user_data": {"iteration": 5}}
     # additional metadata gets separated from client state
     assert metadata == {"deepspeed_metadata": "data"}
+
+
+@RunIf(deepspeed=True)
+@pytest.mark.parametrize("optimzer_state_requested", [True, False])
+def test_deepspeed_load_checkpoint_optimzer_state_requested(optimzer_state_requested, tmp_path):
+    """Test that the DeepSpeed strategy loads the optimizer state only when requested."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock(spec=Optimizer)
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+
+    # required, otherwise mock cannot be unpacked
+    model.load_checkpoint.return_value = [None, {}]
+
+    state = {"model": model}
+    if optimzer_state_requested:
+        state["optimizer"] = optimizer
+
+    strategy.load_checkpoint(path=tmp_path, state=state)
+    model.load_checkpoint.assert_called_with(
+        tmp_path,
+        tag="checkpoint",
+        load_optimizer_states=optimzer_state_requested,
+        load_lr_scheduler_states=False,
+        load_module_strict=True,
+    )
