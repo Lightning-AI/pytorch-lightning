@@ -1608,12 +1608,15 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
         cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
 
-def test_incompatible_cloud_compute_and_build_config():
+def test_incompatible_cloud_compute_and_build_config(monkeypatch):
     """Test that an exception is raised when a build config has a custom image defined, but the cloud compute is
     the default.
 
     This combination is not supported by the platform.
     """
+    mock_client = mock.MagicMock()
+    cloud_backend = mock.MagicMock(client=mock_client)
+    monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
     class Work(LightningWork):
         def __init__(self):
