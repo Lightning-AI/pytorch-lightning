@@ -1,9 +1,23 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import logging
 import os
 import sys
 import tempfile
-from typing import List
+from typing import List, Optional
 
 import requests
 import torch
@@ -41,7 +55,7 @@ def to_lightning_cloud(
     source_code_path: str = "",
     checkpoint_path: str = "",
     requirements_file_path: str = "",
-    requirements: List[str] = [],
+    requirements: Optional[List[str]] = None,
     weights_only: bool = False,
     api_key: str = "",
     project_id: str = "",
@@ -50,48 +64,44 @@ def to_lightning_cloud(
     *args,
     **kwargs,
 ):
-    """
-    Parameters
-    ==========
+    """Store model to lightning cloud.
 
-    :param: name: (str)
-        The model name. Model/Checkpoint will be uploaded with this unique name. Format: "model_name"
-    :param: version: (str, default="latest")
-        The version of the model to be uploaded. If not provided, default will be latest (not overridden).
-    :param: model: (default=None)
-        The model object (initialized). This is optional, but if `checkpoint_path` is not passed,
-            it will raise an error. (Optional)
-    :param: source_code_path: (str, default="")
-        The path to the source code that needs to be uploaded along with the model.
-        The path can point to a python file or a directory. Path pointing to a non-python file
-            will raise an error. (Optional)
-    :param: checkpoint_path (str, default="")
-        The path to the checkpoint that needs to be uploaded. (Optional)
-    :param: requirements_file_path (str, default="")
-        The path to the requirements file, will always be uploaded with the name of `requirements.txt`.
-    :param: requirements (List[str], default=[])
-        List of requirements as strings, that will be written as `requirements.txt` and
-            then uploaded. If both `requirements_file_path` and `requirements` are passed,
-            a warning is raised as `requirements` is given the priority over `requirements_file_path`.
-    :param: weights_only (bool, default=False)
-        If set to `True`, it will only save model weights and nothing else. This raises
-            an error if `weights_only` is `True` but no `model` is passed.
-    :param: api_key (str, default="")
-        API_KEY used for authentication. Fetch it after logging to https://lightning.ai
-            (in the keys tab in the settings). If not passed, the API will attempt to
-            either find the credentials in your system or opening the login prompt.
-    :param: project_id (str, default="")
-        Some users have multiple projects with unique `project_id`. They need to pass
-            this in order to upload models to the cloud.
-    :param: progress_bar (bool, default=True)
-        A progress bar to show the uploading status. Disable this if not needed, by setting to `False`.
-    :param: save_code (bool, default=True)
-        By default, the API saves the code where the model is defined.
-        Set it to `False` if saving code is not desired.
+    Args:
 
-    Returns
-    ========
-    None
+        name:
+            The model name. Model/Checkpoint will be uploaded with this unique name. Format: "model_name"
+        version:
+            The version of the model to be uploaded. If not provided, default will be latest (not overridden).
+        model:
+            The model object (initialized). This is optional, but if `checkpoint_path` is not passed,
+                it will raise an error. (Optional)
+        source_code_path:
+            The path to the source code that needs to be uploaded along with the model.
+            The path can point to a python file or a directory. Path pointing to a non-python file
+                will raise an error. (Optional)
+        checkpoint_path:
+            The path to the checkpoint that needs to be uploaded. (Optional)
+        requirements_file_path:
+            The path to the requirements file, will always be uploaded with the name of `requirements.txt`.
+        requirements:
+            List of requirements as strings, that will be written as `requirements.txt` and
+                then uploaded. If both `requirements_file_path` and `requirements` are passed,
+                a warning is raised as `requirements` is given the priority over `requirements_file_path`.
+        weights_only:
+            If set to `True`, it will only save model weights and nothing else. This raises
+                an error if `weights_only` is `True` but no `model` is passed.
+        api_key:
+            API_KEY used for authentication. Fetch it after logging to https://lightning.ai
+                (in the keys tab in the settings). If not passed, the API will attempt to
+                either find the credentials in your system or opening the login prompt.
+        project_id:
+            Some users have multiple projects with unique `project_id`. They need to pass
+                this in order to upload models to the cloud.
+        progress_bar:
+            A progress bar to show the uploading status. Disable this if not needed, by setting to `False`.
+        save_code:
+            By default, the API saves the code where the model is defined.
+            Set it to `False` if saving code is not desired.
     """
     if model is None and checkpoint_path is None:
         raise ValueError(
@@ -113,38 +123,21 @@ def to_lightning_cloud(
     _, model_name, _ = split_name(name, version=version, l_stage=stage.UPLOAD)
     username_from_api_key, api_key = authenticate(api_key)
 
-    name = f"{username_from_api_key}/{model_name}:{version}"
+    # name = f"{username_from_api_key}/{model_name}:{version}"
 
     stored = {}
 
     with tempfile.TemporaryDirectory() as tmpdir:
         if checkpoint_path:
-            stored = _save_checkpoint_from_path(
-                model_name,
-                path=checkpoint_path,
-                tmpdir=tmpdir,
-                stored=stored,
-            )
+            stored = _save_checkpoint_from_path(model_name, path=checkpoint_path, tmpdir=tmpdir, stored=stored)
 
         if model:
             stored = _save_model_weights(
-                model_name,
-                model_state_dict=model.state_dict(),
-                tmpdir=tmpdir,
-                stored=stored,
-                *args,
-                **kwargs,
+                model_name, model_state_dict=model.state_dict(), tmpdir=tmpdir, stored=stored, *args, **kwargs
             )
 
             if not weights_only:
-                stored = _save_model(
-                    model_name,
-                    model=model,
-                    tmpdir=tmpdir,
-                    stored=stored,
-                    *args,
-                    **kwargs,
-                )
+                stored = _save_model(model_name, model=model, tmpdir=tmpdir, stored=stored, *args, **kwargs)
 
                 if save_code:
                     stored = _save_model_code(
@@ -252,21 +245,17 @@ def download_from_lightning_cloud(
     output_dir: str = "",
     progress_bar: bool = True,
 ):
-    """
-    Parameters
-    ==========
-    :param: name (str):
-        The unique name of the model to be downloaded. Format: `<username>/<model_name>`.
-    :param: version: (str, default="latest")
-        The version of the model to be uploaded. If not provided, default will be latest (not overridden).
-    :param: output_dir (str, default=""):
-        The target directory, where the model and other data will be stored. If not passed,
+    """Download model from lightning cloud.
+
+    Args:
+        name:
+            The unique name of the model to be downloaded. Format: `<username>/<model_name>`.
+        version:
+            The version of the model to be uploaded. If not provided, default will be latest (not overridden).
+        output_dir:
+            The target directory, where the model and other data will be stored. If not passed,
             the data will be stored in `$HOME/.lightning/lightning_model_store/<username>/<model_name>/<version>`.
             (`version` defaults to `latest`)
-
-    Returns
-    =======
-    None
     """
     version = version or "latest"
     username, model_name, version = split_name(name, version=version, l_stage=stage.DOWNLOAD)
@@ -347,21 +336,17 @@ def load_from_lightning_cloud(
     *args,
     **kwargs,
 ):
-    """
-    Parameters
-    ==========
-    :param: name (str)
-        Name of the model to load. Format: `<username>/<model_name>`
-    :param: version: (str, default="latest")
-        The version of the model to be uploaded. If not provided, default will be latest (not overridden).
-    :param: load_weights (bool, default=False)
-        Loads only weights if this is set to `True`. Needs `model` to be passed in order to load the weights.
-    :param: load_checkpoint (bool, default=False)
-        Loads checkpoint if this is set to `True`. Only a `LightningModule` model is supported for this feature.
+    """Load model from lightning cloud.
 
-    Returns
-    =======
-    None
+    Args:
+        name:
+            Name of the model to load. Format: `<username>/<model_name>`
+        version:
+            The version of the model to be uploaded. If not provided, default will be latest (not overridden).
+        load_weights:
+            Loads only weights if this is set to `True`. Needs `model` to be passed in order to load the weights.
+        load_checkpoint:
+            Loads checkpoint if this is set to `True`. Only a `LightningModule` model is supported for this feature.
     """
     if load_weights and load_checkpoint:
         raise ValueError(

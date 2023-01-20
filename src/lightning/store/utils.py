@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import os
 from enum import Enum
@@ -9,9 +23,9 @@ class stage(Enum):
     DOWNLOAD = 2
 
 
-LIGHTNING_DIR = f"{os.path.expanduser('~')}/.lightning"
-LIGHTNING_STORAGE_FILE = f"{LIGHTNING_DIR}/.lightning_model_storage"
-LIGHTNING_STORAGE_DIR = f"{LIGHTNING_DIR}/lightning_model_store"
+LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
+LIGHTNING_STORAGE_FILE = os.path.join(LIGHTNING_DIR, ".lightning_model_storage")
+LIGHTNING_STORAGE_DIR = os.path.join(LIGHTNING_DIR, "lightning_model_store")
 LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", default="https://lightning.ai")
 
 
@@ -38,11 +52,7 @@ def _split_name(name: str, version: str, l_stage: stage):
 def split_name(name: str, version: str, l_stage: stage):
     username, model_name, version = _split_name(name, version, l_stage)
 
-    return (
-        username,
-        model_name,
-        version,
-    )
+    return (username, model_name, version)
 
 
 def get_model_data(name: str, version: str):
