@@ -42,9 +42,7 @@ You can also pass the checkpoint path: `to_lightning_cloud("model_name", version
 ```python
 from lightning.model2cloud import download_from_lightning_cloud
 
-download_from_lightning_cloud(
-    "krshrimali/unique_model_mnist", output_dir="your_output_dir"
-)
+download_from_lightning_cloud("krshrimali/unique_model_mnist", output_dir="your_output_dir")
 # OR: (default to lightning_model_storage $HOME/.lightning/lightning_model_store/username/<model_name>/version_<version_with_dots_replaced_by_underscores>/ folder)
 download_from_lightning_cloud("krshrimali/unique_model_mnist")
 ```
@@ -54,11 +52,15 @@ download_from_lightning_cloud("krshrimali/unique_model_mnist")
 ```python
 from lightning.model2cloud import load_from_lightning_cloud
 
-from <username>.<model_name>.version_<version_with_dots_replaced_by_underscores>.<model_source_file> import LitAutoEncoder, Encoder, Decoder
-model = load_from_lightning_cloud("<username>/<model_name>>", version="version")  # version is optional (defaults to latest)
+# from <username>.<model_name>.version_<version_with_dots_replaced_by_underscores>.<model_source_file> import LitAutoEncoder, Encoder, Decoder
+model = load_from_lightning_cloud(
+    "<username>/<model_name>>", version="version"
+)  # version is optional (defaults to latest)
 
 # OR: load weights or checkpoint (if they were uploaded)
-load_from_lightning_cloud("<username>/<model_name>", version="version", load_weights=True/False, load_checkpoint=True/False)
+load_from_lightning_cloud(
+    "<username>/<model_name>", version="version", load_weights=True / False, load_checkpoint=True / False
+)
 print(model)
 ```
 
@@ -68,7 +70,7 @@ print(model)
 from lightning.model2cloud import load_from_lightning_cloud
 
 # If you had passed an `output_dir=...` to download_from_lightning_cloud(...), then you can just do:
-from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
+# from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 
 model = LitAutoEncoder(Encoder(), Decoder())
 
