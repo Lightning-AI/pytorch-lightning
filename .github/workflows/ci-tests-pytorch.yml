@@ -82,16 +82,6 @@ jobs:
         pip --version
         pip install -q -r .actions/requirements.txt
 
-    - name: Setup macOS
-      if: runner.os == 'macOS'
-      run: |
-        brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
-
-    - name: Setup Windows
-      if: runner.os == 'windows'
-      run: |
-        python .actions/assistant.py requirements_prune_pkgs "--packages=[horovod]"
-
     - name: Set min. dependencies
       if: ${{ matrix.requires == 'oldest' }}
       run: |
@@ -140,23 +130,6 @@ jobs:
         pip install -e .[extra,test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
         # TODO: installing the strategies from file as deepspeed expects already installed PyTorch and extras do not install base first
         # pip install -r requirements/pytorch/strategies.txt --find-links ${TORCH_URL}
-        pip list
-
-    - name: Reinstall Horovod if necessary
-      if: runner.os != 'windows'
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
-      run: |
-        HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
-        if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
-          pip uninstall -y horovod
-          grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
-          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
-        fi
-        horovodrun --check-build
-        python -c "import horovod.torch"
         pip list
 
     - name: Cache datasets

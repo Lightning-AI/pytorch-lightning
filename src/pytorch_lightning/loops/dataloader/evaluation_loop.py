@@ -22,20 +22,13 @@ from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import CUDAAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import (
-    AbstractDataFetcher,
-    DataFetcher,
-    DataLoaderIterDataFetcher,
-    InterBatchParallelDataFetcher,
-)
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
@@ -46,7 +39,11 @@ if _RICH_AVAILABLE:
 
 
 class EvaluationLoop(DataLoaderLoop):
-    """Loops over all dataloaders for evaluation."""
+    """Top-level loop where validation/testing starts.
+
+    It simply iterates over each evaluation dataloader from one to the next by calling ``EvaluationEpochLoop.run()`` in
+    its ``advance()`` method.
+    """
 
     def __init__(self, verbose: bool = True) -> None:
         super().__init__()
@@ -83,12 +80,7 @@ class EvaluationLoop(DataLoaderLoop):
     def prefetch_batches(self) -> int:
         batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
         is_unsized = batches[self.current_dataloader_idx] == float("inf")
-        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
-        return 1 if is_unsized or inter_batch_parallelism else 0
-
-    def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
-        """Connect the evaluation epoch loop with this loop."""
-        self.epoch_loop = epoch_loop
+        return int(is_unsized)
 
     @property
     def done(self) -> bool:
@@ -100,6 +92,22 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns whether the evaluation should be skipped."""
         max_batches = self._get_max_batches()
         return sum(max_batches) == 0
+
+    def run(self) -> List[_OUT_DICT]:
+        if self.skip:
+            return []
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of the loop."""
@@ -117,10 +125,7 @@ class EvaluationLoop(DataLoaderLoop):
         if self.done and self.trainer.state.fn != TrainerFn.FITTING:
             self.dataloader_progress.reset_on_run()
 
-    def on_skip(self) -> List:
-        return []
-
-    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_run_start(self) -> None:
         """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
         hooks."""
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
@@ -132,7 +137,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._on_evaluation_start()
         self._on_evaluation_epoch_start()
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
+    def advance(self) -> None:
         """Performs evaluation on one single dataloader."""
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.current_dataloader
@@ -403,8 +408,4 @@ def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher
             "this signature is experimental and the behavior is subject to change."
         )
         return DataLoaderIterDataFetcher
-    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
-        if not isinstance(trainer.accelerator, CUDAAccelerator):
-            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
-        return InterBatchParallelDataFetcher
     return DataFetcher
