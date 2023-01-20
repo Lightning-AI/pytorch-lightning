@@ -171,9 +171,7 @@ def _upload_metadata(
         json=json_field,
     )
     if response.status_code != 200:
-        raise ConnectionRefusedError(
-            f"Unable to upload content.\n Error: {response.content}\n for load: {json_field}"
-        )
+        raise ConnectionRefusedError(f"Unable to upload content.\n Error: {response.content}\n for load: {json_field}")
     return _get_url(response.content)
 
 
