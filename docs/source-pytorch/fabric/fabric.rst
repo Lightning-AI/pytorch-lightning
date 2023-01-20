@@ -159,6 +159,14 @@ Build Your Own Trainer
     :tag: basic
 
 .. displayitem::
+    :header: Checkpoints
+    :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
+    :button_link: guide/checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
     :header: Trainer Template
     :description: Take our Fabric Trainer template and customize it for your needs
     :button_link: guide/trainer_template.html
