@@ -1,15 +1,15 @@
 import os
 
-from models_cloud import download_from_lightning_cloud, load_from_lightning_cloud, to_lightning_cloud
-from tests.utils import cleanup
+from tests_cloud.utils import cleanup
 
 import pytorch_lightning as pl
+from lightning.model2cloud import download_from_lightning_cloud, load_from_lightning_cloud, to_lightning_cloud
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
-    from tests_app.model2cloud.constants import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
+    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
 else:
-    from lightning.app.model2cloud.utils import LIGHTNING_STORAGE_DIR
+    from lightning.model2cloud.utils import LIGHTNING_STORAGE_DIR
 
 
 def test_model():

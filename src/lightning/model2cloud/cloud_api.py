@@ -8,8 +8,8 @@ from typing import List
 import requests
 import torch
 
-from lightning.app.model2cloud.authentication import authenticate
-from lightning.app.model2cloud.save import (
+from lightning.model2cloud.authentication import authenticate
+from lightning.model2cloud.save import (
     _download_and_extract_data_to,
     _save_checkpoint_from_path,
     _save_meta_data,
@@ -21,18 +21,12 @@ from lightning.app.model2cloud.save import (
     _write_and_save_requirements,
     get_linked_output_dir,
 )
-from lightning.app.model2cloud.utils import (
-    get_model_data,
-    LIGHTNING_CLOUD_URL,
-    LIGHTNING_STORAGE_FILE,
-    split_name,
-    stage,
-)
+from lightning.model2cloud.utils import get_model_data, LIGHTNING_CLOUD_URL, LIGHTNING_STORAGE_FILE, split_name, stage
 
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING", 0):
-    from tests.constants import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
+    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
 else:
-    from lightning.app.model2cloud.utils import LIGHTNING_STORAGE_DIR
+    from lightning.model2cloud.utils import LIGHTNING_STORAGE_DIR
 
 import lightning as L
 import pytorch_lightning as PL

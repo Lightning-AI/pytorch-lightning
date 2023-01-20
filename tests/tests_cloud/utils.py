@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from tests_app.model2cloud.constants import LIGHTNING_TEST_STORAGE_DIR
+from tests_cloud import LIGHTNING_TEST_STORAGE_DIR
 
 
 def cleanup():
