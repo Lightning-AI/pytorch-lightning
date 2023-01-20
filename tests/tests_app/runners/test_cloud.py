@@ -1452,7 +1452,7 @@ def test_check_uploaded_folder(monkeypatch, tmpdir, caplog):
         backend._validate_repo(root, repo)
     assert f"Your application folder '{root.absolute()}' is more than 2 MB" in caplog.text
     assert "The total size is 15.0 MB" in caplog.text
-    assert "3 files were uploaded" in caplog.text
+    assert "4 files were uploaded" in caplog.text
     assert "files:\n6.0 MB: c.jpg\n5.0 MB: b.txt\n4.0 MB: a.png\nPerhaps" in caplog.text  # tests the order
     assert "adding them to `.lightningignore`." in caplog.text
     assert "lightningingore` attribute in a Flow or Work" in caplog.text
@@ -1642,7 +1642,7 @@ def test_programmatic_lightningignore(monkeypatch, caplog, tmpdir):
     mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
         V1ListLightningappInstancesResponse(lightningapps=[])
     )
-    mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
+    mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test")
     cloud_backend = mock.MagicMock(client=mock_client)
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
@@ -1710,7 +1710,7 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
     mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
         V1ListLightningappInstancesResponse(lightningapps=[])
     )
-    mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
+    mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(cluster_id="test")
     cloud_backend = mock.MagicMock(client=mock_client)
     monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
 
