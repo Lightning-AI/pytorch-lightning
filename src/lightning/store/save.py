@@ -231,29 +231,34 @@ def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool):
         requests.put(url, data=open(archive_path, "rb"))
 
 
+def _download_tarfile(download_url: str, output_dir: str, progress_bar: bool) -> None:
+    with requests.get(download_url, stream=True) as req_stream:
+        total_size_in_bytes = int(req_stream.headers.get("content-length", 0))
+        block_size = 1024  # 1 Kibibyte
+
+        download_progress_bar = None
+        if progress_bar:
+            download_progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        with open(f"{output_dir}/data.tar.gz", "wb") as f:
+            for chunk in req_stream.iter_content(chunk_size=block_size):
+                if download_progress_bar:
+                    download_progress_bar.update(len(chunk))
+                f.write(chunk)
+        if download_progress_bar:
+            download_progress_bar.close()
+
+
+def _common_clean_up(output_dir: str):
+    data_file_path = f"{output_dir}/data.tar.gz"
+    dir_file_path = f"{output_dir}/extracted"
+    if os.path.exists(data_file_path):
+        os.remove(data_file_path)
+    shutil.rmtree(dir_file_path)
+
+
 def _download_and_extract_data_to(output_dir: str, download_url: str, progress_bar: bool):
-    def _common_clean_up():
-        data_file_path = f"{output_dir}/data.tar.gz"
-        dir_file_path = f"{output_dir}/extracted"
-        if os.path.exists(data_file_path):
-            os.remove(data_file_path)
-        shutil.rmtree(dir_file_path)
-
     try:
-        with requests.get(download_url, stream=True) as req_stream:
-            total_size_in_bytes = int(req_stream.headers.get("content-length", 0))
-            block_size = 1024  # 1 Kibibyte
-
-            download_progress_bar = None
-            if progress_bar:
-                download_progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-            with open(f"{output_dir}/data.tar.gz", "wb") as f:
-                for chunk in req_stream.iter_content(chunk_size=block_size):
-                    if download_progress_bar:
-                        download_progress_bar.update(len(chunk))
-                    f.write(chunk)
-            if download_progress_bar:
-                download_progress_bar.close()
+        _download_tarfile(download_url, output_dir, progress_bar)
 
         tar = tarfile.open(f"{output_dir}/data.tar.gz", "r:gz")
         tmpdir_name = tar.getnames()[0]
@@ -263,10 +268,7 @@ def _download_and_extract_data_to(output_dir: str, download_url: str, progress_b
         root = f"{output_dir}"
         for filename in os.listdir(os.path.join(root, "extracted", tmpdir_name)):
             abs_file_name = os.path.join(root, "extracted", tmpdir_name, filename)
-            if os.path.isdir(abs_file_name):
-                func = shutil.copytree
-            else:
-                func = shutil.copy
+            func = shutil.copytree if os.path.isdir(abs_file_name) else shutil.copy
 
             dst_file_name = os.path.join(root, filename)
             if os.path.exists(dst_file_name):
@@ -275,21 +277,18 @@ def _download_and_extract_data_to(output_dir: str, download_url: str, progress_b
                 else:
                     os.remove(dst_file_name)
 
-            func(
-                abs_file_name,
-                os.path.join(root, filename),
-            )
+            func(abs_file_name, os.path.join(root, filename))
 
         if not os.path.isdir(f"{output_dir}"):
             raise NotADirectoryError(
-                "Data downloading to the output"
-                f" directory: {output_dir} failed. Maybe try again or contact the model owner?"
+                f"Data downloading to the output directory: {output_dir} failed."
+                f" Maybe try again or contact the model owner?"
             )
-    except Exception as e:
-        _common_clean_up()
-        raise e
+    except Exception as ex:
+        _common_clean_up(output_dir)
+        raise ex
     else:
-        _common_clean_up()
+        _common_clean_up(output_dir)
 
 
 def get_linked_output_dir(src_dir: str):

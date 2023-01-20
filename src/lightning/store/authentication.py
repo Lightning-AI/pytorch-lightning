@@ -33,10 +33,7 @@ def get_user_details():
 
 
 def get_username_from_api_key(api_key: str):
-    response = requests.get(
-        url=f"{_LIGHTNING_CLOUD_URL}/v1/auth/user",
-        auth=HTTPBasicAuth("lightning", api_key),
-    )
+    response = requests.get(url=f"{_LIGHTNING_CLOUD_URL}/v1/auth/user", auth=HTTPBasicAuth("lightning", api_key))
     if response.status_code != 200:
         raise ConnectionRefusedError(
             "API_KEY provided is either invalid or wasn't found in the database."

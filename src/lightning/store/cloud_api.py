@@ -108,8 +108,10 @@ def to_lightning_cloud(
         raise ValueError(
             """"
             You either need to pass the model or the checkpoint path that you want to save. :)
-            Any one of: `to_lightning_cloud("model_name", model=modelObj, ...)`
-            or `to_lightning_cloud("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
+            Any one of:
+                `to_lightning_cloud("model_name", model=modelObj, ...)`
+            or
+                `to_lightning_cloud("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
             is required.
             """
         )
@@ -152,8 +154,8 @@ def to_lightning_cloud(
         if requirements and requirements_file_path:
             # TODO: Later on, figure out how to merge requirements from both args
             logging.warning(
-                "You provided a requirements file (requirements_file_path=...)"
-                " and requirements list (requirements=...). In case of any collisions,"
+                "You provided a requirements file (..., requirements_file_path=...)"
+                " and requirements list (..., requirements=...). In case of any collisions,"
                 " anything that comes from requirements=... will be given the priority."
             )
 
@@ -186,21 +188,20 @@ def to_lightning_cloud(
         msg = "Finished storing the following data items to the Lightning Cloud.\n"
         for key, val in stored.items():
             if key == "code":
-                if val["type"] == "file":
-                    msg += f"Stored code as a file with name: {val['path']}\n"
-                else:
-                    msg += f"Stored code as a folder with name: {val['path']}\n"
+                msg += f"Stored code as a {val['type']} with name: {val['path']}\n"
             else:
                 msg += f"Stored {key} with name: {val}\n"
 
-        msg += (
-            f'\nJust do: download_from_lightning_cloud("{username_from_api_key}/{model_name}", '
-            f'version="{version}") in order to download the model from the cloud to your local system.'
-        )
-        msg += (
-            f'\nAnd: to_lightning_cloud("{username_from_api_key}/{model_name}", '
-            f'version="{version}") in order to load the downloaded model.'
-        )
+        msg += """
+        Just do:
+            `download_from_lightning_cloud("{username_from_api_key}/{model_name}", version="{version}")`
+        in order to download the model from the cloud to your local system.
+        """
+        msg += """
+        And:
+            `to_lightning_cloud("{username_from_api_key}/{model_name}", version="{version}")`
+        in order to load the downloaded model.
+        """
         logging.info(msg)
 
 
@@ -211,8 +212,8 @@ def _load_model(stored, output_dir, *args, **kwargs):
         return model
     else:
         raise ValueError(
-            "Couldn't find the model when uploaded to our storage. Please check"
-            " with the model owner to confirm that the models exist in the storage."
+            "Couldn't find the model when uploaded to our storage."
+            " Please check with the model owner to confirm that the models exist in the storage."
         )
 
 
@@ -222,8 +223,7 @@ def _load_weights(model, stored, output_dir, *args, **kwargs):
         return model
     else:
         raise ValueError(
-            "Weights were not found, please contact the model owner to verify if the"
-            " weights were stored successfully..."
+            "Weights were not found, please contact the model's owner to verify if the weights were stored correctly."
         )
 
 
@@ -257,6 +257,8 @@ def download_from_lightning_cloud(
             The target directory, where the model and other data will be stored. If not passed,
             the data will be stored in `$HOME/.lightning/lightning_model_store/<username>/<model_name>/<version>`.
             (`version` defaults to `latest`)
+        progress_bar:
+            Show progress on download.
     """
     version = version or "latest"
     username, model_name, version = split_name(name, version=version, l_stage=stage.DOWNLOAD)
@@ -312,10 +314,9 @@ def download_from_lightning_cloud(
 
     logging.info("Downloading done...")
     logging.info(
-        f"The source code for your model has been written to {output_dir} folder, and"
-        f" linked to {linked_output_dir} folder."
+        f"The source code for your model has been written to {output_dir} folder,"
+        f" and linked to {linked_output_dir} folder."
     )
-
     logging.info(
         "Please make sure to add imports to the necessary classes needed for instantiation of"
         " your model before calling `load_from_lightning_cloud`."
