@@ -12,7 +12,7 @@
 **Storing to the cloud**
 
 ```python
-from lightning.model2cloud import to_lightning_cloud
+from lightning.store import to_lightning_cloud
 from sample.model import LitAutoEncoder, Encoder, Decoder
 
 # Initialize your model here
@@ -40,7 +40,7 @@ You can also pass the checkpoint path: `to_lightning_cloud("model_name", version
 **Downloading from the cloud**
 
 ```python
-from lightning.model2cloud import download_from_lightning_cloud
+from lightning.store import download_from_lightning_cloud
 
 download_from_lightning_cloud("krshrimali/unique_model_mnist", output_dir="your_output_dir")
 # OR: (default to lightning_model_storage $HOME/.lightning/lightning_model_store/username/<model_name>/version_<version_with_dots_replaced_by_underscores>/ folder)
@@ -50,7 +50,7 @@ download_from_lightning_cloud("krshrimali/unique_model_mnist")
 **Loading model**
 
 ```python
-from lightning.model2cloud import load_from_lightning_cloud
+from lightning.store import load_from_lightning_cloud
 
 # from <username>.<model_name>.version_<version_with_dots_replaced_by_underscores>.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 model = load_from_lightning_cloud(
@@ -67,7 +67,7 @@ print(model)
 **Loading model weights**
 
 ```python
-from lightning.model2cloud import load_from_lightning_cloud
+from lightning.store import load_from_lightning_cloud
 
 # If you had passed an `output_dir=...` to download_from_lightning_cloud(...), then you can just do:
 # from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
