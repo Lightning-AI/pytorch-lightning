@@ -22,6 +22,8 @@ from typing import List, Optional
 import requests
 import torch
 
+import lightning as L
+import pytorch_lightning as PL
 from lightning.store.authentication import authenticate
 from lightning.store.save import (
     _download_and_extract_data_to,
@@ -35,15 +37,14 @@ from lightning.store.save import (
     _write_and_save_requirements,
     get_linked_output_dir,
 )
-from lightning.store.utils import _LIGHTNING_CLOUD_URL, _LIGHTNING_STORAGE_FILE, get_model_data, split_name, stage
-
-if os.getenv("LIGHTNING_MODEL_STORE_TESTING", 0):
-    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as _LIGHTNING_STORAGE_DIR
-else:
-    from lightning.store.utils import _LIGHTNING_STORAGE_DIR
-
-import lightning as L
-import pytorch_lightning as PL
+from lightning.store.utils import (
+    _LIGHTNING_CLOUD_URL,
+    _LIGHTNING_STORAGE_DIR,
+    _LIGHTNING_STORAGE_FILE,
+    get_model_data,
+    split_name,
+    stage,
+)
 
 logging.basicConfig(level=logging.INFO)
 
