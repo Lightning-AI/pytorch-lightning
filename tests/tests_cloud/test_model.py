@@ -7,7 +7,7 @@ from lightning.store import download_from_lightning_cloud, load_from_lightning_c
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 if os.getenv("LIGHTNING_MODEL_STORE_TESTING"):
-    from tests_cloud import LIGHTNING_TEST_STORAGE_DIR as LIGHTNING_STORAGE_DIR
+    pass
 else:
     from lightning.store.utils import _LIGHTNING_STORAGE_DIR
 
