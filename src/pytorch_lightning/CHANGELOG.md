@@ -77,6 +77,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated code in `pl.utilities.xla_device` ([#16404](https://github.com/Lightning-AI/lightning/pull/16404))
 
+- Removed the deprecated code in `pl.utilities.data` ([#16440](https://github.com/Lightning-AI/lightning/pull/16440))
+
 - Removed the deprecated code in `pl.utilities.device_parser` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
 
 - Removed the deprecated code in `pl.utilities.optimizer` ([#16439](https://github.com/Lightning-AI/lightning/pull/16439))
@@ -129,6 +131,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an unintended limitation for calling `save_hyperparameters` on mixin classes that don't subclass `LightningModule`/`LightningDataModule` ([#16369](https://github.com/Lightning-AI/lightning/pull/16369))
+
+- Fixed an issue with `MLFlowLogger` logging the wrong keys with `.log_hyperparams()` ([#16418](https://github.com/Lightning-AI/lightning/pull/16418))
+
 
 
 ## [1.9.0] - 2023-01-17
