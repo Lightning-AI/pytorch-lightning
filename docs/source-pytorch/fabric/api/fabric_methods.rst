@@ -187,14 +187,41 @@ the data is written to disk.
 
 .. code-block:: python
 
-    # Download data only on one process
     if fabric.global_rank == 0:
-        download_data("http://...")
+        print("Downloading dataset. This can take a while ...")
+        download_dataset("http://...")
 
-    # Wait until all processes meet up here
+    # All other processes wait here until rank 0 is done with downloading:
     fabric.barrier()
 
-    # All processes are allowed to read the data now
+    # After everyone reached the barrier, they can access the downloaded files:
+    load_dataset()
+
+See also: :doc:`../advanced/distributed_communication`
+
+
+broadcast
+=========
+
+Send a tensor from one process to all others.
+
+
+See also: :doc:`../advanced/distributed_communication`
+
+
+all_gather
+==========
+
+
+See also: :doc:`../advanced/distributed_communication`
+
+
+all_reduce
+==========
+
+
+See also: :doc:`../advanced/distributed_communication`
+
 
 
 no_backward_sync

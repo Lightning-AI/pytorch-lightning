@@ -44,6 +44,7 @@ from lightning_fabric.utilities.data import (
 )
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning_fabric.utilities.seed import seed_everything
+from lightning_fabric.utilities.types import ReduceOp
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
 
@@ -408,28 +409,30 @@ class Fabric:
     def barrier(self, name: Optional[str] = None) -> None:
         """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
         necessary, otherwise the overhead of synchronization will cause your program to slow down.
-
-        Example::
-
-            if self.global_rank == 0:
-                # let process 0 download the dataset
-                dataset.download_files()
-
-            # let all processes wait before reading the dataset
-            self.barrier()
-
-            # now all processes can read the files and start training
         """
         self._strategy.barrier(name=name)
+
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+        """Send a tensor from one process to all others.
+
+        Args:
+            obj: The object to broadcast to all other members. Any serializable object is supported, but it is
+                most efficient with the object being a :class:`~torch.Tensor`.
+            src: The (global) rank of the process that should send the data to all others.
+
+        Return:
+            The transferred data, the same value on every rank.
+        """
+        return self._strategy.broadcast(obj, src=src)
 
     def all_gather(
         self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
     ) -> Union[Tensor, Dict, List, Tuple]:
-        r"""Gather tensors or collections of tensors from multiple processes.
+        """Gather tensors or collections of tensors from multiple processes.
 
         Args:
             data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
-            group: the process group to gather results from. Defaults to all processes (world)
+            group: the process group to gather results from. Defaults to all processes (world).
             sync_grads: flag that allows users to synchronize gradients for the all_gather operation
 
         Return:
@@ -440,8 +443,25 @@ class Fabric:
         data = convert_to_tensors(data, device=self.device)
         return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
-        return self._strategy.broadcast(obj, src=src)
+    def all_reduce(
+        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[Tensor, Dict, List, Tuple]:
+        """Reduce tensors or collections of tensors from multiple processes.
+
+        Args:
+            data: int, float, tensor of shape (batch, ...), or a (possibly nested) collection thereof.
+            group: the process group to reduce results across. Defaults to all processes (world).
+            reduce_op: the reduction operation. Defaults to 'mean'. Can also be a string 'sum' or ReduceOp.
+                Some strategies may limit the choices here.
+
+        Return:
+            A tensor of the same shape as the input with values reduced pointwise across processes. The same is
+            applied to tensors in a collection if a collection is given as input.
+        """
+        group = group if group is not None else torch.distributed.group.WORLD
+        data = convert_to_tensors(data, device=self.device)
+        return apply_to_collection(data, Tensor, self._strategy.all_reduce, group=group, reduce_op=reduce_op)
 
     @contextmanager
     def no_backward_sync(self, module: _FabricModule, enabled: bool = True) -> Generator:

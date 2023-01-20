@@ -123,7 +123,7 @@ Since downloading should be done on rank 0 only to :ref:`avoid race conditions <
 
     if fabric.global_rank == 0:
         print("Downloading dataset. This can take a while ...")
-        download_dataset()
+        download_dataset("http://...")
 
     # All other processes wait here until rank 0 is done with downloading:
     fabric.barrier()
