@@ -1591,18 +1591,21 @@ def test_print_specs(tmpdir, caplog, monkeypatch, print_format, expected):
 
     cloud.LIGHTNING_CLOUD_PRINT_SPECS = print_format
 
-    with caplog.at_level(logging.INFO):
-        try:
-            cloud_runtime.dispatch()
-        except SystemExit:
-            # Expected behaviour
-            pass
+    try:
+        with caplog.at_level(logging.INFO):
+            try:
+                cloud_runtime.dispatch()
+            except SystemExit:
+                # Expected behaviour
+                pass
 
-    lines = caplog.text.split("\n")
+        lines = caplog.text.split("\n")
 
-    expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
-    expected = "INFO(.*)works: " + expected
-    assert any([re.fullmatch(expected, line) for line in lines])
+        expected = re.escape(str(expected).replace("'", '"').replace(" ", "")).replace('"\\*"', "(.*)")
+        expected = "INFO(.*)works: " + expected
+        assert any([re.fullmatch(expected, line) for line in lines])
+    finally:
+        cloud.LIGHTNING_CLOUD_PRINT_SPECS = None
 
 
 def test_incompatible_cloud_compute_and_build_config():
