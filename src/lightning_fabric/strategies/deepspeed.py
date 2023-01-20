@@ -379,8 +379,8 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         """
         if storage_options is not None:
             raise TypeError(
-                f"`{self.__class__.__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
-                f" {self.__class__.__name__} does not use the `CheckpointIO`."
+                "`DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `DeepSpeedStrategy` does not use the `CheckpointIO`."
             )
 
         engines = _get_deepspeed_engines_from_state(state)
@@ -432,8 +432,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             return super().load_checkpoint(path=path, state=state)
 
         if not state:
-            # TODO:
-            raise ValueError()
+            raise ValueError(
+                f"Got DeepSpeedStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+                f" a model instance to reload is required. Pass it in like so:"
+                " DeepSpeedStrategy.load_checkpoint(..., state={'model': model, ...})"
+            )
 
         engines = _get_deepspeed_engines_from_state(state)
         if len(engines) == 0:
@@ -460,7 +463,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             load_module_strict=True,  # TODO(fabric): make strict loading configurable
         )
         if client_state is None:
-            raise ValueError(
+            raise RuntimeError(
                 "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
                 " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
