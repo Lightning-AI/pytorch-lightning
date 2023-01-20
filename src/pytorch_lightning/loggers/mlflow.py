@@ -247,7 +247,7 @@ class MLFlowLogger(Logger):
                     f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
                 )
                 continue
-            params_list.append(Param(key=v, value=v))
+            params_list.append(Param(key=k, value=v))
 
         self.experiment.log_batch(run_id=self.run_id, params=params_list)
 
