@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: ❓ Ask a Question
-    url: https://github.com/Lightning-AI/lightning/discussions/new
+    url: https://lightning.ai/forums
     about: Ask and answer Lightning related questions.
   - name: 💬 Chat with us
     url: https://www.pytorchlightning.ai/community
