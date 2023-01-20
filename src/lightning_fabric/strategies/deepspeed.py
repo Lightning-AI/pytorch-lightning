@@ -382,15 +382,21 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 f"`{self.__class__.__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
                 f" {self.__class__.__name__} does not use the `CheckpointIO`."
             )
-        # validate that the deepspeed engine recorded in this strategy corresponds with the model the user
-        # is handling
-        # TODO: we support multiple models with deepspeed, redo this error
-        if self._deepspeed_engine not in state.values():
+
+        engines = _get_deepspeed_engines_from_state(state)
+        if len(engines) == 0:
             raise ValueError(
-                "Could not find a deepspeed model in the provided checkpoint state. Please provide the model as"
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
             )
+        elif len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
+                " currently limited to a single model per checkpoint. To save multiple models, call the"
+                " save method for each model separately with a different path."
+            )
+        engine = engines[0]
 
         # broadcast the path from rank 0 to ensure all the states are saved in a common path
         path = self.broadcast(path)
@@ -398,12 +404,12 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # split the checkpoint into two parts:
         # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
         # 2) the rest of the user's state, which in deepspeed is called `client state`
-        excluded_objects = (self._deepspeed_engine, self._deepspeed_engine.optimizer)
+        excluded_objects = (engine, engine.optimizer)
         state = {k: v for k, v in state.items() if v not in excluded_objects}
         # there might be other stateful objects unrelatd to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state)
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
-        self._deepspeed_engine.save_checkpoint(path, client_state=state, tag="checkpoint")
+        engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
@@ -427,21 +433,18 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
 
         torch.cuda.empty_cache()
 
-        from deepspeed import DeepSpeedEngine
-
-        modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
-        engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
+        engines = _get_deepspeed_engines_from_state(state)
         if len(engines) == 0:
             raise ValueError(
-                "Could not find a deepspeed model in the provided checkpoint state. Please provide the model as"
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
                 " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
                 " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
             )
         elif len(engines) > 1:
             raise ValueError(
-                "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
-                " currently limited to a single model per checkpoint. To save multiple model checkpoints, call the"
-                " save method for each model separately with a different path."
+                "Found multiple DeepSpeed engine modules in the given state. Saving and loading checkpoints"
+                " with DeepSpeed is currently limited to a single model per checkpoint. To load multiple model"
+                " states, call the load method for each model checkpoint separately."
             )
         engine = engines[0]
 
@@ -725,3 +728,11 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
+
+
+def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.DeepSpeedEngine"]:
+    from deepspeed import DeepSpeedEngine
+
+    modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
+    engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
+    return engines
