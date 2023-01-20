@@ -110,7 +110,6 @@ class UIRefresher(Thread):
         try:
             global app_status
             state, app_status = self.api_publish_state_queue.get(timeout=0)
-            print("STATE", state)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
         except queue.Empty:
