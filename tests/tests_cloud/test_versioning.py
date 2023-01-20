@@ -52,9 +52,9 @@ def test_versioning_valid_case(case, expected_case, model_name: str = "boring_mo
 def test_versioning_invalid_case(case, model_name: str = "boring_model_versioning"):
     cleanup()
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ConnectionRefusedError):
         to_lightning_cloud(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
 
-    error = OSError if case == "*" and platform.system() == "Windows" else AssertionError
+    error = OSError if case == "*" and platform.system() == "Windows" else ConnectionRefusedError
     with pytest.raises(error):
         download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=case)
