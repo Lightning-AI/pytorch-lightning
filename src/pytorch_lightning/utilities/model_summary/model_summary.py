@@ -189,7 +189,8 @@ class ModelSummary:
         self._layer_summary = self.summarize()
         # 1 byte -> 8 bits
         # TODO: how do we compute precision_megabytes in case of mixed precision?
-        precision = self._model.precision if isinstance(self._model.precision, int) else 32
+        precision_to_bits = {"64": 64, "32": 32, "16": 16, "bf16": 16}
+        precision = precision_to_bits.get(self._model.trainer.precision, 32) if self._model._trainer else 32
         self._precision_megabytes = (precision / 8.0) * 1e-6
 
     @property
@@ -340,14 +341,14 @@ def _format_summary_table(
     # Formatting
     s = "{:<{}}"
     total_width = sum(col_widths) + 3 * n_cols
-    header = [s.format(c[0], l) for c, l in zip(cols, col_widths)]
+    header = [s.format(c[0], w) for c, w in zip(cols, col_widths)]
 
     # Summary = header + divider + Rest of table
     summary = " | ".join(header) + "\n" + "-" * total_width
     for i in range(n_rows):
         line = []
-        for c, l in zip(cols, col_widths):
-            line.append(s.format(str(c[1][i]), l))
+        for c, w in zip(cols, col_widths):
+            line.append(s.format(str(c[1][i]), w))
         summary += "\n" + " | ".join(line)
     summary += "\n" + "-" * total_width
 

@@ -45,7 +45,7 @@ from lightning_fabric.utilities.data import (
 from lightning_fabric.utilities.distributed import DistributedSamplerWrapper
 from lightning_fabric.utilities.seed import seed_everything
 from lightning_fabric.utilities.warnings import PossibleUserWarning
-from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer
+from lightning_fabric.wrappers import _FabricDataLoader, _FabricModule, _FabricOptimizer, _unwrap_objects
 
 
 class Fabric:
@@ -508,27 +508,36 @@ class Fabric:
         else:
             yield
 
-    def save(self, content: Dict[str, Any], filepath: Union[str, Path]) -> None:
+    def save(self, path: Union[str, Path], state: Dict[str, Union[nn.Module, Optimizer, Any]]) -> None:
         """Save checkpoint contents to a file.
 
         How and which processes save gets determined by the `strategy`. For example, the `ddp` strategy
-        saves checkpoints only on process 0.
+        saves checkpoints only on process 0, while the `fsdp` strategy saves files from every rank.
 
         Args:
-            content: A dictionary with contents, i.e., the state dict of your model
-            filepath: A path to where the file should be saved
+            path: A path to where the file(s) should be saved
+            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
+                state-dict will be retrieved and converted automatically.
         """
-        self._strategy.save_checkpoint(content, filepath)
+        return self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
 
-    def load(self, filepath: Union[str, Path]) -> Any:
-        """Load a checkpoint from a file.
+    def load(
+        self, path: Union[str, Path], state: Optional[Dict[str, Union[nn.Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Load a checkpoint from a file and restore the state of objects (modules, optimizers, etc.)
 
         How and which processes load gets determined by the `strategy`
 
         Args:
-            filepath: A path to where the file is located
+            path: A path to where the file is located
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                If no state is given, then the checkpoint will be returned in full.
+
+        Returns:
+            The remaining items that were not restored into the given state dictionary. If no state dictionary is
+            given, the full checkpoint will be returned.
         """
-        return self._strategy.load_checkpoint(filepath)
+        return self._strategy.load_checkpoint(path=path, state=state)
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:
         if _is_using_cli():

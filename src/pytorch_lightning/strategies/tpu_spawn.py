@@ -28,7 +28,7 @@ from lightning_fabric.plugins.environments import XLAEnvironment
 from lightning_fabric.utilities.data import has_len
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.types import _PATH, ReduceOp
-from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
@@ -128,7 +128,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         TPUSpawnStrategy._validate_patched_dataloaders(model)
         import torch_xla.distributed.xla_multiprocessing as xmp
 
-        self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
+        self.wrapped_model = xmp.MpModelWrapper(_LightningModuleWrapperBase(model))
         return super().connect(model)
 
     def _configure_launcher(self) -> None:

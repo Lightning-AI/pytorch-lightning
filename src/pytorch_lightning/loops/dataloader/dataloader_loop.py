@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import abstractmethod
-from typing import Any, Sequence
+from typing import Sequence
 
 from torch.utils.data import DataLoader
 
@@ -60,7 +60,7 @@ class DataLoaderLoop(Loop):
         else:
             self.dataloader_progress.reset_on_restart()
 
-    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+    def on_advance_start(self) -> None:
         self.dataloader_progress.increment_ready()
 
     def on_advance_end(self) -> None:

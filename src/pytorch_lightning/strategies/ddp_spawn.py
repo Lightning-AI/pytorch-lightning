@@ -36,8 +36,7 @@ from lightning_fabric.utilities.distributed import group as _group
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.types import ReduceOp
-from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
@@ -211,7 +210,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
-        self.model = self._setup_model(LightningDistributedModule(self.model))
+        self.model = self._setup_model(_LightningModuleWrapperBase(self.model))
         self._register_ddp_hooks()
 
         # set up optimizers after the wrapped module has been moved to the device

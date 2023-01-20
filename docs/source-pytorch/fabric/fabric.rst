@@ -93,7 +93,7 @@ Fundamentals
     :tag: basic
 
 .. displayitem::
-    :header: Distributed Operation
+    :header: Launch Distributed Training
     :description: Launch a Python script on multiple devices and machines
     :button_link: fundamentals/launch.html
     :col_css: col-md-4
@@ -159,6 +159,14 @@ Build Your Own Trainer
     :tag: basic
 
 .. displayitem::
+    :header: Checkpoints
+    :description: Efficient saving and loading of model weights, training state, hyperparameters and more.
+    :button_link: guide/checkpoint.html
+    :col_css: col-md-4
+    :height: 150
+    :tag: basic
+
+.. displayitem::
     :header: Trainer Template
     :description: Take our Fabric Trainer template and customize it for your needs
     :button_link: guide/trainer_template.html
@@ -193,9 +201,9 @@ Advanced Topics
     :tag: advanced
 
 .. displayitem::
-    :header: Collectives
+    :header: Distributed Communication
     :description: Learn all about communication primitives for distributed operation. Gather, reduce, broadcast, etc.
-    :button_link: advanced/collectives.html
+    :button_link: advanced/distributed_communication.html
     :col_css: col-md-4
     :height: 160
     :tag: advanced

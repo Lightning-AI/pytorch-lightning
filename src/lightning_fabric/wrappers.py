@@ -189,3 +189,18 @@ def _process_optimizer_zero_grad_kwargs(optimizer: Optimizer, kwargs: Dict[str, 
         # Some optimizers out there, for example DeepSpeedZeroOptimizer, use a different name than PyTorch
         kwargs["set_grads_to_None"] = kwargs.pop("set_to_none")
     return kwargs
+
+
+def _unwrap_objects(collection: Any) -> Any:
+    def _unwrap(
+        obj: Union[_FabricModule, _FabricOptimizer, _FabricDataLoader]
+    ) -> Union[nn.Module, Optimizer, DataLoader]:
+        if isinstance(obj, _FabricModule):
+            return obj._forward_module
+        if isinstance(obj, _FabricOptimizer):
+            return obj.optimizer
+        if isinstance(obj, _FabricDataLoader):
+            return obj._dataloader
+        return obj
+
+    return apply_to_collection(collection, dtype=(_FabricModule, _FabricOptimizer, _FabricDataLoader), function=_unwrap)

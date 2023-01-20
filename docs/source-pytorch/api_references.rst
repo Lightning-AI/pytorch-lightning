@@ -126,7 +126,6 @@ Training
     :nosignatures:
     :template: classtemplate.rst
 
-    ~batch.TrainingBatchLoop
     ~epoch.TrainingEpochLoop
     FitLoop
     ~optimization.ManualOptimization
@@ -284,7 +283,6 @@ strategies
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
-    HivemindStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
@@ -315,15 +313,13 @@ utilities
     :toctree: api
     :nosignatures:
 
-    apply_func
     argparse
-    cloud_io
+    data
     deepspeed
     distributed
     finite_checks
     memory
     model_summary
-    optimizer
     parsing
     rank_zero
     seed
