@@ -48,6 +48,7 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
         layout = _collect_content_layout([layout], app, flow)
     elif isinstance(layout, (list, tuple)) and all(isinstance(item, dict) for item in layout):
         layout = _collect_content_layout(layout, app, flow)
+        print(layout)
     else:
         lines = _add_comment_to_literal_code(flow.configure_layout, contains="return", comment="  <------- this guy")
         m = f"""
