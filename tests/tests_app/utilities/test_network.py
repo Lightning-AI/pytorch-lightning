@@ -9,9 +9,9 @@ def test_port():
 
 def test_lightning_client_retry_enabled():
     with patch("lightning_app.utilities.network._retry_wrapper") as wrapper:
-        LightningClient()  # default: retry=False
+        LightningClient(retry=False)
         wrapper.assert_not_called()
 
     with patch("lightning_app.utilities.network._retry_wrapper") as wrapper:
-        LightningClient(retry=True)
+        LightningClient()  # default: retry=True
         wrapper.assert_called()
