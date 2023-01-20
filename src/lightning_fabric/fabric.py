@@ -519,6 +519,7 @@ class Fabric:
             state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
                 state-dict will be retrieved and converted automatically.
         """
+        # TODO: validate deepspeed model with self._models_setup > 1
         return self._strategy.save_checkpoint(path=path, state=_unwrap_objects(state))
 
     def load(
@@ -537,6 +538,9 @@ class Fabric:
             The remaining items that were not restored into the given state dictionary. If no state dictionary is
             given, the full checkpoint will be returned.
         """
+        # TODO: validate deepspeed model with self._models_setup > 1
+        # if isinstance(self._strategy, DeepSpeedStrategy):
+
         return self._strategy.load_checkpoint(path=path, state=state)
 
     def launch(self, function: Optional[Callable[["Fabric"], Any]] = None, *args: Any, **kwargs: Any) -> Any:

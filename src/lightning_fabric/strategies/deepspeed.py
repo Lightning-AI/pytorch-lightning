@@ -17,8 +17,9 @@ import logging
 import os
 import platform
 from contextlib import contextmanager
+from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -376,22 +377,37 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         Raises:
             TypeError if the unused ``storage_options`` gets passed.
         """
-        # broadcast the path from rank 0 to ensure all the states are saved in a common path
-        path = self.broadcast(path)
-
         if storage_options is not None:
             raise TypeError(
                 f"`{self.__class__.__name__}.save_checkpoint(..., storage_options=...)` is not supported because"
                 f" {self.__class__.__name__} does not use the `CheckpointIO`."
             )
+        # validate that the deepspeed engine recorded in this strategy corresponds with the model the user
+        # is handling
+        # TODO: we support multiple models with deepspeed, redo this error
+        if self._deepspeed_engine not in state.values():
+            raise ValueError(
+                "Could not find a deepspeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
+            )
 
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
+
+        # split the checkpoint into two parts:
+        # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
+        # 2) the rest of the user's state, which in deepspeed is called `client state`
         excluded_objects = (self._deepspeed_engine, self._deepspeed_engine.optimizer)
         state = {k: v for k, v in state.items() if v not in excluded_objects}
+        # there might be other stateful objects unrelatd to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state)
-        # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         self._deepspeed_engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
-    def load_checkpoint(self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
         """Load the contents from a checkpoint and restore the state of the given objects.
 
         Args:
@@ -404,25 +420,43 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
             given, the full checkpoint will be returned.
         """
         if self.load_full_weights and self.zero_stage_3:
-            # Broadcast to ensure we load from the rank 0 checkpoint
-            # This doesn't have to be the case when using deepspeed sharded checkpointing
+            # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
+            # a consolidated checkpoint
             path = self.broadcast(path)
             return super().load_checkpoint(path=path, state=state)
 
-        if self._deepspeed_engine not in state.values():
-            # TODO
-            raise ValueError()
-        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
-
         torch.cuda.empty_cache()
-        _, client_state = self._deepspeed_engine.load_checkpoint(
-            path, load_optimizer_states=optimzer_state_requested, load_lr_scheduler_states=False
+
+        from deepspeed import DeepSpeedEngine
+
+        modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
+        engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
+        if len(engines) == 0:
+            raise ValueError(
+                "Could not find a deepspeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+            )
+        elif len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
+                " currently limited to a single model per checkpoint. To save multiple model checkpoints, call the"
+                " save method for each model separately with a different path."
+            )
+        engine = engines[0]
+
+        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+        _, client_state = engine.load_checkpoint(
+            path,
+            tag="checkpoint",
+            load_optimizer_states=optimzer_state_requested,
+            load_lr_scheduler_states=False,
+            load_module_strict=True,  # TODO: make strict loading configurable
         )
         if client_state is None:
-            # TODO: fix message
             raise ValueError(
-                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint "
-                "or a single checkpoint file with `Trainer(strategy=DeepSpeedStrategy(load_full_weights=True))`."
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
+                " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
             )
         for k, v in client_state.copy().items():
             if k not in state:
