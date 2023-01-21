@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `Fabric.all_reduce` ([#16459](https://github.com/Lightning-AI/lightning/pull/16459))
 
 
 ### Changed
