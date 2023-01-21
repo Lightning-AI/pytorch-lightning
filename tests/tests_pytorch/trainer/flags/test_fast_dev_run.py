@@ -10,7 +10,6 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyLogger
 
-
 # TODO: test needs to move to callback
 # @pytest.mark.parametrize("tuner_alg", ["batch size scaler", "learning rate finder"])
 # def test_skip_on_fast_dev_run_tuner(tmpdir, tuner_alg):

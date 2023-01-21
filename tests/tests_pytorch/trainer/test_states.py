@@ -30,7 +30,6 @@ def test_initialize_state():
     [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
 )
 def test_trainer_fn_while_running(tmpdir, extra_params):
-
     class TestModel(BoringModel):
         def __init__(self, expected_fn, expected_stage):
             super().__init__()
