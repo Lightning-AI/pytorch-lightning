@@ -14,7 +14,7 @@
 import os
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, MagicMock, Mock, PropertyMock, call
+from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
 
 import pytest
 import torch

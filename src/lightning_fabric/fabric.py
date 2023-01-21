@@ -407,8 +407,10 @@ class Fabric:
             print(*args, **kwargs)
 
     def barrier(self, name: Optional[str] = None) -> None:
-        """Wait for all processes to enter this call. Use this to synchronize all parallel processes, but only if
-        necessary, otherwise the overhead of synchronization will cause your program to slow down.
+        """Wait for all processes to enter this call.
+
+        Use this to synchronize all parallel processes, but only if necessary, otherwise the overhead of synchronization
+        will cause your program to slow down.
         """
         self._strategy.barrier(name=name)
 
@@ -444,7 +446,9 @@ class Fabric:
         return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 
     def all_reduce(
-        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None,
+        self,
+        data: Union[Tensor, Dict, List, Tuple],
+        group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Dict, List, Tuple]:
         """Reduce tensors or collections of tensors from multiple processes.
