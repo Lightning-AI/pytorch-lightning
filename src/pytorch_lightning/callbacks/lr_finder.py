@@ -22,7 +22,6 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
-from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
 
@@ -32,11 +31,8 @@ class LearningRateFinder(Callback):
 
     Args:
         min_lr: Minimum learning rate to investigate
-
         max_lr: Maximum learning rate to investigate
-
         num_training_steps: Number of learning rates to test
-
         mode: Search strategy to update learning rate after each batch:
 
             - ``'exponential'`` (default): Increases the learning rate exponentially.
@@ -45,7 +41,6 @@ class LearningRateFinder(Callback):
         early_stop_threshold: Threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
-
         update_attr: Whether to update the learning rate attribute or not.
 
     Example::
@@ -73,8 +68,8 @@ class LearningRateFinder(Callback):
 
     Raises:
         MisconfigurationException:
-            If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
-            or if you are using more than one optimizer.
+            If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden, or if you are using more than
+            one optimizer.
     """
 
     SUPPORTED_MODES = ("linear", "exponential")
@@ -99,7 +94,6 @@ class LearningRateFinder(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
 
-        self._early_exit = False
         self.lr_finder: Optional[_LRFinder] = None
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -114,9 +108,6 @@ class LearningRateFinder(Callback):
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
             )
-
-        if self._early_exit:
-            raise _TunerExitException()
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)

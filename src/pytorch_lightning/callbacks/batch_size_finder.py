@@ -23,7 +23,7 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
-from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -123,7 +123,6 @@ class BatchSizeFinder(Callback):
         self._init_val = init_val
         self._max_trials = max_trials
         self._batch_arg_name = batch_arg_name
-        self._early_exit = False
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         if trainer._accelerator_connector.is_distributed:
@@ -176,8 +175,6 @@ class BatchSizeFinder(Callback):
         )
 
         self.optimal_batch_size = new_size
-        if self._early_exit:
-            raise _TunerExitException()
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.scale_batch_size(trainer, pl_module)

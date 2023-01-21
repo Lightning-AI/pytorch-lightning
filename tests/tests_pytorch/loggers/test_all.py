@@ -21,6 +21,7 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import BatchSizeFinder, LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -204,8 +205,8 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
 @pytest.mark.parametrize(
     "extra_params",
     [
-        pytest.param(dict(max_epochs=1, auto_scale_batch_size=True), id="Batch-size-Finder"),
-        pytest.param(dict(max_epochs=3, auto_lr_find=True), id="LR-Finder"),
+        pytest.param(dict(max_epochs=1, callbacks=BatchSizeFinder()), id="Batch-size-Finder"),
+        pytest.param(dict(max_epochs=3, callbacks=LearningRateFinder()), id="LR-Finder"),
     ],
 )
 def test_logger_reset_correctly(tmpdir, extra_params):
@@ -219,7 +220,7 @@ def test_logger_reset_correctly(tmpdir, extra_params):
     model = CustomModel()
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
     logger1 = trainer.logger
-    trainer.tune(model)
+    trainer.fit(model)
     logger2 = trainer.logger
     logger3 = model.logger
 

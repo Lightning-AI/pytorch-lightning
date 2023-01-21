@@ -15,7 +15,6 @@ from typing import Any, Callable
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerStatus
-from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
@@ -34,12 +33,6 @@ def _call_and_handle_interrupt(trainer: "pl.Trainer", trainer_fn: Callable, *arg
             return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
         else:
             return trainer_fn(*args, **kwargs)
-
-    except _TunerExitException:
-        trainer._call_teardown_hook()
-        trainer._teardown()
-        trainer.state.status = TrainerStatus.FINISHED
-        trainer.state.stage = None
 
     # TODO: Unify both exceptions below, where `KeyboardError` doesn't re-raise
     except KeyboardInterrupt as exception:

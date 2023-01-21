@@ -18,6 +18,7 @@ import torch
 from torch.optim import Adam, Optimizer, SGD
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
@@ -54,10 +55,12 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
 
     model = BoringModel()
     model.lr = 0.2
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=LearningRateFinder())
 
-    trainer.tune(model)
+    trainer.fit(model)
     compare_optimizers()
+
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     trainer.fit(model)
     compare_optimizers()

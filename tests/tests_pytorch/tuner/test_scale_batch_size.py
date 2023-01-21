@@ -425,7 +425,7 @@ def test_error_if_dataloaders_passed_with_fit_method():
 
 def test_batch_size_finder_with_distributed_strategies():
     """Test that an error is raised when batch size finder is used with multi-device strategy."""
-    trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
+    trainer = Trainer(devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()
     bs_finder = BatchSizeFinder()
 

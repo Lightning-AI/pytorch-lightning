@@ -14,6 +14,7 @@
 import pytest
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 
@@ -29,7 +30,6 @@ def test_initialize_state():
     [pytest.param(dict(fast_dev_run=True), id="Fast-Run"), pytest.param(dict(max_steps=1), id="Single-Step")],
 )
 def test_trainer_fn_while_running(tmpdir, extra_params):
-    trainer = Trainer(default_root_dir=tmpdir, **extra_params, auto_lr_find=True)
 
     class TestModel(BoringModel):
         def __init__(self, expected_fn, expected_stage):
@@ -58,9 +58,13 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=LearningRateFinder(), **extra_params)
+
     model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
-    trainer.tune(model)
+    trainer.fit(model)
     assert trainer.state.finished
+
+    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
 
     model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
     trainer.fit(model)

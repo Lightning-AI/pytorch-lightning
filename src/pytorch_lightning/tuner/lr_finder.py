@@ -303,7 +303,6 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
         "callbacks": trainer.callbacks,
         "loggers": trainer.loggers,
         # TODO: check if this is required
-        "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
         "limit_val_batches": trainer.limit_val_batches,
         "loop_state_dict": deepcopy(trainer.fit_loop.state_dict()),
@@ -330,7 +329,6 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
     trainer.strategy.optimizers = params["optimizers"]
     trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
     trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
-    trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
     trainer.loggers = params["loggers"]
     trainer.fit_loop.max_steps = params["max_steps"]
