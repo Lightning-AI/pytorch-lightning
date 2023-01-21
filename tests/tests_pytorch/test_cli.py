@@ -801,15 +801,6 @@ def test_lightning_cli_trainer_fn(fn):
         def after_predict(self):
             self.called.append("after_predict")
 
-        def before_tune(self):
-            self.called.append("before_tune")
-
-        def tune(self, **_):
-            self.called.append("tune")
-
-        def after_tune(self):
-            self.called.append("after_tune")
-
     with mock.patch("sys.argv", ["any.py", fn]):
         cli = TestCLI(BoringModel)
     assert cli.called == [f"before_{fn}", fn, f"after_{fn}"]
@@ -850,7 +841,7 @@ def test_lightning_cli_custom_subcommand():
         TestCLI(BoringModel, trainer_class=TestTrainer)
     out = out.getvalue()
     assert "Sample extra function." in out
-    assert "{fit,validate,test,predict,tune,foo}" in out
+    assert "{fit,validate,test,predict,foo}" in out
 
     out = StringIO()
     with mock.patch("sys.argv", ["any.py", "foo", "-h"]), redirect_stdout(out), pytest.raises(SystemExit):
@@ -1337,7 +1328,7 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
-def test_ddpstrategy_instantiation_and_find_unused_parameters():
+def test_ddpstrategy_instantiation_and_find_unused_parameters(mps_count_0):
     strategy_default = lazy_instance(DDPStrategy, find_unused_parameters=True)
     with mock.patch("sys.argv", ["any.py", "--trainer.strategy.process_group_backend=group"]):
         cli = LightningCLI(
