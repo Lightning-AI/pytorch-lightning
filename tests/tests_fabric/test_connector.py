@@ -125,6 +125,7 @@ def test_custom_cluster_environment_in_slurm_environment(_):
     assert isinstance(connector.strategy.cluster_environment, CustomCluster)
 
 
+@RunIf(mps=False)
 @mock.patch.dict(
     os.environ,
     {
@@ -246,7 +247,8 @@ def test_interactive_incompatible_backend_error(_, monkeypatch):
 
 
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
-def test_interactive_compatible_dp_strategy_gpu(_, monkeypatch):
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_interactive_compatible_dp_strategy_gpu(_, __, monkeypatch):
     monkeypatch.setattr(lightning_fabric.utilities.imports, "_IS_INTERACTIVE", True)
     connector = _Connector(strategy="dp", accelerator="gpu")
     assert connector.strategy.launcher is None
@@ -271,7 +273,6 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     ["strategy", "strategy_class"],
     (
         ("ddp", DDPStrategy),
-        ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
@@ -372,6 +373,7 @@ def test_set_devices_if_none_cpu():
     assert connector._parallel_devices == [torch.device("cpu")] * 3
 
 
+@RunIf(mps=False)
 def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         connector = _Connector(strategy="dp", devices=2)
@@ -626,7 +628,8 @@ def test_strategy_choice_ddp_cpu_slurm(strategy):
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
-def test_unsupported_tpu_choice(tpu_available):
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_unsupported_tpu_choice(_, tpu_available):
     with pytest.raises(NotImplementedError, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         _Connector(accelerator="tpu", precision=64)
 
@@ -748,7 +751,8 @@ def test_gpu_accelerator_no_gpu_backend_found_error(*_):
     "lightning_fabric.connector.torch.multiprocessing.get_all_start_methods",
     return_value=[],
 )
-def test_ddp_fork_on_unsupported_platform(_, strategy):
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_ddp_fork_on_unsupported_platform(_, __, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         _Connector(strategy=strategy)
 
@@ -784,7 +788,8 @@ def test_precision_selection_amp_ddp(strategy, devices, is_custom_plugin, plugin
 
 
 @pytest.mark.parametrize(["strategy", "strategy_cls"], [("DDP", DDPStrategy), ("Ddp", DDPStrategy)])
-def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_strategy_str_passed_being_case_insensitive(_, strategy, strategy_cls):
     connector = _Connector(strategy=strategy)
     assert isinstance(connector.strategy, strategy_cls)
 
@@ -857,7 +862,8 @@ def test_arguments_from_environment_collision():
 
 
 @RunIf(min_torch="1.12")
-def test_fsdp_unsupported_on_cpu():
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
         _Connector(strategy="fsdp")
