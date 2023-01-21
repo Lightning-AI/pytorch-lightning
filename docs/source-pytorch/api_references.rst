@@ -50,7 +50,7 @@ callbacks
     TQDMProgressBar
 
 cli
------
+---
 
 .. currentmodule:: pytorch_lightning.cli
 
@@ -292,17 +292,6 @@ strategies
     Strategy
     TPUSpawnStrategy
 
-tuner
------
-
-.. currentmodule:: pytorch_lightning.tuner.tuning
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    Tuner
 
 utilities
 ---------
