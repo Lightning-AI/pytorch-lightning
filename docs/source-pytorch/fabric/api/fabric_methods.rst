@@ -200,28 +200,38 @@ the data is written to disk.
 See also: :doc:`../advanced/distributed_communication`
 
 
-broadcast
-=========
+all_gather, all_reduce, broadcast
+=================================
 
-Send a tensor from one process to all others.
+You can send tensors and other data between processes using collective operations.
+The three most common ones, :meth:`~lightning_fabric.fabric.Fabric.broadcast`, :meth:`~lightning_fabric.fabric.Fabric.all_gather` and :meth:`~lightning_fabric.fabric.Fabric.all_reduce` are available directly on the Fabric object for convenience:
+
+- :meth:`~lightning_fabric.fabric.Fabric.broadcast`: Send a tensor from one process to all others.
+- :meth:`~lightning_fabric.fabric.Fabric.all_gather`: Gather tensors from every process and stack them.
+- :meth:`~lightning_fabric.fabric.Fabric.all_reduce`: Apply a reduction function on tensors across processes (sum, mean, etc.).
+
+.. code-block:: python
+
+    # Send the value of a tensor from rank 0 to all others
+    result = fabric.broadcast(tensor, src=0)
+
+    # Every process gets the stack of tensors from everybody else
+    all_tensors = fabric.all_gather(tensor)
+
+    # Sum a tensor across processes (everyone gets the result)
+    reduced_tensor = fabric.all_reduce(tensor, reduce_op="sum")
+
+    # Also works with a collection of tensors (dict, list, tuple):
+    collection = {"loss": torch.tensor(...), "data": ...}
+    gathered_collection = fabric.all_gather(collection, ...)
+    reduced_collection = fabric.all_reduce(collection, ...)
 
 
-See also: :doc:`../advanced/distributed_communication`
+.. important::
 
+    Every process needs to enter the collective calls, otherwise the program will hang!
 
-all_gather
-==========
-
-
-See also: :doc:`../advanced/distributed_communication`
-
-
-all_reduce
-==========
-
-
-See also: :doc:`../advanced/distributed_communication`
-
+Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
 
 no_backward_sync
