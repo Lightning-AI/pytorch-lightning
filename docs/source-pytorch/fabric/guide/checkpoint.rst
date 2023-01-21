@@ -19,13 +19,7 @@ Put everything into a dictionary, including models and optimizers and whatever m
 .. code-block:: python
 
     # Define the state of your program/loop
-    state = {
-        "model1": model1,
-        "model2": model2,
-        "optimizer": optimizer,
-        "iteration": iteration,
-        "hparams": ...
-    }
+    state = {"model1": model1, "model2": model2, "optimizer": optimizer, "iteration": iteration, "hparams": ...}
 
 
 ----
