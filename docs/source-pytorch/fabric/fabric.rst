@@ -254,6 +254,14 @@ Examples
     :tag: intermediate
 
 .. displayitem::
+    :header: Large Language Models
+    :description: Pre-train a GPT-2 language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
+
+.. displayitem::
     :header: Reinforcement Learning
     :description: Coming soon
     :col_css: col-md-4
