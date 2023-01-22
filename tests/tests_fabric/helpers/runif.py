@@ -134,6 +134,8 @@ class RunIf:
             conditions.append(not _DEEPSPEED_AVAILABLE)
             conditions.append(num_cuda_devices() < 1)
             reasons.append("DeepSpeed")
+            # used in conftest.py::pytest_collection_modifyitems
+            kwargs["min_cuda_gpus"] = True
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
