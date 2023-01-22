@@ -847,4 +847,4 @@ def test_connector_defaults_match_trainer_defaults():
 
     # defaults should match on the intersection of argument names
     for name, connector_default in connector_defaults.items():
-        assert connector_default == trainer_defaults[name], f"{name}"
+        assert connector_default == trainer_defaults[name]
