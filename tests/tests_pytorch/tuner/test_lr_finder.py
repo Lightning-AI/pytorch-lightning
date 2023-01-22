@@ -254,11 +254,11 @@ def test_suggestion_parameters_work(tmpdir):
 
     # logger file to get meta
     model = CustomBoringModel(lr=1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
-
-    lrfinder = trainer.tuner.lr_find(model)
-    lr1 = lrfinder.suggestion(skip_begin=10)  # default
-    lr2 = lrfinder.suggestion(skip_begin=70)  # way too high, should have an impact
+    lr_finder = LearningRateFinder()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=lr_finder)
+    trainer.fit(model)
+    lr1 = lr_finder.optimal_lr.suggestion(skip_begin=10)  # default
+    lr2 = lr_finder.optimal_lr.suggestion(skip_begin=70)  # way too high, should have an impact
 
     assert lr1 is not None
     assert lr2 is not None
@@ -279,12 +279,13 @@ def test_suggestion_with_non_finite_values(tmpdir):
             return optimizer
 
     model = CustomBoringModel(lr=1e-2)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
+    lr_finder = LearningRateFinder()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=lr_finder)
+    trainer.fit(model)
 
-    lrfinder = trainer.tuner.lr_find(model)
-    before_lr = lrfinder.suggestion()
-    lrfinder.results["loss"][-1] = float("nan")
-    after_lr = lrfinder.suggestion()
+    before_lr = lr_finder.optimal_lr.suggestion()
+    lr_finder.optimal_lr.results["loss"][-1] = float("nan")
+    after_lr = lr_finder.optimal_lr.suggestion()
 
     assert before_lr is not None
     assert after_lr is not None
@@ -427,9 +428,10 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
             self.learning_rate = 0.123
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir)
-    lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
-    assert lr_finder.suggestion() is None
+    lr_finder = LearningRateFinder(num_training_steps=1, update_attr=True)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=lr_finder, max_steps=3)
+    trainer.fit(model)
+    assert lr_finder.optimal_lr.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
 
 

@@ -44,14 +44,14 @@ if TYPE_CHECKING and _MATPLOTLIB_AVAILABLE:
 log = logging.getLogger(__name__)
 
 
-def _determine_lr_attr_name(trainer: "pl.Trainer", model: "pl.LightningModule") -> str:
-    if isinstance(trainer.auto_lr_find, str):
-        if not lightning_hasattr(model, trainer.auto_lr_find):
+def _determine_lr_attr_name(model: "pl.LightningModule", attr_name: str = "") -> str:
+    if attr_name:
+        if not lightning_hasattr(model, attr_name):
             raise MisconfigurationException(
-                f"`auto_lr_find` was set to {trainer.auto_lr_find}, however"
+                f"`auto_lr_find` was set to {attr_name}, however"
                 " could not find this as a field in `model` or `model.hparams`."
             )
-        return trainer.auto_lr_find
+        return attr_name
 
     attr_options = ("lr", "learning_rate")
     for attr in attr_options:
@@ -210,6 +210,7 @@ def lr_find(
     mode: str = "exponential",
     early_stop_threshold: Optional[float] = 4.0,
     update_attr: bool = False,
+    attr_name: str = "",
 ) -> Optional[_LRFinder]:
     """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
     picking a good starting learning rate.
@@ -236,7 +237,7 @@ def lr_find(
 
     # Determine lr attr
     if update_attr:
-        lr_attr_name = _determine_lr_attr_name(trainer, model)
+        attr_name = _determine_lr_attr_name(model, attr_name)
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
@@ -284,7 +285,7 @@ def lr_find(
 
         # TODO: log lr.results to self.logger
         if lr is not None:
-            lightning_setattr(model, lr_attr_name, lr)
+            lightning_setattr(model, attr_name, lr)
             log.info(f"Learning rate set to {lr}")
 
     # Restore initial state of model

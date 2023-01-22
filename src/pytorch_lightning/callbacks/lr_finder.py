@@ -94,9 +94,9 @@ class LearningRateFinder(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
 
-        self.lr_finder: Optional[_LRFinder] = None
+        self.optimal_lr: Optional[_LRFinder] = None
 
-    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Optional[_LRFinder]:
         with isolate_rng():
             self.optimal_lr = lr_find(
                 trainer,
@@ -108,6 +108,7 @@ class LearningRateFinder(Callback):
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
             )
+        return self.optimal_lr
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)
