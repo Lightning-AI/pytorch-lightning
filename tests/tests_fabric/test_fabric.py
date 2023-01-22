@@ -556,7 +556,7 @@ def test_backward():
     fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
     fabric = EmptyFabric(strategy="deepspeed")
