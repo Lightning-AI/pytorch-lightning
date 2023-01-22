@@ -132,7 +132,8 @@ class RunIf:
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
-            reasons.append("Deepspeed")
+            conditions.append(num_cuda_devices() < 1)
+            reasons.append("DeepSpeed")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
