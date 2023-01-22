@@ -132,8 +132,9 @@ class RunIf:
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
-            conditions.append(num_cuda_devices() < 1)
             reasons.append("DeepSpeed")
+            # DeepSpeed requires GPUs for most of its functionality
+            conditions.append(num_cuda_devices() < 1)
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
 
