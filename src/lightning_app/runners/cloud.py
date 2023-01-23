@@ -9,19 +9,19 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
 from lightning_cloud.openapi import (
     Body3,
     Body4,
-    Body7,
-    Body8,
-    Body9,
+    CloudspaceIdRunsBody,
     Externalv1LightningappInstance,
     Gridv1ImageSpec,
+    IdGetBody1,
+    ProjectIdCloudspacesBody,
     V1BuildSpec,
-    V1ClusterType,
+    V1CloudSpace,
     V1DependencyFileInfo,
     V1Drive,
     V1DriveSpec,
@@ -33,13 +33,13 @@ from lightning_cloud.openapi import (
     V1LightningappInstanceState,
     V1LightningAuth,
     V1LightningBasicAuth,
+    V1LightningRun,
     V1LightningworkDrives,
     V1LightningworkSpec,
     V1Membership,
     V1Metadata,
     V1NetworkConfig,
     V1PackageManager,
-    V1ProjectClusterBinding,
     V1PythonDependencyInfo,
     V1QueueServerType,
     V1SourceType,
@@ -49,13 +49,11 @@ from lightning_cloud.openapi import (
 )
 from lightning_cloud.openapi.rest import ApiException
 
-from lightning_app import LightningWork
 from lightning_app.core.app import LightningApp
 from lightning_app.core.constants import (
     CLOUD_UPLOAD_WARNING,
     DEFAULT_NUMBER_OF_EXPOSED_PORTS,
     DISABLE_DEPENDENCY_CACHE,
-    DOT_IGNORE_FILENAME,
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
@@ -63,7 +61,9 @@ from lightning_app.core.constants import (
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
     get_lightning_cloud_url,
+    LIGHTNING_CLOUD_PRINT_SPECS,
 )
+from lightning_app.core.work import LightningWork
 from lightning_app.runners.backends.cloud import CloudBackend
 from lightning_app.runners.runtime import Runtime
 from lightning_app.source_code import LocalSourceCodeDir
@@ -72,6 +72,7 @@ from lightning_app.storage import Drive, Mount
 from lightning_app.utilities.app_helpers import _is_headless, Logger
 from lightning_app.utilities.auth import _credential_string_to_basic_auth_params
 from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.clusters import _ensure_cluster_project_binding, _get_default_cluster
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.load_app import load_app_from_file
 from lightning_app.utilities.packaging.app_config import _get_config_file, AppConfig
@@ -79,84 +80,6 @@ from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning
 from lightning_app.utilities.secrets import _names_to_ids
 
 logger = Logger(__name__)
-
-
-def _get_work_specs(app: LightningApp) -> List[V1Work]:
-    works: List[V1Work] = []
-    for work in app.works:
-        _validate_build_spec_and_compute(work)
-
-        if not work._start_with_flow:
-            continue
-
-        work_requirements = "\n".join(work.cloud_build_config.requirements)
-        build_spec = V1BuildSpec(
-            commands=work.cloud_build_config.build_commands(),
-            python_dependencies=V1PythonDependencyInfo(
-                package_manager=V1PackageManager.PIP, packages=work_requirements
-            ),
-            image=work.cloud_build_config.image,
-        )
-        user_compute_config = V1UserRequestedComputeConfig(
-            name=work.cloud_compute.name,
-            count=1,
-            disk_size=work.cloud_compute.disk_size,
-            preemptible=work.cloud_compute.preemptible,
-            shm_size=work.cloud_compute.shm_size,
-        )
-
-        drive_specs: List[V1LightningworkDrives] = []
-        for drive_attr_name, drive in [
-            (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
-        ]:
-            if drive.protocol == "lit://":
-                drive_type = V1DriveType.NO_MOUNT_S3
-                source_type = V1SourceType.S3
-            else:
-                raise RuntimeError(
-                    f"unknown drive protocol `{drive.protocol}`. Please verify this "
-                    f"drive type has been configured for use in the cloud dispatcher."
-                )
-
-            drive_specs.append(
-                V1LightningworkDrives(
-                    drive=V1Drive(
-                        metadata=V1Metadata(
-                            name=f"{work.name}.{drive_attr_name}",
-                        ),
-                        spec=V1DriveSpec(
-                            drive_type=drive_type,
-                            source_type=source_type,
-                            source=f"{drive.protocol}{drive.id}",
-                        ),
-                        status=V1DriveStatus(),
-                    ),
-                ),
-            )
-
-        # TODO: Move this to the CloudCompute class and update backend
-        if work.cloud_compute.mounts is not None:
-            mounts = work.cloud_compute.mounts
-            if isinstance(mounts, Mount):
-                mounts = [mounts]
-            for mount in mounts:
-                drive_specs.append(
-                    _create_mount_drive_spec(
-                        work_name=work.name,
-                        mount=mount,
-                    )
-                )
-
-        random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
-        work_spec = V1LightningworkSpec(
-            build_spec=build_spec,
-            drives=drive_specs,
-            user_requested_compute_config=user_compute_config,
-            network_config=[V1NetworkConfig(name=random_name, port=work.port)],
-        )
-        works.append(V1Work(name=work.name, spec=work_spec))
-
-    return works
 
 
 def _to_clean_dict(swagger_object, map_attributes):
@@ -179,21 +102,6 @@ def _to_clean_dict(swagger_object, map_attributes):
     return swagger_object
 
 
-def _generate_works_json(filepath: str, map_attributes: bool) -> str:
-    app = CloudRuntime.load_app_from_file(filepath)
-    works = _get_work_specs(app)
-    works_json = json.dumps(_to_clean_dict(works, map_attributes), separators=(",", ":"))
-    return works_json
-
-
-def _generate_works_json_web(filepath: str) -> str:
-    return _generate_works_json(filepath, True)
-
-
-def _generate_works_json_gallery(filepath: str) -> str:
-    return _generate_works_json(filepath, False)
-
-
 @dataclass
 class CloudRuntime(Runtime):
     backend: Union[str, CloudBackend] = "cloud"
@@ -203,6 +111,7 @@ class CloudRuntime(Runtime):
         name: str = "",
         cluster_id: str = None,
         open_ui: bool = True,
+        no_cache: bool = False,
         **kwargs: Any,
     ) -> None:
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -213,28 +122,155 @@ class CloudRuntime(Runtime):
                 "initialize the Runtime object with `entrypoint_file` argument?"
             )
 
-        # If enable_basic_auth is set, we parse credential string and set up authentication for the app
-        auth: V1LightningAuth = None
-        if self.enable_basic_auth != "":
-            parsed_credentials = _credential_string_to_basic_auth_params(self.enable_basic_auth)
-            auth = V1LightningAuth(
-                basic=V1LightningBasicAuth(
-                    username=parsed_credentials["username"], password=parsed_credentials["password"]
-                )
+        cleanup_handle = None
+
+        try:
+            # Dispatch in four phases: resolution, validation, spec creation, API transactions
+            # Resolution
+            cloudspace_config = self._resolve_config(name)
+            root = self._resolve_root()
+            repo = self._resolve_repo(root)
+            project = self._resolve_project()
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
+            existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
+                cluster_id, project.project_id, existing_cloudspaces
+            )
+            cloudspace_name = self._resolve_cloudspace_name(
+                cloudspace_config.name,
+                existing_cloudspace,
+                existing_cloudspaces,
+            )
+            queue_server_type = self._resolve_queue_server_type()
+            needs_credits = self._resolve_needs_credits(project)
+
+            # TODO: Move these
+            cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
+            self.app._update_index_file()
+
+            # Validation
+            self._validate_repo(root, repo)
+            self._validate_cluster_id(cluster_id, project.project_id)
+            self._validate_work_build_specs_and_compute()
+            self._validate_drives()
+            self._validate_mounts()
+
+            # Spec creation
+            flow_servers = self._get_flow_servers()
+            network_configs = self._get_network_configs(flow_servers)
+            works = self._get_works()
+            run_body = self._get_run_body(
+                cluster_id, flow_servers, network_configs, works, no_cache, root, self.start_server
+            )
+            auth = self._get_auth(self.enable_basic_auth)
+            env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+            if LIGHTNING_CLOUD_PRINT_SPECS is not None:
+                self._print_specs(run_body, LIGHTNING_CLOUD_PRINT_SPECS)
+                sys.exit(0)
+
+            print(f"The name of the app is: {cloudspace_name}")
+
+            # API transactions
+            cloudspace_id = self._api_create_cloudspace_if_not_exists(
+                project.project_id,
+                cloudspace_name,
+                existing_cloudspace,
+            )
+            self._api_stop_existing_run_instance(project.project_id, existing_run_instance)
+            run = self._api_create_run(project.project_id, cloudspace_id, run_body)
+            self._api_package_and_upload_repo(repo, run)
+
+            if getattr(run, "cluster_id", None):
+                print(f"Running app on {run.cluster_id}")
+
+            # Save the config for re-runs
+            cloudspace_config.save_to_dir(root)
+
+            desired_state = (
+                V1LightningappInstanceState.STOPPED if needs_credits else V1LightningappInstanceState.RUNNING
             )
 
-        # Determine the root of the project: Start at the entrypoint_file and look for nearby Lightning config files,
-        # going up the directory structure. The root of the project is where the Lightning config file is located.
+            if existing_run_instance is not None:
+                run_instance = self._api_transfer_run_instance(
+                    project.project_id,
+                    run.id,
+                    existing_run_instance.id,
+                    desired_state,
+                    queue_server_type,
+                    env_vars,
+                    auth,
+                )
+            else:
+                run_instance = self._api_create_run_instance(
+                    cluster_id,
+                    project.project_id,
+                    cloudspace_name,
+                    cloudspace_id,
+                    run.id,
+                    desired_state,
+                    queue_server_type,
+                    env_vars,
+                    auth,
+                )
+        except ApiException as e:
+            logger.error(e.body)
+            sys.exit(1)
+        finally:
+            if cleanup_handle:
+                cleanup_handle()
 
+        if run_instance.status.phase == V1LightningappInstanceState.FAILED:
+            raise RuntimeError("Failed to create the application. Cannot upload the source code.")
+
+        # TODO: Remove testing dependency, but this would open a tab for each test...
+        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
+            click.launch(self._get_app_url(run_instance, needs_credits))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """Load a LightningApp from a file, mocking the imports."""
+
+        # Pretend we are running in the cloud when loading the app locally
+        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+
+        try:
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a generic app.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
+        return app
+
+    def _resolve_config(self, name: Optional[str]) -> AppConfig:
+        """Find and load the config file if it exists (otherwise create an empty config).
+
+        Override the name if provided.
+        """
         config_file = _get_config_file(self.entrypoint_file)
-        app_config = AppConfig.load_from_file(config_file) if config_file.exists() else AppConfig()
-        root = Path(self.entrypoint_file).absolute().parent
-        cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
-        self.app._update_index_file()
+        cloudspace_config = AppConfig.load_from_file(config_file) if config_file.exists() else AppConfig()
+        if name:
+            # Override the name if provided
+            cloudspace_config.name = name
+        return cloudspace_config
 
-        # gather and merge all lightningignores
-        children = self.app.flows + self.app.works
-        lightningignores = [c.lightningignore for c in children]
+    def _resolve_root(self) -> Path:
+        """Determine the root of the project."""
+        return Path(self.entrypoint_file).absolute().parent
+
+    def _resolve_repo(self, root: Path) -> LocalSourceCodeDir:
+        """Gather and merge all lightningignores from the app children and create the ``LocalSourceCodeDir``
+        object."""
+
+        flow_lightningignores = [flow.lightningignore for flow in self.app.flows]
+        work_lightningignores = [work.lightningignore for work in self.app.works]
+        lightningignores = flow_lightningignores + work_lightningignores
         if lightningignores:
             merged = sum(lightningignores, tuple())
             logger.debug(f"Found the following lightningignores: {merged}")
@@ -243,329 +279,101 @@ class CloudRuntime(Runtime):
         else:
             ignore_functions = None
 
-        # Create a default dotignore if it doesn't exist
-        if not (root / DOT_IGNORE_FILENAME).is_file():
-            with open(root / DOT_IGNORE_FILENAME, "w") as f:
-                f.write("venv/\n")
-                if (root / "bin" / "activate").is_file() or (root / "pyvenv.cfg").is_file():
-                    # the user is developing inside venv
-                    f.write("bin/\ninclude/\nlib/\npyvenv.cfg\n")
+        return LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
 
-        repo = LocalSourceCodeDir(path=root, ignore_functions=ignore_functions)
-        self._check_uploaded_folder(root, repo)
-        requirements_file = root / "requirements.txt"
-        # The entry point file needs to be relative to the root of the uploaded source file directory,
-        # because the backend will invoke the lightning commands relative said source directory
-        app_entrypoint_file = Path(self.entrypoint_file).absolute().relative_to(root)
+    def _resolve_project(self) -> V1Membership:
+        """Determine the project to run on, choosing a default if multiple projects are found."""
+        return _get_project(self.backend.client)
 
-        if name:
-            # Override the name if provided by the CLI
-            app_config.name = name
+    def _resolve_existing_cloudspaces(self, project, cloudspace_name: str) -> List[V1CloudSpace]:
+        """Lists all the cloudspaces with a name matching the provided cloudspace name."""
+        # TODO: Add pagination, otherwise this could break if users have a lot of cloudspaces.
+        existing_cloudspaces = self.backend.client.cloud_space_service_list_cloud_spaces(
+            project_id=project.project_id
+        ).cloudspaces
 
-        print(f"The name of the app is: {app_config.name}")
-
-        v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in self.env_vars.items()]
-
-        if len(self.secrets.values()) > 0:
-            secret_names_to_ids = _names_to_ids(self.secrets.values())
-            env_vars_from_secrets = [
-                V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in self.secrets.items()
-            ]
-            v1_env_vars.extend(env_vars_from_secrets)
-
-        if self.run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
-            v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
-
-        if enable_multiple_works_in_default_container():
-            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
-
-        if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
-            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
-
-        if not ENABLE_PULLING_STATE_ENDPOINT:
-            v1_env_vars.append(V1EnvVar(name="ENABLE_PULLING_STATE_ENDPOINT", value="0"))
-
-        if not ENABLE_PUSHING_STATE_ENDPOINT:
-            v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
-
-        works: List[V1Work] = _get_work_specs(self.app)
-
-        # We need to collect a spec for each flow that contains a frontend so that the backend knows
-        # for which flows it needs to start servers by invoking the cli (see the serve_frontend() method below)
-        frontend_specs: List[V1Flowserver] = []
-        for flow_name in self.app.frontends.keys():
-            frontend_spec = V1Flowserver(name=flow_name)
-            frontend_specs.append(frontend_spec)
-
-        app_spec = V1LightningappInstanceSpec(
-            app_entrypoint_file=str(app_entrypoint_file),
-            enable_app_server=self.start_server,
-            flow_servers=frontend_specs,
-            desired_state=V1LightningappInstanceState.RUNNING,
-            env=v1_env_vars,
-            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
-                name=self.app.flow_cloud_compute.name,
-                shm_size=self.app.flow_cloud_compute.shm_size,
-                preemptible=False,
-            ),
-            auth=auth,
-        )
-
-        # if requirements file at the root of the repository is present,
-        # we pass just the file name to the backend, so backend can find it in the relative path
-        if requirements_file.is_file():
-            app_spec.image_spec = Gridv1ImageSpec(
-                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
-            )
-            if not DISABLE_DEPENDENCY_CACHE and not kwargs.get("no_cache"):
-                # hash used for caching the dependencies
-                app_spec.dependency_cache_key = get_hash(requirements_file)
-        # we'll get the default project (quite similar to Github Organization) from the backend
-        project = _get_project(self.backend.client)
-
-        try:
-            if cluster_id is not None:
-                # Verify that the cluster exists
-                list_clusters_resp = self.backend.client.cluster_service_list_clusters()
-                cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
-                if cluster_id not in cluster_ids:
-                    raise ValueError(f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist.")
-
-                self._ensure_cluster_project_binding(project.project_id, cluster_id)
-
-            # Resolve the app name, instance, and cluster ID
-            existing_app = None
-            existing_instance = None
-            app_name = app_config.name
-
-            # List existing apps
-            # TODO: Add pagination, otherwise this could break if users have a lot of apps.
-            all_apps = self.backend.client.lightningapp_v2_service_list_lightningapps_v2(
-                project_id=project.project_id
-            ).lightningapps
-
-            # Seach for apps with the given name (possibly with some random characters appended)
-            pattern = re.escape(f"{app_name}-") + ".{4}"
-            all_apps = [
-                lightningapp
-                for lightningapp in all_apps
-                if lightningapp.name == app_name or (re.fullmatch(pattern, lightningapp.name) is not None)
-            ]
-
-            # If apps exist and cluster is None, mimic cluster selection logic to choose a default
-            if cluster_id is None and len(all_apps) > 0:
-                # Determine the cluster ID
-                cluster_id = self._get_default_cluster(project.project_id)
-
-            # If an instance exists on the cluster with the same base name - restart it
-            for app in all_apps:
-                instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
-                    project_id=project.project_id,
-                    app_id=app.id,
-                ).lightningapps
-                if instances and instances[0].spec.cluster_id == cluster_id:
-                    existing_app = app
-                    existing_instance = instances[0]
-                    break
-
-            # If apps exist but not on the cluster - choose a randomised name
-            if len(all_apps) > 0 and existing_app is None:
-                name_exists = True
-                while name_exists:
-                    random_name = self._randomise_name(app_name)
-                    name_exists = any([app.name == random_name for app in all_apps])
-
-                app_name = random_name
-
-            # Create the app if it doesn't exist
-            if existing_app is None:
-                app_body = Body7(name=app_name, can_download_source_code=True)
-                lit_app = self.backend.client.lightningapp_v2_service_create_lightningapp_v2(
-                    project_id=project.project_id, body=app_body
-                )
-                app_id = lit_app.id
-            else:
-                app_id = existing_app.id
-
-            # check if user has sufficient credits to run an app
-            # if so set the desired state to running otherwise, create the app in stopped state,
-            # and open the admin ui to add credits and running the app.
-            has_sufficient_credits = self._project_has_sufficient_credits(project, app=self.app)
-            app_release_desired_state = (
-                V1LightningappInstanceState.RUNNING if has_sufficient_credits else V1LightningappInstanceState.STOPPED
-            )
-            if not has_sufficient_credits:
-                logger.warn("You may need Lightning credits to run your apps on the cloud.")
-
-            # Stop the instance if it isn't stopped yet
-            if existing_instance and existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
-                # TODO(yurij): Implement release switching in the UI and remove this
-                # We can only switch release of the stopped instance
-                existing_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
-                    project_id=project.project_id,
-                    id=existing_instance.id,
-                    body=Body3(spec=V1LightningappInstanceSpec(desired_state=V1LightningappInstanceState.STOPPED)),
-                )
-                # wait for the instance to stop for up to 150 seconds
-                for _ in range(150):
-                    existing_instance = self.backend.client.lightningapp_instance_service_get_lightningapp_instance(
-                        project_id=project.project_id, id=existing_instance.id
-                    )
-                    if existing_instance.status.phase == V1LightningappInstanceState.STOPPED:
-                        break
-                    time.sleep(1)
-                if existing_instance.status.phase != V1LightningappInstanceState.STOPPED:
-                    raise RuntimeError("Failed to stop the existing instance.")
-
-            network_configs: Optional[List[V1NetworkConfig]] = None
-            if enable_multiple_works_in_default_container():
-                network_configs = []
-                initial_port = 8080 + 1 + len(frontend_specs)
-                for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
-                    network_configs.append(
-                        V1NetworkConfig(
-                            name="w" + str(initial_port),
-                            port=initial_port,
-                        )
-                    )
-                    initial_port += 1
-
-            queue_server_type = V1QueueServerType.UNSPECIFIED
-            # Note: Enable app to select their own queue type.
-            queue_type = get_cloud_queue_type()
-            if queue_type == "http":
-                queue_server_type = V1QueueServerType.HTTP
-            elif queue_type == "redis":
-                queue_server_type = V1QueueServerType.REDIS
-
-            release_body = Body8(
-                app_entrypoint_file=app_spec.app_entrypoint_file,
-                enable_app_server=app_spec.enable_app_server,
-                flow_servers=app_spec.flow_servers,
-                image_spec=app_spec.image_spec,
-                cluster_id=cluster_id,
-                network_config=network_configs,
-                works=works,
-                local_source=True,
-                dependency_cache_key=app_spec.dependency_cache_key,
-                user_requested_flow_compute_config=app_spec.user_requested_flow_compute_config,
-                is_headless=_is_headless(self.app),
-            )
-
-            # create / upload the new app release
-            lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
-                project_id=project.project_id, app_id=app_id, body=release_body
-            )
-
-            if lightning_app_release.source_upload_url == "":
-                raise RuntimeError("The source upload url is empty.")
-
-            if getattr(lightning_app_release, "cluster_id", None):
-                print(f"Running app on {lightning_app_release.cluster_id}")
-
-            # Save the config for re-runs
-            app_config.save_to_dir(root)
-
-            repo.package()
-            repo.upload(url=lightning_app_release.source_upload_url)
-
-            if existing_instance is not None:
-                lightning_app_instance = (
-                    self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
-                        project_id=project.project_id,
-                        id=existing_instance.id,
-                        body=Body4(release_id=lightning_app_release.id),
-                    )
-                )
-
-                self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
-                    project_id=project.project_id,
-                    id=existing_instance.id,
-                    body=Body3(
-                        spec=V1LightningappInstanceSpec(
-                            desired_state=app_release_desired_state,
-                            env=v1_env_vars,
-                            queue_server_type=queue_server_type,
-                            auth=app_spec.auth,
-                        )
-                    ),
-                )
-            else:
-                lightning_app_instance = (
-                    self.backend.client.lightningapp_v2_service_create_lightningapp_release_instance(
-                        project_id=project.project_id,
-                        app_id=app_id,
-                        id=lightning_app_release.id,
-                        body=Body9(
-                            cluster_id=cluster_id,
-                            desired_state=app_release_desired_state,
-                            name=app_name,
-                            env=v1_env_vars,
-                            queue_server_type=queue_server_type,
-                            auth=app_spec.auth,
-                        ),
-                    )
-                )
-        except ApiException as e:
-            logger.error(e.body)
-            sys.exit(1)
-
-        if lightning_app_instance.status.phase == V1LightningappInstanceState.FAILED:
-            raise RuntimeError("Failed to create the application. Cannot upload the source code.")
-
-        # TODO: Remove testing dependency, but this would open a tab for each test...
-        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
-            click.launch(self._get_app_url(lightning_app_instance, not has_sufficient_credits))
-
-        if cleanup_handle:
-            cleanup_handle()
-
-    def _ensure_cluster_project_binding(self, project_id: str, cluster_id: str):
-        cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(project_id=project_id)
-
-        for cluster_binding in cluster_bindings.clusters:
-            if cluster_binding.cluster_id != cluster_id:
-                continue
-            if cluster_binding.project_id == project_id:
-                return
-
-        self.backend.client.projects_service_create_project_cluster_binding(
-            project_id=project_id,
-            body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project_id),
-        )
-
-    def _get_default_cluster(self, project_id: str) -> str:
-        """This utility implements a minimal version of the cluster selection logic used in the cloud.
-
-        TODO: This should be requested directly from the platform.
-        """
-        cluster_bindings = self.backend.client.projects_service_list_project_cluster_bindings(
-            project_id=project_id
-        ).clusters
-
-        if not cluster_bindings:
-            raise ValueError(f"No clusters are bound to the project {project_id}.")
-
-        if len(cluster_bindings) == 1:
-            return cluster_bindings[0].cluster_id
-
-        clusters = [
-            self.backend.client.cluster_service_get_cluster(cluster_binding.cluster_id)
-            for cluster_binding in cluster_bindings
+        # Search for cloudspaces with the given name (possibly with some random characters appended)
+        pattern = re.escape(f"{cloudspace_name}-") + ".{4}"
+        return [
+            cloudspace
+            for cloudspace in existing_cloudspaces
+            if cloudspace.name == cloudspace_name or (re.fullmatch(pattern, cloudspace.name) is not None)
         ]
 
-        # Filter global clusters
-        clusters = [cluster for cluster in clusters if cluster.spec.cluster_type == V1ClusterType.GLOBAL]
+    def _resolve_cluster_id(
+        self, cluster_id: Optional[str], project_id: str, existing_cloudspaces: List[V1CloudSpace]
+    ) -> Optional[str]:
+        """If cloudspaces exist and cluster is None, mimic cluster selection logic to choose a default."""
+        if cluster_id is None and len(existing_cloudspaces) > 0:
+            # Determine the cluster ID
+            cluster_id = _get_default_cluster(self.backend.client, project_id)
+        return cluster_id
 
-        return random.choice(clusters).id
+    def _resolve_existing_run_instance(
+        self, cluster_id: Optional[str], project_id: str, existing_cloudspaces: List[V1CloudSpace]
+    ) -> Tuple[Optional[V1CloudSpace], Optional[Externalv1LightningappInstance]]:
+        """Look for an existing run and instance from one of the provided cloudspaces on the provided cluster."""
+        existing_cloudspace = None
+        existing_run_instance = None
+
+        if cluster_id is not None:
+            for cloudspace in existing_cloudspaces:
+                run_instances = self.backend.client.lightningapp_instance_service_list_lightningapp_instances(
+                    project_id=project_id,
+                    app_id=cloudspace.id,
+                ).lightningapps
+                if run_instances and run_instances[0].spec.cluster_id == cluster_id:
+                    existing_cloudspace = cloudspace
+                    existing_run_instance = run_instances[0]
+                    break
+        return existing_cloudspace, existing_run_instance
+
+    def _resolve_cloudspace_name(
+        self,
+        cloudspace_name: str,
+        existing_cloudspace: Optional[V1CloudSpace],
+        existing_cloudspaces: List[V1CloudSpace],
+    ) -> str:
+        """If there are existing cloudspaces but not on the cluster - choose a randomised name."""
+        if len(existing_cloudspaces) > 0 and existing_cloudspace is None:
+            letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+            name_exists = True
+            while name_exists:
+                random_name = cloudspace_name + "-" + "".join(random.sample(letters, 4))
+                name_exists = any([app.name == random_name for app in existing_cloudspaces])
+
+            cloudspace_name = random_name
+        return cloudspace_name
+
+    def _resolve_queue_server_type(self) -> V1QueueServerType:
+        """Resolve the cloud queue type from the environment."""
+        queue_server_type = V1QueueServerType.UNSPECIFIED
+        # Note: Enable app to select their own queue type.
+        queue_type = get_cloud_queue_type()
+        if queue_type == "http":
+            queue_server_type = V1QueueServerType.HTTP
+        elif queue_type == "redis":
+            queue_server_type = V1QueueServerType.REDIS
+        return queue_server_type
 
     @staticmethod
-    def _randomise_name(app_name: str) -> str:
-        letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return app_name + "-" + "".join(random.sample(letters, 4))
+    def _resolve_needs_credits(project: V1Membership):
+        """Check if the user likely needs credits to run the app with its hardware.
+
+        Returns False if user has 1 or more credits.
+        """
+        balance = project.balance
+        if balance is None:
+            balance = 0  # value is missing in some tests
+
+        needs_credits = balance < 1
+        if needs_credits:
+            logger.warn("You may need Lightning credits to run your apps on the cloud.")
+        return needs_credits
 
     @staticmethod
-    def _check_uploaded_folder(root: Path, repo: LocalSourceCodeDir) -> None:
+    def _validate_repo(root: Path, repo: LocalSourceCodeDir) -> None:
         """This method is used to inform the users if their folder files are large and how to filter them."""
         excludes = set(fnmatch.filter(repo.files, "*lightning-*.tar.gz"))
         excludes.update(fnmatch.filter(repo.files, ".lightningignore"))
@@ -596,72 +404,378 @@ class CloudRuntime(Runtime):
 
             logger.warn(warning_msg)
 
-    def _project_has_sufficient_credits(self, project: V1Membership, app: Optional[LightningApp] = None):
-        """check if user has enough credits to run the app with its hardware if app is not passed return True if
-        user has 1 or more credits."""
-        balance = project.balance
-        if balance is None:
-            balance = 0  # value is missing in some tests
+    def _validate_cluster_id(self, cluster_id: Optional[str], project_id: str):
+        """Check that the provided cluster exists and ensure that it is bound to the given project."""
+        if cluster_id is not None:
+            # Verify that the cluster exists
+            list_clusters_resp = self.backend.client.cluster_service_list_clusters()
+            cluster_ids = [cluster.id for cluster in list_clusters_resp.clusters]
+            if cluster_id not in cluster_ids:
+                raise ValueError(f"You requested to run on cluster {cluster_id}, but that cluster doesn't exist.")
 
-        return balance >= 1
+            _ensure_cluster_project_binding(self.backend.client, project_id, cluster_id)
 
-    @classmethod
-    def load_app_from_file(cls, filepath: str) -> "LightningApp":
-        """Load a LightningApp from a file, mocking the imports."""
+    def _validate_work_build_specs_and_compute(self) -> None:
+        """Check that the cloud compute and build configs are valid for all works in the app."""
+        for work in self.app.works:
+            if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
+                raise ValueError(
+                    f"You requested a custom base image for the Work with name '{work.name}', but custom images are "
+                    "currently not supported on the default cloud compute instance. Please choose a different "
+                    "configuration, for example `CloudCompute('cpu-medium')`."
+                )
 
-        # Pretend we are running in the cloud when loading the app locally
-        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+    def _validate_drives(self) -> None:
+        """Check that all drives in the app have a valid protocol."""
+        for work in self.app.works:
+            for drive_attr_name, drive in [
+                (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
+            ]:
+                if drive.protocol != "lit://":
+                    raise RuntimeError(
+                        f"Unknown drive protocol `{drive.protocol}` for drive `{work.name}.{drive_attr_name}`."
+                    )
 
-        try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
-        except FileNotFoundError as e:
-            raise e
-        except Exception:
-            from lightning_app.testing.helpers import EmptyFlow
+    def _validate_mounts(self) -> None:
+        """Check that all mounts in the app have a valid protocol."""
+        for work in self.app.works:
+            if work.cloud_compute.mounts is not None:
+                mounts = work.cloud_compute.mounts
+                for mount in [mounts] if isinstance(mounts, Mount) else mounts:
+                    if mount.protocol != "s3://":
+                        raise RuntimeError(f"Unknown mount protocol `{mount.protocol}` for work `{work.name}`.")
 
-            # Create a generic app.
-            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
-            app = LightningApp(EmptyFlow())
-        finally:
-            del os.environ["LAI_RUNNING_IN_CLOUD"]
-        return app
+    def _get_flow_servers(self) -> List[V1Flowserver]:
+        """Collect a spec for each flow that contains a frontend so that the backend knows for which flows it needs
+        to start servers."""
+        flow_servers: List[V1Flowserver] = []
+        for flow_name in self.app.frontends.keys():
+            flow_server = V1Flowserver(name=flow_name)
+            flow_servers.append(flow_server)
+        return flow_servers
+
+    @staticmethod
+    def _get_network_configs(flow_servers: List[V1Flowserver]) -> Optional[List[V1NetworkConfig]]:
+        """Get the list of network configs for the run if multiple works in default container is enabled."""
+        network_configs = None
+        if enable_multiple_works_in_default_container():
+            network_configs = []
+            initial_port = 8080 + 1 + len(flow_servers)
+            for _ in range(DEFAULT_NUMBER_OF_EXPOSED_PORTS):
+                network_configs.append(
+                    V1NetworkConfig(
+                        name="w" + str(initial_port),
+                        port=initial_port,
+                    )
+                )
+                initial_port += 1
+        return network_configs
+
+    @staticmethod
+    def _get_drives(work: LightningWork) -> List[V1LightningworkDrives]:
+        """Get the list of drive specifications for the provided work."""
+        drives: List[V1LightningworkDrives] = []
+        for drive_attr_name, drive in [
+            (k, getattr(work, k)) for k in work._state if isinstance(getattr(work, k), Drive)
+        ]:
+            drives.append(
+                V1LightningworkDrives(
+                    drive=V1Drive(
+                        metadata=V1Metadata(
+                            name=f"{work.name}.{drive_attr_name}",
+                        ),
+                        spec=V1DriveSpec(
+                            drive_type=V1DriveType.NO_MOUNT_S3,
+                            source_type=V1SourceType.S3,
+                            source=f"{drive.protocol}{drive.id}",
+                        ),
+                        status=V1DriveStatus(),
+                    ),
+                ),
+            )
+
+        return drives
+
+    @staticmethod
+    def _get_mounts(work: LightningWork) -> List[V1LightningworkDrives]:
+        """Get the list of mount specifications for the provided work."""
+        mounts = []
+        if work.cloud_compute.mounts is not None:
+            mount_objects = work.cloud_compute.mounts
+            for mount in [mount_objects] if isinstance(mount_objects, Mount) else mount_objects:
+                mounts.append(
+                    V1LightningworkDrives(
+                        drive=V1Drive(
+                            metadata=V1Metadata(
+                                name=work.name,
+                            ),
+                            spec=V1DriveSpec(
+                                drive_type=V1DriveType.INDEXED_S3,
+                                source_type=V1SourceType.S3,
+                                source=mount.source,
+                            ),
+                            status=V1DriveStatus(),
+                        ),
+                        mount_location=str(mount.mount_path),
+                    )
+                )
+        return mounts
+
+    def _get_works(self) -> List[V1Work]:
+        """Get the list of work specs from the app."""
+        works: List[V1Work] = []
+        for work in self.app.works:
+            if not work._start_with_flow:
+                continue
+
+            work_requirements = "\n".join(work.cloud_build_config.requirements)
+            build_spec = V1BuildSpec(
+                commands=work.cloud_build_config.build_commands(),
+                python_dependencies=V1PythonDependencyInfo(
+                    package_manager=V1PackageManager.PIP, packages=work_requirements
+                ),
+                image=work.cloud_build_config.image,
+            )
+            user_compute_config = V1UserRequestedComputeConfig(
+                name=work.cloud_compute.name,
+                count=1,
+                disk_size=work.cloud_compute.disk_size,
+                preemptible=work.cloud_compute.preemptible,
+                shm_size=work.cloud_compute.shm_size,
+            )
+
+            drives = self._get_drives(work)
+            mounts = self._get_mounts(work)
+
+            random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
+            work_spec = V1LightningworkSpec(
+                build_spec=build_spec,
+                drives=drives + mounts,
+                user_requested_compute_config=user_compute_config,
+                network_config=[V1NetworkConfig(name=random_name, port=work.port)],
+            )
+            works.append(V1Work(name=work.name, spec=work_spec))
+
+        return works
+
+    def _get_run_body(
+        self,
+        cluster_id: str,
+        flow_servers: List[V1Flowserver],
+        network_configs: List[V1NetworkConfig],
+        works: List[V1Work],
+        no_cache: bool,
+        root: Path,
+        start_server: bool,
+    ) -> CloudspaceIdRunsBody:
+        """Get the specification of the run creation request."""
+        # The entry point file needs to be relative to the root of the uploaded source file directory,
+        # because the backend will invoke the lightning commands relative said source directory
+        app_entrypoint_file = Path(self.entrypoint_file).absolute().relative_to(root)
+
+        run_body = CloudspaceIdRunsBody(
+            cluster_id=cluster_id,
+            app_entrypoint_file=str(app_entrypoint_file),
+            enable_app_server=start_server,
+            flow_servers=flow_servers,
+            network_config=network_configs,
+            user_requested_flow_compute_config=V1UserRequestedFlowComputeConfig(
+                name=self.app.flow_cloud_compute.name,
+                shm_size=self.app.flow_cloud_compute.shm_size,
+                preemptible=False,
+            ),
+            works=works,
+            local_source=True,
+            is_headless=_is_headless(self.app),
+        )
+
+        # if requirements file at the root of the repository is present,
+        # we pass just the file name to the backend, so backend can find it in the relative path
+        requirements_file = root / "requirements.txt"
+        if requirements_file.is_file():
+            run_body.image_spec = Gridv1ImageSpec(
+                dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
+            )
+            if not DISABLE_DEPENDENCY_CACHE and not no_cache:
+                # hash used for caching the dependencies
+                run_body.dependency_cache_key = get_hash(requirements_file)
+
+        return run_body
+
+    @staticmethod
+    def _get_auth(credentials: str) -> Optional[V1LightningAuth]:
+        """If credentials are provided, parse them and return the auth spec."""
+        auth = None
+        if credentials != "":
+            parsed_credentials = _credential_string_to_basic_auth_params(credentials)
+            auth = V1LightningAuth(
+                basic=V1LightningBasicAuth(
+                    username=parsed_credentials["username"], password=parsed_credentials["password"]
+                )
+            )
+        return auth
+
+    @staticmethod
+    def _get_env_vars(
+        env_vars: Dict[str, str], secrets: Dict[str, str], run_app_comment_commands: bool
+    ) -> List[V1EnvVar]:
+        """Generate the list of environment variable specs for the app, including variables set by the
+        framework."""
+        v1_env_vars = [V1EnvVar(name=k, value=v) for k, v in env_vars.items()]
+
+        if len(secrets.values()) > 0:
+            secret_names_to_ids = _names_to_ids(secrets.values())
+            env_vars_from_secrets = [V1EnvVar(name=k, from_secret=secret_names_to_ids[v]) for k, v in secrets.items()]
+            v1_env_vars.extend(env_vars_from_secrets)
+
+        if run_app_comment_commands or ENABLE_APP_COMMENT_COMMAND_EXECUTION:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_APP_COMMENT_COMMAND_EXECUTION", value="1"))
+
+        if enable_multiple_works_in_default_container():
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_DEFAULT_CONTAINER", value="1"))
+
+        if ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER", value="1"))
+
+        if not ENABLE_PULLING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PULLING_STATE_ENDPOINT", value="0"))
+
+        if not ENABLE_PUSHING_STATE_ENDPOINT:
+            v1_env_vars.append(V1EnvVar(name="ENABLE_PUSHING_STATE_ENDPOINT", value="0"))
+
+        return v1_env_vars
+
+    def _api_create_cloudspace_if_not_exists(
+        self, project_id: str, name: str, existing_cloudspace: Optional[V1CloudSpace]
+    ) -> str:
+        """Create the cloudspace if it doesn't exist.
+
+        Return the cloudspace ID.
+        """
+        if existing_cloudspace is None:
+            cloudspace_body = ProjectIdCloudspacesBody(name=name, can_download_source_code=True)
+            cloudspace = self.backend.client.cloud_space_service_create_cloud_space(
+                project_id=project_id, body=cloudspace_body
+            )
+            return cloudspace.id
+        return existing_cloudspace.id
+
+    def _api_stop_existing_run_instance(
+        self, project_id: str, existing_run_instance: Optional[Externalv1LightningappInstance]
+    ) -> None:
+        """If an existing instance is provided and it isn't stopped, stop it."""
+        if existing_run_instance and existing_run_instance.status.phase != V1LightningappInstanceState.STOPPED:
+            # TODO(yurij): Implement release switching in the UI and remove this
+            # We can only switch release of the stopped instance
+            existing_run_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
+                project_id=project_id,
+                id=existing_run_instance.id,
+                body=Body3(spec=V1LightningappInstanceSpec(desired_state=V1LightningappInstanceState.STOPPED)),
+            )
+            # wait for the instance to stop for up to 150 seconds
+            for _ in range(150):
+                existing_run_instance = self.backend.client.lightningapp_instance_service_get_lightningapp_instance(
+                    project_id=project_id, id=existing_run_instance.id
+                )
+                if existing_run_instance.status.phase == V1LightningappInstanceState.STOPPED:
+                    break
+                time.sleep(1)
+            if existing_run_instance.status.phase != V1LightningappInstanceState.STOPPED:
+                raise RuntimeError("Failed to stop the existing instance.")
+
+    def _api_create_run(self, project_id: str, cloudspace_id: str, run_body: CloudspaceIdRunsBody) -> V1LightningRun:
+        """Create and return the run."""
+        return self.backend.client.cloud_space_service_create_lightning_run(
+            project_id=project_id, cloudspace_id=cloudspace_id, body=run_body
+        )
+
+    def _api_transfer_run_instance(
+        self,
+        project_id: str,
+        run_id: str,
+        instance_id: str,
+        desired_state: V1LightningappInstanceState,
+        queue_server_type: V1QueueServerType,
+        env_vars: List[V1EnvVar],
+        auth: V1LightningAuth,
+    ) -> Externalv1LightningappInstance:
+        """Transfer an existing instance to the given run ID and update its specification.
+
+        Return the instance.
+        """
+        run_instance = self.backend.client.lightningapp_instance_service_update_lightningapp_instance_release(
+            project_id=project_id,
+            id=instance_id,
+            body=Body4(release_id=run_id),
+        )
+
+        self.backend.client.lightningapp_instance_service_update_lightningapp_instance(
+            project_id=project_id,
+            id=instance_id,
+            body=Body3(
+                spec=V1LightningappInstanceSpec(
+                    desired_state=desired_state,
+                    queue_server_type=queue_server_type,
+                    env=env_vars,
+                    auth=auth,
+                )
+            ),
+        )
+
+        return run_instance
+
+    def _api_create_run_instance(
+        self,
+        cluster_id: str,
+        project_id: str,
+        cloudspace_name: str,
+        cloudspace_id: str,
+        run_id: str,
+        desired_state: V1LightningappInstanceState,
+        queue_server_type: V1QueueServerType,
+        env_vars: List[V1EnvVar],
+        auth: V1LightningAuth,
+    ) -> Externalv1LightningappInstance:
+        """Create a new instance of the given run with the given specification."""
+        return self.backend.client.cloud_space_service_create_lightning_run_instance(
+            project_id=project_id,
+            cloudspace_id=cloudspace_id,
+            id=run_id,
+            body=IdGetBody1(
+                cluster_id=cluster_id,
+                name=cloudspace_name,
+                desired_state=desired_state,
+                queue_server_type=queue_server_type,
+                env=env_vars,
+                auth=auth,
+            ),
+        )
+
+    @staticmethod
+    def _api_package_and_upload_repo(repo: LocalSourceCodeDir, run: V1LightningRun) -> None:
+        """Package and upload the provided local source code directory to the provided run."""
+        if run.source_upload_url == "":
+            raise RuntimeError("The source upload url is empty.")
+        repo.package()
+        repo.upload(url=run.source_upload_url)
+
+    @staticmethod
+    def _print_specs(run_body: CloudspaceIdRunsBody, print_format: str) -> None:
+        """Print the given run body in either `web` or `gallery` format."""
+        if print_format not in ("web", "gallery"):
+            raise ValueError(
+                f"`LIGHTNING_CLOUD_PRINT_SPECS` should be either `web` or `gallery`. You provided: {print_format}"
+            )
+
+        flow_servers_json = [{"Name": flow_server.name} for flow_server in run_body.flow_servers]
+        logger.info(f"flow_servers: {flow_servers_json}")
+        works_json = json.dumps(_to_clean_dict(run_body.works, print_format == "web"), separators=(",", ":"))
+        logger.info(f"works: {works_json}")
+        logger.info(f"entrypoint_file: {run_body.app_entrypoint_file}")
+        requirements_path = getattr(getattr(run_body.image_spec, "dependency_file_info", ""), "path", "")
+        logger.info(f"requirements_path: {requirements_path}")
 
     @staticmethod
     def _get_app_url(lightning_app_instance: Externalv1LightningappInstance, need_credits: bool = False) -> str:
         action = "?action=add_credits" if need_credits else ""
         return f"{get_lightning_cloud_url()}/me/apps/{lightning_app_instance.id}{action}"
-
-
-def _create_mount_drive_spec(work_name: str, mount: Mount) -> V1LightningworkDrives:
-    if mount.protocol == "s3://":
-        drive_type = V1DriveType.INDEXED_S3
-        source_type = V1SourceType.S3
-    else:
-        raise RuntimeError(
-            f"unknown mount protocol `{mount.protocol}`. Please verify this "
-            f"drive type has been configured for use in the cloud dispatcher."
-        )
-
-    return V1LightningworkDrives(
-        drive=V1Drive(
-            metadata=V1Metadata(
-                name=work_name,
-            ),
-            spec=V1DriveSpec(
-                drive_type=drive_type,
-                source_type=source_type,
-                source=mount.source,
-            ),
-            status=V1DriveStatus(),
-        ),
-        mount_location=str(mount.mount_path),
-    )
-
-
-def _validate_build_spec_and_compute(work: LightningWork) -> None:
-    if work.cloud_build_config.image is not None and work.cloud_compute.name == "default":
-        raise ValueError(
-            f"You requested a custom base image for the Work with name '{work.name}', but custom images are currently"
-            " not supported on the default cloud compute instance. Please choose a different configuration, for example"
-            " `CloudCompute('cpu-medium')`."
-        )
