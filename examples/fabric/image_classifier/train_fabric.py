@@ -77,7 +77,6 @@ def run(hparams):
     # by the command line. See all options: `lightning run model --help`
     fabric = Fabric()
 
-    fabric.hparams = hparams
     seed_everything(hparams.seed)  # instead of torch.manual_seed(...)
 
     transform = T.Compose([T.ToTensor(), T.Normalize((0.1307,), (0.3081,))])
