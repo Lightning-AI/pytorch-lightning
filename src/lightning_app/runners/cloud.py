@@ -197,7 +197,7 @@ class CloudRuntime(Runtime):
         if not self.entrypoint:
             raise ValueError(
                 "Entrypoint file not provided. Did you forget to "
-                "initialize the Runtime object with `entrypoint_file` argument?"
+                "initialize the Runtime object with `entrypoint` argument?"
             )
 
         cleanup_handle = None

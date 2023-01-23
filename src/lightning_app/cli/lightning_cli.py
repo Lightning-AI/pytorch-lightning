@@ -391,7 +391,7 @@ if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightni
     help="Open on a specific Lightning AI BYOC compute cluster",
 )
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
-def open(path: str, cluster_id: str, name: str):
+def open(path: str, cluster_id: str, name: str) -> None:
     """Open files or folders on the cloud."""
 
     if not os.path.exists(path):

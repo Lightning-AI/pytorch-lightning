@@ -72,7 +72,7 @@ def dispatch(
 
     runtime = runtime_cls(
         app=app,
-        entrypoint_file=entrypoint_file,
+        entrypoint=entrypoint_file,
         start_server=start_server,
         host=host,
         port=port,
