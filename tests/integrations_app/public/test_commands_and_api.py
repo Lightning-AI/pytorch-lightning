@@ -18,14 +18,11 @@ def test_commands_and_api_example_cloud() -> None:
         admin_page,
         _,
         fetch_logs,
-        _,
+        app_name,
     ):
-        # 1: Collect the app_id
-        app_id = admin_page.url.split("/")[-1]
-
-        # 2: Connect to the App and send the first & second command with the client
+        # Connect to the App and send the first & second command with the client
         # Requires to be run within the same process.
-        cmd_1 = f"python -m lightning connect {app_id}"
+        cmd_1 = f"python -m lightning connect {app_name}"
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
         cmd_4 = "lightning disconnect"
@@ -35,20 +32,24 @@ def test_commands_and_api_example_cloud() -> None:
         # This prevents some flakyness in the CI. Couldn't reproduce it locally.
         sleep(5)
 
-        # 5: Send a request to the Rest API directly.
+        # Send a request to the Rest API directly.
         client = LightningClient()
         project = _get_project(client)
 
-        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(
-            project_id=project.project_id, app_id=app_id
-        ).lightningapps
+        lit_apps = [
+            lit_app
+            for lit_app in client.lightningapp_instance_service_list_lightningapp_instances(
+                project_id=project.project_id,
+            ).lightningapps
+            if lit_app.name == app_name
+        ]
         app = lit_apps[0]
 
         base_url = app.status.url
         resp = requests.post(base_url + "/user/command_without_client?name=awesome")
         assert resp.status_code == 200, resp.json()
 
-        # 6: Validate the logs.
+        # Validate the logs.
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
@@ -56,7 +57,7 @@ def test_commands_and_api_example_cloud() -> None:
                     has_logs = True
             sleep(1)
 
-        # 7: Send a request to the Rest API directly.
+        # Send a request to the Rest API directly.
         resp = requests.get(base_url + "/pure_function")
         assert resp.status_code == 200
         assert resp.json() == "Hello World !"
