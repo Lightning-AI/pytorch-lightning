@@ -26,16 +26,12 @@ def test_commands_and_api_example_cloud() -> None:
         cmd_1 = f"python -m lightning connect {app_id}"
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
-        cmd_4 = "lightning disconnect"
-        process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4]), shell=True)
+        cmd_4 = "python -m lightning command without client --name=awesome"
+        cmd_5 = "lightning disconnect"
+        process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4, cmd_5]), shell=True)
         process.wait()
 
-        # This prevents some flakyness in the CI. Couldn't reproduce it locally.
-        sleep(5)
-
         base_url = "/".join(view_page.url.split("/")[:-2])
-        resp = requests.post(base_url + "/user/command_without_client?name=awesome")
-        assert resp.status_code == 200, resp.json()
 
         # 6: Validate the logs.
         has_logs = False
