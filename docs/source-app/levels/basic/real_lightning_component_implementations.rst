@@ -24,7 +24,7 @@ This example shows how to train PyTorch with the Lightning trainer on your machi
 or cloud GPUs without code changes.
 
 .. lit_tabs::
-   :descriptions: import Lightning; We're using a demo LightningModule; Move your training code here (usually your main.py); Pass your component to the multi-node executor (it works on CPU or single GPUs also); Select the number of machines (nodes). Here we choose 2.; Choose from over 15+ machine types. This one has 4 v100 GPUs.; Initialize the App object that executes the component logic.
+   :descriptions: import Lightning; We're using a demo LightningModule; Move your training code here (usually your main.py); Pass your component to the multi-node executor (it works on CPU or single GPUs also); Select the number of machines (nodes). Here we choose 4.; Choose from over 15+ machine types. This one has 4 v100 GPUs.; Initialize the App object that executes the component logic.
    :code_files: /levels/basic/hello_components/pl_multinode.py; /levels/basic/hello_components/pl_multinode.py; /levels/basic/hello_components/pl_multinode.py; /levels/basic/hello_components/pl_multinode.py;  /levels/basic/hello_components/pl_multinode.py; /levels/basic/hello_components/pl_multinode.py; /levels/basic/hello_components/pl_multinode.py;
    :highlights: 2; 4; 9-11; 14-17; 16; 17; 19
    :enable_run: true
