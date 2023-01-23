@@ -20,7 +20,7 @@ By creating components and sharing them with everyone else, the barrier to entry
 
 *************************************
 How should I organize my components?
-*************************************
+************************************
 
 By design, Lightning components are nested to form component trees where the ``LightningFlows`` are its branches and ``LightningWorks`` are its leaves.
 
