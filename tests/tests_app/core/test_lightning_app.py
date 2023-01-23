@@ -443,7 +443,7 @@ class EmptyFlow(LightningFlow):
     "sleep_time, expect",
     [
         (1, 0),
-        (0, 20),
+        (0, 10),
     ],
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
