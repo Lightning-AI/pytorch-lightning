@@ -83,6 +83,7 @@ All steps combined, this is how your code will change:
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
 That's it! You can now train on any device at any scale with a switch of a flag.

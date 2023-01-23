@@ -110,6 +110,8 @@ You need this only if you wish to autocast more operations outside the ones in m
     fabric.backward(loss)
     ...
 
+See also: :doc:`../fundamentals/precision`
+
 
 print
 =====
@@ -227,6 +229,9 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
     fabric.call("undefined")
 
 
+See also: :doc:`../guide/callbacks`
+
+
 log and log_dict
 ================
 
@@ -251,3 +256,5 @@ Here is what's happening under the hood (pseudo code) when you call ``.log()`` o
     # When you call .log() or .log_dict(), we do this:
     for logger in fabric.loggers:
         logger.log_metrics(metrics=metrics, step=step)
+
+See also: :doc:`../guide/logging`
