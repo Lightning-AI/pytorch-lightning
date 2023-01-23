@@ -24,7 +24,6 @@ from lightning_fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
@@ -62,7 +61,6 @@ class RunIf:
         mps: Optional[bool] = None,
         skip_windows: bool = False,
         standalone: bool = False,
-        fairscale: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
@@ -90,7 +88,6 @@ class RunIf:
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
-            fairscale: Require that facebookresearch/fairscale is installed.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             omegaconf: Require that omry/omegaconf is installed.
@@ -178,14 +175,6 @@ class RunIf:
             reasons.append("Standalone execution")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["standalone"] = True
-
-        if fairscale:
-            if skip_windows:
-                raise ValueError(
-                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
-                )
-            conditions.append(not _FAIRSCALE_AVAILABLE)
-            reasons.append("Fairscale")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
