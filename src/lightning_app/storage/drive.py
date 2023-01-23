@@ -219,7 +219,7 @@ class Drive:
             "protocol": self.protocol,
             "allow_duplicates": self.allow_duplicates,
             "component_name": self.component_name,
-            "root_folder": self.root_folder,
+            "root_folder": str(self.root_folder),
         }
 
     @classmethod
