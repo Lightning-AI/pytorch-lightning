@@ -43,7 +43,7 @@ Here are the best practices steps before sharing the component:
 
 ******************************************
 How should I proceed to share components?
-******************************************
+*****************************************
 
 Once your component is ready, create a *PiPy* package with your own library and then it can be reused by anyone else.
 
