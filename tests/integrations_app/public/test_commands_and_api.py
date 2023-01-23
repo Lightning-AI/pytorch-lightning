@@ -16,14 +16,11 @@ def test_commands_and_api_example_cloud() -> None:
         admin_page,
         view_page,
         fetch_logs,
-        _,
+        app_name,
     ):
-        # 1: Collect the app_id
-        app_id = admin_page.url.split("/")[-1]
-
-        # 2: Connect to the App and send the first & second command with the client
+        # Connect to the App and send the first & second command with the client
         # Requires to be run within the same process.
-        cmd_1 = f"python -m lightning connect {app_id}"
+        cmd_1 = f"python -m lightning connect {app_name}"
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
         cmd_4 = "python -m lightning command without client --name=awesome"
@@ -33,7 +30,7 @@ def test_commands_and_api_example_cloud() -> None:
 
         base_url = "/".join(view_page.url.split("/")[:-2])
 
-        # 6: Validate the logs.
+        # Validate the logs.
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
@@ -41,7 +38,7 @@ def test_commands_and_api_example_cloud() -> None:
                     has_logs = True
             sleep(1)
 
-        # 7: Send a request to the Rest API directly.
+        # Send a request to the Rest API directly.
         resp = requests.get(base_url + "/pure_function")
         assert resp.status_code == 200
         assert resp.json() == "Hello World !"
