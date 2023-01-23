@@ -32,6 +32,9 @@ The ``"auto"`` option recognizes the machine you are on and selects the availabl
     fabric = Fabric(devices=2, accelerator="auto")
 
 
+See also: :doc:`../fundamentals/accelerators`
+
+
 strategy
 ========
 
@@ -53,6 +56,8 @@ Additionally, you can pass in your custom strategy by configuring additional par
     from lightning.fabric.strategies import DeepSpeedStrategy
 
     fabric = Fabric(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
+
+See also: :doc:`../fundamentals/launch`
 
 
 devices
@@ -82,6 +87,8 @@ Configure the devices to run on. Can be of type:
     # -1: run on all GPUs
     fabric = Fabric(devices=-1, accelerator="gpu")
     fabric = Fabric(devices="-1", accelerator="gpu")  # equivalent
+
+See also: :doc:`../fundamentals/launch`
 
 
 num_nodes
@@ -122,6 +129,8 @@ This can result in improved performance, achieving significant speedups on moder
 
     # 64-bit (double) precision
     fabric = Fabric(precision=64, devices=1)
+
+See also: :doc:`../fundamentals/precision`
 
 
 plugins
@@ -178,6 +187,8 @@ Then, in your training loop, you can call a hook by its name. Any callback objec
     # Call any hook by name
     fabric.call("on_train_epoch_end", results={...})
 
+See also: :doc:`../guide/callbacks`
+
 
 loggers
 =======
@@ -201,3 +212,6 @@ Anywhere in your training loop, you can log metrics to all loggers at once:
 
     fabric.log("loss", loss)
     fabric.log_dict({"loss": loss, "accuracy": acc})
+
+
+See also: :doc:`../guide/logging`

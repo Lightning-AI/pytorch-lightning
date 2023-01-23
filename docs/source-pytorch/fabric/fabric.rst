@@ -51,6 +51,7 @@ With only a few changes to your code, Fabric allows you to:
     -         loss.backward()
     +         fabric.backward(loss)
               optimizer.step()
+              lr_scheduler.step()
 
 
 .. note:: Fabric is currently in Beta. Its API is subject to change based on feedback.
@@ -223,7 +224,7 @@ Examples
 .. displayitem::
     :header: Image Classification
     :description: Train an image classifier on the MNIST dataset
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/image_classifier
     :col_css: col-md-4
     :height: 150
     :tag: basic
@@ -231,7 +232,7 @@ Examples
 .. displayitem::
     :header: GAN
     :description: Train a GAN that generates realistic human faces
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/dcgan
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
@@ -239,10 +240,18 @@ Examples
 .. displayitem::
     :header: Meta-Learning
     :description: Distributed training with the MAML algorithm on the Omniglot and MiniImagenet datasets
-    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning/README.md
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/meta_learning
     :col_css: col-md-4
     :height: 150
     :tag: intermediate
+
+.. displayitem::
+    :header: Large Language Models
+    :description: Pre-train a GPT-2 language model on OpenWebText data
+    :button_link: https://github.com/Lightning-AI/nanoGPT/blob/master/train_fabric.py
+    :col_css: col-md-4
+    :height: 150
+    :tag: advanced
 
 .. displayitem::
     :header: Reinforcement Learning
