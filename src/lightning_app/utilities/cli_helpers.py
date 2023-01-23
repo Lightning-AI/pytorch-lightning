@@ -160,7 +160,7 @@ class _LightningAppOpenAPIRetriever:
 
     def _maybe_find_matching_cloud_app(self):
         """Tries to resolve the app url from the provided `app_id_or_name_or_url`."""
-        client = LightningClient()
+        client = LightningClient(retry=False)
         project = _get_project(client)
         list_apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
 

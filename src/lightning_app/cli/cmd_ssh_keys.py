@@ -33,7 +33,7 @@ class _SSHKeyManager:
     """_SSHKeyManager implements API calls specific to Lightning AI SSH-Keys."""
 
     def __init__(self) -> None:
-        self.api_client = LightningClient()
+        self.api_client = LightningClient(retry=False)
 
     def get_ssh_keys(self) -> _SSHKeyList:
         resp = self.api_client.s_sh_public_key_service_list_ssh_public_keys()

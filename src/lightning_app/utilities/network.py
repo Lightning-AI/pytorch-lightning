@@ -65,7 +65,7 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
     return min(_DEFAULT_BACKOFF_MAX, next_backoff_value)
 
 
-def _retry_wrapper(func: Callable) -> Callable:
+def _retry_wrapper(self, func: Callable) -> Callable:
     """Returns the function decorated by a wrapper that retries the call several times if a connection error
     occurs.
 
@@ -77,7 +77,7 @@ def _retry_wrapper(func: Callable) -> Callable:
         consecutive_errors = 0
         while _get_next_backoff_time(consecutive_errors) != _DEFAULT_BACKOFF_MAX:
             try:
-                return func(*args, **kwargs)
+                return func(self, *args, **kwargs)
             except lightning_cloud.openapi.rest.ApiException as e:
                 # retry if the control plane fails with all errors except 4xx but not 408 - (Request Timeout)
                 if e.status == 408 or e.status == 409 or not str(e.status).startswith("4"):
@@ -113,17 +113,13 @@ class LightningClient(GridRestClient):
         retry: Whether API calls should follow a retry mechanism with exponential backoff.
     """
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> "LightningClient":
-        if kwargs.get("retry", False):
+    def __init__(self, retry: bool = True) -> None:
+        super().__init__(api_client=create_swagger_client())
+        if retry:
             for base_class in GridRestClient.__mro__:
                 for name, attribute in base_class.__dict__.items():
                     if callable(attribute) and attribute.__name__ != "__init__":
-                        setattr(cls, name, _retry_wrapper(attribute))
-        return super().__new__(cls)
-
-    def __init__(self, retry: bool = False) -> None:
-        super().__init__(api_client=create_swagger_client())
-        self._retry = retry
+                        setattr(self, name, _retry_wrapper(self, attribute))
 
 
 class CustomRetryAdapter(HTTPAdapter):

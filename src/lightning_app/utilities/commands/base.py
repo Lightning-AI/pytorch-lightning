@@ -107,7 +107,7 @@ def _download_command(
     if not debug_mode:
         if app_id:
             if not os.path.exists(target_file):
-                client = LightningClient()
+                client = LightningClient(retry=False)
                 project_id = _get_project(client).project_id
                 response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(
                     project_id=project_id, id=app_id
