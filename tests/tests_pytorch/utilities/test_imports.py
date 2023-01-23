@@ -20,7 +20,7 @@ from textwrap import dedent
 from unittest import mock
 
 import pytest
-from lightning_utilities.core.imports import compare_version, module_available, RequirementCache
+from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
@@ -109,17 +109,12 @@ def clean_import():
             "pytorch_lightning.cli",
         ),
         (
-            "lightning_utilities.core.imports.module_available",
-            _shortcut_patch(module_available, ("fairscale.nn",)),
-            "pytorch_lightning.strategies",
-        ),
-        (
             "lightning_utilities.core.imports.compare_version",
             _shortcut_patch(compare_version, ("torch", operator.ge, "1.12.0")),
             "pytorch_lightning.strategies.fully_sharded_native",
         ),
     ],
-    ids=["ProcessGroup", "neptune", "cli", "fairscale", "fully_sharded_native"],
+    ids=["ProcessGroup", "neptune", "cli", "fully_sharded_native"],
 )
 def test_import_with_unavailable_dependencies(patch_name, new_fn, to_import, clean_import):
     """This tests simulates unavailability of certain modules by patching the functions that check for their

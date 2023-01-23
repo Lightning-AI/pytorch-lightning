@@ -40,7 +40,6 @@ class _LightningTrainerRunExecutor(_PyTorchSpawnRunExecutor):
             try:
                 pkg = importlib.import_module(pkg_name)
                 trainers.append(pkg.Trainer)
-                strategies.append(pkg.strategies.DDPSpawnShardedStrategy)
                 strategies.append(pkg.strategies.DDPSpawnStrategy)
                 mps_accelerators.append(pkg.accelerators.MPSAccelerator)
             except (ImportError, ModuleNotFoundError):
