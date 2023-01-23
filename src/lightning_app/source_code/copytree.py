@@ -3,7 +3,7 @@ import os
 from functools import partial
 from pathlib import Path
 from shutil import copy2, copystat, Error
-from typing import Callable, List, Optional, Set, Union
+from typing import Callable, List, Optional, Set, Tuple, Union
 
 from lightning_app.core.constants import DOT_IGNORE_FILENAME
 from lightning_app.utilities.app_helpers import Logger
@@ -122,7 +122,7 @@ def _filter_ignored(src: Path, patterns: Set[str], current_dir: Path, entries: L
     return [entry for entry in entries if str(relative_dir / entry.name) not in ignored_names]
 
 
-def _parse_lightningignore(lines: List[str]) -> Set[str]:
+def _parse_lightningignore(lines: Tuple[str]) -> Set[str]:
     """Creates a set that removes empty lines and comments."""
     lines = [ln.strip() for ln in lines]
     # removes first `/` character for posix and `\\` for windows
