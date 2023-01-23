@@ -121,6 +121,42 @@ class RequirementCache:
         return self.__str__()
 
 
+class ModuleAvailableCache:
+    """Boolean-like class for check of module availability.
+
+    >>> ModuleAvailableCache("torch")
+    Module 'torch' available
+    >>> bool(ModuleAvailableCache("torch"))
+    True
+    >>> bool(ModuleAvailableCache("unknown_package"))
+    False
+    """
+
+    def __init__(self, module: str) -> None:
+        self.module = module
+
+    def _check_requirement(self) -> None:
+        if hasattr(self, "available"):
+            return
+
+        self.available = module_available(self.module)
+        if self.available:
+            self.message = f"Module {self.module!r} available"
+        else:
+            self.message = f"Module not found: {self.module!r}. HINT: Try running `pip install -U {self.module}`"
+
+    def __bool__(self) -> bool:
+        self._check_requirement()
+        return self.available
+
+    def __str__(self) -> str:
+        self._check_requirement()
+        return self.message
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 def get_dependency_min_version_spec(package_name: str, dependency_name: str) -> str:
     """Returns the minimum version specifier of a dependency of a package.
 

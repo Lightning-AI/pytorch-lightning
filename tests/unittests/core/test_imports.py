@@ -8,6 +8,7 @@ from lightning_utilities.core.imports import (
     get_dependency_min_version_spec,
     lazy_import,
     module_available,
+    ModuleAvailableCache,
     RequirementCache,
     requires,
 )
@@ -50,6 +51,12 @@ def test_requirement_cache():
     assert RequirementCache(f"pytest>={pytest.__version__}")
     assert not RequirementCache(f"pytest<{pytest.__version__}")
     assert "pip install -U '-'" in str(RequirementCache("-"))
+
+
+def test_module_available_cache():
+    assert ModuleAvailableCache("pytest")
+    assert not ModuleAvailableCache("this_module_is_not_installed")
+    assert "pip install -U this_module_is_not_installed" in str(ModuleAvailableCache("this_module_is_not_installed"))
 
 
 def test_get_dependency_min_version_spec():
