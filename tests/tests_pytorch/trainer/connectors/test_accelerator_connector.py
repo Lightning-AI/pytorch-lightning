@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import inspect
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -48,6 +48,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -852,3 +853,18 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     trainer = Trainer(accelerator="cpu", strategy=strategy)
     assert isinstance(trainer.strategy, strategy_cls)
+
+
+def test_connector_defaults_match_trainer_defaults():
+    """Test that the default values for the init arguments of AcceleratorConnector match the ones in Trainer."""
+
+    def get_defaults(cls):
+        init_signature = inspect.signature(cls)
+        return {k: v.default for k, v in init_signature.parameters.items()}
+
+    trainer_defaults = get_defaults(Trainer)
+    connector_defaults = get_defaults(AcceleratorConnector)
+
+    # defaults should match on the intersection of argument names
+    for name, connector_default in connector_defaults.items():
+        assert connector_default == trainer_defaults[name]
