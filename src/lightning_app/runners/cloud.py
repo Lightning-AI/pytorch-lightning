@@ -692,7 +692,7 @@ class CloudRuntime(Runtime):
             auth = self._get_auth(self.enable_basic_auth)
             env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
 
-            if LIGHTNING_CLOUD_PRINT_SPECS:
+            if LIGHTNING_CLOUD_PRINT_SPECS is not None:
                 self._print_specs(run_body, LIGHTNING_CLOUD_PRINT_SPECS)
                 sys.exit(0)
 
