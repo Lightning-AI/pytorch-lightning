@@ -100,66 +100,6 @@ loggers
     tensorboard
     wandb
 
-loops
-^^^^^
-
-Base Classes
-""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~dataloader.dataloader_loop.DataLoaderLoop
-    ~loop.Loop
-
-Training
-""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.TrainingEpochLoop
-    FitLoop
-    ~optimization.ManualOptimization
-    ~optimization.OptimizerLoop
-
-
-Validation and Testing
-""""""""""""""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.EvaluationEpochLoop
-    ~dataloader.EvaluationLoop
-
-
-Prediction
-""""""""""
-
-.. currentmodule:: pytorch_lightning.loops
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    ~epoch.PredictionEpochLoop
-    ~dataloader.PredictionLoop
-
-
 plugins
 ^^^^^^^
 

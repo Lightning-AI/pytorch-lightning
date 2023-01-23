@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop  # noqa: F401
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop  # noqa: F401
-from pytorch_lightning.loops.dataloader.prediction_loop import PredictionLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.dataloader_loop import _DataLoaderLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.evaluation_loop import _EvaluationLoop  # noqa: F401
+from pytorch_lightning.loops.dataloader.prediction_loop import _PredictionLoop  # noqa: F401
