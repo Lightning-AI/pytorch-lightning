@@ -42,13 +42,11 @@ from pytorch_lightning.plugins import (
     ColossalAIPrecisionPlugin,
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
-    FullyShardedNativeMixedPrecisionPlugin,
     HPUPrecisionPlugin,
     IPUPrecisionPlugin,
     MixedPrecisionPlugin,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    ShardedNativeMixedPrecisionPlugin,
     TPUBf16PrecisionPlugin,
     TPUPrecisionPlugin,
 )
@@ -58,9 +56,6 @@ from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShar
 from pytorch_lightning.strategies import (
     ColossalAIStrategy,
     DDPFullyShardedNativeStrategy,
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -580,12 +575,8 @@ class AcceleratorConnector:
             )
             device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
-            if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
-                return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
             if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
                 return FullyShardedNativeNativeMixedPrecisionPlugin(self._precision_flag, device)
-            if isinstance(self.strategy, DDPFullyShardedStrategy):
-                return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
             return MixedPrecisionPlugin(self._precision_flag, device)
 
         raise RuntimeError("No precision set")
@@ -670,10 +661,7 @@ class AcceleratorConnector:
             return self.strategy.is_distributed
         distributed_strategy = (
             DDPStrategy,
-            DDPSpawnShardedStrategy,
-            DDPShardedStrategy,
             DDPFullyShardedNativeStrategy,
-            DDPFullyShardedStrategy,
             DDPSpawnStrategy,
             DeepSpeedStrategy,
             TPUSpawnStrategy,
