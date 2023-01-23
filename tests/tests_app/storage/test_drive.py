@@ -4,6 +4,7 @@ from copy import deepcopy
 from time import sleep
 
 import pytest
+from deepdiff import DeepDiff
 
 from lightning_app import LightningFlow, LightningWork
 from lightning_app.core.app import LightningApp
@@ -227,6 +228,11 @@ def test_maybe_create_drive(drive_id):
     assert new_drive.protocol == drive.protocol
     assert new_drive.id == drive.id
     assert new_drive.component_name == drive.component_name
+    drive_state["root_folder"] = pathlib.Path(drive_state["root_folder"])
+    copy_drive_state = deepcopy(drive_state)
+    deep_diff = DeepDiff(copy_drive_state, drive_state)
+    assert "unprocessed" in deep_diff
+    deep_diff.pop("unprocessed")
 
 
 @pytest.mark.parametrize("drive_id", ["lit://drive"])
