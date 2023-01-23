@@ -4,6 +4,7 @@ from pathlib import Path
 from shutil import rmtree
 from typing import List, Optional
 
+from lightning_app.core.constants import DOT_IGNORE_FILENAME
 from lightning_app.source_code.copytree import _copytree, _IGNORE_FUNCTION
 from lightning_app.source_code.hashing import _get_hash
 from lightning_app.source_code.tar import _tar_path
@@ -26,6 +27,14 @@ class LocalSourceCodeDir:
         # create global cache location if it doesn't exist
         if not self.cache_location.exists():
             self.cache_location.mkdir(parents=True, exist_ok=True)
+
+        # Create a default dotignore if it doesn't exist
+        if not (path / DOT_IGNORE_FILENAME).is_file():
+            with open(path / DOT_IGNORE_FILENAME, "w") as f:
+                f.write("venv/\n")
+                if (path / "bin" / "activate").is_file() or (path / "pyvenv.cfg").is_file():
+                    # the user is developing inside venv
+                    f.write("bin/\ninclude/\nlib/\npyvenv.cfg\n")
 
         # clean old cache entries
         self._prune_cache()
