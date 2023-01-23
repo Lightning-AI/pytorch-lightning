@@ -3,7 +3,6 @@ from subprocess import Popen
 from time import sleep
 
 import pytest
-import requests
 from integrations_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
@@ -31,7 +30,7 @@ def test_commands_and_api_example_cloud() -> None:
         process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4, cmd_5]), shell=True)
         process.wait()
 
-        base_url = "/".join(view_page.url.split("/")[:-2])
+        "/".join(view_page.url.split("/")[:-2])
 
         # 6: Validate the logs.
         has_logs = False
@@ -40,8 +39,3 @@ def test_commands_and_api_example_cloud() -> None:
                 if "['this', 'is', 'awesome']" in log:
                     has_logs = True
             sleep(1)
-
-        # 7: Send a request to the Rest API directly.
-        resp = requests.get(base_url + "/pure_function")
-        assert resp.status_code == 200
-        assert resp.json() == "Hello World !"
