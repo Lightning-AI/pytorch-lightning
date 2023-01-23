@@ -238,18 +238,14 @@ class MLFlowLogger(Logger):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         params = _flatten_dict(params)
-        params_list: List[Param] = []
 
-        for k, v in params.items():
-            # TODO: mlflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
-            if len(str(v)) > 250:
-                rank_zero_warn(
-                    f"Mlflow only allows parameters with up to 250 characters. Discard {k}={v}", category=RuntimeWarning
-                )
-                continue
-            params_list.append(Param(key=k, value=v))
+        # Truncate parameter values to 250 characters.
+        # TODO: MLflow 1.28 allows up to 500 characters: https://github.com/mlflow/mlflow/releases/tag/v1.28.0
+        params_list = [Param(key=k, value=str(v)[:250]) for k, v in params.items()]
 
-        self.experiment.log_batch(run_id=self.run_id, params=params_list)
+        # Log in chunks of 100 parameters (the maximum allowed by MLflow).
+        for idx in range(0, len(params_list), 100):
+            self.experiment.log_batch(run_id=self.run_id, params=params_list[idx : idx + 100])
 
     @rank_zero_only
     def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
