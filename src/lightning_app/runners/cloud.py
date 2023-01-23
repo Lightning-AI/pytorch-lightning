@@ -106,6 +106,148 @@ def _to_clean_dict(swagger_object, map_attributes):
 class CloudRuntime(Runtime):
     backend: Union[str, CloudBackend] = "cloud"
 
+    def dispatch(
+        self,
+        name: str = "",
+        cluster_id: str = None,
+        open_ui: bool = True,
+        no_cache: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
+        # not user facing error ideally - this should never happen in normal user workflow
+        if not self.entrypoint_file:
+            raise ValueError(
+                "Entrypoint file not provided. Did you forget to "
+                "initialize the Runtime object with `entrypoint_file` argument?"
+            )
+
+        cleanup_handle = None
+
+        try:
+            # Dispatch in four phases: resolution, validation, spec creation, API transactions
+            # Resolution
+            cloudspace_config = self._resolve_config(name)
+            root = self._resolve_root()
+            repo = self._resolve_repo(root)
+            project = self._resolve_project()
+            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
+            cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
+            existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
+                cluster_id, project.project_id, existing_cloudspaces
+            )
+            cloudspace_name = self._resolve_cloudspace_name(
+                cloudspace_config.name,
+                existing_cloudspace,
+                existing_cloudspaces,
+            )
+            queue_server_type = self._resolve_queue_server_type()
+            needs_credits = self._resolve_needs_credits(project)
+
+            # TODO: Move these
+            cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
+            self.app._update_index_file()
+
+            # Validation
+            self._validate_repo(root, repo)
+            self._validate_cluster_id(cluster_id, project.project_id)
+            self._validate_work_build_specs_and_compute()
+            self._validate_drives()
+            self._validate_mounts()
+
+            # Spec creation
+            flow_servers = self._get_flow_servers()
+            network_configs = self._get_network_configs(flow_servers)
+            works = self._get_works()
+            run_body = self._get_run_body(
+                cluster_id, flow_servers, network_configs, works, no_cache, root, self.start_server
+            )
+            auth = self._get_auth(self.enable_basic_auth)
+            env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
+
+            if LIGHTNING_CLOUD_PRINT_SPECS is not None:
+                self._print_specs(run_body, LIGHTNING_CLOUD_PRINT_SPECS)
+                sys.exit(0)
+
+            print(f"The name of the app is: {cloudspace_name}")
+
+            # API transactions
+            cloudspace_id = self._api_create_cloudspace_if_not_exists(
+                project.project_id,
+                cloudspace_name,
+                existing_cloudspace,
+            )
+            self._api_stop_existing_run_instance(project.project_id, existing_run_instance)
+            run = self._api_create_run(project.project_id, cloudspace_id, run_body)
+            self._api_package_and_upload_repo(repo, run)
+
+            if getattr(run, "cluster_id", None):
+                print(f"Running app on {run.cluster_id}")
+
+            # Save the config for re-runs
+            cloudspace_config.save_to_dir(root)
+
+            desired_state = (
+                V1LightningappInstanceState.STOPPED if needs_credits else V1LightningappInstanceState.RUNNING
+            )
+
+            if existing_run_instance is not None:
+                run_instance = self._api_transfer_run_instance(
+                    project.project_id,
+                    run.id,
+                    existing_run_instance.id,
+                    desired_state,
+                    queue_server_type,
+                    env_vars,
+                    auth,
+                )
+            else:
+                run_instance = self._api_create_run_instance(
+                    cluster_id,
+                    project.project_id,
+                    cloudspace_name,
+                    cloudspace_id,
+                    run.id,
+                    desired_state,
+                    queue_server_type,
+                    env_vars,
+                    auth,
+                )
+        except ApiException as e:
+            logger.error(e.body)
+            sys.exit(1)
+        finally:
+            if cleanup_handle:
+                cleanup_handle()
+
+        if run_instance.status.phase == V1LightningappInstanceState.FAILED:
+            raise RuntimeError("Failed to create the application. Cannot upload the source code.")
+
+        # TODO: Remove testing dependency, but this would open a tab for each test...
+        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
+            click.launch(self._get_app_url(run_instance, needs_credits))
+
+    @classmethod
+    def load_app_from_file(cls, filepath: str) -> "LightningApp":
+        """Load a LightningApp from a file, mocking the imports."""
+
+        # Pretend we are running in the cloud when loading the app locally
+        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
+
+        try:
+            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
+        except FileNotFoundError as e:
+            raise e
+        except Exception:
+            from lightning_app.testing.helpers import EmptyFlow
+
+            # Create a generic app.
+            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
+            app = LightningApp(EmptyFlow())
+        finally:
+            del os.environ["LAI_RUNNING_IN_CLOUD"]
+        return app
+
     def _resolve_config(self, name: Optional[str]) -> AppConfig:
         """Find and load the config file if it exists (otherwise create an empty config).
 
@@ -632,148 +774,6 @@ class CloudRuntime(Runtime):
         logger.info(f"entrypoint_file: {run_body.app_entrypoint_file}")
         requirements_path = getattr(getattr(run_body.image_spec, "dependency_file_info", ""), "path", "")
         logger.info(f"requirements_path: {requirements_path}")
-
-    def dispatch(
-        self,
-        name: str = "",
-        cluster_id: str = None,
-        open_ui: bool = True,
-        no_cache: bool = False,
-        **kwargs: Any,
-    ) -> None:
-        """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
-        # not user facing error ideally - this should never happen in normal user workflow
-        if not self.entrypoint_file:
-            raise ValueError(
-                "Entrypoint file not provided. Did you forget to "
-                "initialize the Runtime object with `entrypoint_file` argument?"
-            )
-
-        cleanup_handle = None
-
-        try:
-            # Dispatch in four phases: resolution, validation, spec creation, API transactions
-            # Resolution
-            cloudspace_config = self._resolve_config(name)
-            root = self._resolve_root()
-            repo = self._resolve_repo(root)
-            project = self._resolve_project()
-            existing_cloudspaces = self._resolve_existing_cloudspaces(project, cloudspace_config.name)
-            cluster_id = self._resolve_cluster_id(cluster_id, project.project_id, existing_cloudspaces)
-            existing_cloudspace, existing_run_instance = self._resolve_existing_run_instance(
-                cluster_id, project.project_id, existing_cloudspaces
-            )
-            cloudspace_name = self._resolve_cloudspace_name(
-                cloudspace_config.name,
-                existing_cloudspace,
-                existing_cloudspaces,
-            )
-            queue_server_type = self._resolve_queue_server_type()
-            needs_credits = self._resolve_needs_credits(project)
-
-            # TODO: Move these
-            cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
-            self.app._update_index_file()
-
-            # Validation
-            self._validate_repo(root, repo)
-            self._validate_cluster_id(cluster_id, project.project_id)
-            self._validate_work_build_specs_and_compute()
-            self._validate_drives()
-            self._validate_mounts()
-
-            # Spec creation
-            flow_servers = self._get_flow_servers()
-            network_configs = self._get_network_configs(flow_servers)
-            works = self._get_works()
-            run_body = self._get_run_body(
-                cluster_id, flow_servers, network_configs, works, no_cache, root, self.start_server
-            )
-            auth = self._get_auth(self.enable_basic_auth)
-            env_vars = self._get_env_vars(self.env_vars, self.secrets, self.run_app_comment_commands)
-
-            if LIGHTNING_CLOUD_PRINT_SPECS is not None:
-                self._print_specs(run_body, LIGHTNING_CLOUD_PRINT_SPECS)
-                sys.exit(0)
-
-            print(f"The name of the app is: {cloudspace_name}")
-
-            # API transactions
-            cloudspace_id = self._api_create_cloudspace_if_not_exists(
-                project.project_id,
-                cloudspace_name,
-                existing_cloudspace,
-            )
-            self._api_stop_existing_run_instance(project.project_id, existing_run_instance)
-            run = self._api_create_run(project.project_id, cloudspace_id, run_body)
-            self._api_package_and_upload_repo(repo, run)
-
-            if getattr(run, "cluster_id", None):
-                print(f"Running app on {run.cluster_id}")
-
-            # Save the config for re-runs
-            cloudspace_config.save_to_dir(root)
-
-            desired_state = (
-                V1LightningappInstanceState.STOPPED if needs_credits else V1LightningappInstanceState.RUNNING
-            )
-
-            if existing_run_instance is not None:
-                run_instance = self._api_transfer_run_instance(
-                    project.project_id,
-                    run.id,
-                    existing_run_instance.id,
-                    desired_state,
-                    queue_server_type,
-                    env_vars,
-                    auth,
-                )
-            else:
-                run_instance = self._api_create_run_instance(
-                    cluster_id,
-                    project.project_id,
-                    cloudspace_name,
-                    cloudspace_id,
-                    run.id,
-                    desired_state,
-                    queue_server_type,
-                    env_vars,
-                    auth,
-                )
-        except ApiException as e:
-            logger.error(e.body)
-            sys.exit(1)
-        finally:
-            if cleanup_handle:
-                cleanup_handle()
-
-        if run_instance.status.phase == V1LightningappInstanceState.FAILED:
-            raise RuntimeError("Failed to create the application. Cannot upload the source code.")
-
-        # TODO: Remove testing dependency, but this would open a tab for each test...
-        if open_ui and "PYTEST_CURRENT_TEST" not in os.environ:
-            click.launch(self._get_app_url(run_instance, needs_credits))
-
-    @classmethod
-    def load_app_from_file(cls, filepath: str) -> "LightningApp":
-        """Load a LightningApp from a file, mocking the imports."""
-
-        # Pretend we are running in the cloud when loading the app locally
-        os.environ["LAI_RUNNING_IN_CLOUD"] = "1"
-
-        try:
-            app = load_app_from_file(filepath, raise_exception=True, mock_imports=True)
-        except FileNotFoundError as e:
-            raise e
-        except Exception:
-            from lightning_app.testing.helpers import EmptyFlow
-
-            # Create a generic app.
-            logger.info("Could not load the app locally. Starting the app directly on the cloud.")
-            app = LightningApp(EmptyFlow())
-        finally:
-            del os.environ["LAI_RUNNING_IN_CLOUD"]
-        return app
 
     @staticmethod
     def _get_app_url(lightning_app_instance: Externalv1LightningappInstance, need_credits: bool = False) -> str:
