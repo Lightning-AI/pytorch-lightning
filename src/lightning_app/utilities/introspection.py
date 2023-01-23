@@ -261,10 +261,6 @@ class LightningAcceleratorVisitor(LightningVisitor):
     class_name = "Accelerator"
 
 
-class LightningLoopVisitor(LightningVisitor):
-    class_name = "Loop"
-
-
 class TorchMetricVisitor(LightningVisitor):
     class_name = "Metric"
 
@@ -304,7 +300,6 @@ class Scanner:
         LightningPrecisionPluginVisitor,
         LightningAcceleratorVisitor,
         LightningLoggerVisitor,
-        LightningLoopVisitor,
         TorchMetricVisitor,
         FabricVisitor,
         LightningProfilerVisitor,

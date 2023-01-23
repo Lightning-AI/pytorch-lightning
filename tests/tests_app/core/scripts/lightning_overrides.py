@@ -11,7 +11,6 @@ if _is_pytorch_lightning_available():
     from pytorch_lightning.accelerators.accelerator import Accelerator
     from pytorch_lightning.callbacks import Callback
     from pytorch_lightning.loggers import Logger
-    from pytorch_lightning.loops import Loop
     from pytorch_lightning.plugins import PrecisionPlugin
     from pytorch_lightning.profilers import Profiler
 
@@ -40,9 +39,6 @@ if __name__ == "__main__":
         pass
 
     class BoringLogger(Logger):
-        pass
-
-    class BoringLoop(Loop):
         pass
 
     class BoringMetric(Metric):

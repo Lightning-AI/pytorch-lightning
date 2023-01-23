@@ -15,12 +15,10 @@ from pytorch_lightning.plugins.precision.colossalai import ColossalAIPrecisionPl
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
-from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu import TPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.tpu_bf16 import TPUBf16PrecisionPlugin
 
@@ -29,12 +27,10 @@ __all__ = [
     "DeepSpeedPrecisionPlugin",
     "DoublePrecisionPlugin",
     "FullyShardedNativeNativeMixedPrecisionPlugin",
-    "FullyShardedNativeMixedPrecisionPlugin",
     "HPUPrecisionPlugin",
     "IPUPrecisionPlugin",
     "MixedPrecisionPlugin",
     "PrecisionPlugin",
-    "ShardedNativeMixedPrecisionPlugin",
     "TPUPrecisionPlugin",
     "TPUBf16PrecisionPlugin",
 ]

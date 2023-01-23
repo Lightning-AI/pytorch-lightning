@@ -18,7 +18,7 @@ import pytest
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import TrainingEpochLoop
+from pytorch_lightning.loops import _TrainingEpochLoop
 from pytorch_lightning.trainer.trainer import Trainer
 
 _out00 = {"loss": 0.0}
@@ -43,7 +43,7 @@ class TestPrepareOutputs:
 
     def prepare_outputs_training_epoch_end(self, batch_outputs, num_optimizers, automatic_optimization=True):
         return self.prepare_outputs(
-            TrainingEpochLoop._prepare_outputs_training_epoch_end,
+            _TrainingEpochLoop._prepare_outputs_training_epoch_end,
             batch_outputs,
             num_optimizers,
             automatic_optimization=automatic_optimization,
@@ -51,7 +51,7 @@ class TestPrepareOutputs:
 
     def prepare_outputs_training_batch_end(self, batch_outputs, num_optimizers, automatic_optimization=True):
         return self.prepare_outputs(
-            TrainingEpochLoop._prepare_outputs_training_batch_end,
+            _TrainingEpochLoop._prepare_outputs_training_batch_end,
             batch_outputs,
             num_optimizers,
             automatic_optimization=automatic_optimization,

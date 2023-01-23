@@ -15,19 +15,19 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-from pytorch_lightning.loops import FitLoop
+from pytorch_lightning.loops import _FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
 
 
 def test_loops_state_dict():
     trainer = Trainer()
 
-    fit_loop = FitLoop()
+    fit_loop = _FitLoop()
 
     fit_loop.trainer = trainer
     state_dict = fit_loop.state_dict()
 
-    new_fit_loop = FitLoop()
+    new_fit_loop = _FitLoop()
     new_fit_loop.trainer = trainer
 
     new_fit_loop.load_state_dict(state_dict)
