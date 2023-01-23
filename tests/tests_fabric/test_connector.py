@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import inspect
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -22,6 +22,7 @@ import torch.distributed
 from tests_fabric.helpers.runif import RunIf
 
 import lightning_fabric
+from lightning_fabric import Fabric
 from lightning_fabric.accelerators import TPUAccelerator
 from lightning_fabric.accelerators.accelerator import Accelerator
 from lightning_fabric.accelerators.cpu import CPUAccelerator
@@ -867,3 +868,18 @@ def test_fsdp_unsupported_on_cpu(_):
     """Test that we raise an error if attempting to run FSDP without GPU."""
     with pytest.raises(ValueError, match="You selected the FSDP strategy but FSDP is only available on GPU"):
         _Connector(strategy="fsdp")
+
+
+def test_connector_defaults_match_fabric_defaults():
+    """Test that the default values for the init arguments of Connector match the ones in Fabric."""
+
+    def get_defaults(cls):
+        init_signature = inspect.signature(cls)
+        return {k: v.default for k, v in init_signature.parameters.items()}
+
+    fabric_defaults = get_defaults(Fabric)
+    connector_defaults = get_defaults(_Connector)
+
+    # defaults should match on the intersection of argument names
+    for name, connector_default in connector_defaults.items():
+        assert connector_default == fabric_defaults[name]

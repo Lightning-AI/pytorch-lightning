@@ -109,7 +109,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         auto_select_gpus: Optional[bool] = None,  # TODO: Remove in v2.0.0
         num_processes: Optional[int] = None,  # TODO: Remove in v2.0.0
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in v2.0.0
