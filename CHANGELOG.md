@@ -6,12 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Unreleased] - YYYY-MM-DD
+## [0.6.0] - 2023-01-23
 
 ### Added
 
 - Added `ModuleAvailableCache` ([#86](https://github.com/Lightning-AI/utilities/pull/86))
-
 
 ### Changed
 
@@ -19,15 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: abstract package actions ([#48](https://github.com/Lightning-AI/utilities/pull/48))
 - CI: Checkout submodules recursive ([#82](https://github.com/Lightning-AI/utilities/pull/82))
 
-
 ### Fixed
 
 - CI: Checking schem in both yaml & yml + verbose ([#84](https://github.com/Lightning-AI/utilities/pull/84))
-
-### Removed
-
-
-### Deprecated
 
 
 ## [0.5.0] - 2022-12-21
