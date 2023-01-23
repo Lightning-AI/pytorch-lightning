@@ -10,7 +10,7 @@ Sharing my components
 
 *********************************************
 Why should I consider sharing my components?
-*********************************************
+********************************************
 
 Lightning is community driven and its core objective is to make AI accessible to everyone.
 
