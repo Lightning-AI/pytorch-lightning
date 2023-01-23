@@ -151,7 +151,7 @@ def connect(app_name_or_id: str):
             retriever = _LightningAppOpenAPIRetriever(app_name_or_id)
 
             if not retriever.api_commands:
-                client = LightningClient()
+                client = LightningClient(retry=False)
                 project = _get_project(client)
                 apps = client.lightningapp_instance_service_list_lightningapp_instances(project_id=project.project_id)
                 click.echo(
