@@ -648,6 +648,7 @@ class FlowSchedule(LightningFlow):
             if len(self._last_times) < 3:
                 self._last_times.append(time())
             else:
+                # TODO: Resolve
                 assert abs((time() - self._last_times[-1]) - self.target) < 20
                 self.stop()
 
