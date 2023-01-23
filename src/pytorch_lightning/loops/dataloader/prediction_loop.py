@@ -2,26 +2,26 @@ from typing import Any, List, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
+from pytorch_lightning.loops.dataloader.dataloader_loop import _DataLoaderLoop
+from pytorch_lightning.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
-class PredictionLoop(DataLoaderLoop):
+class _PredictionLoop(_DataLoaderLoop):
     """Top-level loop where prediction starts.
 
-    It simply iterates over each predict dataloader from one to the next by calling ``PredictionEpochLoop.run()`` in its
-    ``advance()`` method.
+    It simply iterates over each predict dataloader from one to the next by calling ``_PredictionEpochLoop.run()`` in
+    its ``advance()`` method.
     """
 
     def __init__(self) -> None:
         super().__init__()
         self.predictions: List[List[Any]] = []
         self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
-        self.epoch_loop = PredictionEpochLoop()
+        self.epoch_loop = _PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False

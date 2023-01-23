@@ -54,9 +54,9 @@ from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.loggers import Logger
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
-from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
-from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning.loops import _PredictionLoop, _TrainingEpochLoop
+from pytorch_lightning.loops.dataloader.evaluation_loop import _EvaluationLoop
+from pytorch_lightning.loops.fit_loop import _FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
 from pytorch_lightning.plugins import PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.profilers import Profiler
@@ -373,11 +373,11 @@ class Trainer:
         self.tuner = Tuner(self)
 
         # init loops
-        self.fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
-        self.fit_loop.epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
-        self.validate_loop = EvaluationLoop()
-        self.test_loop = EvaluationLoop()
-        self.predict_loop = PredictionLoop()
+        self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
+        self.fit_loop.epoch_loop = _TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
+        self.validate_loop = _EvaluationLoop()
+        self.test_loop = _EvaluationLoop()
+        self.predict_loop = _PredictionLoop()
         self.fit_loop.trainer = self
         self.validate_loop.trainer = self
         self.test_loop.trainer = self
@@ -1939,7 +1939,7 @@ class Trainer:
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
-    def _evaluation_loop(self) -> EvaluationLoop:
+    def _evaluation_loop(self) -> _EvaluationLoop:
         if self.state.fn == TrainerFn.FITTING:
             return self.fit_loop.epoch_loop.val_loop
         if self.state.fn == TrainerFn.VALIDATING:
@@ -1949,7 +1949,7 @@ class Trainer:
         raise RuntimeError("The `Trainer._evaluation_loop` property isn't defined. Accessed outside of scope")
 
     @property
-    def _active_loop(self) -> Optional[Union[FitLoop, EvaluationLoop, PredictionLoop]]:
+    def _active_loop(self) -> Optional[Union[_FitLoop, _EvaluationLoop, _PredictionLoop]]:
         if self.training:
             return self.fit_loop
         if self.sanity_checking or self.evaluating:
