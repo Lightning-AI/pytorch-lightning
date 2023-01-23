@@ -390,6 +390,12 @@ class LightningApp:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
             deep_diff = DeepDiff(last_state, state, verbose_level=2)
+
+            if "unprocessed" in deep_diff:
+                # pop the unprocessed key.
+                unprocessed = deep_diff.pop("unprocessed")
+                logger.warn(f"It seems delta differentiation resulted in {unprocessed}. Open an issue on Github.")
+
             if deep_diff:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)
