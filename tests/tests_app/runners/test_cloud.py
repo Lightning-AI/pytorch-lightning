@@ -171,7 +171,10 @@ class TestAppCreationClient:
             ("litng-ai-03", None),
         ],
     )
-    def test_new_instance_on_different_cluster(self, cloud_backend, project_id, old_cluster, new_cluster):
+    def test_new_instance_on_different_cluster(self, tmpdir, cloud_backend, project_id, old_cluster, new_cluster):
+        entrypoint = Path(tmpdir) / "entrypoint.py"
+        entrypoint.touch()
+
         app_name = "test-app"
 
         mock_client = mock.MagicMock()
@@ -225,7 +228,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=[existing_instance])
         )
 
-        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=Path("entrypoint.py"))
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=entrypoint)
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
         # This is the main assertion:
@@ -241,11 +244,14 @@ class TestAppCreationClient:
             assert args[1]["body"].name.startswith(app_name)
             assert args[1]["body"].cluster_id == new_cluster
 
-    def test_running_deleted_app(self, cloud_backend, project_id):
+    def test_running_deleted_app(self, tmpdir, cloud_backend, project_id):
         """Deleted apps show up in list apps but not in list instances.
 
         This tests that we don't try to reacreate a previously deleted app.
         """
+        entrypoint = Path(tmpdir) / "entrypoint.py"
+        entrypoint.touch()
+
         app_name = "test-app"
 
         mock_client = mock.MagicMock()
@@ -291,7 +297,7 @@ class TestAppCreationClient:
             V1ListLightningappInstancesResponse(lightningapps=[])
         )
 
-        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=Path("entrypoint.py"))
+        cloud_runtime = cloud.CloudRuntime(app=app, entrypoint=entrypoint)
         cloud_runtime._check_uploaded_folder = mock.MagicMock()
 
         cloud_runtime.dispatch(name=app_name)
