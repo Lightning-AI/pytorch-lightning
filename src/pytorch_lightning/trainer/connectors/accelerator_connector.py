@@ -99,7 +99,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Optional[Union[bool, _LITERAL_WARN]] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
