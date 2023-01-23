@@ -39,13 +39,9 @@ def test_commands_and_api_example_cloud() -> None:
         client = LightningClient()
         project = _get_project(client)
 
-        lit_apps = [
-            app
-            for app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id
-            ).lightningapps
-            if app.id == app_id
-        ]
+        lit_apps = client.lightningapp_instance_service_list_lightningapp_instances(
+            project_id=project.project_id, app_id=app_id
+        ).lightningapps
         app = lit_apps[0]
 
         base_url = app.status.url
