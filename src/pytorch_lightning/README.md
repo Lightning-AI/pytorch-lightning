@@ -300,9 +300,9 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 </details>
 
-### Pro-level control of training loops (advanced users)
+### Pro-level control of optimization (advanced users)
 
-For complex/professional level work, you have optional full control of the training loop and optimizers.
+For complex/professional level work, you have optional full control of the optimizers.
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
