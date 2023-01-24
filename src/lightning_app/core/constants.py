@@ -77,7 +77,11 @@ def enable_multiple_works_in_default_container() -> bool:
 
 
 def get_cloud_queue_type() -> Optional[str]:
-    return os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    value = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    if value is None and enable_preemptible_works():
+        if enable_preemptible_works():
+            value = "http"
+    return value
 
 
 # Number of seconds to wait between filesystem checks when waiting for files in remote storage
