@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
+from io import StringIO
 from unittest import mock
 from unittest.mock import Mock
 
@@ -63,6 +65,15 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
         _run_model.main([fake_script, "--strategy", strategy])
     assert e.value.code == 0
     assert os.environ["LT_STRATEGY"] == strategy
+
+
+@pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
+def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
+    ioerr = StringIO()
+    with pytest.raises(SystemExit) as e, contextlib.redirect_stderr(ioerr):
+        _run_model.main([fake_script, "--strategy", strategy])
+    assert e.value.code == 2
+    assert f"Invalid value for '--strategy': '{strategy}'" in ioerr.getvalue()
 
 
 @pytest.mark.parametrize("devices", ["1", "2", "0,", "1,0", "-1"])

@@ -31,6 +31,8 @@ _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
 
 
 def _get_supported_strategies() -> List[str]:
+    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from
+    the CLI or ones that require further configuration by the user."""
     available_strategies = STRATEGY_REGISTRY.available_strategies()
     excluded = r".*(spawn|fork|notebook|xla|tpu|offload).*"
     return [strategy for strategy in available_strategies if not re.match(excluded, strategy)]
