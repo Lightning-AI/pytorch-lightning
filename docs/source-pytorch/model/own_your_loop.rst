@@ -27,14 +27,6 @@ Use a pure PyTorch training loop
    :height: 150
    :tag: advanced
 
-.. displayitem::
-   :header: Make a custom Lightning Loop
-   :description: Conduct bleeding-edge research like meta-learning and RL with a custom Loop.
-   :col_css: col-md-4
-   :button_link: loops.html
-   :height: 150
-   :tag: expert
-
 .. raw:: html
 
         </div>

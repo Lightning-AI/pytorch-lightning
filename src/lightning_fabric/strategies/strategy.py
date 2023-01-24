@@ -14,7 +14,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -28,8 +28,7 @@ from lightning_fabric.plugins.io.torch_io import TorchCheckpointIO
 from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.launchers.base import _Launcher
 from lightning_fabric.utilities.apply_func import move_data_to_device
-from lightning_fabric.utilities.optimizer import _optimizer_to_device
-from lightning_fabric.utilities.types import _PATH, Optimizable, ReduceOp
+from lightning_fabric.utilities.types import _PATH, _Stateful, Optimizable, ReduceOp
 
 TBroadcast = TypeVar("TBroadcast")
 TReduce = TypeVar("TReduce")
@@ -169,7 +168,17 @@ class Strategy(ABC):
         return self.precision.optimizer_step(optimizer, **kwargs)
 
     @abstractmethod
-    def reduce(
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
+        """Perform an all_gather on all processes.
+
+        Args:
+            tensor: the tensor to all_gather
+            group: the process group to gather results from
+            sync_grads: flag that allows users to synchronize gradients for all_gather op
+        """
+
+    @abstractmethod
+    def all_reduce(
         self,
         tensor: Union[Tensor, Any],
         group: Optional[Any] = None,
@@ -201,36 +210,27 @@ class Strategy(ABC):
             src: source rank
         """
 
-    @abstractmethod
-    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
-        """Perform an all_gather on all processes.
-
-        Args:
-            tensor: the tensor to all_gather
-            group: the process group to gather results from
-            sync_grads: flag that allows users to synchronize gradients for all_gather op
-        """
-
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         """Reduce a boolean decision across all processes."""
         return decision
 
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
+        """Save model, optimizer, and other state as a checkpoint file.
 
         Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+            path: A path to where the file(s) should be saved
+            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
+                state-dict will be retrieved and converted automatically.
+            storage_options: Additional options for the ``CheckpointIO`` plugin
         """
+        state = self._convert_stateful_objects_in_state(state)
         if self.is_global_zero:
-            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+            self.checkpoint_io.save_checkpoint(checkpoint=state, path=path, storage_options=storage_options)
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
-        # TODO(fabric): Integrate this into Lightning Fabric
         return module.state_dict()
 
     def get_optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
@@ -247,23 +247,44 @@ class Strategy(ABC):
         # for optimizers that are not sharded, we return the state dict on all ranks
         return optimizer.state_dict()
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Load the contents from a checkpoint and restore the state of the given objects.
+
+        Args:
+            path: A path to where the file is located
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                If no state is given, then the checkpoint will be returned in full.
+
+        Returns:
+            The remaining items that were not restored into the given state dictionary. If no state dictionary is
+            given, the full checkpoint will be returned.
+        """
         torch.cuda.empty_cache()
-        return self.checkpoint_io.load_checkpoint(checkpoint_path)
+        checkpoint = self.checkpoint_io.load_checkpoint(path)
+        if not state:
+            return checkpoint
 
-    def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
-        # TODO(fabric): Integrate this into Lightning Fabric
-        module.load_state_dict(checkpoint["state_dict"])
+        invalid_keys = [k for k in state if k not in checkpoint]
+        if invalid_keys:
+            # TODO(fabric): Make strict loading configurable to avoid this error if desired.
+            raise KeyError(
+                f"The requested state contains a key '{invalid_keys[0]}' that does not exist in the loaded checkpoint."
+            )
 
-    def load_optimizer_state_dict(
-        self, optimizers: Union[Optimizer, Iterable[Optimizer]], checkpoint: Mapping[str, Any]
-    ) -> None:
-        if not isinstance(optimizers, Iterable):
-            optimizers = [optimizers]
-        optimizer_states = checkpoint["optimizer_states"]
-        for optimizer, opt_state in zip(optimizers, optimizer_states):
-            optimizer.load_state_dict(opt_state)
-            _optimizer_to_device(optimizer, self.root_device)
+        for name, obj in state.copy().items():
+            if name not in checkpoint:
+                continue
+            elif isinstance(obj, _Stateful):
+                if isinstance(obj, Module):
+                    # TODO(fabric): Make strict loading configurable
+                    obj.load_state_dict(checkpoint.pop(name), strict=True)
+                else:
+                    obj.load_state_dict(checkpoint.pop(name))
+            else:
+                state[name] = checkpoint.pop(name)
+        return checkpoint
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -293,6 +314,17 @@ class Strategy(ABC):
             f"The `{type(self).__name__}` does not support setting up the module and optimizer(s) independently."
             " Please call `setup_module_and_optimizers(model, [optimizer, ...])` to jointly set them up."
         )
+
+    def _convert_stateful_objects_in_state(self, state: Dict[str, Union[Module, Optimizer, Any]]) -> Dict[str, Any]:
+        converted_state = {}
+        for key, obj in state.items():
+            if isinstance(obj, Module):
+                converted_state[key] = self.get_module_state_dict(module=obj)
+            elif isinstance(obj, Optimizer):
+                converted_state[key] = self.get_optimizer_state(optimizer=obj)
+            else:
+                converted_state[key] = obj
+        return converted_state
 
 
 class _BackwardSyncControl(ABC):

@@ -82,9 +82,6 @@ class ParallelStrategy(Strategy, ABC):
             rank=self.global_rank,
         )
 
-    def reconciliate_processes(self, trace: str) -> None:
-        """Function to re-conciliate processes on failure."""
-
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return _all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)

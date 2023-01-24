@@ -16,7 +16,7 @@ def _streamlit_render_fn():
 
 class StreamlitFlow(LightningFlow):
     def run(self):
-        self._exit()
+        self.stop()
 
     def configure_layout(self):
         frontend = StreamlitFrontend(render_fn=_streamlit_render_fn)
@@ -27,7 +27,7 @@ class StreamlitFlow(LightningFlow):
 
 class WebFlow(LightningFlow):
     def run(self):
-        self._exit()
+        self.stop()
 
     def configure_layout(self):
         frontend = StaticWebFrontend(serve_dir="a/b/c")
@@ -43,7 +43,7 @@ class StartFrontendServersTestFlow(LightningFlow):
         self.flow1 = WebFlow()
 
     def run(self):
-        self._exit()
+        self.stop()
 
 
 @mock.patch("lightning_app.runners.multiprocess.find_free_network_port")
@@ -78,7 +78,7 @@ class ContextFlow(LightningFlow):
         assert _get_context().value == "flow"
         self.work.run()
         assert _get_context().value == "flow"
-        self._exit()
+        self.stop()
 
 
 def test_multiprocess_runtime_sets_context():

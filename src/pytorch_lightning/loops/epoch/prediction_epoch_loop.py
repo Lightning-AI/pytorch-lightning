@@ -1,10 +1,10 @@
 from collections import OrderedDict
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import torch
 
 from lightning_fabric.utilities import move_data_to_device
-from pytorch_lightning.loops.loop import Loop
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.rank_zero import WarningCache
@@ -12,7 +12,7 @@ from pytorch_lightning.utilities.rank_zero import WarningCache
 warning_cache = WarningCache()
 
 
-class PredictionEpochLoop(Loop):
+class _PredictionEpochLoop(_Loop):
     """Loop performing prediction on arbitrary sequentially used dataloaders."""
 
     def __init__(self) -> None:
@@ -22,7 +22,7 @@ class PredictionEpochLoop(Loop):
         self.current_batch_indices: List[int] = []
         self.batch_progress = Progress()
 
-        self._dl_max_batches = 0
+        self._dl_max_batches: Union[int, float] = 0
         self._num_dataloaders = 0
         self._warning_cache = WarningCache()
         self._seen_batch_indices: List[List[int]] = []
@@ -38,8 +38,23 @@ class PredictionEpochLoop(Loop):
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+    def run(
+        self,
+        dataloader_iter: Iterator,
+        dataloader_idx: int,
+        dl_max_batches: Union[int, float],
+        num_dataloaders: int,
+    ) -> Tuple[List[Any], List[List[int]]]:
+        self.reset()
+        self.on_run_start(dataloader_idx, dl_max_batches, num_dataloaders)
+        while not self.done:
+            try:
+                self.advance(dataloader_iter, dataloader_idx)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the loops internal state."""
@@ -49,15 +64,13 @@ class PredictionEpochLoop(Loop):
 
     def on_run_start(
         self,
-        dataloader_iter: Iterator,
         dataloader_idx: int,
-        dl_max_batches: int,
+        dl_max_batches: Union[int, float],
         num_dataloaders: int,
     ) -> None:
         """Prepares the loops internal state.
 
         Args:
-            dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
             dl_max_batches: the maximum number of batches the current loader can produce
             num_dataloaders: the total number of dataloaders
@@ -71,16 +84,12 @@ class PredictionEpochLoop(Loop):
         self,
         dataloader_iter: Iterator,
         dataloader_idx: int,
-        dl_max_batches: int,
-        num_dataloaders: int,
     ) -> None:
         """Runs one prediction step.
 
         Args:
             dataloader_iter: the iterator over the current dataloader
             dataloader_idx: the index of the current dataloader
-            dl_max_batches: the maximum number of batches the current loader can produce
-            num_dataloaders: the total number of dataloaders
         """
         action_name = f"[{self.__class__.__name__}].predict_dataloader_idx_{dataloader_idx}_next"
         with self.trainer.profiler.profile(action_name):

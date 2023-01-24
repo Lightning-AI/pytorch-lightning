@@ -29,7 +29,7 @@ from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loops.dataloader import EvaluationLoop
+from pytorch_lightning.loops.dataloader import _EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
@@ -593,31 +593,6 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert set(results[0]) == {"test_loss"}
 
 
-def test_logging_dict_on_validation_step(tmpdir):
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            loss = super().validation_step(batch, batch_idx)
-            loss = loss["x"]
-            metrics = {
-                "loss": loss,
-                "loss_1": loss,
-            }
-            self.log("val_metrics", metrics)
-
-        validation_epoch_end = None
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=2,
-    )
-
-    trainer.fit(model)
-
-
 @pytest.mark.parametrize("val_check_interval", [0.5, 1.0])
 def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     class TestModel(BoringModel):
@@ -677,12 +652,16 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 @pytest.mark.parametrize(
     "accelerator",
     [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
-def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
+def test_metrics_and_outputs_device(tmpdir, accelerator):
     class TestModel(BoringModel):
+        def on_before_backward(self, loss: Tensor) -> None:
+            # the loss should be on the correct device before backward
+            assert loss.device.type == accelerator
+
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
             y = x * 2
@@ -695,13 +674,12 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
         def validation_epoch_end(self, outputs):
             # the step outputs were not moved
             assert all(o.device == self.device for o in outputs)
-            # but the logging results were
-            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+            # and the logged metrics aren't
+            assert self.trainer.callback_metrics["foo"].device.type == accelerator
 
     model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator=accelerator, devices=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
+    trainer.fit(model)
     trainer.validate(model, verbose=False)
 
 
@@ -867,7 +845,7 @@ def test_native_print_results(monkeypatch, inputs, expected):
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
     with redirect_stdout(StringIO()) as out:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
@@ -881,7 +859,7 @@ def test_native_print_results_encodings(monkeypatch, encoding):
     out = mock.Mock()
     out.encoding = encoding
     with redirect_stdout(out) as out:
-        EvaluationLoop._print_results(*inputs0)
+        _EvaluationLoop._print_results(*inputs0)
 
     # Attempt to encode everything the file is told to write with the given encoding
     for call_ in out.method_calls:
@@ -959,7 +937,7 @@ expected3 = """
 def test_rich_print_results(inputs, expected):
     console = get_console()
     with console.capture() as capture:
-        EvaluationLoop._print_results(*inputs)
+        _EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert capture.get() == expected.lstrip()
 

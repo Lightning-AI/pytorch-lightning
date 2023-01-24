@@ -271,7 +271,7 @@ def test_work_state_change_with_path():
 
         def run(self):
             self.work.run()
-            self._exit()
+            self.stop()
 
     flow = Flow()
     MultiProcessRuntime(LightningApp(flow)).dispatch()
@@ -368,7 +368,7 @@ class FlowStart(LightningFlow):
 
     def run(self):
         if self.finish:
-            self._exit()
+            self.stop()
         if self.w.status.stage == WorkStageStatus.STOPPED:
             with pytest.raises(Exception, match="A work can be started only once for now."):
                 self.w.start()

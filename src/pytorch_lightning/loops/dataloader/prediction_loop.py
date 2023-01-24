@@ -2,22 +2,26 @@ from typing import Any, List, Optional, Sequence, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
-from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
+from pytorch_lightning.loops.dataloader.dataloader_loop import _DataLoaderLoop
+from pytorch_lightning.loops.epoch.prediction_epoch_loop import _PredictionEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
-class PredictionLoop(DataLoaderLoop):
-    """Loop to run over dataloaders for prediction."""
+class _PredictionLoop(_DataLoaderLoop):
+    """Top-level loop where prediction starts.
+
+    It simply iterates over each predict dataloader from one to the next by calling ``_PredictionEpochLoop.run()`` in
+    its ``advance()`` method.
+    """
 
     def __init__(self) -> None:
         super().__init__()
         self.predictions: List[List[Any]] = []
-        self.epoch_batch_indices: List[List[int]] = []
-        self.epoch_loop = PredictionEpochLoop()
+        self.epoch_batch_indices: List[List[List[int]]] = []  # used by PredictionWriter
+        self.epoch_loop = _PredictionEpochLoop()
 
         self._results = None  # for `trainer._results` access
         self._return_predictions: bool = False
@@ -66,9 +70,21 @@ class PredictionLoop(DataLoaderLoop):
     def skip(self) -> bool:
         return sum(self.max_batches) == 0
 
-    def connect(self, epoch_loop: PredictionEpochLoop) -> None:  # type: ignore[override]
-        """Connect the prediction epoch loop with this loop."""
-        self.epoch_loop = epoch_loop
+    def run(self) -> Optional[_PREDICT_OUTPUT]:
+        if self.skip:
+            return None
+        self.reset()
+        self.on_run_start()
+        while not self.done:
+            try:
+                self.on_advance_start()
+                self.advance()
+                self.on_advance_end()
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -88,7 +104,7 @@ class PredictionLoop(DataLoaderLoop):
         self._on_predict_start()
         self._on_predict_epoch_start()
 
-    def advance(self, *args: Any, **kwargs: Any) -> None:
+    def advance(self) -> None:
         """Predicts one entire dataloader."""
         dataloader = self.current_dataloader
         if dataloader is not None:
@@ -108,6 +124,9 @@ class PredictionLoop(DataLoaderLoop):
         results = self._on_predict_epoch_end()
         self._on_predict_end()
         return results
+
+    def teardown(self) -> None:
+        pass
 
     def _on_predict_start(self) -> None:
         """Calls ``on_predict_start`` hooks."""

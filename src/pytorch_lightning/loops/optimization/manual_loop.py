@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import OrderedDict
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from torch import Tensor
 
 from pytorch_lightning.core.optimizer import do_nothing_closure
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
-from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
+from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -42,7 +43,7 @@ class ManualResult(OutputResult):
     def from_training_step_output(cls, training_step_output: Optional[STEP_OUTPUT]) -> "ManualResult":
         extra = {}
         if isinstance(training_step_output, dict):
-            extra = {k: v for k, v in training_step_output.items() if k != "hiddens"}
+            extra = training_step_output.copy()
         elif isinstance(training_step_output, Tensor):
             extra = {"loss": training_step_output}
         elif training_step_output is not None:
@@ -64,7 +65,7 @@ class ManualResult(OutputResult):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class ManualOptimization(Loop[_OUTPUTS_TYPE]):
+class _ManualOptimization(_Loop):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` and therefore the user is
     responsible for back-propagating gradients and making calls to the optimizers.
@@ -81,18 +82,16 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         # `OptimizationProgress`
         self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
 
-        self._done: bool = False
-        self._hiddens: Optional[Any] = None
         self._output: _OUTPUTS_TYPE = {}
 
-    @property
-    def done(self) -> bool:
-        return self._done
+    def run(self, kwargs: OrderedDict) -> _OUTPUTS_TYPE:
+        self.on_run_start()
+        with suppress(StopIteration):  # no loop to break at this level
+            self.advance(kwargs)
+        self._restarting = False
+        return self.on_run_end()
 
-    def reset(self) -> None:
-        self._done = False
-
-    def on_run_start(self, *_: Any, **__: Any) -> None:
+    def on_run_start(self) -> None:
         # inject logic around the optimizer step
         for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
             lightning_optimizer._on_before_step = self._on_before_step
@@ -104,7 +103,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         Args:
             kwargs: The kwargs passed down to the hooks.
         """
-        kwargs = self._build_kwargs(kwargs, self._hiddens)
+        kwargs = self._build_kwargs(kwargs)
 
         # manually capture logged metrics
         training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
@@ -114,17 +113,9 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
-        self._hiddens = _extract_hiddens(training_step_output, self.trainer.lightning_module.truncated_bptt_steps)
 
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
-        if self.trainer.move_metrics_to_cpu:
-            # hiddens and the training step output are not moved as they are not considered "metrics"
-            # the user might need them on the correct device for an operation in `training_epoch_end`
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
-
-        self._done = True
         self._output = result.asdict()
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
@@ -144,16 +135,13 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         self.trainer.profiler.stop("optimizer_step")
         self.optim_step_progress.increment_completed()
 
-    def _build_kwargs(self, kwargs: OrderedDict, hiddens: Optional[Any]) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
-            hiddens: the hidden state of the previous RNN iteration.
 
         Returns:
             The kwargs passed down to the hooks.
         """
-        return _build_training_step_kwargs(
-            kwargs, self.trainer.lightning_module, self.trainer.optimizers, None, hiddens
-        )
+        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self.trainer.optimizers, None)

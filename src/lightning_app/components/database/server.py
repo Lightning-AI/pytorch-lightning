@@ -117,7 +117,7 @@ class Database(LightningWork):
                     if self.counter >= 100:
                         row: CounterModel = rows[0]
                         self._client.delete(row)
-                        self._exit()
+                        self.stop()
 
                     self.counter += 1
 

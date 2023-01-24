@@ -24,14 +24,10 @@ from lightning_fabric.accelerators.cuda import num_cuda_devices
 from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.plugins.precision.apex_amp import _APEX_AVAILABLE
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.colossalai import _COLOSSALAI_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
-from pytorch_lightning.strategies.horovod import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.imports import (
-    _HIVEMIND_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
@@ -39,19 +35,6 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_QUANTIZE_AVAILABLE,
 )
 from tests_pytorch.helpers.datamodules import _SKLEARN_AVAILABLE
-
-_HOROVOD_NCCL_AVAILABLE = False
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
-
-    try:
-
-        # `nccl_built` returns an integer
-        _HOROVOD_NCCL_AVAILABLE = bool(hvd.nccl_built())
-    except AttributeError:
-        # AttributeError can be raised if MPI is not available:
-        # https://github.com/horovod/horovod/blob/v0.23.0/horovod/torch/__init__.py#L33-L34
-        pass
 
 
 class RunIf:
@@ -71,17 +54,13 @@ class RunIf:
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         quantization: bool = False,
-        amp_apex: bool = False,
         bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
         hpu: bool = False,
         mps: Optional[bool] = None,
-        horovod: bool = False,  # TODO: remove in v2.0.0
-        horovod_nccl: bool = False,  # TODO: remove in v2.0.0
         skip_windows: bool = False,
         standalone: bool = False,
-        fairscale: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
         omegaconf: bool = False,
@@ -89,7 +68,6 @@ class RunIf:
         bagua: bool = False,
         colossalai: bool = False,
         psutil: bool = False,
-        hivemind: bool = False,
         sklearn: bool = False,
         **kwargs,
     ):
@@ -101,19 +79,15 @@ class RunIf:
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
-            amp_apex: Require that NVIDIA/apex is installed.
             bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available and that the ``PL_RUN_IPU_TESTS=1`` environment variable is set.
             hpu: Require that HPU is available.
             mps: If True: Require that MPS (Apple Silicon) is available,
                 if False: Explicitly Require that MPS is not available
-            horovod: Require that Horovod is installed.
-            horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
             standalone: Mark the test as standalone, our CI will run it in a separate process.
                 This requires that the ``PL_RUN_STANDALONE_TESTS=1`` environment variable is set.
-            fairscale: Require that facebookresearch/fairscale is installed.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
             omegaconf: Require that omry/omegaconf is installed.
@@ -121,7 +95,6 @@ class RunIf:
                 This requires that the ``PL_RUN_SLOW_TESTS=1`` environment variable is set.
             bagua: Require that BaguaSys/bagua is installed.
             psutil: Require that psutil is installed.
-            hivemind: Require that Hivemind is installed.
             sklearn: Require that scikit-learn is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
@@ -153,12 +126,6 @@ class RunIf:
             _miss_default = "fbgemm" not in torch.backends.quantized.supported_engines
             conditions.append(not _TORCH_QUANTIZE_AVAILABLE or _miss_default)
             reasons.append("PyTorch quantization")
-
-        # TODO: remove in v2.0.0
-        if amp_apex:
-            conditions.append(not _APEX_AVAILABLE)
-            reasons.append("NVIDIA Apex")
-            kwargs["amp_apex"] = amp_apex
 
         if bf16_cuda:
             try:
@@ -202,28 +169,12 @@ class RunIf:
                 conditions.append(MPSAccelerator.is_available())
                 reasons.append("not MPS")
 
-        if horovod:
-            conditions.append(not _HOROVOD_AVAILABLE)
-            reasons.append("Horovod")
-
-        if horovod_nccl:
-            conditions.append(not _HOROVOD_NCCL_AVAILABLE)
-            reasons.append("Horovod with NCCL")
-
         if standalone:
             env_flag = os.getenv("PL_RUN_STANDALONE_TESTS", "0")
             conditions.append(env_flag != "1")
             reasons.append("Standalone execution")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["standalone"] = True
-
-        if fairscale:
-            if skip_windows:
-                raise ValueError(
-                    "`skip_windows` is not necessary when `fairscale` is set as it does not support Windows."
-                )
-            conditions.append(not _FAIRSCALE_AVAILABLE)
-            reasons.append("Fairscale")
 
         if deepspeed:
             conditions.append(not _DEEPSPEED_AVAILABLE)
@@ -255,10 +206,6 @@ class RunIf:
         if psutil:
             conditions.append(not _PSUTIL_AVAILABLE)
             reasons.append("psutil")
-
-        if hivemind:
-            conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
-            reasons.append("Hivemind")
 
         if sklearn:
             conditions.append(not _SKLEARN_AVAILABLE)

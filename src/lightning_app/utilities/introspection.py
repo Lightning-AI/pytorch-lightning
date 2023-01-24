@@ -106,7 +106,6 @@ class LightningModuleVisitor(LightningVisitor):
         "optimizer_zero_grad",
         "prepare_data",
         "setup",
-        "tbptt_split_batch",
         "teardown",
         "train_dataloader",
         "val_dataloader",
@@ -248,16 +247,8 @@ class LightningAcceleratorVisitor(LightningVisitor):
     class_name = "Accelerator"
 
 
-class LightningLoopVisitor(LightningVisitor):
-    class_name = "Loop"
-
-
 class TorchMetricVisitor(LightningVisitor):
     class_name = "Metric"
-
-
-class LightningLiteVisitor(LightningVisitor):  # deprecated
-    class_name = "LightningLite"
 
 
 class FabricVisitor(LightningVisitor):
@@ -295,9 +286,7 @@ class Scanner:
         LightningPrecisionPluginVisitor,
         LightningAcceleratorVisitor,
         LightningLoggerVisitor,
-        LightningLoopVisitor,
         TorchMetricVisitor,
-        LightningLiteVisitor,  # deprecated
         FabricVisitor,
         LightningProfilerVisitor,
     ]

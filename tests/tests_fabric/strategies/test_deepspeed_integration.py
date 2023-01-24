@@ -254,8 +254,9 @@ def test_deepspeed_multigpu_stage_3(tmpdir):
 
 @RunIf(deepspeed=True)
 @mock.patch("deepspeed.init_distributed", autospec=True)
+@mock.patch("lightning_fabric.accelerators.mps.MPSAccelerator.is_available", return_value=False)
 @pytest.mark.parametrize("platform", ["Linux", "Windows"])
-def test_deepspeed_env_variables_on_platforms(deepspeed_dist_mock, tmpdir, platform):
+def test_deepspeed_env_variables_on_platforms(_, deepspeed_dist_mock, platform):
     """Test to ensure that we set up distributed communication correctly.
 
     When using Windows, ranks environment variables should not be set, and DeepSpeed should handle this.

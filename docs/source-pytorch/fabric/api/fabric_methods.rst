@@ -110,6 +110,8 @@ You need this only if you wish to autocast more operations outside the ones in m
     fabric.backward(loss)
     ...
 
+See also: :doc:`../fundamentals/precision`
+
 
 print
 =====
@@ -127,25 +129,55 @@ This avoids excessive printing and logs when running on multiple devices/nodes.
 save
 ====
 
-Save contents to a checkpoint. Replaces all occurrences of ``torch.save(...)`` in your code. Fabric will take care of
-handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
+Save the state of objects to a checkpoint file.
+Replaces all occurrences of ``torch.save(...)`` in your code.
+Fabric will take care of handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
 
 .. code-block:: python
 
-    # Instead of `torch.save(...)`, call:
-    fabric.save(model.state_dict(), "path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Instead of `torch.save(...)`
+    fabric.save("path/to/checkpoint.ckpt", state)
+
+You should pass the model and optimizer objects directly into the dictionary so that Fabric can unwrap them and retrieve their *state-dict* automatically.
+
+See also: :doc:`../guide/checkpoint`
 
 
 load
 ====
 
-Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Fabric will take care of
-handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
+Load checkpoint contents from a file and restore the state of objects in your program.
+Replaces all occurrences of ``torch.load(...)`` in your code.
+Fabric will take care of handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 
-    # Instead of `torch.load(...)`, call:
-    fabric.load("path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Restore the state of objects (in-place)
+    fabric.load("path/to/checkpoint.ckpt", state)
+
+    # Or load everything and restore your objects manually
+    checkpoint = fabric.load("./checkpoints/version_2/checkpoint.ckpt")
+    model.load_state_dict(all_states["model"])
+    ...
+
+
+See also: :doc:`../guide/checkpoint`
 
 
 barrier
@@ -227,6 +259,9 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
     fabric.call("undefined")
 
 
+See also: :doc:`../guide/callbacks`
+
+
 log and log_dict
 ================
 
@@ -251,3 +286,5 @@ Here is what's happening under the hood (pseudo code) when you call ``.log()`` o
     # When you call .log() or .log_dict(), we do this:
     for logger in fabric.loggers:
         logger.log_metrics(metrics=metrics, step=step)
+
+See also: :doc:`../guide/logging`

@@ -1,6 +1,7 @@
-### \*\* NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.\*\*
-
 <div align="center">
+
+**NEWS: PyTorch Lightning has been renamed Lightning! In addition to building models, you can now build lightning apps that glue together everything around the models, without the pain of infrastructure, cost management, scaling and everything else.**
+
 <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
 **Build and train PyTorch models and connect them to the ML lifecycle using Lightning App templates, without handling DIY infrastructure, cost management, scaling, and other headaches.**
@@ -312,9 +313,9 @@ with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as tmpfile:
 
 </details>
 
-### Pro-level control of training loops (advanced users)
+### Pro-level control of optimization (advanced users)
 
-For complex/professional level work, you have optional full control of the training loop and optimizers.
+For complex/professional level work, you have optional full control of the optimizers.
 
 ```python
 class LitAutoEncoder(pl.LightningModule):
@@ -350,18 +351,6 @@ ______________________________________________________________________
 - Lightning has dozens of integrations with popular machine learning tools.
 - [Tested rigorously with every new PR](https://github.com/Lightning-AI/lightning/tree/master/tests). We test every combination of PyTorch and Python supported versions, every OS, multi GPUs and even TPUs.
 - Minimal running speed overhead (about 300 ms per epoch compared with pure PyTorch).
-
-______________________________________________________________________
-
-## Lightning Lite
-
-<div align="center">
-  <img src="docs/source-pytorch/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
-</div>
-
-In the Lightning v1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
-[blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
-[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
 
 ______________________________________________________________________
 

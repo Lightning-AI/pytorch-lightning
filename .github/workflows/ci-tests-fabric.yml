@@ -12,7 +12,7 @@ on:
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
-      - "setup.cfg"  # includes pytest config
+      - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-fabric.yml"
       - "!requirements/*/docs.txt"
       - "!*.md"
@@ -108,6 +108,7 @@ jobs:
         FREEZE_REQUIREMENTS: 1
       run: |
         pip install -e .[test] "pytest-timeout" --upgrade --find-links ${TORCH_URL}
+        pip install -r requirements/fabric/strategies.txt
         pip list
 
     - name: Adjust tests

@@ -256,16 +256,16 @@ class PythonServer(LightningWork, abc.ABC):
         input_type: type = self.configure_input_type()
         output_type: type = self.configure_output_type()
 
-        def predict_fn(request: input_type):  # type: ignore
+        def predict_fn_sync(request: input_type):  # type: ignore
             return self.predict(request)
 
         async def async_predict_fn(request: input_type):  # type: ignore
             return await self.predict(request)
 
         if asyncio.iscoroutinefunction(self.predict):
-            predict_fn = async_predict_fn
-
-        fastapi_app.post("/predict", response_model=output_type)(predict_fn)
+            fastapi_app.post("/predict", response_model=output_type)(async_predict_fn)
+        else:
+            fastapi_app.post("/predict", response_model=output_type)(predict_fn_sync)
 
     def get_code_sample(self, url: str) -> Optional[str]:
         input_type: Any = self.configure_input_type()

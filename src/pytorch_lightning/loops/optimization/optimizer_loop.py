@@ -22,19 +22,12 @@ from typing_extensions import OrderedDict
 
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
-from pytorch_lightning.loops.utilities import (
-    _block_parallel_sync_behavior,
-    _build_training_step_kwargs,
-    _extract_hiddens,
-)
-from pytorch_lightning.plugins import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
+from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, WarningCache
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.rank_zero import WarningCache
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -75,7 +68,7 @@ class ClosureResult(OutputResult):
                 raise MisconfigurationException(
                     "In automatic_optimization, when `training_step` returns a dict, the 'loss' key needs to be present"
                 )
-            extra = {k: v for k, v in training_step_output.items() if k not in ("loss", "hiddens")}
+            extra = {k: v for k, v in training_step_output.items() if k != "loss"}
         elif isinstance(training_step_output, Tensor):
             closure_loss = training_step_output
         elif training_step_output is not None:
@@ -153,10 +146,13 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[int, Dict[str, Any]]
 
 
-class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
-    """Runs over a sequence of optimizers.
+class _OptimizerLoop(_Loop):
+    """Iterates over one or multiple optimizers and for each one it calls the
+    :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method with the batch, the current batch index
+    and the optimizer index if multiple optimizers are requested.
 
-    This loop implements what is known in Lightning as Automatic Optimization.
+    It is the leaf node in the tree of loops and performs automatic optimization
+    (forward, zero grad, backward, optimizer step).
     """
 
     output_result_cls = ClosureResult
@@ -169,7 +165,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         self._skip_backward: bool = False
         self._optimizers: Tuple[Optimizer, ...] = tuple()
         self._indices: Tuple[int, ...] = tuple()
-        self._hiddens: Optional[Any] = None
 
     @property
     def optimizer_idx(self) -> int:
@@ -180,8 +175,17 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         """Returns ``True`` when the last optimizer in the sequence has run."""
         return self.optim_progress.optimizer_position >= len(self._indices)
 
-    def connect(self, **kwargs: "Loop") -> None:
-        raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
+    def run(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> _OUTPUTS_TYPE:
+        self.reset()
+        self.on_run_start(optimizers)
+        while not self.done:
+            try:
+                self.advance(kwargs)
+                self._restarting = False
+            except StopIteration:
+                break
+        self._restarting = False
+        return self.on_run_end()
 
     def reset(self) -> None:
         if not self.restarting:
@@ -191,13 +195,13 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.reset_on_restart()
         self._outputs = {}
 
-    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
+    def on_run_start(self, optimizers: List[Tuple[int, Optimizer]]) -> None:
         self._indices, self._optimizers = zip(*optimizers)
         if self.done:
             self.optim_progress.optimizer_position = 0
 
-    def advance(self, optimizers: List[Tuple[int, Optimizer]], kwargs: OrderedDict) -> None:
-        kwargs = self._build_kwargs(kwargs, self.optimizer_idx, self._hiddens)
+    def advance(self, kwargs: OrderedDict) -> None:
+        kwargs = self._build_kwargs(kwargs, self.optimizer_idx)
 
         result = self._run_optimization(kwargs, self._optimizers[self.optim_progress.optimizer_position])
         if result.loss is not None:
@@ -245,16 +249,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # ------------------------------
         # gradient update with accumulated gradients
         else:
-            # the `batch_idx` is optional with inter-batch parallelism
             self._optimizer_step(optimizer, opt_idx, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
-
-        if result.loss is not None:
-            # if no result, user decided to skip optimization
-            # otherwise update running loss + reset accumulated loss
-            # TODO: find proper way to handle updating running loss
-            self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
 
         # untoggle model params
         self._run_optimization_end(opt_idx)
@@ -343,11 +340,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
 
         # wraps into LightningOptimizer only for running step
-        if isinstance(self.trainer.precision_plugin, ApexMixedPrecisionPlugin):
-            # apex overrides .step function and need to be wrapped on each step
-            optimizer = LightningOptimizer._to_lightning_optimizer(optimizer, self.trainer.strategy, opt_idx)
-        else:
-            optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
+        optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
         # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
         # need to check again if `should_accumulate` before increasing the counters
@@ -356,17 +349,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
-        kwargs = {}
-        pl_module = self.trainer.lightning_module
-        if is_param_in_hook_signature(pl_module.optimizer_step, "using_native_amp", explicit=True):
-            rank_zero_deprecation(
-                "The NVIDIA/apex AMP implementation has been deprecated upstream. Consequently, its integration inside"
-                " PyTorch Lightning has been deprecated in v1.9.0 and will be removed in v2.0.0."
-                f" The `{type(pl_module).__name__}.optimizer_step()` hook is overridden, including the"
-                " `using_native_amp` argument. Removing this argument will avoid this message, you can expect it to"
-                " return True."
-            )
-            kwargs["using_native_amp"] = isinstance(self.trainer.precision_plugin, MixedPrecisionPlugin)
         self.trainer._call_lightning_module_hook(
             "optimizer_step",
             self.trainer.current_epoch,
@@ -375,7 +357,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             opt_idx,
             train_step_and_backward_closure,
             on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            **kwargs,  # type: ignore[arg-type]
             using_lbfgs=is_lbfgs,
         )
 
@@ -423,30 +404,20 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
 
-        self._hiddens = _extract_hiddens(training_step_output, self.trainer.lightning_module.truncated_bptt_steps)
-
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
         )
 
-        if self.trainer.move_metrics_to_cpu:
-            # hiddens and the training step output are not moved as they are not considered "metrics"
-            assert self.trainer._results is not None
-            self.trainer._results.cpu()
-
         return result
 
-    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int, hiddens: Optional[Any]) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
             opt_idx: the index of the current optimizer.
-            hiddens: the hidden state of the previous RNN iteration.
 
         Returns:
             The kwargs passed down to the hooks.
         """
-        return _build_training_step_kwargs(
-            kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx, hiddens
-        )
+        return _build_training_step_kwargs(kwargs, self.trainer.lightning_module, self.trainer.optimizers, opt_idx)

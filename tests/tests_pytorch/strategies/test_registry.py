@@ -16,9 +16,7 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.strategies import (
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
+    DDPFullyShardedNativeStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -67,16 +65,14 @@ def test_tpu_spawn_debug_strategy_registry(xla_available):
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
-def test_fsdp_strategy_registry(tmpdir):
-
-    strategy = "fsdp"
-
+@RunIf(min_torch="1.12")
+def test_fsdp_strategy_registry(cuda_count_1):
+    strategy = "fsdp_native"
     assert strategy in StrategyRegistry
-    assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedStrategy
+    assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedNativeStrategy
 
-    trainer = Trainer(strategy=strategy)
-
-    assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+    trainer = Trainer(accelerator="cuda", strategy=strategy)
+    assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 
 
 @pytest.mark.parametrize(
@@ -103,16 +99,6 @@ def test_fsdp_strategy_registry(tmpdir):
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
-        ),
-        (
-            "ddp_sharded_spawn_find_unused_parameters_false",
-            DDPSpawnShardedStrategy,
-            {"find_unused_parameters": False},
-        ),
-        (
-            "ddp_sharded_find_unused_parameters_false",
-            DDPShardedStrategy,
-            {"find_unused_parameters": False},
         ),
     ],
 )

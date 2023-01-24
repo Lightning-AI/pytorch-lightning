@@ -362,10 +362,14 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         else:
             yield
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
+    def save_checkpoint(
+        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
+    ) -> None:
         raise NotImplementedError
 
-    def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
+    ) -> Dict[str, Any]:
         raise NotImplementedError
 
     def load_optimizer_state_dict(

@@ -51,17 +51,9 @@ from pytorch_lightning.demos.boring_classes import (
 )
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.strategies import (
-    DataParallelStrategy,
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
-    DDPStrategy,
-    SingleDeviceStrategy,
-)
+from pytorch_lightning.strategies import DataParallelStrategy, DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from tests_pytorch.conftest import mock_cuda_count, mock_mps_count
 from tests_pytorch.helpers.datamodules import ClassifDataModule
@@ -353,7 +345,7 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     # emulate callback's calls during the training
     for i, loss in enumerate(losses, 1):
         # sets `trainer.global_step`
-        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = i
+        trainer.fit_loop.epoch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
         trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
@@ -720,7 +712,7 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
         final_path = "foobar"
 
     with ctxt:
-        ckpt_path = trainer._checkpoint_connector._set_ckpt_path(
+        ckpt_path = trainer._checkpoint_connector._parse_ckpt_path(
             fn, ckpt_path, model_provided=fn == "fit", model_connected=True
         )
     assert ckpt_path == final_path
@@ -933,7 +925,7 @@ def test_best_ckpt_evaluate_raises_warning_with_multiple_ckpt_callbacks():
     trainer.state.fn = TrainerFn.TESTING
 
     with pytest.warns(UserWarning, match="best checkpoint path from first checkpoint callback"):
-        trainer._checkpoint_connector._set_ckpt_path(
+        trainer._checkpoint_connector._parse_ckpt_path(
             trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
         )
 
@@ -1166,15 +1158,6 @@ def test_invalid_gradient_clip_value(tmpdir):
 def test_invalid_gradient_clip_algo(tmpdir):
     with pytest.raises(MisconfigurationException, match="`gradient_clip_algorithm` norm2 is invalid"):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
-
-
-@RunIf(min_cuda_gpus=1)
-def test_invalid_gpu_choice_with_auto_select_gpus():
-    num_gpus = torch.cuda.device_count()
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"), pytest.deprecated_call(
-        match="The function `pick_multiple_gpus` has been deprecated in v1.9.0"
-    ):
-        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1710,7 +1693,7 @@ def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
     with pytest.raises(ValueError, match=r"with `fast_dev_run=True`. .* pass an exact checkpoint path"):
-        trainer._checkpoint_connector._set_ckpt_path(
+        trainer._checkpoint_connector._parse_ckpt_path(
             trainer.state.fn, ckpt_path="best", model_provided=False, model_connected=True
         )
 
@@ -1810,41 +1793,6 @@ def test_exception_when_lightning_module_is_not_set_on_trainer():
         trainer.test()
     with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
         trainer.predict()
-
-
-class CustomException(Exception):
-    pass
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
-    """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
-
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx):
-            if batch_idx == 1 and self.trainer.is_global_zero:
-                # rank 0: raises an exception
-                # rank 1: continues training but will hang on the next barrier in the training loop
-                raise CustomException
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=5,
-        num_sanity_val_steps=0,
-        accelerator="gpu",
-        devices=2,
-        strategy="ddp",
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-
-    # simulate random failure in training_step on rank 0
-    with pytest.raises(DeadlockDetectedException, match="CustomException"):
-        trainer.fit(model)
 
 
 @RunIf(min_cuda_gpus=1)
@@ -2057,13 +2005,6 @@ def test_detect_anomaly_nan(tmpdir):
             1,
         ),
         (
-            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            1,
-        ),
-        (
             {"strategy": DDPSpawnStrategy(), "accelerator": "cpu", "devices": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
@@ -2087,51 +2028,9 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         (
-            {"strategy": DDPFullyShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": DDPShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPShardedStrategy,
-            "ddp_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1, "num_nodes": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            1,
-        ),
-        (
-            {"strategy": "ddp_sharded", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
-            DDPShardedStrategy,
-            "ddp_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": "ddp_sharded_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
             CUDAAccelerator,
             2,
         ),
@@ -2237,7 +2136,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-# TODO: replace with 1.14 when it is released
+# TODO: replace with 2.0 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compiled_model():
     model = BoringModel()
@@ -2265,11 +2164,9 @@ def test_trainer_compiled_model():
 
     model = torch.compile(model)
 
-    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPShardedStrategy)
-
+    trainer = Trainer(fast_dev_run=True, strategy="fsdp_native")
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
         trainer.fit(model)
 
-    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPStrategy)
-
+    trainer = Trainer(fast_dev_run=True, strategy="ddp")
     trainer.fit(model)

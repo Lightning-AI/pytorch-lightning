@@ -19,7 +19,7 @@ Convention:
 from argparse import _ArgumentGroup, ArgumentParser
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Generator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
@@ -31,7 +31,6 @@ from lightning_fabric.utilities.types import _TORCH_LRSCHEDULER, LRScheduler, Pr
 
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
-_METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
 STEP_OUTPUT = Union[Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader

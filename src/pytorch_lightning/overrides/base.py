@@ -11,16 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import torch
-import torch.nn as nn
-from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class _LightningPrecisionModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
@@ -55,9 +51,7 @@ class _LightningPrecisionModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Mod
 
 
 class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(
-        self, forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]]
-    ) -> None:
+    def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
         ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
 
@@ -75,8 +69,6 @@ class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
                 "`forward_module` must be a `LightningModule` instance or have an attribute `.module` pointing to one,"
                 f" got: {forward_module.__class__.__qualname__}"
             )
-        # TODO: In v2.0.0, remove the Optional type from forward_module and remove the assertion
-        assert forward_module is not None
         self._forward_module = forward_module
 
         # set the parameters_to_ignore from LightningModule.
@@ -111,47 +103,3 @@ class _LightningModuleWrapperBase(_DeviceDtypeModuleMixin, torch.nn.Module):
             if trainer.predicting:
                 return self._forward_module.predict_step(*inputs, **kwargs)
         return self._forward_module(*inputs, **kwargs)
-
-    @classmethod
-    def _validate_init_arguments(
-        cls,
-        pl_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-        forward_module: Optional[Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]] = None,
-    ) -> None:
-        # TODO: In v2.0.0, remove this method and mark the forward_module init argument in all subclasses as required
-        if pl_module is not None:
-            rank_zero_deprecation(
-                f"The argument `pl_module` in `{cls.__name__}` is deprecated in v1.8.0 and will be removed in"
-                " v2.0.0. Please use `forward_module` instead."
-            )
-        elif forward_module is None:
-            raise ValueError("Argument `forward_module` is required.")
-
-
-def unwrap_lightning_module(wrapped_model: nn.Module, _suppress_warning: bool = False) -> "pl.LightningModule":
-    """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
-    attributes on the wrapper.
-
-    .. deprecated:: v1.8.0
-        The function ``unwrap_lightning_module`` is deprecated in v1.8.0 and will be removed in v2.0.0. Access the
-        ``LightningModule`` directly through the strategy attribute ``Strategy.lightning_module``.
-
-    Raises:
-        TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
-            further.
-    """
-    if not _suppress_warning:
-        rank_zero_deprecation(
-            "The function `unwrap_lightning_module` is deprecated in v1.8.0 and will be removed in v2.0.0. Access the"
-            " `LightningModule` directly through the strategy attribute `Strategy.lightning_module`."
-        )
-    model = wrapped_model
-    if isinstance(model, (DistributedDataParallel, DataParallel)):
-        model = unwrap_lightning_module(model.module)
-    if isinstance(model, _LightningModuleWrapperBase):
-        model = model.lightning_module
-    if isinstance(model, _LightningPrecisionModuleWrapperBase):
-        model = model.module
-    if not isinstance(model, pl.LightningModule):
-        raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
-    return model
