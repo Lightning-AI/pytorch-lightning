@@ -538,7 +538,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `FSDPMixedPrecisionPlugin` to handle precision for `DDPFullyShardedNativeStrategy` ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
+- Added `FullyShardedNativeNativeMixedPrecisionPlugin` to handle precision for `DDPFullyShardedNativeStrategy` ([#14092](https://github.com/Lightning-AI/lightning/pull/14092))
 - Added profiling to these hooks: `on_before_batch_transfer`, `transfer_batch_to_device`, `on_after_batch_transfer`, `configure_gradient_clipping`, `clip_gradients` ([#14069](https://github.com/Lightning-AI/lightning/pull/14069))
 
 ### Changed
@@ -872,7 +872,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `estimated_stepping_batches` property to `Trainer` ([#11599](https://github.com/Lightning-AI/lightning/pull/11599))
 - Added support for pluggable Accelerators ([#12030](https://github.com/Lightning-AI/lightning/pull/12030))
 - Added profiling for `on_load_checkpoint`/`on_save_checkpoint` callback and LightningModule hooks ([#12149](https://github.com/Lightning-AI/lightning/pull/12149))
-- Added `LayerSync` and `TorchSyncBatchNorm` plugins ([#11754](https://github.com/Lightning-AI/lightning/pull/11754))
+- Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/Lightning-AI/lightning/pull/11754))
 - Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/Lightning-AI/lightning/pull/11891))
 - Added support to explicitly specify the process group backend for parallel strategies ([#11745](https://github.com/Lightning-AI/lightning/pull/11745))
 - Added `device_ids` and `num_devices` property to `Trainer` ([#12151](https://github.com/Lightning-AI/lightning/pull/12151))
