@@ -158,7 +158,7 @@ def cluster_logs(cluster_id: str, to_time: arrow.Arrow, from_time: arrow.Arrow, 
             $ lightning show cluster logs my-cluster --limit 10
     """
 
-    client = LightningClient()
+    client = LightningClient(retry=False)
     cluster_manager = AWSClusterManager()
     existing_cluster_list = cluster_manager.get_clusters()
 
