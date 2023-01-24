@@ -3,6 +3,7 @@ import os
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from lightning_fabric import Fabric
 from pytorch_lightning import LightningModule, Trainer
 
 
@@ -49,17 +50,17 @@ def run():
     test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
-        enable_model_summary=False,
-    )
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-    trainer.test(model, dataloaders=test_data)
+
+    fabric = Fabric(accelerator="cpu", strategy="ddp", devices=2)
+    fabric.launch()
+
+    model = fabric.setup(model)
+
+    fabric.save("here.ckpt", {"model": model, "hello": "world"})
+    fabric.barrier()
+    loaded = torch.load("here.ckpt")
+    print(loaded["model"].keys())
+
 
 
 if __name__ == "__main__":
