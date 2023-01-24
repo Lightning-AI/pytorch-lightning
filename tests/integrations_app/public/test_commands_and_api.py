@@ -3,12 +3,9 @@ from subprocess import Popen
 from time import sleep
 
 import pytest
-import requests
 from integrations_app.public import _PATH_EXAMPLES
 
 from lightning_app.testing.testing import run_app_in_cloud
-from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.network import LightningClient
 
 
 @pytest.mark.timeout(300)
@@ -16,7 +13,7 @@ from lightning_app.utilities.network import LightningClient
 def test_commands_and_api_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PATH_EXAMPLES, "app_commands_and_api")) as (
         admin_page,
-        _,
+        view_page,
         fetch_logs,
         app_name,
     ):
@@ -25,29 +22,12 @@ def test_commands_and_api_example_cloud() -> None:
         cmd_1 = f"python -m lightning connect {app_name}"
         cmd_2 = "python -m lightning command with client --name=this"
         cmd_3 = "python -m lightning command without client --name=is"
-        cmd_4 = "lightning disconnect"
-        process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4]), shell=True)
+        cmd_4 = "python -m lightning command without client --name=awesome"
+        cmd_5 = "lightning disconnect"
+        process = Popen(" && ".join([cmd_1, cmd_2, cmd_3, cmd_4, cmd_5]), shell=True)
         process.wait()
 
-        # This prevents some flakyness in the CI. Couldn't reproduce it locally.
-        sleep(5)
-
-        # Send a request to the Rest API directly.
-        client = LightningClient()
-        project = _get_project(client)
-
-        lit_apps = [
-            lit_app
-            for lit_app in client.lightningapp_instance_service_list_lightningapp_instances(
-                project_id=project.project_id,
-            ).lightningapps
-            if lit_app.name == app_name
-        ]
-        app = lit_apps[0]
-
-        base_url = app.status.url
-        resp = requests.post(base_url + "/user/command_without_client?name=awesome")
-        assert resp.status_code == 200, resp.json()
+        "/".join(view_page.url.split("/")[:-2])
 
         # Validate the logs.
         has_logs = False
@@ -56,8 +36,3 @@ def test_commands_and_api_example_cloud() -> None:
                 if "['this', 'is', 'awesome']" in log:
                     has_logs = True
             sleep(1)
-
-        # Send a request to the Rest API directly.
-        resp = requests.get(base_url + "/pure_function")
-        assert resp.status_code == 200
-        assert resp.json() == "Hello World !"

@@ -28,7 +28,7 @@ GPU Training
 Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
 
 * :class:`~pytorch_lightning.strategies.DDPStrategy`
-* :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
+* :class:`~pytorch_lightning.strategies.DDPFullyShardedNativeStrategy`
 * :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
 
 .. code-block:: python
