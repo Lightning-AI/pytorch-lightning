@@ -25,13 +25,13 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.trainer.progress import BaseProgress
 from tests_pytorch.helpers.runif import RunIf
 
 
 def test_restarting_loops_recursive():
-    class MyLoop(Loop):
+    class MyLoop(_Loop):
         def __init__(self, loop=None):
             super().__init__()
             self.child = loop
@@ -52,7 +52,7 @@ class CustomException(Exception):
 
 
 def test_loop_restore():
-    class Simple(Loop):
+    class Simple(_Loop):
         def __init__(self, dataset: Iterator):
             super().__init__()
             self.iteration_count = 0
@@ -119,7 +119,7 @@ def test_loop_hierarchy():
     class SimpleProgress(BaseProgress):
         increment: int = 0
 
-    class Simple(Loop):
+    class Simple(_Loop):
         def __init__(self, a):
             super().__init__()
             self.a = a
