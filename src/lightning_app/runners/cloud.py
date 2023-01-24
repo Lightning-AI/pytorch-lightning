@@ -112,7 +112,7 @@ class CloudRuntime(Runtime):
             # Check for feature support
             user = self.backend.client.auth_service_get_user()
             if not user.features.code_tab:
-                logger.error(
+                print(
                     "The `lightning open` command has not been enabled for your account. "
                     "To request access, please contact support@lightning.ai"
                 )

@@ -1498,7 +1498,7 @@ class TestOpen:
         expected_filtered_entries = [(tmpdir / entry).absolute() for entry in expected_filtered_entries]
         assert filtered == expected_filtered_entries
 
-    def test_not_enabled(self, monkeypatch, caplog):
+    def test_not_enabled(self, monkeypatch, capsys):
         """Tests that an error is printed and the call exits if the feature isn't enabled for the user."""
         mock_client = mock.MagicMock()
         mock_client.auth_service_get_user.return_value = V1GetUserResponse(
@@ -1515,15 +1515,16 @@ class TestOpen:
         monkeypatch.setattr(cloud, "Path", Path)
 
         exited = False
-        with caplog.at_level(logging.ERROR):
-            try:
-                cloud_runtime.open("test_space")
-            except SystemExit:
-                # Expected behaviour
-                exited = True
+        try:
+            cloud_runtime.open("test_space")
+        except SystemExit:
+            # Expected behaviour
+            exited = True
+
+        out, _ = capsys.readouterr()
 
         assert exited
-        assert "`lightning open` command has not been enabled" in caplog.text
+        assert "`lightning open` command has not been enabled" in out
 
 
 @mock.patch("lightning_app.core.queues.QueuingSystem", MagicMock())
