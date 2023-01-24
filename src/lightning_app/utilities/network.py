@@ -180,7 +180,7 @@ class HTTPClient:
         adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
-        self.session.hooks = {"_response": _response}
+        self.session.hooks = {"response": _response}
 
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
