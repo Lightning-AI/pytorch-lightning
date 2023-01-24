@@ -1,6 +1,8 @@
 import os
 from unittest import mock
 
+import pytest
+
 from lightning_app.core.constants import get_cluster_driver, get_lightning_cloud_url
 
 
@@ -17,3 +19,7 @@ def test_cluster_drive(monkeypatch):
 
     monkeypatch.setenv("LIGHTNING_CLUSTER_DRIVER", "k8s")
     assert get_cluster_driver() == "k8s"
+
+    with pytest.raises(ValueError, match="The value needs to be in"):
+        monkeypatch.setenv("LIGHTNING_CLUSTER_DRIVER", "something_else")
+        assert get_cluster_driver() == "k8s"

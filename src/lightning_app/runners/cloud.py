@@ -57,6 +57,7 @@ from lightning_app.core.constants import (
     ENABLE_APP_COMMENT_COMMAND_EXECUTION,
     enable_multiple_works_in_default_container,
     ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER,
+    enable_preemptible_works,
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
@@ -649,6 +650,14 @@ class CloudRuntime(Runtime):
 
         if get_cluster_driver():
             v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value=get_cluster_driver()))
+
+        if enable_preemptible_works():
+            v1_env_vars.append(
+                V1EnvVar(
+                    name="LIGHTNING_ENABLE_PREEMPTIBLE_WORKS",
+                    value=os.getenv("LIGHTNING_ENABLE_PREEMPTIBLE_WORKS", "0"),
+                )
+            )
 
         return v1_env_vars
 

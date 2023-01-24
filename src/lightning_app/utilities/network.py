@@ -150,7 +150,7 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
-def response(r, *args, **kwargs):
+def _response(r, *args, **kwargs):
     return r.raise_for_status()
 
 
@@ -180,7 +180,7 @@ class HTTPClient:
         adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
-        self.session.hooks = {"response": response}
+        self.session.hooks = {"_response": _response}
 
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
