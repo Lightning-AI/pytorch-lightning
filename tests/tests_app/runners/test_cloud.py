@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from lightning_cloud.openapi import (
+    Body4,
     CloudspaceIdRunsBody,
     Externalv1Cluster,
     Externalv1LightningappInstance,
@@ -26,7 +27,9 @@ from lightning_cloud.openapi import (
     V1EnvVar,
     V1GetClusterResponse,
     V1GetUserResponse,
+    V1LightningappInstanceSpec,
     V1LightningappInstanceState,
+    V1LightningappInstanceStatus,
     V1LightningAuth,
     V1LightningBasicAuth,
     V1LightningRun,
@@ -1497,6 +1500,77 @@ class TestOpen:
         filtered = [entry.absolute() for entry in filtered]
         expected_filtered_entries = [(tmpdir / entry).absolute() for entry in expected_filtered_entries]
         assert filtered == expected_filtered_entries
+
+    def test_reopen(self, monkeypatch, capsys):
+        """Tests that the open method calls the expected API endpoints when the CloudSpace already exists."""
+        mock_client = mock.MagicMock()
+        mock_client.auth_service_get_user.return_value = V1GetUserResponse(
+            username="tester",
+            features=V1UserFeatures(code_tab=True),
+        )
+        mock_client.projects_service_list_memberships.return_value = V1ListMembershipsResponse(
+            memberships=[V1Membership(name="test-project", project_id="test-project-id")]
+        )
+
+        mock_client.cloud_space_service_list_cloud_spaces.return_value = V1ListCloudSpacesResponse(
+            cloudspaces=[V1CloudSpace(id="cloudspace_id", name="test_space")]
+        )
+
+        running_instance = Externalv1LightningappInstance(
+            id="instance_id",
+            name="test_space",
+            spec=V1LightningappInstanceSpec(cluster_id="test"),
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.RUNNING),
+        )
+
+        stopped_instance = Externalv1LightningappInstance(
+            id="instance_id",
+            name="test_space",
+            spec=V1LightningappInstanceSpec(cluster_id="test"),
+            status=V1LightningappInstanceStatus(phase=V1LightningappInstanceState.STOPPED),
+        )
+
+        mock_client.lightningapp_instance_service_list_lightningapp_instances.return_value = (
+            V1ListLightningappInstancesResponse(lightningapps=[running_instance])
+        )
+        mock_client.lightningapp_instance_service_update_lightningapp_instance.return_value = running_instance
+        mock_client.lightningapp_instance_service_get_lightningapp_instance.return_value = stopped_instance
+
+        mock_client.cloud_space_service_create_cloud_space.return_value = V1CloudSpace(id="cloudspace_id")
+        mock_client.cloud_space_service_create_lightning_run.return_value = V1LightningRun(id="run_id")
+
+        cluster = Externalv1Cluster(id="test", spec=V1ClusterSpec(cluster_type=V1ClusterType.GLOBAL))
+        mock_client.projects_service_list_project_cluster_bindings.return_value = V1ListProjectClusterBindingsResponse(
+            clusters=[V1ProjectClusterBinding(cluster_id="test")],
+        )
+        mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([cluster])
+        mock_client.cluster_service_get_cluster.return_value = cluster
+
+        cloud_backend = mock.MagicMock()
+        cloud_backend.client = mock_client
+        monkeypatch.setattr(backends, "CloudBackend", mock.MagicMock(return_value=cloud_backend))
+        mock_local_source = mock.MagicMock()
+        monkeypatch.setattr(cloud, "LocalSourceCodeDir", mock_local_source)
+
+        cloud_runtime = cloud.CloudRuntime(entrypoint=Path("."))
+
+        cloud_runtime.open("test_space")
+
+        mock_client.cloud_space_service_create_lightning_run_instance.assert_not_called()
+        mock_client.cloud_space_service_create_cloud_space.assert_not_called()
+
+        mock_client.cloud_space_service_create_lightning_run.assert_called_once_with(
+            project_id="test-project-id",
+            cloudspace_id="cloudspace_id",
+            body=mock.ANY,
+        )
+
+        mock_client.lightningapp_instance_service_update_lightningapp_instance_release.assert_called_once_with(
+            project_id="test-project-id", id="instance_id", body=Body4(release_id="run_id")
+        )
+
+        out, _ = capsys.readouterr()
+        assert "will not update your files." in out
 
     def test_not_enabled(self, monkeypatch, capsys):
         """Tests that an error is printed and the call exits if the feature isn't enabled for the user."""

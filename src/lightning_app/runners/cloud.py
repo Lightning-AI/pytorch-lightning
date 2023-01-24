@@ -144,7 +144,13 @@ class CloudRuntime(Runtime):
             # Spec creation
             run_body = self._get_run_body(cluster_id, [], None, [], True, root, self.start_server)
 
-            print(f"The name of the CloudSpace is: {cloudspace_config.name}")
+            if existing_run_instance is not None:
+                print(
+                    f"Re-opening the CloudSpace {cloudspace_config.name}. "
+                    "This operation will create a new run but will not update your files."
+                )
+            else:
+                print(f"The name of the CloudSpace is: {cloudspace_config.name}")
 
             # API transactions
             cloudspace_id = self._api_create_cloudspace_if_not_exists(
