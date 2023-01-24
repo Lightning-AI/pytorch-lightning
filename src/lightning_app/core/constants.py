@@ -79,8 +79,7 @@ def enable_multiple_works_in_default_container() -> bool:
 def get_cloud_queue_type() -> Optional[str]:
     value = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
     if value is None and enable_preemptible_works():
-        if enable_preemptible_works():
-            value = "http"
+        value = "http"
     return value
 
 
