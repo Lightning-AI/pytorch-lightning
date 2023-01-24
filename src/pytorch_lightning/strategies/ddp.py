@@ -39,7 +39,6 @@ from lightning_fabric.utilities.types import ReduceOp
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -49,10 +48,6 @@ from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, ValidationStep
 
-if _FAIRSCALE_AVAILABLE:
-    from fairscale.optim import OSS
-else:
-    OSS = object
 if torch.distributed.is_available():
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
@@ -230,7 +225,6 @@ class DDPStrategy(ParallelStrategy):
             if (
                 is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
-                or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
                 or isinstance(optimizer, PostLocalSGDOptimizer)
             ):
                 raise ValueError(

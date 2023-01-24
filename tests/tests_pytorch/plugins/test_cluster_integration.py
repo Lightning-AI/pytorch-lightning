@@ -19,7 +19,7 @@ import torch
 
 from lightning_fabric.plugins.environments import LightningEnvironment, SLURMEnvironment, TorchElasticEnvironment
 from pytorch_lightning import Trainer
-from pytorch_lightning.strategies import DDPShardedStrategy, DDPStrategy, DeepSpeedStrategy
+from pytorch_lightning.strategies import DDPStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf
 
@@ -59,23 +59,17 @@ def environment_combinations():
 @RunIf(mps=False)
 @pytest.mark.parametrize(
     "strategy_cls",
-    [DDPStrategy, DDPShardedStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
+    [DDPStrategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
 @mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
-    for i, (cluster, variables, expected) in enumerate(environment_combinations()):
+    for cluster, variables, expected in environment_combinations():
         with mock.patch.dict(os.environ, variables):
-            if strategy_cls is DDPShardedStrategy and i == 0:
-                with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-                    strategy = strategy_cls(
-                        parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
-                    )
-            else:
-                strategy = strategy_cls(
-                    parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
-                )
+            strategy = strategy_cls(
+                parallel_devices=[torch.device("cuda", 1), torch.device("cuda", 2)], cluster_environment=cluster
+            )
             trainer = Trainer(strategy=strategy, num_nodes=num_nodes)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]
@@ -89,7 +83,6 @@ def test_ranks_available_manual_strategy_selection(_, strategy_cls):
     "trainer_kwargs",
     [
         dict(strategy="ddp", accelerator="gpu", devices=[1, 2]),
-        dict(strategy="ddp_sharded", accelerator="gpu", devices=[1, 2]),
         dict(strategy="ddp_spawn", accelerator="cpu", devices=2),
         dict(strategy="ddp_spawn", accelerator="gpu", devices=[1, 2]),
     ],
@@ -99,7 +92,7 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
     num_nodes = 2
     trainer_kwargs.update(num_nodes=num_nodes)
 
-    for i, (cluster, variables, expected) in enumerate(environment_combinations()):
+    for cluster, variables, expected in environment_combinations():
         if trainer_kwargs["strategy"] == "ddp_spawn":
             if isinstance(cluster, (SLURMEnvironment, TorchElasticEnvironment)):
                 # slurm and torchelastic do not work with spawn strategies
@@ -108,11 +101,7 @@ def test_ranks_available_automatic_strategy_selection(cuda_count_4, trainer_kwar
             expected.update(global_rank=(expected["node_rank"] * 2), local_rank=0)
 
         with mock.patch.dict(os.environ, variables):
-            if "sharded" in trainer_kwargs["strategy"] and i == 0:
-                with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-                    trainer = Trainer(**trainer_kwargs)
-            else:
-                trainer = Trainer(**trainer_kwargs)
+            trainer = Trainer(**trainer_kwargs)
             assert type(trainer.strategy.cluster_environment) is type(cluster)
             assert rank_zero_only.rank == expected["global_rank"]
             assert trainer.global_rank == expected["global_rank"]

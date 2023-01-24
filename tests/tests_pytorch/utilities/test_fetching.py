@@ -478,25 +478,25 @@ def test_fetching_is_profiled():
 
     # validation
     for i in range(2):
-        key = f"[EvaluationEpochLoop].val_dataloader_idx_{i}_next"
+        key = f"[_EvaluationEpochLoop].val_dataloader_idx_{i}_next"
         assert key in profiler.recorded_durations
         durations = profiler.recorded_durations[key]
         assert len(durations) == fast_dev_run
         assert all(d > 0 for d in durations)
     # training
-    key = "[TrainingEpochLoop].train_dataloader_next"
+    key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # test
-    key = "[EvaluationEpochLoop].val_dataloader_idx_0_next"
+    key = "[_EvaluationEpochLoop].val_dataloader_idx_0_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
     # predict
-    key = "[PredictionEpochLoop].predict_dataloader_idx_0_next"
+    key = "[_PredictionEpochLoop].predict_dataloader_idx_0_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
@@ -524,7 +524,7 @@ def test_fetching_is_profiled():
     profiler = trainer.profiler
     assert isinstance(profiler, SimpleProfiler)
 
-    key = "[TrainingEpochLoop].train_dataloader_next"
+    key = "[_TrainingEpochLoop].train_dataloader_next"
     assert key in profiler.recorded_durations
     durations = profiler.recorded_durations[key]
     assert len(durations) == 2  # 2 polls in training_step

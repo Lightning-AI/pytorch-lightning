@@ -72,7 +72,7 @@ def dispatch(
 
     runtime = runtime_cls(
         app=app,
-        entrypoint_file=entrypoint_file,
+        entrypoint=entrypoint_file,
         start_server=start_server,
         host=host,
         port=port,
@@ -90,8 +90,8 @@ def dispatch(
 
 @dataclass
 class Runtime:
-    app: LightningApp
-    entrypoint_file: Optional[Path] = None
+    app: Optional[LightningApp] = None
+    entrypoint: Optional[Path] = None
     start_server: bool = True
     host: str = APP_SERVER_HOST
     port: int = APP_SERVER_PORT
@@ -107,9 +107,10 @@ class Runtime:
 
     def __post_init__(self):
         if isinstance(self.backend, str):
-            self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
+            self.backend = BackendType(self.backend).get_backend(self.entrypoint)
 
-        LightningFlow._attach_backend(self.app.root, self.backend)
+        if self.app is not None:
+            LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""
