@@ -21,7 +21,7 @@ import pytest
 import torch.distributed.run
 from tests_fabric.helpers.runif import RunIf
 
-from lightning_fabric.cli import _run_model, _get_supported_strategies
+from lightning_fabric.cli import _get_supported_strategies, _run_model
 
 
 @pytest.fixture
