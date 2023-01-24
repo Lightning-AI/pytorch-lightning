@@ -190,12 +190,35 @@ def test_deepspeed_save_checkpoint_client_state_separation(tmp_path):
     from deepspeed import DeepSpeedEngine
 
     strategy = DeepSpeedStrategy()
+
+    # Model only
+    model = Mock(spec=DeepSpeedEngine, optimizer=None)
+    model.modules.return_value = [model]
+    strategy.save_checkpoint(path=tmp_path, state={"model": model, "test": "data"})
+    # the client_state should not contain any deepspeed engine or deepspeed optimizer
+    model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+
+    # Model and optimizer
     optimizer = Mock()
     model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
     model.modules.return_value = [model]
     strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "test": "data"})
     # the client_state should not contain any deepspeed engine or deepspeed optimizer
     model.save_checkpoint.assert_called_with(tmp_path, client_state={"test": "data"}, tag="checkpoint")
+
+
+@RunIf(deepspeed=True)
+def test_deepspeed_save_checkpoint_warn_colliding_keys(tmp_path):
+    """Test that the strategy warns if there are keys in the user dict that collide internally with DeepSpeed."""
+    from deepspeed import DeepSpeedEngine
+
+    strategy = DeepSpeedStrategy()
+    optimizer = Mock()
+    model = Mock(spec=DeepSpeedEngine, optimizer=optimizer)
+    model.modules.return_value = [model]
+    # `mp_world_size` is an internal key
+    with pytest.warns(UserWarning, match="Your state has keys that collide with DeepSpeed's internal"):
+        strategy.save_checkpoint(path=tmp_path, state={"model": model, "optimizer": optimizer, "mp_world_size": 2})
 
 
 @RunIf(deepspeed=True)

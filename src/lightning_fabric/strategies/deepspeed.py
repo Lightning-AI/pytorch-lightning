@@ -408,22 +408,9 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # split the checkpoint into two parts:
         # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
         # 2) the rest of the user's state, which in deepspeed is called `client state`
-        excluded_objects = (engine, engine.optimizer)
+        excluded_objects = (engine, engine.optimizer) if engine.optimizer is not None else (engine, )
         state = {k: v for k, v in state.items() if v not in excluded_objects}
-
-        # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
-        # colliding keys from the user. We explicitly check it here:
-        deepspeed_internal_keys = {
-            "",
-        }
-        colliding_keys = deepspeed_internal_keys.intersection(state.keys())
-        if colliding_keys:
-            rank_zero_warn(
-                "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
-                " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
-                ", ".join(colliding_keys)
-            )
-
+        _validate_state_keys(state)
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state)
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
@@ -767,3 +754,30 @@ def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.
     modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
     engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
     return engines
+
+
+def _validate_state_keys(state: Dict[str, Any]) -> None:
+    # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
+    # colliding keys from the user. We explicitly check it here:
+    deepspeed_internal_keys = {
+        "module",
+        "buffer_names",
+        "optimizer",
+        "param_shapes",
+        "lr_scheduler",
+        "sparse_tensor_module_names",
+        "skipped_steps",
+        "global_steps",
+        "global_samples",
+        "dp_world_size",
+        "mp_world_size",
+        "ds_config",
+        "ds_version",
+    }
+    colliding_keys = deepspeed_internal_keys.intersection(state.keys())
+    if colliding_keys:
+        rank_zero_warn(
+            "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
+            " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
+            + ", ".join(colliding_keys)
+        )
