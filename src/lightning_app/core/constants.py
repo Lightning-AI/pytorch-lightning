@@ -94,7 +94,12 @@ _CLUSTER_DRIVERS = ["k8s", "direct"]
 
 
 def get_cluster_driver() -> str:
-    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", "k8s")
+    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
+    if value is None:
+        if enable_preemptible_works():
+            value = "direct"
+        else:
+            value = "k8s"
     if value not in _CLUSTER_DRIVERS:
         raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
     return value
