@@ -8,7 +8,7 @@ Sharing my components
 
 ----
 
-*********************************************
+********************************************
 Why should I consider sharing my components?
 ********************************************
 
@@ -18,7 +18,7 @@ By creating components and sharing them with everyone else, the barrier to entry
 
 ----
 
-*************************************
+************************************
 How should I organize my components?
 ************************************
 
@@ -41,7 +41,7 @@ Here are the best practices steps before sharing the component:
 
 ----
 
-******************************************
+*****************************************
 How should I proceed to share components?
 *****************************************
 
