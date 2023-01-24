@@ -410,7 +410,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # 2) the rest of the user's state, which in deepspeed is called `client state`
         excluded_objects = (engine, engine.optimizer)
         state = {k: v for k, v in state.items() if v not in excluded_objects}
-        # there might be other stateful objects unrelatd to the deepspeed engine - convert them to a state_dict
+        # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state)
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
         engine.save_checkpoint(path, client_state=state, tag="checkpoint")
