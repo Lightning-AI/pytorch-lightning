@@ -56,7 +56,7 @@ def test_cli_env_vars_accelerator(_, accelerator, monkeypatch, fake_script):
     assert os.environ["LT_ACCELERATOR"] == accelerator
 
 
-@pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed"])
+@pytest.mark.parametrize("strategy", ["dp", "ddp", "deepspeed", "deepspeed_stage_3"])
 @mock.patch.dict(os.environ, os.environ.copy(), clear=True)
 @mock.patch("lightning_fabric.accelerators.cuda.num_cuda_devices", return_value=2)
 def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
