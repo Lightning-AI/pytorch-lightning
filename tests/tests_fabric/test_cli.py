@@ -67,6 +67,13 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
     assert os.environ["LT_STRATEGY"] == strategy
 
 
+def test_cli_get_supported_strategies():
+    """Test to ensure that when new strategies get added, we must consider updating the list of supported ones
+    in the CLI."""
+    assert len(_get_supported_strategies()) == 7
+    assert "deepspeed_stage_3" in _get_supported_strategies()
+
+
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
 def test_cli_env_vars_unsupported_strategy(strategy, fake_script):
     ioerr = StringIO()
