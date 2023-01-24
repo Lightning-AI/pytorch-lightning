@@ -11,8 +11,8 @@ from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
+from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
+from pytorch_lightning.strategies import FSDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -63,7 +63,7 @@ class TestFSDPModel(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, FullyShardedDataParallel)
-        assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
         precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         assert self.layer.mixed_precision.param_dtype == precision
         assert self.layer.mixed_precision.reduce_dtype == precision
@@ -98,7 +98,7 @@ class TestFSDPModelAutoWrapped(BoringModel):
 
     def _assert_layer_fsdp_instance(self) -> None:
         assert isinstance(self.layer, torch.nn.Sequential)
-        assert isinstance(self.trainer.strategy.precision_plugin, FullyShardedNativeNativeMixedPrecisionPlugin)
+        assert isinstance(self.trainer.strategy.precision_plugin, FSDPMixedPrecisionPlugin)
 
         precision = torch.float16 if self.trainer.precision == "16" else torch.bfloat16
         for layer_num in [0, 2]:
@@ -153,21 +153,20 @@ def custom_auto_wrap_policy(
 
 @RunIf(min_torch="1.12")
 def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that we raise Misconfiguration for Native FSDP on CPU."""
+    """Test to ensure that we raise Misconfiguration for FSDP on CPU."""
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-        "but GPU accelerator is not used.",
+        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, " "but GPU accelerator is not used.",
     ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
-        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
+        assert isinstance(trainer.strategy, FSDPStrategy)
         trainer.strategy.setup_environment()
 
 
 @RunIf(min_torch="1.12", min_cuda_gpus=1)
 @pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
-    plugin = FullyShardedNativeNativeMixedPrecisionPlugin(precision=precision, device="cuda")
+    plugin = FSDPMixedPrecisionPlugin(precision=precision, device="cuda")
     config = plugin.mixed_precision_config
     assert config.param_dtype == expected
     assert config.buffer_dtype == expected
@@ -178,20 +177,20 @@ def test_precision_plugin_config(precision, expected):
 def test_fsdp_custom_mixed_precision(tmpdir):
     """Test to ensure that passing a custom mixed precision config works."""
     config = MixedPrecision()
-    strategy = DDPFullyShardedNativeStrategy(mixed_precision=config)
+    strategy = FSDPStrategy(mixed_precision=config)
     assert strategy.mixed_precision_config == config
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12")
-def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
-    """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
+def test_fsdp_strategy_sync_batchnorm(tmpdir):
+    """Test to ensure that sync_batchnorm works when using FSDP and GPU, and all stages can be run."""
 
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
         devices=2,
-        strategy="fsdp_native",
+        strategy="fsdp",
         precision=16,
         max_epochs=1,
         sync_batchnorm=True,
@@ -201,11 +200,11 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
 @pytest.mark.parametrize("precision", (16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))))
-def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
+def test_fsdp_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
     model = TestFSDPModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=precision, max_epochs=1
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp", precision=precision, max_epochs=1
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
@@ -214,11 +213,11 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
 @pytest.mark.parametrize(
     "model, strategy",
     [
-        (TestFSDPModel(), "fsdp_native"),
-        (TestFSDPModelAutoWrapped(), DDPFullyShardedNativeStrategy),
+        (TestFSDPModel(), "fsdp"),
+        (TestFSDPModelAutoWrapped(), FSDPStrategy),
     ],
 )
-def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, strategy):
+def test_fsdp_checkpoint_multi_gpus(tmpdir, model, strategy):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     ck = ModelCheckpoint(save_last=True)
@@ -243,8 +242,8 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, model, stra
 
 
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12")
-def test_invalid_parameters_in_optimizer(tmpdir):
-    trainer = Trainer(strategy="fsdp_native", accelerator="cuda", devices=1)
+def test_invalid_parameters_in_optimizer():
+    trainer = Trainer(strategy="fsdp", accelerator="cuda", devices=1)
 
     class EmptyParametersModel(BoringModel):
         def configure_optimizers(self):
@@ -265,15 +264,15 @@ def test_invalid_parameters_in_optimizer(tmpdir):
 
 
 @RunIf(min_torch="1.12")
-@mock.patch("pytorch_lightning.strategies.fully_sharded_native._TORCH_GREATER_EQUAL_1_13", False)
-def test_fully_sharded_native_activation_checkpointing_support():
+@mock.patch("pytorch_lightning.strategies.fsdp._TORCH_GREATER_EQUAL_1_13", False)
+def test_fsdp_activation_checkpointing_support():
     """Test that we error out if activation checkpointing requires a newer PyTorch version."""
     with pytest.raises(ValueError, match="Activation checkpointing requires torch >= 1.13.0"):
-        DDPFullyShardedNativeStrategy(activation_checkpointing=Mock())
+        FSDPStrategy(activation_checkpointing=Mock())
 
 
 @RunIf(min_torch="1.13")
-def test_fully_sharded_native_activation_checkpointing():
+def test_fsdp_activation_checkpointing():
     """Test that the FSDP strategy can apply activation checkpointing to the given layers."""
 
     class Block1(nn.Linear):
@@ -289,19 +288,17 @@ def test_fully_sharded_native_activation_checkpointing():
             self.layer1 = Block2(2, 2)
             self.layer2 = nn.Linear(3, 3)
 
-    strategy = DDPFullyShardedNativeStrategy(activation_checkpointing=Block1)
+    strategy = FSDPStrategy(activation_checkpointing=Block1)
     assert strategy._activation_checkpointing == [Block1]
 
-    strategy = DDPFullyShardedNativeStrategy(activation_checkpointing=[Block1, Block2])
+    strategy = FSDPStrategy(activation_checkpointing=[Block1, Block2])
     assert strategy._activation_checkpointing == [Block1, Block2]
 
     model = Model()
     strategy._parallel_devices = [torch.device("cuda", 0)]
     strategy._lightning_module = model
     strategy._process_group = Mock()
-    with mock.patch(
-        "pytorch_lightning.strategies.fully_sharded_native.FullyShardedDataParallel"
-    ) as fsdp_mock, mock.patch(
+    with mock.patch("pytorch_lightning.strategies.fsdp.FullyShardedDataParallel") as fsdp_mock, mock.patch(
         "torch.distributed.algorithms._checkpoint.checkpoint_wrapper.apply_activation_checkpointing"
     ) as ckpt_mock:
         strategy._setup_model(model)
@@ -309,13 +306,13 @@ def test_fully_sharded_native_activation_checkpointing():
 
 
 @RunIf(min_torch="1.12")
-def test_fully_sharded_native_strategy_cpu_offload():
+def test_fsdp_strategy_cpu_offload():
     """Test the different ways cpu offloading can be enabled."""
     # bool
-    strategy = DDPFullyShardedNativeStrategy(cpu_offload=True)
+    strategy = FSDPStrategy(cpu_offload=True)
     assert strategy.cpu_offload == CPUOffload(offload_params=True)
 
     # dataclass
     config = CPUOffload()
-    strategy = DDPFullyShardedNativeStrategy(cpu_offload=config)
+    strategy = FSDPStrategy(cpu_offload=config)
     assert strategy.cpu_offload == config

@@ -16,7 +16,7 @@ from typing import Optional, TYPE_CHECKING
 import torch
 from typing_extensions import Literal
 
-from lightning_fabric.plugins.precision.native_amp import MixedPrecision
+from lightning_fabric.plugins.precision.amp import MixedPrecision
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:

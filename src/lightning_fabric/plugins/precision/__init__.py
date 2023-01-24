@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from lightning_fabric.plugins.precision.amp import MixedPrecision
 from lightning_fabric.plugins.precision.deepspeed import DeepSpeedPrecision
 from lightning_fabric.plugins.precision.double import DoublePrecision
 from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
-from lightning_fabric.plugins.precision.native_amp import MixedPrecision
 from lightning_fabric.plugins.precision.precision import Precision
 from lightning_fabric.plugins.precision.tpu import TPUPrecision
 from lightning_fabric.plugins.precision.tpu_bf16 import TPUBf16Precision

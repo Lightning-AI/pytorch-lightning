@@ -38,7 +38,7 @@ from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.precision.fsdp_native_native_amp import FullyShardedNativeNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
@@ -71,10 +71,10 @@ if _distributed_available:
 log = logging.getLogger(__name__)
 
 
-class DDPFullyShardedNativeStrategy(ParallelStrategy):
+class FSDPStrategy(ParallelStrategy):
     r"""Strategy for Fully Sharded Data Parallel provided by torch.distributed.
 
-    .. warning:: ``DDPFullyShardedNativeStrategy`` is in BETA and subject to change. The interface can
+    .. warning:: ``FSDPStrategy`` is in BETA and subject to change. The interface can
         bring breaking changes and new features with the next release of PyTorch.
 
     Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
@@ -110,7 +110,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     """
 
-    strategy_name = "fsdp_native"
+    strategy_name = "fsdp"
     _registered_strategies: List[str] = []
 
     def __init__(
@@ -128,9 +128,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         **kwargs: Any,
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException(
-                "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
-            )
+            raise MisconfigurationException("`FSDPStrategy` is supported from PyTorch v1.12.0 onwards.")
 
         super().__init__(
             accelerator=accelerator,
@@ -178,7 +176,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
-        if isinstance(plugin, FullyShardedNativeNativeMixedPrecisionPlugin):
+        if isinstance(plugin, FSDPMixedPrecisionPlugin):
             return plugin.mixed_precision_config
 
     @property
@@ -388,18 +386,19 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        if _fsdp_available:
-            strategy_registry.register(
-                "fsdp_native",
-                cls,
-                description="Fully Sharded Data Parallel training from torch.distributed.",
-            )
-            cls._registered_strategies.append("fsdp_native")
+        if not _fsdp_available:
+            return
+        strategy_registry.register(
+            "fsdp",
+            cls,
+            description="Fully Sharded Data Parallel (FSDP) training",
+        )
+        cls._registered_strategies.append("fsdp")
 
-            strategy_registry.register(
-                "fsdp_native_full_shard_offload",
-                cls,
-                description="Native FSDP with Full Sharding and CPU Offloading",
-                cpu_offload=True,
-            )
-            cls._registered_strategies.append("fsdp_native_full_shard_offload")
+        strategy_registry.register(
+            "fsdp_cpu_offload",
+            cls,
+            description="Fully Sharded Data Parallel (FSDP) training with Full Sharding and CPU Offloading",
+            cpu_offload=True,
+        )
+        cls._registered_strategies.append("fsdp_cpu_offload")
