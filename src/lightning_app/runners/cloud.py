@@ -60,6 +60,7 @@ from lightning_app.core.constants import (
     ENABLE_PULLING_STATE_ENDPOINT,
     ENABLE_PUSHING_STATE_ENDPOINT,
     get_cloud_queue_type,
+    get_cluster_driver,
     get_lightning_cloud_url,
     LIGHTNING_CLOUD_PRINT_SPECS,
 )
@@ -645,6 +646,9 @@ class CloudRuntime(Runtime):
 
         if get_cloud_queue_type():
             v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLOUD_QUEUE_TYPE", value=get_cloud_queue_type()))
+
+        if get_cluster_driver():
+            v1_env_vars.append(V1EnvVar(name="LIGHTNING_CLUSTER_DRIVER", value=get_cluster_driver()))
 
         return v1_env_vars
 
