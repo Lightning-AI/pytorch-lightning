@@ -18,6 +18,7 @@ from argparse import Namespace
 from typing import Any, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
+
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
 from lightning_fabric.strategies import STRATEGY_REGISTRY
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
