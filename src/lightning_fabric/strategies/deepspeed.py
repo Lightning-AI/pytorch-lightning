@@ -408,7 +408,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # split the checkpoint into two parts:
         # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
         # 2) the rest of the user's state, which in deepspeed is called `client state`
-        excluded_objects = (engine, engine.optimizer) if engine.optimizer is not None else (engine, )
+        excluded_objects = (engine, engine.optimizer) if engine.optimizer is not None else (engine,)
         state = {k: v for k, v in state.items() if v not in excluded_objects}
         _validate_state_keys(state)
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
