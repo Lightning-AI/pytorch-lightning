@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
+import rich
 from lightning_cloud.openapi import (
     Body3,
     Body4,
@@ -112,9 +113,9 @@ class CloudRuntime(Runtime):
             # Check for feature support
             user = self.backend.client.auth_service_get_user()
             if not user.features.code_tab:
-                print(
-                    "The `lightning open` command has not been enabled for your account. "
-                    "To request access, please contact support@lightning.ai"
+                rich.print(
+                    "[red]The `lightning open` command has not been enabled for your account. "
+                    "To request access, please contact support@lightning.ai[/red]"
                 )
                 sys.exit(1)
 
@@ -147,7 +148,7 @@ class CloudRuntime(Runtime):
             if existing_run_instance is not None:
                 print(
                     f"Re-opening the CloudSpace {cloudspace_config.name}. "
-                    "This operation will create a new run but will not update your files."
+                    "This operation will create a new run but will not overwrite the files in your CloudSpace."
                 )
             else:
                 print(f"The name of the CloudSpace is: {cloudspace_config.name}")
@@ -352,6 +353,11 @@ class CloudRuntime(Runtime):
         return root
 
     def _resolve_open_ignore_functions(self) -> List[_IGNORE_FUNCTION]:
+        """Used by the ``open`` method.
+
+        If the entrypoint is a file, return an ignore function that will ignore everything except that file so only the
+        file gets uploaded.
+        """
         entrypoint = self.entrypoint.absolute()
         if entrypoint.is_file():
             return [lambda src, paths: [path for path in paths if path.absolute() == entrypoint]]

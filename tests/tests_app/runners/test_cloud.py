@@ -1570,7 +1570,7 @@ class TestOpen:
         )
 
         out, _ = capsys.readouterr()
-        assert "will not update your files." in out
+        assert "will not overwrite the files in your CloudSpace." in out
 
     def test_not_enabled(self, monkeypatch, capsys):
         """Tests that an error is printed and the call exits if the feature isn't enabled for the user."""

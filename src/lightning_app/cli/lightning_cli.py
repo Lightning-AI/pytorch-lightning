@@ -382,7 +382,7 @@ if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightni
     run.add_command(_run_model)
 
 
-@_main.command("open")
+@_main.command("open", hidden=True)
 @click.argument("path", type=str, default=".")
 @click.option(
     "--cluster-id",
@@ -392,7 +392,7 @@ if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightni
 )
 @click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
 def open(path: str, cluster_id: str, name: str) -> None:
-    """Open files or folders on the cloud."""
+    """Open files or folders from your machine in a Lightning CloudSpace."""
 
     if not os.path.exists(path):
         click.echo(f"The provided path `{path}` doesn't exist.")
