@@ -90,7 +90,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
 .. code-block:: bash
 
      lightning run model ./path/to/train.py \
-        --strategy=deepspeed \
+        --strategy=deepspeed_stage_3 \
         --devices=8 \
         --accelerator=cuda \
         --precision=16
@@ -143,6 +143,51 @@ Launch inside a Notebook
 
 It is also possible to use Fabric in a Jupyter notebook (including Google Colab, Kaggle, etc.) and launch multiple processes there.
 You can learn more about it :ref:`here <Fabric in Notebooks>`.
+
+
+----
+
+
+*******************
+Launch on a Cluster
+*******************
+
+Fabric enables distributed training across multiple machines in several ways.
+Choose from the following options based on your expertise level and available infrastructure.
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Lightning Cloud
+    :description: The best way to scale models in the cloud. No infrastructure setup required.
+    :col_css: col-md-4
+    :button_link: ../guide/multi_node/cloud.html
+    :height: 160
+    :tag: basic
+
+.. displayitem::
+    :header: SLURM Managed Cluster
+    :description: Most popular for academic and private enterprise clusters.
+    :col_css: col-md-4
+    :button_link: ../guide/multi_node/slurm.html
+    :height: 160
+    :tag: intermediate
+
+.. displayitem::
+    :header: Bare Bones Cluster
+    :description: Train across machines on a network.
+    :col_css: col-md-4
+    :button_link: ../guide/multi_node/barebones.html
+    :height: 160
+    :tag: advanced
+
+.. raw:: html
+
+        </div>
+    </div>
 
 
 ----

@@ -19,7 +19,7 @@ When compared to complete precision training, mixed precision training delivers 
 
 This is how you select the precision in Fabric:
 
-.. code-block::
+.. code-block:: python
 
     from lightning.fabric import Fabric
 
@@ -67,7 +67,7 @@ For more information `see the autocast docs <https://pytorch.org/docs/stable/amp
 
 This is how you enable FP16 in Fabric:
 
-.. code-block::
+.. code-block:: python
 
     # Select FP16 mixed precision
     fabric = Fabric(precision=16)
@@ -91,7 +91,7 @@ BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintai
 This means it is able to improve numerical stability than FP16 mixed precision.
 For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`_.
 
-.. code-block::
+.. code-block:: python
 
     # Select BF16 precision
     fabric = Fabric(precision="bf16")
@@ -115,7 +115,7 @@ Control where precision gets applied
 
 Fabric automatically casts the data type and operations in the ``forward`` of your model:
 
-.. code-block::
+.. code-block:: python
 
     fabric = Fabric(precision="bf16")
 
@@ -133,7 +133,7 @@ Fabric automatically casts the data type and operations in the ``forward`` of yo
 
 If you want to enable operations in lower bit-precision **outside** your model's ``forward()``, you can use the :meth:`~lightning_fabric.fabric.Fabric.autocast` context manager:
 
-.. code-block::
+.. code-block:: python
 
     # Precision now gets handled also in this part of the code:
     with fabric.autocast():
