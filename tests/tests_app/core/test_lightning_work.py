@@ -203,8 +203,7 @@ def test_lightning_status(enable_exception, raise_exception):
         pass
 
     res = delta_queue._queue[0].delta.to_dict()["iterable_item_added"]
-    index = 1 if len(delta_queue._queue) == 2 else 2
-    res_end = delta_queue._queue[index].delta.to_dict()["iterable_item_added"]
+    res_end = delta_queue._queue[len(delta_queue._queue) - 1].delta.to_dict()["iterable_item_added"]
     if enable_exception:
         exception_cls = Exception if raise_exception else Empty
         assert isinstance(error_queue._queue[0], exception_cls)
