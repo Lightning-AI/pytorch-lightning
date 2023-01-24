@@ -35,7 +35,7 @@ To save the state to the filesystem, pass it to the :meth:`~lightning_fabric.fab
 
     fabric.save("path/to/checkpoint.ckpt", state)
 
-This will unwrap your model and optimizer and convert their `state_dict` automatically for you.
+This will unwrap your model and optimizer and convert their `state_dict` automaticall for you.
 Fabric and the underlying strategy will decide in which format your checkpoint gets saved.
 For example, ``strategy="ddp"`` saves a single file on rank 0, while ``strategy="fsdp"`` saves multiple files from all ranks.
 
