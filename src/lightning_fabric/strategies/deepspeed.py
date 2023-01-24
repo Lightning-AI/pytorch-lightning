@@ -32,7 +32,7 @@ from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.ddp import DDPStrategy
 from lightning_fabric.strategies.strategy import _Sharded
 from lightning_fabric.utilities.distributed import log
-from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH
 
@@ -410,6 +410,20 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
         # 2) the rest of the user's state, which in deepspeed is called `client state`
         excluded_objects = (engine, engine.optimizer)
         state = {k: v for k, v in state.items() if v not in excluded_objects}
+
+        # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
+        # colliding keys from the user. We explicitly check it here:
+        deepspeed_internal_keys = {
+            "",
+        }
+        colliding_keys = deepspeed_internal_keys.intersection(state.keys())
+        if colliding_keys:
+            rank_zero_warn(
+                "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
+                " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
+                ", ".join(colliding_keys)
+            )
+
         # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
         state = self._convert_stateful_objects_in_state(state)
         # use deepspeed's internal checkpointing function to handle partitioned weights across processes
