@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
 
 import torch
 
@@ -52,6 +52,7 @@ def test_data_parallel_module_to_device():
 
 def test_dp_module_state_dict():
     """Test that the module state dict gets retrieved without the prefixed wrapper keys from DP."""
+
     class DataParallelMock(MagicMock):
         def __instancecheck__(self, instance):
             # to make the strategy's `isinstance(model, DataParallel)` pass with a mock as class
