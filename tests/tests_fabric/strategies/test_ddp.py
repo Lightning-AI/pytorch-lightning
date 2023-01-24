@@ -16,11 +16,11 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 import torch
-# from torch.nn.parallel import DistributedDataParallel
 
-import lightning_fabric
 from lightning_fabric.strategies import DDPStrategy
 from lightning_fabric.strategies.ddp import _DDPBackwardSyncControl
+
+# from torch.nn.parallel import DistributedDataParallel
 
 
 @pytest.mark.parametrize(
@@ -84,6 +84,7 @@ def test_ddp_extra_kwargs(ddp_mock):
 
 def test_ddp_module_state_dict():
     """Test that the module state dict gets retrieved without the prefixed wrapper keys from DDP."""
+
     class DistributedDataParallelMock(MagicMock):
         def __instancecheck__(self, instance):
             # to make the strategy's `isinstance(model, DistributedDataParallel)` pass with a mock as class
