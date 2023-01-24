@@ -65,3 +65,15 @@ def test_cloud_compute_clone():
             assert c1_dict[k] != c2_dict[k]
         else:
             assert c1_dict[k] == c2_dict[k]
+
+
+def test_preemptive(monkeypatch):
+    """Test preemptible can be enabled with env variables and for GPU only."""
+    with pytest.raises(ValueError, match="isn't supported yet"):
+        CloudCompute("gpu", preemptible=True)
+
+    monkeypatch.setenv("LIGHTNING_ENABLE_PREEMPTIBLE_WORKS", "1")
+    with pytest.raises(ValueError, match="supported only with GPU"):
+        CloudCompute("cpu", preemptible=True)
+
+    CloudCompute("gpu", preemptible=True)
