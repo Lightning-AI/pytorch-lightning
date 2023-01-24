@@ -275,12 +275,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strategy_registry.register(
             "fsdp",
             cls,
-            description="Fully Sharded Data Parallel",
+            description="Fully Sharded Data Parallel (FSDP) training",
         )
         strategy_registry.register(
-            "fsdp_full_shard_offload",
+            "fsdp_cpu_offload",
             cls,
-            description="Fully Sharded Data Parallel and CPU Offloading",
+            description="Fully Sharded Data Parallel (FSDP) training with Full Sharding and CPU Offloading",
             cpu_offload=True,
         )
 
