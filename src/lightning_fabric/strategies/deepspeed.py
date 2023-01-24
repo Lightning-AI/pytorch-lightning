@@ -427,7 +427,7 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 This should contain exactly one model, and the model must already be set up by DeepSpeed.
 
         Returns:
-            Dictionary with metadata from DeepSpeed
+            Dictionary with the state inside DeepSpeed's engine
 
         Raises:
             ValueError:
