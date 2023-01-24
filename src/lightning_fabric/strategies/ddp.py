@@ -157,7 +157,7 @@ class DDPStrategy(ParallelStrategy):
 
     def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
         if isinstance(module, DistributedDataParallel):
-            return module.module.state_dict()
+            module = module.module
         return super().get_module_state_dict(module)
 
     @classmethod

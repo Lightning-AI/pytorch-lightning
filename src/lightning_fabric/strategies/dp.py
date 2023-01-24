@@ -83,6 +83,11 @@ class DataParallelStrategy(ParallelStrategy):
     def reduce_boolean_decision(self, decision: bool, all: bool = True) -> bool:
         return decision
 
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        if isinstance(module, DataParallel):
+            module = module.module
+        return super().get_module_state_dict(module)
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register("dp", cls, description=cls.__class__.__name__)
