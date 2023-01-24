@@ -17,8 +17,8 @@ Here is a recording of the final App built in this example, tested with pytest.
 .. raw:: html
 
     <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/file_server.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/file_server.mp4" type="video/mp4" width="100%">
+    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/file_server.png" width="100%">
+        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/file_server.mp4" type="video/mp4" width="100%">
     </video>
     <br />
     <br />

@@ -22,7 +22,7 @@ This design enables users to organize and maintain their code with more ease, bu
 
 Here's a basic application with four flows and two works (associated tree structure):
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/tree.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/tree.gif
     :alt: Basic App Components
     :width: 100 %
 

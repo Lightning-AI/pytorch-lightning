@@ -107,7 +107,7 @@ Component interactions with Drives
 
 Here is an illustrated code example on how to create drives within works.
 
-.. figure::  https://pl-flash-data.s3.amazonaws.com/assets_lightning/drive_2.png
+.. figure::  https://pl-public-data.s3.amazonaws.com/assets_lightning/drive_2.png
 
 .. code-block:: python
 
