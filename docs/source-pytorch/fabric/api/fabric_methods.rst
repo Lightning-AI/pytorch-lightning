@@ -189,14 +189,51 @@ the data is written to disk.
 
 .. code-block:: python
 
-    # Download data only on one process
     if fabric.global_rank == 0:
-        download_data("http://...")
+        print("Downloading dataset. This can take a while ...")
+        download_dataset("http://...")
 
-    # Wait until all processes meet up here
+    # All other processes wait here until rank 0 is done with downloading:
     fabric.barrier()
 
-    # All processes are allowed to read the data now
+    # After everyone reached the barrier, they can access the downloaded files:
+    load_dataset()
+
+See also: :doc:`../advanced/distributed_communication`
+
+
+all_gather, all_reduce, broadcast
+=================================
+
+You can send tensors and other data between processes using collective operations.
+The three most common ones, :meth:`~lightning_fabric.fabric.Fabric.broadcast`, :meth:`~lightning_fabric.fabric.Fabric.all_gather` and :meth:`~lightning_fabric.fabric.Fabric.all_reduce` are available directly on the Fabric object for convenience:
+
+- :meth:`~lightning_fabric.fabric.Fabric.broadcast`: Send a tensor from one process to all others.
+- :meth:`~lightning_fabric.fabric.Fabric.all_gather`: Gather tensors from every process and stack them.
+- :meth:`~lightning_fabric.fabric.Fabric.all_reduce`: Apply a reduction function on tensors across processes (sum, mean, etc.).
+
+.. code-block:: python
+
+    # Send the value of a tensor from rank 0 to all others
+    result = fabric.broadcast(tensor, src=0)
+
+    # Every process gets the stack of tensors from everybody else
+    all_tensors = fabric.all_gather(tensor)
+
+    # Sum a tensor across processes (everyone gets the result)
+    reduced_tensor = fabric.all_reduce(tensor, reduce_op="sum")
+
+    # Also works with a collection of tensors (dict, list, tuple):
+    collection = {"loss": torch.tensor(...), "data": ...}
+    gathered_collection = fabric.all_gather(collection, ...)
+    reduced_collection = fabric.all_reduce(collection, ...)
+
+
+.. important::
+
+    Every process needs to enter the collective calls, otherwise the program will hang!
+
+Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
 
 no_backward_sync
