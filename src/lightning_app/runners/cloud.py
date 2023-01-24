@@ -669,6 +669,7 @@ class CloudRuntime(Runtime):
         """Get the specification of the run creation request."""
         # The entry point file needs to be relative to the root of the uploaded source file directory,
         # because the backend will invoke the lightning commands relative said source directory
+        # TODO: we shouldn't set this if the entrypoint isn't a file but the backend gives an error if we don't
         app_entrypoint_file = Path(self.entrypoint).absolute().relative_to(root)
 
         run_body = CloudspaceIdRunsBody(
