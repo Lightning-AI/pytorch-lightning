@@ -22,7 +22,7 @@ class _AppManager:
     """_AppManager implements API calls specific to Lightning AI BYOC apps."""
 
     def __init__(self) -> None:
-        self.api_client = LightningClient()
+        self.api_client = LightningClient(retry=False)
 
     def get_cluster(self, cluster_id: str) -> V1GetClusterResponse:
         return self.api_client.cluster_service_get_cluster(id=cluster_id)

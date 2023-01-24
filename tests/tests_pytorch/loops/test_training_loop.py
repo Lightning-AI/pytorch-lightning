@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.loops import FitLoop
+from pytorch_lightning.loops import _FitLoop
 
 
 def test_outputs_format(tmpdir):
@@ -141,7 +141,7 @@ def test_should_stop_mid_epoch(tmpdir):
 
 
 def test_fit_loop_done_log_messages(caplog):
-    fit_loop = FitLoop(max_epochs=1)
+    fit_loop = _FitLoop(max_epochs=1)
     trainer = Mock(spec=Trainer)
     fit_loop.trainer = trainer
 
