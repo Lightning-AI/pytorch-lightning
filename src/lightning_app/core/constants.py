@@ -90,16 +90,16 @@ def enable_preemptible_works() -> bool:
 
 
 # Get Cluster Driver
-_CLUSTER_DRIVERS = ["k8s", "direct"]
+_CLUSTER_DRIVERS = [None, "k8s", "direct"]
 
 
-def get_cluster_driver() -> str:
+def get_cluster_driver() -> Optional[str]:
     value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
     if value is None:
         if enable_preemptible_works():
             value = "direct"
         else:
-            value = "k8s"
+            value = None
     if value not in _CLUSTER_DRIVERS:
         raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
     return value

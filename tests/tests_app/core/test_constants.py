@@ -10,7 +10,7 @@ def test_defaults():
 
 
 def test_cluster_drive(monkeypatch):
-    assert get_cluster_driver() == "k8s"
+    assert get_cluster_driver() is None
 
     monkeypatch.setenv("LIGHTNING_ENABLE_PREEMPTIBLE_WORKS", "1")
     assert get_cluster_driver() == "direct"
