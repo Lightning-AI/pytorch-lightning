@@ -22,6 +22,7 @@ import torch.distributed.run
 from tests_fabric.helpers.runif import RunIf
 
 from lightning_fabric.cli import _get_supported_strategies, _run_model
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 
 @pytest.fixture
@@ -70,8 +71,12 @@ def test_cli_env_vars_strategy(_, strategy, monkeypatch, fake_script):
 def test_cli_get_supported_strategies():
     """Test to ensure that when new strategies get added, we must consider updating the list of supported ones in
     the CLI."""
-    assert len(_get_supported_strategies()) == 7
-    assert "deepspeed_stage_3" in _get_supported_strategies()
+    if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
+        assert len(_get_supported_strategies()) == 7
+        assert "fsdp" in _get_supported_strategies()
+    else:
+        assert len(_get_supported_strategies()) == 6
+        assert "fsdp" not in _get_supported_strategies()
 
 
 @pytest.mark.parametrize("strategy", ["ddp_spawn", "ddp_fork", "ddp_notebook", "deepspeed_stage_3_offload"])
