@@ -134,7 +134,7 @@ The most likely reasons and how to fix it:
   You can find the interface name by parsing the output of the ``ifconfig`` command.
   The name of this interface **may differ on each node**.
 
-- NCCL can't communicate between the nodes:
+- **NCCL can't communicate between the nodes:**
 
   Follow the steps in the `NCCL troubleshooting guide <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html>`_.
   In particular, take note of the network section that describes restricting the port range and firewall rules.
