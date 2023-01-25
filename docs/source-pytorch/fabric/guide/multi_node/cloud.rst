@@ -10,22 +10,29 @@ Run in the Lightning Cloud
 ----
 
 
-********************************
-Multi-node training in the cloud
-********************************
+*************
+Initial Setup
+*************
 
-**Step 1:** Create a free `Lightning AI account <https://lightning.ai/>`_.
-
-**Step 2:** Login from the CLI:
+First, create a free `Lightning AI account <https://lightning.ai/>`_.
+Then, log in from the CLI:
 
 .. code-block:: bash
 
     lightning login
 
-Follow the instructions on the page that opens.
-You need to do this only once.
+A page opens in your browser.
+Follow the instructions there to complete the setup.
 
-**Step 3:** Put your code inside a :class:`~lightning_app.core.work.LightningWork`:
+
+----
+
+
+***************************************
+Launch multi-node training in the cloud
+***************************************
+
+**Step 1:** Put your code inside a :class:`~lightning_app.core.work.LightningWork`:
 
 .. code-block:: python
     :emphasize-lines: 5
@@ -48,7 +55,7 @@ You need to do this only once.
             model, optimizer = fabric.setup(model, optimizer)
             ...
 
-**Step 4:** Configure the number of nodes, the number of GPUs per node, and the type of GPU:
+**Step 2:** Configure the number of nodes, the number of GPUs per node, and the type of GPU:
 
 .. code-block:: python
     :emphasize-lines: 5,7
@@ -66,9 +73,8 @@ You need to do this only once.
     )
 
 
-**Step 5:** Run your code from the CLI:
+**Step 3:** Run your code from the CLI:
 
 .. code-block:: bash
 
     lightning run app app.py --cloud
-

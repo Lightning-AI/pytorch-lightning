@@ -110,3 +110,7 @@ The most likely reasons and how to fix it:
   There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in Fabric in the code: ``Fabric(num_nodes=X, devices=Y)``.
   If you change the numbers, update them in BOTH places.
+
+
+If you are sick of troubleshooting SLURM settings, give :doc:`Lightning cloud <./cloud>` a try!
+For other questions, please don't hesitate to join the `Lightning Forum <https://lightning.ai/forums/>`_ and the `Community Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1dm4phlc0-84Jv9_8Mp_tWraICOJ467Q>`_.

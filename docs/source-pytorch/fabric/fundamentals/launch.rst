@@ -148,6 +148,8 @@ You can learn more about it :ref:`here <Fabric in Notebooks>`.
 ----
 
 
+.. _Fabric Cluster:
+
 *******************
 Launch on a Cluster
 *******************
@@ -162,7 +164,7 @@ Choose from the following options based on your expertise level and available in
 
 .. displayitem::
     :header: Lightning Cloud
-    :description: The best way to scale models in the cloud. No infrastructure setup required.
+    :description: The easiest way to scale models in the cloud. No infrastructure setup required.
     :col_css: col-md-4
     :button_link: ../guide/multi_node/cloud.html
     :height: 160
