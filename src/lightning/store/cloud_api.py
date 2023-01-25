@@ -24,10 +24,11 @@ import torch
 
 import lightning as L
 import pytorch_lightning as PL
-from lightning.store import _LIGHTNING_CLOUD_URL, _LIGHTNING_STORAGE_DIR, _LIGHTNING_STORAGE_FILE
-from lightning.store.authentication import authenticate
+from lightning.store.authentication import _LIGHTNING_CLOUD_URL, authenticate
 from lightning.store.save import (
     _download_and_extract_data_to,
+    _LIGHTNING_STORAGE_DIR,
+    _LIGHTNING_STORAGE_FILE,
     _save_checkpoint_from_path,
     _save_meta_data,
     _save_model,

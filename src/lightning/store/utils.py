@@ -16,7 +16,7 @@ import json
 import os
 from enum import Enum
 
-from lightning.store import _LIGHTNING_STORAGE_FILE
+from lightning.store.save import _LIGHTNING_STORAGE_FILE
 
 
 class stage(Enum):

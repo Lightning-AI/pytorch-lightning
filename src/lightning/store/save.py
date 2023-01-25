@@ -26,9 +26,13 @@ from requests.auth import HTTPBasicAuth
 from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
-from lightning.store import _LIGHTNING_CLOUD_URL
+from lightning.store.authentication import _LIGHTNING_CLOUD_URL
 
 logging.basicConfig(level=logging.INFO)
+
+_LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
+_LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, ".lightning_model_storage")
+_LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, "lightning_model_store")
 
 
 def _check_id(id: str):

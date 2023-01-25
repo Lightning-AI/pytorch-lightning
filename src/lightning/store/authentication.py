@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import json
+import os
 import webbrowser
 
 import requests
 from requests.models import HTTPBasicAuth
 
 from lightning.app.utilities.network import LightningClient
-from lightning.store import _LIGHTNING_CLOUD_URL
+
+_LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", default="https://lightning.ai")
 
 
 def get_user_details():
