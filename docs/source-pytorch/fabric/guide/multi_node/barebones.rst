@@ -57,7 +57,7 @@ You can still hard-code other options if you like.
 Launch the script on your cluster
 *********************************
 
-**Step 1**: Upload the training script and all other files it needs to the cluster.
+**Step 1**: Upload the training script and all needed files to the cluster.
 Each node needs access to the same files.
 If the nodes don't attach to a shared network drive, you'll need to upload the files to each node separately.
 
