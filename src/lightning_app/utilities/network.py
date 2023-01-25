@@ -164,6 +164,10 @@ def _http_method_logger_wrapper(func: Callable) -> Callable:
     return wrapped
 
 
+def _response(r, *args, **kwargs):
+    return r.raise_for_status()
+
+
 class HTTPClient:
     """A wrapper class around the requests library which handles chores like logging, retries, and timeouts
     automatically."""
@@ -190,7 +194,7 @@ class HTTPClient:
         adapter = CustomRetryAdapter(max_retries=retry_strategy, timeout=_DEFAULT_REQUEST_TIMEOUT)
         self.session = requests.Session()
 
-        self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
+        self.session.hooks = {"response": _response}
 
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
