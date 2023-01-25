@@ -209,7 +209,8 @@ class _LoadBalancer(LightningWork):
                 self._server_status[server_url] = True
 
     def _next_server_url(self) -> Optional[str]:
-        for server in self._iter:
+        for _ in range(len(self.servers)):
+            server = next(self._iter)
             status = self._server_status.get(server, None)
             if status is None:
                 logger.error("Server is not found in the status list. This should not happen.")
