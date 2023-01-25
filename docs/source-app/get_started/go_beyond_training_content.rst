@@ -9,8 +9,8 @@ Here is a recording of this App running locally and in the cloud with the same b
 .. raw:: html
 
     <br />
-    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
-        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
+    <video id="background-video" autoplay loop muted controls poster="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
+        <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
     </video>
     <br />
     <br />
@@ -350,7 +350,7 @@ What components are supported?
 ******************************
 Any component can work with Lightning AI!
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Lightning.gif
     :alt: What is Lightning gif.
     :width: 100 %
 
