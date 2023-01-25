@@ -21,7 +21,6 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from lightning_fabric import Fabric
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.core.module import _TrainerFabricShim
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -313,10 +312,7 @@ def test_device_placement(tmpdir, accelerator, device):
 
 @RunIf(skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
-    if _TORCH_GREATER_EQUAL_1_11:
-        from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
-    else:
-        from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
     class BoringModelWithShardedTensor(BoringModel):
@@ -334,7 +330,7 @@ def test_sharded_tensor_state_dict(single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 and not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
+    name_st = ".sharded_tensor" if not _TORCH_GREATER_EQUAL_1_13 else "sharded_tensor"
     assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)

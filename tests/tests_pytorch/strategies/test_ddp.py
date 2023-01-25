@@ -95,7 +95,7 @@ def test_ddp_torch_dist_is_available_in_setup(_, __, cuda_count_1, tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""

@@ -33,7 +33,6 @@ from lightning_fabric.utilities.distributed import (
     _sync_ddp_if_available,
 )
 from lightning_fabric.utilities.distributed import group as _group
-from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from lightning_fabric.utilities.optimizer import _optimizers_to_device
 from lightning_fabric.utilities.types import ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -340,11 +339,9 @@ class DDPSpawnStrategy(ParallelStrategy):
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
-            if (
-                _TORCH_GREATER_EQUAL_1_11
-                and not self.model.static_graph
-                and self.model._get_ddp_logging_data().get("can_set_static_graph")  # type: ignore[operator]
-            ):
+            if not self.model.static_graph and self.model._get_ddp_logging_data().get(
+                "can_set_static_graph"
+            ):  # type: ignore[operator]
                 rank_zero_info(
                     "Your model can run with static graph optimizations. For future training runs, we suggest you"
                     f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
