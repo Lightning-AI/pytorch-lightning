@@ -403,6 +403,8 @@ class HTTPQueue(BaseQueue):
                 raise queue.Empty
             return pickle.loads(resp.content)
         except ConnectionError:
+            # Note: If the Http Queue service isn't available,
+            # we consider the queue is empty to avoid failing the app.
             raise queue.Empty
 
     def put(self, item: Any) -> None:
