@@ -48,7 +48,7 @@ if TYPE_CHECKING:
         MixedPrecision,
     )
 
-_FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
+_FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
