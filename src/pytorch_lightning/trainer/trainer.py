@@ -46,6 +46,7 @@ import pytorch_lightning as pl
 from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.data import _auto_add_worker_init_fn
+from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_2_0
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.accelerators import Accelerator, TPUAccelerator
@@ -479,18 +480,15 @@ class Trainer:
         self._last_val_dl_reload_epoch = float("-inf")
 
     def _maybe_unwrap_optimized(self, model: Optional["pl.LightningModule"]) -> Optional["pl.LightningModule"]:
-        if model is None:
-            return None
-
-        try:
-            from torch._dynamo import OptimizedModule
-        except ImportError:
+        if model is None or not _TORCH_GREATER_EQUAL_2_0:
             return model
+        from torch._dynamo import OptimizedModule
 
-        if not isinstance(model, OptimizedModule):
+        if isinstance(model, OptimizedModule):
+            return model.from_compiled(model)
+        if isinstance(model, pl.LightningModule):
             return model
-
-        return pl.LightningModule.from_compiled(model)
+        raise ValueError(f"`model` must either be an instance of {OptimizedModule.__name__} or LightningModule")
 
     def fit(
         self,

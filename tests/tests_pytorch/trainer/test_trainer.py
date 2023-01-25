@@ -43,7 +43,6 @@ from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoin
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
-    BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
@@ -2136,37 +2135,48 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-# TODO: replace with 2.0 when it is released
-@RunIf(min_torch="1.14.0.dev20221202")
-def test_trainer_compiled_model():
+@RunIf(min_torch="2.0.0")
+def test_trainer_compiled_model(tmp_path, monkeypatch):
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "fast_dev_run": True,
+        "logger": False,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+    }
+
     model = BoringModel()
+    compiled_model = torch.compile(model)
+    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
 
-    model = torch.compile(model)
-
-    data = BoringDataModule()
-
-    trainer = Trainer(
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-    )
-    trainer.fit(model, data)
-
+    # can train with compiled model
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(compiled_model)
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
-    model = model.to_uncompiled()
-
+    # the compiled model can be uncompiled
+    to_uncompiled_model = BoringModel.to_uncompiled(compiled_model)
     assert model._compiler_ctx is None
+    assert compiled_model._compiler_ctx is None
+    assert to_uncompiled_model._compiler_ctx is None
 
+    # the compiled model needs to be passed
+    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
+        BoringModel.to_uncompiled(to_uncompiled_model)
+
+    # the uncompiled model can be fitted
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
-
     assert trainer.model._compiler_ctx is None
 
-    model = torch.compile(model)
-
-    trainer = Trainer(fast_dev_run=True, strategy="fsdp")
+    # some strategies do not support it
+    compiled_model = torch.compile(model)
+    mock_cuda_count(monkeypatch, 1)
+    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(model)
+        trainer.fit(compiled_model)
 
-    trainer = Trainer(fast_dev_run=True, strategy="ddp")
-    trainer.fit(model)
+    # ddp does
+    trainer = Trainer(strategy="ddp", **trainer_kwargs)
+    trainer.fit(compiled_model)
