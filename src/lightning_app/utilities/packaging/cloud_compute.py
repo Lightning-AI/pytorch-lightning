@@ -97,6 +97,9 @@ class CloudCompute:
             if "gpu" not in self.name:
                 raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
 
+        # TODO: Remove from the platform first.
+        self.preemptible = self.interruptible
+
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:
             self._internal_id = self._generate_id()
