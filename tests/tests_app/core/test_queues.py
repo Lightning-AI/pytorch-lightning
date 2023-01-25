@@ -214,3 +214,17 @@ class TestHTTPQueue:
             content=pickle.dumps("test"),
         )
         assert test_queue.get() == "test"
+
+
+def test_unreachable_queue(monkeypatch):
+    monkeypatch.setattr(queues, "HTTP_QUEUE_TOKEN", "test-token")
+    test_queue = QueuingSystem.HTTP.get_queue(queue_name="test_http_queue")
+
+    resp = mock.MagicMock()
+    resp.status_code = 204
+
+    test_queue.client = mock.MagicMock()
+    test_queue.client.post.return_value = resp
+
+    with pytest.raises(queue.Empty):
+        test_queue._get()

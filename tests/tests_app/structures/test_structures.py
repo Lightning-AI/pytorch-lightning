@@ -54,6 +54,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -87,6 +88,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -120,6 +122,7 @@ def test_dict():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for k in ("a", "b", "c", "d")
@@ -205,6 +208,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -238,6 +242,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)
@@ -266,6 +271,7 @@ def test_list():
                 "mounts": None,
                 "shm_size": 0,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         }
         for i in range(4)

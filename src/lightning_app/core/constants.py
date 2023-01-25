@@ -91,8 +91,32 @@ def enable_multiple_works_in_default_container() -> bool:
 
 
 def get_cloud_queue_type() -> Optional[str]:
-    return os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    value = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
+    if value is None and enable_interruptible_works():
+        value = "http"
+    return value
 
 
 # Number of seconds to wait between filesystem checks when waiting for files in remote storage
 REMOTE_STORAGE_WAIT = 0.5
+
+
+# interruptible support
+def enable_interruptible_works() -> bool:
+    return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
+
+
+# Get Cluster Driver
+_CLUSTER_DRIVERS = [None, "k8s", "direct"]
+
+
+def get_cluster_driver() -> Optional[str]:
+    value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
+    if value is None:
+        if enable_interruptible_works():
+            value = "direct"
+        else:
+            value = None
+    if value not in _CLUSTER_DRIVERS:
+        raise ValueError(f"Found {value} cluster driver. The value needs to be in {_CLUSTER_DRIVERS}.")
+    return value
