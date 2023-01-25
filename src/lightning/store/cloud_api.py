@@ -292,9 +292,8 @@ def download_from_lightning_cloud(
         logging.info(f"Linking the downloaded folder from {output_dir} to {linked_output_dir} folder.")
         if os.path.islink(linked_output_dir):
             os.unlink(linked_output_dir)
-        if os.path.exists(linked_output_dir):
-            if os.path.isdir(linked_output_dir):
-                os.rmdir(linked_output_dir)
+        if os.path.exists(linked_output_dir) and os.path.isdir(linked_output_dir):
+            os.rmdir(linked_output_dir)
 
         os.symlink(output_dir, linked_output_dir)
 
