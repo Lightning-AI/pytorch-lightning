@@ -14,7 +14,7 @@
 import os
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
@@ -556,7 +556,7 @@ def test_backward():
     fabric._precision.backward.assert_called_with(loss, None, "arg", keyword="kwarg")
 
 
-@RunIf(deepspeed=True)
+@RunIf(deepspeed=True, mps=False)
 def test_backward_model_input_required():
     """Test that when using deepspeed and multiple models, backward() requires the model as input."""
     fabric = EmptyFabric(strategy="deepspeed")
@@ -811,3 +811,85 @@ def test_log_dict_input_parsing():
 
     with pytest.raises(ValueError, match="it cannot be converted to a scalar."):
         fabric.log_dict({"log_dict": torch.tensor([3, 4])})
+
+
+@pytest.mark.parametrize("setup", [True, False])
+def test_save_wrapped_objects(setup, tmp_path):
+    """Test that when modules and optimizers are in the state, they get unwrapped properly."""
+    fabric = Fabric()
+    save_checkpoint_mock = Mock()
+    fabric.strategy.save_checkpoint = save_checkpoint_mock
+
+    unwrapped_model = BoringModel()
+    unwrapped_optimizer = torch.optim.Adam(unwrapped_model.parameters())
+
+    if setup:
+        model, optimizer = fabric.setup(unwrapped_model, unwrapped_optimizer)
+        assert isinstance(model, _FabricModule)
+        assert isinstance(optimizer, _FabricOptimizer)
+    else:
+        model, optimizer = unwrapped_model, unwrapped_optimizer
+
+    anything = {"cocofruit": 1}
+    state = {"model": model, "optimizer": optimizer, "anything": anything}
+    expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
+    fabric.save(tmp_path, state)
+    save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+
+
+def test_barrier():
+    """Test that `Fabric.barrier()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.barrier("test")
+    fabric._strategy.barrier.assert_called_once_with(name="test")
+
+
+def test_broadcast():
+    """Test that `Fabric.broadcast()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.broadcast(torch.tensor(1), src=2)
+    fabric._strategy.broadcast.assert_called_once_with(torch.tensor(1), src=2)
+
+
+def test_all_gather():
+    """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, sync_grads=False)
+
+    # single tensor
+    fabric.all_gather(torch.tensor(1))
+    fabric._strategy.all_gather.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_gather([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_gather({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+
+def test_all_reduce():
+    """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, reduce_op="mean")
+
+    # single tensor
+    fabric.all_reduce(torch.tensor(1))
+    fabric._strategy.all_reduce.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_reduce([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])

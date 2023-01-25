@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.loops.loop import Loop
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
 
-class EvaluationEpochLoop(Loop):
+class _EvaluationEpochLoop(_Loop):
     """This is the loop performing the evaluation.
 
     It mainly loops over the given dataloader and runs the validation or test step (depending on the trainer's current

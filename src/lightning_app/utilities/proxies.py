@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import pathlib
 import queue
@@ -241,6 +255,7 @@ class WorkStateObserver(Thread):
         interval: float = 1,
     ) -> None:
         super().__init__(daemon=True)
+        self.started = False
         self._work = work
         self._delta_queue = delta_queue
         self._flow_to_work_delta_queue = flow_to_work_delta_queue
@@ -251,6 +266,7 @@ class WorkStateObserver(Thread):
         self._last_state = deepcopy(self._work.state)
 
     def run(self) -> None:
+        self.started = True
         while not self._exit_event.is_set():
             time.sleep(self._interval)
             # Run the thread only if active
@@ -401,7 +417,8 @@ class WorkRunner:
                 self.run_once()
             except KeyboardInterrupt:
                 if self.state_observer:
-                    self.state_observer.join(0)
+                    if self.state_observer.started:
+                        self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
             except LightningSigtermStateException as e:
@@ -412,7 +429,8 @@ class WorkRunner:
                 self.error_queue.put(e)
                 # Terminate the threads
                 if self.state_observer:
-                    self.state_observer.join(0)
+                    if self.state_observer.started:
+                        self.state_observer.join(0)
                     self.state_observer = None
                 self.copier.join(0)
                 raise e
@@ -554,7 +572,8 @@ class WorkRunner:
 
         # 13. Destroy the state observer.
         if self.run_executor_cls.enable_start_observer:
-            self.state_observer.join(0)
+            if self.state_observer.started:
+                self.state_observer.join(0)
         self.state_observer = None
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
@@ -598,7 +617,8 @@ class WorkRunner:
         # kill the thread as the job is going to be terminated.
         self.copier.join(0)
         if self.state_observer:
-            self.state_observer.join(0)
+            if self.state_observer.started:
+                self.state_observer.join(0)
             self.state_observer = None
         raise LightningSigtermStateException(0)
 

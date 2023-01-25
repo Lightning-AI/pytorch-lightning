@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License
-
+import inspect
 import os
 from typing import Any, Dict
 from unittest import mock
@@ -39,8 +39,6 @@ from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDPFullyShardedNativeStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
@@ -48,6 +46,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
+from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -241,11 +240,6 @@ def test_interactive_incompatible_backend_error(cuda_count_2, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
-    with pytest.raises(
-        MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"
-    ), pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-        Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
-
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
         Trainer(strategy="dp")
@@ -277,20 +271,12 @@ def test_interactive_compatible_strategy_ddp_fork(monkeypatch):
     [
         ("ddp", DDPStrategy),
         ("ddp_spawn", DDPSpawnStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
 @pytest.mark.parametrize("devices", [1, 2])
 def test_accelerator_choice_multi_node_gpu(cuda_count_2, tmpdir, strategy, strategy_class, devices):
-    if "sharded" in strategy:
-        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-            trainer = Trainer(
-                default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices
-            )
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
+    trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator="gpu", strategy=strategy, devices=devices)
     assert isinstance(trainer.strategy, strategy_class)
 
 
@@ -380,23 +366,15 @@ def test_exception_invalid_strategy():
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ),
 )
 @pytest.mark.parametrize("accelerator", ["mps", "auto", "gpu", None, MPSAccelerator()])
 def test_invalid_ddp_strategy_with_mps(accelerator, strategy, strategy_class, mps_count_1, cuda_count_0):
-    if "sharded" in strategy:
-        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-            Trainer(accelerator=accelerator, strategy=strategy)
-    else:
-        with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
-            Trainer(accelerator=accelerator, strategy=strategy)
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
+        Trainer(accelerator=accelerator, strategy=strategy)
 
-    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"), pytest.deprecated_call(
-        match="FairScale has been deprecated in v1.9.0"
-    ):
+    with pytest.raises(ValueError, match="strategies from the DDP family are not supported"):
         Trainer(accelerator="mps", strategy=strategy_class())
 
 
@@ -420,7 +398,6 @@ def test_strategy_choice_cpu_instance(strategy_class):
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["strategy", "strategy_class"],
     [
@@ -429,31 +406,22 @@ def test_strategy_choice_cpu_instance(strategy_class):
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
         ("dp", DataParallelStrategy),
-        ("ddp_sharded", DDPShardedStrategy),
-        ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(strategy, strategy_class):
-    if "sharded" in strategy:
-        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-            trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
-    else:
-        trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
+def test_strategy_choice_gpu_str(strategy, strategy_class, cuda_count_2):
+    trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_instance(strategy_class):
+def test_strategy_choice_gpu_instance(strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
-
+def test_device_type_when_strategy_instance_gpu_passed(strategy_class, cuda_count_2, mps_count_0):
     trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, CUDAAccelerator)
@@ -832,3 +800,18 @@ def test_ddp_fork_on_unsupported_platform(_, strategy):
 def test_strategy_str_passed_being_case_insensitive(strategy, strategy_cls):
     trainer = Trainer(accelerator="cpu", strategy=strategy)
     assert isinstance(trainer.strategy, strategy_cls)
+
+
+def test_connector_defaults_match_trainer_defaults():
+    """Test that the default values for the init arguments of AcceleratorConnector match the ones in Trainer."""
+
+    def get_defaults(cls):
+        init_signature = inspect.signature(cls)
+        return {k: v.default for k, v in init_signature.parameters.items()}
+
+    trainer_defaults = get_defaults(Trainer)
+    connector_defaults = get_defaults(AcceleratorConnector)
+
+    # defaults should match on the intersection of argument names
+    for name, connector_default in connector_defaults.items():
+        assert connector_default == trainer_defaults[name]

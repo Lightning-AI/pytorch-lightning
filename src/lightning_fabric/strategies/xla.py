@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, TYPE_CHECKING, 
 import torch
 from torch import Tensor
 from torch.nn import Module
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from lightning_fabric.accelerators import Accelerator
@@ -179,17 +180,19 @@ class XLAStrategy(ParallelStrategy):
         return obj
 
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
+        """Save model, optimizer, and other state as a checkpoint file.
 
         Args:
-            checkpoint: dict containing model and trainer state
-            filepath: write-target file's path
-            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
+            path: A path to where the file(s) should be saved
+            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
+                state-dict will be retrieved and converted automatically.
+            storage_options: Additional options for the ``CheckpointIO`` plugin
         """
+        state = self._convert_stateful_objects_in_state(state)
         # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
-        self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
+        self.checkpoint_io.save_checkpoint(state, path, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
