@@ -72,7 +72,7 @@ def test_interruptible(monkeypatch):
     with pytest.raises(ValueError, match="isn't supported yet"):
         CloudCompute("gpu", interruptible=True)
 
-    monkeypatch.setenv("LIGHTNING_ENABLE_interruptible_WORKS", "1")
+    monkeypatch.setenv("LIGHTNING_INTERRUPTIBLE_WORKS", "1")
     with pytest.raises(ValueError, match="supported only with GPU"):
         CloudCompute("cpu", interruptible=True)
 

@@ -762,8 +762,8 @@ class CloudRuntime(Runtime):
         if enable_interruptible_works():
             v1_env_vars.append(
                 V1EnvVar(
-                    name="LIGHTNING_ENABLE_interruptible_WORKS",
-                    value=os.getenv("LIGHTNING_ENABLE_interruptible_WORKS", "0"),
+                    name="LIGHTNING_INTERRUPTIBLE_WORKS",
+                    value=os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0"),
                 )
             )
 
