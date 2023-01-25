@@ -4,7 +4,11 @@
 Run in the Lightning Cloud
 ##########################
 
-**Audience**: The easy and hassle-free way to run large training jobs in the cloud. No infrastructure setup required.
+**Audience**: Users who don't want to waste time on cluster configuration and maintenance.
+
+
+The Lightning AI cloud is a platform where you can build, train, finetune and deploy models without worrying about infrastructure, cost management, scaling, and other technical headaches.
+In this guide, and in just 10 minutes, you will learn how to run a Fabric training script across multiple nodes in the cloud.
 
 
 ----
@@ -21,8 +25,7 @@ Then, log in from the CLI:
 
     lightning login
 
-A page opens in your browser.
-Follow the instructions there to complete the setup.
+A page opens in your browser where you can follow the instructions to complete the setup.
 
 
 ----
@@ -78,3 +81,34 @@ Launch multi-node training in the cloud
 .. code-block:: bash
 
     lightning run app app.py --cloud
+
+This command will upload your Python file and then opens the app admin view where you can see the logs of what's happening.
+
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/fabric/fabric-multi-node-admin.png
+   :alt: The Lightning AI admin page of an app running a multi-node fabric training script
+   :width: 100%
+
+
+----
+
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+    :header: Lightning App Docs
+    :description: Learn more about apps and the Lightning cloud.
+    :col_css: col-md-4
+    :button_link: https://lightning.ai
+    :height: 150
+
+.. raw:: html
+
+        </div>
+    </div>
