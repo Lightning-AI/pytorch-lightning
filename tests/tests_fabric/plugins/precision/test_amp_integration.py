@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Integration tests for native automatic mixed precision (AMP) training."""
+"""Integration tests for Automatic Mixed Precision (AMP) training."""
 import pytest
 import torch
 import torch.nn as nn
@@ -21,7 +21,7 @@ from tests_fabric.helpers.runif import RunIf
 from lightning_fabric import Fabric, seed_everything
 
 
-class NativeMixedPrecisionModule(nn.Module):
+class MixedPrecisionModule(nn.Module):
     def __init__(self, expected_dtype):
         super().__init__()
         self.expected_dtype = expected_dtype
@@ -38,12 +38,12 @@ class NativeMixedPrecisionModule(nn.Module):
         return output
 
 
-class NativeMixedPrecisionBoringFabric(BoringFabric):
+class MixedPrecisionBoringFabric(BoringFabric):
 
     expected_dtype: torch.dtype
 
     def get_model(self):
-        return NativeMixedPrecisionModule(self.expected_dtype)
+        return MixedPrecisionModule(self.expected_dtype)
 
     def step(self, model, batch):
         assert model.layer.weight.dtype == torch.float32
@@ -67,14 +67,14 @@ class NativeMixedPrecisionBoringFabric(BoringFabric):
         pytest.param("cuda", "bf16", torch.bfloat16, marks=RunIf(min_cuda_gpus=1, bf16_cuda=True)),
     ],
 )
-def test_native_mixed_precision(accelerator, precision, expected_dtype):
-    fabric = NativeMixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
+def test_amp(accelerator, precision, expected_dtype):
+    fabric = MixedPrecisionBoringFabric(accelerator=accelerator, precision=precision)
     fabric.expected_dtype = expected_dtype
     fabric.run()
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
-def test_native_mixed_precision_fused_optimizer_parity():
+def test_amp_fused_optimizer_parity():
     def run(fused=False):
         seed_everything(1234)
         fabric = Fabric(accelerator="cuda", precision=16, devices=1)

@@ -742,7 +742,7 @@ class TestAppCreationClient:
         cloud_runtime.dispatch()
         body = IdGetBody1(
             desired_state=V1LightningappInstanceState.STOPPED,
-            env=[],
+            env=mock.ANY,
             name=mock.ANY,
             queue_server_type=V1QueueServerType.HTTP,
         )

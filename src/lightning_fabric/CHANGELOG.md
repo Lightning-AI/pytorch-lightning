@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * `Fabric.load` returns a dictionary of objects that weren't loaded into the state
   * `Strategy.save_checkpoint` and `Fabric.load_checkpoint` are now responsible for accessing the state of the model and optimizers
 
+- "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
+ * `strategy="fsdp_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
+ * `lightning_fabric.plugins.precision.native_amp` is now `lightning_fabric.plugins.precision.amp`
+
 - Enabled all shorthand strategy names that can be supported in the CLI ([#16485](https://github.com/Lightning-AI/lightning/pull/16485))
 
 
