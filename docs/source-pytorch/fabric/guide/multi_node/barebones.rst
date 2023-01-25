@@ -6,7 +6,7 @@ Bare Bones Cluster
 
 **Audience**: Users who want to train on multiple machines that aren't part of a managed cluster.
 
-This guide shows how to run a training job on a general purpose cluster.
+This guide shows how to run a training job on a general-purpose cluster.
 It assumes that you can log in to each machine and run commands.
 
 Don't want to maintain your own infrastructure? Try the :doc:`Lightning cloud <./cloud>` instead.
@@ -19,10 +19,10 @@ Don't want to maintain your own infrastructure? Try the :doc:`Lightning cloud <.
 Requirements
 ************
 
-To set up a multi-node computing cluster you need:
+To set up a multi-node computing cluster, you need the following:
 
 1. Multiple computers with Lightning installed
-2. A network connectivity between them with firewall rules that allow traffic flow on a specified port.
+2. A network connectivity between the machines with firewall rules that allow traffic flow on a specified port.
 
 |
 
@@ -46,7 +46,7 @@ Prepare the training script
     # The rest of the training script
     ...
 
-We intentionally omit specifying ``strategy``, ``devices`` and ``num_nodes`` here because these settings will get supplied through the CLI in the later steps.
+We intentionally omit to specify ``strategy``, ``devices``, and ``num_nodes`` here because these settings will get supplied through the CLI in the later steps.
 You can still hard-code other options if you like.
 
 
@@ -61,11 +61,10 @@ Launch the script on your cluster
 Each node needs access to the same files.
 If the nodes don't attach to a shared network drive, you'll need to upload the files to each node separately.
 
-**Step 2**: Pick one of the nodes as your main node.
-You need to determine the IP address of this main node.
+**Step 2**: Pick one of the nodes as your main node and write down its IP address.
 Example: 10.10.10.16
 
-**Step 3**: Launch the script on each of the nodes using the Lightning CLI.
+**Step 3**: Launch the script on each node using the Lightning CLI.
 
 In this example, we want to launch training across two nodes, each with 8 GPUs.
 Log in to the **first node** and run this command:
@@ -112,9 +111,9 @@ Troubleshooting
 ***************
 
 
-**My program is stuck initializing at startup, what is causing this?**
+**My program is stuck initializing at startup. What is causing this?**
 
-You are seeing a message like this in the logs but nothing happens:
+You are seeing a message like this in the logs, but nothing happens:
 
 .. code-block::
 

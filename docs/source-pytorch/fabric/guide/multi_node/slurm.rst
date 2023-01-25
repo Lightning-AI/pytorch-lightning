@@ -7,7 +7,7 @@ Run on a SLURM Managed Cluster
 **Audience**: Users who need to run on an academic or enterprise private cluster.
 
 Lightning automates the details behind training on a SLURM-powered cluster.
-In contrast to the :doc:`general purpose cluster <./barebones>`, the user does not start the jobs manually on each node but instead submits it to SLURM which schedules the resources and time for which the job is allowed to run.
+In contrast to the :doc:`general purpose cluster <./barebones>`, the user does not start the jobs manually on each node but instead submits it to SLURM, which schedules the resources and time for which the job is allowed to run.
 
 Don't have access to an enterprise cluster? Try the :doc:`Lightning cloud <./cloud>`.
 
@@ -29,7 +29,7 @@ To train a model using multiple nodes, do the following:
     # Train on 32 GPUs across 4 nodes
     fabric = Fabric(accelerator="gpu", devices=8, num_nodes=4)
 
-By default, this will run classic *distributed data parallel*.
+By default, this will run classic *distributed data-parallel*.
 Optionally, explore other strategies too:
 
 .. code-block:: python
@@ -92,9 +92,9 @@ Optionally, explore other strategies too:
 Troubleshooting
 ***************
 
-**My program is stuck initializing at startup, what is causing this?**
+**My program is stuck initializing at startup. What is causing this?**
 
-You are seeing a message like this in the logs but nothing happens:
+You are seeing a message like this in the logs, but nothing happens:
 
 .. code-block::
 
@@ -104,10 +104,10 @@ You are seeing a message like this in the logs but nothing happens:
 The most likely reasons and how to fix it:
 
 - You forgot to run the ``python train.py`` command with ``srun``:
-  Please have a look at the SLURM template script above which includes the ``srun`` at the botton of the script.
+  Please have a look at the SLURM template script above, which includes the ``srun`` at the bottom of the script.
 
-- The number of nodes or number of devices per node is configured incorrectly:
-  There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
+- The number of nodes or the number of devices per node is misconfigured:
+  Two parameters in the SLURM submission script determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in Fabric in the code: ``Fabric(num_nodes=X, devices=Y)``.
   If you change the numbers, update them in BOTH places.
 
