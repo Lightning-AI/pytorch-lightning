@@ -201,7 +201,6 @@ Current Lightning Users
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
    advanced/model_parallel
-   clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
@@ -228,7 +227,6 @@ Current Lightning Users
    Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
    Half precision <common/precision>
    HPU <accelerators/hpu>

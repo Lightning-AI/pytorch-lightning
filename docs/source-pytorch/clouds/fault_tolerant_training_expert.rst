@@ -19,5 +19,3 @@ To enable fault tolerance on your own cloud or cluster environment enable the *P
     PL_FAULT_TOLERANT_TRAINING=1 python script.py
 
 Although Lighting will now be fault-tolerant, you'll have to handle all the nuances of making sure the models are automatically restarted.
-
-.. note:: This complexity is already handled for you if you use **lightning-grid**.
