@@ -22,7 +22,6 @@ class Flow(L.LightningFlow):
             cloud_compute=L.CloudCompute("gpu", interruptible=True),
             start_with_flow=False,
             parallel=True,
-            cloud_build_config=L.BuildConfig(image="ghcr.io/gridai/lightning-stable-diffusion:v0.2"),
         )
 
     def run(self):
