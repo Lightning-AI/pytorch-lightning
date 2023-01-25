@@ -1,6 +1,6 @@
 # Proximal Policy Optimization - PPO implementation powered by Lightning Fabric
 
-This is an example of a Reinforcement Learning algorithm called [Proximal Policy Optimization (PPO)](https://arxiv.org/abs/1707.06347) implemented in PyTorch and accelerated by [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html).  
+This is an example of a Reinforcement Learning algorithm called [Proximal Policy Optimization (PPO)](https://arxiv.org/abs/1707.06347) implemented in PyTorch and accelerated by [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html).
 
 The goal of Reinforcement Learning is to learn intelligent agents that are able to act in their surrounding environment maximizing the cumulative reward received by it. This can be depicted in the following figure:
 
@@ -35,7 +35,7 @@ pip install -r requirements.txt
 torchrun --nproc_per_node=2 --standalone train_torch.py
 ```
 
-You can visualize training and test logs by running 
+You can visualize training and test logs by running
 
 ```
 tensorboard --logdir torch_logs
@@ -47,9 +47,8 @@ tensorboard --logdir torch_logs
 lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
 ```
 
-You can visualize training and test logs by running 
+You can visualize training and test logs by running
 
 ```
 tensorboard --logdir fabric_logs
 ```
-
