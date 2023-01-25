@@ -16,17 +16,13 @@ import json
 import os
 from enum import Enum
 
+from lightning.store import _LIGHTNING_STORAGE_FILE
+
 
 class stage(Enum):
     UPLOAD = 0
     LOAD = 1
     DOWNLOAD = 2
-
-
-_LIGHTNING_DIR = os.path.join(os.path.expanduser("~"), ".lightning")
-_LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, ".lightning_model_storage")
-_LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, "lightning_model_store")
-_LIGHTNING_CLOUD_URL = os.getenv("LIGHTNING_CLOUD_URL", default="https://lightning.ai")
 
 
 def _check_version(version: str):

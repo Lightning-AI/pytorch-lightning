@@ -19,7 +19,7 @@ import requests
 from requests.models import HTTPBasicAuth
 
 from lightning.app.utilities.network import LightningClient
-from lightning.store.utils import _LIGHTNING_CLOUD_URL
+from lightning.store import _LIGHTNING_CLOUD_URL
 
 
 def get_user_details():

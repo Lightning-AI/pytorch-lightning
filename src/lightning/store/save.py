@@ -26,7 +26,7 @@ from requests.auth import HTTPBasicAuth
 from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
-from lightning.store.utils import _LIGHTNING_CLOUD_URL
+from lightning.store import _LIGHTNING_CLOUD_URL
 
 logging.basicConfig(level=logging.INFO)
 
