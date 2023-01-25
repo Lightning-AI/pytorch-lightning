@@ -35,7 +35,7 @@ _LIGHTNING_STORAGE_FILE = os.path.join(_LIGHTNING_DIR, ".lightning_model_storage
 _LIGHTNING_STORAGE_DIR = os.path.join(_LIGHTNING_DIR, "lightning_model_store")
 
 
-def _check_id(id: str):
+def _check_id(id: str) -> str:
     if id[-1] != "/":
         id += "/"
     if id.count("/") != 2:
@@ -43,21 +43,21 @@ def _check_id(id: str):
     return id
 
 
-def _save_checkpoint(name, checkpoint, tmpdir, stored):
+def _save_checkpoint(name, checkpoint, tmpdir, stored: dict) -> dict:
     checkpoint_file_path = f"{tmpdir}/checkpoint.ckpt"
     torch.save(checkpoint, checkpoint_file_path)
     stored["checkpoint"] = "checkpoint.ckpt"
     return stored
 
 
-def _save_checkpoint_from_path(name, path, tmpdir, stored):
+def _save_checkpoint_from_path(name, path, tmpdir, stored: dict) -> dict:
     checkpoint_file_path = path
     shutil.copy(checkpoint_file_path, f"{tmpdir}/checkpoint.ckpt")
     stored["checkpoint"] = "checkpoint.ckpt"
     return stored
 
 
-def _save_model_weights(name, model_state_dict, tmpdir, stored, *args, **kwargs):
+def _save_model_weights(name, model_state_dict, tmpdir, stored, *args, **kwargs) -> dict:
     # For now we assume that it's always going to be public
     weights_file_path = f"{tmpdir}/weights.pt"
     torch.save(model_state_dict, weights_file_path, *args, **kwargs)
@@ -65,7 +65,7 @@ def _save_model_weights(name, model_state_dict, tmpdir, stored, *args, **kwargs)
     return stored
 
 
-def _save_model(name, model, tmpdir, stored, *args, **kwargs):
+def _save_model(name, model, tmpdir, stored, *args, **kwargs) -> dict:
     # For now we assume that it's always going to be public
     model_file_path = f"{tmpdir}/model"
     torch.save(model, model_file_path, *args, **kwargs)
@@ -73,7 +73,7 @@ def _save_model(name, model, tmpdir, stored, *args, **kwargs):
     return stored
 
 
-def _save_model_code(name, model_cls, source_code_path, tmpdir, stored):
+def _save_model_code(name, model_cls, source_code_path, tmpdir, stored) -> dict:
     if source_code_path:
         source_code_path = os.path.abspath(source_code_path)
         if not os.path.exists(source_code_path):
@@ -144,7 +144,7 @@ def _write_and_save_requirements(name, requirements, stored, tmpdir):
     return stored
 
 
-def _save_requirements_file(name, requirements_file_path, stored, tmpdir):
+def _save_requirements_file(name, requirements_file_path, stored, tmpdir) -> dict:
     shutil.copyfile(os.path.abspath(requirements_file_path), f"{tmpdir}/requirements.txt")
     stored["requirements"] = requirements_file_path
     return stored
@@ -190,10 +190,7 @@ def _save_meta_data(name, stored, version, model, username, api_key, project_id)
                 processed_dict[f"stored_{key}"] = val
         return processed_dict
 
-    meta_data = {
-        "cls": model.__class__.__name__,
-    }
-
+    meta_data = {"cls": model.__class__.__name__}
     meta_data.update(_process_stored(stored))
 
     return _upload_metadata(
@@ -206,7 +203,7 @@ def _save_meta_data(name, stored, version, model, username, api_key, project_id)
     )
 
 
-def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool):
+def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool) -> None:
     def _make_tar(tmpdir, archive_output_path):
         with tarfile.open(archive_output_path, "w:gz") as tar:
             tar.add(tmpdir)
@@ -250,7 +247,7 @@ def _download_tarfile(download_url: str, output_dir: str, progress_bar: bool) ->
             download_progress_bar.close()
 
 
-def _common_clean_up(output_dir: str):
+def _common_clean_up(output_dir: str) -> None:
     data_file_path = f"{output_dir}/data.tar.gz"
     dir_file_path = f"{output_dir}/extracted"
     if os.path.exists(data_file_path):
@@ -258,7 +255,7 @@ def _common_clean_up(output_dir: str):
     shutil.rmtree(dir_file_path)
 
 
-def _download_and_extract_data_to(output_dir: str, download_url: str, progress_bar: bool):
+def _download_and_extract_data_to(output_dir: str, download_url: str, progress_bar: bool) -> None:
     try:
         _download_tarfile(download_url, output_dir, progress_bar)
 

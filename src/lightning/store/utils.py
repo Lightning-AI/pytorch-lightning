@@ -25,7 +25,7 @@ class stage(Enum):
     DOWNLOAD = 2
 
 
-def _check_version(version: str):
+def _check_version(version: str) -> bool:
     allowed_chars = "0123456789."
     if version == "latest":
         return True
@@ -48,7 +48,7 @@ def _split_name(name: str, version: str, l_stage: stage):
 def split_name(name: str, version: str, l_stage: stage):
     username, model_name, version = _split_name(name, version, l_stage)
 
-    return (username, model_name, version)
+    return username, model_name, version
 
 
 def get_model_data(name: str, version: str):

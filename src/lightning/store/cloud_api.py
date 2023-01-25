@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 import tempfile
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import requests
 import torch
@@ -58,13 +58,12 @@ def to_lightning_cloud(
     project_id: str = "",
     progress_bar: bool = True,
     save_code: bool = True,
-    *args,
-    **kwargs,
+    *args: Any,
+    **kwargs: Any,
 ):
     """Store model to lightning cloud.
 
     Args:
-
         name:
             The model name. Model/Checkpoint will be uploaded with this unique name. Format: "model_name"
         version:
@@ -318,8 +317,8 @@ def download_from_lightning_cloud(
     )
 
 
-def _validate_output_dir(dir: str):
-    if not os.path.exists(dir):
+def _validate_output_dir(folder: str) -> None:
+    if not os.path.exists(folder):
         raise ValueError(
             "The output directory doesn't exist... did you forget to call download_from_lightning_cloud(...)?"
         )

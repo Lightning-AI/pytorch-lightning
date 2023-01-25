@@ -25,13 +25,9 @@ _LIGHTNING_CLOUD_URL = get_lightning_cloud_url()
 
 
 def get_user_details():
-    def _get_user_details():
-        client = LightningClient()
-        user_details = client.auth_service_get_user()
-        return (user_details.username, user_details.api_key)
-
-    username, api_key = _get_user_details()
-    return username, api_key
+    client = LightningClient()
+    user_details = client.auth_service_get_user()
+    return user_details.username, user_details.api_key
 
 
 def get_username_from_api_key(api_key: str):
@@ -47,9 +43,9 @@ def get_username_from_api_key(api_key: str):
 def _check_browser_runnable():
     try:
         webbrowser.get()
-        return True
     except webbrowser.Error:
         return False
+    return True
 
 
 def authenticate(inp_api_key: str = ""):
@@ -60,8 +56,7 @@ def authenticate(inp_api_key: str = ""):
                 " In order to run the commands on this system, we suggest passing the `api_key`"
                 " after logging into https://lightning.ai."
             )
-        username, api_key = get_user_details()
-        return username, api_key
-
-    username = get_username_from_api_key(inp_api_key)
+        username, inp_api_key = get_user_details()
+    else:
+        username = get_username_from_api_key(inp_api_key)
     return username, inp_api_key
