@@ -253,7 +253,6 @@ Current Lightning Users
    Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
-   Sweep <clouds/run_intermediate>
    SWA <advanced/training_tricks>
    SLURM <clouds/cluster_advanced>
    Transfer learning <advanced/transfer_learning>
