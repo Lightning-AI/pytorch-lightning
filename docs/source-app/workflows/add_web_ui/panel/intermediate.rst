@@ -84,7 +84,7 @@ presses a button:
 
     app = L.LightningApp(LitApp())
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-counter-from-frontend.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-counter-from-frontend.gif
    :alt: Panel Lightning App updating a counter from the frontend
 
    Panel Lightning App updating a counter from the frontend
@@ -159,7 +159,7 @@ In this example, we update the ``count`` value of the Component:
 
     app = L.LightningApp(LitApp())
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-counter-from-component.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-counter-from-component.gif
    :alt: Panel Lightning App updating a counter from the component
 
    Panel Lightning App updating a counter from the Component
@@ -180,7 +180,7 @@ Tips & Tricks
 
 * Terminal: Panel provides the `Xterm.js terminal <https://panel.holoviz.org/reference/widgets/Terminal.html>`_ which can be used to display live logs from your components and allow you to provide a terminal interface to your component.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/frontend/panel/panel-lightning-github-runner.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/panel-lightning-github-runner.gif
    :alt: Panel Lightning App running models on github
 
    Panel Lightning App running models on GitHub

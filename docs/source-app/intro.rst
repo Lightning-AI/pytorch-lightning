@@ -16,7 +16,7 @@ By abstracting the engineering boilerplate, Lightning allows researchers, data s
 build highly-scalable, production-ready AI apps using the tools and technologies of their choice,
 regardless of their level of engineering expertise.
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/Lightning.gif
     :alt: What is Lightning gif.
     :width: 100 %
 
