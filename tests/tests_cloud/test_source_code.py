@@ -2,10 +2,11 @@ import inspect
 import os
 import tempfile
 
-from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _TEST_ROOT, _USERNAME, STORAGE_DIR
+from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _TEST_ROOT, _USERNAME
 from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
+from lightning.store.save import _LIGHTNING_STORAGE_DIR
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
@@ -17,7 +18,11 @@ def test_source_code_implicit(model_name: str = "model_test_source_code_implicit
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert os.path.isfile(
         os.path.join(
-            STORAGE_DIR, _USERNAME, model_name, "latest", str(os.path.basename(inspect.getsourcefile(BoringModel)))
+            _LIGHTNING_STORAGE_DIR,
+            _USERNAME,
+            model_name,
+            "latest",
+            str(os.path.basename(inspect.getsourcefile(BoringModel))),
         )
     )
 
@@ -30,7 +35,11 @@ def test_source_code_saving_disabled(model_name: str = "model_test_source_code_d
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
     assert not os.path.isfile(
         os.path.join(
-            STORAGE_DIR, _USERNAME, model_name, "latest", str(os.path.basename(inspect.getsourcefile(BoringModel)))
+            _LIGHTNING_STORAGE_DIR,
+            _USERNAME,
+            model_name,
+            "latest",
+            str(os.path.basename(inspect.getsourcefile(BoringModel))),
         )
     )
 
@@ -46,7 +55,9 @@ def test_source_code_explicit_relative_folder(model_name: str = "model_test_sour
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
-        os.path.join(STORAGE_DIR, _USERNAME, model_name, "latest", os.path.basename(os.path.abspath(dir_upload_path)))
+        os.path.join(
+            _LIGHTNING_STORAGE_DIR, _USERNAME, model_name, "latest", os.path.basename(os.path.abspath(dir_upload_path))
+        )
     )
 
 
@@ -62,7 +73,9 @@ def test_source_code_explicit_absolute_folder(model_name: str = "model_test_sour
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
-        os.path.join(STORAGE_DIR, _USERNAME, model_name, "latest", os.path.basename(os.path.abspath(dir_upload_path)))
+        os.path.join(
+            _LIGHTNING_STORAGE_DIR, _USERNAME, model_name, "latest", os.path.basename(os.path.abspath(dir_upload_path))
+        )
     )
 
 
@@ -78,7 +91,7 @@ def test_source_code_explicit_file(model_name: str = "model_test_source_code_exp
 
     assert os.path.isfile(
         os.path.join(
-            STORAGE_DIR,
+            _LIGHTNING_STORAGE_DIR,
             _USERNAME,
             model_name,
             "latest",

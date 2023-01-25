@@ -1,9 +1,10 @@
 import os
 
-from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _USERNAME, STORAGE_DIR
+from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _USERNAME
 from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_lightning_cloud, to_lightning_cloud
+from lightning.store.save import _LIGHTNING_STORAGE_DIR
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
@@ -23,7 +24,7 @@ def test_requirements_as_a_file(version: str = "latest", model_name: str = "bori
 
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}")
 
-    req_folder_path = os.path.join(STORAGE_DIR, _USERNAME, model_name, version)
+    req_folder_path = os.path.join(_LIGHTNING_STORAGE_DIR, _USERNAME, model_name, version)
     assert os.path.isdir(req_folder_path), "missing: %s" % req_folder_path
     assert "requirements.txt" in os.listdir(req_folder_path), "among files: %r" % os.listdir(req_folder_path)
 
@@ -44,7 +45,7 @@ def test_requirements_as_a_list(version: str = "1.0.0", model_name: str = "borin
 
     download_from_lightning_cloud(f"{_USERNAME}/{model_name}", version=version)
 
-    req_folder_path = os.path.join(STORAGE_DIR, _USERNAME, model_name, version)
+    req_folder_path = os.path.join(_LIGHTNING_STORAGE_DIR, _USERNAME, model_name, version)
     assert os.path.isdir(req_folder_path), "missing: %s" % req_folder_path
     assert "requirements.txt" in os.listdir(req_folder_path), "among files: %r" % os.listdir(req_folder_path)
 

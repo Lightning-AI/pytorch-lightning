@@ -2,15 +2,16 @@ import os
 import platform
 
 import pytest
-from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME, STORAGE_DIR
+from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 from tests_cloud.helpers import cleanup
 
 from lightning.store.cloud_api import download_from_lightning_cloud, to_lightning_cloud
+from lightning.store.save import _LIGHTNING_STORAGE_DIR
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def assert_download_successful(username, model_name, version):
-    folder_name = os.path.join(STORAGE_DIR, username, model_name, version)
+    folder_name = os.path.join(_LIGHTNING_STORAGE_DIR, username, model_name, version)
     assert os.path.isdir(folder_name), f"Folder name: {folder_name} doesn't exist."
     assert len(os.listdir(folder_name)) != 0
 
