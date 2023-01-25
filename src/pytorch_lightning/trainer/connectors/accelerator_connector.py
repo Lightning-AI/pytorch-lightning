@@ -52,7 +52,7 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import BaguaEnvironment
 from pytorch_lightning.plugins.layer_sync import LayerSync, TorchSyncBatchNorm
-from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.strategies import (
     ColossalAIStrategy,
     DDPSpawnStrategy,

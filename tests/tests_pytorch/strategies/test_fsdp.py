@@ -11,7 +11,7 @@ from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.strategies import FSDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf

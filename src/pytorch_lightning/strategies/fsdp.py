@@ -38,7 +38,7 @@ from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import ProcessGroup, ReduceOp
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast

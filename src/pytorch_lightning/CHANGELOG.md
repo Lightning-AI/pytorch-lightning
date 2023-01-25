@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  * `strategy="fsdp_native"` is now `strategy="fsdp"`
  * `strategy="fsdp_native_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
  * `pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` is now `pytorch_lightning.strategies.fsdp.FSDPStrategy`
- * `pytorch_lightning.plugins.precision.fsdp_native_native_amp.FullyShardedNativeNativeMixedPrecisionPlugin` is now `pytorch_lightning.plugins.precision.fsdp_amp.FSDPMixedPrecisionPlugin`
+ * `pytorch_lightning.plugins.precision.fsdp_native_native_amp.FullyShardedNativeNativeMixedPrecisionPlugin` is now `pytorch_lightning.plugins.precision.fsdp.FSDPMixedPrecisionPlugin`
  * `pytorch_lightning.plugins.precision.native_amp` is now `pytorch_lightning.plugins.precision.amp`
  * `NativeSyncBatchNorm` is now `TorchSyncBatchNorm`
 

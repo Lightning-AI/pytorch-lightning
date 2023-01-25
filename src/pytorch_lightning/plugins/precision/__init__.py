@@ -15,7 +15,7 @@ from pytorch_lightning.plugins.precision.amp import MixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.colossalai import ColossalAIPrecisionPlugin
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
-from pytorch_lightning.plugins.precision.fsdp_amp import FSDPMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.fsdp import FSDPMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
