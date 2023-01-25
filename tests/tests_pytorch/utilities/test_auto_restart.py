@@ -54,9 +54,8 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
 
@@ -959,7 +958,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
     def _signal(self):
         if self.should_signal:
             # simulate `os.kill(os.getpid(), signal.SIGTERM)`
-            self.trainer._terminate_gracefully = True
+            self.trainer._received_sigterm = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
@@ -999,33 +998,32 @@ def _fit_model(
     seed_everything(42)
     model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
 
-    trainer_kwargs = dict(
+    class MyTestCallback(Callback):
+        raising_function = None
+
+        def on_exception(self, trainer, pl_module, exception):
+            if isinstance(exception, ExitGracefullyException):
+                caller = inspect.trace()[-1]
+                class_name = caller[0].f_locals["self"].__class__.__name__
+                self.raising_method = f"{class_name}:{caller.function}"
+
+    test_callback = MyTestCallback()
+    trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=4,
         limit_val_batches=4,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
+        callbacks=test_callback,
     )
-
-    class ExitGracefullyException(Exception):
-        pass
-
-    class TestTrainer(Trainer):
-        def _exit_gracefully_on_signal(self) -> None:
-            if not _fault_tolerant_training() or not self._should_terminate_gracefully():
-                return
-            caller = inspect.stack()[1]
-            class_name = caller[0].f_locals["self"].__class__.__name__
-            raise ExitGracefullyException(f"Exiting gracefully on {class_name}:{caller.function}")
-
-    trainer = TestTrainer(**trainer_kwargs)
     if should_signal:
-        with pytest.raises(ExitGracefullyException, match=status):
+        with pytest.raises(ExitGracefullyException):
             trainer.fit(model)
+        assert test_callback.raising_method == status
     else:
         trainer.fit(model)
-    assert trainer._terminate_gracefully == should_signal
+    assert trainer.received_sigterm == should_signal
 
     return model
 
@@ -1047,18 +1045,18 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
             if failure_on_training:
                 # Breaking on first validation batch.
                 # This is done to capture the random state of the validation dataloader.
-                status = "EvaluationEpochLoop:advance"
+                status = "_EvaluationEpochLoop:advance"
             else:
                 # when breaking on last batch of validation, we should exist on `run_end` val_check_interval == 1.0
-                status = "FitLoop:on_advance_end" if val_check_interval == 1.0 else "TrainingEpochLoop:on_advance_end"
+                status = "_FitLoop:on_advance_end" if val_check_interval == 1.0 else "_TrainingEpochLoop:on_advance_end"
         else:
-            status = "TrainingEpochLoop:on_advance_end" if failure_on_training else "EvaluationEpochLoop:advance"
+            status = "_TrainingEpochLoop:on_advance_end" if failure_on_training else "_EvaluationEpochLoop:advance"
     else:
         if val_check_interval == 1.0:
-            status = "FitLoop:on_advance_end"
+            status = "_FitLoop:on_advance_end"
         else:
             # `training_epoch_end` happens after `validation_epoch_end` since Lightning v1.4
-            status = "FitLoop:on_advance_end" if failure_on_training else "TrainingEpochLoop:on_advance_end"
+            status = "_FitLoop:on_advance_end" if failure_on_training else "_TrainingEpochLoop:on_advance_end"
 
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status

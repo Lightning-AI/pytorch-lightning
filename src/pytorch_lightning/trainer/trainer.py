@@ -1900,7 +1900,7 @@ class Trainer:
 
         For example, this can be checked to exit gracefully.
         """
-        return self.strategy.reduce_bolean_decision(self._received_sigterm, all=False)
+        return self.strategy.reduce_boolean_decision(self._received_sigterm, all=False)
 
     """
     Loop properties

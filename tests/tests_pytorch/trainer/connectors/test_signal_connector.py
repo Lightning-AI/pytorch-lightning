@@ -29,7 +29,6 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_signal_handlers_restored_in_teardown():
     """Test that the SignalConnector restores the previously configured handler on teardown."""
     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
@@ -71,7 +70,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
                 trainer.fit(model)
         else:
             trainer.fit(model)
-        assert trainer._terminate_gracefully == (False if register_handler else terminate_gracefully)
+        assert trainer.received_sigterm == (False if register_handler else terminate_gracefully)
 
     # reset the signal to system defaults
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
@@ -87,14 +86,17 @@ def test_auto_requeue_custom_signal_flag(auto_requeue, requeue_signal):
 
     if auto_requeue:
         sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
-        assert len(sigterm_handlers) == 1
-        assert sigterm_handlers[0].__qualname__ == "SignalConnector.sigterm_handler_fn"
+        assert len(sigterm_handlers) == 2
+        assert sigterm_handlers[1].__qualname__ == "SignalConnector.sigterm_handler_fn"
 
         sigusr_handlers = signal.getsignal(requeue_signal).signal_handlers
         assert len(sigusr_handlers) == 1
         assert sigusr_handlers[0].__qualname__ == "SignalConnector.slurm_sigusr_handler_fn"
     else:
-        assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
+        sigterm_handlers = signal.getsignal(signal.SIGTERM).signal_handlers
+        assert len(sigterm_handlers) == 1
+        assert sigterm_handlers[0].__qualname__ == "SignalConnector._sigterm_notifier_fn"
+
         assert signal.getsignal(requeue_signal) is signal.SIG_DFL
 
     connector.teardown()
