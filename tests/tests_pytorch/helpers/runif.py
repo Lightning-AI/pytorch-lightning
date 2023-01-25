@@ -115,7 +115,7 @@ class RunIf:
 
         if max_torch:
             # set use_base_version for nightly support
-            conditions.append(compare_version("torch", operator.ge, min_torch, use_base_version=True))
+            conditions.append(compare_version("torch", operator.ge, max_torch, use_base_version=True))
             reasons.append(f"torch<{max_torch}, {torch.__version__} installed")
 
         if min_python:
