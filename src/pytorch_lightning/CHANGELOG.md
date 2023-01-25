@@ -14,8 +14,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
--
-
+- "Native" suffix removal ([#16490](https://github.com/Lightning-AI/lightning/pull/16490))
+ * `strategy="fsdp_native"` is now `strategy="fsdp"`
+ * `strategy="fsdp_native_full_shard_offload"` is now `strategy="fsdp_cpu_offload"`
+ * `pytorch_lightning.strategies.fully_sharded_native.DDPFullyShardedNativeStrategy` is now `pytorch_lightning.strategies.fsdp.FSDPStrategy`
+ * `pytorch_lightning.plugins.precision.fsdp_native_native_amp.FullyShardedNativeNativeMixedPrecisionPlugin` is now `pytorch_lightning.plugins.precision.fsdp.FSDPMixedPrecisionPlugin`
+ * `pytorch_lightning.plugins.precision.native_amp` is now `pytorch_lightning.plugins.precision.amp`
+ * `NativeSyncBatchNorm` is now `TorchSyncBatchNorm`
 
 ### Deprecated
 
@@ -144,6 +149,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `MLFlowLogger` logging the wrong keys with `.log_hyperparams()` ([#16418](https://github.com/Lightning-AI/lightning/pull/16418))
 
 - Fixed logging more than 100 parameters with `MLFlowLogger` and long values are truncated ([#16451](https://github.com/Lightning-AI/lightning/pull/16451))
+
+- Fixed strict availability check for `torch_xla` requirement ([#16476](https://github.com/Lightning-AI/lightning/pull/16476))
 
 
 

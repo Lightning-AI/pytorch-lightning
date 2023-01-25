@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class LayerSync(ABC):
         """Override this method to undo all modifications made in :meth:`apply`."""
 
 
-class NativeSyncBatchNorm(LayerSync):
+class TorchSyncBatchNorm(LayerSync):
     """A plugin that wraps all batch normalization layers of a model with synchronization logic for
     multiprocessing.
 
