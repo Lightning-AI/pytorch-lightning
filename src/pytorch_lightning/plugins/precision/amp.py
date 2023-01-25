@@ -67,7 +67,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             )
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
-                f"Native AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
+                f"AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
             )
         closure_result = closure()
 

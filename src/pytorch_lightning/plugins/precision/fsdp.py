@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import torch
 from typing_extensions import Literal
 
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from pytorch_lightning.plugins.precision.native_amp import MixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.amp import MixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_12 and torch.distributed.is_available():
@@ -28,16 +28,14 @@ else:
     ShardedGradScaler = None  # type: ignore[misc,assignment]
 
 
-class FullyShardedNativeNativeMixedPrecisionPlugin(MixedPrecisionPlugin):
-    """Native AMP for Fully Sharded Native Training."""
+class FSDPMixedPrecisionPlugin(MixedPrecisionPlugin):
+    """AMP for Fully Sharded Data Parallel (FSDP) Training."""
 
     def __init__(
         self, precision: Literal["16", 16, "bf16"], device: str, scaler: Optional[ShardedGradScaler] = None
     ) -> None:
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException(
-                "`FullyShardedNativeNativeMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards."
-            )
+            raise MisconfigurationException("`FSDPMixedPrecisionPlugin` is supported from PyTorch v1.12.0 onwards.")
         super().__init__(
             precision, device, scaler=(ShardedGradScaler() if scaler is None and str(precision) == "16" else None)
         )
