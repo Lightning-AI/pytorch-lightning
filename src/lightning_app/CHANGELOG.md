@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added experimental support for preemptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
+- Added experimental support for interruptible GPU in the cloud ([#16399](https://github.com/Lightning-AI/lightning/pull/16399))
 
 
 ### Changed

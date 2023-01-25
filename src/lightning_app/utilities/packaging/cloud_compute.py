@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
-from lightning_app.core.constants import ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER, enable_preemptible_works
+from lightning_app.core.constants import enable_interruptible_works, ENABLE_MULTIPLE_WORKS_IN_NON_DEFAULT_CONTAINER
 from lightning_app.storage.mount import Mount
 
 __CLOUD_COMPUTE_IDENTIFIER__ = "__cloud_compute__"
@@ -67,7 +67,7 @@ class CloudCompute:
 
         mounts: External data sources which should be mounted into a work as a filesystem at runtime.
 
-        preemptible: Whether to run on a preemptible machine.
+        interruptible: Whether to run on a interruptible machine.
     """
 
     name: str = "default"
@@ -75,7 +75,7 @@ class CloudCompute:
     idle_timeout: Optional[int] = None
     shm_size: Optional[int] = None
     mounts: Optional[Union[Mount, List[Mount]]] = None
-    preemptible: bool = False
+    interruptible: bool = False
     _internal_id: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -89,11 +89,11 @@ class CloudCompute:
             else:
                 self.shm_size = 0
 
-        if self.preemptible:
-            if not enable_preemptible_works():
-                raise ValueError("CloudCompute with `preemptible=True` isn't supported yet.")
+        if self.interruptible:
+            if not enable_interruptible_works():
+                raise ValueError("CloudCompute with `interruptible=True` isn't supported yet.")
             if "gpu" not in self.name:
-                raise ValueError("CloudCompute `preemptible=True` is supported only with GPU.")
+                raise ValueError("CloudCompute `interruptible=True` is supported only with GPU.")
 
         # All `default` CloudCompute are identified in the same way.
         if self._internal_id is None:

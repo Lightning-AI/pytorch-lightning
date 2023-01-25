@@ -18,7 +18,12 @@ class Work(L.LightningWork):
 class Flow(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        self.w = Work(cloud_compute=L.CloudCompute("gpu", preemptible=True), start_with_flow=False, parallel=True)
+        self.w = Work(
+            cloud_compute=L.CloudCompute("gpu", interruptible=True),
+            start_with_flow=False,
+            parallel=True,
+            cloud_build_config=L.BuildConfig(image="ghcr.io/gridai/lightning-stable-diffusion:v0.2"),
+        )
 
     def run(self):
         self.w.run()

@@ -78,7 +78,7 @@ def enable_multiple_works_in_default_container() -> bool:
 
 def get_cloud_queue_type() -> Optional[str]:
     value = os.getenv("LIGHTNING_CLOUD_QUEUE_TYPE", None)
-    if value is None and enable_preemptible_works():
+    if value is None and enable_interruptible_works():
         value = "http"
     return value
 
@@ -87,9 +87,9 @@ def get_cloud_queue_type() -> Optional[str]:
 REMOTE_STORAGE_WAIT = 0.5
 
 
-# preemptible support
-def enable_preemptible_works() -> bool:
-    return bool(int(os.getenv("LIGHTNING_ENABLE_PREEMPTIBLE_WORKS", "0")))
+# interruptible support
+def enable_interruptible_works() -> bool:
+    return bool(int(os.getenv("LIGHTNING_INTERRUPTIBLE_WORKS", "0")))
 
 
 # Get Cluster Driver
@@ -99,7 +99,7 @@ _CLUSTER_DRIVERS = [None, "k8s", "direct"]
 def get_cluster_driver() -> Optional[str]:
     value = os.getenv("LIGHTNING_CLUSTER_DRIVER", None)
     if value is None:
-        if enable_preemptible_works():
+        if enable_interruptible_works():
             value = "direct"
         else:
             value = None
