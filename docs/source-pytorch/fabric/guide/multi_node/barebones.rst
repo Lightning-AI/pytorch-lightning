@@ -123,7 +123,7 @@ You are seeing a message like this in the logs but nothing happens:
 The most likely reasons and how to fix it:
 
 - Wrong network interface: Some servers have multiple network interfaces.
-  There is usually only one that can send and receive traffic from the network of the other nodes, but sometimes it is not the default one.
+  There is usually only one that can send and receive traffic from the network of the other nodes, but sometimes it is not set as the default.
   In this case, you need to set it manually:
 
   .. code-block:: bash
@@ -154,6 +154,9 @@ Launch your command by prepending ``NCCL_DEBUG=INFO`` to get more info.
 .. code-block:: bash
 
     NCCL_DEBUG=INFO lightning run model ...
+
+
+----
 
 If you are sick of troubleshooting cluster problems, give :doc:`Lightning cloud <./cloud>` a try!
 For other questions, please don't hesitate to join the `Lightning Forum <https://lightning.ai/forums/>`_ and the `Community Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-1dm4phlc0-84Jv9_8Mp_tWraICOJ467Q>`_.
