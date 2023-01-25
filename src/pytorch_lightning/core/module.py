@@ -1999,11 +1999,11 @@ class LightningModule(
         else:
             raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
-        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
-        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
-        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
-        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
+        model.forward = model._compiler_ctx["original_forward"]
+        model.training_step = model._compiler_ctx["original_training_step"]
+        model.validation_step = model._compiler_ctx["original_validation_step"]
+        model.test_step = model._compiler_ctx["original_test_step"]
+        model.predict_step = model._compiler_ctx["original_predict_step"]
         model._compiler_ctx = None
 
         return model
