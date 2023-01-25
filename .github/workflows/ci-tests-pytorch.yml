@@ -12,7 +12,7 @@ on:
       - "requirements/pytorch/**"
       - "src/pytorch_lightning/**"
       - "tests/tests_pytorch/**"
-      - "tests/legacy/back-compatible-versions.txt"
+      - "tests/legacy/**"
       - "pyproject.toml"  # includes pytest config
       - ".github/workflows/ci-tests-pytorch.yml"
       - "requirements/fabric/**"
