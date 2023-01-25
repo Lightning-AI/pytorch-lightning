@@ -12,7 +12,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--exp-name", type=str, default="default",
         help="the name of this experiment")
-    
+
     # PyTorch arguments
     parser.add_argument("--seed", type=int, default=1,
         help="seed of the experiment")
