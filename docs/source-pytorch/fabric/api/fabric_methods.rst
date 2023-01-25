@@ -29,8 +29,8 @@ cast automatically.
 setup_dataloaders
 =================
 
-Set up one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Fabric
-replaces the sampler automatically for you. In addition, the dataloader will be configured to move the returned
+Set up one or multiple data loaders for accelerated operation. If you run a distributed strategy (e.g., DDP), Fabric
+automatically replaces the sampler. In addition, the data loader will be configured to move the returned
 data tensors to the correct device automatically.
 
 .. code-block:: python
@@ -64,7 +64,7 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
 to_device
 =========
 
-Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors or collections of tensors to
+Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors, or collections of tensors to
 the current device. By default :meth:`~lightning_fabric.fabric.Fabric.setup` and
 :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
@@ -86,8 +86,8 @@ Make your code reproducible by calling this method at the beginning of your run.
     fabric.seed_everything(1234)
 
 
-This covers PyTorch, NumPy and Python random number generators. In addition, Fabric takes care of properly initializing
-the seed of dataloader worker processes (can be turned off by passing ``workers=False``).
+This covers PyTorch, NumPy, and Python random number generators. In addition, Fabric takes care of properly initializing
+the seed of data loader worker processes (can be turned off by passing ``workers=False``).
 
 
 autocast
@@ -131,7 +131,7 @@ save
 
 Save the state of objects to a checkpoint file.
 Replaces all occurrences of ``torch.save(...)`` in your code.
-Fabric will take care of handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
+Fabric will handle the saving part correctly, whether running a single device, multi-devices, or multi-nodes.
 
 .. code-block:: python
 
@@ -146,7 +146,7 @@ Fabric will take care of handling the saving part correctly, no matter if you ar
     # Instead of `torch.save(...)`
     fabric.save("path/to/checkpoint.ckpt", state)
 
-You should pass the model and optimizer objects directly into the dictionary so that Fabric can unwrap them and retrieve their *state-dict* automatically.
+You should pass the model and optimizer objects directly into the dictionary so Fabric can unwrap them and automatically retrieve their *state-dict*.
 
 See also: :doc:`../guide/checkpoint`
 
@@ -156,7 +156,7 @@ load
 
 Load checkpoint contents from a file and restore the state of objects in your program.
 Replaces all occurrences of ``torch.load(...)`` in your code.
-Fabric will take care of handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
+Fabric will handle the loading part correctly, whether running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 
@@ -184,7 +184,7 @@ barrier
 =======
 
 Call this if you want all processes to wait and synchronize. Once all processes have entered this call,
-execution continues. Useful for example when you want to download data on one process and make all others wait until
+execution continues. Useful for example, when you want to download data on one process and make all others wait until
 the data is written to disk.
 
 .. code-block:: python
@@ -231,7 +231,7 @@ The three most common ones, :meth:`~lightning_fabric.fabric.Fabric.broadcast`, :
 
 .. important::
 
-    Every process needs to enter the collective calls, otherwise the program will hang!
+    Every process needs to enter the collective calls. Otherwise, the program will hang!
 
 Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
@@ -259,7 +259,7 @@ It will speed up your training loop by cutting redundant communication between p
         optimizer.zero_grad()
 
 Both the model's `.forward()` and the `fabric.backward()` call need to run under this context as shown in the example above.
-For single-device strategies, it is a no-op. There are strategies that don't support this:
+For single-device strategies, it is a no-op. Some strategies don't support this:
 
 - deepspeed
 - dp
@@ -302,7 +302,7 @@ See also: :doc:`../guide/callbacks`
 log and log_dict
 ================
 
-These methods allows you to send scalar metrics to a logger registered in Fabric.
+These methods allow you to send scalar metrics to a logger registered in Fabric.
 
 .. code-block:: python
 
