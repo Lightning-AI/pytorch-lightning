@@ -4,7 +4,7 @@
 How to structure your code with Fabric
 ######################################
 
-Fabric is flexible enough to adapt to any project structure, regardless of whether you are experimenting with a simple script or a big framework, because it makes basically no assumptions on how your code is organized.
+Fabric is flexible enough to adapt to any project structure, regardless of whether you are experimenting with a simple script or an extensive framework, because it makes no assumptions about how your code is organized.
 Despite the ultimate freedom, this page is meant to give beginners a template for how to organize a typical training script with Fabric:
 We also have several :ref:`examples <Fabric Examples>` that you can take inspiration from.
 
@@ -30,7 +30,7 @@ At the highest level, every Python script should contain the following boilerpla
         main()
 
 
-This ensures that any kind of multiprocessing will work properly (for example ``DataLoader(num_workers=...)`` etc.)
+This ensures that any form of multiprocessing will work properly (for example, ``DataLoader(num_workers=...)`` etc.)
 
 
 ----
@@ -86,7 +86,7 @@ Here is a skeleton for training a model in a function ``train()``:
 Training, Validation, Testing
 *****************************
 
-Often it is desired to evaluate the ability for the model to generalize on unseed data.
+Often it is desired to evaluate the ability of the model to generalize on unseen data.
 Here is how the code would be structured if we did that periodically during training (called validation) and after training (called testing).
 
 
