@@ -44,6 +44,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed `Trainer(strategy='horovod')` support ([#16150](https://github.com/Lightning-AI/lightning/pull/16150))
 
+- `FairScale` removal (in favor of PyTorch's FSDP implementation) ([#16400](https://github.com/PyTorchLightning/pytorch-lightning/pull/16400))
+  * Removed the `pytorch_lightning.overrides.fairscale.LightningShardedDataParallel` class
+  * Removed the `pytorch_lightning.plugins.precision.fully_sharded_native_amp.FullyShardedNativeMixedPrecisionPlugin` class
+  * Removed the `pytorch_lightning.plugins.precision.sharded_native_amp.ShardedNativeMixedPrecisionPlugin` class
+  * Removed the `pytorch_lightning.strategies.fully_sharded.DDPFullyShardedStrategy` (fsdp) class
+  * Removed the `pytorch_lightning.strategies.sharded.DDPShardedStrategy` (ddp_sharded) class
+  * Removed the `pytorch_lightning.strategies.sharded_spawn.DDPSpawnShardedStrategy` (ddp_sharded_spawn) class
+
 - Removed legacy device arguments in Trainer ([#16171](https://github.com/Lightning-AI/lightning/pull/16171))
   * Removed the `Trainer(gpus=...)` argument
   * Removed the `Trainer(tpu_cores=...)` argument
@@ -77,6 +85,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated code in `pl.utilities.xla_device` ([#16404](https://github.com/Lightning-AI/lightning/pull/16404))
 
+- Removed the deprecated code in `pl.utilities.data` ([#16440](https://github.com/Lightning-AI/lightning/pull/16440))
+
 - Removed the deprecated code in `pl.utilities.device_parser` ([#16412](https://github.com/Lightning-AI/lightning/pull/16412))
 
 - Removed the deprecated code in `pl.utilities.optimizer` ([#16439](https://github.com/Lightning-AI/lightning/pull/16439))
@@ -103,6 +113,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   * Removed `Loop.connect()` ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * Removed the `trainer.{fit,validate,test,predict}_loop` properties ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
   * Removed the default `Loop.run()` implementation ([#16384](https://github.com/Lightning-AI/lightning/pull/16384))
+  * The loop classes are now marked as protected ([#16445](https://github.com/Lightning-AI/lightning/pull/16445))
 
 - Removed special support for truncated backpropagation through time (TBPTT) ([#16172](https://github.com/Lightning-AI/lightning/pull/16172))
   * Removed the `LightningModule.truncated_bptt_steps` attribute
@@ -129,6 +140,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fixed an unintended limitation for calling `save_hyperparameters` on mixin classes that don't subclass `LightningModule`/`LightningDataModule` ([#16369](https://github.com/Lightning-AI/lightning/pull/16369))
+
+- Fixed an issue with `MLFlowLogger` logging the wrong keys with `.log_hyperparams()` ([#16418](https://github.com/Lightning-AI/lightning/pull/16418))
+
+- Fixed logging more than 100 parameters with `MLFlowLogger` and long values are truncated ([#16451](https://github.com/Lightning-AI/lightning/pull/16451))
+
 
 
 ## [1.9.0] - 2023-01-17

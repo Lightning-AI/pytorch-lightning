@@ -29,8 +29,8 @@ cast automatically.
 setup_dataloaders
 =================
 
-Set up one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Fabric
-replaces the sampler automatically for you. In addition, the dataloader will be configured to move the returned
+Set up one or multiple data loaders for accelerated operation. If you run a distributed strategy (e.g., DDP), Fabric
+automatically replaces the sampler. In addition, the data loader will be configured to move the returned
 data tensors to the correct device automatically.
 
 .. code-block:: python
@@ -64,7 +64,7 @@ This replaces any occurrences of ``loss.backward()`` and makes your code acceler
 to_device
 =========
 
-Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors or collections of tensors to
+Use :meth:`~lightning_fabric.fabric.Fabric.to_device` to move models, tensors, or collections of tensors to
 the current device. By default :meth:`~lightning_fabric.fabric.Fabric.setup` and
 :meth:`~lightning_fabric.fabric.Fabric.setup_dataloaders` already move the model and data to the correct
 device, so calling this method is only necessary for manual operation when needed.
@@ -86,8 +86,8 @@ Make your code reproducible by calling this method at the beginning of your run.
     fabric.seed_everything(1234)
 
 
-This covers PyTorch, NumPy and Python random number generators. In addition, Fabric takes care of properly initializing
-the seed of dataloader worker processes (can be turned off by passing ``workers=False``).
+This covers PyTorch, NumPy, and Python random number generators. In addition, Fabric takes care of properly initializing
+the seed of data loader worker processes (can be turned off by passing ``workers=False``).
 
 
 autocast
@@ -110,6 +110,8 @@ You need this only if you wish to autocast more operations outside the ones in m
     fabric.backward(loss)
     ...
 
+See also: :doc:`../fundamentals/precision`
+
 
 print
 =====
@@ -127,44 +129,111 @@ This avoids excessive printing and logs when running on multiple devices/nodes.
 save
 ====
 
-Save contents to a checkpoint. Replaces all occurrences of ``torch.save(...)`` in your code. Fabric will take care of
-handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
+Save the state of objects to a checkpoint file.
+Replaces all occurrences of ``torch.save(...)`` in your code.
+Fabric will handle the saving part correctly, whether running a single device, multi-devices, or multi-nodes.
 
 .. code-block:: python
 
-    # Instead of `torch.save(...)`, call:
-    fabric.save(model.state_dict(), "path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Instead of `torch.save(...)`
+    fabric.save("path/to/checkpoint.ckpt", state)
+
+You should pass the model and optimizer objects directly into the dictionary so Fabric can unwrap them and automatically retrieve their *state-dict*.
+
+See also: :doc:`../guide/checkpoint`
 
 
 load
 ====
 
-Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Fabric will take care of
-handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
+Load checkpoint contents from a file and restore the state of objects in your program.
+Replaces all occurrences of ``torch.load(...)`` in your code.
+Fabric will handle the loading part correctly, whether running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 
-    # Instead of `torch.load(...)`, call:
-    fabric.load("path/to/checkpoint.ckpt")
+    # Define the state of your program/loop
+    state = {
+        "model1": model1,
+        "model2": model2,
+        "optimizer": optimizer,
+        "iteration": iteration,
+    }
+
+    # Restore the state of objects (in-place)
+    fabric.load("path/to/checkpoint.ckpt", state)
+
+    # Or load everything and restore your objects manually
+    checkpoint = fabric.load("./checkpoints/version_2/checkpoint.ckpt")
+    model.load_state_dict(all_states["model"])
+    ...
+
+
+See also: :doc:`../guide/checkpoint`
 
 
 barrier
 =======
 
 Call this if you want all processes to wait and synchronize. Once all processes have entered this call,
-execution continues. Useful for example when you want to download data on one process and make all others wait until
+execution continues. Useful for example, when you want to download data on one process and make all others wait until
 the data is written to disk.
 
 .. code-block:: python
 
-    # Download data only on one process
     if fabric.global_rank == 0:
-        download_data("http://...")
+        print("Downloading dataset. This can take a while ...")
+        download_dataset("http://...")
 
-    # Wait until all processes meet up here
+    # All other processes wait here until rank 0 is done with downloading:
     fabric.barrier()
 
-    # All processes are allowed to read the data now
+    # After everyone reached the barrier, they can access the downloaded files:
+    load_dataset()
+
+See also: :doc:`../advanced/distributed_communication`
+
+
+all_gather, all_reduce, broadcast
+=================================
+
+You can send tensors and other data between processes using collective operations.
+The three most common ones, :meth:`~lightning_fabric.fabric.Fabric.broadcast`, :meth:`~lightning_fabric.fabric.Fabric.all_gather` and :meth:`~lightning_fabric.fabric.Fabric.all_reduce` are available directly on the Fabric object for convenience:
+
+- :meth:`~lightning_fabric.fabric.Fabric.broadcast`: Send a tensor from one process to all others.
+- :meth:`~lightning_fabric.fabric.Fabric.all_gather`: Gather tensors from every process and stack them.
+- :meth:`~lightning_fabric.fabric.Fabric.all_reduce`: Apply a reduction function on tensors across processes (sum, mean, etc.).
+
+.. code-block:: python
+
+    # Send the value of a tensor from rank 0 to all others
+    result = fabric.broadcast(tensor, src=0)
+
+    # Every process gets the stack of tensors from everybody else
+    all_tensors = fabric.all_gather(tensor)
+
+    # Sum a tensor across processes (everyone gets the result)
+    reduced_tensor = fabric.all_reduce(tensor, reduce_op="sum")
+
+    # Also works with a collection of tensors (dict, list, tuple):
+    collection = {"loss": torch.tensor(...), "data": ...}
+    gathered_collection = fabric.all_gather(collection, ...)
+    reduced_collection = fabric.all_reduce(collection, ...)
+
+
+.. important::
+
+    Every process needs to enter the collective calls. Otherwise, the program will hang!
+
+Learn more about :doc:`distributed communication <../advanced/distributed_communication>`.
 
 
 no_backward_sync
@@ -190,7 +259,7 @@ It will speed up your training loop by cutting redundant communication between p
         optimizer.zero_grad()
 
 Both the model's `.forward()` and the `fabric.backward()` call need to run under this context as shown in the example above.
-For single-device strategies, it is a no-op. There are strategies that don't support this:
+For single-device strategies, it is a no-op. Some strategies don't support this:
 
 - deepspeed
 - dp
@@ -227,10 +296,13 @@ It is useful when building a Trainer that allows the user to run arbitrary code 
     fabric.call("undefined")
 
 
+See also: :doc:`../guide/callbacks`
+
+
 log and log_dict
 ================
 
-These methods allows you to send scalar metrics to a logger registered in Fabric.
+These methods allow you to send scalar metrics to a logger registered in Fabric.
 
 .. code-block:: python
 
@@ -251,3 +323,5 @@ Here is what's happening under the hood (pseudo code) when you call ``.log()`` o
     # When you call .log() or .log_dict(), we do this:
     for logger in fabric.loggers:
         logger.log_metrics(metrics=metrics, step=step)
+
+See also: :doc:`../guide/logging`

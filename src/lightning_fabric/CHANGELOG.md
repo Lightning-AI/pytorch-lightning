@@ -9,12 +9,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Added `Fabric.all_reduce` ([#16459](https://github.com/Lightning-AI/lightning/pull/16459))
+
+- Added support for saving and loading DeepSpeed checkpoints through `Fabric.save/load()` ([#16452](https://github.com/Lightning-AI/lightning/pull/16452))
 
 
 ### Changed
 
--
+- Checkpoint saving and loading redesign ([#16434](https://github.com/Lightning-AI/lightning/pull/16434))
+  * Changed the method signatrue of `Fabric.save` and `Fabric.load`
+  * Changed the method signature of `Strategy.save_checkpoint` and `Fabric.load_checkpoint`
+  * `Fabric.save` accepts a state that can contain model and optimizer references
+  * `Fabric.load` can now load state in-place onto models and optimizers
+  * `Fabric.load` returns a dictionary of objects that weren't loaded into the state
+  * `Strategy.save_checkpoint` and `Fabric.load_checkpoint` are now responsible for accessing the state of the model and optimizers
+
+- Enabled all shorthand strategy names that can be supported in the CLI ([#16485](https://github.com/Lightning-AI/lightning/pull/16485))
 
 
 ### Deprecated
@@ -29,7 +39,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
--
+- Fixed error handling for `accelerator="mps"` and `ddp` strategy pairing ([#16455](https://github.com/Lightning-AI/lightning/pull/16455))
+
 
 
 ## [1.9.0] - 2023-01-17

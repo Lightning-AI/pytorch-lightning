@@ -67,7 +67,7 @@ A delta sent from the Work to the Flow looks like this:
 
 Here is the associated illustration:
 
-.. figure:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/deltas.gif
+.. figure:: https://pl-public-data.s3.amazonaws.com/assets_lightning/deltas.gif
     :alt: Mechanism showing how delta are sent.
     :width: 100 %
 

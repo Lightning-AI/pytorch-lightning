@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
-from pytorch_lightning.loops.dataloader import DataLoaderLoop
-from pytorch_lightning.loops.epoch import EvaluationEpochLoop
+from pytorch_lightning.loops.dataloader import _DataLoaderLoop
+from pytorch_lightning.loops.epoch import _EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
@@ -38,7 +38,7 @@ if _RICH_AVAILABLE:
     from rich.table import Column, Table
 
 
-class EvaluationLoop(DataLoaderLoop):
+class _EvaluationLoop(_DataLoaderLoop):
     """Top-level loop where validation/testing starts.
 
     It simply iterates over each evaluation dataloader from one to the next by calling ``EvaluationEpochLoop.run()`` in
@@ -47,7 +47,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def __init__(self, verbose: bool = True) -> None:
         super().__init__()
-        self.epoch_loop = EvaluationEpochLoop()
+        self.epoch_loop = _EvaluationEpochLoop()
         self.verbose = verbose
 
         self._results = _ResultCollection(training=False)
@@ -304,7 +304,7 @@ class EvaluationLoop(DataLoaderLoop):
     def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
         for k, v in data.items():
             if isinstance(v, dict):
-                for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
+                for new_key in apply_to_collection(v, dict, _EvaluationLoop._get_keys):
                     yield (k, *new_key)  # this need to be in parenthesis for older python versions
             else:
                 yield k,
@@ -317,13 +317,13 @@ class EvaluationLoop(DataLoaderLoop):
         result = data[target_start]
         if not rest:
             return result
-        return EvaluationLoop._find_value(result, rest)
+        return _EvaluationLoop._find_value(result, rest)
 
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics_paths = {k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys}
+        metrics_paths = {k for keys in apply_to_collection(results, dict, _EvaluationLoop._get_keys) for k in keys}
         if not metrics_paths:
             return
 
@@ -341,7 +341,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         for result in results:
             for metric, row in zip(metrics_paths, rows):
-                val = EvaluationLoop._find_value(result, metric)
+                val = _EvaluationLoop._find_value(result, metric)
                 if val is not None:
                     if isinstance(val, Tensor):
                         val = val.item() if val.numel() == 1 else val.tolist()

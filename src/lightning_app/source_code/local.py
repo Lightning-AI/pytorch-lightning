@@ -1,9 +1,24 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import rmtree
 from typing import List, Optional
 
+from lightning_app.core.constants import DOT_IGNORE_FILENAME
 from lightning_app.source_code.copytree import _copytree, _IGNORE_FUNCTION
 from lightning_app.source_code.hashing import _get_hash
 from lightning_app.source_code.tar import _tar_path
@@ -26,6 +41,14 @@ class LocalSourceCodeDir:
         # create global cache location if it doesn't exist
         if not self.cache_location.exists():
             self.cache_location.mkdir(parents=True, exist_ok=True)
+
+        # Create a default dotignore if it doesn't exist
+        if not (path / DOT_IGNORE_FILENAME).is_file():
+            with open(path / DOT_IGNORE_FILENAME, "w") as f:
+                f.write("venv/\n")
+                if (path / "bin" / "activate").is_file() or (path / "pyvenv.cfg").is_file():
+                    # the user is developing inside venv
+                    f.write("bin/\ninclude/\nlib/\npyvenv.cfg\n")
 
         # clean old cache entries
         self._prune_cache()

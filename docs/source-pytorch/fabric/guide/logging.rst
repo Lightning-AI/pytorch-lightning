@@ -8,10 +8,10 @@ Track and Visualize Experiments
 Why do I need to track metrics?
 *******************************
 
-In model development, we track values of interest such as the *validation_loss* to visualize the learning process for our models.
-Model development is like driving a car without windows, charts and logs provide the *windows* to know where to drive the car.
+In model development, we track values of interest, such as the *validation_loss* to visualize the learning process for our models.
+Model development is like driving a car without windows. Charts and logs provide the *windows* to know where to drive the car.
 
-With Lightning, you can visualize virtually anything you can think of: numbers, text, images, audio.
+With Lightning, you can visualize virtually anything you can think of: numbers, text, images, and audio.
 
 ----
 
@@ -19,7 +19,7 @@ With Lightning, you can visualize virtually anything you can think of: numbers, 
 Track metrics
 *************
 
-Metric visualization is the most basic but powerful way of understanding how your model is doing throughout the model development process.
+Metric visualization is the most basic but powerful way to understand how your model is doing throughout development.
 To track a metric, add the following:
 
 **Step 1:** Pick a logger.
@@ -65,7 +65,7 @@ View logs dashboard
 *******************
 
 How you can view the metrics depends on the individual logger you choose.
-Most of them have a dashboard that lets you browse everything you log in real time.
+Most have a dashboard that lets you browse everything you log in real time.
 
 For the :class:`~lightning_fabric.loggers.tensorboard.TensorBoardLogger` shown above, you can open it by running
 
@@ -88,7 +88,7 @@ If you're using a notebook environment such as *Google Colab* or *Kaggle* or *Ju
 Control logging frequency
 *************************
 
-Logging a metric in every iteration can slow down training.
+Logging a metric in every iteration can slow down the training.
 Reduce the added overhead by logging less frequently:
 
 .. code-block:: python
@@ -119,7 +119,7 @@ You can add as many loggers as you want without changing the logging code in you
     tb_logger = TensorBoardLogger(root_dir="logs/tensorboard")
     csv_logger = CSVLogger(root_dir="logs/csv")
 
-    # Add multiple loggers into a list
+    # Add multiple loggers in a list
     fabric = Fabric(loggers=[tb_logger, csv_logger])
 
     # Calling .log() or .log_dict() always logs to all loggers simultaneously

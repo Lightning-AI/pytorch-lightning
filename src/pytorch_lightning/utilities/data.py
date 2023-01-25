@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn, WarningCache
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 
 # might be supported in later releases, see https://github.com/python/mypy/pull/13297
 BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]  # type: ignore[misc]
@@ -421,19 +421,3 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if isinstance(sampler, SequentialSampler):
         return False
     return isinstance(sampler, RandomSampler)
-
-
-def has_iterable_dataset(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.data.has_iterable_dataset` has been deprecated in v1.8.0 and will be"
-        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_iterable_dataset` instead."
-    )
-    return new_has_iterable_dataset(*args, **kwargs)
-
-
-def has_len(*args: Any, **kwargs: Any) -> Any:
-    rank_zero_deprecation(
-        "`pytorch_lightning.utilities.data.has_len` has been deprecated in v1.8.0 and will be"
-        " removed in v2.0.0. Please use `lightning_fabric.utilities.data.has_len` instead."
-    )
-    return new_has_len(*args, **kwargs)

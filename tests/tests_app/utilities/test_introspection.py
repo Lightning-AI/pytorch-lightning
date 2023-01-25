@@ -55,7 +55,6 @@ def test_introspection_lightning_overrides():
         "Fabric",
         "Logger",
         "LightningModule",
-        "Loop",
         "Metric",
         "PrecisionPlugin",
         "Trainer",
