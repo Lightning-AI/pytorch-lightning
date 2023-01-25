@@ -76,4 +76,7 @@ def test_interruptible(monkeypatch):
     with pytest.raises(ValueError, match="supported only with GPU"):
         CloudCompute("cpu", interruptible=True)
 
-    CloudCompute("gpu", interruptible=True)
+    cloud_compute = CloudCompute("gpu", interruptible=True)
+    assert hasattr(cloud_compute, "interruptible")
+    # TODO: To be removed once the platform is updated.
+    assert hasattr(cloud_compute, "preemptible")
