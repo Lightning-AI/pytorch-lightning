@@ -339,9 +339,9 @@ class DDPSpawnStrategy(ParallelStrategy):
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
-            if not self.model.static_graph and self.model._get_ddp_logging_data().get(
+            if not self.model.static_graph and self.model._get_ddp_logging_data().get(  # type: ignore[operator]
                 "can_set_static_graph"
-            ):  # type: ignore[operator]
+            ):
                 rank_zero_info(
                     "Your model can run with static graph optimizations. For future training runs, we suggest you"
                     f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
