@@ -202,7 +202,6 @@ Current Lightning Users
    Save memory with half-precision <common/precision>
    Training over the internet <strategies/hivemind>
    advanced/model_parallel
-   clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
@@ -229,7 +228,6 @@ Current Lightning Users
    Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/finetuning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
    Half precision <common/precision>
    HPU <accelerators/hpu>
@@ -258,7 +256,6 @@ Current Lightning Users
    Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
-   Sweep <clouds/run_intermediate>
    SWA <advanced/training_tricks>
    SLURM <clouds/cluster_advanced>
    Transfer learning <advanced/transfer_learning>

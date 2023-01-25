@@ -189,10 +189,6 @@ See also the multi-node examples
     )
 
 
-The other option is that you generate scripts on your own via a bash command or use our
-:doc:`native solution <../clouds/cloud_training>`.
-
-
 ----
 
 ***************
@@ -217,34 +213,3 @@ The most likely reasons and how to fix it:
   There are two parametres in the SLURM submission script that determine how many processes will run your training, the ``#SBATCH --nodes=X`` setting and ``#SBATCH --ntasks-per-node=Y`` settings.
   The numbers there need to match what is configured in your Trainer in the code: ``Trainer(num_nodes=X, devices=Y)``.
   If you change the numbers, update them in BOTH places.
-
-
-----
-
-********
-Get help
-********
-
-Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
-
-Try it out for free today:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Train models on the cloud
-   :description: Learn to run a model in the background on a cloud machine.
-   :col_css: col-md-6
-   :button_link: cloud_training.html
-   :height: 150
-   :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div

@@ -5,8 +5,6 @@ Fault-tolerant Training (basic)
 ###############################
 **Audience:** User who want to run on the cloud or a cluster environment.
 
-**Pre-requisites**: Users must have first read :doc:`Run on the cloud (basic) <run_basic>`
-
 ----
 
 ********************************
