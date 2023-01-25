@@ -34,14 +34,14 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
-from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
+from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, PrecisionPlugin, TorchSyncBatchNorm
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
-    DDPFullyShardedNativeStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     SingleDeviceStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
@@ -604,13 +604,12 @@ def test_strategy_choice_ddp_cpu_slurm(cuda_count_0, strategy):
 
 
 @RunIf(min_torch="1.12")
-def test_check_native_fsdp_strategy_and_fallback():
+def test_check_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-        "but GPU accelerator is not used.",
+        match=f"You selected strategy to be `{FSDPStrategy.strategy_name}`, but GPU accelerator is not used.",
     ):
-        Trainer(accelerator="cpu", strategy="fsdp_native")
+        Trainer(accelerator="cpu", strategy="fsdp")
 
 
 def test_unsupported_tpu_choice(tpu_available):
@@ -619,7 +618,7 @@ def test_unsupported_tpu_choice(tpu_available):
 
     # if user didn't set strategy, AcceleratorConnector will choose the TPUSingleStrategy or TPUSpawnStrategy
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"), pytest.warns(
-        UserWarning, match=r"accelerator='tpu', precision=16\)` but native AMP is not supported"
+        UserWarning, match=r"accelerator='tpu', precision=16\)` but AMP is not supported"
     ):
         Trainer(accelerator="tpu", precision=16, strategy="ddp")
 
@@ -680,9 +679,9 @@ def test_deterministic_init(deterministic):
     "sync_batchnorm,plugins,expected",
     [
         (False, [], type(None)),
-        (True, [], NativeSyncBatchNorm),
-        (False, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
-        (True, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (True, [], TorchSyncBatchNorm),
+        (False, [TorchSyncBatchNorm()], TorchSyncBatchNorm),
+        (True, [TorchSyncBatchNorm()], TorchSyncBatchNorm),
         (False, [Mock(spec=LayerSync)], LayerSync),
     ],
 )
@@ -716,7 +715,7 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     strategy = CustomParallelStrategy()
     assert strategy._layer_sync is None
     Trainer(accelerator="cpu", strategy=strategy, sync_batchnorm=True)
-    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+    assert isinstance(strategy._layer_sync, TorchSyncBatchNorm)
 
 
 @pytest.mark.parametrize(

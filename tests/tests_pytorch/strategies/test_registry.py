@@ -16,10 +16,10 @@ import pytest
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import CheckpointIO
 from pytorch_lightning.strategies import (
-    DDPFullyShardedNativeStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
     DeepSpeedStrategy,
+    FSDPStrategy,
     StrategyRegistry,
     TPUSpawnStrategy,
 )
@@ -67,12 +67,12 @@ def test_tpu_spawn_debug_strategy_registry(xla_available):
 
 @RunIf(min_torch="1.12")
 def test_fsdp_strategy_registry(cuda_count_1):
-    strategy = "fsdp_native"
+    strategy = "fsdp"
     assert strategy in StrategyRegistry
-    assert StrategyRegistry[strategy]["strategy"] == DDPFullyShardedNativeStrategy
+    assert StrategyRegistry[strategy]["strategy"] == FSDPStrategy
 
     trainer = Trainer(accelerator="cuda", strategy=strategy)
-    assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
+    assert isinstance(trainer.strategy, FSDPStrategy)
 
 
 @pytest.mark.parametrize(

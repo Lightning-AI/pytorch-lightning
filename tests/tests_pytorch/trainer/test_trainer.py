@@ -2164,7 +2164,7 @@ def test_trainer_compiled_model():
 
     model = torch.compile(model)
 
-    trainer = Trainer(fast_dev_run=True, strategy="fsdp_native")
+    trainer = Trainer(fast_dev_run=True, strategy="fsdp")
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
         trainer.fit(model)
 
