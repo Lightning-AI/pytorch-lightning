@@ -4,7 +4,7 @@
 Launch distributed training
 ###########################
 
-To run your code distributed across many devices and/or across many machines, you need to do two things:
+To run your code distributed across many devices and many machines, you need to do two things:
 
 1. Configure Fabric with the number of devices and number of machines you want to use
 2. Launch your code in multiple processes
@@ -17,13 +17,13 @@ To run your code distributed across many devices and/or across many machines, yo
 Launch with the CLI
 *******************
 
-The most convienent way to do all of the above is to run your Python script directly with the built-in command line interface (CLI):
+The most convenient way to do all of the above is to run your Python script directly with the built-in command line interface (CLI):
 
 .. code-block:: bash
 
     lightning run model path/to/your/script.py
 
-This is essentially the same as running ``python path/to/your/script.py`` but it also lets you configure:
+This is essentially the same as running ``python path/to/your/script.py``, but it also lets you configure:
 
 - ``--accelerator``: The accelerator to use
 - ``--devices``: The number of devices to use (per machine)
@@ -112,7 +112,7 @@ Or `DeepSpeed Zero3 <https://www.deepspeed.ai/2021/03/07/zero3-offload.html>`_ w
 Programmatic Launch
 *******************
 
-It is also possible to launch the processses directly from within the Python script programmatically.
+Launching the processes programmatically directly from within the Python script is also possible.
 This is useful for debugging or when you want to build your own CLI around Fabric.
 
 .. code-block:: python
