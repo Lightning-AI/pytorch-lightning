@@ -22,8 +22,8 @@ from tests_pytorch.helpers.runif import RunIf
 # needs to be standalone to avoid other processes initializing CUDA
 @RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True)
 def test_amp_gpus_ddp_fork():
-    """Ensure the use of native AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA
-    initialization errors."""
+    """Ensure the use of AMP with `ddp_fork` (or associated alias strategies) does not generate CUDA initialization
+    errors."""
     _ = MixedPrecisionPlugin(precision=16, device="cuda")
     with multiprocessing.get_context("fork").Pool(1) as pool:
         in_bad_fork = pool.apply(torch.cuda._is_in_bad_fork)

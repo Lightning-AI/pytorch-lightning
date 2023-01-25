@@ -30,7 +30,7 @@ class FusedOptimizerParityModel(BoringModel):
 
 
 @RunIf(min_torch="1.13", min_cuda_gpus=1)
-def test_native_mixed_precision_fused_optimizer_parity(tmpdir):
+def test_amp_fused_optimizer_parity(tmpdir):
     def run(fused=False):
         seed_everything(1234)
         model = FusedOptimizerParityModel(fused)
