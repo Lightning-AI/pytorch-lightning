@@ -4,9 +4,9 @@
 Organize Your Code
 ##################
 
-Any raw PyTorch can be converted to Fabric with zero refactoring required, giving you maximum flexibility in how you want to organize your projects.
+Any raw PyTorch can be converted to Fabric with zero refactoring required, giving maximum flexibility in how you want to organize your projects.
 
-However, when developing a project in a team or when sharing the code publicly, it can be beneficial to conform to a standard format how core pieces of the code are organized.
+However, when developing a project in a team or sharing the code publicly, it can be beneficial to conform to a standard format of how core pieces of the code are organized.
 This is what the :doc:`LightningModule <../../common/lightning_module>` was made for!
 
 Here is how you can neatly separate the research code (model, loss, optimization, etc.) from the "trainer" code (training loop, checkpointing, logging, etc.).
@@ -19,12 +19,12 @@ Here is how you can neatly separate the research code (model, loss, optimization
 Step 1: Move your code into LightningModule hooks
 *************************************************
 
-Take these main incredients and put them in a LightningModule:
+Take these main ingredients and put them in a LightningModule:
 
 - The PyTorch model(s) as an attribute (e.g. ``self.model``)
-- The forward, including loss computation goes into ``training_step()``
+- The forward, including loss computation, goes into ``training_step()``
 - Setup of optimizer(s) goes into ``configure_optimizers()``
-- Setup of the training dataloader goes into ``train_dataloader()``
+- Setup of the training data loader goes into ``train_dataloader()``
 
 
 .. code-block:: python
@@ -110,7 +110,7 @@ It is up to you to call everything at the right place.
                 model.any_hook_you_like()
 
 
-Your code is now modular. You can switch out the entire LightningModule implemenation for another one and you don't need to touch the training loop:
+Your code is now modular. You can switch out the entire LightningModule implementation for another one, and you don't need to touch the training loop:
 
 .. code-block:: diff
 

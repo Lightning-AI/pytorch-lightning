@@ -9,13 +9,13 @@ Save memory with mixed precision
 What is Mixed Precision?
 ************************
 
-PyTorch, like most deep learning frameworks, trains on 32-bit floating-point (FP32) arithmetic by default.
+Like most deep learning frameworks, PyTorch trains on 32-bit floating-point (FP32) arithmetic by default.
 However, many deep learning models do not require this to reach complete accuracy.
-By conducting operations in half-precision format while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network, mixed precision training delivers significant computational speedup.
+Mixed precision training delivers significant computational speedup by conducting operations in half-precision while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network.
 Switching to mixed precision has resulted in considerable training speedups since the introduction of Tensor Cores in the Volta and Turing architectures.
-It combines FP32 and lower-bit floating-points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation.
-It accomplishes this by recognizing the steps that require complete accuracy and employing a 32-bit floating-point for those steps only, while using a 16-bit floating-point for the rest.
-When compared to complete precision training, mixed precision training delivers all of these benefits while ensuring that no task-specific accuracy is lost [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
+It combines FP32 and lower-bit floating points (such as FP16) to reduce memory footprint and increase performance during model training and evaluation.
+It accomplishes this by recognizing the steps that require complete accuracy and employing a 32-bit floating point for those steps only while using a 16-bit floating point for the rest.
+Compared to complete precision training, mixed precision training delivers all these benefits while ensuring no task-specific accuracy is lost [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
 
 This is how you select the precision in Fabric:
 
@@ -49,7 +49,7 @@ The same values can also be set through the :doc:`command line interface <launch
 .. note::
 
     In some cases, it is essential to remain in FP32 for numerical stability, so keep this in mind when using mixed precision.
-    For example, when running scatter operations during the forward (such as torchpoint3d), computation must remain in FP32.
+    For example, when running scatter operations during the forward (such as torchpoint3d), the computation must remain in FP32.
 
 
 ----
@@ -87,9 +87,9 @@ This is how you enable FP16 in Fabric:
 BFloat16 Mixed Precision
 ************************
 
-BFloat16 Mixed precision is similar to FP16 mixed precision, however, it maintains more of the "dynamic range" that FP32 offers.
-This means it is able to improve numerical stability than FP16 mixed precision.
-For more information, see `this TPU performance blogpost <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`_.
+BFloat16 Mixed precision is similar to FP16 mixed precision. However, it maintains more of the "dynamic range" that FP32 offers.
+This means it can improve numerical stability than FP16 mixed precision.
+For more information, see `this TPU performance blog post <https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus>`_.
 
 .. code-block::
 
@@ -103,7 +103,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 .. note::
 
     BFloat16 is also experimental and may not provide significant speedups or memory improvements, offering better numerical stability.
-    Do note for GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
+    For GPUs, the most significant benefits require `Ampere <https://en.wikipedia.org/wiki/Ampere_(microarchitecture)>`_ based GPUs, such as A100s or 3090s.
 
 
 ----
@@ -135,6 +135,6 @@ If you want to enable operations in lower bit-precision **outside** your model's
 
 .. code-block::
 
-    # Precision now gets handled also in this part of the code:
+    # Precision now gets also handled in this part of the code:
     with fabric.autocast():
         loss = loss_function(output, target)
