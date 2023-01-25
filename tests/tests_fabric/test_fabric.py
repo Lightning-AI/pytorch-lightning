@@ -14,7 +14,7 @@
 import os
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, call, MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
@@ -835,3 +835,61 @@ def test_save_wrapped_objects(setup, tmp_path):
     expected = {"model": unwrapped_model, "optimizer": unwrapped_optimizer, "anything": anything}
     fabric.save(tmp_path, state)
     save_checkpoint_mock.assert_called_with(state=expected, path=tmp_path)
+
+
+def test_barrier():
+    """Test that `Fabric.barrier()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.barrier("test")
+    fabric._strategy.barrier.assert_called_once_with(name="test")
+
+
+def test_broadcast():
+    """Test that `Fabric.broadcast()` calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock()
+    fabric.broadcast(torch.tensor(1), src=2)
+    fabric._strategy.broadcast.assert_called_once_with(torch.tensor(1), src=2)
+
+
+def test_all_gather():
+    """Test that `Fabric.all_gather()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, sync_grads=False)
+
+    # single tensor
+    fabric.all_gather(torch.tensor(1))
+    fabric._strategy.all_gather.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_gather([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_gather({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_gather.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
+
+
+def test_all_reduce():
+    """Test that `Fabric.all_reduce()` applies itself to collections and calls into the strategy."""
+    fabric = Fabric()
+    fabric._strategy = Mock(root_device=torch.device("cpu"))
+    defaults = dict(group=None, reduce_op="mean")
+
+    # single tensor
+    fabric.all_reduce(torch.tensor(1))
+    fabric._strategy.all_reduce.assert_called_once_with(torch.tensor(1), **defaults)
+    fabric._strategy.reset_mock()
+
+    # list
+    fabric.all_reduce([torch.tensor(2), torch.tensor(3), "string"])
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(2), **defaults), call(torch.tensor(3), **defaults)])
+    fabric._strategy.reset_mock()
+
+    # dict
+    fabric.all_reduce({"a": torch.tensor(4), "b": [torch.tensor(5)], "c": "string"})
+    fabric._strategy.all_reduce.assert_has_calls([call(torch.tensor(4), **defaults), call(torch.tensor(5), **defaults)])
