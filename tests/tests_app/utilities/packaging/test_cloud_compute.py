@@ -65,3 +65,18 @@ def test_cloud_compute_clone():
             assert c1_dict[k] != c2_dict[k]
         else:
             assert c1_dict[k] == c2_dict[k]
+
+
+def test_interruptible(monkeypatch):
+    """Test interruptible can be enabled with env variables and for GPU only."""
+    with pytest.raises(ValueError, match="isn't supported yet"):
+        CloudCompute("gpu", interruptible=True)
+
+    monkeypatch.setenv("LIGHTNING_INTERRUPTIBLE_WORKS", "1")
+    with pytest.raises(ValueError, match="supported only with GPU"):
+        CloudCompute("cpu", interruptible=True)
+
+    cloud_compute = CloudCompute("gpu", interruptible=True)
+    assert hasattr(cloud_compute, "interruptible")
+    # TODO: To be removed once the platform is updated.
+    assert hasattr(cloud_compute, "preemptible")

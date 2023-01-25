@@ -602,9 +602,7 @@ def _handle_is_headless(app: "LightningApp"):
             break
 
     if not current_lightningapp_instance:
-        raise RuntimeError(
-            "App was not found. Please open an issue at https://github.com/lightning-AI/lightning/issues."
-        )
+        return
 
     if any(
         [
