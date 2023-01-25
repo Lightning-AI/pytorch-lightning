@@ -28,14 +28,6 @@ Learn to scale up your models and enable collaborative model development at acad
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 8: Train in the background on the cloud
-   :description: Learn how to run models on the cloud in the background.
-   :button_link: intermediate_level_8.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
    :header: Level 9: Modularize your projects
    :description: Create DataModules to enable dataset reusability.
    :col_css: col-md-6
