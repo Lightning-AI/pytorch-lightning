@@ -17,8 +17,9 @@ import logging
 import os
 import platform
 from contextlib import contextmanager
+from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from lightning_utilities.core.imports import RequirementCache
@@ -31,7 +32,7 @@ from lightning_fabric.plugins.precision import Precision
 from lightning_fabric.strategies.ddp import DDPStrategy
 from lightning_fabric.strategies.strategy import _Sharded
 from lightning_fabric.utilities.distributed import log
-from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only
+from lightning_fabric.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from lightning_fabric.utilities.seed import reset_seed
 from lightning_fabric.utilities.types import _PATH
 
@@ -365,24 +366,124 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
     def save_checkpoint(
         self, path: _PATH, state: Dict[str, Union[Module, Optimizer, Any]], storage_options: Optional[Any] = None
     ) -> None:
-        raise NotImplementedError
+        """Save model, optimizer, and other state in a checkpoint directory.
+
+        Args:
+            path: A path to where the files should be saved
+            state: A dictionary with contents to be saved. If the dict contains modules or optimizers, their
+                state-dict will be retrieved and converted automatically.
+            storage_options: Unused by this strategy, since it doesn't use a ``CheckpointIO`` plugin.
+
+        Raises:
+            TypeError:
+                If the unused ``storage_options`` gets passed.
+            ValueError:
+                When no :class:`deepspeed.DeepSpeedEngine` objects were found in the state, or when multiple
+                :class:`deepspeed.DeepSpeedEngine` objects were found.
+        """
+        if storage_options is not None:
+            raise TypeError(
+                "`DeepSpeedStrategy.save_checkpoint(..., storage_options=...)` is not supported because"
+                " `DeepSpeedStrategy` does not use the `CheckpointIO`."
+            )
+
+        engines = _get_deepspeed_engines_from_state(state)
+        if len(engines) == 0:
+            raise ValueError(
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `save_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before saving the checkpoint."
+            )
+        elif len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving checkpoints with DeepSpeed is"
+                " currently limited to a single model per checkpoint. To save multiple models, call the"
+                " save method for each model separately with a different path."
+            )
+        engine = engines[0]
+
+        # broadcast the path from rank 0 to ensure all the states are saved in a common path
+        path = self.broadcast(path)
+
+        # split the checkpoint into two parts:
+        # 1) the deepspeed engine encapsulating both the model and optionally the optimizer(s)
+        # 2) the rest of the user's state, which in deepspeed is called `client state`
+        excluded_objects = (engine, engine.optimizer) if engine.optimizer is not None else (engine,)
+        state = {k: v for k, v in state.items() if v not in excluded_objects}
+        _validate_state_keys(state)
+        # there might be other stateful objects unrelated to the deepspeed engine - convert them to a state_dict
+        state = self._convert_stateful_objects_in_state(state)
+        # use deepspeed's internal checkpointing function to handle partitioned weights across processes
+        engine.save_checkpoint(path, client_state=state, tag="checkpoint")
 
     def load_checkpoint(
         self, path: _PATH, state: Optional[Dict[str, Union[Module, Optimizer, Any]]] = None
     ) -> Dict[str, Any]:
-        raise NotImplementedError
+        """Load the contents from a checkpoint and restore the state of the given objects.
 
-    def load_optimizer_state_dict(
-        self, optimizers: Union[Optimizer, Iterable[Optimizer]], checkpoint: Mapping[str, Any]
-    ) -> None:
-        # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
-        pass
+        Args:
+            path: A path to where the file is located
+            state: A dictionary of objects whose state will be restored in-place from the checkpoint path.
+                This should contain exactly one model, and the model must already be set up by DeepSpeed.
 
-    def load_module_state_dict(self, module: Module, checkpoint: Mapping[str, Any]) -> None:
-        # override to do nothing, deepspeed engine already loaded the weights in `load_checkpoint()`
+        Returns:
+            Dictionary with the state inside DeepSpeed's engine
+
+        Raises:
+            ValueError:
+                If no state is provided, when no :class:`deepspeed.DeepSpeedEngine` objects were found in the
+                state, or when multiple :class:`deepspeed.DeepSpeedEngine` objects were found.
+            RuntimeError:
+                If DeepSpeed was unable to load the checkpoint due to missing files or because the checkpoint is
+                not in the expected DeepSpeed format.
+        """
         if self.load_full_weights and self.zero_stage_3:
-            self.module_to_device(module)
-            self._restore_zero_state(module, checkpoint)
+            # This code path to enables loading a checkpoint from a non-deepspeed checkpoint or from
+            # a consolidated checkpoint
+            path = self.broadcast(path)
+            return super().load_checkpoint(path=path, state=state)
+
+        if not state:
+            raise ValueError(
+                f"Got DeepSpeedStrategy.load_checkpoint(..., state={state!r}) but a state with at least "
+                f" a model instance to reload is required. Pass it in like so:"
+                " DeepSpeedStrategy.load_checkpoint(..., state={'model': model, ...})"
+            )
+
+        engines = _get_deepspeed_engines_from_state(state)
+        if len(engines) == 0:
+            raise ValueError(
+                "Could not find a DeepSpeed model in the provided checkpoint state. Please provide the model as"
+                " part of the state like so: `load_checkpoint(..., state={'model': model, ...})`. Make sure"
+                " you set up the model (and optimizers if any) through the strategy before loading the checkpoint."
+            )
+        elif len(engines) > 1:
+            raise ValueError(
+                "Found multiple DeepSpeed engine modules in the given state. Saving and loading checkpoints"
+                " with DeepSpeed is currently limited to a single model per checkpoint. To load multiple model"
+                " states, call the load method for each model checkpoint separately."
+            )
+        engine = engines[0]
+        optimzer_state_requested = bool(len([item for item in state.values() if isinstance(item, Optimizer)]))
+
+        torch.cuda.empty_cache()
+        _, client_state = engine.load_checkpoint(
+            path,
+            tag="checkpoint",
+            load_optimizer_states=optimzer_state_requested,
+            load_lr_scheduler_states=False,
+            load_module_strict=True,  # TODO(fabric): make strict loading configurable
+        )
+        if client_state is None:
+            raise RuntimeError(
+                "DeepSpeed was unable to load the checkpoint. Ensure you passed in a DeepSpeed compatible checkpoint"
+                " or a single checkpoint file by setting `DeepSpeedStrategy(..., load_full_weights=True)`."
+            )
+        for k, v in client_state.copy().items():
+            if k not in state:
+                continue
+            state[k] = client_state.pop(k)
+        return client_state
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -645,3 +746,38 @@ class DeepSpeedStrategy(DDPStrategy, _Sharded):
                 config = json.load(f)
         assert isinstance(config, dict) or config is None
         return config
+
+
+def _get_deepspeed_engines_from_state(state: Dict[str, Any]) -> List["deepspeed.DeepSpeedEngine"]:
+    from deepspeed import DeepSpeedEngine
+
+    modules = chain(*(module.modules() for module in state.values() if isinstance(module, Module)))
+    engines = [engine for engine in modules if isinstance(engine, DeepSpeedEngine)]
+    return engines
+
+
+def _validate_state_keys(state: Dict[str, Any]) -> None:
+    # DeepSpeed merges the client state into its internal engine state when saving, but it does not check for
+    # colliding keys from the user. We explicitly check it here:
+    deepspeed_internal_keys = {
+        "module",
+        "buffer_names",
+        "optimizer",
+        "param_shapes",
+        "lr_scheduler",
+        "sparse_tensor_module_names",
+        "skipped_steps",
+        "global_steps",
+        "global_samples",
+        "dp_world_size",
+        "mp_world_size",
+        "ds_config",
+        "ds_version",
+    }
+    colliding_keys = deepspeed_internal_keys.intersection(state.keys())
+    if colliding_keys:
+        rank_zero_warn(
+            "Your state has keys that collide with DeepSpeed's internal engine state. This could result in your"
+            " values being overwritten by DeepSpeed. Consider changing the name of these keys to something else: "
+            + ", ".join(colliding_keys)
+        )
