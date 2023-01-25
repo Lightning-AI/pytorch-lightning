@@ -22,7 +22,7 @@ class ServeGradio(LightningWork, abc.ABC):
 
     The result would be the following:
 
-    .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/anime_gan.gif
+    .. image:: https://pl-public-data.s3.amazonaws.com/assets_lightning/anime_gan.gif
         :alt: Animation showing how to AnimeGANv2 UI would looks like.
     """
 

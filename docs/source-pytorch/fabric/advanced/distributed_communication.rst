@@ -123,7 +123,7 @@ Since downloading should be done on rank 0 only to :ref:`avoid race conditions <
 
     if fabric.global_rank == 0:
         print("Downloading dataset. This can take a while ...")
-        download_dataset()
+        download_dataset("http://...")
 
     # All other processes wait here until rank 0 is done with downloading:
     fabric.barrier()
@@ -160,7 +160,7 @@ The broadcast operation sends a tensor of data from one process to all other pro
     result = fabric.broadcast(tensor, src=3)
 
 
-A concrete example:
+Full example:
 
 .. code-block:: python
 
@@ -201,9 +201,12 @@ As opposed to the :ref:`broadcast <broadcast collective>`, every process gets th
     with torch.no_grad():
         result = fabric.all_gather(tensor)
 
+    # Also works with a (nested) collection of tensors (dict, list, tuple):
+    collection = {"loss": torch.tensor(...), "data": ...}
+    gathered_collection = fabric.all_gather(collection)
 
 
-A concrete example:
+Full example:
 
 .. code-block:: python
 
@@ -211,7 +214,7 @@ A concrete example:
     fabric.launch()
 
     # Data is different in each process
-    result = torch.tensor(10 * fabric.global_rank)
+    data = torch.tensor(10 * fabric.global_rank)
 
     # Every process gathers the tensors from all other processes
     # and stacks the result:
@@ -230,9 +233,39 @@ Reduce
    :alt: The All-reduce collective operation
    :width: 100%
 
+
+The reduction is an operation that takes multiple values (tensors) as input and returns a single value.
+An example for a reduction is *summation*, e.g., ``torch.sum()``.
+The :meth:`~lightning_fabric.fabric.Fabric.all_reduce` operation allows you to apply a reduction across multiple processes:
+
 .. code-block:: python
 
     fabric = Fabric(...)
 
-    # Coming soon
-    result = fabric.all_reduce(tensor)
+    # Compute the mean of a tensor across processes:
+    result = fabric.all_reduce(tensor, reduce_op="mean")
+
+    # Or the sum:
+    result = fabric.all_reduce(tensor, reduce_op="sum")
+
+    # Also works with a (nested) collection of tensors (dict, list, tuple):
+    collection = {"loss": torch.tensor(...), "data": ...}
+    reduced_collection = fabric.all_reduce(collection)
+
+The support of options for ``reduce_op`` depends on the strategy being used, but all strategies support *sum* and *mean*.
+
+Full example:
+
+.. code-block:: python
+
+    fabric = Fabric(devices=4, accelerator="cpu")
+    fabric.launch()
+
+    # Data is different in each process
+    data = torch.tensor(10 * fabric.global_rank)
+
+    # Sum the tensors from every process
+    result = fabric.all_reduce(data, reduce_op="sum")
+
+    # sum(0 + 10 + 20 + 30) = tensor(60)
+    print("Result of all-reduce:", result)
