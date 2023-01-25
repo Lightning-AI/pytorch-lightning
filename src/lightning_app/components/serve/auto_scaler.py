@@ -208,9 +208,8 @@ class _LoadBalancer(LightningWork):
                 #  we don't send more requests to it
                 self._server_status[server_url] = True
 
-    def _find_free_server(self) -> Optional[str]:
-        existing = set(self._server_status.keys())
-        for server in existing:
+    def _next_server_url(self) -> Optional[str]:
+        for server in self._iter:
             status = self._server_status.get(server, None)
             if status is None:
                 logger.error("Server is not found in the status list. This should not happen.")
@@ -235,7 +234,7 @@ class _LoadBalancer(LightningWork):
             else:
                 is_batch_timeout = False
 
-            server_url = self._find_free_server()
+            server_url = self._next_server_url()
             # setting the server status to be busy! This will be reset by
             # the send_batch function after the server responds
             if server_url is None:
