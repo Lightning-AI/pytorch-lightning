@@ -26,7 +26,7 @@ from requests.auth import HTTPBasicAuth
 from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
-from lightning.store.authentication import _LIGHTNING_CLOUD_URL
+from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
 
 logging.basicConfig(level=logging.INFO)
 
@@ -170,7 +170,7 @@ def _upload_metadata(
     if project_id:
         json_field["project_id"] = project_id
     response = requests.post(
-        f"{_LIGHTNING_CLOUD_URL}/v1/models",
+        LIGHTNING_MODELS_PUBLIC_REGISTRY,
         auth=HTTPBasicAuth(username, api_key),
         json=json_field,
     )

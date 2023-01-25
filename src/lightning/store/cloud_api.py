@@ -24,7 +24,8 @@ import torch
 
 import lightning as L
 import pytorch_lightning as PL
-from lightning.store.authentication import _LIGHTNING_CLOUD_URL, authenticate
+from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
+from lightning.store.authentication import authenticate
 from lightning.store.save import (
     _download_and_extract_data_to,
     _LIGHTNING_STORAGE_DIR,
@@ -269,7 +270,7 @@ def download_from_lightning_cloud(
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
-    response = requests.get(f"{_LIGHTNING_CLOUD_URL}/v1/models?name={username}/{model_name}&version={version}")
+    response = requests.get(f"{LIGHTNING_MODELS_PUBLIC_REGISTRY}?name={username}/{model_name}&version={version}")
     if response.status_code != 200:
         raise ConnectionRefusedError(
             f"Unable to download the model with name {name} and version {version}."
