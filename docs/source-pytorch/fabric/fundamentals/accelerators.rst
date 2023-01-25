@@ -26,7 +26,7 @@ By default, Fabric recognizes the accelerator(s) on your system
     fabric = Fabric()
 
 This is the most flexible option and makes your code run on most systems.
-You can also specifically set which accelerator to use:
+You can also explicitly set which accelerator to use:
 
 .. code-block:: python
 
@@ -59,8 +59,8 @@ For running on multiple devices in parallel, also known as "distributed", read o
 Access the Device
 *****************
 
-You can access the device at any time through ``fabric.device``.
-This let's you replace boilerplate code like this:
+You can access the device anytime through ``fabric.device``.
+This lets you replace boilerplate code like this:
 
 .. code-block:: diff
 
