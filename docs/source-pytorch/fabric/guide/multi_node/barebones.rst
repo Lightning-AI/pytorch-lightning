@@ -74,11 +74,11 @@ Log in to the **first node** and run this command:
     :emphasize-lines: 2,3
 
     lightning run model \
-        --node_rank=0  \
-        --main_address=10.10.10.16 \
+        --node-rank=0  \
+        --main-address=10.10.10.16 \
         --accelerator=cuda \
         --devices=8 \
-        --num_nodes=2 \
+        --num-nodes=2 \
         train.py
 
 Log in to the **second node** and run this command:
@@ -87,14 +87,14 @@ Log in to the **second node** and run this command:
     :emphasize-lines: 2,3
 
     lightning run model \
-        --node_rank=1  \
-        --main_address=10.10.10.16 \
+        --node-rank=1  \
+        --main-address=10.10.10.16 \
         --accelerator=cuda \
         --devices=8 \
-        --num_nodes=2 \
+        --num-nodes=2 \
         train.py
 
-Note: The only difference between the two commands is the ``--node_rank`` setting, which identifies each node.
+Note: The only difference between the two commands is the ``--node-rank`` setting, which identifies each node.
 After executing these commands, you should immediately see an output like this:
 
 .. code-block::
