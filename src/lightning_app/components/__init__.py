@@ -1,8 +1,8 @@
 from lightning_app.components.database.client import DatabaseClient
 from lightning_app.components.database.server import Database
 from lightning_app.components.multi_node import (
-    LightningTrainerMultiNode,
     FabricMultiNode,
+    LightningTrainerMultiNode,
     MultiNode,
     PyTorchSpawnMultiNode,
 )
