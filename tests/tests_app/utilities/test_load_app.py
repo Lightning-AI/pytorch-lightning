@@ -47,6 +47,7 @@ def test_extract_metadata_from_component():
                 "shm_size": 0,
                 "mounts": None,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         },
         {
@@ -70,6 +71,7 @@ def test_extract_metadata_from_component():
                 "shm_size": 0,
                 "mounts": None,
                 "_internal_id": "default",
+                "interruptible": False,
             },
         },
         {"affiliation": ["root", "flow_b"], "cls_name": "FlowB", "module": "__main__", "docstring": "FlowB."},
@@ -88,6 +90,7 @@ def test_extract_metadata_from_component():
                 "shm_size": 1024,
                 "mounts": None,
                 "_internal_id": ANY,
+                "interruptible": False,
             },
         },
     ]

@@ -116,7 +116,7 @@ precision
     ColossalAIPrecisionPlugin
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
-    FullyShardedNativeNativeMixedPrecisionPlugin
+    FSDPMixedPrecisionPlugin
     HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
@@ -170,7 +170,7 @@ others
     :template: classtemplate.rst
 
     LayerSync
-    NativeSyncBatchNorm
+    TorchSyncBatchNorm
 
 profiler
 --------
@@ -213,11 +213,11 @@ strategies
 
     BaguaStrategy
     ColossalAIStrategy
-    DDPFullyShardedNativeStrategy
     DDPSpawnStrategy
     DDPStrategy
     DataParallelStrategy
     DeepSpeedStrategy
+    FSDPStrategy
     HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
