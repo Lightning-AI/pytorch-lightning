@@ -30,6 +30,7 @@ from lightning_app.cli.lightning_cli_create import create
 from lightning_app.cli.lightning_cli_delete import delete
 from lightning_app.cli.lightning_cli_list import get_list
 from lightning_app.core.constants import DEBUG, ENABLE_APP_COMMENT_COMMAND_EXECUTION, get_lightning_cloud_url
+from lightning_app.runners.cloud import CloudRuntime
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_commands import run_app_commands
@@ -379,6 +380,27 @@ if RequirementCache("lightning-fabric>=1.9.0.dev0") or RequirementCache("lightni
     from lightning_fabric.cli import _run_model
 
     run.add_command(_run_model)
+
+
+@_main.command("open", hidden=True)
+@click.argument("path", type=str, default=".")
+@click.option(
+    "--cluster-id",
+    type=str,
+    default=None,
+    help="Open on a specific Lightning AI BYOC compute cluster",
+)
+@click.option("--name", help="The name to use for the CloudSpace", default="", type=str)
+def open(path: str, cluster_id: str, name: str) -> None:
+    """Open files or folders from your machine in a Lightning CloudSpace."""
+
+    if not os.path.exists(path):
+        click.echo(f"The provided path `{path}` doesn't exist.")
+        sys.exit(1)
+
+    runtime = CloudRuntime(entrypoint=Path(path))
+    runtime.open(name, cluster_id)
+
 
 _main.add_command(get_list)
 _main.add_command(delete)
