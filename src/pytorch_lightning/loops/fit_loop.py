@@ -22,7 +22,7 @@ from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sample
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
@@ -322,8 +322,8 @@ class _FitLoop(_Loop):
 
         self.epoch_progress.increment_completed()
 
-        # if fault tolerant is enabled and process has been notified, exit.
-        self.trainer._exit_gracefully_on_signal()
+        if self.trainer.received_sigterm:
+            raise ExitGracefullyException
 
     def on_run_end(self) -> None:
         """Calls the ``on_train_end`` hook."""
