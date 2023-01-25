@@ -7,7 +7,7 @@ Run on a SLURM Managed Cluster
 **Audience**: Users who need to run on an academic or enterprise private cluster.
 
 Lightning automates the details behind training on a SLURM-powered cluster.
-In contrast to the :doc:`general purpose cluster <./barebones>`, the user does not start the jobs manually on each node but instead submits it to SLURM, which schedules the resources and time for which the job is allowed to run.
+Unlike the :doc:`general-purpose cluster <./barebones>`, with SLURM the users don't need to start the jobs manually on each node but instead submit it to SLURM, which schedules the resources and time for which the job is allowed to run.
 
 Don't have access to an enterprise cluster? Try the :doc:`Lightning cloud <./cloud>`.
 

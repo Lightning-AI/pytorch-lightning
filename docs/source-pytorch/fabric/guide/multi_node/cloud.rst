@@ -58,7 +58,8 @@ Launch multi-node training in the cloud
             model, optimizer = fabric.setup(model, optimizer)
             ...
 
-**Step 2:** Configure the number of nodes, the number of GPUs per node, and the type of GPU:
+**Step 2:** Init a :class:`~lightning_app.core.app.LightningApp` with the ``LiteMultiNode`` component.
+Configure the number of nodes, the number of GPUs per node, and the type of GPU:
 
 .. code-block:: python
     :emphasize-lines: 5,7
