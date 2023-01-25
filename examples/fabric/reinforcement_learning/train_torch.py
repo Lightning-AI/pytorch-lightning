@@ -8,7 +8,7 @@ Requirements:
 - torch
 - tensorboard
 Run it with:
-    lightning run model --accelerator=cpu --strategy=ddp --devices=2 train_fabric.py
+    torchrun --nproc_per_node=2 --standalone train_torch.py
 """
 
 import argparse
