@@ -121,7 +121,7 @@ You are seeing a message like this in the logs, but nothing happens:
 
 The most likely reasons and how to fix it:
 
-- Wrong network interface: Some servers have multiple network interfaces.
+- **Wrong network interface:** Some servers have multiple network interfaces.
   There is usually only one that can send and receive traffic from the network of the other nodes, but sometimes it is not set as the default.
   In this case, you need to set it manually:
 
