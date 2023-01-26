@@ -9,6 +9,7 @@ on:
     types: [opened, reopened, ready_for_review, synchronize]
     paths:
       - ".github/workflows/ci-flagship-apps.yml"
+      - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"
   workflow_dispatch: {}
     # TODO: inputs specifying lightning branch and switch prod/staging
@@ -31,9 +32,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {app: "flashy", repo: "Lightning-AI/LAI-Flashy-App"}
-          - {app: "muse", repo: "Lightning-AI/stable-diffusion-deploy"}
-          - {app: "jupyter", repo: "Lightning-AI/LAI-Jupyter-Component"}
+          - {app: "flashy", repo: "Lightning-Universe/Flashy-app"}
+          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy"}
+          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component"}
 
           # TODO:
           # - Training Studio
