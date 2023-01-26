@@ -1,14 +1,17 @@
 """
 Proximal Policy Optimization (PPO) - Accelerated with Lightning Fabric
 
+Author: Federico Belotti @belerico
 Adapted from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py
 Based on the paper: https://arxiv.org/abs/1707.06347
 
 Requirements:
-- lightning>=1.9.0
-- gymnasium==0.26.3
-- torch
+- gymnasium
+- moviepy
+- lightning
+- torchmetrics
 - tensorboard
+
 
 Run it with:
     torchrun --nproc_per_node=2 --standalone train_torch.py
