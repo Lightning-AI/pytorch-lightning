@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import os
 import pickle
@@ -390,6 +404,12 @@ class LightningApp:
             # When no deltas are received from the Rest API or work queues,
             # we need to check if the flow modified the state and populate changes.
             deep_diff = DeepDiff(last_state, state, verbose_level=2)
+
+            if "unprocessed" in deep_diff:
+                # pop the unprocessed key.
+                unprocessed = deep_diff.pop("unprocessed")
+                logger.warn(f"It seems delta differentiation resulted in {unprocessed}. Open an issue on Github.")
+
             if deep_diff:
                 # TODO: Resolve changes with ``CacheMissException``.
                 # new_state = self.populate_changes(self.last_state, self.state)

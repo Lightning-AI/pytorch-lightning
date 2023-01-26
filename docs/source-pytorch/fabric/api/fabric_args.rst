@@ -18,7 +18,7 @@ Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
     # Running with GPU Accelerator using 2 GPUs
     fabric = Fabric(devices=2, accelerator="gpu")
 
-    # Running with TPU Accelerator using 8 tpu cores
+    # Running with TPU Accelerator using 8 TPU cores
     fabric = Fabric(devices=8, accelerator="tpu")
 
     # Running with GPU Accelerator using the DistributedDataParallel strategy
@@ -32,6 +32,9 @@ The ``"auto"`` option recognizes the machine you are on and selects the availabl
     fabric = Fabric(devices=2, accelerator="auto")
 
 
+See also: :doc:`../fundamentals/accelerators`
+
+
 strategy
 ========
 
@@ -42,7 +45,7 @@ Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"xla"``, ``"
     # Running with the DistributedDataParallel strategy on 4 GPUs
     fabric = Fabric(strategy="ddp", accelerator="gpu", devices=4)
 
-    # Running with the DDP Spawn strategy using 4 cpu processes
+    # Running with the DDP Spawn strategy using 4 CPU processes
     fabric = Fabric(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
 
@@ -53,6 +56,8 @@ Additionally, you can pass in your custom strategy by configuring additional par
     from lightning.fabric.strategies import DeepSpeedStrategy
 
     fabric = Fabric(strategy=DeepSpeedStrategy(stage=2), accelerator="gpu", devices=2)
+
+See also: :doc:`../fundamentals/launch`
 
 
 devices
@@ -83,12 +88,14 @@ Configure the devices to run on. Can be of type:
     fabric = Fabric(devices=-1, accelerator="gpu")
     fabric = Fabric(devices="-1", accelerator="gpu")  # equivalent
 
+See also: :doc:`../fundamentals/launch`
+
 
 num_nodes
 =========
 
 
-Number of cluster nodes for distributed operation.
+The number of cluster nodes for distributed operation.
 
 .. code-block:: python
 
@@ -99,14 +106,14 @@ Number of cluster nodes for distributed operation.
     fabric = Fabric(num_nodes=8)
 
 
-Learn more about distributed multi-node training on clusters :doc:`here <../../clouds/cluster>`.
+Learn more about :ref:`distributed multi-node training on clusters <Fabric Cluster>`.
 
 
 precision
 =========
 
-Fabric supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, is the combined use of 32 and 16-bit floating points to reduce the memory footprint during model training.
+Fabric supports double precision (64), full precision (32), or half-precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
+Half precision, or mixed precision, combines 32 and 16-bit floating points to reduce the memory footprint during model training.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
 .. code-block:: python
@@ -123,11 +130,13 @@ This can result in improved performance, achieving significant speedups on moder
     # 64-bit (double) precision
     fabric = Fabric(precision=64, devices=1)
 
+See also: :doc:`../fundamentals/precision`
+
 
 plugins
 =======
 
-:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
+:ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters, etc. For example:
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~lightning.fabric.plugins.environments.ClusterEnvironment`.
 
@@ -155,7 +164,7 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 callbacks
 =========
 
-A callback class is a collection of methods that the training loop can call at a specific point in time, for example, at the end of an epoch.
+A callback class is a collection of methods that the training loop can call at a specific time, for example, at the end of an epoch.
 Add callbacks to Fabric to inject logic into your training loop from an external callback class.
 
 .. code-block:: python
@@ -164,7 +173,7 @@ Add callbacks to Fabric to inject logic into your training loop from an external
         def on_train_epoch_end(self, results):
             ...
 
-You can then register this callback, or multiple ones directly in Fabric:
+You can then register this callback or multiple ones directly in Fabric:
 
 .. code-block:: python
 
@@ -178,15 +187,17 @@ Then, in your training loop, you can call a hook by its name. Any callback objec
     # Call any hook by name
     fabric.call("on_train_epoch_end", results={...})
 
+See also: :doc:`../guide/callbacks`
+
 
 loggers
 =======
 
-Attach one or several loggers/experiment trackers to Fabric for convenient logging of metrics.
+Attach one or several loggers/experiment trackers to Fabric for convenient metrics logging.
 
 .. code-block:: python
 
-    # Default used by Fabric, no loggers are active
+    # Default used by Fabric; no loggers are active
     fabric = Fabric(loggers=[])
 
     # Log to a single logger
@@ -201,3 +212,6 @@ Anywhere in your training loop, you can log metrics to all loggers at once:
 
     fabric.log("loss", loss)
     fabric.log_dict({"loss": loss, "accuracy": acc})
+
+
+See also: :doc:`../guide/logging`

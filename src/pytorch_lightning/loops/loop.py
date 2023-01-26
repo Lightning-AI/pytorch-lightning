@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
-class Loop:
+class _Loop:
     """Basic Loops interface."""
 
     def __init__(self) -> None:
@@ -39,7 +39,7 @@ class Loop:
         """Connects this loop's trainer and its children."""
         self._trainer = trainer
         for v in self.__dict__.values():
-            if isinstance(v, Loop):
+            if isinstance(v, _Loop):
                 v.trainer = trainer
 
     @property
@@ -52,7 +52,7 @@ class Loop:
         """Connects this loop's restarting value and its children."""
         self._restarting = restarting
         for loop in vars(self).values():
-            if isinstance(loop, Loop):
+            if isinstance(loop, _Loop):
                 loop.restarting = restarting
 
     def on_save_checkpoint(self) -> Dict:
@@ -85,7 +85,7 @@ class Loop:
             key = prefix + k
             if isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
-            elif isinstance(v, Loop):
+            elif isinstance(v, _Loop):
                 v.state_dict(destination, key + ".")
             elif ft_enabled and isinstance(v, _ResultCollection):
                 # sync / unsync metrics
@@ -104,7 +104,7 @@ class Loop:
         """Loads the state of this loop and all its children."""
         self._load_from_state_dict(state_dict.copy(), prefix, metrics)
         for k, v in self.__dict__.items():
-            if isinstance(v, Loop):
+            if isinstance(v, _Loop):
                 v.load_state_dict(state_dict.copy(), prefix + k + ".")
         self.restarting = True
 

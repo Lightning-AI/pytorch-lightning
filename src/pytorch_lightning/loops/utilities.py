@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
@@ -182,11 +182,11 @@ def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:
     return maximum != -1 and current >= maximum
 
 
-def _reset_progress(loop: Loop) -> None:
+def _reset_progress(loop: _Loop) -> None:
     for v in vars(loop).values():
         if isinstance(v, BaseProgress):
             v.reset()
-        elif isinstance(v, Loop):
+        elif isinstance(v, _Loop):
             _reset_progress(v)
 
 

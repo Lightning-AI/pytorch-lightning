@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ from lightning_fabric.plugins.precision.fsdp import FSDPPrecision
 from lightning_fabric.plugins.precision.precision import _PRECISION_INPUT, _PRECISION_INPUT_INT, _PRECISION_INPUT_STR
 from lightning_fabric.strategies import (
     DeepSpeedStrategy,
+    ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
@@ -199,6 +200,20 @@ class _Connector:
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
                 f" Available names are: {', '.join(self._registered_accelerators)}."
+            )
+
+        # MPS accelerator is incompatible with DDP family of strategies. It supports single-device operation only.
+        is_ddp_str = isinstance(strategy, str) and "ddp" in strategy
+        is_dp_str = isinstance(strategy, str) and "dp" in strategy
+        is_deepspeed_str = isinstance(strategy, str) and "deepspeed" in strategy
+        is_parallel_strategy = isinstance(strategy, ParallelStrategy) or is_ddp_str or is_dp_str or is_deepspeed_str
+        is_mps_accelerator = MPSAccelerator.is_available() and (
+            accelerator in ("mps", "auto", "gpu", None) or isinstance(accelerator, MPSAccelerator)
+        )
+        if is_mps_accelerator and is_parallel_strategy:
+            raise ValueError(
+                f"You set `strategy={strategy}` but strategies from the DDP family are not supported on the"
+                f" MPS accelerator. Either explicitly set `accelerator='cpu'` or change the strategy."
             )
 
         self._accelerator_flag = accelerator
@@ -453,7 +468,7 @@ class _Connector:
 
         if self._precision_input == "16" and self._accelerator_flag == "cpu":
             rank_zero_warn(
-                "You passed `Fabric(accelerator='cpu', precision=16)` but native AMP is not supported on CPU."
+                "You passed `Fabric(accelerator='cpu', precision=16)` but AMP is not supported on CPU."
                 " Using `precision='bf16'` instead."
             )
             self._precision_input = "bf16"

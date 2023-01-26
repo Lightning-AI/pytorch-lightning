@@ -16,15 +16,15 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from lightning_fabric.plugins.precision.native_amp import MixedPrecision
+from lightning_fabric.plugins.precision.amp import MixedPrecision
 
 
-def test_native_amp_precision_default_scaler():
+def test_amp_precision_default_scaler():
     precision = MixedPrecision(precision=16, device=Mock())
     assert isinstance(precision.scaler, torch.cuda.amp.GradScaler)
 
 
-def test_native_amp_precision_scaler_with_bf16():
+def test_amp_precision_scaler_with_bf16():
     with pytest.raises(ValueError, match="`precision='bf16'` does not use a scaler"):
         MixedPrecision(precision="bf16", device=Mock(), scaler=Mock())
 
@@ -32,7 +32,7 @@ def test_native_amp_precision_scaler_with_bf16():
     assert precision.scaler is None
 
 
-def test_native_amp_precision_forward_context():
+def test_amp_precision_forward_context():
     """Test to ensure that the context manager correctly is set to bfloat16 on CPU and CUDA."""
     precision = MixedPrecision(precision=16, device="cuda")
     assert precision.device == "cuda"
@@ -55,7 +55,7 @@ def test_native_amp_precision_forward_context():
     assert str(context_manager.fast_dtype) == str(torch.bfloat16)
 
 
-def test_native_amp_precision_backward():
+def test_amp_precision_backward():
     precision = MixedPrecision(precision="mixed", device="cuda")
     precision.scaler = Mock()
     precision.scaler.scale = Mock(side_effect=(lambda x: x))
@@ -66,7 +66,7 @@ def test_native_amp_precision_backward():
     tensor.backward.assert_called_once_with("positional-arg", keyword="arg")
 
 
-def test_native_amp_precision_optimizer_step_with_scaler():
+def test_amp_precision_optimizer_step_with_scaler():
     precision = MixedPrecision(precision="mixed", device="cuda")
     precision.scaler = Mock()
     optimizer = Mock()
@@ -76,7 +76,7 @@ def test_native_amp_precision_optimizer_step_with_scaler():
     precision.scaler.update.assert_called_once()
 
 
-def test_native_amp_precision_optimizer_step_without_scaler():
+def test_amp_precision_optimizer_step_without_scaler():
     precision = MixedPrecision(precision="bf16", device="cuda")
     assert precision.scaler is None
     optimizer = Mock()

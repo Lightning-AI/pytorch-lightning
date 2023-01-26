@@ -35,32 +35,3 @@ Run the below command with the appropriate variables set on each node.
 .. note::
 
     ``torch.distributed.run`` assumes that you'd like to spawn a process per GPU if GPU devices are found on the node. This can be adjusted with ``-nproc_per_node``.
-
-----
-
-********
-Get help
-********
-Setting up a cluster for distributed training is not trivial. Lightning offers lightning-grid which allows you to configure a cluster easily and run experiments via the CLI and web UI.
-
-Try it out for free today:
-
-.. raw:: html
-
-    <div class="display-card-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. displayitem::
-   :header: Train models on the cloud
-   :description: Learn to run a model in the background on a cloud machine.
-   :col_css: col-md-6
-   :button_link: cloud_training.html
-   :height: 150
-   :tag: intermediate
-
-.. raw:: html
-
-        </div>
-    </div

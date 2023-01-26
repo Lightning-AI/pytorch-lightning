@@ -97,14 +97,6 @@ Learn to scale up your models and enable collaborative model development at acad
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 8: Train in the background on the cloud
-   :description: Learn how to run models on the cloud in the background.
-   :button_link: levels/intermediate_level_8.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
    :header: Level 9: Modularize your projects
    :description: Create DataModules to enable dataset reusability.
    :col_css: col-md-6
@@ -265,14 +257,6 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :description: Integrate a custom cluster into Lightning.
    :col_css: col-md-6
    :button_link: levels/expert_level_24.html
-   :height: 150
-   :tag: expert
-
-.. displayitem::
-   :header: Level 25: Explore fault-tolerance in-depth
-   :description: Understand the details of fault-tolerance.
-   :col_css: col-md-6
-   :button_link: clouds/fault_tolerant_training_faq.html
    :height: 150
    :tag: expert
 

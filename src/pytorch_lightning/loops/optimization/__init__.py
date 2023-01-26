@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.loops.optimization.manual_loop import ManualOptimization  # noqa: F401
-from pytorch_lightning.loops.optimization.optimizer_loop import OptimizerLoop  # noqa: F401
+from pytorch_lightning.loops.optimization.manual_loop import _ManualOptimization  # noqa: F401
+from pytorch_lightning.loops.optimization.optimizer_loop import _OptimizerLoop  # noqa: F401

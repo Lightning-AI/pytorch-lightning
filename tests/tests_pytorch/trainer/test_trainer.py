@@ -51,15 +51,7 @@ from pytorch_lightning.demos.boring_classes import (
 )
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
-from pytorch_lightning.strategies import (
-    DataParallelStrategy,
-    DDPFullyShardedStrategy,
-    DDPShardedStrategy,
-    DDPSpawnShardedStrategy,
-    DDPSpawnStrategy,
-    DDPStrategy,
-    SingleDeviceStrategy,
-)
+from pytorch_lightning.strategies import DataParallelStrategy, DDPSpawnStrategy, DDPStrategy, SingleDeviceStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
@@ -2009,13 +2001,6 @@ def test_detect_anomaly_nan(tmpdir):
             1,
         ),
         (
-            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            1,
-        ),
-        (
             {"strategy": DDPSpawnStrategy(), "accelerator": "cpu", "devices": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
@@ -2039,44 +2024,9 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         (
-            {"strategy": DDPFullyShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "cuda", "devices": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
-            CUDAAccelerator,
-            2,
-        ),
-        (
             {"strategy": "ddp_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": "ddp_fully_sharded", "accelerator": "cuda", "devices": 1, "num_nodes": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
-            CUDAAccelerator,
-            1,
-        ),
-        (
-            {"strategy": "ddp_sharded", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
-            DDPShardedStrategy,
-            "ddp_sharded",
-            CUDAAccelerator,
-            2,
-        ),
-        (
-            {"strategy": "ddp_sharded_spawn", "accelerator": "cuda", "devices": 2, "num_nodes": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
             CUDAAccelerator,
             2,
         ),
@@ -2086,12 +2036,7 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     if trainer_kwargs.get("accelerator") == "cuda":
         mock_cuda_count(monkeypatch, trainer_kwargs["devices"])
 
-    strategy = trainer_kwargs.get("strategy")
-    if (isinstance(strategy, str) and "sharded" in strategy) or isinstance(strategy, (DDPShardedStrategy)):
-        with pytest.deprecated_call(match="FairScale has been deprecated in v1.9.0"):
-            trainer = Trainer(**trainer_kwargs)
-    else:
-        trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs)
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
@@ -2187,7 +2132,7 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-# TODO: replace with 1.14 when it is released
+# TODO: replace with 2.0 when it is released
 @RunIf(min_torch="1.14.0.dev20221202")
 def test_trainer_compiled_model():
     model = BoringModel()
@@ -2215,11 +2160,9 @@ def test_trainer_compiled_model():
 
     model = torch.compile(model)
 
-    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPShardedStrategy)
-
+    trainer = Trainer(fast_dev_run=True, strategy="fsdp")
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
         trainer.fit(model)
 
-    trainer = Trainer(max_epochs=1, limit_train_batches=1, limit_val_batches=1, strategy=DDPStrategy)
-
+    trainer = Trainer(fast_dev_run=True, strategy="ddp")
     trainer.fit(model)

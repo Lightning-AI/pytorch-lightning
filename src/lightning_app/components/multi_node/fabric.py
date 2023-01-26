@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import importlib
 import os
 import warnings
@@ -14,7 +28,7 @@ from lightning_app.utilities.tracer import Tracer
 
 
 @runtime_checkable
-class _LiteWorkProtocol(Protocol):
+class _FabricWorkProtocol(Protocol):
     @staticmethod
     def run() -> None:
         ...
@@ -57,11 +71,11 @@ class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
         os.environ["LOCAL_WORLD_SIZE"] = str(nprocs)
         os.environ["TORCHELASTIC_RUN_ID"] = "1"
 
-        # Used to force Lite to setup the distributed environnement.
+        # Used to force Fabric to setup the distributed environnement.
         os.environ["LT_CLI_USED"] = "1"
 
-        # Used to pass information to Lite directly.
-        def pre_fn(lite, *args, **kwargs):
+        # Used to pass information to Fabric directly.
+        def pre_fn(fabric, *args, **kwargs):
             kwargs["devices"] = nprocs
             kwargs["num_nodes"] = num_nodes
 
@@ -96,7 +110,7 @@ class _FabricRunExecutor(_PyTorchSpawnRunExecutor):
         return ret_val
 
 
-class LiteMultiNode(MultiNode):
+class FabricMultiNode(MultiNode):
     def __init__(
         self,
         work_cls: Type["LightningWork"],
@@ -105,7 +119,7 @@ class LiteMultiNode(MultiNode):
         *work_args: Any,
         **work_kwargs: Any,
     ) -> None:
-        assert issubclass(work_cls, _LiteWorkProtocol)
+        assert issubclass(work_cls, _FabricWorkProtocol)
 
         # Note: Private way to modify the work run executor
         # Probably exposed to the users in the future if needed.

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 from torch import Tensor
 
 from pytorch_lightning.core.optimizer import do_nothing_closure
-from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
@@ -65,7 +65,7 @@ class ManualResult(OutputResult):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class ManualOptimization(Loop):
+class _ManualOptimization(_Loop):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
     entirely in the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` and therefore the user is
     responsible for back-propagating gradients and making calls to the optimizers.

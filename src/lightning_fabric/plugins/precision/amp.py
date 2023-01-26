@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class MixedPrecision(Precision):
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(optimizer, **kwargs)
         if isinstance(optimizer, LBFGS):
-            raise TypeError("Native AMP and the LBFGS optimizer are not compatible.")
+            raise TypeError("AMP and the LBFGS optimizer are not compatible.")
         # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
         step_output = self.scaler.step(optimizer, **kwargs)
         self.scaler.update()

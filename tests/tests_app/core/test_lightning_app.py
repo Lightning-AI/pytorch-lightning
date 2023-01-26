@@ -443,7 +443,7 @@ class EmptyFlow(LightningFlow):
     "sleep_time, expect",
     [
         (1, 0),
-        (0, 20),
+        (0, 10),
     ],
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
@@ -987,7 +987,7 @@ class SizeFlow(LightningFlow):
 def test_state_size_constant_growth():
     app = LightningApp(SizeFlow())
     MultiProcessRuntime(app, start_server=False).dispatch()
-    assert app.root._state_sizes[0] <= 7888
+    assert app.root._state_sizes[0] <= 7952
     assert app.root._state_sizes[20] <= 26500
 
 

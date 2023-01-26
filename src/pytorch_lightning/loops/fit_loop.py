@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@ import logging
 from typing import Any, Optional, Type
 
 import pytorch_lightning as pl
-from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.epoch import TrainingEpochLoop
+from pytorch_lightning.loops import _Loop
+from pytorch_lightning.loops.epoch import _TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 log = logging.getLogger(__name__)
 
 
-class FitLoop(Loop):
+class _FitLoop(_Loop):
     """This loop is the top-level loop where training starts.
 
     It simply counts the epochs and iterates from one to the next by calling ``TrainingEpochLoop.run()`` in its
@@ -73,7 +73,7 @@ class FitLoop(Loop):
 
         self.max_epochs = max_epochs
         self.min_epochs = min_epochs
-        self.epoch_loop = TrainingEpochLoop()
+        self.epoch_loop = _TrainingEpochLoop()
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
@@ -116,13 +116,13 @@ class FitLoop(Loop):
             )
         self.epoch_loop.max_steps = value
 
-    @Loop.restarting.setter
+    @_Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
         # if the last epoch completely finished, we are not actually restarting
         values = self.epoch_progress.current.ready, self.epoch_progress.current.started
         epoch_unfinished = any(v != self.epoch_progress.current.processed for v in values)
         restarting = restarting and epoch_unfinished or self._iteration_based_training()
-        Loop.restarting.fset(self, restarting)  # call the parent setter
+        _Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
     def prefetch_batches(self) -> int:
