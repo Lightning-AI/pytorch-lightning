@@ -25,9 +25,10 @@ import torch
 import lightning as L
 import pytorch_lightning as PL
 from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
-from lightning.store.authentication import authenticate
+from lightning.store.authentication import _authenticate
 from lightning.store.save import (
     _download_and_extract_data_to,
+    _get_linked_output_dir,
     _LIGHTNING_STORAGE_DIR,
     _LIGHTNING_STORAGE_FILE,
     _save_checkpoint_from_path,
@@ -38,9 +39,8 @@ from lightning.store.save import (
     _save_requirements_file,
     _submit_data_to_url,
     _write_and_save_requirements,
-    get_linked_output_dir,
 )
-from lightning.store.utils import get_model_data, split_name, stage
+from lightning.store.utils import _get_model_data, _split_name, stage
 
 logging.basicConfig(level=logging.INFO)
 
@@ -118,8 +118,8 @@ def to_lightning_cloud(
         )
 
     version = version or "latest"
-    _, model_name, _ = split_name(name, version=version, l_stage=stage.UPLOAD)
-    username_from_api_key, api_key = authenticate(api_key)
+    _, model_name, _ = _split_name(name, version=version, l_stage=stage.UPLOAD)
+    username_from_api_key, api_key = _authenticate(api_key)
 
     # name = f"{username_from_api_key}/{model_name}:{version}"
 
@@ -256,13 +256,13 @@ def download_from_lightning_cloud(
             Show progress on download.
     """
     version = version or "latest"
-    username, model_name, version = split_name(name, version=version, l_stage=stage.DOWNLOAD)
+    username, model_name, version = _split_name(name, version=version, l_stage=stage.DOWNLOAD)
 
     linked_output_dir = ""
     if not output_dir:
         output_dir = _LIGHTNING_STORAGE_DIR
         output_dir = os.path.join(output_dir, username, model_name, version)
-        linked_output_dir = get_linked_output_dir(output_dir)
+        linked_output_dir = _get_linked_output_dir(output_dir)
     else:
         output_dir = os.path.abspath(output_dir)
 
@@ -353,7 +353,7 @@ def load_from_lightning_cloud(
 
     if os.path.exists(_LIGHTNING_STORAGE_FILE):
         version = version or "latest"
-        model_data = get_model_data(name, version)
+        model_data = _get_model_data(name, version)
         output_dir = model_data["output_dir"]
         linked_output_dir = model_data["linked_output_dir"]
         meta_data = model_data["metadata"]

@@ -58,7 +58,7 @@ def _authenticate(inp_api_key: str = ""):
                 " In order to run the commands on this system, we suggest passing the `api_key`"
                 " after logging into https://lightning.ai."
             )
-        username, inp_api_key = get_user_details()
+        username, inp_api_key = _get_user_details()
     else:
-        username = get_username_from_api_key(inp_api_key)
+        username = _get_username_from_api_key(inp_api_key)
     return username, inp_api_key

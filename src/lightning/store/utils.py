@@ -52,7 +52,7 @@ def _split_name(name: str, version: str, l_stage: stage):
 
 
 def _get_model_data(name: str, version: str):
-    username, model_name, version = split_name(name, version, stage.LOAD)
+    username, model_name, version = _split_name(name, version, stage.LOAD)
 
     if not os.path.exists(_LIGHTNING_STORAGE_FILE):
         raise NotADirectoryError(
