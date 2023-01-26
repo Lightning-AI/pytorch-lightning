@@ -1896,11 +1896,11 @@ class Trainer:
 
     @property
     def received_sigterm(self) -> bool:
-        """Whether a SIGTERM signal was received (in at least one process)
+        """Whether a ``signal.SIGTERM`` signal was received.
 
         For example, this can be checked to exit gracefully.
         """
-        return self.strategy.reduce_boolean_decision(self._received_sigterm, all=False)
+        return self._received_sigterm
 
     """
     Loop properties
