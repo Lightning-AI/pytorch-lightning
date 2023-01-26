@@ -1,7 +1,6 @@
 #######################
 Fault-tolerant Training
 #######################
-**Pre-requisites:** Make sure you've first worked through :doc:`Cloud training basics <cloud_training>`.
 
 .. raw:: html
 
