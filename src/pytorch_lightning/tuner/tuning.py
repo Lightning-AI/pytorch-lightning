@@ -23,88 +23,12 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
-#
-# class _TunerResult(TypedDict):
-#     lr_find: NotRequired[Optional[_LRFinder]]
-#     scale_batch_size: NotRequired[Optional[int]]
-
 
 class Tuner:
     """Tuner class to tune your model."""
 
     def __init__(self, trainer: "pl.Trainer") -> None:
-        self.trainer = trainer
-
-    #
-    # def _tune(
-    #     self,
-    #     model: "pl.LightningModule",
-    #     train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-    #     val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-    #     dataloaders: Optional[EVAL_DATALOADERS] = None,
-    #     datamodule: Optional[LightningDataModule] = None,
-    #     scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
-    #     lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    #     method: Literal["fit", "validate", "test", "predict"] = "fit",
-    # ) -> _TunerResult:
-    #     scale_batch_size_kwargs = scale_batch_size_kwargs or {}
-    #     lr_find_kwargs = lr_find_kwargs or {}
-    #     # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
-    #     result = _TunerResult()
-    #
-    #     self.trainer.strategy.connect(model)
-    #
-    #     is_tuning = self.trainer.auto_scale_batch_size
-    #     if self.trainer._accelerator_connector.is_distributed and is_tuning:
-    #         raise MisconfigurationException(
-    #             "`trainer.tune()` is currently not supported with"
-    #             f" `Trainer(strategy={self.trainer.strategy.strategy_name!r})`."
-    #         )
-    #
-    #     # Run auto batch size scaling
-    #     if self.trainer.auto_scale_batch_size:
-    #         if isinstance(self.trainer.auto_scale_batch_size, str):
-    #             scale_batch_size_kwargs.setdefault("mode", self.trainer.auto_scale_batch_size)
-    #
-    #         result["scale_batch_size"] = self.scale_batch_size(
-    #             model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **scale_batch_size_kwargs
-    #         )
-    #
-    #     # Run learning rate finder:
-    #     if self.trainer.auto_lr_find:
-    #         self.trainer.state.status = TrainerStatus.RUNNING
-    #
-    #         # TODO: Remove this once LRFinder is converted to a Callback
-    #         # if a datamodule comes in as the second arg, then fix it for the user
-    #         if isinstance(train_dataloaders, LightningDataModule):
-    #             datamodule = train_dataloaders
-    #             train_dataloaders = None
-    #
-    #         # If you supply a datamodule you can't supply train_dataloader or val_dataloaders
-    #         if (train_dataloaders is not None or val_dataloaders is not None) and datamodule is not None:
-    #             raise MisconfigurationException(
-    #                 "You cannot pass `train_dataloader` or `val_dataloaders` to `trainer.tune()`"
-    #                 " if datamodule is already passed."
-    #             )
-    #
-    #         # links da_a to the trainer
-    #         self.trainer._data_connector.attach_data(
-    #             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
-    #         )
-    #
-    #         lr_find_kwargs.setdefault("update_attr", True)
-    #         result["lr_find"] = self.lr_find(
-    #             model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **lr_find_kwargs
-    #         )
-    #         self.trainer.state.status = TrainerStatus.FINISHED
-    #
-    #     return result
-    #
-    # def _run(self, *args: Any, **kwargs: Any) -> None:
-    #     """`_run` wrapper to set the proper state during tuning, as this can be called multiple times."""
-    #     self.trainer.state.status = TrainerStatus.RUNNING  # last `_run` call might have set it to `FINISHED`
-    #     self.trainer.training = True
-    #     self.trainer._run(*args, **kwargs)
+        self._trainer = trainer
 
     def scale_batch_size(
         self,
@@ -162,7 +86,8 @@ class Tuner:
                 - ``model.hparams``
                 - ``trainer.datamodule`` (the datamodule passed to the tune method)
         """
-        _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
+        _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
+        _check_scale_batch_size_configuration(self._trainer)
 
         batch_size_finder: Callback = BatchSizeFinder(
             mode=mode,
@@ -173,19 +98,19 @@ class Tuner:
         )
         # do not continue with the loop in case trainer.tuner is used
         batch_size_finder._early_exit = True
-        self.trainer.callbacks = [batch_size_finder] + self.trainer.callbacks
+        self._trainer.callbacks = [batch_size_finder] + self._trainer.callbacks
 
         if method == "fit":
-            self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
+            self._trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
         elif method == "validate":
-            self.trainer.validate(model, dataloaders, datamodule=datamodule)
+            self._trainer.validate(model, dataloaders, datamodule=datamodule)
         elif method == "test":
-            self.trainer.test(model, dataloaders, datamodule=datamodule)
+            self._trainer.test(model, dataloaders, datamodule=datamodule)
         elif method == "predict":
-            self.trainer.predict(model, dataloaders, datamodule=datamodule)
+            self._trainer.predict(model, dataloaders, datamodule=datamodule)
 
-        self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not batch_size_finder]
-        self.trainer.auto_scale_batch_size = False
+        self._trainer.callbacks = [cb for cb in self._trainer.callbacks if cb is not batch_size_finder]
+        self._trainer.auto_scale_batch_size = False
         return batch_size_finder.optimal_batch_size
 
     def lr_find(
@@ -245,7 +170,8 @@ class Tuner:
         if method != "fit":
             raise MisconfigurationException("method='fit' is an invalid configuration to run lr finder.")
 
-        _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
+        _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
+        _check_lr_find_configuration(self._trainer)
 
         lr_finder_callback: Callback = LearningRateFinder(
             min_lr=min_lr,
@@ -257,18 +183,17 @@ class Tuner:
         )
 
         lr_finder_callback._early_exit = True
-        self.trainer.callbacks = [lr_finder_callback] + self.trainer.callbacks
+        self._trainer.callbacks = [lr_finder_callback] + self._trainer.callbacks
 
-        self.trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
+        self._trainer.fit(model, train_dataloaders, val_dataloaders, datamodule)
 
-        self.trainer.callbacks = [cb for cb in self.trainer.callbacks if cb is not lr_finder_callback]
+        self._trainer.callbacks = [cb for cb in self._trainer.callbacks if cb is not lr_finder_callback]
 
-        self.trainer.auto_lr_find = False
+        self._trainer.auto_lr_find = False
         return lr_finder_callback.optimal_lr
 
 
 def _check_tuner_configuration(
-    trainer: "pl.Trainer",
     train_dataloaders: Optional[Union[TRAIN_DATALOADERS, "pl.LightningDataModule"]] = None,
     val_dataloaders: Optional[EVAL_DATALOADERS] = None,
     dataloaders: Optional[EVAL_DATALOADERS] = None,
@@ -291,19 +216,20 @@ def _check_tuner_configuration(
                 " arguments should be None, please consider setting `dataloaders` instead."
             )
 
-    # TODO:
-    # for cb in trainer.callbacks:
-    #     if isinstance(cb, BatchSizeFinder) and trainer.auto_scale_batch_size:
-    #         configured_callbacks.append("BatchSizeFinder")
-    #     elif isinstance(cb, LearningRateFinder) and trainer.auto_lr_find:
-    #         configured_callbacks.append("LearningRateFinder")
-    # if len(configured_callbacks) == 1:
-    #     raise MisconfigurationException(
-    #         f"Trainer is already configured with a `{configured_callbacks[0]}` callback."
-    #         "Please remove it if you want to use the Tuner."
-    #     )
-    # elif len(configured_callbacks) == 2:
-    #     raise MisconfigurationException(
-    #         "Trainer is already configured with `LearningRateFinder` and `BatchSizeFinder` callbacks."
-    #         " Please remove them if you want to use the Tuner."
-    #     )
+
+def _check_lr_find_configuration(trainer: "pl.Trainer"):
+    configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
+    if configured_callbacks:
+        raise MisconfigurationException(
+            f"Trainer is already configured with a `LearningRateFinder` callback."
+            "Please remove it if you want to use the Tuner."
+        )
+
+
+def _check_scale_batch_size_configuration(trainer: "pl.Trainer"):
+    configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, BatchSizeFinder)]
+    if configured_callbacks:
+        raise MisconfigurationException(
+            "Trainer is already configured with a `BatchSizeFinder` callback."
+            "Please remove it if you want to use the Tuner."
+        )
