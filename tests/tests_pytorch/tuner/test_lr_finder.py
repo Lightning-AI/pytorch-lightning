@@ -84,7 +84,8 @@ def test_trainer_reset_correctly(tmpdir):
     model = BoringModel()
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=LearningRateFinder(num_training_steps=5))
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    tuner = Tuner(trainer)
 
     changed_attributes = [
         "accumulate_grad_batches",
@@ -101,7 +102,7 @@ def test_trainer_reset_correctly(tmpdir):
     expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
-        trainer.fit(model)
+        tuner.lr_find(model)
 
     actual = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
     assert actual == expected
@@ -125,9 +126,10 @@ def test_trainer_arg_callback(tmpdir, use_hparams):
 
     before_lr = 1e-2
     model = CustomBoringModel(lr=before_lr)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, callbacks=LearningRateFinder())
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    tuner = Tuner(trainer)
+    tuner.lr_find(model, update_attr=True)
 
-    trainer.fit(model)
     if use_hparams:
         after_lr = model.hparams.lr
     else:
@@ -156,9 +158,9 @@ def test_trainer_arg_str(tmpdir, use_hparams):
 
     before_lr = 1e-2
     model = CustomBoringModel(my_fancy_lr=before_lr)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, auto_lr_find="my_fancy_lr")
-
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
+    tuner = Tuner(trainer)
+    tuner.lr_find(model, update_attr=True, attr_name="my_fancy_lr")
     if use_hparams:
         after_lr = model.hparams.my_fancy_lr
     else:
@@ -212,7 +214,7 @@ def test_datamodule_parameter(tmpdir):
 
     before_lr = model.lr
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, callbacks=LearningRateFinder())
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
 
     tuner = Tuner(trainer)
     lr_finder = tuner.lr_find(model, datamodule=dm)
@@ -298,32 +300,10 @@ def test_suggestion_with_non_finite_values(tmpdir):
 
 def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """Test that tune fails if the model does not have a lr BEFORE running lr find."""
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=LearningRateFinder())
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
+    tuner = Tuner(trainer)
     with pytest.raises(MisconfigurationException, match="should have one of these fields"):
-        trainer.fit(BoringModel())
-
-
-def test_lr_find_with_bs_scale(tmpdir):
-    """Test that lr_find runs with batch_size_scaling."""
-    seed_everything(1)
-
-    class BoringModelTune(BoringModel):
-        def __init__(self, learning_rate=0.1, batch_size=2):
-            super().__init__()
-            self.save_hyperparameters()
-
-    model = BoringModelTune()
-    before_lr = model.hparams.learning_rate
-
-    # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=LearningRateFinder(), auto_scale_batch_size=True)
-    result = trainer.fit(model)
-    bs = result["scale_batch_size"]
-    after_lr = result["lr_find"].suggestion()
-
-    assert after_lr is not None
-    assert after_lr != before_lr
-    assert isinstance(bs, int)
+        tuner.lr_find(BoringModel(), update_attr=True)
 
 
 def test_lr_candidates_between_min_and_max(tmpdir):

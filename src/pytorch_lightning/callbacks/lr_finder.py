@@ -83,6 +83,7 @@ class LearningRateFinder(Callback):
         mode: str = "exponential",
         early_stop_threshold: Optional[float] = 4.0,
         update_attr: bool = False,
+        attr_name: str = ""
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -94,6 +95,7 @@ class LearningRateFinder(Callback):
         self._mode = mode
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
+        self._attr_name = attr_name
 
         self._early_exit = False
         self.lr_finder: Optional[_LRFinder] = None
@@ -109,6 +111,7 @@ class LearningRateFinder(Callback):
                 mode=self._mode,
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
+                attr_name=self._attr_name,
             )
 
         if self._early_exit:
