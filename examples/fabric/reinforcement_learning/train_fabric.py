@@ -20,15 +20,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
-from lightning.pytorch import LightningModule
+from src.loss import entropy_loss, policy_loss, value_loss
+from src.utils import layer_init, make_env, parse_args
 from torch.distributions import Categorical
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.pytorch import LightningModule
 
 
 class PPOLightningAgent(LightningModule):
@@ -223,7 +223,7 @@ def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, ar
         cumulative_rew += reward
         next_obs = torch.Tensor(next_obs).to(device)
         step += 1
-    fabric.log(f"Test/cumulative_reward", cumulative_rew, 0)
+    fabric.log("Test/cumulative_reward", cumulative_rew, 0)
     env.close()
 
 
