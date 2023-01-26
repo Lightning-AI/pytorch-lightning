@@ -209,7 +209,13 @@ norecursedirs = [
     "build",
     "docs",
 ]
-addopts = "--strict-markers --doctest-modules --color=yes --disable-pytest-warnings --ignore=legacy/checkpoints"
+addopts = [
+    "--strict-markers",
+    "--doctest-modules",
+    "--color=yes",
+    "--disable-pytest-warnings",
+    "--ignore=legacy/checkpoints",
+]
 markers = [
     "cloud:Run the cloud tests for example",
 ]
