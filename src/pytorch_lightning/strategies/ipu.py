@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
-from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning_fabric.utilities.cloud_io import get_filesystem
+from pytorch_lightning.accelerators.ipu import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -36,15 +36,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
-_POPTORCH_AVAILABLE = package_available("poptorch")
-
 if _POPTORCH_AVAILABLE:
     import poptorch
-
-    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
-else:
-    poptorch = None
-    _IPU_AVAILABLE = False
 
 
 class IPUStrategy(ParallelStrategy):
