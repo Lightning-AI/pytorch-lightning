@@ -17,7 +17,6 @@ import sys
 from queue import Empty
 from typing import List, Optional, Tuple
 
-import pytest
 from packaging.version import Version
 
 from lightning_app import LightningFlow, LightningWork
@@ -89,6 +88,8 @@ class _RunIf:
             skip_mac_os: Skip for Mac Os Platform.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
+        import pytest
+
         conditions = []
         reasons = []
 

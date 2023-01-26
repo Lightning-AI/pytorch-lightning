@@ -205,7 +205,7 @@ subprojects:
       - "examples/fabric/**"
       - "examples/run_fabric_examples.sh"
       - "tests/tests_fabric/run_standalone_*.sh"
-      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Lite through a symlink
+      - "tests/tests_pytorch/run_standalone_tests.sh"  # used by Fabric through a symlink
       - "requirements/fabric/**"
       - "src/lightning_fabric/**"
       - "tests/tests_fabric/**"
