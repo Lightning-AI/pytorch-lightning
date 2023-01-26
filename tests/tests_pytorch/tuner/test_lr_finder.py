@@ -24,6 +24,7 @@ from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -189,8 +190,9 @@ def test_call_to_trainer_method(tmpdir, opt):
     model = CustomBoringModel(1e-2)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
 
-    lrfinder = trainer.tuner.lr_find(model, mode="linear")
-    after_lr = lrfinder.suggestion()
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model, mode="linear")
+    after_lr = lr_finder.suggestion()
     assert after_lr is not None
     model.hparams.lr = after_lr
     trainer.fit(model)
@@ -212,8 +214,9 @@ def test_datamodule_parameter(tmpdir):
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, callbacks=LearningRateFinder())
 
-    lrfinder = lr_find(trainer, model, datamodule=dm)
-    after_lr = lrfinder.suggestion()
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model, datamodule=dm)
+    after_lr = lr_finder.suggestion()
     model.lr = after_lr
 
     assert after_lr is not None
@@ -232,11 +235,12 @@ def test_accumulation_and_early_stopping(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, accumulate_grad_batches=2)
-    lrfinder = trainer.tuner.lr_find(model, early_stop_threshold=None)
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model, early_stop_threshold=None)
 
-    assert lrfinder.suggestion() != 1e-3
-    assert len(lrfinder.results["lr"]) == 100
-    assert lrfinder._total_batch_idx == 199
+    assert lr_finder.suggestion() != 1e-3
+    assert len(lr_finder.results["lr"]) == 100
+    assert lr_finder._total_batch_idx == 199
 
 
 def test_suggestion_parameters_work(tmpdir):
@@ -336,7 +340,8 @@ def test_lr_candidates_between_min_and_max(tmpdir):
 
     lr_min = 1e-8
     lr_max = 1.0
-    lr_finder = trainer.tuner.lr_find(model, max_lr=lr_min, min_lr=lr_max, num_training=3)
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model, max_lr=lr_min, min_lr=lr_max, num_training=3)
     lr_candidates = lr_finder.results["lr"]
     assert all(lr_min <= lr <= lr_max for lr in lr_candidates)
 
@@ -355,8 +360,9 @@ def test_lr_finder_ends_before_num_training(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
+    tuner = Tuner(trainer)
     num_training = 3
-    trainer.tuner.lr_find(model=model, num_training=num_training)
+    tuner.lr_find(model=model, num_training=num_training)
 
 
 def test_multiple_lr_find_calls_gives_same_results(tmpdir):
@@ -373,7 +379,8 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
         enable_model_summary=False,
         enable_checkpointing=False,
     )
-    all_res = [trainer.tuner.lr_find(model).results for _ in range(3)]
+    tuner = Tuner(trainer)
+    all_res = [tuner.lr_find(model).results for _ in range(3)]
 
     assert all(
         all_res[0][k] == curr_lr_finder[k] and len(curr_lr_finder[k]) > 10
@@ -499,7 +506,8 @@ def test_lr_finder_with_ddp(tmpdir):
         accelerator="cpu",
     )
 
-    trainer.tuner.lr_find(model, datamodule=dm, update_attr=True, num_training=20)
+    tuner = Tuner(trainer)
+    tuner.lr_find(model, datamodule=dm, update_attr=True, num_training=20)
     lr = trainer.lightning_module.lr
     lr = trainer.strategy.broadcast(lr)
     assert trainer.lightning_module.lr == lr
