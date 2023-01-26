@@ -61,11 +61,11 @@ def test_model_reset_correctly(tmpdir):
     model = BoringModel()
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=LearningRateFinder(num_training_steps=5))
-
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    tuner = Tuner(trainer)
     before_state_dict = deepcopy(model.state_dict())
 
-    trainer.fit(model)
+    tuner.lr_find(model, num_training=5)
 
     after_state_dict = model.state_dict()
 

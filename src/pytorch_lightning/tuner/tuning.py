@@ -220,16 +220,22 @@ def _check_tuner_configuration(
 def _check_lr_find_configuration(trainer: "pl.Trainer"):
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
     if configured_callbacks:
-        raise MisconfigurationException(
+        raise ValueError(
             f"Trainer is already configured with a `LearningRateFinder` callback."
             "Please remove it if you want to use the Tuner."
         )
 
 
 def _check_scale_batch_size_configuration(trainer: "pl.Trainer"):
+    if trainer._accelerator_connector.is_distributed:
+        raise ValueError(
+            "Tuning the batch size is currently not supported with"
+            f" `Trainer(strategy={trainer.strategy.strategy_name!r})`."
+        )
+
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, BatchSizeFinder)]
     if configured_callbacks:
-        raise MisconfigurationException(
+        raise ValueError(
             "Trainer is already configured with a `BatchSizeFinder` callback."
             "Please remove it if you want to use the Tuner."
         )

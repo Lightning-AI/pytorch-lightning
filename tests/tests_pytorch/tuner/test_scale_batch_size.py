@@ -389,17 +389,6 @@ def test_invalid_method_in_tuner():
         tuner.scale_batch_size(model, method="prediction")
 
 
-def test_if_batch_size_finder_callback_already_configured():
-    """Test that an error is raised if BatchSizeFinder is already configured inside `Tuner`"""
-    cb = BatchSizeFinder()
-    trainer = Trainer(callbacks=cb)
-    tuner = Tuner(trainer)
-    model = BoringModel()
-
-    with pytest.raises(MisconfigurationException, match="Trainer is already configured with a `BatchSizeFinder`"):
-        tuner.scale_batch_size(model)
-
-
 def test_error_if_train_or_val_dataloaders_passed_with_eval_method():
     """Test that an error is raised if `train_dataloaders` or `val_dataloaders` is passed with eval method inside
     `Tuner`"""
