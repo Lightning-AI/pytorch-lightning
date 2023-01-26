@@ -24,7 +24,7 @@ from lightning_utilities.core.imports import compare_version, RequirementCache
 from torch.distributed import is_available
 
 from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _POPTORCH_AVAILABLE
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -42,13 +42,6 @@ def test_imports():
         assert not _OMEGACONF_AVAILABLE
     else:
         assert _OMEGACONF_AVAILABLE
-
-    try:
-        import poptorch  # noqa
-    except ModuleNotFoundError:
-        assert not _POPTORCH_AVAILABLE
-    else:
-        assert _POPTORCH_AVAILABLE
 
 
 def _shortcut_patch(orig_fn, shortcut_case, attr_names=None):

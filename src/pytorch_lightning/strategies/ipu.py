@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from lightning_utilities.core.imports import package_available
 from torch import Tensor
 from torch.utils.data import DataLoader, Sampler
 
@@ -29,16 +30,21 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.strategies.utils import _fp_to_half
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs, _reinstantiate_wrapped_cls
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
+_POPTORCH_AVAILABLE = package_available("poptorch")
+
 if _POPTORCH_AVAILABLE:
     import poptorch
+
+    _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     poptorch = None
+    _IPU_AVAILABLE = False
 
 
 class IPUStrategy(ParallelStrategy):

@@ -23,7 +23,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
-    _POPTORCH_AVAILABLE,
     _TORCH_QUANTIZE_AVAILABLE,
     _TORCHVISION_AVAILABLE,
 )
