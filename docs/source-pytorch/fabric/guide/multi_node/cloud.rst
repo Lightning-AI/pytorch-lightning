@@ -42,7 +42,7 @@ Launch multi-node training in the cloud
     :caption: app.py
 
     import lightning as L
-    from lightning.app.components import LiteMultiNode
+    from lightning.app.components import FabricMultiNode
 
     # 1. Put your code inside a LightningWork
     class MyTrainingComponent(L.LightningWork):
@@ -58,16 +58,16 @@ Launch multi-node training in the cloud
             model, optimizer = fabric.setup(model, optimizer)
             ...
 
-**Step 2:** Init a :class:`~lightning_app.core.app.LightningApp` with the ``LiteMultiNode`` component.
+**Step 2:** Init a :class:`~lightning_app.core.app.LightningApp` with the ``FabricMultiNode`` component.
 Configure the number of nodes, the number of GPUs per node, and the type of GPU:
 
 .. code-block:: python
     :emphasize-lines: 5,7
     :caption: app.py
 
-    # 2. Create the app with the LiteMultiNode component inside
+    # 2. Create the app with the FabricMultiNode component inside
     app = L.LightningApp(
-        LiteMultiNode(
+        FabricMultiNode(
             MyTrainingComponent,
             # Run with 2 nodes
             num_nodes=2,
