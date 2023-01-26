@@ -23,7 +23,7 @@ from lightning_utilities.test.warning import no_warning_call
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
