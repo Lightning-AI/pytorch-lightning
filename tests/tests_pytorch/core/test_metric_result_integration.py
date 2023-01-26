@@ -285,11 +285,10 @@ class DummyMeanMetric(Metric):
 
 
 def result_collection_reload(accelerator="auto", devices=1, **kwargs):
-    """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
-    Tolerant Training is correct."""
-
     class CustomException(Exception):
         pass
+
+    batches = 5
 
     class ExtendedBoringModel(BoringModel):
         def __init__(self):
@@ -303,12 +302,10 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
             return self.trainer.fit_loop._results
 
         def training_step(self, batch, batch_idx):
-
-            # In the training step, we will accumulate metrics using batch_idx from 0 to 4
-            # Without failure, we would expect to get `total=10 * world_size` and `num_batches=5 * world_size`
-            # Therefore, compute on `epoch_end` should provide 2 as `10 / 5`.
-            # However, below we will simulate a failure on `batch_idx=3`.
-
+            # We run 5 batches, meaning batch_idx from [0..4]
+            # Without failure, we expect to get `total=sum(range(5))*world_size` and `num_batches=5*world_size`
+            # When not restarting, it simulates a failure on `batch_idx=3` and test the state after reload
+            # Compute `on_epoch_end` would be `10/5=2` if the metric state had been serialized and reloaded
             if self.trainer.fit_loop.restarting:
                 self.log("tracking", batch_idx, on_step=True, on_epoch=True)
                 self.log("tracking_2", batch_idx, on_step=True, on_epoch=True, sync_dist=True)
@@ -316,8 +313,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking_metric"].value
-                value_2 = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking_metric"]
+                value_2 = self.results["training_step.tracking"]
 
                 # On failure, the Metric states are being accumulated on rank 0 and zeroed-out on other ranks.
                 # The shift indicates we failed while the state was `shift=sign(is_global_zero > 0) * [0..3]`
@@ -337,7 +334,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.dummy_metric(batch_idx)
                 self.log("tracking_metric", self.dummy_metric, on_step=True, on_epoch=True)
 
-                value = self.results["training_step.tracking"].value
+                value = self.results["training_step.tracking"]
                 assert value == sum(range(batch_idx + 1))
 
                 value = self.results["training_step.tracking_2"]
@@ -347,18 +344,26 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
         def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
-                total = sum(range(5)) * devices
+                # the state of the results before the exception is not saved and restored, so the total starts after
+                # the breaking_batch_idx
+                total = sum(range(self.breaking_batch_idx, batches)) * devices
                 metrics = self.results.metrics(on_step=False)
+                computed_value = self.dummy_metric.compute()
+
                 assert self.results["training_step.tracking"].value == total
-                assert metrics["callback"]["tracking"] == self.dummy_metric.compute() == 2
+                expected = total / (batches - self.breaking_batch_idx)
+                assert metrics["callback"]["tracking"] == expected
+                assert computed_value == 2
+
                 assert self.results["training_step.tracking_2"].value == total
-                assert metrics["callback"]["tracking_2"] == self.dummy_metric.compute() == 2
+                assert metrics["callback"]["tracking_2"] == expected
+                assert computed_value == 2
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
     trainer_kwargs = {
         "max_epochs": 1,
-        "limit_train_batches": 5,
+        "limit_train_batches": batches,
         "limit_val_batches": 0,
         "accelerator": accelerator,
         "devices": devices,
