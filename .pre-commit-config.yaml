@@ -59,7 +59,11 @@ repos:
     hooks:
       - id: yesqa
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.226
     hooks:
-      - id: flake8
+      - id: ruff
+        args:
+          - "--fix"
+          # Respect `exclude` and `extend-exclude` settings.
+          - "--force-exclude"

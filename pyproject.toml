@@ -1,10 +1,100 @@
+[metadata]
+license_file = "LICENSE"
+description-file = "README.md"
+
 [build-system]
 requires = [
     "setuptools",
     "wheel",
 ]
 
+[tool.check-manifest]
+ignore = [
+    "*.yml",
+    ".github",
+    ".github/*"
+]
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".github",
+    "dist",
+    "build",
+    "docs",
+]
+
+addopts = [
+    "--strict-markers",
+    "--doctest-modules",
+    "--durations=25",
+    "--color=yes",
+    "--disable-pytest-warnings",
+]
+filterwarnings = ["error::FutureWarning", "error::DeprecationWarning"]
+xfail_strict = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "pass",
+]
+
+[tool.coverage.run]
+parallel = true
+concurrency = "thread"
+relative_files = true
+
 [tool.black]
 # https://github.com/psf/black
 line-length = 120
 exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
+
+[tool.isort]
+known_first_party = [
+    "lightning_utilities",
+    "tests"
+]
+skip_glob = []
+profile = "black"
+line_length = 120
+order_by_type = false
+multi_line_output = 3
+include_trailing_comma = true
+
+[tool.mypy]
+files = [
+    "src/lightning_utilities",
+]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.ruff]
+ line-length = 120
+ select = [
+     "E", "W",  # see: https://pypi.org/project/pycodestyle
+     "F",  # see: https://pypi.org/project/pyflakes
+ ]
+ ignore = [
+     "E731",
+ ]
+ exclude = [
+     ".eggs",
+     ".git",
+     ".mypy_cache",
+     ".ruff_cache",
+     "__pypackages__",
+     "_build",
+     "build",
+     "dist",
+     "docs"
+ ]
+ ignore-init-module-imports = true
+
+ # [tool.ruff.per-file-ignores]
+ # "setup.py" = ["D100", "SIM115"]
+ # "__about__.py" = ["D100"]
+ # "__init__.py" = ["D100"]
+
+ [tool.ruff.mccabe]
+ max-complexity = 10

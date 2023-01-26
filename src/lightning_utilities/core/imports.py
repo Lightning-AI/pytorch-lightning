@@ -4,8 +4,6 @@
 
 import functools
 import importlib
-import operator
-import os
 import warnings
 from functools import lru_cache
 from importlib.util import find_spec
