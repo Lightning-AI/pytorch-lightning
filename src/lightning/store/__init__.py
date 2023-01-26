@@ -1,3 +1,3 @@
-from lightning.store.cloud_api import download_from_lightning_cloud, load_from_lightning_cloud, to_lightning_cloud
+from lightning.store.cloud_api import download_from_cloud, load_model, upload_to_cloud
 
-__all__ = ["download_from_lightning_cloud", "load_from_lightning_cloud", "to_lightning_cloud"]
+__all__ = ["download_from_cloud", "load_model", "upload_to_cloud"]

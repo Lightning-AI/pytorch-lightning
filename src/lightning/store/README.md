@@ -1,10 +1,10 @@
 ## Getting Started
 
 - Login to lightning.ai (_optional_) \<-- takes less than a minute.  ⏩
-- Store your models on the cloud \<-- simple call: `to_lightning_cloud(...)`. 🗳️
+- Store your models on the cloud \<-- simple call: `upload_to_cloud(...)`. 🗳️
 - Share it with your friends \<-- just share the "username/model_name" (and version if required) format. :handshake:
-- They download using a simple call: `download_from_lightning_cloud("username/model_name", version="your_version")`. :wink:
-- They load your cool model. `load_from_lightning_cloud("username/model_name", version="your_version")`. :tada:
+- They download using a simple call: `download_from_cloud("username/model_name", version="your_version")`. :wink:
+- They load your cool model. `load_model("username/model_name", version="your_version")`. :tada:
 - Lightning :zap: fast, isn't it?. :heart:
 
 ## Usage
@@ -12,7 +12,7 @@
 **Storing to the cloud**
 
 ```python
-from lightning.store import to_lightning_cloud
+import lightning as L
 from sample.model import LitAutoEncoder, Encoder, Decoder
 
 # Initialize your model here
@@ -21,10 +21,10 @@ autoencoder = LitAutoEncoder(Encoder(), Decoder())
 # Pass the model object:
 # No need to pass the username (we'll deduce ourselves), just pass the model name you want as the first argument (with an optional version):
 # format: `model_name:version` (version can either be latest or combination of digits and full-stops: 1.0.0 for example)
-to_lightning_cloud("unique_model_mnist", model=autoencoder, source_code_path="sample")
+L.store.upload_to_cloud("unique_model_mnist", model=autoencoder, source_code_path="sample")
 
 # version:
-to_lightning_cloud(
+L.store.upload_to_cloud(
     "unique_model_mnist",
     version="1.0.0",
     model=autoencoder,
@@ -32,34 +32,49 @@ to_lightning_cloud(
 )
 
 # OR: (this will save the file which has the model defined)
-to_lightning_cloud("krshrimali/unique_model_mnist", model=autoencoder)
+L.store.upload_to_cloud("krshrimali/unique_model_mnist", model=autoencoder)
 ```
 
 You can also pass the checkpoint path: `to_lightning_cloud("model_name", version="latest", checkpoint_path=...)`.
 
 **Downloading from the cloud**
 
-```python
-from lightning.store import download_from_lightning_cloud
+At first, you need to download the model to your local machine.
 
-download_from_lightning_cloud("krshrimali/unique_model_mnist", output_dir="your_output_dir")
-# OR: (default to lightning_model_storage $HOME/.lightning/lightning_model_store/username/<model_name>/version_<version_with_dots_replaced_by_underscores>/ folder)
-download_from_lightning_cloud("krshrimali/unique_model_mnist")
+```python
+import lightning as L
+
+L.store.download_from_cloud(
+    "krshrimali/unique_model_mnist",
+    output_dir="your_output_dir",
+)
+# OR: (default to model_storage 
+#        $HOME
+#         |- .lightning
+#         |  |- model_store
+#         |  |  |- username
+#         |  |  |  |- <model_name>
+#         |  |  |  |  |- version_<version_with_dots_replaced_by_underscores>
+#      folder)
+L.store.download_from_cloud("krshrimali/unique_model_mnist")
 ```
 
 **Loading model**
 
+Then you can load the model to your program.
+
 ```python
-from lightning.store import load_from_lightning_cloud
+import lightning as L
 
 # from <username>.<model_name>.version_<version_with_dots_replaced_by_underscores>.<model_source_file> import LitAutoEncoder, Encoder, Decoder
-model = load_from_lightning_cloud(
-    "<username>/<model_name>>", version="version"
-)  # version is optional (defaults to latest)
+model = L.store.load_model("<username>/<model_name>>", version="version")  # version is optional (defaults to latest)
 
 # OR: load weights or checkpoint (if they were uploaded)
-load_from_lightning_cloud(
-    "<username>/<model_name>", version="version", load_weights=True / False, load_checkpoint=True / False
+L.store.load_model(
+    "<username>/<model_name>",
+    version="version",
+    load_weights=True|False,
+    load_checkpoint=True|False
 )
 print(model)
 ```
@@ -67,15 +82,21 @@ print(model)
 **Loading model weights**
 
 ```python
-from lightning.store import load_from_lightning_cloud
+import lightning as L
+from sample.model import LitAutoEncoder, Encoder, Decoder
 
 # If you had passed an `output_dir=...` to download_from_lightning_cloud(...), then you can just do:
 # from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 
 model = LitAutoEncoder(Encoder(), Decoder())
 
-model = load_from_lightning_cloud(load_weights=True, model=model)
+model = L.store.load_model(load_weights=True, model=model)
 print("State dict: ", model.state_dict())
 ```
 
 Loading checkpoint is similar, just do: `load_checkpoint=True`.
+
+## Known limitations
+
+- missing web UI for user to brows his uploads
+- missing CLI/API to list and delete uploaded models

@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import requests
 import torch
@@ -45,7 +45,7 @@ from lightning.store.utils import _get_model_data, _split_name, stage
 logging.basicConfig(level=logging.INFO)
 
 
-def to_lightning_cloud(
+def upload_to_cloud(
     name: str,
     version: str = "latest",
     model=None,
@@ -235,7 +235,7 @@ def _load_checkpoint(model, stored, output_dir, *args, **kwargs):
     return ckpt
 
 
-def download_from_lightning_cloud(
+def download_from_cloud(
     name: str,
     version: str = "latest",
     output_dir: str = "",
@@ -250,7 +250,7 @@ def download_from_lightning_cloud(
             The version of the model to be uploaded. If not provided, default will be latest (not overridden).
         output_dir:
             The target directory, where the model and other data will be stored. If not passed,
-            the data will be stored in `$HOME/.lightning/lightning_model_store/<username>/<model_name>/<version>`.
+            the data will be stored in `$HOME/.lightning/model_store/<username>/<model_name>/<version>`.
             (`version` defaults to `latest`)
         progress_bar:
             Show progress on download.
@@ -324,12 +324,12 @@ def _validate_output_dir(folder: str) -> None:
         )
 
 
-def load_from_lightning_cloud(
+def load_model(
     name: str,
     version: str = "latest",
     load_weights: bool = False,
     load_checkpoint: bool = False,
-    model=None,
+    model: Union[PL.LightningModule, L.LightningModule, None] = None,
     *args,
     **kwargs,
 ):
@@ -344,6 +344,8 @@ def load_from_lightning_cloud(
             Loads only weights if this is set to `True`. Needs `model` to be passed in order to load the weights.
         load_checkpoint:
             Loads checkpoint if this is set to `True`. Only a `LightningModule` model is supported for this feature.
+        model:
+            Model class to be used.
     """
     if load_weights and load_checkpoint:
         raise ValueError(
