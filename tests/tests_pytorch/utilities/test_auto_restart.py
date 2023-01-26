@@ -840,7 +840,7 @@ def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, m
     complete_batches, _ = _run_training(trainer_kwargs, dataset_classes, fail_on_step=4)
     assert len(complete_batches) == 4
 
-    checkpoint_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    checkpoint_path = os.path.join(tmpdir, "on_exception.ckpt")
     assert os.path.exists(checkpoint_path)
 
     # Resume after failure
@@ -923,7 +923,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
         model = ValidationLoopTestModel(should_fail)
 
-        ckpt_path = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
+        ckpt_path = str(tmpdir / "on_exception.ckpt") if resume else None
         trainer = Trainer(
             default_root_dir=tmpdir,
             max_epochs=1,
@@ -1064,7 +1064,7 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
     )
     # we saved a ft-checkpoint
-    signaled_ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    signaled_ckpt_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(signaled_ckpt_path)
     # load for later as the next fit call will delete it
     checkpoint = torch.load(signaled_ckpt_path)["loops"]["fit_loop"]
@@ -1468,7 +1468,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     failed_batches = model.batches
     failed_weight = deepcopy(model.layer.weight)
 
-    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
+    checkpoint_path = str(tmpdir / "on_exception.ckpt")
     assert os.path.exists(checkpoint_path)
 
     seed_everything(42)

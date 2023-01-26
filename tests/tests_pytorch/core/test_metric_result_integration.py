@@ -28,7 +28,7 @@ from torchmetrics import Metric, MetricCollection
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
@@ -462,7 +462,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
@@ -471,7 +471,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir)
+    result_collection_reload(default_root_dir=tmpdir, callbacks=OnExceptionCheckpoint(tmpdir))
 
 
 @pytest.mark.parametrize(

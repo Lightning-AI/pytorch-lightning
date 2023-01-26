@@ -79,9 +79,6 @@ class CallbackConnector:
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
 
-        if self.trainer.state._fault_tolerant_mode.is_enabled:
-            self._configure_fault_tolerance_callbacks()
-
         self.trainer.callbacks.extend(_configure_external_callbacks())
         _validate_callbacks_list(self.trainer.callbacks)
 
@@ -187,14 +184,6 @@ class CallbackConnector:
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
-
-    def _configure_fault_tolerance_callbacks(self) -> None:
-        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
-
-        if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
-            raise RuntimeError("There should be only one fault-tolerance checkpoint callback.")
-        # don't use `log_dir` to minimize the chances of failure
-        self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
     def _attach_model_logging_functions(self) -> None:
         lightning_module = self.trainer.lightning_module

@@ -18,8 +18,11 @@ from lightning_fabric.utilities.exceptions import MisconfigurationException  # n
 class ExitGracefullyException(SystemExit):
     """Exception used when a ``signal.SIGTERM`` is sent to the process.
 
-    This signals Lightning to try to create a fault-tolerance checkpoint once the current batch or epoch is reached
-    (assuming it can be done under 30 sec). After the checkpoint is saved, Lightning will exit.
+    This exception is raised by the loops at specific points. It can be used to write custom logic in the
+    :meth:`pytorch_lightning.callbacks.callback.Callback.on_exception` method.
+
+    For example, you could use the :class:`pytorch_lightning.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
+    that saves a checkpoint for you when this exception is raised.
     """
 
 

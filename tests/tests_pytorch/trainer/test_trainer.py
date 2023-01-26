@@ -39,7 +39,7 @@ from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
-from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+from pytorch_lightning.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
@@ -695,7 +695,7 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
     mc = ModelCheckpoint()
     mc.best_model_path = "foobar"
     # manually create to simulate fault-tolerant training
-    ft_ckpt = _FaultToleranceCheckpoint(tmpdir)
+    ft_ckpt = OnExceptionCheckpoint(tmpdir)
     Path(ft_ckpt.ckpt_path).touch()
 
     trainer = Trainer(callbacks=[mc, ft_ckpt])
@@ -703,12 +703,12 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
 
     if ckpt_path == "last":
         ctxt = nullcontext()
-        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+        final_path = os.path.join(tmpdir, "on_exception.ckpt")
     elif fn == "fit":  # and ckpt_path == best
-        ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
-        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+        ctxt = pytest.warns(UserWarning, match="The last model of the previous `fit")
+        final_path = os.path.join(tmpdir, "on_exception.ckpt")
     else:  # ckpt_path == best and fn == validate
-        ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
+        ctxt = pytest.warns(UserWarning, match="There is also an on-exception checkpoint available")
         final_path = "foobar"
 
     with ctxt:
