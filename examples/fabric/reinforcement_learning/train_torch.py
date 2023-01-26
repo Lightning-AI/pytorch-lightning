@@ -34,17 +34,7 @@ from src.utils import layer_init, make_env, parse_args
 
 
 class PPOAgent(torch.nn.Module):
-    def __init__(
-        self,
-        envs: gym.vector.SyncVectorEnv,
-        act_fun: str = "relu",
-        ortho_init: bool = False,
-        vf_coef: float = 0.5,
-        ent_coef: float = 0.01,
-        clip_coef: float = 0.2,
-        clip_vloss: bool = False,
-        normalize_advantages: bool = False,
-    ) -> None:
+    def __init__(self, envs: gym.vector.SyncVectorEnv, act_fun: str = "relu", ortho_init: bool = False) -> None:
         super().__init__()
         if act_fun.lower() == "relu":
             act_fun = torch.nn.ReLU()
@@ -52,11 +42,6 @@ class PPOAgent(torch.nn.Module):
             act_fun = torch.nn.Tanh()
         else:
             raise ValueError("Unrecognized activation function: `act_fun` must be either `relu` or `tanh`")
-        self.vf_coef = vf_coef
-        self.ent_coef = ent_coef
-        self.clip_coef = clip_coef
-        self.clip_vloss = clip_vloss
-        self.normalize_advantages = normalize_advantages
         self.critic = torch.nn.Sequential(
             layer_init(
                 torch.nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64), ortho_init=ortho_init
@@ -258,16 +243,7 @@ def main(args: argparse.Namespace):
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent and the optimizer and setup them with Fabric
-    agent: PPOAgent = PPOAgent(
-        envs,
-        act_fun=args.activation_function,
-        vf_coef=args.vf_coef,
-        ent_coef=args.ent_coef,
-        clip_coef=args.clip_coef,
-        clip_vloss=args.clip_vloss,
-        ortho_init=args.ortho_init,
-        normalize_advantages=args.normalize_advantages,
-    ).to(device)
+    agent: PPOAgent = PPOAgent(envs, act_fun=args.activation_function, ortho_init=args.ortho_init).to(device)
     agent = DistributedDataParallel(
         agent,
         device_ids=[local_rank] if is_cuda_available else None,
