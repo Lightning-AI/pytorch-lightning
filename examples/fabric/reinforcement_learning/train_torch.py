@@ -24,13 +24,12 @@ import torch.distributed as distributed
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from src.loss import entropy_loss, policy_loss, value_loss
+from src.utils import layer_init, make_env, parse_args
 from torch.distributions.categorical import Categorical
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
-
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
 
 
 class PPOAgent(torch.nn.Module):
@@ -194,7 +193,7 @@ def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: arg
         cumulative_rew += reward
         next_obs = torch.Tensor(next_obs).to(device)
         step += 1
-    logger.add_scalar(f"Test/cumulative_reward", cumulative_rew, 0)
+    logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
     env.close()
 
 
