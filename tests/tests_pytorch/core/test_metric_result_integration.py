@@ -14,7 +14,6 @@
 import os
 import pickle
 from contextlib import suppress
-from copy import deepcopy
 from unittest import mock
 
 import pytest
@@ -28,7 +27,6 @@ from torchmetrics import Metric, MetricCollection
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
@@ -241,27 +239,7 @@ def test_result_collection_restoration(tmpdir):
 
             batch_log = result.metrics(on_step=True)["log"]
             assert set(batch_log) == {"a_step", "c", "a_1_step", "c_1"}
-
-            result_copy = deepcopy(result)
-            new_result = _ResultCollection(True, torch.device("cpu"))
-            state_dict = result.state_dict()
-            # check the sync fn was dropped
-            assert "fn" not in state_dict["items"]["training_step.a"]["meta"]["_sync"]
-
-            assert not new_result.result_metrics
             assert len(result.result_metrics) == 6 + epoch > 0
-
-            new_result.load_state_dict(
-                state_dict, metrics={"metric": metric, "metric_b": metric_b, "metric_c": metric_c}
-            )
-            # should match
-            assert result_copy == new_result
-            # the sync fn has been kept
-            assert result_copy["training_step.a"].meta.sync.fn == new_result["training_step.a"].meta.sync.fn
-
-        epoch_log = result.metrics(on_step=False)["log"]
-        epoch_log_copy = result_copy.metrics(on_step=False)["log"]
-        assert epoch_log == epoch_log_copy
 
         lightning_log("train_epoch_end", "a", metric_a, on_step=False, on_epoch=True)
         epoch_log = result.metrics(on_step=False)["log"]
@@ -287,69 +265,6 @@ def test_result_collection_restoration(tmpdir):
         assert metric_c.x == metric_c._defaults["x"]
 
         batch_idx = None
-
-
-@pytest.mark.parametrize(
-    "accelerator,device",
-    (
-        ("cpu", "cpu"),
-        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps", marks=RunIf(mps=True)),
-    ),
-)
-def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
-    class LoggingModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.metric = DummyMetric()
-
-        def validation_step(self, batch, batch_idx):
-            v = self.metric(batch_idx)
-            self.log_dict({"v": v, "m": self.metric})
-            return super().validation_step(batch, batch_idx)
-
-        def on_save_checkpoint(self, checkpoint) -> None:
-            results = self.trainer._results
-            # simplify logic
-            state_dict = results.state_dict(drop_value=False)
-
-            # check device
-            assert results["validation_step.v"].value.device.type == device
-            assert state_dict["items"]["validation_step.v"]["value"].device.type == device
-
-            # sync fn should be kept
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # sync fn dropped from the state dict
-            assert "fn" not in state_dict["items"]["validation_step.v"]["meta"]["_sync"]
-            results.load_state_dict(state_dict)
-
-            # check device after loading
-            assert results["validation_step.v"].value.device.type == device
-
-            # sync fn was preserved in the original result
-            assert results["validation_step.v"].meta.sync.fn == self.trainer.strategy.reduce
-
-            # default sync fn
-            new_results = _ResultCollection(False, device)
-            new_results.load_state_dict(state_dict, map_location="cpu")
-            assert new_results["validation_step.v"].meta.sync.fn is None
-
-            # check map location
-            assert new_results["validation_step.v"].value.device.type == "cpu"
-
-    model = LoggingModel()
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=False)
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        callbacks=[ckpt],
-        accelerator=accelerator,
-        devices=1,
-    )
-    trainer.fit(model)
 
 
 class DummyMeanMetric(Metric):
@@ -471,6 +386,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload(tmpdir):
+    # TODO: remove dict above after OnExceptionCheckpoint is merged
     result_collection_reload(default_root_dir=tmpdir)
 
 
