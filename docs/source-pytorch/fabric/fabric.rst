@@ -263,7 +263,8 @@ Examples
 
 .. displayitem::
     :header: Reinforcement Learning
-    :description: Coming soon
+    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
 
