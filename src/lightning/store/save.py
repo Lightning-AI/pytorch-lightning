@@ -290,7 +290,7 @@ def _download_and_extract_data_to(output_dir: str, download_url: str, progress_b
         _common_clean_up(output_dir)
 
 
-def get_linked_output_dir(src_dir: str):
+def _get_linked_output_dir(src_dir: str):
     # The last sub-folder will be our version
     version_folder_name = PurePath(src_dir).parts[-1]
 

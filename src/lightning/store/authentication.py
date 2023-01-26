@@ -24,13 +24,13 @@ from lightning.app.utilities.network import LightningClient
 _LIGHTNING_CLOUD_URL = get_lightning_cloud_url()
 
 
-def get_user_details():
+def _get_user_details():
     client = LightningClient()
     user_details = client.auth_service_get_user()
     return user_details.username, user_details.api_key
 
 
-def get_username_from_api_key(api_key: str):
+def _get_username_from_api_key(api_key: str):
     response = requests.get(url=f"{_LIGHTNING_CLOUD_URL}/v1/auth/user", auth=HTTPBasicAuth("lightning", api_key))
     if response.status_code != 200:
         raise ConnectionRefusedError(
@@ -48,7 +48,7 @@ def _check_browser_runnable():
     return True
 
 
-def authenticate(inp_api_key: str = ""):
+def _authenticate(inp_api_key: str = ""):
     # TODO: we have headless login now,
     #  so it could be reasonable to just point to that if browser can't be opened / user can't be authed
     if not inp_api_key:

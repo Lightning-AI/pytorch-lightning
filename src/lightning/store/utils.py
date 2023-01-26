@@ -45,13 +45,13 @@ def _split_name(name: str, version: str, l_stage: stage):
     return username, model_name, version
 
 
-def split_name(name: str, version: str, l_stage: stage):
+def _split_name(name: str, version: str, l_stage: stage):
     username, model_name, version = _split_name(name, version, l_stage)
 
     return username, model_name, version
 
 
-def get_model_data(name: str, version: str):
+def _get_model_data(name: str, version: str):
     username, model_name, version = split_name(name, version, stage.LOAD)
 
     if not os.path.exists(_LIGHTNING_STORAGE_FILE):
