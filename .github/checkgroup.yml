@@ -267,9 +267,10 @@ subprojects:
   - id: "lightning: Flagships"
     paths:
       - ".github/workflows/ci-flagship-apps.yml"
+      - "github/actions/prep-apps/action.yml"
       - "tests/integrations_app/flagship/**"
     checks:
-      - "app-flagships (flashy, Lightning-AI/LAI-Flashy-App)"
+      - "app-flagships (flashy, Lightning-Universe/Flashy-app)"
 
   - id: "lightning_app: Azure"
     paths:
