@@ -18,7 +18,6 @@ from torchmetrics import Metric
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BaseProgress
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 class _Loop:
@@ -79,20 +78,12 @@ class _Loop:
 
         destination[prefix + "state_dict"] = self.on_save_checkpoint()
 
-        # do not get the mode from `self.trainer` because it might not have been attached yet
-        ft_enabled = _fault_tolerant_training()
         for k, v in self.__dict__.items():
             key = prefix + k
             if isinstance(v, BaseProgress):
                 destination[key] = v.state_dict()
             elif isinstance(v, _Loop):
                 v.state_dict(destination, key + ".")
-            elif ft_enabled and isinstance(v, _ResultCollection):
-                # sync / unsync metrics
-                v.sync()
-                destination[key] = v.state_dict()
-                v.unsync()
-
         return destination
 
     def load_state_dict(

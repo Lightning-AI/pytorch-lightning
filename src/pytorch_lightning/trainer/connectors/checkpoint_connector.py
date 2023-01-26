@@ -33,7 +33,6 @@ from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.migration.utils import _pl_migrate_checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -533,24 +532,7 @@ class CheckpointConnector:
         self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
-        metrics = (
-            [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            if _fault_tolerant_training()
-            else []
-        )
-
-        for metric in metrics:
-            metric.persistent(True)
-            metric.sync()
-
-        state_dict = self.trainer.strategy.lightning_module_state_dict()
-
-        for metric in metrics:
-            # sync can be a no-op (e.g. on cpu) so `unsync` would raise a user error exception if we don't check
-            if metric._is_synced:
-                metric.unsync()
-
-        return state_dict
+        return self.trainer.strategy.lightning_module_state_dict()
 
     def _get_loops_state_dict(self) -> Dict[str, Any]:
         return {
