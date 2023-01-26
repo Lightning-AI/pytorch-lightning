@@ -49,6 +49,8 @@ def _check_browser_runnable():
 
 
 def authenticate(inp_api_key: str = ""):
+    # TODO: we have headless login now,
+    #  so it could be reasonable to just point to that if browser can't be opened / user can't be authed
     if not inp_api_key:
         if not _check_browser_runnable():
             raise ValueError(
