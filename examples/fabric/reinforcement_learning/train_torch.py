@@ -247,7 +247,7 @@ def main(args: argparse.Namespace):
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
-    # Define the agent and the optimizer and setup them with Fabric
+    # Define the agent and the optimizer and setup them with DistributedDataParallel
     agent: PPOAgent = PPOAgent(envs, act_fun=args.activation_function, ortho_init=args.ortho_init).to(device)
     agent = DistributedDataParallel(
         agent,
