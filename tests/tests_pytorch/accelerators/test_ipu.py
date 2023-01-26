@@ -24,10 +24,9 @@ from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import IPUPrecisionPlugin
-from pytorch_lightning.strategies.ipu import IPUStrategy
+from pytorch_lightning.strategies.ipu import _IPU_AVAILABLE, IPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf

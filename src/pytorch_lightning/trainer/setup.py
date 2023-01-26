@@ -33,7 +33,8 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.utilities import _HPU_AVAILABLE, _IPU_AVAILABLE
+from pytorch_lightning.strategies.ipu import _IPU_AVAILABLE
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 

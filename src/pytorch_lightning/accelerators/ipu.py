@@ -17,7 +17,7 @@ import torch
 
 from lightning_fabric.utilities.types import _DEVICE
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.imports import _IPU_AVAILABLE
+from pytorch_lightning.strategies.ipu import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
