@@ -155,6 +155,11 @@ class DDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
+    def get_module_state_dict(self, module: Module) -> Dict[str, Union[Any, Tensor]]:
+        if isinstance(module, DistributedDataParallel):
+            module = module.module
+        return super().get_module_state_dict(module)
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         entries = (
