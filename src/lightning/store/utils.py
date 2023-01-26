@@ -15,6 +15,7 @@
 import json
 import os
 from enum import Enum
+from typing import Tuple
 
 from lightning.store.save import _LIGHTNING_STORAGE_FILE
 
@@ -35,18 +36,12 @@ def _check_version(version: str) -> bool:
     return True
 
 
-def _split_name(name: str, version: str, l_stage: stage):
+def _split_name(name: str, version: str, l_stage: stage) -> Tuple[str, str, str]:
     if l_stage == stage.UPLOAD:
         username = ""
         model_name = name
     else:
         username, model_name = name.split("/")
-
-    return username, model_name, version
-
-
-def _split_name(name: str, version: str, l_stage: stage):
-    username, model_name, version = _split_name(name, version, l_stage)
 
     return username, model_name, version
 
