@@ -46,6 +46,10 @@ class HyperparametersMixin:
             frame: a frame object. Default is None
             logger: Whether to send the hyperparameters to the logger. Default: True
 
+        Raises:
+            RuntimeError:
+                Raises RuntimeError if this method is not called from the ``__init__`` method.
+
         Example::
             >>> from pytorch_lightning.core.mixins import HyperparametersMixin
             >>> class ManuallyArgsModel(HyperparametersMixin):
@@ -107,6 +111,19 @@ class HyperparametersMixin:
             current_frame = inspect.currentframe()
             if current_frame:
                 frame = current_frame.f_back
+                # enforce that save_hyperparameters method is called from init of LightningModule.
+                if not (
+                    frame.f_code.co_name == "__init__"
+                    and "self" in frame.f_locals
+                    and isinstance(frame.f_locals["self"], HyperparametersMixin)
+                ):
+                    called_from_fn = (
+                        f"{frame.f_locals['self'].__class__.__name__}." if "self" in frame.f_locals else ""
+                    ) + f"{frame.f_code.co_name}"
+                    raise RuntimeError(
+                        "The `save_hyperparameters` method must be called from the `LightningModule.__init__` method, "
+                        + f"but was called from `{called_from_fn}` instead."
+                    )
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:

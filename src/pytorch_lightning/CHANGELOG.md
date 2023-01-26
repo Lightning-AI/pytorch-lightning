@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
--
+- The `LightningModule.save_hyperparameters` method now asserts that it is called properly. Calls from outside the `LightningModule.__init__` method will result in a `RuntimeError` to protect checkpointing functionality.
 
 
 ### Added
