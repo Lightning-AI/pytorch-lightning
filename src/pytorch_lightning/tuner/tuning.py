@@ -11,16 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 
-from typing_extensions import Literal, NotRequired, TypedDict
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
-from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -36,6 +34,7 @@ class Tuner:
 
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
+
     #
     # def _tune(
     #     self,
@@ -293,7 +292,6 @@ def _check_tuner_configuration(
             )
 
     # TODO:
-    configured_callbacks = []
     # for cb in trainer.callbacks:
     #     if isinstance(cb, BatchSizeFinder) and trainer.auto_scale_batch_size:
     #         configured_callbacks.append("BatchSizeFinder")

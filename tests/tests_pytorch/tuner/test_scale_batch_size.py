@@ -66,9 +66,7 @@ def test_scale_batch_size_method_with_model_or_datamodule(tmpdir, model_bs, dm_b
     datamodule = BatchSizeDataModule(dm_bs) if dm_bs != -1 else None
 
     tuner = Tuner(trainer)
-    new_batch_size = tuner.scale_batch_size(
-        model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule
-    )
+    new_batch_size = tuner.scale_batch_size(model, mode="binsearch", init_val=4, max_trials=2, datamodule=datamodule)
     assert new_batch_size == 16
 
     if model_bs is not None:
@@ -128,9 +126,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """Test possible values for 'batch size auto scaling' Trainer argument."""
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=1
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="gpu", devices=1)
     tuner = Tuner(trainer)
     tuner.scale_batch_size(model)
     after_batch_size = model.batch_size
@@ -258,9 +254,7 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
 def test_auto_scale_batch_size_with_amp(tmpdir):
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=1, precision=16
-    )
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=1, precision=16)
     tuner = Tuner(trainer)
     tuner.scale_batch_size(model)
     after_batch_size = model.batch_size
@@ -332,9 +326,7 @@ def test_tuner_with_evaluation_methods(tmpdir, trainer_fn):
     model = BatchSizeModel(batch_size=before_batch_size)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=100)
     tuner = Tuner(trainer)
-    tuner.scale_batch_size(
-        model, max_trials=max_trials, batch_arg_name="batch_size", method=trainer_fn
-    )
+    tuner.scale_batch_size(model, max_trials=max_trials, batch_arg_name="batch_size", method=trainer_fn)
 
     after_batch_size = model.batch_size
     loop = getattr(trainer, f"{trainer_fn}_loop")
