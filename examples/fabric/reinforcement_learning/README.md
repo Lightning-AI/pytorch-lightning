@@ -5,7 +5,7 @@ This is an example of a Reinforcement Learning algorithm called [Proximal Policy
 The goal of Reinforcement Learning is to learn intelligent agents that are able to act in their surrounding environment maximizing the cumulative reward received by it. This can be depicted in the following figure:
 
 <p align="center">
-  <img src="images/reinforcement.png">
+  <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/examples/fabric/reinforcement-learning/reinforcement.png">
 </p>
 
 PPO is one of such algorithms, which alternates between sampling data through interaction with the environment, and optimizing a
