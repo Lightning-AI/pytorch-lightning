@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0")
+_MLFLOW_AVAILABLE = RequirementCache("mlflow>=1.0.0") or RequirementCache("mlflow-skinny>=1.0.0")
 if _MLFLOW_AVAILABLE:
     from mlflow.entities import Metric, Param
     from mlflow.tracking import context, MlflowClient
