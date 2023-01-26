@@ -35,6 +35,7 @@ from torch.utils.data.dataset import Dataset, IterableDataset
 
 from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -830,6 +831,7 @@ def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, m
         enable_progress_bar=False,
         enable_model_summary=False,
         multiple_trainloader_mode=multiple_trainloader_mode,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     all_batches, weights0 = _run_training(trainer_kwargs, dataset_classes)
