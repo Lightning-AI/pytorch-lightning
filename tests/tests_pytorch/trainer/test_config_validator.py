@@ -145,7 +145,7 @@ def test_raise_exception_with_batch_transfer_hooks(monkeypatch, hook, trainer_kw
     elif trainer_kwargs.get("accelerator") == "ipu":
         match_pattern = rf"Overriding `{hook}` is not .* with IPUs"
         monkeypatch.setattr(pl.accelerators.ipu.IPUAccelerator, "is_available", lambda: True)
-        monkeypatch.setattr(pl.accelerators.ipu, "_IPU_AVAILABLE", lambda: True)
+        monkeypatch.setattr(pl.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
 
     def custom_method(self, batch, *_, **__):
         batch = batch + 1

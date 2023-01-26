@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Sampler
 import pytorch_lightning as pl
 from lightning_fabric.plugins import CheckpointIO, ClusterEnvironment
 from lightning_fabric.utilities.cloud_io import get_filesystem
-from pytorch_lightning.accelerators.ipu import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
+from pytorch_lightning.accelerators.ipu import _IPU_AVAILABLE, poptorch
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
@@ -35,9 +35,6 @@ from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwarg
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-if _POPTORCH_AVAILABLE:
-    import poptorch
 
 
 class IPUStrategy(ParallelStrategy):
