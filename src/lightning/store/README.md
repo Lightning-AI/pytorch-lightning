@@ -48,7 +48,7 @@ L.store.download_from_cloud(
     "krshrimali/unique_model_mnist",
     output_dir="your_output_dir",
 )
-# OR: (default to model_storage 
+# OR: (default to model_storage
 #        $HOME
 #         |- .lightning
 #         |  |- model_store
@@ -71,10 +71,7 @@ model = L.store.load_model("<username>/<model_name>>", version="version")  # ver
 
 # OR: load weights or checkpoint (if they were uploaded)
 L.store.load_model(
-    "<username>/<model_name>",
-    version="version",
-    load_weights=True|False,
-    load_checkpoint=True|False
+    "<username>/<model_name>", version="version", load_weights=True | False, load_checkpoint=True | False
 )
 print(model)
 ```
