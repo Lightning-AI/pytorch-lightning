@@ -1,4 +1,3 @@
-import os
 from time import sleep
 
 import pytest
@@ -74,6 +73,6 @@ def validate_app_functionalities(app_page: "Page") -> None:
 
 @pytest.mark.cloud
 def test_app_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PATH_INTEGRATIONS_DIR, "flashy")) as (admin_page, view_page, fetch_logs, _):
+    with run_app_in_cloud(_PATH_INTEGRATIONS_DIR) as (admin_page, view_page, fetch_logs, _):
 
         validate_app_functionalities(view_page)

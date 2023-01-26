@@ -246,6 +246,7 @@ subprojects:
       - ".github/workflows/ci-examples-app.yml"
       - "src/lightning_app/**"
       - "tests/integrations_app/**"
+      - "!tests/integrations_app/flagship/**"
       - "examples/app_*/**"
       - "requirements/app/**"
       - "setup.py"
@@ -263,6 +264,13 @@ subprojects:
       - "app-examples (windows-2022, app, 3.9, oldest)"
       - "app-examples (windows-2022, lightning, 3.9, latest)"
 
+  - id: "lightning: Flagships"
+    paths:
+      - ".github/workflows/ci-flagship-apps.yml"
+      - "tests/integrations_app/flagship/**"
+    checks:
+      - "app-flagships (flashy, Lightning-AI/LAI-Flashy-App)"
+
   - id: "lightning_app: Azure"
     paths:
       - ".actions/**"
@@ -270,6 +278,7 @@ subprojects:
       - "src/lightning_app/**"
       - "requirements/app/**"
       - "tests/integrations_app/**"
+      - "!tests/integrations_app/flagship/**"
       - "setup.py"
       - "!requirements/*/docs.txt"
       - "!*.md"
