@@ -99,7 +99,7 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "lightning_app.components.multi_node.lite",
+    "lightning_app.components.multi_node.fabric",
     "lightning_app.components.multi_node.base",
     "lightning_app.components.multi_node.pytorch_spawn",
     "lightning_app.components.multi_node.trainer",
@@ -209,7 +209,13 @@ norecursedirs = [
     "build",
     "docs",
 ]
-addopts = "--strict-markers --doctest-modules --color=yes --disable-pytest-warnings --ignore=legacy/checkpoints"
+addopts = [
+    "--strict-markers",
+    "--doctest-modules",
+    "--color=yes",
+    "--disable-pytest-warnings",
+    "--ignore=legacy/checkpoints",
+]
 markers = [
     "cloud:Run the cloud tests for example",
 ]

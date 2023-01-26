@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,14 @@
 # limitations under the License.
 import logging
 import os
+import re
 from argparse import Namespace
 from typing import Any, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.accelerators import CPUAccelerator, CUDAAccelerator, MPSAccelerator
+from lightning_fabric.strategies import STRATEGY_REGISTRY
 from lightning_fabric.utilities.device_parser import _parse_gpu_ids
 
 _log = logging.getLogger(__name__)
@@ -26,8 +28,16 @@ _log = logging.getLogger(__name__)
 _CLICK_AVAILABLE = RequirementCache("click")
 
 _SUPPORTED_ACCELERATORS = ("cpu", "gpu", "cuda", "mps", "tpu")
-_SUPPORTED_STRATEGIES = ("ddp", "dp", "deepspeed")
 _SUPPORTED_PRECISION = ("64", "32", "16", "bf16")
+
+
+def _get_supported_strategies() -> List[str]:
+    """Returns strategy choices from the registry, with the ones removed that are incompatible to be launched from
+    the CLI or ones that require further configuration by the user."""
+    available_strategies = STRATEGY_REGISTRY.available_strategies()
+    excluded = r".*(spawn|fork|notebook|xla|tpu|offload).*"
+    return [strategy for strategy in available_strategies if not re.match(excluded, strategy)]
+
 
 if _CLICK_AVAILABLE:
     import click
@@ -50,7 +60,7 @@ if _CLICK_AVAILABLE:
     )
     @click.option(
         "--strategy",
-        type=click.Choice(_SUPPORTED_STRATEGIES),
+        type=click.Choice(_get_supported_strategies()),
         default=None,
         help="Strategy for how to run across multiple devices.",
     )

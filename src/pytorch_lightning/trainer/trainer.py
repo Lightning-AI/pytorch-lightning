@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,13 +60,7 @@ from pytorch_lightning.loops.fit_loop import _FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
 from pytorch_lightning.plugins import PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.profilers import Profiler
-from pytorch_lightning.strategies import (
-    DDPFullyShardedNativeStrategy,
-    DDPStrategy,
-    ParallelStrategy,
-    SingleDeviceStrategy,
-    Strategy,
-)
+from pytorch_lightning.strategies import DDPStrategy, FSDPStrategy, ParallelStrategy, SingleDeviceStrategy, Strategy
 from pytorch_lightning.trainer import call, setup
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import (
@@ -166,7 +160,7 @@ class Trainer:
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps, "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps", "auto")
                 as well as custom accelerator instances.
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
@@ -898,7 +892,7 @@ class Trainer:
         self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
     ) -> Optional[Union[_EVALUATE_OUTPUT, _PREDICT_OUTPUT]]:
         if model._compiler_ctx is not None:
-            supported_strategies = [SingleDeviceStrategy, DDPStrategy, DDPFullyShardedNativeStrategy]
+            supported_strategies = [SingleDeviceStrategy, DDPStrategy, FSDPStrategy]
             if self.strategy is not None and not any(isinstance(self.strategy, s) for s in supported_strategies):
                 supported_strategy_names = ", ".join(s.__name__ for s in supported_strategies)
                 raise RuntimeError(

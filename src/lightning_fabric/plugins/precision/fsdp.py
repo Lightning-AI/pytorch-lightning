@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ from typing import Optional, TYPE_CHECKING
 import torch
 from typing_extensions import Literal
 
-from lightning_fabric.plugins.precision.native_amp import MixedPrecision
+from lightning_fabric.plugins.precision.amp import MixedPrecision
 from lightning_fabric.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 if TYPE_CHECKING:

@@ -166,7 +166,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 
 # precision = 16 not yet working properly with mps backend
 @pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
-def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
+def test_multiple_optimizers_manual_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None
 
