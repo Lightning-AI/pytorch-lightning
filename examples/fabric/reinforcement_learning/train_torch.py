@@ -24,12 +24,13 @@ import torch.distributed as distributed
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
 from torch.distributions.categorical import Categorical
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
+
+from src.loss import entropy_loss, policy_loss, value_loss
+from src.utils import layer_init, make_env, parse_args
 
 
 class PPOAgent(torch.nn.Module):
@@ -38,6 +39,11 @@ class PPOAgent(torch.nn.Module):
         envs: gym.vector.SyncVectorEnv,
         act_fun: str = "relu",
         ortho_init: bool = False,
+        vf_coef: float = 0.5,
+        ent_coef: float = 0.01,
+        clip_coef: float = 0.2,
+        clip_vloss: bool = False,
+        normalize_advantages: bool = False,
     ) -> None:
         super().__init__()
         if act_fun.lower() == "relu":
@@ -46,6 +52,11 @@ class PPOAgent(torch.nn.Module):
             act_fun = torch.nn.Tanh()
         else:
             raise ValueError("Unrecognized activation function: `act_fun` must be either `relu` or `tanh`")
+        self.vf_coef = vf_coef
+        self.ent_coef = ent_coef
+        self.clip_coef = clip_coef
+        self.clip_vloss = clip_vloss
+        self.normalize_advantages = normalize_advantages
         self.critic = torch.nn.Sequential(
             layer_init(
                 torch.nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64), ortho_init=ortho_init
@@ -187,7 +198,7 @@ def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: arg
     step = 0
     done = False
     cumulative_rew = 0
-    next_obs = torch.Tensor(env.reset(seed=args.seed)[0], device=device)
+    next_obs = torch.Tensor(env.reset(seed=args.seed)[0]).to(device)
     while not done:
         # Act greedly through the environment
         action = agent.module.get_greedy_action(next_obs)
@@ -196,20 +207,23 @@ def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: arg
         next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
         done = np.logical_or(done, truncated)
         cumulative_rew += reward
-        next_obs = torch.Tensor(next_obs, device=device)
+        next_obs = torch.Tensor(next_obs).to(device)
         step += 1
-    logger.add_scalar("Test/cumulative_reward", cumulative_rew, 0)
+    logger.add_scalar(f"Test/cumulative_reward", cumulative_rew, 0)
     env.close()
 
 
 def main(args: argparse.Namespace):
     # Init distributed environment
-    backend = "nccl" if torch.cuda.is_available() else "gloo"
+    is_cuda_available = torch.cuda.is_available()
+    backend = "nccl" if is_cuda_available else "gloo"
     local_rank = int(os.environ["LOCAL_RANK"])
     global_rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
-    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
-    os.environ["MASTER_ADDR"] = "127.0.0.1"
+    if is_cuda_available:
+        torch.cuda.set_device(local_rank)
+    device = torch.device(f"cuda:{local_rank}" if is_cuda_available else "cpu")
+    os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "12345"
     distributed.init_process_group(backend=backend)
 
@@ -244,8 +258,21 @@ def main(args: argparse.Namespace):
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # Define the agent and the optimizer and setup them with Fabric
-    agent: PPOAgent = PPOAgent(envs, act_fun=args.activation_function, ortho_init=args.ortho_init)
-    agent = DistributedDataParallel(agent).to(device)
+    agent: PPOAgent = PPOAgent(
+        envs,
+        act_fun=args.activation_function,
+        vf_coef=args.vf_coef,
+        ent_coef=args.ent_coef,
+        clip_coef=args.clip_coef,
+        clip_vloss=args.clip_vloss,
+        ortho_init=args.ortho_init,
+        normalize_advantages=args.normalize_advantages,
+    ).to(device)
+    agent = DistributedDataParallel(
+        agent,
+        device_ids=[local_rank] if is_cuda_available else None,
+        output_device=local_rank if is_cuda_available else None,
+    )
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # Local data
@@ -263,7 +290,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_step
 
     # Get the first environment observation and start the optimization
-    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0], device=device)
+    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0]).to(device)
     next_done = torch.zeros(args.per_rank_num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
@@ -290,7 +317,7 @@ def main(args: argparse.Namespace):
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = np.logical_or(done, truncated)
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs, device=device), torch.Tensor(done, device=device)
+            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
             if global_rank == 0 and "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
@@ -330,7 +357,9 @@ def main(args: argparse.Namespace):
         processed_gathered_data = gathered_data[0]
         for i in range(1, len(gathered_data)):
             for k in processed_gathered_data.keys():
-                processed_gathered_data[k] = torch.cat((processed_gathered_data[k], gathered_data[i][k]), dim=0)
+                processed_gathered_data[k] = torch.cat(
+                    (processed_gathered_data[k].to(device), gathered_data[i][k].to(device)), dim=0
+                )
 
         # Train the agent
         train(agent, optimizer, processed_gathered_data, logger, global_step, args)

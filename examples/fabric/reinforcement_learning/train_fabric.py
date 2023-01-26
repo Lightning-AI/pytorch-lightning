@@ -20,15 +20,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
+from lightning.fabric import Fabric
+from lightning.fabric.loggers import TensorBoardLogger
+from lightning.pytorch import LightningModule
 from torch.distributions import Categorical
 from torch.utils.data import BatchSampler, DistributedSampler
 from torchmetrics import MeanMetric
 
-from lightning.fabric import Fabric
-from lightning.fabric.loggers import TensorBoardLogger
-from lightning.pytorch import LightningModule
+from src.loss import entropy_loss, policy_loss, value_loss
+from src.utils import layer_init, make_env, parse_args
 
 
 class PPOLightningAgent(LightningModule):
@@ -206,14 +206,13 @@ def train(
 @torch.no_grad()
 def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, args: argparse.Namespace):
     device = fabric.device
-    agent_id = fabric.global_rank
     env = make_env(
         args.env_id, args.seed + fabric.global_rank, fabric.global_rank, args.capture_video, logger.log_dir
     )()
     step = 0
     done = False
     cumulative_rew = 0
-    next_obs = torch.Tensor(env.reset(seed=args.seed)[0], device=device)
+    next_obs = torch.Tensor(env.reset(seed=args.seed)[0]).to(device)
     while not done:
         # Act greedly through the environment
         action = agent.get_greedy_action(next_obs)
@@ -222,9 +221,9 @@ def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, ar
         next_obs, reward, done, truncated, info = env.step(action.cpu().numpy())
         done = np.logical_or(done, truncated)
         cumulative_rew += reward
-        next_obs = torch.Tensor(next_obs, device=device)
+        next_obs = torch.Tensor(next_obs).to(device)
         step += 1
-    fabric.log(f"Test/cumulative_reward_agent_{agent_id}", cumulative_rew, 0)
+    fabric.log(f"Test/cumulative_reward", cumulative_rew, 0)
     env.close()
 
 
@@ -283,7 +282,7 @@ def main(args: argparse.Namespace):
     num_updates = args.total_timesteps // single_global_rollout
 
     # Get the first environment observation and start the optimization
-    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0], device=device)
+    next_obs = torch.Tensor(envs.reset(seed=args.seed)[0]).to(device)
     next_done = torch.zeros(args.per_rank_num_envs, device=device)
     for update in range(1, num_updates + 1):
         # Learning rate annealing
@@ -309,7 +308,7 @@ def main(args: argparse.Namespace):
             next_obs, reward, done, truncated, info = envs.step(action.cpu().numpy())
             done = np.logical_or(done, truncated)
             rewards[step] = torch.tensor(reward, device=device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs, device=device), torch.Tensor(done, device=device)
+            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(done).to(device)
 
             if "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
