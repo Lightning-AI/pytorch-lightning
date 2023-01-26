@@ -931,6 +931,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
             max_epochs=1,
             val_check_interval=val_check_interval,
             num_sanity_val_steps=0,
+            callbacks=OnExceptionCheckpoint(tmpdir),
         )
         if should_fail:
             with pytest.raises(CustomException):
@@ -1008,6 +1009,7 @@ def _fit_model(
         limit_val_batches=4,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
+        callbacks=OnExceptionCheckpoint(tmpdir),
     )
 
     class ExitGracefullyException(Exception):
@@ -1463,7 +1465,12 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel(should_fail=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=val_check_interval,
+        callbacks=OnExceptionCheckpoint(tmpdir),
+    )
     with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
