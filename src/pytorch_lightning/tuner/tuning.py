@@ -221,7 +221,7 @@ def _check_lr_find_configuration(trainer: "pl.Trainer"):
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
     if configured_callbacks:
         raise ValueError(
-            f"Trainer is already configured with a `LearningRateFinder` callback."
+            "Trainer is already configured with a `LearningRateFinder` callback."
             "Please remove it if you want to use the Tuner."
         )
 
