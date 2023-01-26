@@ -32,9 +32,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {app: "flashy", repo: "Lightning-AI/LAI-Flashy-App"}
-          - {app: "muse", repo: "Lightning-AI/stable-diffusion-deploy"}
-          - {app: "jupyter", repo: "Lightning-AI/LAI-Jupyter-Component"}
+          - {app: "flashy", repo: "Lightning-Universe/Flashy-app"}
+          - {app: "muse", repo: "Lightning-Universe/stable-diffusion-deploy"}
+          - {app: "jupyter", repo: "Lightning-Universe/Jupyter-component"}
 
           # TODO:
           # - Training Studio
