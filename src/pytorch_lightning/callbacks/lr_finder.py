@@ -22,6 +22,7 @@ from typing import Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
 
@@ -94,9 +95,10 @@ class LearningRateFinder(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
 
-        self.optimal_lr: Optional[_LRFinder] = None
+        self._early_exit = False
+        self.lr_finder: Optional[_LRFinder] = None
 
-    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Optional[_LRFinder]:
+    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         with isolate_rng():
             self.optimal_lr = lr_find(
                 trainer,
@@ -108,7 +110,9 @@ class LearningRateFinder(Callback):
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
             )
-        return self.optimal_lr
+
+        if self._early_exit:
+            raise _TunerExitException()
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.lr_find(trainer, pl_module)
