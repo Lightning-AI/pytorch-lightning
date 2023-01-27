@@ -28,7 +28,7 @@ ___________________
     ~serve.python_server.PythonServer
     ~serve.streamlit.ServeStreamlit
     ~multi_node.base.MultiNode
-    ~multi_node.lite.LiteMultiNode
+    ~multi_node.fabric.FabricMultiNode
     ~multi_node.pytorch_spawn.PyTorchSpawnMultiNode
     ~multi_node.trainer.LightningTrainerMultiNode
     ~serve.auto_scaler.AutoScaler

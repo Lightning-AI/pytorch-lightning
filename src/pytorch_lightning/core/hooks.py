@@ -217,7 +217,7 @@ class ModelHooks:
         """Called before ``loss.backward()``.
 
         Args:
-            loss: Loss divided by number of batches for gradient accumulation and scaled if using native AMP.
+            loss: Loss divided by number of batches for gradient accumulation and scaled if using AMP.
         """
         pass
 
@@ -235,7 +235,7 @@ class ModelHooks:
         If using gradient accumulation, the hook is called once the gradients have been accumulated.
         See: :paramref:`~pytorch_lightning.trainer.Trainer.accumulate_grad_batches`.
 
-        If using native AMP, the loss will be unscaled before calling this hook.
+        If using AMP, the loss will be unscaled before calling this hook.
         See these `docs <https://pytorch.org/docs/stable/notes/amp_examples.html#working-with-unscaled-gradients>`__
         for more information on the scaling of gradients.
 

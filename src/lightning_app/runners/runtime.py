@@ -1,3 +1,17 @@
+# Copyright The Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import multiprocessing
 import os
 import sys
@@ -72,7 +86,7 @@ def dispatch(
 
     runtime = runtime_cls(
         app=app,
-        entrypoint_file=entrypoint_file,
+        entrypoint=entrypoint_file,
         start_server=start_server,
         host=host,
         port=port,
@@ -90,8 +104,8 @@ def dispatch(
 
 @dataclass
 class Runtime:
-    app: LightningApp
-    entrypoint_file: Optional[Path] = None
+    app: Optional[LightningApp] = None
+    entrypoint: Optional[Path] = None
     start_server: bool = True
     host: str = APP_SERVER_HOST
     port: int = APP_SERVER_PORT
@@ -107,9 +121,10 @@ class Runtime:
 
     def __post_init__(self):
         if isinstance(self.backend, str):
-            self.backend = BackendType(self.backend).get_backend(self.entrypoint_file)
+            self.backend = BackendType(self.backend).get_backend(self.entrypoint)
 
-        LightningFlow._attach_backend(self.app.root, self.backend)
+        if self.app is not None:
+            LightningFlow._attach_backend(self.app.root, self.backend)
 
     def terminate(self) -> None:
         """This method is used to terminate all the objects (threads, processes, etc..) created by the app."""

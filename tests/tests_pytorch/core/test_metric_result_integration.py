@@ -28,7 +28,7 @@ from torchmetrics import Metric, MetricCollection
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
@@ -369,7 +369,7 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator="auto", devices=1, **kwargs):
+def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **kwargs):
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
 
@@ -449,6 +449,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         "devices": devices,
         "enable_progress_bar": False,
         "enable_model_summary": False,
+        "default_root_dir": default_root_dir,
+        "callbacks": OnExceptionCheckpoint(default_root_dir),
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -462,7 +464,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)

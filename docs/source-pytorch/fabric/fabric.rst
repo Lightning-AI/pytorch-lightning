@@ -3,7 +3,7 @@ Fabric (Beta)
 #############
 
 Fabric allows you to scale any PyTorch model with just a few lines of code!
-With Fabric you can easily scale your model to run on distributed devices using the strategy of your choice, while keeping full control over the training loop and optimization logic.
+With Fabric, you can easily scale your model to run on distributed devices using the strategy of your choice while keeping complete control over the training loop and optimization logic.
 
 With only a few changes to your code, Fabric allows you to:
 
@@ -13,7 +13,7 @@ With only a few changes to your code, Fabric allows you to:
 - State-of-the-art distributed training strategies (DDP, FSDP, DeepSpeed)
 - Easy-to-use launch command for spawning processes (DDP, torchelastic, etc)
 - Multi-node support (TorchElastic, SLURM, and more)
-- You keep full control of your training loop
+- You keep complete control of your training loop
 
 
 .. code-block:: diff
@@ -263,7 +263,8 @@ Examples
 
 .. displayitem::
     :header: Reinforcement Learning
-    :description: Coming soon
+    :description: Implementation of the Proximal Policy Optimization (PPO) algorithm with multi-GPU support
+    :button_link: https://github.com/Lightning-AI/lightning/blob/master/examples/fabric/reinforcement_learning
     :col_css: col-md-4
     :height: 150
 

@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import pytorch_lightning as pl
 from lightning_fabric.utilities.types import LRScheduler
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy
+from pytorch_lightning.strategies.fsdp import FSDPStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
@@ -146,7 +146,7 @@ class StochasticWeightAveraging(Callback):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: str) -> None:
-        if isinstance(trainer.strategy, (DDPFullyShardedNativeStrategy, DeepSpeedStrategy)):
+        if isinstance(trainer.strategy, (FSDPStrategy, DeepSpeedStrategy)):
             raise MisconfigurationException("SWA does not currently support sharded models.")
 
         # copy the model before moving it to accelerator device.

@@ -9,7 +9,7 @@ seed_everything
 ===============
 
 This function sets the random seed in important libraries.
-In a single line of code, you can seed torch, numpy and Python:
+In a single line of code, you can seed PyTorch, NumPy, and Python:
 
 .. code-block:: diff
 
@@ -33,7 +33,7 @@ The same is also available as a method on the Fabric object if you don't want to
     fabric.seed_everything(42)
 
 
-In distributed settings, you may need to set a different seed per process depending on the application.
+In distributed settings, you may need to set a different seed per process, depending on the application.
 For example, when generating noise or data augmentations. This is very straightforward:
 
 .. code-block:: python

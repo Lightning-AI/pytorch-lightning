@@ -20,7 +20,6 @@ from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
-from re import escape
 from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
@@ -39,11 +38,10 @@ from lightning_fabric.utilities.seed import seed_everything
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
-from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+from pytorch_lightning.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.demos.boring_classes import (
-    BoringDataModule,
     BoringModel,
     RandomDataset,
     RandomIterableDataset,
@@ -70,13 +68,9 @@ def test_trainer_error_when_input_not_lightning_module():
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
-        with pytest.raises(TypeError, match=escape(f"`Trainer.{method}()` requires a `LightningModule`, got: Linear")):
+        with pytest.raises(TypeError, match="must be a `LightningModule`.*got `Linear"):
             run_method = getattr(trainer, method)
             run_method(nn.Linear(2, 2))
-
-    trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True)
-    with pytest.raises(TypeError, match=escape("`Trainer.tune()` requires a `LightningModule`, got: Linear")):
-        trainer.tune(nn.Linear(2, 2))
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -695,7 +689,7 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
     mc = ModelCheckpoint()
     mc.best_model_path = "foobar"
     # manually create to simulate fault-tolerant training
-    ft_ckpt = _FaultToleranceCheckpoint(tmpdir)
+    ft_ckpt = OnExceptionCheckpoint(tmpdir)
     Path(ft_ckpt.ckpt_path).touch()
 
     trainer = Trainer(callbacks=[mc, ft_ckpt])
@@ -703,12 +697,12 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
 
     if ckpt_path == "last":
         ctxt = nullcontext()
-        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+        final_path = os.path.join(tmpdir, "on_exception.ckpt")
     elif fn == "fit":  # and ckpt_path == best
-        ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
-        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+        ctxt = pytest.warns(UserWarning, match="The last model of the previous `fit")
+        final_path = os.path.join(tmpdir, "on_exception.ckpt")
     else:  # ckpt_path == best and fn == validate
-        ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
+        ctxt = pytest.warns(UserWarning, match="There is also an on-exception checkpoint available")
         final_path = "foobar"
 
     with ctxt:
@@ -851,7 +845,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             # ckpt_path is None with no model provided means load the best weights
             with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
                 trainer_fn(ckpt_path=ckpt_path)
-                assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -1784,15 +1778,12 @@ def test_module_current_fx_attributes_reset(tmpdir):
     assert model._current_fx_name is None
 
 
-def test_exception_when_lightning_module_is_not_set_on_trainer():
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_exception_when_lightning_module_is_not_set_on_trainer(fn):
     trainer = Trainer()
-
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*validate"):
-        trainer.validate()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*test"):
-        trainer.test()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
-        trainer.predict()
+    trainer_fn = getattr(trainer, fn)
+    with pytest.raises(TypeError, match=rf"{fn}\(\)` requires a `LightningModule"):
+        trainer_fn()
 
 
 @RunIf(min_cuda_gpus=1)
@@ -2136,37 +2127,53 @@ def test_trainer_calls_logger_finalize_on_exception(tmpdir):
     logger.finalize.assert_called_once_with("failed")
 
 
-# TODO: replace with 2.0 when it is released
-@RunIf(min_torch="1.14.0.dev20221202")
-def test_trainer_compiled_model():
+@RunIf(min_torch="2.0.0")
+def test_trainer_compiled_model(tmp_path, monkeypatch):
+    trainer_kwargs = {
+        "default_root_dir": tmp_path,
+        "fast_dev_run": True,
+        "logger": False,
+        "enable_checkpointing": False,
+        "enable_model_summary": False,
+        "enable_progress_bar": False,
+    }
+
     model = BoringModel()
+    compiled_model = torch.compile(model)
+    assert model._compiler_ctx is compiled_model._compiler_ctx  # shared reference
 
-    model = torch.compile(model)
-
-    data = BoringDataModule()
-
-    trainer = Trainer(
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-    )
-    trainer.fit(model, data)
-
+    # can train with compiled model
+    trainer = Trainer(**trainer_kwargs)
+    trainer.fit(compiled_model)
     assert trainer.model._compiler_ctx["compiler"] == "dynamo"
 
-    model = model.to_uncompiled()
-
+    # the compiled model can be uncompiled
+    to_uncompiled_model = BoringModel.to_uncompiled(compiled_model)
     assert model._compiler_ctx is None
+    assert compiled_model._compiler_ctx is None
+    assert to_uncompiled_model._compiler_ctx is None
 
+    # the compiled model needs to be passed
+    with pytest.raises(ValueError, match="required to be a compiled LightningModule"):
+        BoringModel.to_uncompiled(to_uncompiled_model)
+
+    # the uncompiled model can be fitted
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
-
     assert trainer.model._compiler_ctx is None
 
-    model = torch.compile(model)
-
-    trainer = Trainer(fast_dev_run=True, strategy="fsdp_native")
+    # some strategies do not support it
+    compiled_model = torch.compile(model)
+    mock_cuda_count(monkeypatch, 1)
+    trainer = Trainer(strategy="dp", accelerator="cuda", **trainer_kwargs)
     with pytest.raises(RuntimeError, match="Using a compiled model is incompatible with the current strategy.*"):
-        trainer.fit(model)
+        trainer.fit(compiled_model)
 
-    trainer = Trainer(fast_dev_run=True, strategy="ddp")
-    trainer.fit(model)
+    # ddp does
+    trainer = Trainer(strategy="ddp", **trainer_kwargs)
+    trainer.fit(compiled_model)
+
+    # an exception is raised
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.raises(TypeError, match="must be a `Light"):
+        trainer.fit(object())

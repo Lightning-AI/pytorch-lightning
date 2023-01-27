@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -436,7 +436,6 @@ class LightningCLI:
             "validate": {"model", "dataloaders", "datamodule"},
             "test": {"model", "dataloaders", "datamodule"},
             "predict": {"model", "dataloaders", "datamodule"},
-            "tune": {"model", "train_dataloaders", "val_dataloaders", "datamodule"},
         }
 
     def _add_subcommands(self, parser: LightningArgumentParser, **kwargs: Any) -> None:

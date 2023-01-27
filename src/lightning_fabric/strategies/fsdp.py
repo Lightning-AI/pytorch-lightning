@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
         MixedPrecision,
     )
 
-_FSDP_ALIASES = ("fsdp", "fsdp_full_shard_offload")
+_FSDP_ALIASES = ("fsdp", "fsdp_cpu_offload")
 
 
 class FSDPStrategy(ParallelStrategy, _Sharded):
@@ -275,12 +275,12 @@ class FSDPStrategy(ParallelStrategy, _Sharded):
         strategy_registry.register(
             "fsdp",
             cls,
-            description="Fully Sharded Data Parallel",
+            description="Fully Sharded Data Parallel (FSDP) training",
         )
         strategy_registry.register(
-            "fsdp_full_shard_offload",
+            "fsdp_cpu_offload",
             cls,
-            description="Fully Sharded Data Parallel and CPU Offloading",
+            description="Fully Sharded Data Parallel (FSDP) training with Full Sharding and CPU Offloading",
             cpu_offload=True,
         )
 

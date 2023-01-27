@@ -1,4 +1,4 @@
-# Copyright The PyTorch Lightning team.
+# Copyright The Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 log = logging.getLogger(__name__)
 
 
-def scale_batch_size(
+def _scale_batch_size(
     trainer: "pl.Trainer",
     model: "pl.LightningModule",
     mode: str = "power",
@@ -34,6 +34,32 @@ def scale_batch_size(
     max_trials: int = 25,
     batch_arg_name: str = "batch_size",
 ) -> Optional[int]:
+    """Iteratively try to find the largest batch size for a given model that does not give an out of memory (OOM)
+    error.
+
+    Args:
+        trainer: A Trainer instance.
+        model: Model to tune.
+        mode: Search strategy to update the batch size:
+
+            - ``'power'``: Keep multiplying the batch size by 2, until we get an OOM error.
+            - ``'binsearch'``: Initially keep multiplying by 2 and after encountering an OOM error
+                do a binary search between the last successful batch size and the batch size that failed.
+
+        steps_per_trial: number of steps to run with a given batch size.
+            Ideally 1 should be enough to test if an OOM error occurs,
+            however in practise a few are needed
+        init_val: initial batch size to start the search with
+        max_trials: max number of increases in batch size done before
+           algorithm is terminated
+        batch_arg_name: name of the attribute that stores the batch size.
+            It is expected that the user has provided a model or datamodule that has a hyperparameter
+            with that name. We will look for this attribute name in the following places
+
+            - ``model``
+            - ``model.hparams``
+            - ``trainer.datamodule`` (the datamodule passed to the tune method)
+    """
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since `fast_dev_run` is enabled.")
         return None
