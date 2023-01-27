@@ -30,6 +30,7 @@ from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACh
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
 class WeightSharingModule(BoringModel):
@@ -159,7 +160,7 @@ def test_manual_optimization_tpus(tmpdir):
                 assert not torch.equal(self.weight_before, after_before), self.count
             else:
                 assert torch.equal(self.weight_before, after_before)
-            assert torch.all(self.layer.weight.grad == 0)
+            assert_emtpy_grad(self.layer.weight.grad)
             self.count += 1
 
         def on_train_start(self):
