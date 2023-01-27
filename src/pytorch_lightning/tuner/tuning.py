@@ -16,10 +16,7 @@ from typing import Optional, Union
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
-from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
@@ -80,6 +77,9 @@ class Tuner:
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
         _check_scale_batch_size_configuration(self._trainer)
 
+        # local import to avoid circular import
+        from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
+
         batch_size_finder: Callback = BatchSizeFinder(
             mode=mode,
             steps_per_trial=steps_per_trial,
@@ -118,7 +118,7 @@ class Tuner:
         early_stop_threshold: float = 4.0,
         update_attr: bool = True,
         attr_name: str = "",
-    ) -> Optional[_LRFinder]:
+    ) -> Optional["pl.tuner.lr_finder._LRFinder"]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
 
@@ -157,6 +157,9 @@ class Tuner:
 
         _check_tuner_configuration(train_dataloaders, val_dataloaders, dataloaders, method)
         _check_lr_find_configuration(self._trainer)
+
+        # local import to avoid circular import
+        from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 
         lr_finder_callback: Callback = LearningRateFinder(
             min_lr=min_lr,
@@ -203,6 +206,9 @@ def _check_tuner_configuration(
 
 
 def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
+    # local import to avoid circular import
+    from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
+
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
     if configured_callbacks:
         raise ValueError(
@@ -217,6 +223,9 @@ def _check_scale_batch_size_configuration(trainer: "pl.Trainer") -> None:
             "Tuning the batch size is currently not supported with"
             f" `Trainer(strategy={trainer.strategy.strategy_name!r})`."
         )
+
+    # local import to avoid circular import
+    from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, BatchSizeFinder)]
     if configured_callbacks:

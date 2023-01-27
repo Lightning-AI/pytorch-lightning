@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # TODO: This is causing a circular import
-# from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.tuner.tuning import Tuner
