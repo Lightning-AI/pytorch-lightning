@@ -48,13 +48,13 @@ def test_error_on_more_than_1_optimizer(tmpdir):
     model = CustomBoringModel(lr=1e-2)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=LearningRateFinder())
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    tuner = Tuner(trainer)
 
     with pytest.raises(MisconfigurationException, match="only works with single optimizer"):
-        trainer.fit(model)
+        tuner.lr_find(model)
 
 
-# TODO: perform asserts after tuner ends, before fit continues
 def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after lr_find()"""
 
@@ -77,7 +77,6 @@ def test_model_reset_correctly(tmpdir):
     assert not any(f for f in os.listdir(tmpdir) if f.startswith(".lr_find"))
 
 
-# TODO: perform asserts after tuner ends, before fit continues
 def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after lr_find()"""
 
@@ -102,7 +101,7 @@ def test_trainer_reset_correctly(tmpdir):
     expected = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
-        tuner.lr_find(model)
+        tuner.lr_find(model, num_training=5)
 
     actual = {ca: getattr_recursive(trainer, ca) for ca in changed_attributes}
     assert actual == expected
@@ -110,8 +109,8 @@ def test_trainer_reset_correctly(tmpdir):
 
 
 @pytest.mark.parametrize("use_hparams", [False, True])
-def test_trainer_arg_callback(tmpdir, use_hparams):
-    """Test that setting LearningRateFinder as callback works."""
+def test_tuner_lr_find(tmpdir, use_hparams):
+    """Test that lr_find updates the learning rate attribute."""
     seed_everything(1)
 
     class CustomBoringModel(BoringModel):
@@ -197,7 +196,7 @@ def test_call_to_trainer_method(tmpdir, opt):
     after_lr = lr_finder.suggestion()
     assert after_lr is not None
     model.hparams.lr = after_lr
-    trainer.fit(model)
+    tuner.lr_find(model, update_attr=True)
 
     assert after_lr is not None
     assert before_lr != after_lr, "Learning rate was not altered after running learning rate finder"
@@ -260,11 +259,11 @@ def test_suggestion_parameters_work(tmpdir):
 
     # logger file to get meta
     model = CustomBoringModel(lr=1e-2)
-    lr_finder = LearningRateFinder()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=lr_finder)
-    trainer.fit(model)
-    lr1 = lr_finder.optimal_lr.suggestion(skip_begin=10)  # default
-    lr2 = lr_finder.optimal_lr.suggestion(skip_begin=70)  # way too high, should have an impact
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model)
+    lr1 = lr_finder.suggestion(skip_begin=10)  # default
+    lr2 = lr_finder.suggestion(skip_begin=70)  # way too high, should have an impact
 
     assert lr1 is not None
     assert lr2 is not None
@@ -285,13 +284,13 @@ def test_suggestion_with_non_finite_values(tmpdir):
             return optimizer
 
     model = CustomBoringModel(lr=1e-2)
-    lr_finder = LearningRateFinder()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=lr_finder)
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3)
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model)
 
-    before_lr = lr_finder.optimal_lr.suggestion()
-    lr_finder.optimal_lr.results["loss"][-1] = float("nan")
-    after_lr = lr_finder.optimal_lr.suggestion()
+    before_lr = lr_finder.suggestion()
+    lr_finder.results["loss"][-1] = float("nan")
+    after_lr = lr_finder.suggestion()
 
     assert before_lr is not None
     assert after_lr is not None
@@ -415,10 +414,10 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
             self.learning_rate = 0.123
 
     model = TestModel()
-    lr_finder = LearningRateFinder(num_training_steps=1, update_attr=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=lr_finder, max_steps=3)
-    trainer.fit(model)
-    assert lr_finder.optimal_lr.suggestion() is None
+    trainer = Trainer(default_root_dir=tmpdir)
+    tuner = Tuner(trainer)
+    lr_finder = tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
+    assert lr_finder.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
 
 
