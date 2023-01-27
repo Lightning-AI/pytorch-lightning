@@ -22,7 +22,9 @@ RUN WITHOUT FAILURE:
         - You should see `[-1.1343,  0.0186]` in the logs.
 
 RUN WITH SIMULATED FAILURE:
+
     1. Launch `python examples/pl_fault_tolerant/automatic.py --emulate_kill_signal`.
+        - You should see `kill -SIGTERM {PID}` in the logs.
     2. Run this command within another terminal.
         - You should see `Received signal 15.` in the logs.
     3. Launch `python examples/pl_fault_tolerant/automatic.py --emulate_kill_signal` again.
