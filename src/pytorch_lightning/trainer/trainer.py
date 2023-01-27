@@ -89,7 +89,7 @@ from pytorch_lightning.utilities.argparse import (
 )
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.data import has_len_all_ranks
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
@@ -1903,6 +1903,14 @@ class Trainer:
         elif self.sanity_checking:
             self.state.stage = None
 
+    @property
+    def received_sigterm(self) -> bool:
+        """Whether a ``signal.SIGTERM`` signal was received.
+
+        For example, this can be checked to exit gracefully.
+        """
+        return self._signal_connector.received_sigterm
+
     """
     Loop properties
     """
@@ -2002,15 +2010,6 @@ class Trainer:
         active_loop = self._active_loop
         if active_loop is not None:
             return active_loop._results
-
-    def _exit_gracefully_on_signal(self) -> None:
-        if not _fault_tolerant_training() or not self._should_terminate_gracefully():
-            return
-        raise ExitGracefullyException(0)
-
-    def _should_terminate_gracefully(self) -> bool:
-        value = torch.tensor(int(self._terminate_gracefully), device=self.strategy.root_device)
-        return bool(self.strategy.reduce(value, reduce_op="sum") > 0)
 
     """
     Other
