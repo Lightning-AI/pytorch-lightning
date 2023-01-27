@@ -1,6 +1,6 @@
 import os
 
-from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _USERNAME
+from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 from tests_cloud.helpers import cleanup
 
 from lightning.store import download_from_cloud, upload_to_cloud

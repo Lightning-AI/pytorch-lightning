@@ -36,7 +36,6 @@ from lightning.store.save import (
     _save_model,
     _save_model_code,
     _save_model_weights,
-    _save_requirements_file,
     _submit_data_to_url,
     _write_and_save_requirements,
 )
