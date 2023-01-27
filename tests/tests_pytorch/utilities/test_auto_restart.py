@@ -54,7 +54,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
 )
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from tests_pytorch.core.test_results import spawn_launch
 from tests_pytorch.helpers.runif import RunIf
@@ -958,7 +958,7 @@ class TestAutoRestartModelUnderSignal(BoringModel):
     def _signal(self):
         if self.should_signal:
             # simulate `os.kill(os.getpid(), signal.SIGTERM)`
-            self.trainer._received_sigterm = True
+            self.trainer._signal_connector.received_sigterm = True
 
     def training_step(self, batch, batch_idx):
         self.seen_train_batches.append(batch)
@@ -1002,7 +1002,7 @@ def _fit_model(
         raising_function = None
 
         def on_exception(self, trainer, pl_module, exception):
-            if isinstance(exception, ExitGracefullyException):
+            if isinstance(exception, SIGTERMException):
                 caller = inspect.trace()[-1]
                 class_name = caller[0].f_locals["self"].__class__.__name__
                 self.raising_method = f"{class_name}:{caller.function}"
@@ -1018,7 +1018,7 @@ def _fit_model(
         callbacks=test_callback,
     )
     if should_signal:
-        with pytest.raises(ExitGracefullyException):
+        with pytest.raises(SIGTERMException):
             trainer.fit(model)
         assert test_callback.raising_method == status
     else:

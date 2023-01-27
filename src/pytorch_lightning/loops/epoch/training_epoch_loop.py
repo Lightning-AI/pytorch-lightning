@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _Result
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
+from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
@@ -293,7 +293,7 @@ class _TrainingEpochLoop(loops._Loop):
         # if training finished, defer exit to the parent. this assumes there will be enough time in between
         # which might not be the case depending on what's in the `*_epoch_end` hooks
         if not self._is_training_done and self.trainer.received_sigterm:
-            raise ExitGracefullyException
+            raise SIGTERMException
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self._outputs = self._outputs, []

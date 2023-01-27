@@ -24,7 +24,7 @@ from lightning_fabric.utilities.imports import _IS_WINDOWS
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.exceptions import ExitGracefullyException
+from pytorch_lightning.utilities.exceptions import SIGTERMException
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -66,7 +66,7 @@ def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpd
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
         if terminate_gracefully and not register_handler:
-            with pytest.raises(ExitGracefullyException):
+            with pytest.raises(SIGTERMException):
                 trainer.fit(model)
         else:
             trainer.fit(model)

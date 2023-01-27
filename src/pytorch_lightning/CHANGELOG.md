@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
  * `pytorch_lightning.plugins.precision.native_amp` is now `pytorch_lightning.plugins.precision.amp`
  * `NativeSyncBatchNorm` is now `TorchSyncBatchNorm`
 
+- Renamed the `pl.utilities.exceptions.GracefulExitException` to `SIGTERMException` ([#16501](https://github.com/Lightning-AI/lightning/pull/16501))
+
 ### Deprecated
 
 -

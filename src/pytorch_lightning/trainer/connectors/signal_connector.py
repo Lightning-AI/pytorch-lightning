@@ -36,12 +36,12 @@ class HandlersCompose:
 
 class SignalConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
+        self.received_sigterm = False
         self.trainer = trainer
-        self.trainer._received_sigterm = False
         self._original_handlers: Dict[_SIGNUM, _HANDLER] = {}
 
     def register_signal_handlers(self) -> None:
-        self.trainer._received_sigterm = False
+        self.received_sigterm = False
         self._original_handlers = self._get_current_signal_handlers()
 
         sigusr_handlers: List[_HANDLER] = []
@@ -105,7 +105,7 @@ class SignalConnector:
 
     def _sigterm_notifier_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
         log.info(f"Received signal {signum}")
-        self.trainer._received_sigterm = True
+        self.received_sigterm = True
 
     def sigterm_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
         log.info("bypassing sigterm")

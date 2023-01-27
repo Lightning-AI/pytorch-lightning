@@ -14,7 +14,7 @@
 from lightning_fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
-class ExitGracefullyException(SystemExit):
+class SIGTERMException(SystemExit):
     """Exception used when a :class:`signal.SIGTERM` is sent to a process.
 
     This exception is raised by the loops at specific points. It can be used to write custom logic in the

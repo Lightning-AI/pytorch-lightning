@@ -1900,7 +1900,7 @@ class Trainer:
 
         For example, this can be checked to exit gracefully.
         """
-        return self._received_sigterm
+        return self._signal_connector.received_sigterm
 
     """
     Loop properties
