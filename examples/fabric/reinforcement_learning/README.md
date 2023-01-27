@@ -2,7 +2,7 @@
 
 This is an example of a Reinforcement Learning algorithm called [Proximal Policy Optimization (PPO)](https://arxiv.org/abs/1707.06347) implemented in PyTorch and accelerated by [Lightning Fabric](https://pytorch-lightning.readthedocs.io/en/latest/fabric/fabric.html).
 
-The goal of Reinforcement Learning is to learn intelligent agents that are able to act in their surrounding environment maximizing the cumulative reward received by it. This can be depicted in the following figure:
+The goal of Reinforcement Learning is to train agents to act in their surrounding environment maximizing the cumulative reward received from it. This can be depicted in the following figure:
 
 <p align="center">
   <img src="https://pl-public-data.s3.amazonaws.com/assets_lightning/examples/fabric/reinforcement-learning/reinforcement.png">
