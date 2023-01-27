@@ -1018,7 +1018,7 @@ def _fit_model(
         limit_val_batches=4,
         val_check_interval=val_check_interval,
         num_sanity_val_steps=0,
-        callbacks=[test_callback, OnExceptionCheckpoint(tmpdir)]
+        callbacks=[test_callback, OnExceptionCheckpoint(tmpdir)],
     )
     if should_signal:
         with pytest.raises(SIGTERMException):
