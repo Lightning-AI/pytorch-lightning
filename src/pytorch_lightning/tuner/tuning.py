@@ -202,7 +202,7 @@ def _check_tuner_configuration(
             )
 
 
-def _check_lr_find_configuration(trainer: "pl.Trainer"):
+def _check_lr_find_configuration(trainer: "pl.Trainer") -> None:
     configured_callbacks = [cb for cb in trainer.callbacks if isinstance(cb, LearningRateFinder)]
     if configured_callbacks:
         raise ValueError(
@@ -211,7 +211,7 @@ def _check_lr_find_configuration(trainer: "pl.Trainer"):
         )
 
 
-def _check_scale_batch_size_configuration(trainer: "pl.Trainer"):
+def _check_scale_batch_size_configuration(trainer: "pl.Trainer") -> None:
     if trainer._accelerator_connector.is_distributed:
         raise ValueError(
             "Tuning the batch size is currently not supported with"
