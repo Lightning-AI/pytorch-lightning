@@ -36,7 +36,7 @@ from lightning_fabric.utilities.apply_func import convert_to_tensors
 from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
-from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11
+from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_2_0
 from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
@@ -2033,19 +2033,21 @@ class LightningModule(
 
         Use this method to obtain a LightningModule that still runs with all the optimizations from ``torch.compile``.
         """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise ModuleNotFoundError(f"`{cls.__name__}.from_compiled` requires torch>=2.0")
 
         from torch._dynamo import OptimizedModule
 
         if not isinstance(model, OptimizedModule):
             raise ValueError(
-                "`model` is required to be a `torch._dynamo.OptimizedModule`. " f"Found a `{type(model)}` instead."
+                f"`model` is required to be a `OptimizedModule`. Found a `{type(model).__name__}` instead."
             )
 
         orig_module = model._orig_mod
 
         if not isinstance(orig_module, cls):
             raise ValueError(
-                "`model` is expected to be a compiled LightingModule. " f"Found a compiled {type(orig_module)} instead"
+                f"`model` is expected to be a compiled LightingModule. Found a `{type(orig_module).__name__}` instead"
             )
 
         orig_module._compiler_ctx = {
@@ -2074,11 +2076,13 @@ class LightningModule(
 
         Note: this method will in-place modify the ``LightningModule`` that is passed in.
         """
+        if not _TORCH_GREATER_EQUAL_2_0:
+            raise ModuleNotFoundError(f"`{cls.__name__}.to_uncompiled` requires torch>=2.0")
 
         from torch._dynamo import OptimizedModule
 
         if isinstance(model, OptimizedModule):
-            return model._orig_mod
+            model = model._orig_mod
 
         elif isinstance(model, cls):
             if model._compiler_ctx is None:
@@ -2088,13 +2092,13 @@ class LightningModule(
                 )
 
         else:
-            raise ValueError("`model` must either be an instance of torch._dynamo.OptimizedModule or LightningModule")
+            raise ValueError("`model` must either be an instance of OptimizedModule or LightningModule")
 
-        model.forward = model._compiler_ctx["original_forward"]  # type: ignore[assignment]
-        model.training_step = model._compiler_ctx["original_training_step"]  # type: ignore[assignment]
-        model.validation_step = model._compiler_ctx["original_validation_step"]  # type: ignore[assignment]
-        model.test_step = model._compiler_ctx["original_test_step"]  # type: ignore[assignment]
-        model.predict_step = model._compiler_ctx["original_predict_step"]  # type: ignore[assignment]
+        model.forward = model._compiler_ctx["original_forward"]
+        model.training_step = model._compiler_ctx["original_training_step"]
+        model.validation_step = model._compiler_ctx["original_validation_step"]
+        model.test_step = model._compiler_ctx["original_test_step"]
+        model.predict_step = model._compiler_ctx["original_predict_step"]
         model._compiler_ctx = None
 
         return model
