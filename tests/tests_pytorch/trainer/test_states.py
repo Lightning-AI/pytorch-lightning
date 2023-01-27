@@ -14,7 +14,6 @@
 import pytest
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 

@@ -32,12 +32,11 @@ from pytorch_lightning.loggers import (
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
 from pytorch_lightning.loggers.tensorboard import _TENSORBOARD_AVAILABLE
+from pytorch_lightning.tuner.tuning import Tuner
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock
-
-from pytorch_lightning.tuner.tuning import Tuner
 
 LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.comet.comet_ml"),

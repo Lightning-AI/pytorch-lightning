@@ -21,7 +21,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.tuner.lr_finder import _LRFinder, _lr_find
+from pytorch_lightning.tuner.lr_finder import _lr_find, _LRFinder
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
