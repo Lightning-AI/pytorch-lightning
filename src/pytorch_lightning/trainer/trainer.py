@@ -1569,17 +1569,6 @@ class Trainer:
         """
         return self.strategy.model
 
-    # TODO: is this still needed
-    @model.setter
-    def model(self, model: torch.nn.Module) -> None:
-        """Setter for the model, pass-through to accelerator and plugin where the model reference is stored.
-
-        Args:
-            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
-                on the backend.
-        """
-        self.strategy.model = model
-
     """
     General properties
     """
