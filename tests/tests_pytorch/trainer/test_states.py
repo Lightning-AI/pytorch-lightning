@@ -57,12 +57,6 @@ def test_trainer_fn_while_running(tmpdir, extra_params):
             assert self.trainer.state.fn == self.expected_fn
             assert self.trainer.testing
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=LearningRateFinder(), **extra_params)
-
-    model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)
-    trainer.fit(model)
-    assert trainer.state.finished
-
     trainer = Trainer(default_root_dir=tmpdir, **extra_params)
 
     model = TestModel(TrainerFn.FITTING, RunningStage.TRAINING)

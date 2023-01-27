@@ -21,7 +21,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import BatchSizeFinder, LearningRateFinder
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
@@ -37,6 +36,8 @@ from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.loggers.test_comet import _patch_comet_atexit
 from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
 from tests_pytorch.loggers.test_neptune import create_neptune_mock
+
+from pytorch_lightning.tuner.tuning import Tuner
 
 LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.comet.comet_ml"),
@@ -202,14 +203,8 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     assert trainer2.logger.save_dir == logger.save_dir
 
 
-@pytest.mark.parametrize(
-    "extra_params",
-    [
-        pytest.param(dict(max_epochs=1, callbacks=BatchSizeFinder()), id="Batch-size-Finder"),
-        pytest.param(dict(max_epochs=3, callbacks=LearningRateFinder()), id="LR-Finder"),
-    ],
-)
-def test_logger_reset_correctly(tmpdir, extra_params):
+@pytest.mark.parametrize("tuner_method", ["lr_find", "scale_batch_size"])
+def test_logger_reset_correctly(tmpdir, tuner_method):
     """Test that the tuners do not alter the logger reference."""
 
     class CustomModel(BoringModel):
@@ -218,9 +213,11 @@ def test_logger_reset_correctly(tmpdir, extra_params):
             self.save_hyperparameters()
 
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, **extra_params)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    tuner = Tuner(trainer)
+
     logger1 = trainer.logger
-    trainer.fit(model)
+    getattr(tuner, tuner_method)(model)
     logger2 = trainer.logger
     logger3 = model.logger
 
