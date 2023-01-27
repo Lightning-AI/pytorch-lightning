@@ -272,6 +272,16 @@ subprojects:
     checks:
       - "app-flagships (flashy, Lightning-Universe/Flashy-app)"
 
+  - id: "lightning: Store"
+    paths:
+      - ".azure/app-cloud-store.yml"
+      - "src/lightning/store/**"
+      - "tests/tests_cloud/**"
+    checks:
+      - "Store.cloud (test_store Linux)"
+      - "Store.cloud (test_store Mac)"
+      - "Store.cloud (test_store Windows)"
+
   - id: "lightning_app: Azure"
     paths:
       - ".actions/**"
