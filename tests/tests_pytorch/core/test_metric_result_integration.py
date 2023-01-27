@@ -304,7 +304,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
 
         def training_step(self, batch, batch_idx):
             # We run 5 batches, meaning batch_idx from [0..4]
-            # Without failure, we expect to get `total=sum(range(5))*world_size` and `num_batches=5*world_size`
+            # Without failure, we expect to get `total=sum(range(5))` and `num_batches=5`
             # When not restarting, it simulates a failure on `batch_idx=3` and test the state after reload
             # Compute `on_epoch_end` would be `10/5=2` if the metric state had been serialized and reloaded
             if self.trainer.fit_loop.restarting:
@@ -347,7 +347,7 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
             if self.trainer.fit_loop.restarting:
                 # the state of the results before the exception is not saved and restored, so the total starts after
                 # the breaking_batch_idx
-                total = sum(range(self.breaking_batch_idx, batches)) * devices
+                total = sum(range(self.breaking_batch_idx, batches))
                 metrics = self.results.metrics(on_step=False)
                 computed_value = self.dummy_metric.compute()
 
@@ -392,23 +392,18 @@ def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **
     assert model.has_validated_sum
 
 
-def test_result_collection_reload(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir)
-
-
 @pytest.mark.parametrize(
-    "accelerator",
-    [
-        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-    ],
+    "kwargs",
+    (
+        {},
+        pytest.param({"strategy": "ddp", "accelerator": "gpu"}, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            {"strategy": "ddp", "accelerator": "gpu", "devices": 2}, marks=RunIf(min_cuda_gpus=2, standalone=True)
+        ),
+    ),
 )
-def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
-
-
-@RunIf(min_cuda_gpus=2, standalone=True)
-def test_result_collection_reload_2_gpus(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
+def test_result_collection_reload(tmpdir, kwargs):
+    result_collection_reload(default_root_dir=tmpdir, **kwargs)
 
 
 def test_metric_collections(tmpdir):
