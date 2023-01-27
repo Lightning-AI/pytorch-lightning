@@ -19,9 +19,9 @@ class SIGTERMException(SystemExit):
 
     This exception is raised by the loops at specific points. It can be used to write custom logic in the
     :meth:`pytorch_lightning.callbacks.callback.Callback.on_exception` method.
-    If fault-tolerance is enabled (experimental), we automatically add a
-    :class:`pytorch_lightning.callbacks.fault_tolerance._FaultToleranceCheckpoint` callback that saves a checkpoint for
-    you when this exception is raised.
+
+    For example, you could use the :class:`pytorch_lightning.callbacks.fault_tolerance.OnExceptionCheckpoint` callback
+    that saves a checkpoint for you when this exception is raised.
     """
 
 
