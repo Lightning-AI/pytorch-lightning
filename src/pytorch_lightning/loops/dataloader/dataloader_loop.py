@@ -18,7 +18,7 @@ from typing import Sequence
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.loop import _Loop
-from pytorch_lightning.trainer.progress import DataLoaderProgress
+from pytorch_lightning.loops.progress import DataLoaderProgress
 
 
 class _DataLoaderLoop(_Loop):

@@ -14,7 +14,7 @@
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.loops.progress import BaseProgress
 
 
 class _Loop:
