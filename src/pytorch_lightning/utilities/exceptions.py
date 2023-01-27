@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from lightning_fabric.utilities.exceptions import MisconfigurationException  # noqa: F401
 
 
-class ExitGracefullyException(SystemExit):
-    """Exception used when a ``signal.SIGTERM`` is sent to the process.
+class SIGTERMException(SystemExit):
+    """Exception used when a :class:`signal.SIGTERM` is sent to a process.
 
     This exception is raised by the loops at specific points. It can be used to write custom logic in the
     :meth:`pytorch_lightning.callbacks.callback.Callback.on_exception` method.

@@ -79,7 +79,7 @@ class SimpleMLP(LightningModule):
         if self.global_step == self.fail_on_step:
             log.info(f"READY TO BE KILLED WITH SIGTERM SIGNAL. Run `kill -SIGTERM {os.getpid()}` in another terminal.")
             # this line is used to wait for you to send the signal to exit gracefully.
-            while not self.trainer._terminate_gracefully:
+            while not self.trainer.received_sigterm:
                 sleep(0.1)
         batch = batch["data"] if isinstance(batch, dict) else batch
         self.seen_batches.append(torch.stack(batch) if isinstance(batch, list) else batch)
