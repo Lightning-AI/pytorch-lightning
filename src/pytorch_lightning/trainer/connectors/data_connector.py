@@ -29,10 +29,8 @@ from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
-from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_automatic
 from pytorch_lightning.utilities.data import _is_dataloader_shuffled, _update_dataloader, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
@@ -264,8 +262,7 @@ class DataConnector:
             dataloader = dataloader.loader
 
         if (
-            _fault_tolerant_training()  # injects components to track the state
-            or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
+            self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
             # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
             or isinstance(self.trainer.accelerator, IPUAccelerator)
@@ -442,7 +439,6 @@ class DataConnector:
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
         self.trainer.strategy.barrier("get_dataloaders")
-        _validate_fault_tolerant_automatic(dataloader, stage)
         return dataloader
 
     @staticmethod

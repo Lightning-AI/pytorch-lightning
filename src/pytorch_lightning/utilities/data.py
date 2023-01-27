@@ -35,8 +35,6 @@ from lightning_fabric.utilities.data import has_len as new_has_len
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
-from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 
@@ -252,11 +250,6 @@ def _get_dataloader_init_args_and_kwargs(
                 "class, add the `__init__` arguments or allow passing `**kwargs`"
             )
 
-    if _FaultTolerantMode.detect_current_mode().is_automatic:
-        dl_args, dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(
-            was_wrapped, arg_names, dl_args, dl_kwargs
-        )
-
     return dl_args, dl_kwargs
 
 
@@ -276,7 +269,6 @@ def _dataloader_init_kwargs_resolve_sampler(
     If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
     automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
-    fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
 
@@ -349,10 +341,6 @@ def _dataloader_init_kwargs_resolve_sampler(
             if is_predicting:
                 batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-            if fault_tolerant_mode.is_automatic:
-                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-                fast_forward_sampler.setup(dataloader_batch_size=1)
-
             return {
                 "sampler": None,
                 "shuffle": False,
@@ -361,46 +349,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                 "drop_last": False,
             }
 
-    if fault_tolerant_mode.is_automatic:
-        fast_forward_sampler = sampler = FastForwardSampler(sampler)
-        fast_forward_sampler.setup(dataloader_batch_size=dataloader.batch_size)
-
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
-
-
-def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:
-    if isinstance(dataset, IterableDataset):
-        # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        return CaptureIterableDataset(dataset=dataset)
-    if get_len(dataset) != float("inf"):
-        return CaptureMapDataset(dataset=dataset)
-    raise RuntimeError("This shouldn't happen, please open an issue on Lightning Github repository.")
-
-
-def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
-    was_wrapped: bool, arg_names: Tuple[str, ...], dl_args: Tuple[Any, ...], dl_kwargs: Dict[str, Any]
-) -> Tuple[Tuple[str, ...], Dict[str, Any]]:
-    if "dataset" in dl_kwargs:
-        dl_kwargs["dataset"] = _wrap_with_capture_dataset(dl_kwargs["dataset"])
-    elif "dataset" in arg_names:
-        dataset_idx = arg_names.index("dataset")
-        dataset = _wrap_with_capture_dataset(dl_args[dataset_idx])
-        dl_args = dl_args[:dataset_idx] + (dataset,) + dl_args[dataset_idx + 1 :]
-    else:
-        if was_wrapped:
-            avoid_message = (
-                " To avoid this, either pass `DataLoader(dataset=your_dataset)` or the positional dataset argument"
-                " `DataLoader(your_dataset, ...)`."
-            )
-        else:
-            avoid_message = " To avoid this, define `self.dataset = dataset` inside your DataLoader's `__init__`."
-
-        raise MisconfigurationException(
-            "You enabled automatic Fault Tolerant mode, but we were not able to replace your dataset"
-            " with Fault Tolerant wrapper, because you have a custom DataLoader." + avoid_message
-        )
-
-    return dl_args, dl_kwargs
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:

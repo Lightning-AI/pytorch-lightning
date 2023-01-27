@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from pytorch_lightning.utilities import LightningEnum
-from pytorch_lightning.utilities.enums import _FaultTolerantMode
 
 
 class TrainerStatus(LightningEnum):
@@ -82,9 +81,6 @@ class TrainerState:
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None
     stage: Optional[RunningStage] = None
-
-    # detect the fault tolerant flag
-    _fault_tolerant_mode: _FaultTolerantMode = field(default_factory=_FaultTolerantMode.detect_current_mode)
 
     @property
     def finished(self) -> bool:
