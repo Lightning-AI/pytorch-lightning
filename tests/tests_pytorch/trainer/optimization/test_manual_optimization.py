@@ -32,7 +32,8 @@ def assert_emtpy_grad(grad):
     if _TORCH_GREATER_EQUAL_2_0:
         assert grad is None
     else:
-        assert torch.all(grad == 0)
+        if grad is not None:  # backward has been called
+            assert torch.all(grad == 0)
 
 
 class ManualOptModel(BoringModel):
