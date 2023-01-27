@@ -1756,7 +1756,7 @@ class LightningModule(
             def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
                 optimizer.zero_grad()
 
-            # Set gradients to `None` instead of zero to improve performance.
+            # Set gradients to `None` instead of zero to improve performance (not required on `torch>=2.0.0`).
             def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
                 optimizer.zero_grad(set_to_none=True)
 
