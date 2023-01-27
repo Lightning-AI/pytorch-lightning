@@ -29,8 +29,8 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
-from tests.tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.trainer.optimization.test_manual_optimization import assert_emtpy_grad
 
 
 class WeightSharingModule(BoringModel):
