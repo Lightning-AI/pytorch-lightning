@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""
-Fault-Tolerance
-^^^^^^^^^^^^^^^
+"""
+On exception checkpointing
+==========================
 
-Contains callbacks for fault-tolerance support. These are not meant to be used publicly.
+Automatically save a checkpoints on exception.
 """
 import os
 from typing import Any
@@ -25,17 +25,32 @@ from lightning_fabric.utilities.types import _PATH
 from pytorch_lightning.callbacks import Checkpoint
 
 
-class _FaultToleranceCheckpoint(Checkpoint):
-    """Used to save a fault-tolerance checkpoint on exception."""
+class OnExceptionCheckpoint(Checkpoint):
+    """Used to save a checkpoint on exception.
+
+    Args:
+        dirpath: directory to save the checkpoint file.
+        filename: checkpoint filename. This must not include the extension.
+
+    Raises:
+        ValueError:
+            If ``filename`` is empty.
+
+
+    Example:
+        >>> from pytorch_lightning import Trainer
+        >>> from pytorch_lightning.callbacks import OnExceptionCheckpoint
+        >>> trainer = Trainer(callbacks=[OnExceptionCheckpoint(".")])
+    """
 
     FILE_EXTENSION = ".ckpt"
 
-    def __init__(self, dirpath: _PATH, filename: str = ".pl_auto_save") -> None:
+    def __init__(self, dirpath: _PATH, filename: str = "on_exception") -> None:
         super().__init__()
-        # not optional because an exception could occur at any moment, so we cannot wait until the `setup` hook
-        self.dirpath = dirpath
         if not filename:
             raise ValueError("The filename cannot be empty")
+        # not optional because an exception could occur at any moment, so we cannot wait until the `setup` hook
+        self.dirpath = dirpath
         self.filename = filename
 
     @property
