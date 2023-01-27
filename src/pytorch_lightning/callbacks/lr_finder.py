@@ -84,7 +84,7 @@ class LearningRateFinder(Callback):
         num_training_steps: int = 100,
         mode: str = "exponential",
         early_stop_threshold: Optional[float] = 4.0,
-        update_attr: bool = False,
+        update_attr: bool = True,
         attr_name: str = "",
     ) -> None:
         mode = mode.lower()

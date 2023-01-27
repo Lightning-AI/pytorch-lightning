@@ -87,7 +87,7 @@ class Tuner:
             max_trials=max_trials,
             batch_arg_name=batch_arg_name,
         )
-        # do not continue with the loop in case trainer.tuner is used
+        # do not continue with the loop in case Tuner is used
         batch_size_finder._early_exit = True
         self._trainer.callbacks = [batch_size_finder] + self._trainer.callbacks
 
@@ -101,7 +101,6 @@ class Tuner:
             self._trainer.predict(model, dataloaders, datamodule=datamodule)
 
         self._trainer.callbacks = [cb for cb in self._trainer.callbacks if cb is not batch_size_finder]
-        self._trainer.auto_scale_batch_size = False
         return batch_size_finder.optimal_batch_size
 
     def lr_find(
