@@ -14,11 +14,12 @@
 import glob
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from lightning_app.runners import CloudRuntime
 from lightning_app.utilities.app_helpers import Logger
@@ -38,17 +39,20 @@ fastapi_service.add_middleware(
 )
 
 
-@fastapi_service.post("/v1/projects/{project_id}/cloudspaces/{cloudspace_id}/runs/{name}")
-def _post_run(
-    project_id: str,
-    cloudspace_id: str,
-    name: str,
-    entrypoint: str,
-) -> None:
+class Run(BaseModel):
+    project_id: str
+    cloudspace_id: str
+    name: str
+    entrypoint: str
+    cluster_id: Optional[str] = None
+
+
+@fastapi_service.post("/v1/runs")
+def _create_run(run: Run) -> None:
     """Create a run with the given name and entrypoint under the cloudspace with the given ID."""
     _set_flow_context()
 
-    entrypoint_file = Path("/content") / entrypoint
+    entrypoint_file = Path("/content") / run.entrypoint
 
     app = CloudRuntime.load_app_from_file(str(entrypoint_file.resolve().absolute()))
 
@@ -66,7 +70,12 @@ def _post_run(
     os.environ["LIGHTNING_DISPATCHED"] = "1"
 
     try:
-        runtime.cloudspace_dispatch(project_id=project_id, cloudspace_id=cloudspace_id, name=name)
+        runtime.cloudspace_dispatch(
+            project_id=run.project_id,
+            cloudspace_id=run.cloudspace_id,
+            name=run.name,
+            cluster_id=run.cluster_id,
+        )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
