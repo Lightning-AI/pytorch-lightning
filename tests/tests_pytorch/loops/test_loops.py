@@ -266,7 +266,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     assert trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.state_dict() == expected
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("accumulate_grad_batches", (1, 2, 3))
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 @pytest.mark.parametrize("stop_epoch", (1, 2))
@@ -428,8 +427,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
@@ -596,8 +593,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         "epoch_loop.val_loop.dataloader_progress": ANY,
         "epoch_loop.val_loop.epoch_loop.state_dict": ANY,
         "epoch_loop.val_loop.epoch_loop.batch_progress": ANY,
-        "epoch_loop.val_loop._results": ANY,
-        "epoch_loop._results": ANY,
     }
     assert checkpoint["loops"]["fit_loop"] == expected
 
