@@ -222,8 +222,8 @@ class CombinedLoader:
     while cycling through the shorter loaders.
 
     Examples:
-        >>> loaders = {'a': torch.utils.data.DataLoader(range(6), batch_size=4),
-        ...            'b': torch.utils.data.DataLoader(range(15), batch_size=5)}
+        >>> loaders = {'a': DataLoader(range(6), batch_size=4),
+        ...            'b': DataLoader(range(15), batch_size=5)}
         >>> combined_loader = CombinedLoader(loaders, 'max_size_cycle')
         >>> for item in combined_loader:
         ...     print(item)
