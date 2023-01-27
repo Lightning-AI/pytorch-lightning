@@ -14,7 +14,6 @@
 import concurrent.futures
 import os
 import signal
-from time import sleep
 from unittest import mock
 
 import pytest
@@ -42,35 +41,29 @@ def test_signal_handlers_restored_in_teardown():
     assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL
 
 
-@pytest.mark.parametrize("register_handler", [False, True])
-@pytest.mark.parametrize("terminate_gracefully", [False, True])
 @RunIf(skip_windows=True)
-def test_fault_tolerant_sig_handler(register_handler, terminate_gracefully, tmpdir):
+def test_sigterm_handler_can_be_added(tmpdir):
+    handler_ran = False
 
-    if register_handler:
+    def handler(*_):
+        nonlocal handler_ran
+        handler_ran = True
 
-        def handler(*_):
-            pass
-
-        signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGTERM, handler)
 
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            if terminate_gracefully or register_handler:
-                os.kill(os.getpid(), signal.SIGTERM)
-                sleep(0.1)
-            return super().training_step(batch, batch_idx)
+            os.kill(os.getpid(), signal.SIGTERM)
 
     model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
 
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(terminate_gracefully))}):
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, limit_val_batches=0)
-        if terminate_gracefully and not register_handler:
-            with pytest.raises(SIGTERMException):
-                trainer.fit(model)
-        else:
-            trainer.fit(model)
-        assert trainer.received_sigterm == (False if register_handler else terminate_gracefully)
+    assert not trainer.received_sigterm
+    assert not handler_ran
+    with pytest.raises(SIGTERMException):
+        trainer.fit(model)
+    assert trainer.received_sigterm
+    assert handler_ran
 
     # reset the signal to system defaults
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
@@ -134,7 +127,6 @@ def _registering_signals():
 
 
 @RunIf(skip_windows=True)
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_signal_connector_in_thread():
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         for future in concurrent.futures.as_completed([executor.submit(_registering_signals)]):
