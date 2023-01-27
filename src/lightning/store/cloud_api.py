@@ -51,7 +51,6 @@ def upload_to_cloud(
     model=None,
     source_code_path: str = "",
     checkpoint_path: str = "",
-    requirements_file_path: str = "",
     requirements: Optional[List[str]] = None,
     weights_only: bool = False,
     api_key: str = "",
@@ -77,12 +76,9 @@ def upload_to_cloud(
                 will raise an error. (Optional)
         checkpoint_path:
             The path to the checkpoint that needs to be uploaded. (Optional)
-        requirements_file_path:
-            The path to the requirements file, will always be uploaded with the name of `requirements.txt`.
         requirements:
             List of requirements as strings, that will be written as `requirements.txt` and
-                then uploaded. If both `requirements_file_path` and `requirements` are passed,
-                a warning is raised as `requirements` is given the priority over `requirements_file_path`.
+                then uploaded.
         weights_only:
             If set to `True`, it will only save model weights and nothing else. This raises
                 an error if `weights_only` is `True` but no `model` is passed.
@@ -146,25 +142,10 @@ def upload_to_cloud(
                         stored=stored,
                     )
 
-        if requirements and requirements_file_path:
-            # TODO: Later on, figure out how to merge requirements from both args
-            logging.warning(
-                "You provided a requirements file (..., requirements_file_path=...)"
-                " and requirements list (..., requirements=...). In case of any collisions,"
-                " anything that comes from requirements=... will be given the priority."
-            )
-
         if requirements:
             stored = _write_and_save_requirements(
                 model_name,
                 requirements=requirements,
-                stored=stored,
-                tmpdir=tmpdir,
-            )
-        elif requirements_file_path:
-            stored = _save_requirements_file(
-                model_name,
-                requirements_file_path=requirements_file_path,
                 stored=stored,
                 tmpdir=tmpdir,
             )
