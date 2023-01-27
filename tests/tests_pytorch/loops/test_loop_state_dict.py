@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import mock
 from unittest.mock import Mock
 
 from pytorch_lightning.loops import _FitLoop
@@ -34,7 +32,6 @@ def test_loops_state_dict():
     assert fit_loop.state_dict() == new_fit_loop.state_dict()
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
@@ -81,22 +78,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
-            "epoch_loop.val_loop._results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
-            },
-            "epoch_loop._results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": True,
-                "device": None,
-                "items": {},
-            },
             "epoch_progress": {
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
@@ -113,14 +94,6 @@ def test_loops_state_dict_structure():
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
-            "_results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
-            },
         },
         "test_loop": {
             "state_dict": {},
@@ -130,14 +103,6 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
-            },
-            "_results": {
-                "batch": None,
-                "batch_size": None,
-                "dataloader_idx": None,
-                "training": False,
-                "device": None,
-                "items": {},
             },
         },
         "predict_loop": {
