@@ -306,7 +306,6 @@ def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
         "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
         "loggers": trainer.loggers,
-        # TODO: check if this is required
         "max_steps": trainer.fit_loop.max_steps,
         "limit_val_batches": trainer.limit_val_batches,
         "loop_state_dict": deepcopy(trainer.fit_loop.state_dict()),
