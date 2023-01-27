@@ -116,7 +116,7 @@ class Tuner:
         num_training: int = 100,
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
-        update_attr: bool = False,
+        update_attr: bool = True,
         attr_name: str = "",
     ) -> Optional[_LRFinder]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in

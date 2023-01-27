@@ -59,6 +59,7 @@ def test_model_reset_correctly(tmpdir):
     """Check that model weights are correctly reset after _lr_find()"""
 
     model = BoringModel()
+    model.lr = 0.1
 
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -81,6 +82,7 @@ def test_trainer_reset_correctly(tmpdir):
     """Check that all trainer parameters are reset correctly after lr_find()"""
 
     model = BoringModel()
+    model.lr = 0.1
 
     # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
@@ -348,6 +350,7 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     """Tests that lr_finder gives same results if called multiple times."""
     seed_everything(1)
     model = BoringModel()
+    model.lr = 0.1
 
     trainer = Trainer(
         default_root_dir=tmpdir,
