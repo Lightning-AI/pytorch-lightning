@@ -21,7 +21,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _lr_find, _LRFinder
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
@@ -32,11 +32,8 @@ class LearningRateFinder(Callback):
 
     Args:
         min_lr: Minimum learning rate to investigate
-
         max_lr: Maximum learning rate to investigate
-
         num_training_steps: Number of learning rates to test
-
         mode: Search strategy to update learning rate after each batch:
 
             - ``'exponential'`` (default): Increases the learning rate exponentially.
@@ -45,8 +42,9 @@ class LearningRateFinder(Callback):
         early_stop_threshold: Threshold for stopping the search. If the
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
-
         update_attr: Whether to update the learning rate attribute or not.
+        attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
+            automatically detected. Otherwise, set the name here.
 
     Example::
 
@@ -73,8 +71,8 @@ class LearningRateFinder(Callback):
 
     Raises:
         MisconfigurationException:
-            If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden when ``auto_lr_find=True``,
-            or if you are using more than one optimizer.
+            If learning rate/lr in ``model`` or ``model.hparams`` isn't overridden, or if you are using more than
+            one optimizer.
     """
 
     SUPPORTED_MODES = ("linear", "exponential")
@@ -86,7 +84,8 @@ class LearningRateFinder(Callback):
         num_training_steps: int = 100,
         mode: str = "exponential",
         early_stop_threshold: Optional[float] = 4.0,
-        update_attr: bool = False,
+        update_attr: bool = True,
+        attr_name: str = "",
     ) -> None:
         mode = mode.lower()
         if mode not in self.SUPPORTED_MODES:
@@ -98,13 +97,14 @@ class LearningRateFinder(Callback):
         self._mode = mode
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
+        self._attr_name = attr_name
 
         self._early_exit = False
         self.lr_finder: Optional[_LRFinder] = None
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         with isolate_rng():
-            self.optimal_lr = lr_find(
+            self.optimal_lr = _lr_find(
                 trainer,
                 pl_module,
                 min_lr=self._min_lr,
@@ -113,6 +113,7 @@ class LearningRateFinder(Callback):
                 mode=self._mode,
                 early_stop_threshold=self._early_stop_threshold,
                 update_attr=self._update_attr,
+                attr_name=self._attr_name,
             )
 
         if self._early_exit:
