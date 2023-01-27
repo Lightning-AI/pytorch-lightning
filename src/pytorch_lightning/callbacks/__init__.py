@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks.lr_finder import LearningRateFinder
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.callbacks.model_summary import ModelSummary
+from pytorch_lightning.callbacks.on_exception_checkpoint import OnExceptionCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.callbacks.progress import ProgressBarBase, RichProgressBar, TQDMProgressBar
 from pytorch_lightning.callbacks.pruning import ModelPruning
@@ -47,6 +48,7 @@ __all__ = [
     "ModelCheckpoint",
     "ModelPruning",
     "ModelSummary",
+    "OnExceptionCheckpoint",
     "ProgressBarBase",
     "QuantizationAwareTraining",
     "RichModelSummary",

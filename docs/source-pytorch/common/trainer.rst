@@ -287,69 +287,6 @@ Example::
     # no accumulation for epochs 1-4. accumulate 3 for epochs 5-10. accumulate 20 after that
     trainer = Trainer(accumulate_grad_batches={5: 3, 10: 20})
 
-auto_scale_batch_size
-^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_scale%E2%80%A8_batch_size.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_scale_batch_size.mp4"></video>
-
-|
-
-Automatically tries to find the largest batch size that fits into memory,
-before any training.
-
-.. code-block:: python
-
-    # default used by the Trainer (no scaling of batch size)
-    trainer = Trainer(auto_scale_batch_size=None)
-
-    # run batch size scaling, result overrides hparams.batch_size
-    trainer = Trainer(auto_scale_batch_size="binsearch")
-
-    # call tune to find the batch size
-    trainer.tune(model)
-
-
-auto_lr_find
-^^^^^^^^^^^^
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/auto_lr_find.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/auto_lr_find.mp4"></video>
-
-|
-
-Runs a learning rate finder algorithm (see this `paper <https://arxiv.org/abs/1506.01186>`_)
-when calling trainer.tune(), to find optimal initial learning rate.
-
-.. code-block:: python
-
-    # default used by the Trainer (no learning rate finder)
-    trainer = Trainer(auto_lr_find=False)
-
-Example::
-
-    # run learning rate finder, results override hparams.learning_rate
-    trainer = Trainer(auto_lr_find=True)
-
-    # call tune to find the lr
-    trainer.tune(model)
-
-Example::
-
-    # run learning rate finder, results override hparams.my_lr_arg
-    trainer = Trainer(auto_lr_find='my_lr_arg')
-
-    # call tune to find the lr
-    trainer.tune(model)
-
-.. note::
-    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -617,7 +554,7 @@ impact to subsequent runs. These are the changes enabled:
 - The :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
 - The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
-- Disables the Tuner.
+- Disables the tuning callbacks (:class:`~pytorch_lightning.callbacks.batch_size_finder.BatchSizeFinder`, :class:`~pytorch_lightning.callbacks.lr_finder.LearningRateFinder`).
 - If using the CLI, the configuration file is not saved.
 
 
@@ -1358,12 +1295,6 @@ predict
 .. automethod:: pytorch_lightning.trainer.Trainer.predict
    :noindex:
 
-tune
-****
-
-.. automethod:: pytorch_lightning.trainer.Trainer.tune
-   :noindex:
-
 
 Properties
 ^^^^^^^^^^
@@ -1523,11 +1454,11 @@ execution within that function, and the status of the Trainer.
 
 .. code-block:: python
 
-    # fn in ("fit", "validate", "test", "predict", "tune")
+    # fn in ("fit", "validate", "test", "predict")
     trainer.state.fn
     # status in ("initializing", "running", "finished", "interrupted")
     trainer.state.status
-    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
+    # stage in ("train", "sanity_check", "validate", "test", "predict")
     trainer.state.stage
 
 should_stop
