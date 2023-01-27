@@ -1,0 +1,5 @@
+gymnasium
+moviepy
+lightning
+torchmetrics
+tensorboard

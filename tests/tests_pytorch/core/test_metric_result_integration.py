@@ -27,6 +27,7 @@ from torchmetrics import Metric, MetricCollection
 import pytorch_lightning as pl
 from lightning_fabric.utilities.warnings import PossibleUserWarning
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
@@ -284,7 +285,7 @@ class DummyMeanMetric(Metric):
         return f"{self.__class__.__name__}(sum={self.sum}, count={self.count})"
 
 
-def result_collection_reload(accelerator="auto", devices=1, **kwargs):
+def result_collection_reload(default_root_dir, accelerator="auto", devices=1, **kwargs):
     class CustomException(Exception):
         pass
 
@@ -369,6 +370,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         "devices": devices,
         "enable_progress_bar": False,
         "enable_model_summary": False,
+        "default_root_dir": default_root_dir,
+        "callbacks": OnExceptionCheckpoint(default_root_dir),
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -382,16 +385,14 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         if devices >= 2
         else trainer_kwargs["default_root_dir"]
     )
-    ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    ckpt_path = os.path.join(tmpdir, "on_exception.ckpt")
 
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload(tmpdir):
-    # TODO: remove dict above after OnExceptionCheckpoint is merged
     result_collection_reload(default_root_dir=tmpdir)
 
 
@@ -401,13 +402,11 @@ def test_result_collection_reload(tmpdir):
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
     ],
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
