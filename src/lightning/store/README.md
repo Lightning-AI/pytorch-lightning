@@ -35,7 +35,7 @@ L.store.upload_to_cloud(
 L.store.upload_to_cloud("krshrimali/unique_model_mnist", model=autoencoder)
 ```
 
-You can also pass the checkpoint path: `to_lightning_cloud("model_name", version="latest", checkpoint_path=...)`.
+You can also pass the checkpoint path: `upload_to_cloud("model_name", version="latest", checkpoint_path=...)`.
 
 **Downloading from the cloud**
 
@@ -82,7 +82,7 @@ print(model)
 import lightning as L
 from sample.model import LitAutoEncoder, Encoder, Decoder
 
-# If you had passed an `output_dir=...` to download_from_lightning_cloud(...), then you can just do:
+# If you had passed an `output_dir=...` to download_from_cloud(...), then you can just do:
 # from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 
 model = LitAutoEncoder(Encoder(), Decoder())
