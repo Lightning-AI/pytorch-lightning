@@ -28,7 +28,6 @@ args="
 
 python "${dir_path}/pl_basics/backbone_image_classifier.py" ${args} "$@"
 python "${dir_path}/pl_basics/autoencoder.py" ${args} "$@"
-python "${dir_path}/pl_fault_tolerant/automatic.py"
 
 
 # test that a user can manually launch individual processes

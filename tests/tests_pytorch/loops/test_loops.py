@@ -15,7 +15,6 @@ import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Iterator
-from unittest import mock
 from unittest.mock import ANY
 
 import pytest
@@ -465,7 +464,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     assert state_dict["epoch_progress"]["current"]["started"] == stop_epoch
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 @pytest.mark.parametrize("n_optimizers", (1, 3, 5))
 def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     n_epochs = 3
