@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import subprocess
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 from lightning_utilities.core.imports import RequirementCache
 
@@ -68,6 +68,7 @@ class _SubprocessScriptLauncher(_Launcher):
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
+        self.pids: List[int] = []  # pids of the launched subprocesses. does not include the launcher
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -90,6 +91,7 @@ class _SubprocessScriptLauncher(_Launcher):
     def _call_children_scripts(self) -> None:
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
+        self.pids = []  # reset in case it's called twice
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
@@ -120,7 +122,8 @@ class _SubprocessScriptLauncher(_Launcher):
             else:
                 command = _basic_subprocess_cmd()
 
-            subprocess.Popen(command, env=env_copy, cwd=cwd)
+            new_process = subprocess.Popen(command, env=env_copy, cwd=cwd)
+            self.pids.append(new_process.pid)
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:
