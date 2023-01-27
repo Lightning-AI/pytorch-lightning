@@ -272,6 +272,7 @@ via ``self.learning_rate`` or ``self.lr``.
 
     from pytorch_lightning.tuner import Tuner
 
+
     class LitModel(LightningModule):
         def __init__(self, learning_rate):
             super().__init__()
