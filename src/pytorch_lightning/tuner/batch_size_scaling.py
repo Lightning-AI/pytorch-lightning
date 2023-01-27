@@ -25,7 +25,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 log = logging.getLogger(__name__)
 
 
-def scale_batch_size(
+def _scale_batch_size(
     trainer: "pl.Trainer",
     model: "pl.LightningModule",
     mode: str = "power",

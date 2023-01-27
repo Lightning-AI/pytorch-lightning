@@ -191,7 +191,6 @@ class Tuner:
 
         self._trainer.callbacks = [cb for cb in self._trainer.callbacks if cb is not lr_finder_callback]
 
-        self._trainer.auto_lr_find = False
         return lr_finder_callback.optimal_lr
 
 

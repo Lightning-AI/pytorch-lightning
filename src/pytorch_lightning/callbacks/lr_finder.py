@@ -21,7 +21,7 @@ from typing import Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
-from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.tuner.lr_finder import _LRFinder, _lr_find
 from pytorch_lightning.utilities.exceptions import _TunerExitException
 from pytorch_lightning.utilities.seed import isolate_rng
 
@@ -43,6 +43,8 @@ class LearningRateFinder(Callback):
             loss at any point is larger than early_stop_threshold*best_loss
             then the search is stopped. To disable, set to None.
         update_attr: Whether to update the learning rate attribute or not.
+        attr_name: Name of the attribute which stores the learning rate. The names 'learning_rate' or 'lr' get
+            automatically detected. Otherwise, set the name here.
 
     Example::
 
@@ -102,7 +104,7 @@ class LearningRateFinder(Callback):
 
     def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         with isolate_rng():
-            self.optimal_lr = lr_find(
+            self.optimal_lr = _lr_find(
                 trainer,
                 pl_module,
                 min_lr=self._min_lr,

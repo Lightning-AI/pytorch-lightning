@@ -56,7 +56,7 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
 
 def test_model_reset_correctly(tmpdir):
-    """Check that model weights are correctly reset after lr_find()"""
+    """Check that model weights are correctly reset after _lr_find()"""
 
     model = BoringModel()
 
@@ -301,7 +301,7 @@ def test_lr_finder_fails_fast_on_bad_config(tmpdir):
     """Test that tune fails if the model does not have a lr BEFORE running lr find."""
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
     tuner = Tuner(trainer)
-    with pytest.raises(MisconfigurationException, match="should have one of these fields"):
+    with pytest.raises(AttributeError, match="should have one of these fields"):
         tuner.lr_find(BoringModel(), update_attr=True)
 
 
