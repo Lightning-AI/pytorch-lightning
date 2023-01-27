@@ -114,9 +114,3 @@ Lightning needs to know a lot on the internals of these iterables.
   This makes sure that each GPU sees a different part of the dataset.
   As sampling can be implemented in arbitrary ways with custom iterables,
   there is no way for Lightning to know, how to replace the sampler.
-
-- When training fails for some reason, Lightning is able to extract all of the relevant data from the model,
-  optimizers, trainer and dataloader to resume it at the exact same batch it crashed.
-  This feature is called fault-tolerance and is limited to PyTorch DataLoaders.
-  Lighning needs to know a lot about sampling, fast forwarding and random number handling to enable fault tolerance,
-  meaning that it cannot be supported for arbitrary iterables.
