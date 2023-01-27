@@ -16,8 +16,8 @@ from typing import Dict, Optional
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
+from pytorch_lightning.loops.progress import BaseProgress
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
-from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 

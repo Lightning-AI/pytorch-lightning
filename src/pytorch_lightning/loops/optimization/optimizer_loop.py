@@ -24,8 +24,8 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
+from pytorch_lightning.loops.progress import OptimizationProgress
 from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior, _build_training_step_kwargs
-from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import WarningCache
 from pytorch_lightning.utilities.types import STEP_OUTPUT

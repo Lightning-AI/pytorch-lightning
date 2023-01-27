@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Union
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.loop import _Loop
-from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.loops.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
