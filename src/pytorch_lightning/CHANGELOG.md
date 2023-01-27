@@ -152,6 +152,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed strict availability check for `torch_xla` requirement ([#16476](https://github.com/Lightning-AI/lightning/pull/16476))
 
+- Fixed being able to use `MLFlowLogger` with the `mlflow-skinny` dependency installed ([16513](https://github.com/Lightning-AI/lightning/pull/16513))
 
 
 ## [1.9.0] - 2023-01-17
