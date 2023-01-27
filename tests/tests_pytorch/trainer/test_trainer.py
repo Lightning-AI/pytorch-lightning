@@ -20,7 +20,6 @@ from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
-from re import escape
 from unittest.mock import ANY, call, Mock, patch
 
 import cloudpickle
@@ -69,12 +68,12 @@ def test_trainer_error_when_input_not_lightning_module():
     trainer = Trainer()
 
     for method in ("fit", "validate", "test", "predict"):
-        with pytest.raises(TypeError, match=escape(f"`Trainer.{method}()` requires a `LightningModule`, got: Linear")):
+        with pytest.raises(TypeError, match="must be a `LightningModule`.*got `Linear"):
             run_method = getattr(trainer, method)
             run_method(nn.Linear(2, 2))
 
     trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True)
-    with pytest.raises(TypeError, match=escape("`Trainer.tune()` requires a `LightningModule`, got: Linear")):
+    with pytest.raises(TypeError, match="must be a `LightningModule`.*got `Linear"):
         trainer.tune(nn.Linear(2, 2))
 
 
@@ -850,7 +849,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
             # ckpt_path is None with no model provided means load the best weights
             with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
                 trainer_fn(ckpt_path=ckpt_path)
-                assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -1783,15 +1782,12 @@ def test_module_current_fx_attributes_reset(tmpdir):
     assert model._current_fx_name is None
 
 
-def test_exception_when_lightning_module_is_not_set_on_trainer():
+@pytest.mark.parametrize("fn", ("validate", "test", "predict"))
+def test_exception_when_lightning_module_is_not_set_on_trainer(fn):
     trainer = Trainer()
-
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*validate"):
-        trainer.validate()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*test"):
-        trainer.test()
-    with pytest.raises(MisconfigurationException, match=r"`model` must be provided.*predict"):
-        trainer.predict()
+    trainer_fn = getattr(trainer, fn)
+    with pytest.raises(TypeError, match=rf"{fn}\(\)` requires a `LightningModule"):
+        trainer_fn()
 
 
 @RunIf(min_cuda_gpus=1)
@@ -2180,3 +2176,8 @@ def test_trainer_compiled_model(tmp_path, monkeypatch):
     # ddp does
     trainer = Trainer(strategy="ddp", **trainer_kwargs)
     trainer.fit(compiled_model)
+
+    # an exception is raised
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.raises(TypeError, match="must be a `Light"):
+        trainer.fit(object())

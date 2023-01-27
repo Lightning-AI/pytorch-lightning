@@ -479,8 +479,10 @@ class Trainer:
         self._last_train_dl_reload_epoch = float("-inf")
         self._last_val_dl_reload_epoch = float("-inf")
 
-    def _maybe_unwrap_optimized(self, model: Optional["pl.LightningModule"]) -> Optional["pl.LightningModule"]:
-        if model is None or not _TORCH_GREATER_EQUAL_2_0:
+    def _maybe_unwrap_optimized(self, model: object) -> "pl.LightningModule":
+        if not _TORCH_GREATER_EQUAL_2_0:
+            if not isinstance(model, pl.LightningModule):
+                raise TypeError(f"`model` must be a `LightningModule`, got `{type(model).__qualname__}`")
             return model
         from torch._dynamo import OptimizedModule
 
@@ -488,7 +490,9 @@ class Trainer:
             return model.from_compiled(model)
         if isinstance(model, pl.LightningModule):
             return model
-        raise ValueError(f"`model` must either be an instance of {OptimizedModule.__name__} or LightningModule")
+        raise TypeError(
+            f"`model` must be a `LightningModule` or `torch._dynamo.OptimizedModule`, got `{type(model).__qualname__}`"
+        )
 
     def fit(
         self,
@@ -517,8 +521,6 @@ class Trainer:
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
         model = self._maybe_unwrap_optimized(model)
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.fit()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
         self.strategy._lightning_module = model
         call._call_and_handle_interrupt(
             self, self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
@@ -598,10 +600,15 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.validate()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.validate()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -632,12 +639,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.validate(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.validate()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         self.validate_loop.verbose = verbose
 
@@ -687,10 +693,15 @@ class Trainer:
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.test()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.test()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule
         )
@@ -721,12 +732,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.test(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.test()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         self.test_loop.verbose = verbose
 
@@ -777,10 +787,15 @@ class Trainer:
 
         See :ref:`Lightning inference section<deploy/production_basic:Predict step with your LightningModule>` for more.
         """
-        model = self._maybe_unwrap_optimized(model)
-        if model is not None and not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.predict()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-        self.strategy._lightning_module = model or self.lightning_module
+        if model is None:
+            # do we still have a reference from a previous call?
+            if self.lightning_module is None:
+                raise TypeError(
+                    "`Trainer.predict()` requires a `LightningModule` when it hasn't been passed in a previous run"
+                )
+        else:
+            model = self._maybe_unwrap_optimized(model)
+            self.strategy._lightning_module = model
         return call._call_and_handle_interrupt(
             self, self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )
@@ -812,12 +827,11 @@ class Trainer:
         if dataloaders is not None and datamodule:
             raise MisconfigurationException("You cannot pass both `trainer.predict(dataloaders=..., datamodule=...)`")
 
-        model_provided = model is not None
-        model = model or self.lightning_module
         if model is None:
-            raise MisconfigurationException(
-                "`model` must be provided to `trainer.predict()` when it hasn't been passed in a previous run"
-            )
+            model = self.lightning_module
+            model_provided = False
+        else:
+            model_provided = True
 
         # links data to the trainer
         self._data_connector.attach_data(model, predict_dataloaders=dataloaders, datamodule=datamodule)
@@ -867,9 +881,6 @@ class Trainer:
             method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
         model = self._maybe_unwrap_optimized(model)
-        if not isinstance(model, pl.LightningModule):
-            raise TypeError(f"`Trainer.tune()` requires a `LightningModule`, got: {model.__class__.__qualname__}")
-
         Trainer._log_api_event("tune")
 
         with isolate_rng():
