@@ -63,7 +63,9 @@ def parse_args():
         help="Toggle learning rate annealing for policy and value networks",
     )
     parser.add_argument("--gamma", type=float, default=0.99, help="the discount factor gamma")
-    parser.add_argument("--gae-lambda", type=float, default=1, help="the lambda for the general advantage estimation")
+    parser.add_argument(
+        "--gae-lambda", type=float, default=0.95, help="the lambda for the general advantage estimation"
+    )
     parser.add_argument("--update-epochs", type=int, default=10, help="the K epochs to update the policy")
     parser.add_argument(
         "--activation-function",
