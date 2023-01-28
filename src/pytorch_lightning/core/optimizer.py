@@ -157,7 +157,7 @@ class LightningOptimizer:
             raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
 
         assert self._strategy is not None
-        step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+        step_output = self._strategy.optimizer_step(self._optimizer, closure, **kwargs)
 
         self._on_after_step()
 
@@ -182,7 +182,7 @@ def _init_optimizers_and_lr_schedulers(
         if model.automatic_optimization
         else _configure_schedulers_manual_opt(lr_schedulers)
     )
-    _set_scheduler_opt_idx(optimizers, lr_scheduler_configs)
+    _validate_optimizers_attached(optimizers, lr_scheduler_configs)
     _validate_scheduler_api(lr_scheduler_configs, model)
     return optimizers, lr_scheduler_configs
 
@@ -342,20 +342,9 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
             )
 
 
-def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
+def _validate_optimizers_attached(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:
     for config in lr_scheduler_configs:
-
-        for opt_idx, opt in enumerate(optimizers):
-            if config.scheduler.optimizer is opt:
-                if config.opt_idx is not None and config.opt_idx != opt_idx:
-                    raise MisconfigurationException(
-                        "`opt_idx` set inside scheduler config does not match with the index"
-                        " of the respective optimizer returned from `configure_optimizers`."
-                    )
-
-                config.opt_idx = opt_idx
-                break
-        else:
+        if config.scheduler.optimizer not in optimizers:
             raise MisconfigurationException(
                 "Some schedulers are attached with an optimizer that wasn't returned from `configure_optimizers`."
             )

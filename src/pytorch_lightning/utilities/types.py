@@ -131,5 +131,3 @@ class LRSchedulerConfig:
     monitor: Optional[str] = None
     # enforce that the monitor exists for ReduceLROnPlateau
     strict: bool = True
-    # opt_idx assigned internally if not assigned by user
-    opt_idx: Optional[int] = None

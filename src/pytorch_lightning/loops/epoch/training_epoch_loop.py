@@ -376,10 +376,10 @@ class _TrainingEpochLoop(loops._Loop):
             return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
-        if lightning_module.automatic_optimization:
-            batch_output = apply_to_collection(
-                batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-            )
+        # if lightning_module.automatic_optimization:
+        #     batch_output = apply_to_collection(
+        #         batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+        #     )
 
         array = np.array(batch_output, dtype=object)
         # squeeze all single-element dimensions
@@ -400,10 +400,10 @@ class _TrainingEpochLoop(loops._Loop):
             return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
-        if lightning_module.automatic_optimization:
-            batch_outputs = apply_to_collection(
-                batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-            )
+        # if lightning_module.automatic_optimization:
+        #     batch_outputs = apply_to_collection(
+        #         batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+        #     )
 
         array = _recursive_pad(batch_outputs)
         # squeeze all single-element dimensions
@@ -471,7 +471,6 @@ class _TrainingEpochLoop(loops._Loop):
                 self.trainer._call_lightning_module_hook(
                     "lr_scheduler_step",
                     config.scheduler,
-                    config.opt_idx,
                     monitor_val,
                 )
                 self.scheduler_progress.increment_completed()
@@ -542,17 +541,6 @@ class _TrainingEpochLoop(loops._Loop):
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
-
-
-def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:
-    """Converts an optimizer dict to a list in which the key of the dict determines the position of the element.
-
-    Example::
-        >>> _convert_optim_dict({0: {"loss": 0.0}, 2: {"loss": 0.2}}, num_optimizers=3)
-        [{'loss': 0.0}, None, {'loss': 0.2}]
-    """
-    return [outs[opt_idx] if opt_idx in outs else None for opt_idx in range(num_optimizers)]
-
 
 @overload
 def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:

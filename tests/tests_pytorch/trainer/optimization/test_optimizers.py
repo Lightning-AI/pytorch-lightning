@@ -347,7 +347,6 @@ def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
 
     assert len(trainer.lr_scheduler_configs) == 0
     assert len(trainer.optimizers) == 0
-    assert len(trainer.optimizer_frequencies) == 0
 
 
 def test_multiple_optimizers_callbacks(tmpdir):
@@ -705,10 +704,10 @@ def test_lr_scheduler_step_hook(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx=0):
             return super().training_step(batch, batch_idx)
 
-        def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        def lr_scheduler_step(self, scheduler, metric):
             # step-level
             if optimizer_idx == 0:
-                super().lr_scheduler_step(scheduler, optimizer_idx, metric)
+                super().lr_scheduler_step(scheduler, metric)
             # epoch-level
             elif optimizer_idx == 1:
                 scheduler.step(epoch=self.current_epoch)

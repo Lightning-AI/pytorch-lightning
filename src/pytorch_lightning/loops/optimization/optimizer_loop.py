@@ -20,6 +20,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
 
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
@@ -145,7 +146,7 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class _AutomaticOptimization:
+class _AutomaticOptimization(_Loop):
     """Performs automatic optimization (forward, zero grad, backward, optimizer step)"""
 
     output_result_cls = ClosureResult

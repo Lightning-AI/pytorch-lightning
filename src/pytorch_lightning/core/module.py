@@ -1229,6 +1229,7 @@ class LightningModule(
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
+        Optimization with multiple optimizers only works in the manual optimization mode.
 
         Return:
             Any of these 6 options.
@@ -1239,7 +1240,6 @@ class LightningModule(
               (or multiple ``lr_scheduler_config``).
             - **Dictionary**, with an ``"optimizer"`` key, and (optionally) a ``"lr_scheduler"``
               key whose value is a single LR scheduler or ``lr_scheduler_config``.
-            - **Tuple of dictionaries** as described above, with an optional ``"frequency"`` key.
             - **None** - Fit will run without any optimizer.
 
         The ``lr_scheduler_config`` is a dictionary which contains the scheduler and its associated configuration.
@@ -1313,88 +1313,17 @@ class LightningModule(
         ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.module.LightningModule`.
 
         Note:
-            The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
-            to the number of sequential batches optimized with the specific optimizer.
-            It should be given to none or to all of the optimizers.
-            There is a difference between passing multiple optimizers in a list,
-            and passing multiple optimizers in dictionaries with a frequency of 1:
-
-                - In the former case, all optimizers will operate on the given batch in each optimization step.
-                - In the latter, only one optimizer will operate on the given batch at every step.
-
-            This is different from the ``frequency`` value specified in the ``lr_scheduler_config`` mentioned above.
-
-            .. code-block:: python
-
-                def configure_optimizers(self):
-                    optimizer_one = torch.optim.SGD(self.model.parameters(), lr=0.01)
-                    optimizer_two = torch.optim.SGD(self.model.parameters(), lr=0.01)
-                    return [
-                        {"optimizer": optimizer_one, "frequency": 5},
-                        {"optimizer": optimizer_two, "frequency": 10},
-                    ]
-
-            In this example, the first optimizer will be used for the first 5 steps,
-            the second optimizer for the next 10 steps and that cycle will continue.
-            If an LR scheduler is specified for an optimizer using the ``lr_scheduler`` key in the above dict,
-            the scheduler will only be updated when its optimizer is being used.
-
-        Examples::
-
-            # most cases. no learning rate scheduler
-            def configure_optimizers(self):
-                return Adam(self.parameters(), lr=1e-3)
-
-            # multiple optimizer case (e.g.: GAN)
-            def configure_optimizers(self):
-                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                return gen_opt, dis_opt
-
-            # example with learning rate schedulers
-            def configure_optimizers(self):
-                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                dis_sch = CosineAnnealing(dis_opt, T_max=10)
-                return [gen_opt, dis_opt], [dis_sch]
-
-            # example with step-based learning rate schedulers
-            # each optimizer has its own scheduler
-            def configure_optimizers(self):
-                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                gen_sch = {
-                    'scheduler': ExponentialLR(gen_opt, 0.99),
-                    'interval': 'step'  # called after each training step
-                }
-                dis_sch = CosineAnnealing(dis_opt, T_max=10) # called every epoch
-                return [gen_opt, dis_opt], [gen_sch, dis_sch]
-
-            # example with optimizer frequencies
-            # see training procedure in `Improved Training of Wasserstein GANs`, Algorithm 1
-            # https://arxiv.org/abs/1704.00028
-            def configure_optimizers(self):
-                gen_opt = Adam(self.model_gen.parameters(), lr=0.01)
-                dis_opt = Adam(self.model_dis.parameters(), lr=0.02)
-                n_critic = 5
-                return (
-                    {'optimizer': dis_opt, 'frequency': n_critic},
-                    {'optimizer': gen_opt, 'frequency': 1}
-                )
-
-        Note:
             Some things to know:
 
-            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer as needed.
-            - If learning rate scheduler is specified in ``configure_optimizers()`` with key
+            - Lightning calls ``.backward()`` and ``.step()`` automatically in case of automatic optimization.
+            - If a learning rate scheduler is specified in ``configure_optimizers()`` with key
               ``"interval"`` (default "epoch") in the scheduler configuration, Lightning will call
               the scheduler's ``.step()`` method automatically in case of automatic optimization.
-            - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
+            - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizer.
             - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
             - If you use multiple optimizers, you will have to switch to 'manual optimization' mode and step them
               yourself.
-            - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
-              override the :meth:`optimizer_step` hook.
+            - If you need to control how often the optimizer steps, override the :meth:`optimizer_step` hook.
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
