@@ -182,6 +182,7 @@ def _init_optimizers_and_lr_schedulers(
         if model.automatic_optimization
         else _configure_schedulers_manual_opt(lr_schedulers)
     )
+    _validate_multiple_optimizers_support(optimizers, model)
     _validate_optimizers_attached(optimizers, lr_scheduler_configs)
     _validate_scheduler_api(lr_scheduler_configs, model)
     return optimizers, lr_scheduler_configs
@@ -340,6 +341,15 @@ def _validate_scheduler_api(lr_scheduler_configs: List[LRSchedulerConfig], model
                 " API. You should override the `LightningModule.lr_scheduler_step` hook with your own logic if"
                 " you are using a custom LR scheduler."
             )
+
+
+def _validate_multiple_optimizers_support(optimizers: List[Optimizer], model: "pl.LightningModule") -> None:
+    if model.automatic_optimization and len(optimizers) > 1:
+        raise RuntimeError(
+            "Training with multiple optimizers is only supported with manual optimization. Set"
+            " `self.automatic_optimization = False`, then access your optimizers in `training_step` with"
+            " `opt1, opt2, ... = self.optimizers()`."
+        )
 
 
 def _validate_optimizers_attached(optimizers: List[Optimizer], lr_scheduler_configs: List[LRSchedulerConfig]) -> None:

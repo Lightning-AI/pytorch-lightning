@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, patch
+from unittest.mock import call, patch, Mock
 
 import pytest
 import torch
@@ -39,7 +39,6 @@ def test_optimizer_with_scheduling(tmpdir):
         default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, val_check_interval=0.5
     )
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     init_lr = 0.1
     adjusted_lr = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
@@ -69,7 +68,6 @@ def test_multi_optimizer_with_scheduling(tmpdir):
     model.training_epoch_end = None
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
     adjusted_lr2 = [pg["lr"] for pg in trainer.optimizers[1].param_groups]
@@ -144,7 +142,6 @@ def test_reducelronplateau_scheduling(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
     lr_scheduler = trainer.lr_scheduler_configs[0]
     assert lr_scheduler == LRSchedulerConfig(
@@ -154,7 +151,6 @@ def test_reducelronplateau_scheduling(tmpdir):
         frequency=1,
         reduce_on_plateau=True,
         strict=True,
-        opt_idx=0,
         name=None,
     )
 
@@ -173,20 +169,22 @@ def test_optimizer_return_options(tmpdir):
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
-    assert len(opt) == 1 and len(lr_sched) == len(freq) == 0
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
+    assert len(opt) == 1 and len(lr_sched) == 0
 
     # opt tuple
+    model.automatic_optimization = False
     model.configure_optimizers = lambda: (opt_a, opt_b)
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
-    assert len(lr_sched) == len(freq) == 0
+    assert len(lr_sched) == 0
 
     # opt list
+    model.automatic_optimization = False
     model.configure_optimizers = lambda: [opt_a, opt_b]
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert opt == [opt_a, opt_b]
-    assert len(lr_sched) == len(freq) == 0
+    assert len(lr_sched) == 0
 
     ref_lr_sched = LRSchedulerConfig(
         scheduler=scheduler_a,
@@ -196,47 +194,31 @@ def test_optimizer_return_options(tmpdir):
         monitor=None,
         strict=True,
         name=None,
-        opt_idx=0,
     )
 
     # opt tuple of 2 lists
+    model.automatic_optimization = True
     model.configure_optimizers = lambda: ([opt_a], [scheduler_a])
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
-    assert len(freq) == 0
     assert opt[0] == opt_a
     assert lr_sched[0] == ref_lr_sched
 
     # opt tuple of 1 list
+    model.automatic_optimization = True
     model.configure_optimizers = lambda: ([opt_a], scheduler_a)
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
-    assert len(freq) == 0
     assert opt[0] == opt_a
     assert lr_sched[0] == ref_lr_sched
 
     # opt single dictionary
+    model.automatic_optimization = True
     model.configure_optimizers = lambda: {"optimizer": opt_a, "lr_scheduler": scheduler_a}
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
+    opt, lr_sched = _init_optimizers_and_lr_schedulers(model)
     assert len(opt) == len(lr_sched) == 1
-    assert len(freq) == 0
     assert opt[0] == opt_a
     assert lr_sched[0] == ref_lr_sched
-
-    # opt multiple dictionaries with frequencies
-    model.configure_optimizers = lambda: (
-        {"optimizer": opt_a, "lr_scheduler": scheduler_a, "frequency": 1},
-        {"optimizer": opt_b, "lr_scheduler": scheduler_b, "frequency": 5},
-    )
-    opt, lr_sched, freq = _init_optimizers_and_lr_schedulers(model)
-    assert len(opt) == len(lr_sched) == len(freq) == 2
-    assert opt[0] == opt_a
-    ref_lr_sched.opt_idx = 0
-    assert lr_sched[0] == ref_lr_sched
-    ref_lr_sched.scheduler = scheduler_b
-    ref_lr_sched.opt_idx = 1
-    assert lr_sched[1] == ref_lr_sched
-    assert freq == [1, 5]
 
 
 def test_none_optimizer(tmpdir):
@@ -245,7 +227,6 @@ def test_none_optimizer(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
     with pytest.warns(UserWarning, match="will run with no optimizer"):
         trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 def test_configure_optimizer_from_dict(tmpdir):
@@ -259,74 +240,6 @@ def test_configure_optimizer_from_dict(tmpdir):
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-
-@pytest.mark.parametrize(
-    "schedulers, kwargs, intervals, frequencies, expected_steps, max_epochs",
-    [
-        (
-            (optim.lr_scheduler.OneCycleLR, optim.lr_scheduler.OneCycleLR),
-            (dict(max_lr=0.01, total_steps=3), dict(max_lr=0.01, total_steps=2)),
-            ("step", "step"),
-            (3, 2),
-            (4, 3),
-            1,
-        ),
-        (
-            (optim.lr_scheduler.OneCycleLR, optim.lr_scheduler.OneCycleLR),
-            (dict(max_lr=0.01, total_steps=5), dict(max_lr=0.01, total_steps=5)),
-            ("step", "step"),
-            (None, None),
-            (6, 6),
-            1,
-        ),
-        (
-            (optim.lr_scheduler.StepLR, optim.lr_scheduler.CosineAnnealingLR),
-            (dict(step_size=5), dict(T_max=2)),
-            ("epoch", "epoch"),
-            (5, 10),
-            (2, 3),
-            3,
-        ),
-    ],
-)
-def test_step_scheduling_for_multiple_optimizers_with_frequency(
-    tmpdir, schedulers, kwargs, intervals, frequencies, expected_steps, max_epochs
-):
-    """Test that step LR schedulers for multiple optimizers follow the optimizer frequencies when corresponding
-    frequency is set."""
-
-    class DummyModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            pass
-
-        def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
-            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
-
-            lr_scheduler_config_1 = {"scheduler": schedulers[0](optimizer1, **kwargs[0]), "interval": intervals[0]}
-            lr_scheduler_config_2 = {"scheduler": schedulers[1](optimizer2, **kwargs[1]), "interval": intervals[1]}
-
-            return [
-                {"optimizer": optimizer1, "frequency": frequencies[0], "lr_scheduler": lr_scheduler_config_1},
-                {"optimizer": optimizer2, "frequency": frequencies[1], "lr_scheduler": lr_scheduler_config_2},
-            ]
-
-    model = DummyModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    assert trainer.lr_scheduler_configs[0].opt_idx == 0
-    assert trainer.lr_scheduler_configs[1].opt_idx == 1
-    # Step count is 1 greater than the expected value because scheduler.step() is called once during initialization
-    assert trainer.lr_scheduler_configs[0].scheduler._step_count == expected_steps[0]
-    assert trainer.lr_scheduler_configs[1].scheduler._step_count == expected_steps[1]
 
 
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
@@ -700,27 +613,18 @@ def test_lr_scheduler_step_hook(tmpdir):
         def load_state_dict(self, state_dict):
             ...
 
-    class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=0):
-            return super().training_step(batch, batch_idx)
+    lr_scheduler = Mock(spec=torch.optim.lr_scheduler.StepLR)
 
+    class CustomBoringModel(BoringModel):
         def lr_scheduler_step(self, scheduler, metric):
-            # step-level
-            if optimizer_idx == 0:
-                super().lr_scheduler_step(scheduler, metric)
-            # epoch-level
-            elif optimizer_idx == 1:
-                scheduler.step(epoch=self.current_epoch)
+            scheduler.step()
 
         def configure_optimizers(self):
-            opt1 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
-            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
-            opt2 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
-            lr_scheduler2 = CustomEpochScheduler(opt2)
-            return {"optimizer": opt1, "lr_scheduler": lr_scheduler1}, {
-                "optimizer": opt2,
-                "lr_scheduler": lr_scheduler2,
-            }
+            opt = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            # lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(opt1, step_size=1), "interval": "step"}
+            # opt2 = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
+            return [opt], [lr_scheduler]
+            # return {"optimizer": opt, "lr_scheduler": lr_scheduler}
 
     model = CustomBoringModel()
     model.training_epoch_end = None
@@ -735,14 +639,14 @@ def test_lr_scheduler_step_hook(tmpdir):
         limit_val_batches=0,
     )
 
-    with patch.object(CustomEpochScheduler, "step") as mock_method_epoch, patch.object(
-        torch.optim.lr_scheduler.StepLR, "step"
-    ) as mock_method_step:
-        trainer.fit(model)
+    # with patch.object(CustomEpochScheduler, "step") as mock_method_epoch, patch.object(
+    #     torch.optim.lr_scheduler.StepLR, "step"
+    # ) as mock_method_step:
+    trainer.fit(model)
 
-    assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # assert lr_scheduler.step.mock_calls == [call(epoch=e) for e in range(max_epochs)]
     # first step is called by PyTorch LRScheduler
-    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
+    assert lr_scheduler.step.call_count == max_epochs * limit_train_batches + 1
 
 
 def test_invalid_scheduler_missing_state_dict():

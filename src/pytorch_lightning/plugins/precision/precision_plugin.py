@@ -62,7 +62,7 @@ class PrecisionPlugin(FabricPrecision, CheckpointHooks):
                 :meth:`~torch.Tensor.backward`.
             \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
-        model.backward(tensor, optimizer, *args, **kwargs)
+        model.backward(tensor, *args, **kwargs)
 
     def post_backward(self, tensor: Tensor, module: "pl.LightningModule") -> Tensor:  # type: ignore[override]
         # once backward has been applied, release graph

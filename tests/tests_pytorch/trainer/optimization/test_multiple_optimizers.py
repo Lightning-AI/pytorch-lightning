@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
+# TODO:
 class MultiOptModel(BoringModel):
     def configure_optimizers(self):
         opt_a = torch.optim.SGD(self.layer.parameters(), lr=0.001)
@@ -26,62 +27,19 @@ class MultiOptModel(BoringModel):
         return opt_a, opt_b
 
 
-def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
-    """This tests ensures reduction works in unbalanced logging settings."""
+def test_multiple_optimizers_automatic_optimization_raises():
+    """Test that multiple optimizers in automatic optimization is not allowed."""
 
-    class TestModel(MultiOptModel):
-
-        actual = {0: [], 1: []}
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            out = super().training_step(batch, batch_idx)
-            loss = out["loss"]
-            self.log(f"loss_{optimizer_idx}", loss, on_epoch=True)
-            self.actual[optimizer_idx].append(loss)
-            return out
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())
 
     model = TestModel()
-    model.training_epoch_end = None
+    model.automatic_optimization = True
 
-    # Initialize a trainer
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, limit_val_batches=5, enable_model_summary=False
-    )
-    trainer.fit(model)
-
-    for k, v in model.actual.items():
-        assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
-        # test loss is properly reduced
-        torch.testing.assert_close(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
-
-
-def test_multiple_optimizers(tmpdir):
-    class TestModel(MultiOptModel):
-
-        seen = [False, False]
-
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            self.seen[optimizer_idx] = True
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
-
-    model = TestModel()
-    model.val_dataloader = None
-
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        log_every_n_steps=1,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-
-    assert all(model.seen)
+    trainer = pl.Trainer()
+    with pytest.raises(RuntimeError, match="multiple optimizers is only supported with manual optimization"):
+        trainer.fit(model)
 
 
 def test_multiple_optimizers_manual(tmpdir):
