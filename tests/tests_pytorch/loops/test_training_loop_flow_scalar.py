@@ -147,7 +147,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run([(0, trainer.optimizers[0])], kwargs)
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0]
@@ -155,7 +155,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.optimizer_loop._make_closure(kwargs, trainer.optimizers[0])
+    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 
@@ -217,7 +217,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     trainer.state.stage = RunningStage.TRAINING
     # make sure training outputs what is expected
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
-    train_step_out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+    train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run([(0, trainer.optimizers[0])], kwargs)
 
     assert len(train_step_out) == 1
     train_step_out = train_step_out[0]
@@ -225,7 +225,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     assert train_step_out["loss"].item() == 171
 
     # make sure the optimizer closure returns the correct things
-    opt_closure = trainer.fit_loop.epoch_loop.optimizer_loop._make_closure(kwargs, trainer.optimizers[0])
+    opt_closure = trainer.fit_loop.epoch_loop.automatic_optimization._make_closure(kwargs, trainer.optimizers[0])
     opt_closure_result = opt_closure()
     assert opt_closure_result.item() == 171
 
@@ -302,7 +302,7 @@ def test_training_step_no_return_when_even(tmpdir):
     # manually check a few batches
     for batch_idx, batch in enumerate(model.train_dataloader()):
         kwargs = {"batch": batch, "batch_idx": batch_idx}
-        out = trainer.fit_loop.epoch_loop.optimizer_loop.run([(0, trainer.optimizers[0])], kwargs)
+        out = trainer.fit_loop.epoch_loop.automatic_optimization.run([(0, trainer.optimizers[0])], kwargs)
         if not batch_idx % 2:
             assert out == {}
 

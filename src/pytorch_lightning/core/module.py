@@ -661,7 +661,6 @@ class LightningModule(
             batch (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
                 The output of your :class:`~torch.utils.data.DataLoader`. A tensor, tuple or list.
             batch_idx (``int``): Integer displaying index of this batch
-            optimizer_idx (``int``): When using multiple optimizers, this argument will also be present.
 
         Return:
             Any of.
@@ -682,23 +681,24 @@ class LightningModule(
                 loss = self.loss(out, x)
                 return loss
 
-        If you define multiple optimizers, this step will be called with an additional
-        ``optimizer_idx`` parameter.
+        To use multiple optimizers, you can switch to 'manual optimization' and control their stepping:
 
         .. code-block:: python
 
-            # Multiple optimizers (e.g.: GANs)
-            def training_step(self, batch, batch_idx, optimizer_idx):
-                if optimizer_idx == 0:
-                    # do training_step with encoder
-                    ...
-                if optimizer_idx == 1:
-                    # do training_step with decoder
-                    ...
+            def __init__(self):
+                super().__init__()
+                self.automatic_optimization = False
 
-        Note:
-            The loss value shown in the progress bar is smoothed (averaged) over the last values,
-            so it differs from the actual loss returned in train/validation step.
+            # Multiple optimizers (e.g.: GANs)
+            def training_step(self, batch, batch_idx):
+                opt1, opt2 = self.optimizers()
+
+                # do training_step with encoder
+                ...
+                opt1.step()
+                # do training_step with decoder
+                ...
+                opt2.step()
 
         Note:
             When ``accumulate_grad_batches`` > 1, the loss returned here will be automatically
@@ -1390,10 +1390,9 @@ class LightningModule(
               ``"interval"`` (default "epoch") in the scheduler configuration, Lightning will call
               the scheduler's ``.step()`` method automatically in case of automatic optimization.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
-            - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
             - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
-            - If you use multiple optimizers, gradients will be calculated only for the parameters of current optimizer
-              at each training step.
+            - If you use multiple optimizers, you will have to switch to 'manual optimization' mode and step them
+              yourself.
             - If you need to control how often those optimizers step or override the default ``.step()`` schedule,
               override the :meth:`optimizer_step` hook.
         """
@@ -1426,74 +1425,23 @@ class LightningModule(
             self._verify_is_manual_optimization("manual_backward")
             self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
-    def backward(
-        self, loss: Tensor, optimizer: Optional[Steppable], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
-    ) -> None:
+    def backward(self, loss: Tensor, *args: Any, **kwargs: Any) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
         own implementation if you need to.
 
         Args:
             loss: The loss tensor returned by :meth:`training_step`. If gradient accumulation is used, the loss here
                 holds the normalized value (scaled by 1 / accumulation steps).
-            optimizer: Current optimizer being used. ``None`` if using manual optimization.
-            optimizer_idx: Index of the current optimizer being used. ``None`` if using manual optimization.
 
         Example::
 
-            def backward(self, loss, optimizer, optimizer_idx):
+            def backward(self, loss):
                 loss.backward()
         """
         if self._fabric:
             self._fabric.backward(loss, *args, **kwargs)
         else:
             loss.backward(*args, **kwargs)
-
-    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer], optimizer_idx: int) -> None:
-        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
-        to prevent dangling gradients in multiple-optimizer setup.
-
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
-        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
-
-        Args:
-            optimizer: The optimizer to toggle.
-            optimizer_idx: The index of the optimizer to toggle.
-        """
-        # Iterate over all optimizer parameters to preserve their `requires_grad` information
-        # in case these are pre-defined during `configure_optimizers`
-        param_requires_grad_state = {}
-        for opt in self.trainer.optimizers:
-            for group in opt.param_groups:
-                for param in group["params"]:
-                    # If a param already appear in param_requires_grad_state, continue
-                    if param in param_requires_grad_state:
-                        continue
-                    param_requires_grad_state[param] = param.requires_grad
-                    param.requires_grad = False
-
-        # Then iterate over the current optimizer's parameters and set its `requires_grad`
-        # properties accordingly
-        for group in optimizer.param_groups:  # type: ignore[union-attr]
-            for param in group["params"]:
-                param.requires_grad = param_requires_grad_state[param]
-        self._param_requires_grad_state = param_requires_grad_state
-
-    def untoggle_optimizer(self, optimizer_idx: int) -> None:
-        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
-
-        This is only called automatically when automatic optimization is enabled and multiple optimizers are used.
-
-        Args:
-            optimizer_idx: The index of the optimizer to untoggle.
-        """
-        for opt_idx, opt in enumerate(self.trainer.optimizers):
-            if optimizer_idx != opt_idx:
-                for group in opt.param_groups:
-                    for param in group["params"]:
-                        if param in self._param_requires_grad_state:
-                            param.requires_grad = self._param_requires_grad_state[param]
-        # save memory
-        self._param_requires_grad_state = {}
 
     def clip_gradients(
         self,
@@ -1555,7 +1503,6 @@ class LightningModule(
     def configure_gradient_clipping(
         self,
         optimizer: Optimizer,
-        optimizer_idx: int,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
     ) -> None:
@@ -1563,36 +1510,27 @@ class LightningModule(
 
         Args:
             optimizer: Current optimizer being used.
-            optimizer_idx: Index of the current optimizer being used.
-            gradient_clip_val: The value at which to clip gradients. By default value passed in Trainer
+            gradient_clip_val: The value at which to clip gradients. By default, value passed in Trainer
                 will be available here.
-            gradient_clip_algorithm: The gradient clipping algorithm to use. By default value
+            gradient_clip_algorithm: The gradient clipping algorithm to use. By default, value
                 passed in Trainer will be available here.
 
         Example::
 
-            # Perform gradient clipping on gradients associated with discriminator (optimizer_idx=1) in GAN
-            def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-                if optimizer_idx == 1:
-                    # Lightning will handle the gradient clipping
-                    self.clip_gradients(
-                        optimizer,
-                        gradient_clip_val=gradient_clip_val,
-                        gradient_clip_algorithm=gradient_clip_algorithm
-                    )
-                else:
-                    # implement your own custom logic to clip gradients for generator (optimizer_idx=0)
+            def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
+                # Implement your own custom logic to clip gradients
+                # You can call `self.clip_gradients` with your settings:
+                self.clip_gradients(
+                    optimizer,
+                    gradient_clip_val=gradient_clip_val,
+                    gradient_clip_algorithm=gradient_clip_algorithm
+                )
         """
         self.clip_gradients(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
-    def lr_scheduler_step(
-        self,
-        scheduler: LRSchedulerTypeUnion,
-        optimizer_idx: int,
-        metric: Optional[Any],
-    ) -> None:
+    def lr_scheduler_step(self, scheduler: LRSchedulerTypeUnion, metric: Optional[Any]) -> None:
         r"""
         Override this method to adjust the default way the
         :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
@@ -1601,20 +1539,19 @@ class LightningModule(
 
         Args:
             scheduler: Learning rate scheduler.
-            optimizer_idx: Index of the optimizer associated with this scheduler.
             metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
 
         Examples::
 
             # DEFAULT
-            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+            def lr_scheduler_step(self, scheduler, metric):
                 if metric is None:
                     scheduler.step()
                 else:
                     scheduler.step(metric)
 
             # Alternative way to update schedulers if it requires an epoch value
-            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+            def lr_scheduler_step(self, scheduler, metric):
                 scheduler.step(epoch=self.current_epoch)
 
         """
@@ -1628,16 +1565,15 @@ class LightningModule(
         epoch: int,
         batch_idx: int,
         optimizer: Union[Optimizer, LightningOptimizer],
-        optimizer_idx: int = 0,
         optimizer_closure: Optional[Callable[[], Any]] = None,
         on_tpu: bool = False,
         using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
-        each optimizer.
+        the optimizer.
 
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example.
         This method (and ``zero_grad()``) won't be called during the accumulation phase when
         ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
@@ -1645,7 +1581,6 @@ class LightningModule(
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
-            optimizer_idx: If you used multiple optimizers, this indexes into that list.
             optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
@@ -1654,44 +1589,11 @@ class LightningModule(
         Examples::
 
             # DEFAULT
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_lbfgs):
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, on_tpu, using_lbfgs):
                 optimizer.step(closure=optimizer_closure)
 
-            # Alternating schedule for optimizer steps (i.e.: GANs)
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx,
-                               optimizer_closure, on_tpu, using_lbfgs):
-                # update generator opt every step
-                if optimizer_idx == 0:
-                    optimizer.step(closure=optimizer_closure)
-
-                # update discriminator opt every 2 steps
-                if optimizer_idx == 1:
-                    if (batch_idx + 1) % 2 == 0 :
-                        optimizer.step(closure=optimizer_closure)
-                    else:
-                        # call the closure by itself to run `training_step` + `backward` without an optimizer step
-                        optimizer_closure()
-
-                # ...
-                # add as many optimizers as you want
-
-        Here's another example showing how to use this for more advanced things such as
-        learning rate warm-up:
-
-        .. code-block:: python
-
-            # learning rate warm-up
-            def optimizer_step(
-                self,
-                epoch,
-                batch_idx,
-                optimizer,
-                optimizer_idx,
-                optimizer_closure,
-                on_tpu,
-                using_lbfgs,
-            ):
+            # Learning rate warm-up
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, on_tpu, using_lbfgs):
                 # update params
                 optimizer.step(closure=optimizer_closure)
 
@@ -1700,27 +1602,25 @@ class LightningModule(
                     lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
                     for pg in optimizer.param_groups:
                         pg["lr"] = lr_scale * self.learning_rate
-
         """
         optimizer.step(closure=optimizer_closure)
 
-    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer) -> None:
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
-            optimizer_idx: If you used multiple optimizers this indexes into that list.
 
         Examples::
 
             # DEFAULT
-            def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
                 optimizer.zero_grad()
 
             # Set gradients to `None` instead of zero to improve performance (not required on `torch>=2.0.0`).
-            def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
+            def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
                 optimizer.zero_grad(set_to_none=True)
 
         See :meth:`torch.optim.Optimizer.zero_grad` for the explanation of the above example.

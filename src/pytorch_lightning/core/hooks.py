@@ -229,7 +229,7 @@ class ModelHooks:
             Use the ``on_before_optimizer_step`` if you need the unscaled gradients.
         """
 
-    def on_before_optimizer_step(self, optimizer: Optimizer, optimizer_idx: int) -> None:
+    def on_before_optimizer_step(self, optimizer: Optimizer) -> None:
         """Called before ``optimizer.step()``.
 
         If using gradient accumulation, the hook is called once the gradients have been accumulated.
@@ -243,11 +243,10 @@ class ModelHooks:
 
         Args:
             optimizer: Current optimizer being used.
-            optimizer_idx: Index of the current optimizer being used.
 
         Example::
 
-            def on_before_optimizer_step(self, optimizer, optimizer_idx):
+            def on_before_optimizer_step(self, optimizer):
                 # example to inspect gradient information in tensorboard
                 if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                     for k, v in self.named_parameters():

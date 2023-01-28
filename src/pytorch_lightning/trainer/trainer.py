@@ -1557,14 +1557,6 @@ class Trainer:
         return self.strategy.lr_scheduler_configs
 
     @property
-    def optimizer_frequencies(self) -> List[int]:
-        return self.strategy.optimizer_frequencies
-
-    @optimizer_frequencies.setter
-    def optimizer_frequencies(self, new_freqs: List[int]) -> None:
-        self.strategy.optimizer_frequencies = new_freqs
-
-    @property
     def precision(self) -> _PRECISION_INPUT_STR:
         return self.strategy.precision_plugin.precision
 

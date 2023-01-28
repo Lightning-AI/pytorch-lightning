@@ -61,7 +61,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         tensor: Tensor,
         model: "pl.LightningModule",
         optimizer: Optional[Steppable],
-        optimizer_idx: Optional[int],
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -71,7 +70,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             tensor: the loss tensor
             model: the model to be optimized
             optimizer: ignored for DeepSpeed
-            optimizer_idx: ignored for DeepSpeed
             \*args: additional positional arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
             \**kwargs: additional keyword arguments for the :meth:`deepspeed.DeepSpeedEngine.backward` call
         """
@@ -87,16 +85,13 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         self,
         optimizer: Steppable,
         model: "pl.LightningModule",
-        optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
     ) -> Any:
         if isinstance(optimizer, LBFGS):
-            raise MisconfigurationException(
-                f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
-            )
+            raise MisconfigurationException("DeepSpeed and the LBFGS optimizer are not compatible.")
         closure_result = closure()
-        self._after_closure(model, optimizer, optimizer_idx)
+        self._after_closure(model, optimizer)
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if model.automatic_optimization and skipped_backward:

@@ -43,13 +43,12 @@ class _FitLoop(_Loop):
         for epoch in range(max_epochs):
             # TrainingEpochLoop
             for batch_idx, batch in enumerate(train_dataloader):
-                # OptimizerLoop
-                for optimizer_idx, opt in enumerate(optimizers):
-                    loss = lightning_module.training_step(batch, batch_idx, optimizer_idx)
-                    ...
+                loss = lightning_module.training_step(batch, batch_idx)
+                ...
+
                 # ValidationEpochLoop
                 for batch_idx, batch in enumerate(val_dataloader):
-                    lightning_module.validation_step(batch, batch_idx, optimizer_idx)
+                    lightning_module.validation_step(batch, batch_idx)
                     ...
                 ...
             ...
@@ -132,12 +131,12 @@ class _FitLoop(_Loop):
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
-        return self.epoch_loop.optimizer_loop._skip_backward
+        return self.epoch_loop.automatic_optimization._skip_backward
 
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
-        self.epoch_loop.optimizer_loop._skip_backward = value
+        self.epoch_loop.automatic_optimization._skip_backward = value
 
     @property
     def _results(self) -> _ResultCollection:

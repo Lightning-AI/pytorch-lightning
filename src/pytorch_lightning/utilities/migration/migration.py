@@ -87,7 +87,7 @@ def _migrate_loop_global_step_to_progress_tracking(checkpoint: _CHECKPOINT) -> _
     checkpoint.setdefault("loops", {"fit_loop": _get_fit_loop_initial_state_1_6_0()})
     checkpoint["loops"].setdefault("fit_loop", _get_fit_loop_initial_state_1_6_0())
     # for automatic optimization
-    optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]
+    optim_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.automatic_optimization.optim_progress"]
     optim_progress["optimizer"]["step"]["total"]["completed"] = global_step
     # for manual optimization
     optim_step_progress = checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.manual_loop.optim_step_progress"]
@@ -129,7 +129,7 @@ def _get_fit_loop_initial_state_1_6_0() -> Dict:
             "total": {"completed": 0, "ready": 0},
         },
         "epoch_loop.batch_loop.manual_loop.state_dict": {},
-        "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
+        "epoch_loop.batch_loop.automatic_optimization.optim_progress": {
             "optimizer": {
                 "step": {"current": {"completed": 0, "ready": 0}, "total": {"completed": 0, "ready": 0}},
                 "zero_grad": {
@@ -139,7 +139,7 @@ def _get_fit_loop_initial_state_1_6_0() -> Dict:
             },
             "optimizer_position": 0,
         },
-        "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
+        "epoch_loop.batch_loop.automatic_optimization.state_dict": {},
         "epoch_loop.batch_loop.state_dict": {},
         "epoch_loop.batch_progress": {
             "current": {"completed": 0, "processed": 0, "ready": 0, "started": 0},
@@ -239,8 +239,8 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
     old_key_new_key_mapping = {
         "epoch_loop.batch_loop.manual_loop.optim_step_progress": "epoch_loop.manual_loop.optim_step_progress",
         "epoch_loop.batch_loop.manual_loop.state_dict": "epoch_loop.manual_loop.state_dict",
-        "epoch_loop.batch_loop.optimizer_loop.optim_progress": "epoch_loop.optimizer_loop.optim_progress",
-        "epoch_loop.batch_loop.optimizer_loop.state_dict": "epoch_loop.optimizer_loop.state_dict",
+        "epoch_loop.batch_loop.automatic_optimization.optim_progress": "epoch_loop.automatic_optimization.optim_progress",
+        "epoch_loop.batch_loop.automatic_optimization.state_dict": "epoch_loop.automatic_optimization.state_dict",
     }
     for old, new in list(old_key_new_key_mapping.items()):
         if old in fit_loop:

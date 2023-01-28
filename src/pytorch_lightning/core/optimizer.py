@@ -166,7 +166,7 @@ class LightningOptimizer:
 
 def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
-) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
+) -> Tuple[List[Optimizer], List[LRSchedulerConfig]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
@@ -176,7 +176,7 @@ def _init_optimizers_and_lr_schedulers(
         )
         optim_conf = _MockOptimizer()
 
-    optimizers, lr_schedulers, optimizer_frequencies, monitor = _configure_optimizers(optim_conf)
+    optimizers, lr_schedulers, monitor = _configure_optimizers(optim_conf)
     lr_scheduler_configs = (
         _configure_schedulers_automatic_opt(lr_schedulers, monitor)
         if model.automatic_optimization
@@ -184,13 +184,13 @@ def _init_optimizers_and_lr_schedulers(
     )
     _set_scheduler_opt_idx(optimizers, lr_scheduler_configs)
     _validate_scheduler_api(lr_scheduler_configs, model)
-    return optimizers, lr_scheduler_configs, optimizer_frequencies
+    return optimizers, lr_scheduler_configs
 
 
 def _configure_optimizers(
     optim_conf: Union[Dict[str, Any], List, Optimizer, Tuple]
-) -> Tuple[List, List, List, Optional[str]]:
-    optimizers, lr_schedulers, optimizer_frequencies = [], [], []
+) -> Tuple[List, List, Optional[str]]:
+    optimizers, lr_schedulers = [], []
     monitor = None
 
     # single output, single optimizer
@@ -228,12 +228,6 @@ def _configure_optimizers(
             for opt_idx, opt_dict in enumerate(optim_conf)
             if "lr_scheduler" in opt_dict
         ]
-        optimizer_frequencies = [
-            opt_dict["frequency"] for opt_dict in optim_conf if opt_dict.get("frequency", None) is not None
-        ]
-        # assert that if frequencies are present, they are given for all optimizers
-        if optimizer_frequencies and len(optimizer_frequencies) != len(optimizers):
-            raise ValueError("A frequency must be given to each optimizer.")
     # single list or tuple, multiple optimizer
     elif isinstance(optim_conf, (list, tuple)) and all(isinstance(opt, Optimizable) for opt in optim_conf):
         optimizers = list(optim_conf)
@@ -246,9 +240,8 @@ def _configure_optimizers(
             " * [`Optimizer`]\n"
             " * ([`Optimizer`], [`LRScheduler`])\n"
             ' * {"optimizer": `Optimizer`, (optional) "lr_scheduler": `LRScheduler`}\n'
-            ' * A list of the previously described dict format, with an optional "frequency" key (int)'
         )
-    return optimizers, lr_schedulers, optimizer_frequencies, monitor
+    return optimizers, lr_schedulers, monitor
 
 
 def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]) -> List[LRSchedulerConfig]:
@@ -315,7 +308,7 @@ def _configure_schedulers_manual_opt(schedulers: list) -> List[LRSchedulerConfig
         if isinstance(scheduler, dict):
             # interval is not in this list even though the user needs to manually call the scheduler because
             # the `LearningRateMonitor` callback needs to check its value to know when to log the learning rate
-            invalid_keys = {"frequency", "reduce_on_plateau", "monitor", "strict"}
+            invalid_keys = {"reduce_on_plateau", "monitor", "strict"}
             keys_to_warn = [k for k in scheduler.keys() if k in invalid_keys]
 
             if keys_to_warn:
@@ -369,7 +362,7 @@ def _set_scheduler_opt_idx(optimizers: List[Optimizer], lr_scheduler_configs: Li
 
 
 def _validate_optim_conf(optim_conf: Dict[str, Any]) -> None:
-    valid_keys = {"optimizer", "lr_scheduler", "frequency", "monitor"}
+    valid_keys = {"optimizer", "lr_scheduler", "monitor"}
     extra_keys = optim_conf.keys() - valid_keys
     if extra_keys:
         rank_zero_warn(

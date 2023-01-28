@@ -21,11 +21,11 @@ from lightning_utilities.core.apply_func import apply_to_collection
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.optimization import _ManualOptimization, _OptimizerLoop
+from pytorch_lightning.loops.optimization import _ManualOptimization, _AutomaticOptimization
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import _collect_states_on_rank_zero_over_collection
@@ -73,7 +73,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.optimizer_loop = _OptimizerLoop()
+        self.automatic_optimization = _AutomaticOptimization()
         self.manual_loop = _ManualOptimization()
 
         self.val_loop = loops._EvaluationLoop(verbose=False)
@@ -103,7 +103,7 @@ class _TrainingEpochLoop(loops._Loop):
     def global_step(self) -> int:
         lightning_module = self.trainer.lightning_module
         if lightning_module is None or lightning_module.automatic_optimization:
-            return self.optimizer_loop.optim_progress.optimizer_steps
+            return self.automatic_optimization.optim_progress.optimizer_steps
         return self.manual_loop.optim_step_progress.total.completed
 
     @property
@@ -153,7 +153,7 @@ class _TrainingEpochLoop(loops._Loop):
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
-            self.optimizer_loop.optim_progress.reset_on_restart()
+            self.automatic_optimization.optim_progress.reset_on_restart()
 
             trainer = self.trainer
             if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
@@ -168,7 +168,7 @@ class _TrainingEpochLoop(loops._Loop):
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
-            self.optimizer_loop.optim_progress.reset_on_run()
+            self.automatic_optimization.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
@@ -232,10 +232,10 @@ class _TrainingEpochLoop(loops._Loop):
             with self.trainer.profiler.profile("run_training_batch"):
                 # choose which loop will run the optimization
                 if self.trainer.lightning_module.automatic_optimization:
-                    optimizers = _get_active_optimizers(
-                        self.trainer.optimizers, self.trainer.optimizer_frequencies, kwargs.get("batch_idx", 0)
-                    )
-                    batch_output = self.optimizer_loop.run(optimizers, kwargs)
+                    optimizers = self.trainer.optimizers
+                    # TODO
+                    assert len(optimizers) == 1
+                    batch_output = self.automatic_optimization.run(optimizers[0], kwargs)
                 else:
                     batch_output = self.manual_loop.run(kwargs)
 
@@ -247,11 +247,13 @@ class _TrainingEpochLoop(loops._Loop):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        batch_end_outputs = self._prepare_outputs_training_batch_end(
-            batch_output,
-            lightning_module=self.trainer.lightning_module,
-            num_optimizers=len(self.trainer.optimizers),
-        )
+        batch_end_outputs = [batch_output]
+        # TODO:
+        # batch_end_outputs = self._prepare_outputs_training_batch_end(
+        #     batch_output,
+        #     lightning_module=self.trainer.lightning_module,
+        #     num_optimizers=len(self.trainer.optimizers),
+        # )
 
         self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
@@ -418,18 +420,9 @@ class _TrainingEpochLoop(loops._Loop):
         """updates the lr schedulers based on the given interval."""
         if interval == "step" and self._should_accumulate():
             return
-        active_optimizers = _get_active_optimizers(
-            self.trainer.optimizers, self.trainer.optimizer_frequencies, self.total_batch_idx
-        )
-        self._update_learning_rates(
-            interval=interval,
-            update_plateau_schedulers=update_plateau_schedulers,
-            opt_indices=[opt_idx for opt_idx, _ in active_optimizers],
-        )
+        self._update_learning_rates(interval=interval, update_plateau_schedulers=update_plateau_schedulers)
 
-    def _update_learning_rates(
-        self, interval: str, update_plateau_schedulers: bool, opt_indices: Optional[List[int]] = None
-    ) -> None:
+    def _update_learning_rates(self, interval: str, update_plateau_schedulers: bool) -> None:
         """Update learning rates.
 
         Args:
@@ -438,18 +431,11 @@ class _TrainingEpochLoop(loops._Loop):
                 This is used so non-plateau schedulers can be updated before running validation. Checkpoints are
                 commonly saved during validation, however, on-plateau schedulers might monitor a validation metric
                 so they have to be updated separately.
-            opt_indices: indices of the optimizers to update.
         """
         if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
             return
 
-        if opt_indices is None:
-            opt_indices = []
-
         for config in self.trainer.lr_scheduler_configs:
-            if config.opt_idx not in opt_indices:
-                continue
-
             if update_plateau_schedulers ^ config.reduce_on_plateau:
                 continue
 
@@ -550,6 +536,7 @@ class _TrainingEpochLoop(loops._Loop):
         """
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        # TODO
         # the `batch_idx` is optional, however, when there's more than 1 argument we cannot differentiate whether the
         # user wants the `batch_idx` or another key like `optimizer_idx` as we are not strict about the argument names
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
