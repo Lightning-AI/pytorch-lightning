@@ -13,7 +13,7 @@
 # limitations under the License.
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 from torch import Tensor
@@ -22,7 +22,6 @@ from typing_extensions import OrderedDict
 
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
 from pytorch_lightning.loops.progress import OptimizationProgress
 from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior

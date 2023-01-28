@@ -36,7 +36,6 @@ from lightning_fabric.utilities.cloud_io import get_filesystem
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from lightning_fabric.utilities.distributed import _distributed_available, _sync_ddp
 from lightning_fabric.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_2_0
-from lightning_fabric.utilities.types import Steppable
 from lightning_fabric.wrappers import _FabricOptimizer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
@@ -688,6 +687,7 @@ class LightningModule(
             def __init__(self):
                 super().__init__()
                 self.automatic_optimization = False
+
 
             # Multiple optimizers (e.g.: GANs)
             def training_step(self, batch, batch_idx):

@@ -61,9 +61,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
-            return super().optimizer_step(
-                optimizer, model=model, closure=closure, **kwargs
-            )
+            return super().optimizer_step(optimizer, model=model, closure=closure, **kwargs)
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException("AMP and the LBFGS optimizer are not compatible.")
         closure_result = closure()

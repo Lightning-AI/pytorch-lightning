@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Generator, List, Optional, Sequence, Tuple, Union
+from typing import Generator, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -31,7 +29,6 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 
 def check_finite_loss(loss: Optional[Tensor]) -> None:
@@ -85,6 +82,7 @@ def _parse_loop_limits(
 
     return min_epochs, max_epochs
 
+
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
     """Blocks synchronization in :class:`~pytorch_lightning.strategies.parallel.ParallelStrategy`. This is useful
@@ -107,6 +105,7 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
 @lru_cache(1)
 def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
     return np.cumsum(frequencies)
+
 
 #
 # def _get_active_optimizers(

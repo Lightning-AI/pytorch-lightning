@@ -240,7 +240,9 @@ class Callback:
     def on_after_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called after ``loss.backward()`` and before optimizers are stepped."""
 
-    def on_before_optimizer_step(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
+    def on_before_optimizer_step(
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer
+    ) -> None:
         """Called before ``optimizer.step()``."""
 
     def on_before_zero_grad(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
