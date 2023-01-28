@@ -9,13 +9,13 @@ from lightning.store.save import __STORAGE_DIR_NAME
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_source_code_implicit(clean_home, model_name: str = "model_test_source_code_implicit"):
+def test_source_code_implicit(lit_home, model_name: str = "model_test_source_code_implicit"):
     upload_to_cloud(model_name, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
 
     download_from_cloud(f"{_USERNAME}/{model_name}")
     assert os.path.isfile(
         os.path.join(
-            clean_home,
+            lit_home,
             __STORAGE_DIR_NAME,
             _USERNAME,
             model_name,
@@ -25,13 +25,13 @@ def test_source_code_implicit(clean_home, model_name: str = "model_test_source_c
     )
 
 
-def test_source_code_saving_disabled(clean_home, model_name: str = "model_test_source_code_dont_save"):
+def test_source_code_saving_disabled(lit_home, model_name: str = "model_test_source_code_dont_save"):
     upload_to_cloud(model_name, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID, save_code=False)
 
     download_from_cloud(f"{_USERNAME}/{model_name}")
     assert not os.path.isfile(
         os.path.join(
-            clean_home,
+            lit_home,
             __STORAGE_DIR_NAME,
             _USERNAME,
             model_name,
@@ -41,7 +41,7 @@ def test_source_code_saving_disabled(clean_home, model_name: str = "model_test_s
     )
 
 
-def test_source_code_explicit_relative_folder(clean_home, model_name: str = "model_test_source_code_explicit_relative"):
+def test_source_code_explicit_relative_folder(lit_home, model_name: str = "model_test_source_code_explicit_relative"):
     upload_to_cloud(
         model_name, model=BoringModel(), source_code_path=_TEST_ROOT, api_key=_API_KEY, project_id=_PROJECT_ID
     )
@@ -50,7 +50,7 @@ def test_source_code_explicit_relative_folder(clean_home, model_name: str = "mod
 
     assert os.path.isdir(
         os.path.join(
-            clean_home,
+            lit_home,
             __STORAGE_DIR_NAME,
             _USERNAME,
             model_name,
@@ -61,7 +61,7 @@ def test_source_code_explicit_relative_folder(clean_home, model_name: str = "mod
 
 
 def test_source_code_explicit_absolute_folder(
-    clean_home, model_name: str = "model_test_source_code_explicit_absolute_path"
+        lit_home, model_name: str = "model_test_source_code_explicit_absolute_path"
 ):
     # TODO: unify with above `test_source_code_explicit_relative_folder`
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -74,7 +74,7 @@ def test_source_code_explicit_absolute_folder(
 
     assert os.path.isdir(
         os.path.join(
-            clean_home,
+            lit_home,
             __STORAGE_DIR_NAME,
             _USERNAME,
             model_name,
@@ -84,7 +84,7 @@ def test_source_code_explicit_absolute_folder(
     )
 
 
-def test_source_code_explicit_file(clean_home, model_name: str = "model_test_source_code_explicit_file"):
+def test_source_code_explicit_file(lit_home, model_name: str = "model_test_source_code_explicit_file"):
     file_name = os.path.join(_PROJECT_ROOT, "setup.py")
     upload_to_cloud(
         model_name, model=BoringModel(), source_code_path=file_name, api_key=_API_KEY, project_id=_PROJECT_ID
@@ -94,7 +94,7 @@ def test_source_code_explicit_file(clean_home, model_name: str = "model_test_sou
 
     assert os.path.isfile(
         os.path.join(
-            clean_home,
+            lit_home,
             __STORAGE_DIR_NAME,
             _USERNAME,
             model_name,

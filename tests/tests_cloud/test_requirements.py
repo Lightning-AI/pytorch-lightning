@@ -7,7 +7,7 @@ from lightning.store.save import __STORAGE_DIR_NAME
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-def test_requirements(clean_home, version: str = "1.0.0", model_name: str = "boring_model"):
+def test_requirements(lit_home, version: str = "1.0.0", model_name: str = "boring_model"):
     requirements_list = ["pytorch_lightning==1.7.7", "lightning"]
 
     upload_to_cloud(
@@ -21,7 +21,7 @@ def test_requirements(clean_home, version: str = "1.0.0", model_name: str = "bor
 
     download_from_cloud(f"{_USERNAME}/{model_name}", version=version)
 
-    req_folder_path = os.path.join(clean_home, __STORAGE_DIR_NAME, _USERNAME, model_name, version)
+    req_folder_path = os.path.join(lit_home, __STORAGE_DIR_NAME, _USERNAME, model_name, version)
     assert os.path.isdir(req_folder_path), "missing: %s" % req_folder_path
     assert "requirements.txt" in os.listdir(req_folder_path), "among files: %r" % os.listdir(req_folder_path)
 

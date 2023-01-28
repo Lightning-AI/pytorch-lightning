@@ -34,7 +34,7 @@ def reload_package(package):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def clean_home(monkeypatch):
+def lit_home(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp_dirname:
         monkeypatch.setattr(Path, "home", lambda: tmp_dirname)
         # we need to reload whole subpackage to apply the mock/fixture
