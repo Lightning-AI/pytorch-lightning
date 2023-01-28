@@ -3,7 +3,6 @@ import platform
 
 import pytest
 from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
-from tests_cloud.helpers import cleanup
 
 from lightning.store.cloud_api import download_from_cloud, upload_to_cloud
 from lightning.store.save import _LIGHTNING_STORAGE_DIR
@@ -30,9 +29,7 @@ def assert_download_successful(username, model_name, version):
         ]
     ),
 )
-def test_versioning_valid_case(case, expected_case, model_name: str = "boring_model_versioning"):
-    cleanup()
-
+def test_versioning_valid_case(clean_home, case, expected_case, model_name: str = "boring_model_versioning"):
     upload_to_cloud(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
     download_from_cloud(f"{_USERNAME}/{model_name}", version=case)
     assert_download_successful(_USERNAME, model_name, expected_case)
@@ -50,9 +47,7 @@ def test_versioning_valid_case(case, expected_case, model_name: str = "boring_mo
         ]
     ),
 )
-def test_versioning_invalid_case(case, model_name: str = "boring_model_versioning"):
-    cleanup()
-
+def test_versioning_invalid_case(clean_home, case, model_name: str = "boring_model_versioning"):
     with pytest.raises(ConnectionRefusedError):
         upload_to_cloud(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
 
