@@ -72,10 +72,6 @@ def test_trainer_error_when_input_not_lightning_module():
             run_method = getattr(trainer, method)
             run_method(nn.Linear(2, 2))
 
-    trainer = Trainer(auto_lr_find=True, auto_scale_batch_size=True)
-    with pytest.raises(TypeError, match="must be a `LightningModule`.*got `Linear"):
-        trainer.tune(nn.Linear(2, 2))
-
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):

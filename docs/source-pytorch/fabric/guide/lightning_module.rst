@@ -100,10 +100,10 @@ It is up to you to call everything at the right place.
     model.train()
     for epoch in range(num_epochs):
         for i, batch in enumerate(dataloader):
+            optimizer.zero_grad()
             loss = model.training_step(batch, i)
             fabric.backward(loss)
             optimizer.step()
-            optimizer.zero_grad()
 
             # Control when hooks are called
             if condition:

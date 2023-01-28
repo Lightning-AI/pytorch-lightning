@@ -40,7 +40,6 @@ from packaging.version import Version
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from lightning_fabric.utilities.apply_func import convert_tensors_to_scalars
@@ -78,7 +77,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DI
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
 from pytorch_lightning.utilities import GradClipAlgorithmType, parsing
 from pytorch_lightning.utilities.argparse import (
     _defaults_from_env_vars,
@@ -148,10 +146,8 @@ class Trainer:
         benchmark: Optional[bool] = None,
         deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
-        auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
-        auto_scale_batch_size: Union[str, bool] = False,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         multiple_trainloader_mode: str = "max_size_cycle",
         inference_mode: bool = True,
@@ -166,31 +162,6 @@ class Trainer:
 
             accumulate_grad_batches: Accumulates grads every k batches or as set up in the dict.
                 Default: ``None``.
-
-            auto_lr_find: If set to True, will make trainer.tune() run a learning rate finder,
-                trying to optimize initial learning for faster convergence. trainer.tune() method will
-                set the suggested learning rate in self.lr or self.learning_rate in the LightningModule.
-                To use a different key set a string instead of True with the key name.
-                Default: ``False``.
-
-            auto_scale_batch_size: If set to True, will `initially` run a batch size
-                finder trying to find the largest batch size that fits into memory.
-                The result will be stored in self.batch_size in the LightningModule
-                or LightningDataModule depending on your setup.
-                Additionally, can be set to either `power` that estimates the batch size through
-                a power search or `binsearch` that estimates the batch size through a binary search.
-                Default: ``False``.
-
-            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
-                gpus automatically. This is especially useful when
-                GPUs are configured to be in "exclusive mode", such
-                that only one process at a time can access them.
-                Default: ``False``.
-
-                .. deprecated:: v1.9
-                    ``auto_select_gpus`` has been deprecated in v1.9.0 and will be removed in v2.0.0.
-                    Please use the function :func:`~lightning_fabric.accelerators.cuda.find_usable_cuda_devices`
-                    instead.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -365,7 +336,6 @@ class Trainer:
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self)
         self._signal_connector = SignalConnector(self)
-        self.tuner = Tuner(self)
 
         # init loops
         self.fit_loop = _FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
@@ -428,9 +398,6 @@ class Trainer:
 
         self._detect_anomaly: bool = detect_anomaly
         self._setup_on_init()
-
-        # configure tuner
-        self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
         setup._init_profiler(self, profiler)
@@ -845,57 +812,6 @@ class Trainer:
         self.predicting = False
 
         return results
-
-    def tune(
-        self,
-        model: "pl.LightningModule",
-        train_dataloaders: Optional[Union[TRAIN_DATALOADERS, LightningDataModule]] = None,
-        val_dataloaders: Optional[EVAL_DATALOADERS] = None,
-        dataloaders: Optional[EVAL_DATALOADERS] = None,
-        datamodule: Optional[LightningDataModule] = None,
-        scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
-        lr_find_kwargs: Optional[Dict[str, Any]] = None,
-        method: Literal["fit", "validate", "test", "predict"] = "fit",
-    ) -> _TunerResult:
-        r"""
-        Runs routines to tune hyperparameters before training.
-
-        Args:
-            model: Model to tune.
-
-            train_dataloaders: A collection of :class:`torch.utils.data.DataLoader` or a
-                :class:`~pytorch_lightning.core.datamodule.LightningDataModule` specifying training samples.
-                In the case of multiple dataloaders, please see this :ref:`section <multiple-dataloaders>`.
-
-            val_dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying validation samples.
-
-            dataloaders: A :class:`torch.utils.data.DataLoader` or a sequence of them specifying val/test/predict
-                samples used for running tuner on validation/testing/prediction.
-
-            datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
-
-            scale_batch_size_kwargs: Arguments for :func:`~pytorch_lightning.tuner.batch_size_scaling.scale_batch_size`
-
-            lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
-
-            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
-        """
-        model = self._maybe_unwrap_optimized(model)
-        Trainer._log_api_event("tune")
-
-        with isolate_rng():
-            result = self.tuner._tune(
-                model,
-                train_dataloaders,
-                val_dataloaders,
-                dataloaders,
-                datamodule,
-                scale_batch_size_kwargs=scale_batch_size_kwargs,
-                lr_find_kwargs=lr_find_kwargs,
-                method=method,
-            )
-
-        return result
 
     def _run(
         self, model: "pl.LightningModule", ckpt_path: Optional[_PATH] = None
@@ -1664,17 +1580,6 @@ class Trainer:
         :meth:`~pytorch_lightning.trainer.trainer.Trainer.lightning_module` instead.
         """
         return self.strategy.model
-
-    @model.setter
-    def model(self, model: torch.nn.Module) -> None:
-        """Setter for the model, pass-through to accelerator and plugin where the model reference is stored. Used
-        by the Tuner to reset the state of Trainer and Accelerator.
-
-        Args:
-            model: The LightningModule, possibly wrapped into DataParallel or DistributedDataParallel, depending
-                on the backend.
-        """
-        self.strategy.model = model
 
     """
     General properties
