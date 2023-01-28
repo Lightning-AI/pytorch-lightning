@@ -61,7 +61,7 @@ def test_source_code_explicit_relative_folder(lit_home, model_name: str = "model
 
 
 def test_source_code_explicit_absolute_folder(
-        lit_home, model_name: str = "model_test_source_code_explicit_absolute_path"
+    lit_home, model_name: str = "model_test_source_code_explicit_absolute_path"
 ):
     # TODO: unify with above `test_source_code_explicit_relative_folder`
     with tempfile.TemporaryDirectory() as tmpdir:
