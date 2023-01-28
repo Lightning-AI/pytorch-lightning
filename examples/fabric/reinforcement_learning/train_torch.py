@@ -253,7 +253,7 @@ def main(args: argparse.Namespace):
         device_ids=[local_rank] if is_cuda_available else None,
         output_device=local_rank if is_cuda_available else None,
     )
-    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
+    optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-4)
 
     # Local data
     obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)

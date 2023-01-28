@@ -180,7 +180,7 @@ class PPOLightningAgent(LightningModule):
         return pg_loss + ent_loss + v_loss
 
     def configure_optimizers(self, lr: float):
-        return torch.optim.Adam(self.parameters(), lr=lr, eps=1e-5)
+        return torch.optim.Adam(self.parameters(), lr=lr, eps=1e-4)
 
 
 def train(
