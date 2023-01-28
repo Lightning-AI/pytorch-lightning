@@ -344,7 +344,7 @@ class HookedModel(BoringModel):
                     dict(
                         name="optimizer_step",
                         args=(current_epoch, i, ANY, 0, ANY),
-                        kwargs=dict(on_tpu=False, using_lbfgs=False),
+                        kwargs=dict(using_lbfgs=False),
                     ),
                     *(
                         [dict(name="lr_scheduler_step", args=(ANY, 0, None))]

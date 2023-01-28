@@ -356,7 +356,6 @@ class _OptimizerLoop(_Loop):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
             using_lbfgs=is_lbfgs,
         )
 
