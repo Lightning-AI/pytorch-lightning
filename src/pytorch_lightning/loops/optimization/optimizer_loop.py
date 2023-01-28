@@ -20,9 +20,9 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
 
-from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
 from pytorch_lightning.loops.progress import OptimizationProgress
 from pytorch_lightning.loops.utilities import _block_parallel_sync_behavior

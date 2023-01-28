@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import call, patch, Mock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from torch import optim
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.optimizer import (
     _configure_optimizers,
@@ -46,6 +46,7 @@ def test_optimizer_with_scheduling(tmpdir):
     assert len(trainer.lr_scheduler_configs) == 1
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     assert init_lr * 0.1 == adjusted_lr[0]
+
 
 # TODO: Does it make sense to support returning [optimizer1], [lr_scheduler1, lr_scheduler2]?
 #   MisconfigurationException: Some schedulers are attached with an optimizer that wasn't returned from
@@ -168,7 +169,7 @@ def test_optimizer_return_options(tmpdir):
     opt_a = optim.Adam(model.parameters(), lr=0.002)
     opt_b = optim.SGD(model.parameters(), lr=0.002)
     scheduler_a = optim.lr_scheduler.StepLR(opt_a, 10)
-    scheduler_b = optim.lr_scheduler.StepLR(opt_b, 10)
+    optim.lr_scheduler.StepLR(opt_b, 10)
 
     # single optimizer
     model.configure_optimizers = lambda: opt_a
