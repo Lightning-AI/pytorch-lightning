@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 
 
 def policy_loss(advantages: torch.Tensor, ratio: torch.Tensor, clip_coef: float) -> torch.Tensor:
@@ -17,15 +18,11 @@ def value_loss(
     vf_coef: float,
 ) -> torch.Tensor:
     new_values = new_values.view(-1)
-    if clip_vloss:
-        v_loss_unclipped = (new_values - returns) ** 2
-        v_clipped = old_values + torch.clamp(new_values - old_values, -clip_coef, clip_coef)
-        v_loss_clipped = (v_clipped - returns) ** 2
-        v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
-        v_loss = 0.5 * v_loss_max.mean()
+    if not clip_vloss:
+        values_pred = new_values
     else:
-        v_loss = 0.5 * ((new_values - returns) ** 2).mean()
-    return v_loss * vf_coef
+        values_pred = old_values + torch.clamp(new_values - old_values, -clip_coef, clip_coef)
+    return vf_coef * F.mse_loss(values_pred, returns)
 
 
 def entropy_loss(entropy: torch.Tensor, ent_coef: float) -> torch.Tensor:
