@@ -6,7 +6,7 @@ Adapted from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py
 Based on the paper: https://arxiv.org/abs/1707.06347
 
 Requirements:
-- gymnasium
+- gymnasium[box2d]>=0.27.1
 - moviepy
 - lightning
 - torchmetrics
@@ -18,6 +18,7 @@ Run it with:
 """
 
 import argparse
+import os
 import time
 from typing import Dict, Tuple
 
@@ -213,7 +214,7 @@ def train(
 def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, args: argparse.Namespace):
     device = fabric.device
     env = make_env(
-        args.env_id, args.seed + fabric.global_rank, fabric.global_rank, args.capture_video, logger.log_dir
+        args.env_id, args.seed + fabric.global_rank, fabric.global_rank, args.capture_video, logger.log_dir, "test"
     )()
     step = 0
     done = False
@@ -235,7 +236,7 @@ def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, ar
 
 def main(args: argparse.Namespace):
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
-    logger = TensorBoardLogger(root_dir="fabric_logs", name=run_name)
+    logger = TensorBoardLogger(root_dir=os.path.join("logs", "fabric_logs"), name=run_name)
 
     # Initialize Fabric
     fabric = Fabric(loggers=logger)
@@ -243,6 +244,7 @@ def main(args: argparse.Namespace):
     world_size = fabric.world_size
     device = fabric.device
     fabric.seed_everything(args.seed)
+    torch.backends.cudnn.deterministic = args.torch_deterministic
 
     # Log hyperparameters
     fabric.logger.experiment.add_text(
@@ -253,7 +255,7 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + rank, rank, args.capture_video, logger.log_dir)
+            make_env(args.env_id, args.seed + rank, rank, args.capture_video, logger.log_dir, "train")
             for _ in range(args.per_rank_num_envs)
         ]
     )

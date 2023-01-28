@@ -6,7 +6,7 @@ Adapted from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py
 Based on the paper: https://arxiv.org/abs/1707.06347
 
 Requirements:
-- gymnasium
+- gymnasium[box2d]>=0.27.1
 - moviepy
 - lightning
 - torchmetrics
@@ -184,7 +184,7 @@ def train(
 
 @torch.no_grad()
 def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: argparse.Namespace):
-    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir)()
+    env = make_env(args.env_id, args.seed, 0, args.capture_video, logger.log_dir, "test")()
     step = 0
     done = False
     cumulative_rew = 0
@@ -205,7 +205,7 @@ def test(agent: PPOAgent, device: torch.device, logger: SummaryWriter, args: arg
 
 def main(args: argparse.Namespace):
     # Init distributed environment
-    is_cuda_available = torch.cuda.is_available()
+    is_cuda_available = torch.cuda.is_available() and args.cuda
     backend = "nccl" if is_cuda_available else "gloo"
     local_rank = int(os.environ["LOCAL_RANK"])
     global_rank = int(os.environ["RANK"])
@@ -213,8 +213,6 @@ def main(args: argparse.Namespace):
     if is_cuda_available:
         torch.cuda.set_device(local_rank)
     device = torch.device(f"cuda:{local_rank}" if is_cuda_available else "cpu")
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12345"
     distributed.init_process_group(backend=backend)
 
     # Seed everything
@@ -222,13 +220,14 @@ def main(args: argparse.Namespace):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
+    torch.backends.cudnn.deterministic = args.torch_deterministic
 
     # Logger
     log_dir = None
     logger = None
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
     if global_rank == 0:
-        log_dir = os.path.join("torch_logs", run_name)
+        log_dir = os.path.join("logs", "torch_logs", run_name)
         logger = SummaryWriter(log_dir=log_dir)
 
     # Log hyperparameters
@@ -241,7 +240,7 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir)
+            make_env(args.env_id, args.seed + global_rank, global_rank, args.capture_video, log_dir, "train")
             for _ in range(args.per_rank_num_envs)
         ]
     )
