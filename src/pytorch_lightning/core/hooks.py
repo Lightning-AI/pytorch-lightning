@@ -73,6 +73,7 @@ class ModelHooks:
             batch_idx: the index of the batch
         """
 
+    # TODO: Should 'outputs' be renamed to 'output' (singular)?
     def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         """Called in the training loop after the batch.
 

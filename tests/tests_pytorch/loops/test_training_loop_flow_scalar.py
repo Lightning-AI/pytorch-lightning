@@ -149,8 +149,6 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
     train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -219,8 +217,6 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
     kwargs = {"batch": next(iter(model.train_dataloader())), "batch_idx": 0}
     train_step_out = trainer.fit_loop.epoch_loop.automatic_optimization.run(trainer.optimizers[0], kwargs)
 
-    assert len(train_step_out) == 1
-    train_step_out = train_step_out[0]
     assert isinstance(train_step_out["loss"], Tensor)
     assert train_step_out["loss"].item() == 171
 
@@ -328,7 +324,7 @@ def test_training_step_none_batches(tmpdir):
 
         def on_train_batch_end(self, outputs, batch, batch_idx):
             if batch_idx % 2 == 0:
-                assert outputs == []
+                assert outputs is None
             else:
                 assert outputs
 
