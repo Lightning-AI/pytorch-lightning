@@ -20,7 +20,8 @@ def parse_args():
         default=False,
         nargs="?",
         const=True,
-        help="If toggled, GPU training will be used. This affects also the distributed backend used (NCCL (gpu) vs GLOO (cpu))",
+        help="If toggled, GPU training will be used. "
+        "This affects also the distributed backend used (NCCL (gpu) vs GLOO (cpu))",
     )
     parser.add_argument(
         "--torch-deterministic",

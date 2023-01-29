@@ -312,9 +312,7 @@ def main(args: argparse.Namespace):
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
                         if agent_id == 0:
-                            print(
-                                f"global_step={global_step}, reward_agent_{agent_id}={agent_final_info['episode']['r'][0]}"
-                            )
+                            print(f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}")
                         local_num_episodes += 1
                         local_rew += agent_final_info["episode"]["r"][0]
                         local_ep_len += agent_final_info["episode"]["l"][0]
