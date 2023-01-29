@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from collections import defaultdict, OrderedDict
-from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
+from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.optimization import _AutomaticOptimization, _ManualOptimization
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE

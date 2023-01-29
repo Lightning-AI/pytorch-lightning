@@ -307,22 +307,19 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
     nbe_batches_completed = stop_epoch * n_batches
     be_batches_completed = stop_batch
-    be_batches_ready = stop_batch + 1
     # lightning applies leftover accumulated gradients when the epoch ends
     has_leftover_accumulation_batches = n_batches % accumulate_grad_batches != 0
     # number of batches that will call `optimizer.step()` during non-breaking and breaking epochs
     nbe_stepping_batches = nbe_batches_completed // accumulate_grad_batches
     be_stepping_batches = be_batches_completed // accumulate_grad_batches
 
-    nbe_total_opt_steps = (nbe_stepping_batches + has_leftover_accumulation_batches)
-    does_last_be_batch_step = be_batches_ready % accumulate_grad_batches == 0 or has_leftover_accumulation_batches
+    nbe_total_opt_steps = nbe_stepping_batches + has_leftover_accumulation_batches
     be_total_opt_steps = be_stepping_batches
     assert optim_progress.optimizer_steps == nbe_total_opt_steps + be_total_opt_steps
     assert optim_progress.optimizer.step.current.completed == be_total_opt_steps
     has_opt_stepped_in_be = stop_batch + 1 >= accumulate_grad_batches
 
-    nbe_total_zero_grad = (nbe_stepping_batches + has_leftover_accumulation_batches)
-    does_last_be_batch_zero_grad = be_batches_completed % accumulate_grad_batches == 0
+    nbe_total_zero_grad = nbe_stepping_batches + has_leftover_accumulation_batches
     # `max` because the first batch always zero-grads
     be_total_zero_grad = max(1, be_stepping_batches)
     assert optim_progress.optimizer.zero_grad.total.completed == nbe_total_zero_grad + be_total_zero_grad
