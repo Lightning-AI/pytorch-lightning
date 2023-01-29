@@ -248,14 +248,14 @@ class _TrainingEpochLoop(loops._Loop):
 
         # batch_end_outputs = [batch_output]
         # TODO:
-        batch_end_outputs = self._prepare_outputs_training_batch_end(
-            batch_output,
-            lightning_module=self.trainer.lightning_module,
-            num_optimizers=len(self.trainer.optimizers),
-        )
+        # batch_end_outputs = self._prepare_outputs_training_batch_end(
+        #     batch_output,
+        #     lightning_module=self.trainer.lightning_module,
+        #     num_optimizers=len(self.trainer.optimizers),
+        # )
 
-        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
-        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
+        self.trainer._call_callback_hooks("on_train_batch_end", batch_output, batch, batch_idx)
+        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_output, batch, batch_idx)
         self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
@@ -363,57 +363,57 @@ class _TrainingEpochLoop(loops._Loop):
         # but the strategy might not
         strategy_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
         return not accumulation_done and strategy_accumulates_on_final_batch
-
-    @staticmethod
-    def _prepare_outputs_training_batch_end(
-        batch_output: _BATCH_OUTPUTS_TYPE,
-        lightning_module: "pl.LightningModule",
-        num_optimizers: int,
-    ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
-        if not batch_output:
-            return []  # type: ignore[return-value]
-
-        # convert optimizer dicts to list
-        # if lightning_module.automatic_optimization:
-        #     batch_output = apply_to_collection(
-        #         batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-        #     )
-
-        array = np.array(batch_output, dtype=object)
-        # squeeze all single-element dimensions
-        array = array.squeeze()
-        array = array.tolist()
-        array = _recursive_unpad(array)
-        return array
-
-    @staticmethod
-    def _prepare_outputs_training_epoch_end(
-        batch_outputs: _OUTPUTS_TYPE,
-        lightning_module: "pl.LightningModule",
-        num_optimizers: int,
-    ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
-        # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
-        if not batch_outputs:
-            return []  # type: ignore[return-value]
-
-        # convert optimizer dicts to list
-        # if lightning_module.automatic_optimization:
-        #     batch_outputs = apply_to_collection(
-        #         batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-        #     )
-
-        array = _recursive_pad(batch_outputs)
-        # squeeze all single-element dimensions
-        array = array.squeeze()
-        array = array.tolist()
-        array = _recursive_unpad(array)
-        # in case we squeezed from 1-element array to a 0-dim array
-        array = array if isinstance(array, list) else [array]
-        # remove residual empty lists
-        array = [item for item in array if not isinstance(item, list) or len(item)]
-        return array
+    #
+    # @staticmethod
+    # def _prepare_outputs_training_batch_end(
+    #     batch_output: _BATCH_OUTPUTS_TYPE,
+    #     lightning_module: "pl.LightningModule",
+    #     num_optimizers: int,
+    # ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
+    #     """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
+    #     if not batch_output:
+    #         return []  # type: ignore[return-value]
+    #
+    #     # convert optimizer dicts to list
+    #     # if lightning_module.automatic_optimization:
+    #     #     batch_output = apply_to_collection(
+    #     #         batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+    #     #     )
+    #
+    #     array = np.array(batch_output, dtype=object)
+    #     # squeeze all single-element dimensions
+    #     array = array.squeeze()
+    #     array = array.tolist()
+    #     array = _recursive_unpad(array)
+    #     return array
+    #
+    # @staticmethod
+    # def _prepare_outputs_training_epoch_end(
+    #     batch_outputs: _OUTPUTS_TYPE,
+    #     lightning_module: "pl.LightningModule",
+    #     num_optimizers: int,
+    # ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
+    #     """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
+    #     # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
+    #     if not batch_outputs:
+    #         return []  # type: ignore[return-value]
+    #
+    #     # convert optimizer dicts to list
+    #     # if lightning_module.automatic_optimization:
+    #     #     batch_outputs = apply_to_collection(
+    #     #         batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
+    #     #     )
+    #
+    #     array = _recursive_pad(batch_outputs)
+    #     # squeeze all single-element dimensions
+    #     array = array.squeeze()
+    #     array = array.tolist()
+    #     array = _recursive_unpad(array)
+    #     # in case we squeezed from 1-element array to a 0-dim array
+    #     array = array if isinstance(array, list) else [array]
+    #     # remove residual empty lists
+    #     array = [item for item in array if not isinstance(item, list) or len(item)]
+    #     return array
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""

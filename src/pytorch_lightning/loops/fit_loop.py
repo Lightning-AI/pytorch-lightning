@@ -282,11 +282,12 @@ class _FitLoop(_Loop):
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
         if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
-                self._outputs,
-                lightning_module=model,
-                num_optimizers=len(self.trainer.optimizers),
-            )
+            epoch_end_outputs = self._outputs
+            # self.epoch_loop._prepare_outputs_training_epoch_end(
+            #     self._outputs,
+            #     lightning_module=model,
+            #     num_optimizers=len(self.trainer.optimizers),
+            # )
             # run lightning module hook training_epoch_end
             # refresh the result for custom logging at the epoch level
             epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
