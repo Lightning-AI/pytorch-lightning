@@ -51,8 +51,8 @@ tensorboard --logdir logs
 
 Under the `logs` folder you should find two folders:
 
-* `logs/torch_logs`
-* `logs/fabric_logs`
+- `logs/torch_logs`
+- `logs/fabric_logs`
 
 If you have run the experiment with the `--capture-video` you should find the `train_videos` and `test_videos` folders under the specific experiment folder.
 
