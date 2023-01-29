@@ -32,13 +32,14 @@ from tests_pytorch.helpers.simple_models import ClassificationModel
 from tests_pytorch.helpers.utils import getattr_recursive
 
 
-def test_error_on_more_than_1_optimizer(tmpdir):
+def test_error_with_multiple_optimizers(tmpdir):
     """Check that error is thrown when more than 1 optimizer is passed."""
 
     class CustomBoringModel(BoringModel):
         def __init__(self, lr):
             super().__init__()
             self.save_hyperparameters()
+            self.automatic_optimization = False
 
         def configure_optimizers(self):
             optimizer1 = torch.optim.SGD(self.parameters(), lr=self.hparams.lr)
@@ -47,7 +48,6 @@ def test_error_on_more_than_1_optimizer(tmpdir):
 
     model = CustomBoringModel(lr=1e-2)
 
-    # logger file to get meta
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     tuner = Tuner(trainer)
 
