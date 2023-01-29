@@ -139,7 +139,7 @@ def train(
         seed=args.seed,
     )
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
-    per_epoch_losses = torch.tensor([0.0, 0.0, 0.0], device=data["obs"].device)
+    per_epoch_losses = torch.tensor([0.0, 0.0, 0.0])
     for epoch in range(args.update_epochs):
         sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
@@ -153,7 +153,7 @@ def train(
 
             # Policy loss
             pg_loss = policy_loss(advantages, ratio, args.clip_coef)
-            per_epoch_losses[0] += pg_loss.detach()
+            per_epoch_losses[0] += pg_loss.detach().cpu()
 
             # Value loss
             v_loss = value_loss(
@@ -164,11 +164,11 @@ def train(
                 args.clip_vloss,
                 args.vf_coef,
             )
-            per_epoch_losses[1] += v_loss.detach()
+            per_epoch_losses[1] += v_loss.detach().cpu()
 
             # Entropy loss
             ent_loss = entropy_loss(entropy, args.ent_coef)
-            per_epoch_losses[2] += ent_loss.detach()
+            per_epoch_losses[2] += ent_loss.detach().cpu()
 
             # Overall loss
             loss = pg_loss + ent_loss + v_loss
