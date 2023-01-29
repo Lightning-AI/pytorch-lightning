@@ -31,7 +31,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import flatten, layer_init, make_env, parse_args
+from src.utils import layer_init, make_env, parse_args
 from torch.distributions.categorical import Categorical
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
