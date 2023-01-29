@@ -343,7 +343,7 @@ class LightningWork:
 
     @property
     def has_stopped(self) -> bool:
-        """Return whether the work has started."""
+        """Return whether the work has stopped."""
         return self.status.stage == WorkStageStatus.STOPPED
 
     @property
