@@ -340,8 +340,8 @@ def main(args: argparse.Namespace):
                             fabric.print(
                                 f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}"
                             )
-                        rew_avg.update(agent_final_info["episode"]["r"][0])
-                        ep_len_avg.update(agent_final_info["episode"]["l"][0])
+                        rew_avg(agent_final_info["episode"]["r"][0])
+                        ep_len_avg(agent_final_info["episode"]["l"][0])
 
         # Sync the metrics
         fabric.log("Rewards/rew_avg", rew_avg.compute(), global_step)
