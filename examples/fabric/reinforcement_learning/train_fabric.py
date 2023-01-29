@@ -287,8 +287,8 @@ def main(args: argparse.Namespace):
     agent, optimizer = fabric.setup(agent, optimizer)
 
     # Player metrics
-    rew_avg = torchmetrics.MeanMetric()
-    ep_len_avg = torchmetrics.MeanMetric()
+    rew_avg = torchmetrics.MeanMetric().to(device)
+    ep_len_avg = torchmetrics.MeanMetric().to(device)
 
     # Local data
     obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)
