@@ -146,7 +146,7 @@ class Closure(AbstractClosure[ClosureResult]):
 _OUTPUTS_TYPE = Dict[str, Any]
 
 
-class _AutomaticOptimization(_Loop):
+class _OptimizerLoop(_Loop):
     """Performs automatic optimization (forward, zero grad, backward, optimizer step)"""
 
     output_result_cls = ClosureResult

@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.optimization import _AutomaticOptimization, _ManualOptimization
+from pytorch_lightning.loops.optimization import _OptimizerLoop, _ManualOptimization
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress
@@ -70,7 +70,7 @@ class _TrainingEpochLoop(loops._Loop):
         self.batch_progress = BatchProgress()
         self.scheduler_progress = SchedulerProgress()
 
-        self.automatic_optimization = _AutomaticOptimization()
+        self.optimizer_loop = _OptimizerLoop()
         self.manual_loop = _ManualOptimization()
 
         self.val_loop = loops._EvaluationLoop(verbose=False)
@@ -100,7 +100,7 @@ class _TrainingEpochLoop(loops._Loop):
     def global_step(self) -> int:
         lightning_module = self.trainer.lightning_module
         if lightning_module is None or lightning_module.automatic_optimization:
-            return self.automatic_optimization.optim_progress.optimizer_steps
+            return self.optimizer_loop.optim_progress.optimizer_steps
         return self.manual_loop.optim_step_progress.total.completed
 
     @property
@@ -150,7 +150,7 @@ class _TrainingEpochLoop(loops._Loop):
         if self.restarting:
             self.batch_progress.reset_on_restart()
             self.scheduler_progress.reset_on_restart()
-            self.automatic_optimization.optim_progress.reset_on_restart()
+            self.optimizer_loop.optim_progress.reset_on_restart()
 
             trainer = self.trainer
             if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
@@ -165,7 +165,7 @@ class _TrainingEpochLoop(loops._Loop):
         else:
             self.batch_progress.reset_on_run()
             self.scheduler_progress.reset_on_run()
-            self.automatic_optimization.optim_progress.reset_on_run()
+            self.optimizer_loop.optim_progress.reset_on_run()
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
@@ -232,7 +232,7 @@ class _TrainingEpochLoop(loops._Loop):
                     optimizers = self.trainer.optimizers
                     # TODO
                     assert len(optimizers) == 1
-                    batch_output = self.automatic_optimization.run(optimizers[0], kwargs)
+                    batch_output = self.optimizer_loop.run(optimizers[0], kwargs)
                 else:
                     batch_output = self.manual_loop.run(kwargs)
 

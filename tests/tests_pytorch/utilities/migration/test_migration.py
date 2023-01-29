@@ -65,7 +65,7 @@ def test_migrate_loop_global_step_to_progress_tracking():
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.6.0")
     # automatic optimization
     assert (
-        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.automatic_optimization.optim_progress"][
+        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"][
             "optimizer"
         ]["step"]["total"]["completed"]
         == 15
@@ -174,8 +174,8 @@ def test_migrate_loop_structure_after_tbptt_removal():
             "fit_loop": {
                 "epoch_loop.state_dict": {"any": "state"},
                 "epoch_loop.batch_loop.state_dict": old_batch_loop_state,
-                "epoch_loop.batch_loop.automatic_optimization.state_dict": state_automatic,
-                "epoch_loop.batch_loop.automatic_optimization.optim_progress": optim_progress_automatic,
+                "epoch_loop.batch_loop.optimizer_loop.state_dict": state_automatic,
+                "epoch_loop.batch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
                 "epoch_loop.batch_loop.manual_loop.state_dict": state_manual,
                 "epoch_loop.batch_loop.manual_loop.optim_step_progress": optim_progress_manual,
             }
@@ -186,8 +186,8 @@ def test_migrate_loop_structure_after_tbptt_removal():
     assert updated_checkpoint["loops"] == {
         "fit_loop": {
             "epoch_loop.state_dict": {"any": "state", "old_batch_loop_state_dict": old_batch_loop_state},
-            "epoch_loop.automatic_optimization.state_dict": state_automatic,
-            "epoch_loop.automatic_optimization.optim_progress": optim_progress_automatic,
+            "epoch_loop.optimizer_loop.state_dict": state_automatic,
+            "epoch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
             "epoch_loop.manual_loop.state_dict": state_manual,
             "epoch_loop.manual_loop.optim_step_progress": optim_progress_manual,
         }

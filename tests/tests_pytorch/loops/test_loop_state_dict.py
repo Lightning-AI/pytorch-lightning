@@ -54,8 +54,8 @@ def test_loops_state_dict_structure():
                 "total": {"ready": 0, "completed": 0},
                 "current": {"ready": 0, "completed": 0},
             },
-            "epoch_loop.automatic_optimization.state_dict": {},
-            "epoch_loop.automatic_optimization.optim_progress": {
+            "epoch_loop.optimizer_loop.state_dict": {},
+            "epoch_loop.optimizer_loop.optim_progress": {
                 "optimizer": {
                     "step": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
                     "zero_grad": {
