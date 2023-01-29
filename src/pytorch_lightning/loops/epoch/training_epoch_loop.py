@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional, Union
 import torch
 
 from pytorch_lightning import loops  # import as loops to avoid circular imports
-from pytorch_lightning.loops.optimization import _OptimizerLoop, _ManualOptimization
+from pytorch_lightning.loops.optimization import _ManualOptimization, _OptimizerLoop
 from pytorch_lightning.loops.optimization.manual_loop import _OUTPUTS_TYPE as _MANUAL_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.optimization.optimizer_loop import _OUTPUTS_TYPE as _OPTIMIZER_LOOP_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import BatchProgress, SchedulerProgress

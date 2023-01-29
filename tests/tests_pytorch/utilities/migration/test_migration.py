@@ -65,9 +65,9 @@ def test_migrate_loop_global_step_to_progress_tracking():
     updated_checkpoint, _ = migrate_checkpoint(old_checkpoint, target_version="1.6.0")
     # automatic optimization
     assert (
-        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"][
-            "optimizer"
-        ]["step"]["total"]["completed"]
+        updated_checkpoint["loops"]["fit_loop"]["epoch_loop.batch_loop.optimizer_loop.optim_progress"]["optimizer"][
+            "step"
+        ]["total"]["completed"]
         == 15
     )
     # for manual optimization
