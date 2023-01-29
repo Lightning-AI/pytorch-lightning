@@ -81,9 +81,9 @@ class PPOLightningAgent(LightningModule):
             act_fun,
             layer_init(torch.nn.Linear(64, envs.single_action_space.n), std=0.01, ortho_init=ortho_init),
         )
-        self.avg_pg_loss = MeanMetric(compute_on_cpu=True)
-        self.avg_value_loss = MeanMetric(compute_on_cpu=True)
-        self.avg_ent_loss = MeanMetric(compute_on_cpu=True)
+        self.avg_pg_loss = MeanMetric()
+        self.avg_value_loss = MeanMetric()
+        self.avg_ent_loss = MeanMetric()
 
     def get_action(
         self, x: torch.Tensor, action: torch.Tensor = None
@@ -287,8 +287,8 @@ def main(args: argparse.Namespace):
     agent, optimizer = fabric.setup(agent, optimizer)
 
     # Player metrics
-    rew_avg = torchmetrics.MeanMetric(compute_on_cpu=True)
-    ep_len_avg = torchmetrics.MeanMetric(compute_on_cpu=True)
+    rew_avg = torchmetrics.MeanMetric()
+    ep_len_avg = torchmetrics.MeanMetric()
 
     # Local data
     obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)
