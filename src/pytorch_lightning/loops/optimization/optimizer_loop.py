@@ -187,6 +187,8 @@ class _AutomaticOptimization(_Loop):
             self._optimizer_step(optimizer, kwargs.get("batch_idx", 0), closure)
 
         result = closure.consume_result()
+        if result.loss is None:
+            return {}
         return result.asdict()
 
     def _make_closure(self, kwargs: OrderedDict, optimizer: Optimizer) -> Closure:
