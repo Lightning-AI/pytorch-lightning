@@ -31,7 +31,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from src.loss import entropy_loss, policy_loss, value_loss
-from src.utils import layer_init, make_env, parse_args
+from src.utils import flatten, layer_init, make_env, parse_args
 from torch.distributions.categorical import Categorical
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler
@@ -139,7 +139,7 @@ def train(
         seed=args.seed,
     )
     sampler = BatchSampler(sampler, batch_size=args.per_rank_batch_size, drop_last=False)
-
+    per_epoch_losses = torch.tensor([0.0, 0.0, 0.0], device=data["obs"].device)
     for epoch in range(args.update_epochs):
         sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
@@ -153,6 +153,7 @@ def train(
 
             # Policy loss
             pg_loss = policy_loss(advantages, ratio, args.clip_coef)
+            per_epoch_losses[0] += pg_loss.detach()
 
             # Value loss
             v_loss = value_loss(
@@ -163,9 +164,11 @@ def train(
                 args.clip_vloss,
                 args.vf_coef,
             )
+            per_epoch_losses[1] += v_loss.detach()
 
             # Entropy loss
             ent_loss = entropy_loss(entropy, args.ent_coef)
+            per_epoch_losses[2] += ent_loss.detach()
 
             # Overall loss
             loss = pg_loss + ent_loss + v_loss
@@ -175,11 +178,14 @@ def train(
             nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
             optimizer.step()
 
-            # Log
-            if logger is not None:
-                logger.add_scalar("Loss/value_loss", v_loss, global_step)
-                logger.add_scalar("Loss/policy_loss", pg_loss, global_step)
-                logger.add_scalar("Loss/entropy", ent_loss, global_step)
+        # Log
+        distributed.reduce(per_epoch_losses, dst=0)
+        if logger is not None:
+            per_epoch_losses = per_epoch_losses / (len(sampler) * distributed.get_world_size())
+            logger.add_scalar("Loss/policy_loss", per_epoch_losses[0], global_step)
+            logger.add_scalar("Loss/value_loss", per_epoch_losses[1], global_step)
+            logger.add_scalar("Loss/entropy_loss", per_epoch_losses[2], global_step)
+        per_epoch_losses.fill_(0)
 
 
 @torch.no_grad()
@@ -262,6 +268,9 @@ def main(args: argparse.Namespace):
     rewards = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
     dones = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
     values = torch.zeros((args.num_steps, args.per_rank_num_envs), device=device)
+    local_rew = 0
+    local_ep_len = 0
+    local_num_episodes = 0
 
     # Global variables
     global_step = 0
@@ -302,19 +311,25 @@ def main(args: argparse.Namespace):
             if global_rank == 0 and "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        print(
-                            f"global_step={global_step}, reward_agent_{agent_id}={agent_final_info['episode']['r'][0]}"
-                        )
-                        logger.add_scalar(
-                            f"Rewards/agent_{agent_id}",
-                            agent_final_info["episode"]["r"][0],
-                            global_step,
-                        )
-                        logger.add_scalar(
-                            f"Game/episode_length_agent_{agent_id}",
-                            agent_final_info["episode"]["l"][0],
-                            global_step,
-                        )
+                        if agent_id == 0:
+                            print(
+                                f"global_step={global_step}, reward_agent_{agent_id}={agent_final_info['episode']['r'][0]}"
+                            )
+                        local_num_episodes += 1
+                        local_rew += agent_final_info["episode"]["r"][0]
+                        local_ep_len += agent_final_info["episode"]["l"][0]
+
+        # Sync the metrics
+        global_stats = torch.tensor([local_rew, local_ep_len, local_num_episodes])
+        distributed.reduce(global_stats, dst=0)
+        if global_rank == 0:
+            logger.add_scalar("Rewards/rew_avg", global_stats[0] / global_stats[2], global_step)
+            logger.add_scalar("Game/ep_len_avg", global_stats[1], global_step)
+
+        # Reset metrics
+        local_rew = 0
+        local_ep_len = 0
+        local_num_episodes = 0
 
         # Estimate returns with GAE (https://arxiv.org/abs/1506.02438)
         returns, advantages = agent.module.estimate_returns_and_advantages(
