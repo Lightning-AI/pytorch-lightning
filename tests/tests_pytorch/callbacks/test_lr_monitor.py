@@ -218,8 +218,27 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi lr schedulers."""
 
     class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            loss = self.loss(self.step(batch))
+            self.manual_backward(loss)
+            opt1.step()
+            opt1.zero_grad()
+
+            loss = self.loss(self.step(batch))
+            self.manual_backward(loss)
+            opt2.step()
+            opt2.zero_grad()
+
+        def on_train_epoch_end(self):
+            scheduler1, scheduler2 = self.lr_schedulers()
+            scheduler1.step()
+            scheduler2.step()
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
@@ -263,8 +282,22 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     """Test that learning rates are extracted and logged for multi optimizers but no lr scheduler."""
 
     class CustomBoringModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            return super().training_step(batch, batch_idx)
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            loss = self.loss(self.step(batch))
+            self.manual_backward(loss)
+            opt1.step()
+            opt1.zero_grad()
+
+            loss = self.loss(self.step(batch))
+            self.manual_backward(loss)
+            opt2.step()
+            opt2.zero_grad()
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
