@@ -932,7 +932,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             # Discriminator.
             optimizer_idx = 0
             optimizer = self.optimizers()[optimizer_idx]
-            self.toggle_optimizer(optimizer, optimizer_idx)
+            self.toggle_optimizer(optimizer)
 
             loss_d = self.step(batch)
             self.log("loss_d", loss_d, prog_bar=True)
@@ -940,12 +940,12 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer.zero_grad()
             self.manual_backward(loss_d)
             optimizer.step()
-            self.untoggle_optimizer(optimizer_idx)
+            self.untoggle_optimizer(optimizer)
 
             # Generator.
             optimizer_idx = 1
             optimizer = self.optimizers()[optimizer_idx]
-            self.toggle_optimizer(optimizer, optimizer_idx)
+            self.toggle_optimizer(optimizer)
 
             loss_g = self.step(batch)
             self.log("loss_g", loss_g, prog_bar=True)
@@ -953,7 +953,7 @@ def test_multiple_optimizers_logging(precision, tmpdir):
             optimizer.zero_grad()
             self.manual_backward(loss_g)
             optimizer.step()
-            self.untoggle_optimizer(optimizer_idx)
+            self.untoggle_optimizer(optimizer)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)

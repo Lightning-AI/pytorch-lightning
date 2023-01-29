@@ -46,7 +46,7 @@ class BaseFinetuning(Callback):
         and should be used to freeze any modules parameters.
 
     ``finetune_function``: This method is called on every train epoch start and should be used to
-        ``unfreeze`` any parameters. Those parameters needs to be added in a new ``param_group``
+        ``unfreeze`` any parameters. Those parameters need to be added in a new ``param_group``
         within the optimizer.
 
     .. note:: Make sure to filter the parameters based on ``requires_grad``.
@@ -100,7 +100,6 @@ class BaseFinetuning(Callback):
         # restore the param_groups created during the previous training.
         if self._restarting:
             named_parameters = dict(pl_module.named_parameters())
-            # TODO
             for opt_idx, optimizer in enumerate(trainer.optimizers):
                 param_groups = self._apply_mapping_to_param_groups(
                     self._internal_optimizer_metadata[opt_idx], named_parameters
@@ -271,7 +270,6 @@ class BaseFinetuning(Callback):
             output.append(group_state)
         return output
 
-    # TODO
     def _store(
         self,
         pl_module: "pl.LightningModule",
@@ -292,12 +290,9 @@ class BaseFinetuning(Callback):
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
-        # import is here to avoid circular imports
-        from pytorch_lightning.loops.utilities import _get_active_optimizers
-
-        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies, 0):
+        for opt_idx, optimizer in enumerate(trainer.optimizers):
             num_param_groups = len(optimizer.param_groups)
-            self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
+            self.finetune_function(pl_module, trainer.current_epoch, optimizer)
             current_param_groups = optimizer.param_groups
             self._store(pl_module, opt_idx, num_param_groups, current_param_groups)
 

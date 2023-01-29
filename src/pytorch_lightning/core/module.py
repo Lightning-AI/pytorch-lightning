@@ -1372,6 +1372,50 @@ class LightningModule(
         else:
             loss.backward(*args, **kwargs)
 
+    def toggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
+        """Makes sure only the gradients of the current optimizer's parameters are calculated in the training step
+        to prevent dangling gradients in multiple-optimizer setup.
+
+        It works with :meth:`untoggle_optimizer` to make sure ``param_requires_grad_state`` is properly reset.
+
+        Args:
+            optimizer: The optimizer to toggle.
+        """
+        # Iterate over all optimizer parameters to preserve their `requires_grad` information
+        # in case these are pre-defined during `configure_optimizers`
+        param_requires_grad_state = {}
+        for opt in self.trainer.optimizers:
+            for group in opt.param_groups:
+                for param in group["params"]:
+                    # If a param already appear in param_requires_grad_state, continue
+                    if param in param_requires_grad_state:
+                        continue
+                    param_requires_grad_state[param] = param.requires_grad
+                    param.requires_grad = False
+
+        # Then iterate over the current optimizer's parameters and set its `requires_grad`
+        # properties accordingly
+        for group in optimizer.param_groups:  # type: ignore[union-attr]
+            for param in group["params"]:
+                param.requires_grad = param_requires_grad_state[param]
+        self._param_requires_grad_state = param_requires_grad_state
+
+    def untoggle_optimizer(self, optimizer: Union[Optimizer, LightningOptimizer]) -> None:
+        """Resets the state of required gradients that were toggled with :meth:`toggle_optimizer`.
+
+        Args:
+            optimizer: The optimizer to untoggle.
+        """
+        for opt in enumerate(self.trainer.optimizers):
+            # TODO: handle comparison when LightningOptimizer
+            if opt != optimizer:
+                for group in opt.param_groups:
+                    for param in group["params"]:
+                        if param in self._param_requires_grad_state:
+                            param.requires_grad = self._param_requires_grad_state[param]
+        # save memory
+        self._param_requires_grad_state = {}
+
     def clip_gradients(
         self,
         optimizer: Optimizer,
