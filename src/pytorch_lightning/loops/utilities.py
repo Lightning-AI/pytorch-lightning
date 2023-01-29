@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from functools import lru_cache
 from typing import Generator, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -100,34 +98,6 @@ def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Gen
             yield None
     else:
         yield None
-
-
-@lru_cache(1)
-def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
-    return np.cumsum(frequencies)
-
-
-#
-# def _get_active_optimizers(
-#     optimizers: List[Optimizer], frequencies: List[int], batch_idx: int
-# ) -> List[Tuple[int, Optimizer]]:
-#     """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
-#     one of the optimizers is active at a time.
-#
-#     Returns:
-#         A list of tuples (opt_idx, optimizer) of currently active optimizers.
-#     """
-#     if not frequencies:
-#         # call training_step once per optimizer
-#         return list(enumerate(optimizers))
-#
-#     freq_cumsum = _cumulative_optimizer_frequencies(tuple(frequencies))
-#     optimizers_loop_length = freq_cumsum[-1]
-#     current_place_in_loop = batch_idx % optimizers_loop_length
-#
-#     # find optimizer index by looking for the first {item > current_place} in the cumsum list
-#     opt_idx = np.searchsorted(freq_cumsum, current_place_in_loop, side="right")
-#     return [(opt_idx, optimizers[opt_idx])]
 
 
 def _is_max_limit_reached(current: int, maximum: int = -1) -> bool:

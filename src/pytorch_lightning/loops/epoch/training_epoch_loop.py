@@ -246,14 +246,6 @@ class _TrainingEpochLoop(loops._Loop):
         if self._num_ready_batches_reached():
             self.update_lr_schedulers("epoch", update_plateau_schedulers=False)
 
-        # batch_end_outputs = [batch_output]
-        # TODO:
-        # batch_end_outputs = self._prepare_outputs_training_batch_end(
-        #     batch_output,
-        #     lightning_module=self.trainer.lightning_module,
-        #     num_optimizers=len(self.trainer.optimizers),
-        # )
-
         self.trainer._call_callback_hooks("on_train_batch_end", batch_output, batch, batch_idx)
         self.trainer._call_lightning_module_hook("on_train_batch_end", batch_output, batch, batch_idx)
         self.trainer._logger_connector.on_batch_end()
@@ -363,57 +355,6 @@ class _TrainingEpochLoop(loops._Loop):
         # but the strategy might not
         strategy_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
         return not accumulation_done and strategy_accumulates_on_final_batch
-    #
-    # @staticmethod
-    # def _prepare_outputs_training_batch_end(
-    #     batch_output: _BATCH_OUTPUTS_TYPE,
-    #     lightning_module: "pl.LightningModule",
-    #     num_optimizers: int,
-    # ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-    #     """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
-    #     if not batch_output:
-    #         return []  # type: ignore[return-value]
-    #
-    #     # convert optimizer dicts to list
-    #     # if lightning_module.automatic_optimization:
-    #     #     batch_output = apply_to_collection(
-    #     #         batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-    #     #     )
-    #
-    #     array = np.array(batch_output, dtype=object)
-    #     # squeeze all single-element dimensions
-    #     array = array.squeeze()
-    #     array = array.tolist()
-    #     array = _recursive_unpad(array)
-    #     return array
-    #
-    # @staticmethod
-    # def _prepare_outputs_training_epoch_end(
-    #     batch_outputs: _OUTPUTS_TYPE,
-    #     lightning_module: "pl.LightningModule",
-    #     num_optimizers: int,
-    # ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-    #     """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
-    #     # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
-    #     if not batch_outputs:
-    #         return []  # type: ignore[return-value]
-    #
-    #     # convert optimizer dicts to list
-    #     # if lightning_module.automatic_optimization:
-    #     #     batch_outputs = apply_to_collection(
-    #     #         batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-    #     #     )
-    #
-    #     array = _recursive_pad(batch_outputs)
-    #     # squeeze all single-element dimensions
-    #     array = array.squeeze()
-    #     array = array.tolist()
-    #     array = _recursive_unpad(array)
-    #     # in case we squeezed from 1-element array to a 0-dim array
-    #     array = array if isinstance(array, list) else [array]
-    #     # remove residual empty lists
-    #     array = [item for item in array if not isinstance(item, list) or len(item)]
-    #     return array
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
         """updates the lr schedulers based on the given interval."""
@@ -540,72 +481,3 @@ class _TrainingEpochLoop(loops._Loop):
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
-
-
-@overload
-def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
-    ...
-
-
-@overload
-def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
-    ...
-
-
-def _recursive_unpad(nested: Union[Any, List[Any]], value: Optional[Any] = None) -> Union[Any, List[Any]]:
-    """Removes the given pad value from the nested list. Not strictly the reverse operation of
-    :func:`_recursive_pad` because it removes the padding element everywhere, not just from the end of a list.
-
-    Example::
-        >>> _recursive_unpad([[[0, 1, 0]], [2], [0, 0]], value=0)
-        [[[1]], [2], []]
-    """
-    if not isinstance(nested, list):
-        return nested
-
-    return [_recursive_unpad(item, value) for item in nested if item != value]
-
-
-def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.ndarray:
-    """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
-    formed with rectangular shape. The padding appends to the incomplete lists.
-
-    Example::
-        >>> _recursive_pad([[], [1], [2, 3], [4]], fill_value=0)  # doctest: +NORMALIZE_WHITESPACE
-        array([[0, 0], [1, 0], [2, 3], [4, 0]], dtype=object)
-    """
-    # code adapted from stackexchange:
-    # https://codereview.stackexchange.com/questions/222623/pad-a-ragged-multidimensional-array-to-rectangular-shape
-    dimensions = _get_max_shape(nested)
-    result = np.full(dimensions, fill_value, dtype=object)
-    for index, value in _iterate_nested_array(nested):
-        result[index] = value
-    return result
-
-
-def _get_dimensions(array: List[Any], level: int = 0) -> Generator:
-    yield level, len(array)
-    if all(isinstance(row, list) for row in array):
-        for row in array:
-            yield from _get_dimensions(row, level + 1)
-
-
-def _get_max_shape(array: List[Any]) -> List[int]:
-    """Calculates the max size in each dimension of a jagged (non-rectangular) nested list of lists.
-
-    Example::
-        >>> _get_max_shape([[], [[1], [2]], []])
-        [3, 2, 1]
-    """
-    dimensions: DefaultDict[int, int] = defaultdict(int)
-    for level, length in _get_dimensions(array):
-        dimensions[level] = max(dimensions[level], length)
-    return [value for _, value in sorted(dimensions.items())]
-
-
-def _iterate_nested_array(array: List[Any], index: Tuple = ()) -> Generator:
-    if all(isinstance(item, list) for item in array):
-        for idx, row in enumerate(array):
-            yield from _iterate_nested_array(row, (*index, idx))
-    else:  # final level
-        yield (*index, slice(len(array))), array
