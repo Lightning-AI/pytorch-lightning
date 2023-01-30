@@ -18,10 +18,10 @@ from functools import lru_cache
 from typing import Optional
 
 import numpy
+from lightning_utilities.core.imports import RequirementCache
 
 from lightning_fabric.plugins.environments.cluster_environment import ClusterEnvironment
 from lightning_fabric.plugins.environments.lightning import find_free_network_port
-from lightning_utilities.core.imports import RequirementCache
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ _MPI4PY_AVAILABLE = RequirementCache("mpi4py")
 
 class MPIEnvironment(ClusterEnvironment):
     """An environment for running on clusters with processes created through MPI.
+
     Requires the installation of the `mpi4py` package. See also: https://github.com/mpi4py/mpi4py
     """
 
@@ -40,7 +41,7 @@ class MPIEnvironment(ClusterEnvironment):
         from mpi4py import MPI
 
         self._comm_world = MPI.COMM_WORLD
-        self._comm_local:  Optional[MPI.Comm] = None
+        self._comm_local: Optional[MPI.Comm] = None
         self._node_rank = Optional[int] = None
         self._main_address: Optional[str] = None
         self._main_port: Optional[int] = None
