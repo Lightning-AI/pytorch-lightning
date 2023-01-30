@@ -27,7 +27,6 @@ from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixi
 from lightning_fabric.utilities.distributed import _distributed_available
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -426,19 +425,12 @@ class _ResultCollection(dict):
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
                 if not should and _distributed_available() and result_metric.is_tensor:
-                    # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
-                    # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
-                    # run, and on other ranks, they are 0. So we need to make sure they are synced in further training
-                    # to ensure correct calculation.
-                    if _fault_tolerant_training():
-                        result_metric.meta.sync.should = True
-                    else:
-                        warning_cache.warn(
-                            f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
-                            " when logging on epoch level in distributed setting to accumulate the metric across"
-                            " devices.",
-                            category=PossibleUserWarning,
-                        )
+                    warning_cache.warn(
+                        f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
+                        " when logging on epoch level in distributed setting to accumulate the metric across"
+                        " devices.",
+                        category=PossibleUserWarning,
+                    )
                 result_metric.compute()
                 result_metric.meta.sync.should = should
 
