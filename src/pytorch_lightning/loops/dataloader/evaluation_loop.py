@@ -31,7 +31,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
     from rich import get_console
@@ -51,7 +50,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         self.verbose = verbose
 
         self._results = _ResultCollection(training=False)
-        self._outputs: List[EPOCH_OUTPUT] = []
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[Union[int, float]] = []
         self._has_run: bool = False
@@ -113,7 +111,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         """Resets the internal state of the loop."""
         self._max_batches = self._get_max_batches()
         # bookkeeping
-        self._outputs = []
         self._logged_outputs = []
 
         if isinstance(self._max_batches, int):
@@ -154,10 +151,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         kwargs = OrderedDict()
         if self.num_dataloaders > 1:
             kwargs["dataloader_idx"] = dataloader_idx
-        dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
-
-        # store batch level output per dataloader
-        self._outputs.append(dl_outputs)
+        self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
@@ -180,10 +174,7 @@ class _EvaluationLoop(_DataLoaderLoop):
         """Runs the ``_on_evaluation_epoch_end`` hook."""
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
         self.trainer._logger_connector.epoch_end_reached()
-
-        # hook
-        self._evaluation_epoch_end(self._outputs)
-        self._outputs = []  # free memory
+        self.trainer._logger_connector._evaluation_epoch_end()
 
         # hook
         self._on_evaluation_epoch_end()
@@ -216,7 +207,6 @@ class _EvaluationLoop(_DataLoaderLoop):
             self._data_fetcher.teardown()
             self._data_fetcher = None
         self._results.cpu()
-        self.epoch_loop.teardown()
 
     def _get_max_batches(self) -> List[Union[int, float]]:
         """Returns the max number of batches for each dataloader."""
@@ -278,19 +268,6 @@ class _EvaluationLoop(_DataLoaderLoop):
         hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
         self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
         self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
-
-    def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
-        """Runs ``{validation/test}_epoch_end``"""
-        self.trainer._logger_connector._evaluation_epoch_end()
-
-        # with a single dataloader don't pass a 2D list
-        output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
-            outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs
-        )
-
-        # call the model epoch end
-        hook_name = "test_epoch_end" if self.trainer.testing else "validation_epoch_end"
-        self.trainer._call_lightning_module_hook(hook_name, output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""

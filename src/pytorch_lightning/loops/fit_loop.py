@@ -17,14 +17,12 @@ from typing import Any, Optional, Type
 import pytorch_lightning as pl
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.epoch import _TrainingEpochLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
 from pytorch_lightning.loops.progress import Progress
 from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
@@ -77,7 +75,6 @@ class _FitLoop(_Loop):
         self.epoch_progress = Progress()
 
         self._is_fresh_start_epoch: bool = True
-        self._outputs: _EPOCH_OUTPUTS_TYPE = []
         self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
@@ -241,9 +238,6 @@ class _FitLoop(_Loop):
             self.trainer.reset_train_dataloader(model)
         self._is_fresh_start_epoch = False
 
-        # reset outputs here instead of in `reset` as they are not accumulated between epochs
-        self._outputs = []
-
         if self.trainer.train_dataloader is not None:
             assert isinstance(self.trainer.train_dataloader, CombinedLoader)
             _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
@@ -274,30 +268,11 @@ class _FitLoop(_Loop):
         assert self._data_fetcher is not None
         self._data_fetcher.setup(dataloader, batch_to_device=batch_to_device)
         with self.trainer.profiler.profile("run_training_epoch"):
-            self._outputs = self.epoch_loop.run(self._data_fetcher)
+            self.epoch_loop.run(self._data_fetcher)
 
     def on_advance_end(self) -> None:
         # inform logger the batch loop has finished
         self.trainer._logger_connector.epoch_end_reached()
-
-        # get the model and call model.training_epoch_end
-        model = self.trainer.lightning_module
-        if is_overridden("training_epoch_end", model) and self._outputs:
-            epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
-                self._outputs,
-                lightning_module=model,
-                num_optimizers=len(self.trainer.optimizers),
-            )
-            # run lightning module hook training_epoch_end
-            # refresh the result for custom logging at the epoch level
-            epoch_end_outputs = self.trainer._call_lightning_module_hook("training_epoch_end", epoch_end_outputs)
-            if epoch_end_outputs is not None:
-                raise MisconfigurationException(
-                    "`training_epoch_end` expects a return of None. "
-                    "HINT: remove the return statement in `training_epoch_end`."
-                )
-        # free memory
-        self._outputs = []
 
         self.epoch_progress.increment_processed()
 

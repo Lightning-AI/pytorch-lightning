@@ -49,7 +49,7 @@ class ManualResult(OutputResult):
         elif training_step_output is not None:
             raise MisconfigurationException(
                 "In manual optimization, `training_step` must either return a Tensor, "
-                "a dict with extras to pass to `training_epoch_end` or have no return."
+                "a dict with extras to pass to `training_step_end` or have no return."
             )
 
         if "loss" in extra:

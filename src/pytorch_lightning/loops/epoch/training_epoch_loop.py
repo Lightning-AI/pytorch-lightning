@@ -13,11 +13,12 @@
 # limitations under the License.
 import math
 from collections import defaultdict, OrderedDict
-from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from lightning_utilities.core.apply_func import apply_to_collection
+from typing_extensions import overload
 
 import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
@@ -29,12 +30,10 @@ from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_li
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException, SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn, WarningCache
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 _BATCH_OUTPUTS_TYPE = Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]]
-_OUTPUTS_TYPE = List[_BATCH_OUTPUTS_TYPE]
 
 
 class _TrainingEpochLoop(loops._Loop):
@@ -77,7 +76,6 @@ class _TrainingEpochLoop(loops._Loop):
         self.val_loop = loops._EvaluationLoop(verbose=False)
 
         self._results = _ResultCollection(training=True)
-        self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
         self._batches_that_stepped: int = 0
 
@@ -131,7 +129,7 @@ class _TrainingEpochLoop(loops._Loop):
 
         return False
 
-    def run(self, data_fetcher: AbstractDataFetcher) -> _OUTPUTS_TYPE:
+    def run(self, data_fetcher: AbstractDataFetcher) -> None:
         self.reset()
         self.on_run_start(data_fetcher)
         while not self.done:
@@ -142,7 +140,6 @@ class _TrainingEpochLoop(loops._Loop):
             except StopIteration:
                 break
         self._restarting = False
-        return self.on_run_end()
 
     def reset(self) -> None:
         """Resets the internal state of the loop for a new run."""
@@ -166,8 +163,6 @@ class _TrainingEpochLoop(loops._Loop):
             # when the epoch starts, the total val batch progress should be reset as it's supposed to count the batches
             # seen per epoch, this is useful for tracking when validation is run multiple times per epoch
             self.val_loop.epoch_loop.batch_progress.total.reset()
-
-        self._outputs = []
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:
         _ = iter(data_fetcher)  # creates the iterator inside the fetcher
@@ -252,13 +247,6 @@ class _TrainingEpochLoop(loops._Loop):
 
         self.batch_progress.increment_completed()
 
-        if batch_output and is_overridden("training_epoch_end", self.trainer.lightning_module):
-            # batch_output may be empty
-            # automatic: can be empty if all optimizers skip their batches
-            # manual: #9052 added support for raising `StopIteration` in the `training_step`. If that happens,
-            # then `advance` doesn't finish and an empty dict is returned
-            self._outputs.append(batch_output)
-
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
@@ -287,10 +275,6 @@ class _TrainingEpochLoop(loops._Loop):
         # which might not be the case depending on what's in the `*_epoch_end` hooks
         if not self._is_training_done and self.trainer.received_sigterm:
             raise SIGTERMException
-
-    def on_run_end(self) -> _OUTPUTS_TYPE:
-        outputs, self._outputs = self._outputs, []
-        return outputs
 
     def teardown(self) -> None:
         self._results.cpu()
@@ -359,34 +343,6 @@ class _TrainingEpochLoop(loops._Loop):
         array = array.squeeze()
         array = array.tolist()
         array = _recursive_unpad(array)
-        return array
-
-    @staticmethod
-    def _prepare_outputs_training_epoch_end(
-        batch_outputs: _OUTPUTS_TYPE,
-        lightning_module: "pl.LightningModule",
-        num_optimizers: int,
-    ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
-        # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
-        if not batch_outputs:
-            return []  # type: ignore[return-value]
-
-        # convert optimizer dicts to list
-        if lightning_module.automatic_optimization:
-            batch_outputs = apply_to_collection(
-                batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
-            )
-
-        array = _recursive_pad(batch_outputs)
-        # squeeze all single-element dimensions
-        array = array.squeeze()
-        array = array.tolist()
-        array = _recursive_unpad(array)
-        # in case we squeezed from 1-element array to a 0-dim array
-        array = array if isinstance(array, list) else [array]
-        # remove residual empty lists
-        array = [item for item in array if not isinstance(item, list) or len(item)]
         return array
 
     def update_lr_schedulers(self, interval: str, update_plateau_schedulers: bool) -> None:
