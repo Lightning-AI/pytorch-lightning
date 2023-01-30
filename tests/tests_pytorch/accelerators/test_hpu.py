@@ -288,6 +288,7 @@ def test_multi_optimizers_with_hpu(tmpdir):
             opt2.zero_grad()
 
     model = MultiOptimizerModel()
+    model.automatic_optimization = False
     model.val_dataloader = None
     trainer = Trainer(
         default_root_dir=tmpdir,
