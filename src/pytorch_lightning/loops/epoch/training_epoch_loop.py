@@ -220,12 +220,9 @@ class _TrainingEpochLoop(loops._Loop):
             self.batch_progress.increment_started()
 
             with self.trainer.profiler.profile("run_training_batch"):
-                # choose which loop will run the optimization
                 if self.trainer.lightning_module.automatic_optimization:
-                    optimizers = self.trainer.optimizers
-                    # TODO
-                    assert len(optimizers) == 1
-                    batch_output = self.optimizer_loop.run(optimizers[0], kwargs)
+                    # in automatic optimization, there can only be one optimizer
+                    batch_output = self.optimizer_loop.run(self.trainer.optimizers[0], kwargs)
                 else:
                     batch_output = self.manual_loop.run(kwargs)
 
@@ -443,9 +440,8 @@ class _TrainingEpochLoop(loops._Loop):
         """
         kwargs["batch"] = batch
         training_step_fx = getattr(self.trainer.lightning_module, "training_step")
-        # TODO
-        # the `batch_idx` is optional, however, when there's more than 1 argument we cannot differentiate whether the
-        # user wants the `batch_idx` or another key like `optimizer_idx` as we are not strict about the argument names
+        # the `batch_idx` is optional, but its name can be anything
+        # as long as there are two argumetns after 'self', we assume they are the `batch` and `batch_idx`
         if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
             kwargs["batch_idx"] = batch_idx
         return kwargs
