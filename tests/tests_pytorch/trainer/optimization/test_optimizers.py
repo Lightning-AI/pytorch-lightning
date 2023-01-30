@@ -57,11 +57,11 @@ def test_multi_optimizer_with_scheduling(tmpdir):
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
             loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            opt2.zero_grad()
             self.manual_backward(loss)
             opt1.step()
             opt2.step()
-            opt1.zero_grad()
-            opt2.zero_grad()
 
         def on_train_epoch_end(self):
             scheduler1, scheduler2 = self.lr_schedulers()

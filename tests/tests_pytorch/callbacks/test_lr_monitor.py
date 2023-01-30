@@ -226,14 +226,14 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
             opt1, opt2 = self.optimizers()
 
             loss = self.loss(self.step(batch))
+            opt1.zero_grad()
             self.manual_backward(loss)
             opt1.step()
-            opt1.zero_grad()
 
             loss = self.loss(self.step(batch))
+            opt2.zero_grad()
             self.manual_backward(loss)
             opt2.step()
-            opt2.zero_grad()
 
         def on_train_epoch_end(self):
             scheduler1, scheduler2 = self.lr_schedulers()
@@ -290,14 +290,14 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
             opt1, opt2 = self.optimizers()
 
             loss = self.loss(self.step(batch))
+            opt1.zero_grad()
             self.manual_backward(loss)
             opt1.step()
-            opt1.zero_grad()
 
             loss = self.loss(self.step(batch))
+            opt2.zero_grad()
             self.manual_backward(loss)
             opt2.step()
-            opt2.zero_grad()
 
         def configure_optimizers(self):
             optimizer1 = optim.Adam(self.parameters(), lr=1e-2)
