@@ -326,13 +326,13 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
     imports_src, imports_tgt = [], []
     mapping = {f"lightning.{sp}": sl for sp, sl in mapping.items()}
     for sub_pkg, standalone in mapping.items():
-        if sub_pkg.split('.')[-1] in reverse:
+        if sub_pkg.split(".")[-1] in reverse:
             sub_pkg, standalone = standalone, sub_pkg
         imports_src.append(standalone)
         imports_tgt.append(sub_pkg)
 
     for sub_pkg, standalone in mapping.items():
-        sub_pkg = sub_pkg.replace('.', os.sep)
+        sub_pkg = sub_pkg.replace(".", os.sep)
         if sub_pkg.split(os.sep)[-1] in reverse:
             sub_pkg, standalone = standalone, sub_pkg
         copy_replace_imports(

@@ -20,34 +20,29 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Renamed `lightning.app.components.LiteMultiNode` to `lightning.app.components.FabricMultiNode` ([#16505](https://github.com/Lightning-AI/lightning/pull/16505))
 
-
 ### Deprecated
 
 -
-
 
 ### Removed
 
 -
 
-
 ### Fixed
 
 - Fixed the Drive root_folder not parsed properly ([#16454](https://github.com/Lightning-AI/lightning/pull/16454))
 
-
-## [1.9.0] - 2023-01-17
+## \[1.9.0\] - 2023-01-17
 
 ### Added
 
 - Added a possibility to set up basic authentication for Lightning apps ([#16105](https://github.com/Lightning-AI/lightning/pull/16105))
 
-
 ### Changed
 
 - The LoadBalancer now uses internal ip + port instead of URL exposed ([#16119](https://github.com/Lightning-AI/lightning/pull/16119))
 - Added support for logging in different trainer stages with  `DeviceStatsMonitor`
-([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
+  ([#16002](https://github.com/Lightning-AI/lightning/pull/16002))
 - Changed `lightning.app.components.serve.gradio` to  `lightning.app.components.serve.gradio_server` ([#16201](https://github.com/Lightning-AI/lightning/pull/16201))
 - Made cluster creation/deletion async by default ([#16185](https://github.com/Lightning-AI/lightning/pull/16185))
 - Expose `LightningFlow.stop` method to stop the flow similar to works ([##16378](https://github.com/Lightning-AI/lightning/pull/16378))
@@ -60,8 +55,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Porting fixes to autoscaler component ([#16249](https://github.com/Lightning-AI/lightning/pull/16249))
 - Fixed a bug where `lightning login` with env variables would not correctly save the credentials ([#16339](https://github.com/Lightning-AI/lightning/pull/16339))
 
-
-## [1.8.6] - 2022-12-21
+## \[1.8.6\] - 2022-12-21
 
 ### Added
 
@@ -96,8 +90,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where an exception would be raised in the logs when using a recent version of streamlit ([#16139](https://github.com/Lightning-AI/lightning/pull/16139))
 - Fixed e2e tests ([#16146](https://github.com/Lightning-AI/lightning/pull/16146))
 
-
-## [1.8.5] - 2022-12-15
+## \[1.8.5\] - 2022-12-15
 
 ### Added
 
@@ -120,8 +113,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where apps that had previously been deleted could not be run again from the CLI ([#16082](https://github.com/Lightning-AI/lightning/pull/16082))
 - Fixed install/upgrade - removing single quote ([#16079](https://github.com/Lightning-AI/lightning/pull/16079))
 
-
-## [1.8.4] - 2022-12-08
+## \[1.8.4\] - 2022-12-08
 
 ### Added
 
@@ -131,10 +123,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added a CloudMultiProcessBackend which enables running a child App from within the Flow in the cloud ([#15800](https://github.com/Lightning-AI/lightning/pull/15800))
 - Utility for pickling work object safely even from a child process ([#15836](https://github.com/Lightning-AI/lightning/pull/15836))
 - Added `AutoScaler` component (
-   [#15769](https://github.com/Lightning-AI/lightning/pull/15769),
-   [#15971](https://github.com/Lightning-AI/lightning/pull/15971),
-   [#15966](https://github.com/Lightning-AI/lightning/pull/15966)
-)
+  [#15769](https://github.com/Lightning-AI/lightning/pull/15769),
+  [#15971](https://github.com/Lightning-AI/lightning/pull/15971),
+  [#15966](https://github.com/Lightning-AI/lightning/pull/15966)
+  )
 - Added the property `ready` of the LightningFlow to inform when the `Open App` should be visible ([#15921](https://github.com/Lightning-AI/lightning/pull/15921))
 - Added private work attributed `_start_method` to customize how to start the works ([#15923](https://github.com/Lightning-AI/lightning/pull/15923))
 - Added a `configure_layout` method to the `LightningWork` which can be used to control how the work is handled in the layout of a parent flow ([#15926](https://github.com/Lightning-AI/lightning/pull/15926))
@@ -175,14 +167,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed Registration for CloudComputes of Works in `L.app.structures` ([#15964](https://github.com/Lightning-AI/lightning/pull/15964))
 - Fixed a bug where auto-upgrading to the latest lightning via the CLI could get stuck in a loop ([#15984](https://github.com/Lightning-AI/lightning/pull/15984))
 
-
-## [1.8.3] - 2022-11-22
+## \[1.8.3\] - 2022-11-22
 
 ### Changed
 
 - Deduplicate top level lighting CLI command groups ([#15761](https://github.com/Lightning-AI/lightning/pull/15761))
-  * `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key`
-  * `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key`
+  - `lightning add ssh-key` CLI command has been transitioned to `lightning create ssh-key`
+  - `lightning remove ssh-key` CLI command has been transitioned to `lightning delete ssh-key`
 - Set Torch inference mode for prediction ([#15719](https://github.com/Lightning-AI/lightning/pull/15719))
 - Improved `LightningTrainerScript` start-up time ([#15751](https://github.com/Lightning-AI/lightning/pull/15751))
 - Disable XSRF protection in `StreamlitFrontend` to support upload in localhost ([#15684](https://github.com/Lightning-AI/lightning/pull/15684))
@@ -193,8 +184,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed setting property to the `LightningFlow` ([#15750](https://github.com/Lightning-AI/lightning/pull/15750))
 - Fixed the PyTorch Inference locally on GPU ([#15813](https://github.com/Lightning-AI/lightning/pull/15813))
 
-
-## [1.8.2] - 2022-11-17
+## \[1.8.2\] - 2022-11-17
 
 ### Added
 
@@ -217,8 +207,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed catimage import ([#15712](https://github.com/Lightning-AI/lightning/pull/15712))
 - Parse all lines in app file looking for shebangs to run commands ([#15714](https://github.com/Lightning-AI/lightning/pull/15714))
 
-
-## [1.8.1] - 2022-11-10
+## \[1.8.1\] - 2022-11-10
 
 ### Added
 
@@ -231,7 +220,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `--setup` flag to `lightning run app` CLI command allowing for dependency installation via app comments ([#15577](https://github.com/Lightning-AI/lightning/pull/15577))
 - Auto-upgrade / detect environment mis-match from the CLI ([#15434](https://github.com/Lightning-AI/lightning/pull/15434))
 - Added Serve component ([#15609](https://github.com/Lightning-AI/lightning/pull/15609))
-
 
 ### Changed
 
@@ -250,8 +238,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where payload would take a very long time locally ([#15557](https://github.com/Lightning-AI/lightning/pull/15557))
 - Fixed an issue with the `lightning` CLI taking a long time to error out when the cloud is not reachable ([#15412](https://github.com/Lightning-AI/lightning/pull/15412))
 
-
-## [1.8.0] - 2022-11-01
+## \[1.8.0\] - 2022-11-01
 
 ### Added
 
@@ -284,11 +271,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed an issue when using the CLI without arguments ([#14877](https://github.com/Lightning-AI/lightning/pull/14877))
 - Fixed a bug where the upload files endpoint would raise an error when running locally ([#14924](https://github.com/Lightning-AI/lightning/pull/14924))
-- Fixed BYOC cluster region selector -> hiding it from help since only us-east-1 has been tested and is recommended ([#15277]https://github.com/Lightning-AI/lightning/pull/15277)
+- Fixed BYOC cluster region selector -> hiding it from help since only us-east-1 has been tested and is recommended (\[#15277\]https://github.com/Lightning-AI/lightning/pull/15277)
 - Fixed a bug when launching an app on multiple clusters ([#15226](https://github.com/Lightning-AI/lightning/pull/15226))
 - Fixed a bug with a default CloudCompute for Lightning flows ([#15371](https://github.com/Lightning-AI/lightning/pull/15371))
 
-## [0.6.2] - 2022-09-21
+## \[0.6.2\] - 2022-09-21
 
 ### Changed
 
@@ -302,8 +289,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where custom property setters were not being used `LightningWork` class ([#14259](https://github.com/Lightning-AI/lightning/pull/14259))
 - Fixed an issue where some terminals would display broken icons in the PL app CLI ([#14226](https://github.com/Lightning-AI/lightning/pull/14226))
 
-
-## [0.6.1] - 2022-09-19
+## \[0.6.1\] - 2022-09-19
 
 ### Added
 
@@ -324,8 +310,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed a bug where the uploaded command file wasn't properly parsed ([#14532](https://github.com/Lightning-AI/lightning/pull/14532))
 - Resolved `LightningApp(..., debug=True)` ([#14464](https://github.com/Lightning-AI/lightning/pull/14464))
 
-
-## [0.6.0] - 2022-09-08
+## \[0.6.0\] - 2022-09-08
 
 ### Added
 
@@ -355,7 +340,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue with `lightning --version` command ([#14433](https://github.com/Lightning-AI/lightning/pull/14433))
 - Fixed imports of collections.abc for py3.10 ([#14345](https://github.com/Lightning-AI/lightning/pull/14345))
 
-## [0.5.7] - 2022-08-22
+## \[0.5.7\] - 2022-08-22
 
 ### Changed
 
@@ -367,18 +352,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Pinning starsessions to 1.x ([#14333](https://github.com/Lightning-AI/lightning/pull/14333))
 - Parsed local package versions ([#13933](https://github.com/Lightning-AI/lightning/pull/13933))
 
-
-## [0.5.6] - 2022-08-16
+## \[0.5.6\] - 2022-08-16
 
 ### Fixed
 
 - Resolved a bug where the `install` command was not installing the latest version of an app/component by default ([#14181](https://github.com/Lightning-AI/lightning/pull/14181))
 
-
 - Fixed the `examples/app_dag` example ([#14359](https://github.com/Lightning-AI/lightning/pull/14359))
 
-
-## [0.5.5] - 2022-08-9
+## \[0.5.5\] - 2022-08-9
 
 ### Deprecated
 
@@ -390,8 +372,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Resolved a bug about a race condition when sending the work state through the caller_queue ([#14074](https://github.com/Lightning-AI/lightning/pull/14074))
 - Fixed Start Lightning App on Cloud if Repo Begins With Name "Lightning" ([#14025](https://github.com/Lightning-AI/lightning/pull/14025))
 
-
-## [0.5.4] - 2022-08-01
+## \[0.5.4\] - 2022-08-01
 
 ### Changed
 
@@ -404,7 +385,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added UI for install all ([#13732](https://github.com/Lightning-AI/lightning/pull/13732))
 - Fixed build meta pkg flow ([#13926](https://github.com/Lightning-AI/lightning/pull/13926))
 
-## [0.5.3] - 2022-07-25
+## \[0.5.3\] - 2022-07-25
 
 ### Changed
 
@@ -414,7 +395,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Use correct python version in lightning component template ([#13790](https://github.com/Lightning-AI/lightning/pull/13790))
 
-## [0.5.2] - 2022-07-18
+## \[0.5.2\] - 2022-07-18
 
 ### Added
 

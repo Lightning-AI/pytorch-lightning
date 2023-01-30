@@ -99,8 +99,8 @@ repos:
           - mdformat_frontmatter
         exclude: |
           (?x)^(
+              src/lightning/app/CHANGELOG.md|
               src/pytorch_lightning/CHANGELOG.md|
-              src/lightning_app/CHANGELOG.md|
               src/lightning_fabric/CHANGELOG.md
           )$
 
