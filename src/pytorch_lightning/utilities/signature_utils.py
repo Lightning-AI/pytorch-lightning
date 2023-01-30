@@ -25,4 +25,4 @@ def is_param_in_hook_signature(hook_fx: Callable, param: str, explicit: bool = F
     """
     parameters = inspect.getfullargspec(hook_fx)
     args = parameters.args[1:]  # ignore `self`
-    return param in args or (not explicit and (parameters.varargs is not None)) or len(args) >= min_args
+    return len(args) >= min_args and param in args or (not explicit and (parameters.varargs is not None))
