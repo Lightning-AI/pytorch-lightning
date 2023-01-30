@@ -46,7 +46,8 @@ Create AWS role with AWS CLI
           "sns:*",
           "sqs:*",
           "tag:GetResources",
-          "resource-groups:SearchResources"
+          "resource-groups:SearchResources",
+          "codebuild:*"
         ],
         "Effect": "Allow",
         "Resource": "*"
