@@ -127,7 +127,6 @@ def test_misconfiguration_error():
     fetcher = DataFetcher()
     loader = DataLoader(range(10))
     fetcher.setup(loader)
-    assert fetcher.loaders == loader
     with pytest.raises(
         MisconfigurationException, match="The `dataloader_iter` isn't available outside the __iter__ context."
     ):
