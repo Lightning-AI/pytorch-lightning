@@ -108,6 +108,7 @@ class Strategy(ABC):
     @optimizers.setter
     def optimizers(self, optimizers: List[Optimizer]) -> None:
         self._optimizers = optimizers
+        # TODO
         self._lightning_optimizers = {
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }

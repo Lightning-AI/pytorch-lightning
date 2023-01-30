@@ -295,7 +295,6 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
-            assert trainer.lr_scheduler_configs[0].opt_idx == 0
 
     model = BoringModel()
     lr_monitor = LearningRateMonitor()
