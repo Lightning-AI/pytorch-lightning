@@ -53,7 +53,6 @@ class LightningOptimizer:
     def optimizer(self) -> Optimizer:
         return self._optimizer
 
-    # TODO:
     @classmethod
     def _to_lightning_optimizer(
         cls, optimizer: Union[Optimizer, "LightningOptimizer"], strategy: "pl.strategies.Strategy", opt_idx: int

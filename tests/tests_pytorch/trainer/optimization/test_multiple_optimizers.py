@@ -19,7 +19,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
 
 
-# TODO:
 class MultiOptModel(BoringModel):
     def configure_optimizers(self):
         opt_a = torch.optim.SGD(self.layer.parameters(), lr=0.001)
