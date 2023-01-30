@@ -138,17 +138,7 @@ def _run_plugin(run: _Run) -> None:
                 plugin.run(run.name, run.entrypoint)
 
 
-# @fastapi_service.get("/v1/files")
-# def _list_files() -> List[str]:
-#     """List all files under `/content`."""
-#     # TODO: Return more information here
-#     paths = glob.iglob("/content/**/*", recursive=True)
-#     paths = [Path(path) for path in paths]
-#     relative_files = [str(path.absolute().relative_to("/content")) for path in paths if path.is_file()]
-#     return relative_files
-
-
-def _start_dispatch_server(
+def _start_plugin_server(
     host="0.0.0.0",
     port=8888,
 ):
