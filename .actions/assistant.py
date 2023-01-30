@@ -266,18 +266,23 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
     ...     "lightning_apps = []",
     ...     "lightning_app and pytorch_lightning are ours",
     ...     "def _lightning_app():",
-    ...     ":class:`~lightning_app.core.flow.LightningFlow`"
+    ...     ":class:`~lightning_app.core.flow.LightningFlow`",
+    ...     "http://pytorch_lightning.ai"
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
     >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
     ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
     'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
-    ':class:`~lightning.app.core.flow.LightningFlow`']
+    ':class:`~lightning.app.core.flow.LightningFlow`', 'http://pytorch_lightning.ai']
     """
     out = lines[:]
     for source_import, target_import in mapping:
         for i, ln in enumerate(out):
-            out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+            out[i] = re.sub(
+                rf"([^_/]|^){source_import}([^_\w]|$)",
+                rf"\1{target_import}\2",
+                ln,
+            )
     return out
 
 

@@ -782,8 +782,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning.app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning.app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -929,8 +929,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun()
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning.app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning.app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -1056,8 +1056,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning.app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning.app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         mock_client.lightningapp_service_get_lightningapp = MagicMock(return_value=existing_instance)
@@ -1270,8 +1270,8 @@ class TestAppCreationClient:
         )
         mock_client.cloud_space_service_create_lightning_run_instance.return_value = V1LightningRun(cluster_id="test")
         mock_client.cluster_service_list_clusters.return_value = V1ListClustersResponse([Externalv1Cluster(id="test")])
-        lightning.app_instance = MagicMock()
-        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lightning.app_instance)
+        lit_app_instance = MagicMock()
+        mock_client.cloud_space_service_create_lightning_run_instance = MagicMock(return_value=lit_app_instance)
         existing_instance = MagicMock()
         existing_instance.status.phase = V1LightningappInstanceState.STOPPED
         existing_instance.spec.cluster_id = None
