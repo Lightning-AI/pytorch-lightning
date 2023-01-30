@@ -114,7 +114,6 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
             return {"optimizer": opt0, "frequency": frequencies[0]}, {"optimizer": opt1, "frequency": frequencies[1]}
 
     model = CurrentModel()
-    model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -178,7 +177,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     fail = False
     seed_everything(0)
     model = MultipleOptimizerModel()
-    model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -197,7 +195,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     fail = True
     seed_everything(0)
     model = MultipleOptimizerModel()
-    model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -217,7 +214,6 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     fail = False
     seed_everything(0)
     model = MultipleOptimizerModel()
-    model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,

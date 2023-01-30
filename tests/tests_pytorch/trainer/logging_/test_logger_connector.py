@@ -276,8 +276,7 @@ def test_epoch_results_cache_dp(tmpdir):
             loss = training_step_outputs["loss"].mean()
             return loss
 
-        def training_epoch_end(self, outputs):
-            assert all(out["loss"].device == root_device for out in outputs)
+        def on_train_epoch_end(self):
             assert self.trainer.callback_metrics["train_loss_epoch"].device == root_device
 
         def validation_step(self, *args, **kwargs):
@@ -285,8 +284,7 @@ def test_epoch_results_cache_dp(tmpdir):
             self.log("val_loss_epoch", val_loss, on_step=False, on_epoch=True)
             return val_loss
 
-        def validation_epoch_end(self, outputs):
-            assert all(loss.device == root_device for loss in outputs)
+        def on_validation_epoch_end(self):
             assert self.trainer.callback_metrics["val_loss_epoch"].device == root_device
 
         def test_step(self, *args, **kwargs):
@@ -294,8 +292,7 @@ def test_epoch_results_cache_dp(tmpdir):
             self.log("test_loss_epoch", test_loss, on_step=False, on_epoch=True)
             return test_loss
 
-        def test_epoch_end(self, outputs):
-            assert all(loss.device == root_device for loss in outputs)
+        def on_test_epoch_end(self):
             assert self.trainer.callback_metrics["test_loss_epoch"].device == root_device
 
         def train_dataloader(self):
@@ -321,37 +318,6 @@ def test_epoch_results_cache_dp(tmpdir):
     trainer.test(model)
 
 
-def test_can_return_tensor_with_more_than_one_element(tmpdir):
-    """Ensure {validation,test}_step return values are not included as callback metrics.
-
-    #6623
-    """
-
-    class TestModel(BoringModel):
-        def validation_step(self, batch, *args, **kwargs):
-            return {"val": torch.tensor([0, 1])}
-
-        def validation_epoch_end(self, outputs):
-            # ensure validation step returns still appear here
-            assert len(outputs) == 2
-            assert all(list(d) == ["val"] for d in outputs)  # check keys
-            assert all(torch.equal(d["val"], torch.tensor([0, 1])) for d in outputs)  # check values
-
-        def test_step(self, batch, *args, **kwargs):
-            return {"test": torch.tensor([0, 1])}
-
-        def test_epoch_end(self, outputs):
-            assert len(outputs) == 2
-            assert all(list(d) == ["test"] for d in outputs)  # check keys
-            assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
-
-    model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
-    trainer.fit(model)
-    trainer.validate(model)
-    trainer.test(model)
-
-
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     """test that auto_add_dataloader_idx argument works."""
@@ -372,7 +338,6 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
             return output
 
     model = TestModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)

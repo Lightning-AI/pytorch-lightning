@@ -134,7 +134,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     class ModelOverrideValidationReturn(BoringModel):
         validation_return_values = torch.tensor(loss_values)
 
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             loss = self.validation_return_values[self.current_epoch]
             self.log("test_val_loss", loss)
 
@@ -164,7 +164,7 @@ def test_early_stopping_patience_train(
     class ModelOverrideTrainReturn(BoringModel):
         train_return_values = torch.tensor(loss_values)
 
-        def training_epoch_end(self, outputs):
+        def on_train_epoch_end(self):
             loss = self.train_return_values[self.current_epoch]
             self.log("train_loss", loss)
 
@@ -226,7 +226,7 @@ def test_early_stopping_no_val_step(tmpdir):
 )
 def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_threshold, losses, expected_epoch):
     class CurrentModel(BoringModel):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("abc", val_loss)
 
@@ -252,7 +252,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     expected_stop_epoch = 2
 
     class CurrentModel(BoringModel):
-        def validation_epoch_end(self, outputs):
+        def on_validation_epoch_end(self):
             val_loss = losses[self.current_epoch]
             self.log("val_loss", val_loss)
 
@@ -352,12 +352,12 @@ class EarlyStoppingModel(BoringModel):
         self.log("abc", torch.tensor(loss))
         self.log("cba", torch.tensor(0))
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         if not self.early_stop_on_train:
             return
         self._epoch_end()
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         if self.early_stop_on_train:
             return
         self._epoch_end()

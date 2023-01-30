@@ -41,9 +41,6 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
         def on_test_batch_end(self, outputs, batch, batch_idx: int, dataloader_idx: int) -> None:
             assert "x" in outputs
 
-        def training_epoch_end(self, outputs) -> None:
-            assert len(outputs) == self.trainer.num_training_batches
-
     model = TestModel()
 
     trainer = Trainer(
@@ -57,24 +54,5 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     )
 
     assert any(isinstance(c, CB) for c in trainer.callbacks)
-
-    trainer.fit(model)
-
-
-def test_free_memory_on_eval_outputs(tmpdir):
-    class CB(Callback):
-        def on_train_epoch_end(self, trainer, pl_module):
-            assert not trainer._evaluation_loop._outputs
-
-    model = BoringModel()
-
-    trainer = Trainer(
-        callbacks=CB(),
-        default_root_dir=tmpdir,
-        limit_train_batches=2,
-        limit_val_batches=2,
-        max_epochs=1,
-        enable_model_summary=False,
-    )
 
     trainer.fit(model)

@@ -90,7 +90,6 @@ def test_replace_distributed_sampler(tmpdir, mode):
             return [self.create_dataset()] * self._numbers_test_dataloaders
 
     model = TestModel(2, mode)
-    model.test_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,

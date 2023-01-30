@@ -41,7 +41,6 @@ def test_finetuning_with_ckpt_path(tmpdir):
             self.log("val_loss", loss, on_epoch=True, prog_bar=True)
 
     model = ExtendedBoringModel()
-    model.validation_epoch_end = None
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,

@@ -55,20 +55,19 @@ def test_all_gather_ddp_spawn():
 def test_all_gather_collection(tmpdir):
     class TestModel(BoringModel):
 
-        training_epoch_end_called = False
+        on_train_epoch_end_called = False
 
-        def training_epoch_end(self, outputs) -> None:
-            losses = torch.stack([x["loss"] for x in outputs])
+        def on_train_epoch_end(self):
+            losses = torch.rand(2, 2).t()
             gathered_loss = self.all_gather(
                 {
-                    "losses_tensor_int": torch.rand(2, 2).int().t(),
-                    "losses_tensor_float": torch.rand(2, 2).t(),
+                    "losses_tensor_int": losses.int(),
+                    "losses_tensor_float": losses,
+                    "losses_tensor_list": [losses, losses],
                     "losses_np_ndarray": np.array([1, 2, 3]),
                     "losses_bool": [True, False],
                     "losses_float": [0.0, 1.0, 2.0],
                     "losses_int": [0, 1, 2],
-                    "losses": losses,
-                    "losses_list": [losses, losses],
                 }
             )
             assert gathered_loss["losses_tensor_int"][0].dtype == torch.int32
@@ -80,7 +79,7 @@ def test_all_gather_collection(tmpdir):
             assert gathered_loss["losses_int"][0].dtype == torch.int
             assert gathered_loss["losses_list"][0].numel() == 2 * len(losses)
             assert gathered_loss["losses"].numel() == 2 * len(losses)
-            self.training_epoch_end_called = True
+            self.on_train_epoch_end_called = True
 
     seed_everything(42)
 
@@ -102,7 +101,7 @@ def test_all_gather_collection(tmpdir):
     )
 
     trainer.fit(model)
-    assert model.training_epoch_end_called
+    assert model.on_train_epoch_end_called
 
 
 @RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)

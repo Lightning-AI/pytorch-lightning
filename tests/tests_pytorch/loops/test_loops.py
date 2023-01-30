@@ -216,7 +216,6 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
             return [super(ValidationModel, self).val_dataloader() for _ in range(n_dataloaders)]
 
     model = ValidationModel()
-    model.validation_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -297,7 +296,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
             return optimizers, lr_schedulers
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -494,7 +492,6 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
             return DataLoader(RandomDataset(32, n_batches))
 
     model = TestModel()
-    model.training_epoch_end = None
 
     trainer = Trainer(
         default_root_dir=tmpdir,

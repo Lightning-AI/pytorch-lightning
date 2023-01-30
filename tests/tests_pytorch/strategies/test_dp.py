@@ -91,6 +91,12 @@ def test_multi_gpu_model_dp(tmpdir):
 
 
 class ReductionTestModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.train_outputs = []
+        self.val_outputs = []
+        self.tests_outputs = []
+
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), batch_size=2)
 
@@ -111,29 +117,32 @@ class ReductionTestModel(BoringModel):
     def training_step(self, batch, batch_idx):
         output = super().training_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
+        self.train_outputs.append(output)
         return output
 
     def validation_step(self, batch, batch_idx):
         output = super().validation_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
+        self.val_outputs.append(output)
         return output
 
     def test_step(self, batch, batch_idx):
         output = super().test_step(batch, batch_idx)
         self.add_outputs(output, batch.device)
+        self.tests_outputs.append(output)
         return output
 
-    def training_epoch_end(self, outputs):
-        assert outputs[0]["loss"].shape == torch.Size([])
-        self._assert_extra_outputs(outputs)
+    def on_train_epoch_end(self):
+        assert self.train_outputs[0]["loss"].shape == torch.Size([])
+        self._assert_extra_outputs(self.train_outputs)
 
-    def validation_epoch_end(self, outputs):
-        assert outputs[0]["x"].shape == torch.Size([2])
-        self._assert_extra_outputs(outputs)
+    def on_validation_epoch_end(self):
+        assert self.val_outputs[0]["x"].shape == torch.Size([2])
+        self._assert_extra_outputs(self.val_outputs)
 
-    def test_epoch_end(self, outputs):
-        assert outputs[0]["y"].shape == torch.Size([2])
-        self._assert_extra_outputs(outputs)
+    def on_test_epoch_end(self):
+        assert self.tests_outputs[0]["y"].shape == torch.Size([2])
+        self._assert_extra_outputs(self.test_outputs)
 
     def _assert_extra_outputs(self, outputs):
         out = outputs[0]["reduce_int"]

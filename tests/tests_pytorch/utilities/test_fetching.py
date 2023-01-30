@@ -244,7 +244,7 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
                 loss.backward()
                 opt.step()
 
-        def training_epoch_end(self, *_):
+        def on_train_epoch_end(self):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
             assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
@@ -455,8 +455,6 @@ def test_fetching_is_profiled():
 
         def val_dataloader(self):
             return [super().val_dataloader(), super().val_dataloader()]
-
-        validation_epoch_end = None
 
     model = MyModel()
     fast_dev_run = 2

@@ -41,7 +41,6 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
             return out
 
     model = TestModel()
-    model.training_epoch_end = None
 
     # Initialize a trainer
     trainer = pl.Trainer(
@@ -63,10 +62,6 @@ def test_multiple_optimizers(tmpdir):
         def training_step(self, batch, batch_idx, optimizer_idx):
             self.seen[optimizer_idx] = True
             return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
 
     model = TestModel()
     model.val_dataloader = None
@@ -107,11 +102,6 @@ def test_multiple_optimizers_manual(tmpdir):
             self.manual_backward(loss_2)
             opt_b.step()
             opt_b.zero_grad()
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs is empty as training_step does not return
-            # and it is not automatic optimization
-            assert len(outputs) == 0
 
     model = TestModel()
     model.val_dataloader = None
@@ -161,11 +151,6 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
             x = self.layer_a(batch[0]) if (optimizer_idx == 0) else self.layer_b(batch[0])
             loss = torch.nn.functional.mse_loss(x, torch.ones_like(x))
             return loss
-
-        def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array of batches with an entry per optimizer
-            assert len(outputs) == limit_train_batches
-            assert all(len(o) == 2 for o in outputs)
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
             # update first optimizer every step
