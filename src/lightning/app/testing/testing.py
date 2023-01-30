@@ -146,16 +146,16 @@ class LightningTestApp(LightningApp):
 
 @requires("click")
 def application_testing(
-    lightning.app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
+    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
 ) -> Any:
     from unittest import mock
 
     from click.testing import CliRunner
 
-    patch1 = mock.patch("lightning.app.LightningApp", lightning.app_cls)
+    patch1 = mock.patch("lightning.app.LightningApp", lightning_app_cls)
     # we need to patch both only with the mirror package
     patch2 = (
-        mock.patch("lightning.LightningApp", lightning.app_cls) if "lightning.app" in sys.modules else nullcontext()
+        mock.patch("lightning.LightningApp", lightning_app_cls) if "lightning.app" in sys.modules else nullcontext()
     )
     with patch1, patch2:
         original = sys.argv
@@ -495,7 +495,7 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
             sleep(3)
 
 
-def _delete_lightning.app(client, project_id, app_id, app_name):
+def _delete_lightning_app(client, project_id, app_id, app_name):
     print(f"Deleting {app_name} id: {app_id}")
     try:
         res = client.lightningapp_instance_service_delete_lightningapp_instance(
@@ -507,7 +507,7 @@ def _delete_lightning.app(client, project_id, app_id, app_name):
         print(f"Failed to delete {app_name}. Exception {ex}")
 
 
-def delete_cloud_lightning.apps():
+def delete_cloud_lightning_apps():
     """Cleanup cloud apps that start with the name test-{PR_NUMBER}-{TEST_APP_NAME}.
 
     PR_NUMBER and TEST_APP_NAME are environment variables.
@@ -530,11 +530,11 @@ def delete_cloud_lightning.apps():
     for lit_app in list_apps.lightningapps:
         if pr_number and app_name and not lit_app.name.startswith(f"test-{pr_number}-{app_name}-"):
             continue
-        _delete_lightning.app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+        _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
 
     print("deleting apps that were created more than 1 hour ago.")
 
     for lit_app in list_apps.lightningapps:
 
         if lit_app.created_at < datetime.datetime.now(lit_app.created_at.tzinfo) - datetime.timedelta(hours=1):
-            _delete_lightning.app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
+            _delete_lightning_app(client, project_id=project_id, app_id=lit_app.id, app_name=lit_app.name)
