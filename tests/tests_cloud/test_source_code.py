@@ -4,7 +4,7 @@ import tempfile
 
 from tests_cloud import _API_KEY, _PROJECT_ID, _PROJECT_ROOT, _TEST_ROOT, _USERNAME
 
-from lightning.store import download_from_cloud, upload_model
+from lightning.store import download_model, upload_model
 from lightning.store.save import __STORAGE_DIR_NAME
 from pytorch_lightning.demos.boring_classes import BoringModel
 
@@ -12,7 +12,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 def test_source_code_implicit(lit_home, model_name: str = "model_test_source_code_implicit"):
     upload_model(model_name, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
 
-    download_from_cloud(f"{_USERNAME}/{model_name}")
+    download_model(f"{_USERNAME}/{model_name}")
     assert os.path.isfile(
         os.path.join(
             lit_home,
@@ -28,7 +28,7 @@ def test_source_code_implicit(lit_home, model_name: str = "model_test_source_cod
 def test_source_code_saving_disabled(lit_home, model_name: str = "model_test_source_code_dont_save"):
     upload_model(model_name, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID, save_code=False)
 
-    download_from_cloud(f"{_USERNAME}/{model_name}")
+    download_model(f"{_USERNAME}/{model_name}")
     assert not os.path.isfile(
         os.path.join(
             lit_home,
@@ -44,7 +44,7 @@ def test_source_code_saving_disabled(lit_home, model_name: str = "model_test_sou
 def test_source_code_explicit_relative_folder(lit_home, model_name: str = "model_test_source_code_explicit_relative"):
     upload_model(model_name, model=BoringModel(), source_code_path=_TEST_ROOT, api_key=_API_KEY, project_id=_PROJECT_ID)
 
-    download_from_cloud(f"{_USERNAME}/{model_name}")
+    download_model(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
         os.path.join(
@@ -68,7 +68,7 @@ def test_source_code_explicit_absolute_folder(
             model_name, model=BoringModel(), source_code_path=dir_upload_path, api_key=_API_KEY, project_id=_PROJECT_ID
         )
 
-    download_from_cloud(f"{_USERNAME}/{model_name}")
+    download_model(f"{_USERNAME}/{model_name}")
 
     assert os.path.isdir(
         os.path.join(
@@ -86,7 +86,7 @@ def test_source_code_explicit_file(lit_home, model_name: str = "model_test_sourc
     file_name = os.path.join(_PROJECT_ROOT, "setup.py")
     upload_model(model_name, model=BoringModel(), source_code_path=file_name, api_key=_API_KEY, project_id=_PROJECT_ID)
 
-    download_from_cloud(f"{_USERNAME}/{model_name}")
+    download_model(f"{_USERNAME}/{model_name}")
 
     assert os.path.isfile(
         os.path.join(

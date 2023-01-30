@@ -3,7 +3,7 @@
 - Login to lightning.ai (_optional_) \<-- takes less than a minute.  ⏩
 - Store your models on the cloud \<-- simple call: `upload_model(...)`. 🗳️
 - Share it with your friends \<-- just share the "username/model_name" (and version if required) format. :handshake:
-- They download using a simple call: `download_from_cloud("username/model_name", version="your_version")`. :wink:
+- They download using a simple call: `download_model("username/model_name", version="your_version")`. :wink:
 - They load your cool model. `load_model("username/model_name", version="your_version")`. :tada:
 - Lightning :zap: fast, isn't it?. :heart:
 
@@ -44,7 +44,7 @@ At first, you need to download the model to your local machine.
 ```python
 import lightning as L
 
-L.store.download_from_cloud(
+L.store.download_model(
     "krshrimali/unique_model_mnist",
     output_dir="your_output_dir",
 )
@@ -56,7 +56,7 @@ L.store.download_from_cloud(
 #         |  |  |  |- <model_name>
 #         |  |  |  |  |- version_<version_with_dots_replaced_by_underscores>
 #      folder)
-L.store.download_from_cloud("krshrimali/unique_model_mnist")
+L.store.download_model("krshrimali/unique_model_mnist")
 ```
 
 **Loading model**
@@ -82,7 +82,7 @@ print(model)
 import lightning as L
 from sample.model import LitAutoEncoder, Encoder, Decoder
 
-# If you had passed an `output_dir=...` to download_from_cloud(...), then you can just do:
+# If you had passed an `output_dir=...` to download_model(...), then you can just do:
 # from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 
 model = LitAutoEncoder(Encoder(), Decoder())

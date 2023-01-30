@@ -214,7 +214,7 @@ def _load_checkpoint(model, stored, output_dir, *args, **kwargs):
     return ckpt
 
 
-def download_from_cloud(
+def download_model(
     name: str,
     version: str = "latest",
     output_dir: str = "",
@@ -298,7 +298,7 @@ def download_from_cloud(
 
 def _validate_output_dir(folder: str) -> None:
     if not os.path.exists(folder):
-        raise ValueError("The output directory doesn't exist... did you forget to call download_from_cloud(...)?")
+        raise ValueError("The output directory doesn't exist... did you forget to call download_model(...)?")
 
 
 def load_model(
@@ -376,6 +376,6 @@ def load_model(
     else:
         raise ValueError(
             f"Could not find the model (for {name}:{version}) in the local system."
-            " Did you make sure to download the model using: `download_from_cloud(...)`"
+            " Did you make sure to download the model using: `download_model(...)`"
             " before calling `load_model(...)`?"
         )
