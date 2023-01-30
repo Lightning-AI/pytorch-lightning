@@ -339,12 +339,17 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
 
     for sub_pkg, standalone in mapping.items():
         if sub_pkg.split(".")[-1] in reverse:
+            imports_src_ = imports_src + ["lightning"]
+            imports_tgt_ = imports_tgt + [standalone]
             sub_pkg, standalone = standalone, sub_pkg
+        else:
+            imports_src_, imports_tgt_ = imports_src, imports_tgt
+
         copy_replace_imports(
             source_dir=os.path.join(source_dir, standalone.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
-            source_imports=imports_src,
-            target_imports=imports_tgt,
+            source_imports=imports_src_,
+            target_imports=imports_tgt_,
             target_dir=os.path.join(source_dir, sub_pkg.replace(".", os.sep)),
         )
 
