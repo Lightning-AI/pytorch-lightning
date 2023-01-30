@@ -83,9 +83,7 @@ def test_source_code_explicit_file(model_name: str = "model_test_source_code_exp
     cleanup()
 
     file_name = os.path.join(_PROJECT_ROOT, "setup.py")
-    upload_model(
-        model_name, model=BoringModel(), source_code_path=file_name, api_key=_API_KEY, project_id=_PROJECT_ID
-    )
+    upload_model(model_name, model=BoringModel(), source_code_path=file_name, api_key=_API_KEY, project_id=_PROJECT_ID)
 
     download_from_cloud(f"{_USERNAME}/{model_name}")
 
