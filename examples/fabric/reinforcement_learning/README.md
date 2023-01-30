@@ -62,7 +62,7 @@ The following video shows a trained agent on the [LunarLander-v2 environment](ht
 
 <p align="center">
   <video controls>
-    <source src="videos/test.mp4" type="video/mp4">
+    <source src="https://pl-public-data.s3.amazonaws.com/assets_lightning/examples/fabric/reinforcement-learning/test.mp4" type="video/mp4">
   </video>
 </p>
 
