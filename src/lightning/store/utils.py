@@ -51,7 +51,7 @@ def _get_model_data(name: str, version: str):
 
     if not os.path.exists(_LIGHTNING_STORAGE_FILE):
         raise NotADirectoryError(
-            f"Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_from_lightning_cloud(...))"
+            f"Could not find {_LIGHTNING_STORAGE_FILE} (to be generated after download_model(...))"
         )
 
     with open(_LIGHTNING_STORAGE_FILE) as storage_file:
@@ -59,15 +59,14 @@ def _get_model_data(name: str, version: str):
 
     if username not in storage_data:
         raise KeyError(
-            f"No data found for the given username {username}. Make sure to call"
-            " `download_from_lightning_cloud` before loading"
+            f"No data found for the given username {username}. Make sure to call" " `download_model` before loading"
         )
     user_data = storage_data[username]
 
     if model_name not in user_data:
         raise KeyError(
             f"No data found for the given model name: {model_name} for the given"
-            f" username: {username}. Make sure to call `download_from_lightning_cloud` before loading"
+            f" username: {username}. Make sure to call `download_model` before loading"
         )
     model_data = user_data[model_name]
 

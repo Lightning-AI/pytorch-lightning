@@ -20,7 +20,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
 
-from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
@@ -354,7 +353,6 @@ class _OptimizerLoop(_Loop):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
         )
 
         if not should_accumulate:

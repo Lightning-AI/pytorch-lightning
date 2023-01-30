@@ -56,14 +56,14 @@ class SignalConnector:
         # Windows seems to have signal incompatibilities
         if not self._is_on_windows():
             sigusr = environment.requeue_signal if isinstance(environment, SLURMEnvironment) else signal.SIGUSR1
-
             assert sigusr is not None
-
             if sigusr_handlers and not self._has_already_handler(sigusr):
                 self._register_signal(sigusr, HandlersCompose(sigusr_handlers))
 
-            if sigterm_handlers and not self._has_already_handler(signal.SIGTERM):
-                self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
+            # we have our own handler, but include existing ones too
+            if self._has_already_handler(signal.SIGTERM):
+                sigterm_handlers.append(signal.getsignal(signal.SIGTERM))
+            self._register_signal(signal.SIGTERM, HandlersCompose(sigterm_handlers))
 
     def slurm_sigusr_handler_fn(self, signum: _SIGNUM, frame: FrameType) -> None:
         rank_zero_info("handling auto-requeue signal")

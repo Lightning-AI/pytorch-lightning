@@ -150,7 +150,6 @@ For example, here step optimizer A every batch and optimizer B every 2 batches.
         optimizer,
         optimizer_idx,
         optimizer_closure,
-        on_tpu=False,
     ):
         # update generator every step
         if optimizer_idx == 0:
@@ -180,7 +179,6 @@ Here we add a manual learning rate warm-up without an lr scheduler.
         optimizer,
         optimizer_idx,
         optimizer_closure,
-        on_tpu=False,
     ):
         # update params
         optimizer.step(closure=optimizer_closure)
@@ -210,7 +208,6 @@ to perform a step, Lightning won't be able to support accelerators, precision an
         optimizer,
         optimizer_idx,
         optimizer_closure,
-        on_tpu=False,
     ):
         optimizer.step(closure=optimizer_closure)
 
@@ -225,7 +222,6 @@ to perform a step, Lightning won't be able to support accelerators, precision an
         optimizer,
         optimizer_idx,
         optimizer_closure,
-        on_tpu=False,
     ):
         optimizer = optimizer.optimizer
         optimizer.step(closure=optimizer_closure)
