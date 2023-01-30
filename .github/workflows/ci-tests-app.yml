@@ -11,6 +11,7 @@ on:
       - ".actions/**"
       - ".github/workflows/ci-tests-app.yml"
       - "src/lightning/app/**"
+      - "src/lightning_app/*"
       - "tests/tests_app/**"
       - "requirements/app/**"
       - "setup.py"

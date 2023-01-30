@@ -9,7 +9,7 @@ from setuptools import find_packages
 
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
-_PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning.app")
+_PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning_app")
 _PATH_REQUIREMENTS = os.path.join("requirements", "app")
 _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
@@ -67,7 +67,7 @@ def _setup_args() -> Dict[str, Any]:
         url=about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=about.__license__,
-        packages=find_packages(where="src", include=["lightning.app", "lightning.app.*"]),
+        packages=find_packages(where="src", include=["lightning_app", "lightning_app.*"]),
         package_dir={"": "src"},
         long_description=long_description,
         long_description_content_type="text/markdown",
@@ -77,7 +77,7 @@ def _setup_args() -> Dict[str, Any]:
         python_requires=">=3.7",
         entry_points={
             "console_scripts": [
-                "lightning = lightning.app.cli.lightning_cli:main",
+                "lightning = lightning_app.cli.lightning_cli:main",
             ],
         },
         setup_requires=[],

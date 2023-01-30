@@ -50,6 +50,7 @@ wheels/
 *.egg
 src/*/version.info
 src/lightning_app/
+!src/lightning_app/__*__.py
 src/lightning/fabric/
 src/lightning/pytorch/
 
