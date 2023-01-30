@@ -510,25 +510,10 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=save_on_train_epoch_end)],
     )
 
-    class TestModel(BoringModel):
+    class Model(BoringModel):
         def training_step(self, batch, batch_idx):
             self.log("foo", batch_idx)
             return super().training_step(batch, batch_idx)
-
-        def training_step(self, batch, batch_idx):
-            opt1, opt2 = self.optimizers()
-            scheduler1, scheduler2 = self.lr_schedulers()
-
-            loss = self.step(batch)
-            opt1.zero_grad()
-            opt2.zero_grad()
-
-            self.manual_backward(loss)
-            opt1.step()
-            opt2.step()
-            scheduler1.step(batch_idx)
-            scheduler2.step()
-            return loss
 
         def configure_optimizers(self):
             optimizer = torch.optim.Adam(self.parameters())
