@@ -1539,8 +1539,6 @@ class LightningModule(
         batch_idx: int,
         optimizer: Union[Optimizer, LightningOptimizer],
         optimizer_closure: Optional[Callable[[], Any]] = None,
-        on_tpu: bool = False,
-        using_lbfgs: bool = False,
     ) -> None:
         r"""
         Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
@@ -1556,17 +1554,15 @@ class LightningModule(
             optimizer: A PyTorch optimizer
             optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
-            on_tpu: ``True`` if TPU backward is required
-            using_lbfgs: True if the matching optimizer is :class:`torch.optim.LBFGS`
 
         Examples::
 
             # DEFAULT
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, on_tpu, using_lbfgs):
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
                 optimizer.step(closure=optimizer_closure)
 
             # Learning rate warm-up
-            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure, on_tpu, using_lbfgs):
+            def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
                 # update params
                 optimizer.step(closure=optimizer_closure)
 

@@ -20,7 +20,6 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing_extensions import OrderedDict
 
-from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops.loop import _Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
@@ -250,8 +249,6 @@ class _OptimizerLoop(_Loop):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
         """
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
         # wraps into LightningOptimizer only for running step
         optimizer = self.trainer.strategy._lightning_optimizers[0]
 
@@ -268,8 +265,6 @@ class _OptimizerLoop(_Loop):
             batch_idx,
             optimizer,
             train_step_and_backward_closure,
-            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
-            using_lbfgs=is_lbfgs,
         )
 
         if not should_accumulate:
