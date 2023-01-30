@@ -173,10 +173,10 @@ def test_amp_skip_optimizer(tmpdir):
             opt1, opt2 = self.optimizers()
             output = self(batch)
             loss = self.loss(output)
+            opt2.zero_grad()
             self.manual_backward(loss)
             # only optimizer 2 steps
             opt2.step()
-            opt2.zero_grad()
 
         def configure_optimizers(self):
             return [

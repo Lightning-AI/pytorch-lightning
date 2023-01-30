@@ -48,39 +48,44 @@ def test_optimizer_with_scheduling(tmpdir):
     assert init_lr * 0.1 == adjusted_lr[0]
 
 
-# TODO: Does it make sense to support returning [optimizer1], [lr_scheduler1, lr_scheduler2]?
-#   MisconfigurationException: Some schedulers are attached with an optimizer that wasn't returned from
-#   `configure_optimizers`.
+    class Model(BoringModel):
+        init_lr = 5e-4
 
-# def test_multi_optimizer_with_scheduling(tmpdir):
-#     """Verify that learning rate scheduling is working."""
-#
-#     class TestModel(BoringModel):
-#         init_lr = 5e-4
-#
-#         def training_step(self, batch, batch_idx, optimizer_idx):
-#             return super().training_step(batch, batch_idx)
-#
-#         def configure_optimizers(self):
-#             optimizer1 = optim.Adam(self.parameters(), lr=self.init_lr)
-#             optimizer2 = optim.Adam(self.parameters(), lr=self.init_lr)
-#             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, step_size=1)
-#             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
-#             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
-#
-#     model = TestModel()
-#     model.training_epoch_end = None
-#     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
-#     trainer.fit(model)
-#
-#     adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
-#     adjusted_lr2 = [pg["lr"] for pg in trainer.optimizers[1].param_groups]
-#
-#     assert len(trainer.lr_scheduler_configs) == 2
-#     assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
-#     assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
-#     assert model.init_lr * 0.1 == adjusted_lr1[0]
-#     assert model.init_lr * 0.1 == adjusted_lr2[0]
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+            loss = self.loss(self.step(batch))
+            opt1.zero_grad()
+            opt2.zero_grad()
+            self.manual_backward(loss)
+            opt1.step()
+            opt2.step()
+
+        def on_train_epoch_end(self):
+            scheduler1, scheduler2 = self.lr_schedulers()
+            scheduler1.step()
+            scheduler2.step()
+
+        def configure_optimizers(self):
+            optimizer1 = optim.Adam(self.parameters(), lr=self.init_lr)
+            optimizer2 = optim.Adam(self.parameters(), lr=self.init_lr)
+            lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, step_size=1)
+            lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, step_size=1)
+            return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
+
+    model = Model()
+    model.automatic_optimization = False
+    model.training_epoch_end = None
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer.fit(model)
+
+    adjusted_lr1 = [pg["lr"] for pg in trainer.optimizers[0].param_groups]
+    adjusted_lr2 = [pg["lr"] for pg in trainer.optimizers[1].param_groups]
+
+    assert len(trainer.lr_scheduler_configs) == 2
+    assert all(a == adjusted_lr1[0] for a in adjusted_lr1)
+    assert all(a == adjusted_lr2[0] for a in adjusted_lr2)
+    assert model.init_lr * 0.1 == adjusted_lr1[0]
+    assert model.init_lr * 0.1 == adjusted_lr2[0]
 
 
 def test_reducelronplateau_with_no_monitor_raises(tmpdir):
@@ -506,10 +511,10 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=save_on_train_epoch_end)],
     )
 
-    class Model(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", batch_idx)
+            return super().training_step(batch, batch_idx)
 
         def training_step(self, batch, batch_idx):
             opt1, opt2 = self.optimizers()
@@ -527,14 +532,14 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
             return loss
 
         def configure_optimizers(self):
-            optimizer_1 = torch.optim.Adam(self.parameters())
-            optimizer_2 = torch.optim.Adam(self.parameters())
-            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
-            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
-            # 'interval' and 'monitor' gets ignored for manual optimization
+            optimizer = torch.optim.Adam(self.parameters())
+
+            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
             lr_scheduler_config_1 = {"scheduler": lr_scheduler1, "interval": "step", "monitor": "foo"}
+
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             lr_scheduler_config_2 = {"scheduler": lr_scheduler2, "interval": "step"}
-            return [optimizer_1, optimizer_2], [lr_scheduler_config_1, lr_scheduler_config_2]
+            return [optimizer], [lr_scheduler_config_1, lr_scheduler_config_2]
 
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config_1 = checkpoint["lr_schedulers"][0]
@@ -569,13 +574,19 @@ def test_lr_scheduler_step_hook(tmpdir):
             ...
 
     class CustomBoringModel(BoringModel):
-        def lr_scheduler_step(self, scheduler, metric):
-            scheduler.step(epoch=self.current_epoch)
+        def lr_scheduler_step(self, scheduler: int, metric):
+            # step-level
+            if isinstance(scheduler, torch.optim.lr_scheduler.StepLR):
+                super().lr_scheduler_step(scheduler, metric)
+            # epoch-level, custom scheduler
+            elif isinstance(scheduler, CustomEpochScheduler):
+                scheduler.step(epoch=self.current_epoch)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
-            lr_scheduler = {"scheduler": CustomEpochScheduler(optimizer), "interval": "epoch"}
-            return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1), "interval": "step"}
+            lr_scheduler2 = CustomEpochScheduler(optimizer)
+            return [optimizer], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
     model.training_epoch_end = None
@@ -589,7 +600,9 @@ def test_lr_scheduler_step_hook(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
     )
-    with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch:
+    with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
+        torch.optim.lr_scheduler.StepLR, "step"
+    ) as mock_method_step:
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]

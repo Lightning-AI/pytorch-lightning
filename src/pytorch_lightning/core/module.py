@@ -1407,8 +1407,7 @@ class LightningModule(
             optimizer: The optimizer to untoggle.
         """
         for opt in self.trainer.optimizers:
-            # TODO: handle comparison when LightningOptimizer
-            if opt != optimizer:
+            if not (opt is optimizer or (isinstance(optimizer, LightningOptimizer) and opt is optimizer.optimizer)):
                 for group in opt.param_groups:
                     for param in group["params"]:
                         if param in self._param_requires_grad_state:

@@ -126,7 +126,7 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
     assert adam["zero_grad"].call_count == 8
 
 
-def test_state(tmpdir):
+def test_state():
     model = torch.nn.Linear(3, 4)
     optimizer = torch.optim.Adam(model.parameters())
     lightning_optimizer = LightningOptimizer(optimizer)
