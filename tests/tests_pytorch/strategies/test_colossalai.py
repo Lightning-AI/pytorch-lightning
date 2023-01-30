@@ -17,7 +17,6 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-from torch.optim import Optimizer
 from torchmetrics import Accuracy
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
@@ -143,7 +142,7 @@ def test_colossalai_optimizer(tmpdir):
 @RunIf(min_cuda_gpus=1, standalone=True, colossalai=True)
 def test_warn_colossalai_ignored(tmpdir):
     class TestModel(ModelParallelBoringModel):
-        def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+        def backward(self, loss: Tensor, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()

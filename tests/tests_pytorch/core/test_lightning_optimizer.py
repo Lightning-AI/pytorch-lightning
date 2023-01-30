@@ -166,9 +166,6 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
-
         def training_epoch_end(self, outputs):
             ...
 

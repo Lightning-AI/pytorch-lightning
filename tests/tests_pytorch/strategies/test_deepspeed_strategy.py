@@ -180,7 +180,7 @@ def test_deepspeed_defaults():
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
 def test_warn_deepspeed_ignored(tmpdir):
     class TestModel(BoringModel):
-        def backward(self, loss: Tensor, optimizer: Optimizer, optimizer_idx: int, *args, **kwargs) -> None:
+        def backward(self, loss: Tensor, *args, **kwargs) -> None:
             return loss.backward()
 
     model = TestModel()
@@ -1097,9 +1097,8 @@ def test_deepspeed_configure_gradient_clipping(tmpdir):
     case of deepspeed."""
 
     class TestModel(BoringModel):
-        def configure_gradient_clipping(self, optimizer, optimizer_idx, gradient_clip_val, gradient_clip_algorithm):
-            if optimizer_idx == 0:
-                self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
+        def configure_gradient_clipping(self, optimizer, gradient_clip_val, gradient_clip_algorithm):
+            self.clip_gradients(optimizer, gradient_clip_val, gradient_clip_algorithm)
 
     model = TestModel()
     trainer = Trainer(
