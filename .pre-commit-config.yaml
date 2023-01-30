@@ -82,11 +82,10 @@ repos:
         exclude: docs/source-app
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
+    rev: 1.13.0
     hooks:
       - id: blacken-docs
         args: [--line-length=120]
-        additional_dependencies: [black==21.12b0]
         exclude: docs/source-app
 
   - repo: https://github.com/executablebooks/mdformat
@@ -105,10 +104,7 @@ repos:
           )$
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.0.226'
+    rev: 'v0.0.237'
     hooks:
       - id: ruff
-        # Respect `exclude` and `extend-exclude` settings.
-        args:
-          - "--fix"
-          - "--force-exclude"
+        args: ["--fix"]
