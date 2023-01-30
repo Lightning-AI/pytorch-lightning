@@ -153,7 +153,6 @@ def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
             optimizer,
             optimizer_idx,
             closure,
-            using_lbfgs=False,
         ):
             if optimizer_idx == 0:
                 assert self.layer_1[0].weight.requires_grad is True
@@ -215,7 +214,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             optimizer,
             optimizer_idx,
             closure,
-            using_lbfgs=False,
         ):
             if optimizer_idx == 0:
                 assert self.layer_1[0].weight.requires_grad is True

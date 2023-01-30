@@ -336,8 +336,6 @@ class _OptimizerLoop(_Loop):
             train_step_and_backward_closure: the closure function performing the train step and computing the
                 gradients. By default, called by the optimizer (if possible)
         """
-        is_lbfgs = isinstance(optimizer, torch.optim.LBFGS)
-
         # wraps into LightningOptimizer only for running step
         optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
@@ -355,7 +353,6 @@ class _OptimizerLoop(_Loop):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            using_lbfgs=is_lbfgs,
         )
 
         if not should_accumulate:
