@@ -47,6 +47,10 @@ def test_optimizer_with_scheduling(tmpdir):
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     assert init_lr * 0.1 == adjusted_lr[0]
 
+
+def test_multi_optimizer_with_scheduling(tmpdir):
+    """Verify that learning rate scheduling is working."""
+
     class Model(BoringModel):
         init_lr = 5e-4
 
