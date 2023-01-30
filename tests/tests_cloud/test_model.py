@@ -39,7 +39,9 @@ def test_only_weights(lit_home, pre_download, model_name: str = "boring_model_on
 
 
 @pytest.mark.parametrize("pre_download", [True, False])
-def test_checkpoint_path(lit_home, pre_download, model_name: str = "boring_model_only_checkpoint_path", version: str = "latest"):
+def test_checkpoint_path(
+    lit_home, pre_download, model_name: str = "boring_model_only_checkpoint_path", version: str = "latest"
+):
     model = BoringModel()
     trainer = pl.Trainer(fast_dev_run=True)
     trainer.fit(model)
