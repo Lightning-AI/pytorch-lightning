@@ -4,7 +4,7 @@ import platform
 import pytest
 from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 
-from lightning.store.cloud_api import download_from_cloud, upload_to_cloud
+from lightning.store.cloud_api import download_model, upload_model
 from lightning.store.save import __STORAGE_DIR_NAME
 from pytorch_lightning.demos.boring_classes import BoringModel
 
@@ -30,8 +30,8 @@ def assert_download_successful(lit_home, username, model_name, version):
     ),
 )
 def test_versioning_valid_case(lit_home, case, expected_case, model_name: str = "boring_model_versioning"):
-    upload_to_cloud(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
-    download_from_cloud(f"{_USERNAME}/{model_name}", version=case)
+    upload_model(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
+    download_model(f"{_USERNAME}/{model_name}", version=case)
     assert_download_successful(lit_home, _USERNAME, model_name, expected_case)
 
 
@@ -49,8 +49,8 @@ def test_versioning_valid_case(lit_home, case, expected_case, model_name: str = 
 )
 def test_versioning_invalid_case(lit_home, case, model_name: str = "boring_model_versioning"):
     with pytest.raises(ConnectionRefusedError):
-        upload_to_cloud(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
+        upload_model(model_name, version=case, model=BoringModel(), api_key=_API_KEY, project_id=_PROJECT_ID)
 
     error = OSError if case == "*" and platform.system() == "Windows" else ConnectionRefusedError
     with pytest.raises(error):
-        download_from_cloud(f"{_USERNAME}/{model_name}", version=case)
+        download_model(f"{_USERNAME}/{model_name}", version=case)

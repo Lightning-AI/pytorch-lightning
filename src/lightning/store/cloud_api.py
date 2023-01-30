@@ -44,7 +44,7 @@ from lightning.store.utils import _get_model_data, _split_name, stage
 logging.basicConfig(level=logging.INFO)
 
 
-def upload_to_cloud(
+def upload_model(
     name: str,
     version: str = "latest",
     model=None,
@@ -99,17 +99,16 @@ def upload_to_cloud(
             """"
             You either need to pass the model or the checkpoint path that you want to save. :)
             Any one of:
-                `to_lightning_cloud("model_name", model=modelObj, ...)`
+                `upload_model("model_name", model=modelObj, ...)`
             or
-                `to_lightning_cloud("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
+                `upload_model("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
             is required.
         """
         )
 
     if weights_only and not model:
         raise ValueError(
-            "No model passed to `to_lightning_cloud(...), in order to save weights,"
-            " you need to pass the model object."
+            "No model passed to `upload_model(...), in order to save weights," " you need to pass the model object."
         )
 
     version = version or "latest"
@@ -164,12 +163,12 @@ def upload_to_cloud(
 
         msg += """
         Just do:
-            `download_from_lightning_cloud("{username_from_api_key}/{model_name}", version="{version}")`
+            `download_model("{username_from_api_key}/{model_name}", version="{version}")`
         in order to download the model from the cloud to your local system.
         """
         msg += """
         And:
-            `to_lightning_cloud("{username_from_api_key}/{model_name}", version="{version}")`
+            `upload_model("{username_from_api_key}/{model_name}", version="{version}")`
         in order to load the downloaded model.
         """
         logging.info(msg)
@@ -210,7 +209,7 @@ def _load_checkpoint(model, stored, output_dir, *args, **kwargs):
     return ckpt
 
 
-def download_from_cloud(
+def download_model(
     name: str,
     version: str = "latest",
     output_dir: str = "",
@@ -288,15 +287,13 @@ def download_from_cloud(
     )
     logging.info(
         "Please make sure to add imports to the necessary classes needed for instantiation of"
-        " your model before calling `load_from_lightning_cloud`."
+        " your model before calling `load_model`."
     )
 
 
 def _validate_output_dir(folder: str) -> None:
     if not os.path.exists(folder):
-        raise ValueError(
-            "The output directory doesn't exist... did you forget to call download_from_lightning_cloud(...)?"
-        )
+        raise ValueError("The output directory doesn't exist... did you forget to call download_model(...)?")
 
 
 def load_model(
@@ -332,7 +329,7 @@ def load_model(
         )
 
     if not os.path.exists(_LIGHTNING_STORAGE_FILE):
-        download_from_cloud(name=name, version=version, output_dir=_LIGHTNING_STORAGE_DIR, progress_bar=progress_bar)
+        download_model(name=name, version=version, output_dir=_LIGHTNING_STORAGE_DIR, progress_bar=progress_bar)
 
     version = version or "latest"
     model_data = _get_model_data(name, version)
@@ -357,14 +354,14 @@ def load_model(
         if not model:
             raise ValueError(
                 "Expected model=... to be passed for loading weights, please pass"
-                f" your model object to load_from_lightning_cloud({name}, {version}, model=ModelObj)"
+                f" your model object to load_model({name}, {version}, model=ModelObj)"
             )
         return _load_weights(model, stored, linked_output_dir or output_dir, *args, **kwargs)
     elif load_checkpoint:
         if not model:
             raise ValueError(
                 "You need to pass the LightningModule object (model) to be able to"
-                f" load the checkpoint. `load_from_lightning_cloud({name}, {version},"
+                f" load the checkpoint. `load_model({name}, {version},"
                 " load_checkpoint=True, model=...)`"
             )
         if not isinstance(model, (PL.LightningModule, L.LightningModule)):
