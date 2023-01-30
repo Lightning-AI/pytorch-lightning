@@ -44,7 +44,7 @@ from lightning.store.utils import _get_model_data, _split_name, stage
 logging.basicConfig(level=logging.INFO)
 
 
-def upload_to_cloud(
+def upload_model(
     name: str,
     version: str = "latest",
     model=None,
@@ -99,16 +99,16 @@ def upload_to_cloud(
             """"
             You either need to pass the model or the checkpoint path that you want to save. :)
             Any one of:
-                `upload_to_cloud("model_name", model=modelObj, ...)`
+                `upload_model("model_name", model=modelObj, ...)`
             or
-                `upload_to_cloud("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
+                `upload_model("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
             is required.
             """
         )
 
     if weights_only and not model:
         raise ValueError(
-            "No model passed to `upload_to_cloud(...), in order to save weights," " you need to pass the model object."
+            "No model passed to `upload_model(...), in order to save weights," " you need to pass the model object."
         )
 
     version = version or "latest"
@@ -173,7 +173,7 @@ def upload_to_cloud(
         """
         msg += """
         And:
-            `upload_to_cloud("{username_from_api_key}/{model_name}", version="{version}")`
+            `upload_model("{username_from_api_key}/{model_name}", version="{version}")`
         in order to load the downloaded model.
         """
         logging.info(msg)

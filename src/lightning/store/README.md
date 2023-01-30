@@ -1,7 +1,7 @@
 ## Getting Started
 
 - Login to lightning.ai (_optional_) \<-- takes less than a minute.  ⏩
-- Store your models on the cloud \<-- simple call: `upload_to_cloud(...)`. 🗳️
+- Store your models on the cloud \<-- simple call: `upload_model(...)`. 🗳️
 - Share it with your friends \<-- just share the "username/model_name" (and version if required) format. :handshake:
 - They download using a simple call: `download_from_cloud("username/model_name", version="your_version")`. :wink:
 - They load your cool model. `load_model("username/model_name", version="your_version")`. :tada:
@@ -21,10 +21,10 @@ autoencoder = LitAutoEncoder(Encoder(), Decoder())
 # Pass the model object:
 # No need to pass the username (we'll deduce ourselves), just pass the model name you want as the first argument (with an optional version):
 # format: `model_name:version` (version can either be latest or combination of digits and full-stops: 1.0.0 for example)
-L.store.upload_to_cloud("unique_model_mnist", model=autoencoder, source_code_path="sample")
+L.store.upload_model("unique_model_mnist", model=autoencoder, source_code_path="sample")
 
 # version:
-L.store.upload_to_cloud(
+L.store.upload_model(
     "unique_model_mnist",
     version="1.0.0",
     model=autoencoder,
@@ -32,10 +32,10 @@ L.store.upload_to_cloud(
 )
 
 # OR: (this will save the file which has the model defined)
-L.store.upload_to_cloud("krshrimali/unique_model_mnist", model=autoencoder)
+L.store.upload_model("krshrimali/unique_model_mnist", model=autoencoder)
 ```
 
-You can also pass the checkpoint path: `upload_to_cloud("model_name", version="latest", checkpoint_path=...)`.
+You can also pass the checkpoint path: `upload_model("model_name", version="latest", checkpoint_path=...)`.
 
 **Downloading from the cloud**
 

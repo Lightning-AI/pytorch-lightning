@@ -3,7 +3,7 @@ import os
 from tests_cloud import _API_KEY, _PROJECT_ID, _USERNAME
 from tests_cloud.helpers import cleanup
 
-from lightning.store import download_from_cloud, upload_to_cloud
+from lightning.store import download_from_cloud, upload_model
 from lightning.store.save import _LIGHTNING_STORAGE_DIR
 from pytorch_lightning.demos.boring_classes import BoringModel
 
@@ -13,7 +13,7 @@ def test_requirements(version: str = "1.0.0", model_name: str = "boring_model"):
 
     requirements_list = ["pytorch_lightning==1.7.7", "lightning"]
 
-    upload_to_cloud(
+    upload_model(
         model_name,
         version=version,
         model=BoringModel(),
