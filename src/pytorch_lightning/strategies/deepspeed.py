@@ -584,10 +584,9 @@ class DeepSpeedStrategy(DDPStrategy):
         # Skip initializing optimizers here as DeepSpeed handles optimizers via config.
         # User may have specified config options instead in configure_optimizers, but this is handled
         # via `_initialize_deepspeed_train`
-        # empty optimizers, schedulers and frequencies
+        # empty optimizers, schedulers
         self.optimizers = []
         self.lr_scheduler_configs = []
-        self.optimizer_frequencies = []
 
     @property
     def handles_gradient_accumulation(self) -> bool:
