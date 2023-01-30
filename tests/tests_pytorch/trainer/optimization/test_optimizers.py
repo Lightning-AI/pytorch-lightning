@@ -661,35 +661,20 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
         callbacks=[ModelCheckpoint(dirpath=tmpdir, save_on_train_epoch_end=save_on_train_epoch_end)],
     )
 
-    class Model(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.automatic_optimization = False
-
+    class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            opt1, opt2 = self.optimizers()
-            scheduler1, scheduler2 = self.lr_schedulers()
-
-            loss = self.step(batch)
-            opt1.zero_grad()
-            opt2.zero_grad()
-
-            self.manual_backward(loss)
-            opt1.step()
-            opt2.step()
-            scheduler1.step(batch_idx)
-            scheduler2.step()
-            return loss
+            self.log("foo", batch_idx)
+            return super().training_step(batch, batch_idx)
 
         def configure_optimizers(self):
-            optimizer_1 = torch.optim.Adam(self.parameters())
-            optimizer_2 = torch.optim.Adam(self.parameters())
-            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_1)
-            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer_2, step_size=1)
-            # 'interval' and 'monitor' gets ignored for manual optimization
+            optimizer = torch.optim.Adam(self.parameters())
+
+            lr_scheduler1 = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
             lr_scheduler_config_1 = {"scheduler": lr_scheduler1, "interval": "step", "monitor": "foo"}
+
+            lr_scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             lr_scheduler_config_2 = {"scheduler": lr_scheduler2, "interval": "step"}
-            return [optimizer_1, optimizer_2], [lr_scheduler_config_1, lr_scheduler_config_2]
+            return [optimizer], [lr_scheduler_config_1, lr_scheduler_config_2]
 
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config_1 = checkpoint["lr_schedulers"][0]
@@ -701,7 +686,7 @@ def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on
 
             self.on_save_checkpoint_called = True
 
-    model = Model()
+    model = TestModel()
     model.training_epoch_end = None
     trainer.fit(model)
     assert model.on_save_checkpoint_called
