@@ -1173,6 +1173,7 @@ class Trainer:
         self,
         hook_name: str,
         *args: Any,
+        monitoring_callbacks: Optional[bool] = None,
         **kwargs: Any,
     ) -> None:
         log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
@@ -1182,7 +1183,13 @@ class Trainer:
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        for callback in self.callbacks:
+        callbacks = self.callbacks
+        if monitoring_callbacks is True:
+            callbacks = [cb for cb in callbacks if isinstance(cb, (EarlyStopping, Checkpoint))]
+        elif monitoring_callbacks is False:
+            callbacks = [cb for cb in callbacks if not isinstance(cb, (EarlyStopping, Checkpoint))]
+
+        for callback in callbacks:
             fn = getattr(callback, hook_name)
             if callable(fn):
                 with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
