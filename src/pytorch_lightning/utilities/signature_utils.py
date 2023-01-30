@@ -12,23 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import Callable, Optional
+from typing import Callable
 
 
-def is_param_in_hook_signature(
-    hook_fx: Callable, param: str, explicit: bool = False, min_args: Optional[int] = None
-) -> bool:
+def is_param_in_hook_signature(hook_fx: Callable, param: str, explicit: bool = False, min_args: int = 1) -> bool:
     """
     Args:
         hook_fx: the hook callable
         param: the name of the parameter to check
         explicit: whether the parameter has to be explicitly declared
-        min_args: whether the `signature` as at least `min_args` parameters
+        min_args: whether the `signature` has at least `min_args` parameters
     """
     parameters = inspect.getfullargspec(hook_fx)
     args = parameters.args[1:]  # ignore `self`
-    return (
-        param in args
-        or (not explicit and (parameters.varargs is not None))
-        or (isinstance(min_args, int) and len(args) >= min_args)
-    )
+    return param in args or (not explicit and (parameters.varargs is not None)) or len(args) >= min_args
