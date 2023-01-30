@@ -152,7 +152,7 @@ class _TrainingEpochLoop(loops._Loop):
             self.optimizer_loop.optim_progress.reset_on_restart()
 
             trainer = self.trainer
-            if not trainer.state._fault_tolerant_mode.is_enabled and trainer.num_training_batches != float("inf"):
+            if trainer.num_training_batches != float("inf"):
                 expected_steps = math.ceil(trainer.num_training_batches / trainer.accumulate_grad_batches)
                 if self.global_step % expected_steps != 0:
                     rank_zero_warn(
