@@ -338,7 +338,7 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
         imports_tgt.append(sub_pkg)
 
     for sub_pkg, standalone in mapping.items():
-        if sub_pkg.split('.')[-1] in reverse:
+        if sub_pkg.split(".")[-1] in reverse:
             sub_pkg, standalone = standalone, sub_pkg
         copy_replace_imports(
             source_dir=os.path.join(source_dir, standalone.replace(".", os.sep)),
