@@ -260,7 +260,9 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
     """Replace imports of standalone package to lightning.
 
     >>> lns = [
+    ...     '"lightning_app"',
     ...     "lightning_app",
+    ...     "lightning_app/",
     ...     "delete_cloud_lightning_apps",
     ...     "from lightning_app import",
     ...     "lightning_apps = []",
@@ -270,14 +272,18 @@ def _replace_imports(lines: List[str], mapping: List[Tuple[str, str]]) -> List[s
     ... ]
     >>> mapping = [("lightning_app", "lightning.app"), ("pytorch_lightning", "lightning.pytorch")]
     >>> _replace_imports(lns, mapping)  # doctest: +NORMALIZE_WHITESPACE
-    ['lightning.app', 'delete_cloud_lightning_apps', 'from lightning.app import', 'lightning_apps = []',\
-    'lightning.app and lightning.pytorch are ours', 'def _lightning_app():',\
-    ':class:`~lightning.app.core.flow.LightningFlow`']
+    ['"lightning_app"', 'lightning.app', 'lightning_app/', 'delete_cloud_lightning_apps', 'from lightning.app import', \
+     'lightning_apps = []', 'lightning.app and lightning.pytorch are ours', 'def _lightning_app():', \
+     ':class:`~lightning.app.core.flow.LightningFlow`']
     """
     out = lines[:]
     for source_import, target_import in mapping:
         for i, ln in enumerate(out):
-            out[i] = re.sub(rf"([^_]|^){source_import}([^_\w]|$)", rf"\1{target_import}\2", ln)
+            out[i] = re.sub(
+                rf"([^_]|^){source_import}([^_\w\"/]|$)",
+                rf"\1{target_import}\2",
+                ln,
+            )
     return out
 
 
@@ -332,15 +338,14 @@ def create_mirror_package(source_dir: str, package_mapping: Dict[str, str], reve
         imports_tgt.append(sub_pkg)
 
     for sub_pkg, standalone in mapping.items():
-        sub_pkg = sub_pkg.replace(".", os.sep)
-        if sub_pkg.split(os.sep)[-1] in reverse:
+        if sub_pkg.split('.')[-1] in reverse:
             sub_pkg, standalone = standalone, sub_pkg
         copy_replace_imports(
-            source_dir=os.path.join(source_dir, standalone),
+            source_dir=os.path.join(source_dir, standalone.replace(".", os.sep)),
             # pytorch_lightning uses lightning_fabric, so we need to replace all imports for all directories
             source_imports=imports_src,
             target_imports=imports_tgt,
-            target_dir=os.path.join(source_dir, sub_pkg),
+            target_dir=os.path.join(source_dir, sub_pkg.replace(".", os.sep)),
         )
 
 
