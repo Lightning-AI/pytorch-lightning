@@ -86,7 +86,6 @@ repos:
     hooks:
       - id: blacken-docs
         args: [--line-length=120]
-        additional_dependencies: [black==21.12b0]
         exclude: docs/source-app
 
   - repo: https://github.com/executablebooks/mdformat
@@ -108,7 +107,4 @@ repos:
     rev: 'v0.0.237'
     hooks:
       - id: ruff
-        # Respect `exclude` and `extend-exclude` settings.
-        args:
-          - "--fix"
-          - "--force-exclude"
+        args: ["--fix"]
