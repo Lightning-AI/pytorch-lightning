@@ -710,12 +710,18 @@ def test_lr_scheduler_step_hook(tmpdir):
 
     class CustomBoringModel(BoringModel):
         def lr_scheduler_step(self, scheduler, optimizer_idx: int, metric):
-            scheduler.step(epoch=self.current_epoch)
+            # step-level
+            if isinstance(scheduler, torch.optim.lr_scheduler.StepLR):
+                super().lr_scheduler_step(scheduler, optimizer_idx, metric)
+            # epoch-level, custom scheduler
+            elif isinstance(scheduler, CustomEpochScheduler):
+                scheduler.step(epoch=self.current_epoch)
 
         def configure_optimizers(self):
             optimizer = torch.optim.SGD(self.layer.parameters(), lr=1e-2)
-            lr_scheduler = {"scheduler": CustomEpochScheduler(optimizer), "interval": "epoch"}
-            return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+            lr_scheduler1 = {"scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1), "interval": "step"}
+            lr_scheduler2 = CustomEpochScheduler(optimizer)
+            return [optimizer], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
     model.training_epoch_end = None
@@ -729,10 +735,14 @@ def test_lr_scheduler_step_hook(tmpdir):
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
     )
-    with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch:
+    with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
+            torch.optim.lr_scheduler.StepLR, "step"
+    ) as mock_method_step:
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
+    # first step is called by PyTorch LRScheduler
+    assert mock_method_step.call_count == max_epochs * limit_train_batches + 1
 
 
 def test_invalid_scheduler_missing_state_dict():
