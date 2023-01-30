@@ -1185,6 +1185,7 @@ class Trainer:
 
         callbacks = self.callbacks
         if monitoring_callbacks is True:
+            # the list of "monitoring callbacks" is hard-coded to these two. we could add an API to define this
             callbacks = [cb for cb in callbacks if isinstance(cb, (EarlyStopping, Checkpoint))]
         elif monitoring_callbacks is False:
             callbacks = [cb for cb in callbacks if not isinstance(cb, (EarlyStopping, Checkpoint))]
