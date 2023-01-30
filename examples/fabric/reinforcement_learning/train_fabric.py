@@ -6,7 +6,7 @@ Adapted from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py
 Based on the paper: https://arxiv.org/abs/1707.06347
 
 Requirements:
-- gymnasium
+- gymnasium[box2d]>=0.27.1
 - moviepy
 - lightning
 - torchmetrics
@@ -18,6 +18,7 @@ Run it with:
 """
 
 import argparse
+import os
 import time
 from typing import Dict, Tuple
 
@@ -26,6 +27,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchmetrics
 from src.loss import entropy_loss, policy_loss, value_loss
 from src.utils import layer_init, make_env, parse_args
 from torch.distributions import Categorical
@@ -139,7 +141,7 @@ class PPOLightningAgent(LightningModule):
         returns = advantages + values
         return returns, advantages
 
-    def training_step(self, batch: Dict[str, torch.Tensor], global_step: int):
+    def training_step(self, batch: Dict[str, torch.Tensor]):
         # Get actions and values given the current observations
         _, newlogprob, entropy, newvalue = self(batch["obs"], batch["actions"].long())
         logratio = newlogprob - batch["logprobs"]
@@ -165,21 +167,30 @@ class PPOLightningAgent(LightningModule):
         # Entropy loss
         ent_loss = entropy_loss(entropy, self.ent_coef)
 
-        # Update metrics and log them
-        self.logger.log_metrics(
-            {
-                "Loss/policy_loss": self.avg_pg_loss(pg_loss),
-                "Loss/value_loss": self.avg_value_loss(v_loss),
-                "Loss/entropy_loss": self.avg_ent_loss(ent_loss),
-            },
-            global_step,
-        )
+        # Update metrics
+        self.avg_pg_loss(pg_loss)
+        self.avg_value_loss(v_loss)
+        self.avg_ent_loss(ent_loss)
 
         # Overall loss
         return pg_loss + ent_loss + v_loss
 
+    def on_train_epoch_end(self, global_step: int) -> None:
+        # Log metrics and reset their internal state
+        self.logger.log_metrics(
+            {
+                "Loss/policy_loss": self.avg_pg_loss.compute(),
+                "Loss/value_loss": self.avg_value_loss.compute(),
+                "Loss/entropy_loss": self.avg_ent_loss.compute(),
+            },
+            global_step,
+        )
+        self.avg_pg_loss.reset()
+        self.avg_value_loss.reset()
+        self.avg_ent_loss.reset()
+
     def configure_optimizers(self, lr: float):
-        return torch.optim.Adam(self.parameters(), lr=lr, eps=1e-5)
+        return torch.optim.Adam(self.parameters(), lr=lr, eps=1e-4)
 
 
 def train(
@@ -202,18 +213,19 @@ def train(
     for epoch in range(args.update_epochs):
         sampler.sampler.set_epoch(epoch)
         for batch_idxes in sampler:
-            loss = agent.training_step({k: v[batch_idxes] for k, v in data.items()}, global_step)
+            loss = agent.training_step({k: v[batch_idxes] for k, v in data.items()})
             optimizer.zero_grad(set_to_none=True)
             fabric.backward(loss)
             nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
             optimizer.step()
+        agent.on_train_epoch_end(global_step)
 
 
 @torch.no_grad()
 def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, args: argparse.Namespace):
     device = fabric.device
     env = make_env(
-        args.env_id, args.seed + fabric.global_rank, fabric.global_rank, args.capture_video, logger.log_dir
+        args.env_id, args.seed + fabric.global_rank, fabric.global_rank, args.capture_video, logger.log_dir, "test"
     )()
     step = 0
     done = False
@@ -235,7 +247,7 @@ def test(fabric: Fabric, agent: PPOLightningAgent, logger: TensorBoardLogger, ar
 
 def main(args: argparse.Namespace):
     run_name = f"{args.env_id}_{args.exp_name}_{args.seed}_{int(time.time())}"
-    logger = TensorBoardLogger(root_dir="fabric_logs", name=run_name)
+    logger = TensorBoardLogger(root_dir=os.path.join("logs", "fabric_logs"), name=run_name)
 
     # Initialize Fabric
     fabric = Fabric(loggers=logger)
@@ -243,6 +255,7 @@ def main(args: argparse.Namespace):
     world_size = fabric.world_size
     device = fabric.device
     fabric.seed_everything(args.seed)
+    torch.backends.cudnn.deterministic = args.torch_deterministic
 
     # Log hyperparameters
     fabric.logger.experiment.add_text(
@@ -253,7 +266,7 @@ def main(args: argparse.Namespace):
     # Environment setup
     envs = gym.vector.SyncVectorEnv(
         [
-            make_env(args.env_id, args.seed + rank, rank, args.capture_video, logger.log_dir)
+            make_env(args.env_id, args.seed + rank, rank, args.capture_video, logger.log_dir, "train")
             for _ in range(args.per_rank_num_envs)
         ]
     )
@@ -272,6 +285,10 @@ def main(args: argparse.Namespace):
     )
     optimizer = agent.configure_optimizers(args.learning_rate)
     agent, optimizer = fabric.setup(agent, optimizer)
+
+    # Player metrics
+    rew_avg = torchmetrics.MeanMetric().to(device)
+    ep_len_avg = torchmetrics.MeanMetric().to(device)
 
     # Local data
     obs = torch.zeros((args.num_steps, args.per_rank_num_envs) + envs.single_observation_space.shape, device=device)
@@ -319,19 +336,18 @@ def main(args: argparse.Namespace):
             if "final_info" in info:
                 for agent_id, agent_final_info in enumerate(info["final_info"]):
                     if agent_final_info is not None and "episode" in agent_final_info:
-                        fabric.print(
-                            f"global_step={global_step}, reward_agent_{agent_id}={agent_final_info['episode']['r'][0]}"
-                        )
-                        fabric.log(
-                            f"Rewards/agent_{agent_id}",
-                            agent_final_info["episode"]["r"][0],
-                            global_step,
-                        )
-                        fabric.log(
-                            f"Game/episode_length_agent_{agent_id}",
-                            agent_final_info["episode"]["l"][0],
-                            global_step,
-                        )
+                        if agent_id == 0:
+                            fabric.print(
+                                f"global_step={global_step}, reward_agent_0={agent_final_info['episode']['r'][0]}"
+                            )
+                        rew_avg(agent_final_info["episode"]["r"][0])
+                        ep_len_avg(agent_final_info["episode"]["l"][0])
+
+        # Sync the metrics
+        fabric.log("Rewards/rew_avg", rew_avg.compute(), global_step)
+        fabric.log("Game/ep_len_avg", ep_len_avg.compute(), global_step)
+        rew_avg.reset()
+        ep_len_avg.reset()
 
         # Estimate returns with GAE (https://arxiv.org/abs/1506.02438)
         returns, advantages = agent.estimate_returns_and_advantages(
