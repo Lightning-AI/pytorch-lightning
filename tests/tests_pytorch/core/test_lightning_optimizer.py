@@ -166,33 +166,25 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     """Test overriding zero_grad works in automatic_optimization."""
 
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
-
         def training_epoch_end(self, outputs):
             ...
 
         def optimizer_zero_grad(self, epoch, batch_idx, optimizer, optimizer_idx):
-            if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
-                optimizer.zero_grad()
-            if isinstance(optimizer, Adam) and batch_idx % 5 == 0:
+            if batch_idx % 2 == 0:
                 optimizer.zero_grad()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-            return [optimizer_1, optimizer_2], [lr_scheduler]
+            return [optimizer_1], [lr_scheduler]
 
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=20, limit_val_batches=1, max_epochs=1, enable_model_summary=False
     )
 
-    with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
+    with patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
         trainer.fit(model)
-
-    assert adam_zero_grad.call_count == 4
     assert sgd_zero_grad.call_count == 10
 
 
@@ -211,16 +203,13 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
             # zero_grad is called inside the closure
             optimizer_closure()
             # not passing the closure to the optimizer because step is mocked
-            if isinstance(optimizer, SGD) and batch_idx % 2 == 0:
-                optimizer.step()
-            if isinstance(optimizer, Adam) and batch_idx % 4 == 0:
+            if batch_idx % 2 == 0:
                 optimizer.step()
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = torch.optim.Adam(self.layer.parameters(), lr=0.1)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer_1, step_size=1)
-            return [optimizer_1, optimizer_2], [lr_scheduler]
+            return [optimizer_1], [lr_scheduler]
 
     model = TestModel()
 
@@ -233,16 +222,11 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
         enable_model_summary=False,
     )
 
-    with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
-        torch.optim.Adam, zero_grad=DEFAULT, step=DEFAULT
-    ) as adam:
+    with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd:
         trainer.fit(model)
 
     assert sgd["step"].call_count == limit_train_batches // 2
-    assert adam["step"].call_count == limit_train_batches // 4
-
     assert sgd["zero_grad"].call_count == limit_train_batches
-    assert adam["zero_grad"].call_count == limit_train_batches
 
 
 def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
@@ -312,7 +296,7 @@ class OptimizerWithHooks(Optimizer):
         return True
 
 
-def test_lightning_optimizer_keeps_hooks(tmpdir):
+def test_lightning_optimizer_keeps_hooks():
     model = BoringModel()
     optimizer = OptimizerWithHooks(model)
     lightning_optimizer = LightningOptimizer(optimizer)
@@ -323,15 +307,13 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
 
 def test_params_groups_and_state_are_accessible(tmpdir):
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
+        def training_step(self, batch, batch_idx):
             loss = self.step(batch)
             self.__loss = loss
             return loss
 
         def configure_optimizers(self):
-            optimizer = SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
-            return [optimizer, optimizer_2]
+            return SGD(self.layer.parameters(), lr=0.1)
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **__):
             # check attributes are accessible
