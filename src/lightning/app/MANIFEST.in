@@ -1,0 +1,10 @@
+include src/version.info
+include src/lightning.app/version.info
+include src/lightning.app/CHANGELOG.md
+include src/lightning.app/README.md
+recursive-include requirements/app *.txt
+include .actions/assistant.py
+recursive-include src/lightning.app/cli/*-template *
+# TODO: remove this once lightning-ui package is ready as a dependency
+recursive-include src/lightning.app/ui *
+include src/lightning.app/components/serve/catimage.png
