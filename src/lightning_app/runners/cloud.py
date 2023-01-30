@@ -926,7 +926,19 @@ class CloudRuntime(Runtime):
         user = self.backend.client.auth_service_get_user()
         action = "?action=add_credits" if need_credits else ""
         if user.features.project_selector:
-            path = f"{user.username}/{project.name}/apps/{run_instance.name}/{tab}{action}"
+            paths = [
+                user.username,
+                project.name,
+                "apps",
+                run_instance.name,
+                tab,
+            ]
         else:
-            path = f"{user.username}/apps/{run_instance.id}/{tab}{action}"
-        return f"{get_lightning_cloud_url()}/{quote(path)}"
+            paths = [
+                user.username,
+                "apps",
+                run_instance.id,
+                tab,
+            ]
+        path = quote("/".join([path.replace(" ", "_").replace("/", "~") for path in paths]))
+        return f"{get_lightning_cloud_url()}/{path}{action}"

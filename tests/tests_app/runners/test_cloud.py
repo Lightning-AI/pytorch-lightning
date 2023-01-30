@@ -1990,19 +1990,19 @@ def test_default_lightningignore(monkeypatch, caplog, tmpdir):
         # New style
         (
             V1Membership(name="tester's project"),
-            Externalv1LightningappInstance(name="test-app"),
+            Externalv1LightningappInstance(name="test/app"),
             V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
             "logs",
             "https://lightning.ai",
-            "https://lightning.ai/tester/tester%27s%20project/apps/test-app/logs",
+            "https://lightning.ai/tester/tester%27s_project/apps/test~app/logs",
         ),
         (
             V1Membership(name="tester's project"),
-            Externalv1LightningappInstance(name="test-app"),
+            Externalv1LightningappInstance(name="test/app"),
             V1GetUserResponse(username="tester", features=V1UserFeatures(project_selector=True)),
             "logs",
             "http://localhost:9800",
-            "http://localhost:9800/tester/tester%27s%20project/apps/test-app/logs",
+            "http://localhost:9800/tester/tester%27s_project/apps/test~app/logs",
         ),
     ],
 )
