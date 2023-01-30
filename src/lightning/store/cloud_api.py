@@ -27,7 +27,7 @@ import pytorch_lightning as PL
 from lightning.app.core.constants import LIGHTNING_MODELS_PUBLIC_REGISTRY
 from lightning.store.authentication import _authenticate
 from lightning.store.save import (
-    _download_and_extract_data_to,
+    _download_and_extract_data,
     _get_linked_output_dir,
     _LIGHTNING_STORAGE_DIR,
     _LIGHTNING_STORAGE_FILE,
@@ -103,7 +103,7 @@ def upload_to_cloud(
             or
                 `to_lightning_cloud("model_name", checkpoint_path="your_checkpoint_path.ckpt", ...)`
             is required.
-            """
+        """
         )
 
     if weights_only and not model:
@@ -142,12 +142,7 @@ def upload_to_cloud(
                     )
 
         if requirements:
-            stored = _write_and_save_requirements(
-                model_name,
-                requirements=requirements,
-                stored=stored,
-                tmpdir=tmpdir,
-            )
+            stored = _write_and_save_requirements(model_name, requirements=requirements, stored=stored, tmpdir=tmpdir)
 
         url = _save_meta_data(
             model_name,
@@ -261,7 +256,7 @@ def download_from_cloud(
     meta_data = download_url_response["metadata"]
 
     logging.info(f"Downloading the model data for {name} to {output_dir} folder.")
-    _download_and_extract_data_to(output_dir, download_url, progress_bar)
+    _download_and_extract_data(output_dir, download_url, progress_bar)
 
     if linked_output_dir:
         logging.info(f"Linking the downloaded folder from {output_dir} to {linked_output_dir} folder.")
@@ -310,6 +305,7 @@ def load_model(
     load_weights: bool = False,
     load_checkpoint: bool = False,
     model: Union[PL.LightningModule, L.LightningModule, None] = None,
+    progress_bar: bool = True,
     *args,
     **kwargs,
 ):
@@ -326,6 +322,8 @@ def load_model(
             Loads checkpoint if this is set to `True`. Only a `LightningModule` model is supported for this feature.
         model:
             Model class to be used.
+        progress_bar:
+            Show progress on download.
     """
     if load_weights and load_checkpoint:
         raise ValueError(
@@ -334,11 +332,7 @@ def load_model(
         )
 
     if not os.path.exists(_LIGHTNING_STORAGE_FILE):
-        raise ValueError(
-            f"Could not find the model (for {name}:{version}) in the local system."
-            " Did you make sure to download the model using: `download_from_lightning_cloud(...)`"
-            " before calling `load_from_lightning_cloud(...)`?"
-        )
+        download_from_cloud(name=name, version=version, output_dir=_LIGHTNING_STORAGE_DIR, progress_bar=progress_bar)
 
     version = version or "latest"
     model_data = _get_model_data(name, version)

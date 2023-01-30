@@ -162,18 +162,10 @@ def _upload_metadata(
         content = json.loads(response_content)
         return content["uploadUrl"]
 
-    json_field = {
-        "name": f"{username}/{name}",
-        "version": version,
-        "metadata": meta_data,
-    }
+    json_field = {"name": f"{username}/{name}", "version": version, "metadata": meta_data}
     if project_id:
         json_field["project_id"] = project_id
-    response = requests.post(
-        LIGHTNING_MODELS_PUBLIC_REGISTRY,
-        auth=HTTPBasicAuth(username, api_key),
-        json=json_field,
-    )
+    response = requests.post(LIGHTNING_MODELS_PUBLIC_REGISTRY, auth=HTTPBasicAuth(username, api_key), json=json_field)
     if response.status_code != 200:
         raise ConnectionRefusedError(f"Unable to upload content.\n Error: {response.content}\n for load: {json_field}")
     return _get_url(response.content)
@@ -194,12 +186,7 @@ def _save_meta_data(name, stored, version, model, username, api_key, project_id)
     meta_data.update(_process_stored(stored))
 
     return _upload_metadata(
-        meta_data,
-        name=name,
-        version=version,
-        username=username,
-        api_key=api_key,
-        project_id=project_id,
+        meta_data, name=name, version=version, username=username, api_key=api_key, project_id=project_id
     )
 
 
@@ -211,13 +198,7 @@ def _submit_data_to_url(url: str, tmpdir: str, progress_bar: bool) -> None:
     def upload_from_file(src, dst):
         file_size = os.path.getsize(src)
         with open(src, "rb") as fd:
-            with tqdm(
-                desc="Uploading",
-                total=file_size,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as t:
+            with tqdm(desc="Uploading", total=file_size, unit="B", unit_scale=True, unit_divisor=1024) as t:
                 reader_wrapper = CallbackIOWrapper(t.update, fd, "read")
                 response = requests.put(dst, data=reader_wrapper)
                 response.raise_for_status()
@@ -255,7 +236,7 @@ def _common_clean_up(output_dir: str) -> None:
     shutil.rmtree(dir_file_path)
 
 
-def _download_and_extract_data_to(output_dir: str, download_url: str, progress_bar: bool) -> None:
+def _download_and_extract_data(output_dir: str, download_url: str, progress_bar: bool) -> None:
     try:
         _download_tarfile(download_url, output_dir, progress_bar)
 
