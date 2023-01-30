@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import MagicMock, ANY
+from unittest.mock import ANY, MagicMock
 
 import pytest
 import torch
@@ -195,7 +195,8 @@ def test_migrate_loop_structure_after_tbptt_removal():
 
 
 def test_migrate_loop_structure_after_optimizer_loop_removal():
-    """Test the loop state migration after multiple optimizer support in automatic optimization was removed in 2.0.0."""
+    """Test the loop state migration after multiple optimizer support in automatic optimization was removed in
+    2.0.0."""
     state_automatic = MagicMock()
     optim_progress_automatic = {
         "optimizer": MagicMock(),

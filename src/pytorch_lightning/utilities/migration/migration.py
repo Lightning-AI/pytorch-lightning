@@ -49,7 +49,7 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "2.0.0": [
             _drop_apex_amp_state,
             _migrate_loop_structure_after_tbptt_removal,
-            _migrate_loop_structure_after_optimizer_loop_removal
+            _migrate_loop_structure_after_optimizer_loop_removal,
         ],
     }
 
@@ -263,9 +263,9 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
 
 
 def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
-    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic optimization
-    mode was removed. There is no longer a loop over optimizer, and hence no position to store for resuming the
-    loop.
+    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic
+    optimization mode was removed. There is no longer a loop over optimizer, and hence no position to store for
+    resuming the loop.
 
     Version: 2.0.0
     Commit: TBD

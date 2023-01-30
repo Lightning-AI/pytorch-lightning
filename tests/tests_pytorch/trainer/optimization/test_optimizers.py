@@ -47,7 +47,6 @@ def test_optimizer_with_scheduling(tmpdir):
     assert all(a == adjusted_lr[0] for a in adjusted_lr)
     assert init_lr * 0.1 == adjusted_lr[0]
 
-
     class Model(BoringModel):
         init_lr = 5e-4
 
@@ -602,7 +601,7 @@ def test_lr_scheduler_step_hook(tmpdir):
     )
     with mock.patch.object(CustomEpochScheduler, "step") as mock_method_epoch, mock.patch.object(
         torch.optim.lr_scheduler.StepLR, "step"
-    ) as mock_method_step:
+    ):
         trainer.fit(model)
 
     assert mock_method_epoch.mock_calls == [call(epoch=e) for e in range(max_epochs)]
