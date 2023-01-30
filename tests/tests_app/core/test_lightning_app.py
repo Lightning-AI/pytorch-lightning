@@ -10,31 +10,31 @@ from deepdiff import Delta
 from pympler import asizeof
 from tests_app import _PROJECT_ROOT
 
-from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
-from lightning_app.api.request_types import _DeltaRequest
-from lightning_app.core.constants import (
+from lightning.app import CloudCompute, LightningApp, LightningFlow, LightningWork  # F401
+from lightning.app.api.request_types import _DeltaRequest
+from lightning.app.core.constants import (
     FLOW_DURATION_SAMPLES,
     FLOW_DURATION_THRESHOLD,
     REDIS_QUEUES_READ_DEFAULT_TIMEOUT,
     STATE_UPDATE_TIMEOUT,
 )
-from lightning_app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
-from lightning_app.frontend import StreamlitFrontend
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage import Path
-from lightning_app.storage.path import _storage_root_dir
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.testing.testing import LightningTestApp
-from lightning_app.utilities.app_helpers import affiliation
-from lightning_app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
-from lightning_app.utilities.packaging import cloud_compute
-from lightning_app.utilities.redis import check_if_redis_running
-from lightning_app.utilities.warnings import LightningFlowWarning
+from lightning.app.core.queues import BaseQueue, MultiProcessQueue, RedisQueue
+from lightning.app.frontend import StreamlitFrontend
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.storage import Path
+from lightning.app.storage.path import _storage_root_dir
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.testing.testing import LightningTestApp
+from lightning.app.utilities.app_helpers import affiliation
+from lightning.app.utilities.enum import AppStage, WorkStageStatus, WorkStopReasons
+from lightning.app.utilities.packaging import cloud_compute
+from lightning.app.utilities.redis import check_if_redis_running
+from lightning.app.utilities.warnings import LightningFlowWarning
 
 logger = logging.getLogger()
 
 
-def test_lightning_app_requires_root_run_method():
+def test_lightning.app_requires_root_run_method():
     """Test that a useful exception is raised if the root flow does not override the run method."""
 
     with pytest.raises(
@@ -410,8 +410,8 @@ class AppWithFrontend(LightningApp):
         return super().run_once()
 
 
-@mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.start_server")
-@mock.patch("lightning_app.frontend.stream_lit.StreamlitFrontend.stop_server")
+@mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.start_server")
+@mock.patch("lightning.app.frontend.stream_lit.StreamlitFrontend.stop_server")
 def test_app_starts_with_complete_state_copy(_, __):
     """Test that the LightningApp captures the initial state in a separate copy when _run() gets called."""
     app = AppWithFrontend(FlowWithFrontend(), log_level="debug")
@@ -446,7 +446,7 @@ class EmptyFlow(LightningFlow):
         (0, 10),
     ],
 )
-def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
+def test_lightning.app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
     """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
     time window."""
@@ -482,7 +482,7 @@ def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQu
         assert generated > expect
 
 
-def test_lightning_app_aggregation_empty():
+def test_lightning.app_aggregation_empty():
     """Verify the while loop exits before `state_accumulate_wait` is reached if no deltas are found."""
 
     class SlowQueue(MultiProcessQueue):
@@ -657,7 +657,7 @@ class CheckpointFlow(LightningFlow):
 
 
 @pytest.mark.skipif(True, reason="reloading isn't properly supported")
-def test_lightning_app_checkpointing_with_nested_flows():
+def test_lightning.app_checkpointing_with_nested_flows():
     work = CheckpointCounter()
     app = LightningApp(CheckpointFlow(work))
     app.checkpointing = True
@@ -858,7 +858,7 @@ class FlowExit(LightningFlow):
         self.work.run()
 
 
-def test_lightning_app_exit():
+def test_lightning.app_exit():
     app = LightningApp(FlowExit())
     MultiProcessRuntime(app, start_server=False).dispatch()
     assert app.root.work.status.stage == WorkStageStatus.STOPPED
@@ -1026,7 +1026,7 @@ def test_debug_mode_logging():
     """This test validates the DEBUG messages are collected when activated by the LightningApp(debug=True) and
     cleanup once finished."""
 
-    from lightning_app.core.app import _console
+    from lightning.app.core.app import _console
 
     app = LightningApp(A4(), log_level="debug")
     assert _console.level == logging.DEBUG
@@ -1078,7 +1078,7 @@ class TestLightningHasUpdatedApp(LightningApp):
         return res
 
 
-def test_lightning_app_has_updated():
+def test_lightning.app_has_updated():
     app = TestLightningHasUpdatedApp(FlowPath())
     MultiProcessRuntime(app, start_server=False).dispatch()
 

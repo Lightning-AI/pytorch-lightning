@@ -8,14 +8,14 @@ import pytest
 import requests
 from pydantic import BaseModel
 
-from lightning_app import LightningApp, LightningFlow
-from lightning_app.cli.commands.app_commands import _run_app_command
-from lightning_app.cli.commands.connection import connect, disconnect
-from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.runners import MultiProcessRuntime
-from lightning_app.testing.helpers import _RunIf
-from lightning_app.utilities.commands.base import _download_command, _validate_client_command, ClientCommand
-from lightning_app.utilities.state import AppState
+from lightning.app import LightningApp, LightningFlow
+from lightning.app.cli.commands.app_commands import _run_app_command
+from lightning.app.cli.commands.connection import connect, disconnect
+from lightning.app.core.constants import APP_SERVER_PORT
+from lightning.app.runners import MultiProcessRuntime
+from lightning.app.testing.helpers import _RunIf
+from lightning.app.utilities.commands.base import _download_command, _validate_client_command, ClientCommand
+from lightning.app.utilities.state import AppState
 
 
 class SweepConfig(BaseModel):
@@ -97,7 +97,7 @@ def test_validate_client_command():
     with pytest.raises(Exception, match="annotate your method"):
         _validate_client_command(ClientCommand(run_failure_1))
 
-    with pytest.raises(Exception, match="lightning_app/utilities/commands/base.py"):
+    with pytest.raises(Exception, match="lightning.app/utilities/commands/base.py"):
         _validate_client_command(ClientCommand(run_failure_2))
 
 
