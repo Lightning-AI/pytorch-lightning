@@ -278,7 +278,7 @@ If you want to call schedulers that require a metric value after each epoch, con
         self.automatic_optimization = False
 
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         sch = self.lr_schedulers()
 
         # If the selected scheduler is a ReduceLROnPlateau scheduler.
