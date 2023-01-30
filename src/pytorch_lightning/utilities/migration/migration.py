@@ -46,7 +46,11 @@ def _migration_index() -> Dict[str, List[Callable[[_CHECKPOINT], _CHECKPOINT]]]:
         "1.6.0": [_migrate_loop_global_step_to_progress_tracking, _migrate_loop_current_epoch_to_progress_tracking],
         "1.6.5": [_migrate_loop_batches_that_stepped],
         "1.9.0": [_migrate_model_checkpoint_save_on_train_epoch_end_default],
-        "2.0.0": [_drop_apex_amp_state, _migrate_loop_structure_after_tbptt_removal],
+        "2.0.0": [
+            _drop_apex_amp_state,
+            _migrate_loop_structure_after_tbptt_removal,
+            _migrate_loop_structure_after_optimizer_loop_removal
+        ],
     }
 
 
@@ -227,8 +231,8 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
     became the children of the training epoch loop.
 
     Version: 2.0.0
-    Commit: TBD
-    PR: #16172
+    Commit: 7807454
+    PR: #16337, #16172
     """
     if "loops" not in checkpoint:
         return checkpoint
@@ -255,4 +259,22 @@ def _migrate_loop_structure_after_tbptt_removal(checkpoint: _CHECKPOINT) -> _CHE
         fit_loop["epoch_loop.state_dict"]["old_batch_loop_state_dict"] = fit_loop["epoch_loop.batch_loop.state_dict"]
     fit_loop.pop("epoch_loop.batch_loop.state_dict", None)
 
+    return checkpoint
+
+
+def _migrate_loop_structure_after_optimizer_loop_removal(checkpoint: _CHECKPOINT) -> _CHECKPOINT:
+    """Adjusts the loop structure since it changed when the support for multiple optimizers in automatic optimization
+    mode was removed. There is no longer a loop over optimizer, and hence no position to store for resuming the
+    loop.
+
+    Version: 2.0.0
+    Commit: TBD
+    PR: TBD
+    """
+    if "loops" not in checkpoint:
+        return checkpoint
+
+    # TODO: Complete this migration function when optimizer loop gets flattened out and keys need to be remapped
+    fit_loop = checkpoint["loops"]["fit_loop"]
+    fit_loop["epoch_loop.optimizer_loop.optim_progress"].pop("optimizer_position", None)
     return checkpoint

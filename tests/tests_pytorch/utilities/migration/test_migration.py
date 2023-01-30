@@ -192,3 +192,36 @@ def test_migrate_loop_structure_after_tbptt_removal():
             "epoch_loop.manual_loop.optim_step_progress": optim_progress_manual,
         }
     }
+
+
+def test_migrate_loop_structure_after_optimizer_loop_removal():
+    """Test the loop state migration after multiple optimizer support in automatic optimization was removed in 2.0.0."""
+    # automatic- and manual optimization state are combined into a single checkpoint to simplify testing
+    state_automatic = MagicMock()
+    state_manual = MagicMock()
+    optim_progress_automatic = MagicMock()
+    optim_progress_manual = MagicMock()
+    old_batch_loop_state = MagicMock()
+    old_checkpoint = {
+        "loops": {
+            "fit_loop": {
+                "epoch_loop.state_dict": {"any": "state"},
+                "epoch_loop.batch_loop.state_dict": old_batch_loop_state,
+                "epoch_loop.batch_loop.optimizer_loop.state_dict": state_automatic,
+                "epoch_loop.batch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
+                "epoch_loop.batch_loop.manual_loop.state_dict": state_manual,
+                "epoch_loop.batch_loop.manual_loop.optim_step_progress": optim_progress_manual,
+            }
+        }
+    }
+    _set_version(old_checkpoint, "1.9.0")  # pretend a checkpoint prior to 2.0.0
+    updated_checkpoint, _ = migrate_checkpoint(old_checkpoint.copy(), target_version="2.0.0")
+    assert updated_checkpoint["loops"] == {
+        "fit_loop": {
+            "epoch_loop.state_dict": {"any": "state", "old_batch_loop_state_dict": old_batch_loop_state},
+            "epoch_loop.optimizer_loop.state_dict": state_automatic,
+            "epoch_loop.optimizer_loop.optim_progress": optim_progress_automatic,
+            "epoch_loop.manual_loop.state_dict": state_manual,
+            "epoch_loop.manual_loop.optim_step_progress": optim_progress_manual,
+        }
+    }
