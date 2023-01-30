@@ -22,7 +22,6 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 

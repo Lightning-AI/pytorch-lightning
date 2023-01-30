@@ -482,7 +482,10 @@ class DeepSpeedStrategy(DDPStrategy):
             )
             lr_scheduler = None
         else:
-            optimizer, lr_scheduler, = self._init_optimizers()
+            (
+                optimizer,
+                lr_scheduler,
+            ) = self._init_optimizers()
             if lr_scheduler is not None:
                 scheduler = lr_scheduler.scheduler
 
