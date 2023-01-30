@@ -3,13 +3,13 @@ from typing import Any, Dict, TYPE_CHECKING, Union
 
 from core.state import ProgressBarState, TrainerState
 
-import pytorch_lightning as pl
+import lightning.pytorch as pl
 from lightning.app.storage import Path
 from lightning.app.utilities.app_helpers import Logger
-from pytorch_lightning import Callback
-from pytorch_lightning.callbacks.progress.base import get_standard_metrics
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-from pytorch_lightning.utilities.parsing import collect_init_args
+from lightning.pytorch import Callback
+from lightning.pytorch.callbacks.progress.base import get_standard_metrics
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+from lightning.pytorch.utilities.parsing import collect_init_args
 
 if TYPE_CHECKING:
     from core.components.script_runner import ScriptRunner

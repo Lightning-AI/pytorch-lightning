@@ -6,8 +6,8 @@ from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSum
 from core.components.script_runner import ScriptRunner
 
 from lightning.app.storage import Path
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
+from lightning.pytorch import LightningModule, Trainer
+from lightning.pytorch.loggers import TensorBoardLogger
 
 
 @pytest.mark.parametrize("rank", (0, 1))

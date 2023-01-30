@@ -27,7 +27,7 @@ class ScriptRunner(TracerPythonScript):
     def configure_tracer(self) -> Tracer:
         from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary, PLAppTrainerStateTracker
 
-        from pytorch_lightning import Trainer
+        from lightning.pytorch import Trainer
 
         tracer = Tracer()
         trainer_artifacts_tracker = PLAppArtifactsTracker(work=self)

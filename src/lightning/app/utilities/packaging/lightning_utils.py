@@ -27,7 +27,7 @@ from typing import Any, Callable, Optional
 
 from packaging.version import Version
 
-from lightning.__version__ import version
+from lightning import __version__ as version
 from lightning.app import _logger, _PROJECT_ROOT, _root_logger
 from lightning.app.core.constants import FRONTEND_DIR, PACKAGE_LIGHTNING
 from lightning.app.utilities.app_helpers import Logger

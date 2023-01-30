@@ -77,7 +77,7 @@ def _is_torch_available() -> bool:
 
 
 def _is_pytorch_lightning_available() -> bool:
-    return module_available("pytorch_lightning")
+    return module_available("lightning.pytorch")
 
 
 def _is_torchvision_available() -> bool:
