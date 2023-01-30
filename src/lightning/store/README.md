@@ -1,9 +1,9 @@
 ## Getting Started
 
 - Login to lightning.ai (_optional_) \<-- takes less than a minute.  ⏩
-- Store your models on the cloud \<-- simple call: `upload_to_cloud(...)`. 🗳️
+- Store your models on the cloud \<-- simple call: `upload_model(...)`. 🗳️
 - Share it with your friends \<-- just share the "username/model_name" (and version if required) format. :handshake:
-- They download using a simple call: `download_from_cloud("username/model_name", version="your_version")`. :wink:
+- They download using a simple call: `download_model("username/model_name", version="your_version")`. :wink:
 - They load your cool model. `load_model("username/model_name", version="your_version")`. :tada:
 - Lightning :zap: fast, isn't it?. :heart:
 
@@ -21,10 +21,10 @@ autoencoder = LitAutoEncoder(Encoder(), Decoder())
 # Pass the model object:
 # No need to pass the username (we'll deduce ourselves), just pass the model name you want as the first argument (with an optional version):
 # format: `model_name:version` (version can either be latest or combination of digits and full-stops: 1.0.0 for example)
-L.store.upload_to_cloud("unique_model_mnist", model=autoencoder, source_code_path="sample")
+L.store.upload_model("unique_model_mnist", model=autoencoder, source_code_path="sample")
 
 # version:
-L.store.upload_to_cloud(
+L.store.upload_model(
     "unique_model_mnist",
     version="1.0.0",
     model=autoencoder,
@@ -32,10 +32,10 @@ L.store.upload_to_cloud(
 )
 
 # OR: (this will save the file which has the model defined)
-L.store.upload_to_cloud("krshrimali/unique_model_mnist", model=autoencoder)
+L.store.upload_model("krshrimali/unique_model_mnist", model=autoencoder)
 ```
 
-You can also pass the checkpoint path: `to_lightning_cloud("model_name", version="latest", checkpoint_path=...)`.
+You can also pass the checkpoint path: `upload_model("model_name", version="latest", checkpoint_path=...)`.
 
 **Downloading from the cloud**
 
@@ -44,7 +44,7 @@ At first, you need to download the model to your local machine.
 ```python
 import lightning as L
 
-L.store.download_from_cloud(
+L.store.download_model(
     "krshrimali/unique_model_mnist",
     output_dir="your_output_dir",
 )
@@ -56,7 +56,7 @@ L.store.download_from_cloud(
 #         |  |  |  |- <model_name>
 #         |  |  |  |  |- version_<version_with_dots_replaced_by_underscores>
 #      folder)
-L.store.download_from_cloud("krshrimali/unique_model_mnist")
+L.store.download_model("krshrimali/unique_model_mnist")
 ```
 
 **Loading model**
@@ -82,7 +82,7 @@ print(model)
 import lightning as L
 from sample.model import LitAutoEncoder, Encoder, Decoder
 
-# If you had passed an `output_dir=...` to download_from_lightning_cloud(...), then you can just do:
+# If you had passed an `output_dir=...` to download_model(...), then you can just do:
 # from output_dir.<model_source_file> import LitAutoEncoder, Encoder, Decoder
 
 model = LitAutoEncoder(Encoder(), Decoder())
