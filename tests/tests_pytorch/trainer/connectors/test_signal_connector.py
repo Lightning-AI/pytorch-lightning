@@ -42,7 +42,7 @@ def test_signal_handlers_restored_in_teardown():
 
 
 @RunIf(skip_windows=True)
-def test_fault_tolerant_sig_handler(tmpdir):
+def test_sigterm_handler_can_be_added(tmpdir):
     handler_ran = False
 
     def handler(*_):

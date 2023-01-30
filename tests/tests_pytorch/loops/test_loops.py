@@ -25,7 +25,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, OnExceptionCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import _Loop
-from pytorch_lightning.trainer.progress import BaseProgress
+from pytorch_lightning.loops.progress import BaseProgress
 from tests_pytorch.helpers.runif import RunIf
 
 

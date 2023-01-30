@@ -17,7 +17,7 @@ from functools import lru_cache
 from typing import Any, Optional, Union
 
 from pytorch_lightning.loops.loop import _Loop
-from pytorch_lightning.trainer.progress import BatchProgress
+from pytorch_lightning.loops.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import SIGTERMException
 from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
