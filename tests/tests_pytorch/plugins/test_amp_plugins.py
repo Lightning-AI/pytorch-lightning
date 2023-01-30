@@ -120,7 +120,7 @@ class TestPrecisionModel(BoringModel):
         # check clipping worked as expected
         self.check_grads_clipped()
 
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, closure, **_):
+    def optimizer_step(self, epoch, batch_idx, optimizer, closure, **_):
         # pass self as a kwarg
         optimizer.step(closure, pl_module=self)
 
