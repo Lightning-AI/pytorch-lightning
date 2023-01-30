@@ -123,63 +123,64 @@ def test_1_optimizer_toggle_model():
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
     class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            return super().training_step(batch, batch_idx)
-
         def __init__(self):
             super().__init__()
+            self.automatic_optimization = False
             self.layer_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
 
             self.layer_2 = nn.Sequential(
                 nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)
             )
 
-            # set some weights to False to check untoggle works as expected.
+            # set some weights to require no gradient to check that toggle/untoggle works as expected.
             self.layer_1[2].weight.requires_grad = False
             self.layer_1[4].weight.requires_grad = False
 
             self.layer_2[1].weight.requires_grad = False
             self.layer_2[3].weight.requires_grad = False
 
+        def training_step(self, batch, batch_idx):
+            opt1, opt2 = self.optimizers()
+
+            # Use the first optimizer, toggle it
+            self.toggle_optimizer(opt1, 0)
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            assert self.layer_1[0].weight.requires_grad is True
+            assert self.layer_1[2].weight.requires_grad is False
+            assert self.layer_1[4].weight.requires_grad is False
+
+            assert self.layer_2[1].weight.requires_grad is False
+            assert self.layer_2[3].weight.requires_grad is False
+            assert self.layer_2[5].weight.requires_grad is False
+            opt1.step()
+            opt1.zero_grad()
+            self.untoggle_optimizer(0)
+
+            # Use the second optimizer, toggle it
+            self.toggle_optimizer(opt2, 1)
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            assert self.layer_1[0].weight.requires_grad is False
+            assert self.layer_1[2].weight.requires_grad is False
+            assert self.layer_1[4].weight.requires_grad is False
+
+            assert self.layer_2[1].weight.requires_grad is False
+            assert self.layer_2[3].weight.requires_grad is False
+            assert self.layer_2[5].weight.requires_grad is True
+            opt2.step()
+            opt2.zero_grad()
+            self.untoggle_optimizer(1)
+
         def configure_optimizers(self):
-            optimizer = SGD(self.layer_1.parameters(), lr=0.1)
+            optimizer_1 = SGD(self.layer_1.parameters(), lr=0.1)
             optimizer_2 = Adam(self.layer_2.parameters(), lr=0.1)
-            return [optimizer, optimizer_2]
-
-        def optimizer_step(
-            self,
-            current_epoch,
-            batch_nb,
-            optimizer,
-            optimizer_idx,
-            closure,
-        ):
-            if optimizer_idx == 0:
-                assert self.layer_1[0].weight.requires_grad is True
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
-
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is False
-
-            if optimizer_idx == 1:
-                assert self.layer_1[0].weight.requires_grad is False
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
-
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is True
-
-            optimizer.step(closure=closure)
+            return [optimizer_1, optimizer_2]
 
     model = TestModel()
     model.training_epoch_end = None
 
-    trainer = Trainer(
-        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2, limit_val_batches=0
-    )
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=0)
     trainer.fit(model)
 
 
@@ -187,6 +188,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     class TestModel(BoringModel):
         def __init__(self):
             super().__init__()
+            self.automatic_optimization = False
             self.layer_1 = nn.Sequential(nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32))
 
             self.layer_2 = nn.Sequential(
@@ -197,7 +199,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
                 nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 32), nn.ReLU(), nn.Linear(32, 2)
             )
 
-            # set some weights to False to check untoggle works as expected.
+            # set some weights to require no gradient to check that toggle/untoggle works as expected.
             self.layer_1[2].weight.requires_grad = False
             self.layer_1[4].weight.requires_grad = False
 
@@ -207,59 +209,65 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
             self.layer_3[1].weight.requires_grad = False
             self.layer_3[5].weight.requires_grad = False
 
-        def optimizer_step(
-            self,
-            current_epoch,
-            batch_nb,
-            optimizer,
-            optimizer_idx,
-            closure,
-        ):
-            if optimizer_idx == 0:
-                assert self.layer_1[0].weight.requires_grad is True
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
+        def training_step(self, batch, batch_idx):
+            opt1, opt2, opt3 = self.optimizers()
 
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is True
+            # Use the first optimizer, toggle it
+            self.toggle_optimizer(opt1, 0)
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            assert self.layer_1[0].weight.requires_grad is True
+            assert self.layer_1[2].weight.requires_grad is False
+            assert self.layer_1[4].weight.requires_grad is False
 
-                assert self.layer_3[1].weight.requires_grad is False
-                assert self.layer_3[3].weight.requires_grad is False
-                assert self.layer_3[5].weight.requires_grad is False
+            assert self.layer_2[1].weight.requires_grad is False
+            assert self.layer_2[3].weight.requires_grad is False
+            assert self.layer_2[5].weight.requires_grad is True
 
-            if optimizer_idx == 1:
-                assert self.layer_1[0].weight.requires_grad is False
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
+            assert self.layer_3[1].weight.requires_grad is False
+            assert self.layer_3[3].weight.requires_grad is False
+            assert self.layer_3[5].weight.requires_grad is False
+            opt1.step()
+            opt1.zero_grad()
+            self.untoggle_optimizer(0)
 
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is True
+            # Use the second optimizer, toggle it
+            self.toggle_optimizer(opt2, 1)
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            assert self.layer_1[0].weight.requires_grad is False
+            assert self.layer_1[2].weight.requires_grad is False
+            assert self.layer_1[4].weight.requires_grad is False
 
-                assert self.layer_3[1].weight.requires_grad is False
-                assert self.layer_3[3].weight.requires_grad is True
-                assert self.layer_3[5].weight.requires_grad is False
+            assert self.layer_2[1].weight.requires_grad is False
+            assert self.layer_2[3].weight.requires_grad is False
+            assert self.layer_2[5].weight.requires_grad is True
 
-            if optimizer_idx == 2:
-                assert self.layer_1[0].weight.requires_grad is True
-                assert self.layer_1[2].weight.requires_grad is False
-                assert self.layer_1[4].weight.requires_grad is False
+            assert self.layer_3[1].weight.requires_grad is False
+            assert self.layer_3[3].weight.requires_grad is True
+            assert self.layer_3[5].weight.requires_grad is False
+            opt2.step()
+            opt2.zero_grad()
+            self.untoggle_optimizer(1)
 
-                assert self.layer_2[1].weight.requires_grad is False
-                assert self.layer_2[3].weight.requires_grad is False
-                assert self.layer_2[5].weight.requires_grad is False
+            # Use the third optimizer, toggle it
+            self.toggle_optimizer(opt3, 2)
+            loss = self.step(batch)
+            self.manual_backward(loss)
+            assert self.layer_1[0].weight.requires_grad is True
+            assert self.layer_1[2].weight.requires_grad is False
+            assert self.layer_1[4].weight.requires_grad is False
 
-                assert self.layer_3[1].weight.requires_grad is False
-                assert self.layer_3[3].weight.requires_grad is True
-                assert self.layer_3[5].weight.requires_grad is False
+            assert self.layer_2[1].weight.requires_grad is False
+            assert self.layer_2[3].weight.requires_grad is False
+            assert self.layer_2[5].weight.requires_grad is False
 
-            optimizer.step(closure=closure)
-
-        def training_step(self, batch, batch_idx, optimizer_idx=None):
-            loss = super().training_step(batch, batch_idx)
-            # make sure the model is untoggle when returning None
-            return loss if batch_idx % 2 == 0 else None
+            assert self.layer_3[1].weight.requires_grad is False
+            assert self.layer_3[3].weight.requires_grad is True
+            assert self.layer_3[5].weight.requires_grad is False
+            opt3.step()
+            opt3.zero_grad()
+            self.untoggle_optimizer(2)
 
         @staticmethod
         def combine_generators(gen_1, gen_2):
@@ -274,9 +282,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
     model = TestModel()
     model.training_epoch_end = None
-
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, accumulate_grad_batches=2)
-
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8)
     trainer.fit(model)
 
 
